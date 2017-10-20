@@ -138,8 +138,8 @@ class AllocationError : public Error {
 public:
     AllocationError(const std::string &file, int line,
                     const std::string &device, size_type bytes)
-        : Error(file, line, device + ": failed to allocate memory block [" +
-                std::to_string(bytes) + "B]") {}
+        : Error(file, line, device + ": failed to allocate memory block of " +
+                std::to_string(bytes) + "B") {}
 };
 
 

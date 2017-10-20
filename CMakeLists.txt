@@ -13,5 +13,3 @@ endif()
 add_subdirectory(third_party)  # Third-party tools and libraries
 add_subdirectory(core)         # Core MSparse classes
 
-add_library(msparse SHARED $<TARGET_OBJECTS:msparse_core>)
-

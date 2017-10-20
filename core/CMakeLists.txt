@@ -1,8 +1,8 @@
-set(CORE_SOURCES
+set(SOURCES
     executor.cpp)
 
-add_library(msparse_core OBJECT ${CORE_SOURCES})
-target_include_directories(msparse_core PUBLIC .)
+add_library(msparse SHARED ${SOURCES})
+target_include_directories(msparse PUBLIC .)
 
 if (BUILD_TESTS)
     add_subdirectory(test)
