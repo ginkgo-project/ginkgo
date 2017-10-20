@@ -1,7 +1,8 @@
 #ifndef MSPARSE_CORE_THROW_MACROS_H_
 #define MSPARSE_CORE_THROW_MACROS_H_
 
-#include "error.h"
+
+#include "exception.hpp"
 
 
 #include <typeinfo>

@@ -6,6 +6,9 @@
 #include <string>
 
 
+#include "types.hpp"
+
+
 namespace msparse {
 
 
