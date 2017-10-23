@@ -34,20 +34,19 @@ TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
 
 TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 {
-    msparse::DimensionMismatch error(
-            "test_file.cpp", 243, "test_func", 3, 4, 2, 5);
-    EXPECT_EQ(
-        std::string("test_file.cpp:243: test_func: attempting to apply a "
-                    "[3 x 4] operator on a [2 x 5] batch of vectors"),
-        error.what());
+    msparse::DimensionMismatch error("test_file.cpp", 243, "test_func", 3, 4, 2,
+                                     5);
+    EXPECT_EQ(std::string("test_file.cpp:243: test_func: attempting to apply a "
+                          "[3 x 4] operator on a [2 x 5] batch of vectors"),
+              error.what());
 }
 
 
 TEST(ExceptionClasses, NotFoundReturnsCorrectWhatMessage)
 {
     msparse::NotFound error("test_file.cpp", 195, "my_func", "my error");
-    EXPECT_EQ(
-        std::string("test_file.cpp:195: my_func: my error"), error.what());
+    EXPECT_EQ(std::string("test_file.cpp:195: my_func: my error"),
+              error.what());
 }
 
 
@@ -62,4 +61,3 @@ TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 
 
 }  // namespace
-

@@ -64,4 +64,3 @@ TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 
 
 }  // namespace
-
