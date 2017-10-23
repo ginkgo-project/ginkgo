@@ -2,11 +2,11 @@
 #define MSPARSE_CORE_EXCEPTION_HPP_
 
 
+#include "types.hpp"
+
+
 #include <exception>
 #include <string>
-
-
-#include "types.hpp"
 
 
 namespace msparse {
@@ -35,7 +35,7 @@ namespace msparse {
  *
  * int main()
  * {
- *     auto cpu = create<CpuCtx>();
+ *     auto cpu = create<CpuExecutor>();
  *     auto A = randn_fill<CsrMatrix<float>>(5, 5, 0f, 1f, cpu);
  *     auto x = fill<DenseMatrix<float>>(6, 1, 1f, cpu);
  *     try {

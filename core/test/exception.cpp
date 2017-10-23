@@ -32,7 +32,7 @@ TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
 }
 
 
-TEST(ExceptionClasses, DimensionMismatchCorrectWhatMessage)
+TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 {
     msparse::DimensionMismatch error(
             "test_file.cpp", 243, "test_func", 3, 4, 2, 5);
@@ -43,7 +43,7 @@ TEST(ExceptionClasses, DimensionMismatchCorrectWhatMessage)
 }
 
 
-TEST(ExceptionClasses, NotFoundCorrectWhatMessage)
+TEST(ExceptionClasses, NotFoundReturnsCorrectWhatMessage)
 {
     msparse::NotFound error("test_file.cpp", 195, "my_func", "my error");
     EXPECT_EQ(
@@ -51,7 +51,7 @@ TEST(ExceptionClasses, NotFoundCorrectWhatMessage)
 }
 
 
-TEST(ExceptionClasses, AllocationErrorCorrectWhatMessage)
+TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 {
     msparse::AllocationError error("test_file.cpp", 42, "CPU", 135);
     EXPECT_EQ(
