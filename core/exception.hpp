@@ -52,14 +52,14 @@ namespace msparse {
 class Error : public std::exception {
 public:
     Error(const std::string &file, int line, const std::string &what)
-        : what_(file + ":" + std::to_string(line) + ": " + what) {}
+        : what_(file + ":" + std::to_string(line) + ": " + what)
+    {}
 
     /**
      * Return a human-readable string with a more detailed description of the
      * error.
      */
-    virtual const char* what() const noexcept override
-    { return what_.c_str(); }
+    virtual const char *what() const noexcept override { return what_.c_str(); }
 
 private:
     const std::string what_;
@@ -73,7 +73,8 @@ private:
 class NotImplemented : public Error {
 public:
     NotImplemented(const std::string &file, int line, const std::string &func)
-        : Error(file, line, func + " is not implemented") {}
+        : Error(file, line, func + " is not implemented")
+    {}
 };
 
 
@@ -85,8 +86,10 @@ class NotSupported : public Error {
 public:
     NotSupported(const std::string &file, int line, const std::string &func,
                  const std::string &obj_type)
-        : Error(file, line, "Operation " + func +
-                " does not support parameters of type " + obj_type) {}
+        : Error(file, line,
+                "Operation " + func + " does not support parameters of type " +
+                    obj_type)
+    {}
 };
 
 
@@ -98,8 +101,10 @@ class MagmaInternalError : public Error {
 public:
     MagmaInternalError(const std::string &file, int line,
                        const std::string &func, int error_code)
-        : Error(file, line, "Internal MAGMA error with error code: " +
-                std::to_string(error_code)) {}
+        : Error(file, line,
+                "Internal MAGMA error with error code: " +
+                    std::to_string(error_code))
+    {}
 };
 
 
@@ -109,13 +114,15 @@ public:
  */
 class DimensionMismatch : public Error {
 public:
-    DimensionMismatch(
-        const std::string &file, int line, const std::string &func,
-        int64 range_dim, int64 domain_dim, int64 vector_dim, int64 num_vecs)
-        : Error(file, line, func + ": attempting to apply a [" +
-                std::to_string(range_dim) + " x " + std::to_string(domain_dim)
-                + "] operator on a [" + std::to_string(vector_dim) + " x " +
-                std::to_string(num_vecs) + "] batch of vectors") {}
+    DimensionMismatch(const std::string &file, int line,
+                      const std::string &func, int64 range_dim,
+                      int64 domain_dim, int64 vector_dim, int64 num_vecs)
+        : Error(file, line,
+                func + ": attempting to apply a [" + std::to_string(range_dim) +
+                    " x " + std::to_string(domain_dim) + "] operator on a [" +
+                    std::to_string(vector_dim) + " x " +
+                    std::to_string(num_vecs) + "] batch of vectors")
+    {}
 };
 
 
@@ -127,7 +134,8 @@ class NotFound : public Error {
 public:
     NotFound(const std::string &file, int line, const std::string &func,
              const std::string &what)
-        : Error(file, line, func + ": " + what) {}
+        : Error(file, line, func + ": " + what)
+    {}
 };
 
 
@@ -138,8 +146,10 @@ class AllocationError : public Error {
 public:
     AllocationError(const std::string &file, int line,
                     const std::string &device, size_type bytes)
-        : Error(file, line, device + ": failed to allocate memory block of " +
-                std::to_string(bytes) + "B") {}
+        : Error(file, line,
+                device + ": failed to allocate memory block of " +
+                    std::to_string(bytes) + "B")
+    {}
 };
 
 
@@ -147,4 +157,3 @@ public:
 
 
 #endif  // MSPARSE_CORE_EXCEPTION_HPP_
-

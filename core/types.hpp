@@ -17,8 +17,7 @@ using int32 = std::int32_t;
 using int64 = std::int64_t;
 
 
-}
+}  // namespace msparse
 
 
-#endif // MSPARSE_CORE_TYPES_HPP_
-
+#endif  // MSPARSE_CORE_TYPES_HPP_

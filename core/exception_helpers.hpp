@@ -17,8 +17,10 @@ namespace msparse {
  * Attempts to call this function will result in a runtime error of type
  * NotImplemented.
  */
-#define NOT_IMPLEMENTED \
-{ throw ::msparse::NotImplemented(__FILE__, __LINE__, __func__); }
+#define NOT_IMPLEMENTED                                                \
+    {                                                                  \
+        throw ::msparse::NotImplemented(__FILE__, __LINE__, __func__); \
+    }
 
 
 /**
@@ -39,11 +41,12 @@ namespace msparse {
  *
  * @throw DimensionMismatch  if _operator cannot be applied to _vectors.
  */
-#define ASSERT_CONFORMANT(_operator, _vectors) \
-    if ((_operator)->get_num_cols() != (_vectors)->get_num_rows()) { \
-        throw ::msparse::DimensionMismatch(__FILE__, __LINE__, __func__, \
-                (_operator)->get_num_rows(), (_operator)->get_num_cols(), \
-                (_vectors)->get_num_rows(), (_vectors)->get_num_cols()); \
+#define ASSERT_CONFORMANT(_operator, _vectors)                         \
+    if ((_operator)->get_num_cols() != (_vectors)->get_num_rows()) {   \
+        throw ::msparse::DimensionMismatch(                            \
+            __FILE__, __LINE__, __func__, (_operator)->get_num_rows(), \
+            (_operator)->get_num_cols(), (_vectors)->get_num_rows(),   \
+            (_vectors)->get_num_cols());                               \
     }
 
 
@@ -51,9 +54,8 @@ namespace detail {
 
 
 template <typename T>
-inline T ensure_allocated_impl(
-        T ptr, const std::string &file, int line, const std::string &dev,
-        size_type size)
+inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
+                               const std::string &dev, size_type size)
 {
     if (ptr == nullptr) {
         throw AllocationError(file, line, dev, size);
@@ -67,7 +69,7 @@ inline T ensure_allocated_impl(
 
 /**
  * Ensure the memory referenced by _ptr is allocated.
- * 
+ *
  * @param _ptr  the result of the allocation, if it is a nullptr, an exception
  *              is thrown
  * @param _dev  the device where the data was allocated, used to provide
@@ -79,13 +81,12 @@ inline T ensure_allocated_impl(
  *
  * @return _ptr
  */
-#define ENSURE_ALLOCATED(_ptr, _dev, _size) \
-    ::msparse::detail::ensure_allocated_impl( \
-            _ptr, __FILE__, __LINE__, _dev, _size)
+#define ENSURE_ALLOCATED(_ptr, _dev, _size)                                  \
+    ::msparse::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, \
+                                             _size)
 
 
 }  // namespace msparse
 
 
-#endif // MSPARSE_CORE_EXCEPTION_HELPERS_HPP_
-
+#endif  // MSPARSE_CORE_EXCEPTION_HELPERS_HPP_
