@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 project(MSparse)
 
 option(BUILD_TESTS "Generate build files for unit tests" ON)
+option(DEVEL_TOOLS "Add development tools to the build system" ON)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
