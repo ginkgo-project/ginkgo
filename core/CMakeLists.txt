@@ -4,7 +4,7 @@ set(SOURCES
 add_library(msparse SHARED ${SOURCES})
 target_include_directories(msparse PUBLIC .)
 
-if (BUILD_TESTS)
+if(BUILD_TESTS)
     add_subdirectory(test)
 endif()
 

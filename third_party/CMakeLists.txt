@@ -1,7 +1,9 @@
-if (BUILD_TESTS)
+include(package_loader.cmake)
+
+if(BUILD_TESTS)
     add_subdirectory(gtest)
 endif()
 
-if (DEVEL_TOOLS)
+if(DEVEL_TOOLS)
     add_subdirectory(git-cmake-format)
 endif()

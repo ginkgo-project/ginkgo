@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
 include(ExternalProject)
-ExternalProject_Add(git-cmake-format
-    GIT_REPOSITORY    https://github.com/gflegar/git-cmake-format.git
-    GIT_TAG           master
+ExternalProject_Add(${package_name}
+    GIT_REPOSITORY    "${package_url}"
+    GIT_TAG           "${package_tag}"
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/src"
     BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/build"
     CONFIGURE_COMMAND ""
@@ -11,4 +11,3 @@ ExternalProject_Add(git-cmake-format
     INSTALL_COMMAND   ""
     TEST_COMMAND      ""
 )
-
