@@ -12,7 +12,7 @@ namespace msparse {
 
 
 /**
- * Mark the function as not implemented.
+ * Marks a function as not yet implemented.
  *
  * Attempts to call this function will result in a runtime error of type
  * NotImplemented.
@@ -24,7 +24,7 @@ namespace msparse {
 
 
 /**
- * Create a NotSupported exception.
+ * Creates a NotSupported exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about _obj.
  *
@@ -37,7 +37,7 @@ namespace msparse {
 
 
 /**
- * Assert that _operator can be applied to _vectors.
+ * Asserts that _operator can be applied to _vectors.
  *
  * @throw DimensionMismatch  if _operator cannot be applied to _vectors.
  */
@@ -68,7 +68,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
- * Ensure the memory referenced by _ptr is allocated.
+ * Ensures the memory referenced by _ptr is allocated.
  *
  * @param _ptr  the result of the allocation, if it is a nullptr, an exception
  *              is thrown

@@ -56,7 +56,7 @@ public:
     {}
 
     /**
-     * Return a human-readable string with a more detailed description of the
+     * Returns a human-readable string with a more detailed description of the
      * error.
      */
     virtual const char *what() const noexcept override { return what_.c_str(); }
@@ -67,7 +67,7 @@ private:
 
 
 /**
- * This type of Error is thrown in case an operation has not yet
+ * NotImplemented is thrown in case an operation has not yet
  * been implemented (but will be implemented in the future).
  */
 class NotImplemented : public Error {
@@ -79,7 +79,7 @@ public:
 
 
 /**
- * This type of Error is thrown in case it is not possible to
+ * NotSupported is thrown in case it is not possible to
  * perform the requested operation on the given object type.
  */
 class NotSupported : public Error {
@@ -94,7 +94,7 @@ public:
 
 
 /**
- * This type of Error is thrown in case one of the low-level MAGMA(-sparse)
+ * MagmaInternalError is thrown in case one of the low-level MAGMA(-sparse)
  * routines exits with a nonzero error code.
  */
 class MagmaInternalError : public Error {
@@ -109,7 +109,7 @@ public:
 
 
 /**
- * This type of Error is thrown if a LinOp is being applied to a DenseMatrix
+ * DimensionMismatch is thrown if a LinOp is being applied to a DenseMatrix
  * of incompatible size.
  */
 class DimensionMismatch : public Error {
@@ -127,7 +127,7 @@ public:
 
 
 /**
- * This type of Error is thrown if a requested Attachement is not found in the
+ * NotFound is thrown if a requested Attachement is not found in the
  * attachement list of the LinOp.
  */
 class NotFound : public Error {
@@ -140,7 +140,7 @@ public:
 
 
 /**
- * This Error is thrown when a memory allocation fails.
+ * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {
 public:
