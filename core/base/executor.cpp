@@ -5,8 +5,8 @@
 #include <cstring>
 
 
-#include "core/exception.hpp"
-#include "core/exception_helpers.hpp"
+#include "core/base/exception.hpp"
+#include "core/base/exception_helpers.hpp"
 
 
 namespace msparse {
