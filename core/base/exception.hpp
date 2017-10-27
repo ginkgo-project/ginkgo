@@ -2,7 +2,7 @@
 #define MSPARSE_CORE_EXCEPTION_HPP_
 
 
-#include "types.hpp"
+#include "core/base/types.hpp"
 
 
 #include <exception>
