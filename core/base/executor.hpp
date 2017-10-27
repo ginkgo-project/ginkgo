@@ -365,6 +365,7 @@ protected:
  * implementations of the kernels used for debugging purposes.
  */
 class ReferenceExecutor : public CpuExecutor {
+public:
     static std::shared_ptr<ReferenceExecutor> create()
     {
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
@@ -410,7 +411,9 @@ public:
     int get_device_id() const noexcept { return device_id_; }
 
 protected:
-    GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master);
+    GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master)
+        : device_id_(device_id), master_(master)
+    {}
 
     void *raw_alloc(size_type size) const override;
 
