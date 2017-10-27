@@ -26,16 +26,109 @@ MSPARSE_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
 class ReferenceExecutor;
 
 
+namespace detail {
+
+
+template <typename>
+class ExecutorBase;
+
+
+}  // namespace detail
+
+
 /**
- * The Operation class is a base class for all operations which should be run
- * on supported devices.
+ * Operations can be used to define functionalities whose implementations differ
+ * among devices.
  *
- * Inheriting this class is only needed if the implementation differs for
- * different Executors. If this is the case, the implementer has to override
- * each of the run() overloads with the appropriate implementation.
+ * This is done by extending the Operation class and implementing the overloads
+ * of the Operation::run() method for all Executor types. When invoking the
+ * Executor::run() method with the Operation as input, the library will select
+ * the Operation::run() overload corresponding to the dynamic type of the
+ * Executor instance.
  *
- * Finally, an implementer instance should be passed to the
- * Executor::run() method of the Executor containing the input/output data.
+ * Consider an overload of `operator<<` for Executors, which prints some basic
+ * device information (e.g. device type and id) of the Executor to a C++ stream:
+ *
+ * ```
+ * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec);
+ * ```
+ *
+ * One possible implementation would be to use RTTI to find the dynamic type of
+ * the Executor, However, using the Operation feature of MSparse, there is a
+ * more elegant approach which utilizes polymorphism. The first step is to
+ * define an Operation that will print the desired information for each Executor
+ * type.
+ *
+ * ```
+ * class DeviceInfoPrinter : public msparse::Operation {
+ * public:
+ *     explicit DeviceInfoPrinter(std::ostream &os) : os_(os) {}
+ *
+ *     void run(const msparse::CpuExecutor *) const override { os_ << "CPU"; }
+ *
+ *     void run(const msparse::GpuExecutor *exec) const override
+ *     { os_ << "GPU(" << exec->get_device_id() << ")"; }
+ *
+ *     // This is optional, if not overloaded, defaults to CpuExecutor overload
+ *     void run(const msparse::ReferenceExecutor *) const override
+ *     { os_ << "Reference CPU"; }
+ *
+ * private:
+ *     std::ostream &os_;
+ * };
+ * ```
+ *
+ * Using DeviceInfoPrinter, the implementation of `operator<<` is as simple as
+ * calling the run() method of the executor.
+ *
+ * ```
+ * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec)
+ * {
+ *     DeviceInfoPrinter printer(os);
+ *     exec.run(printer);
+ *     return os;
+ * }
+ * ```
+ *
+ * Now it is possible to write the following code:
+ *
+ * ```
+ * auto cpu = msparse::CpuExecutor::create();
+ * std::cout << *cpu << std::endl
+ *           << *msparse::GpuExecutor::create(0, cpu) << std::endl
+ *           << *msparse::ReferenceExecutor::create() << std::endl;
+ * ```
+ *
+ * which produces the expected output:
+ *
+ * ```
+ * CPU
+ * GPU(0)
+ * Reference CPU
+ * ```
+ *
+ * One might feel that this code is too complicated for such a simple task.
+ * Luckily, there is an overload of the Executor::run() method, which is
+ * designed to facilitate writing simple operations like this one. The method
+ * takes two closures as input: one which is run for CPU, and the other one for
+ * GPU executors. Using this method, there is no need to implement an Operation
+ * subclass:
+ *
+ * ```
+ * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec)
+ * {
+ *     exec.run(
+ *         [&]() { os << "CPU"; },  // CPU closure
+ *         [&]() { os << "GPU("     // GPU closure
+ *                    << static_cast<msparse::GpuExecutor&>(exec)
+ *                         .get_device_id()
+ *                    << ")"; });
+ *     return os;
+ * }
+ * ```
+ *
+ * Using this approach, however, it is impossible to distinguish between
+ * a CpuExecutor and ReferenceExecutor, as both of them call the CPU closure.
  */
 class Operation {
 public:
@@ -46,6 +139,7 @@ public:
 
 #undef DECLARE_RUN_OVERLOAD
 
+    // ReferenceExecutor overload can be defaulted to CpuExecutor's
     virtual void run(const ReferenceExecutor *executor) const;
 };
 
@@ -54,13 +148,14 @@ public:
  * The first step in using the MAGMA-sparse library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * MAGMA-sparse currently supports two different executor types:
+ * MAGMA-sparse currently supports three different executor types:
+ *
  * +    CpuExecutor specifies that the data should be stored and the associated
- *      operations executed on the host CPU,
+ *      operations executed on the host CPU;
  * +    GpuExecutor specifies that the data should be stored and the
- *      operations executed on the NVIDIA GPU accelerator.
- * +    DebugExecutor executes a non-optimized reference implementation, which
- *      can be used to debug the library.
+ *      operations executed on the NVIDIA GPU accelerator;
+ * +    ReferenceExecutor executes a non-optimized reference implementation,
+ *      which can be used to debug the library.
  *
  * The following code snippet demonstrates the simplest possible use of the
  * MAGMA-sparse library:
@@ -72,7 +167,7 @@ public:
  *
  * First, we create a CPU executor, which will be used in the next line to
  * specify where we want the data for the matrix A to be stored.
- * The second line will read a matrix from a matrix market file 'A.mtx',
+ * The second line will read a matrix from the matrix market file 'A.mtx',
  * and store the data on the CPU in CSR format (msparse::CsrMatrix is a
  * MAGMA-sparse Matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
@@ -88,21 +183,22 @@ public:
  * auto gpu = msparse::create<msparse::GpuExecutor>(0, cpu);
  * auto dA = msparse::copy_to<msparse::CsrMatrix<float>>(A.get(), gpu);
  * ```
+ *
  * The first line of the snippet creates a new GPU executor. Since there may be
  * multiple GPUs present on the system, the first parameter instructs the
  * library to use the first device (i.e. the one with device ID zero, as in
  * cudaSetDevice() routine from the CUDA runtime API). In addition, since GPUs
- * are not stand-alone processors, it is required to pass a CpuExecutor which
- * will be used to schedule the requested GPU kernels on the accelerator.
+ * are not stand-alone processors, it is required to pass a "master" CpuExecutor
+ * which will be used to schedule the requested GPU kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
  * of the get() method. As MAGMA-sparse aims to provide automatic memory
  * management of its objects, the result of calling msparse::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
- * completed, the input parameter for msparse::copy_to is a plain pointer.
- * Thus, the get() routine is used to convert from a std::unique_ptr to a
- * plain pointer expected by the routine.
+ * completed, the input parameter for msparse::copy_to() is a plain pointer.
+ * Thus, the get() method is used to convert from a std::unique_ptr to a
+ * plain pointer, as expected by msparse::copy_to().
  *
  * As a side note, the msparse::copy_to routine is far more powerful than just
  * copying data between different devices. It can also be used to convert data
@@ -131,7 +227,7 @@ public:
  */
 class Executor {
     template <typename T>
-    friend class ExecutorBase;
+    friend class detail::ExecutorBase;
 
 public:
     virtual ~Executor() = default;
@@ -143,7 +239,7 @@ public:
     Executor &operator=(Executor &&) = default;
 
     /**
-     * Runs the specified Operation using this executor.
+     * Runs the specified Operation using this Executor.
      *
      * @param op  the operation to run
      */
@@ -210,13 +306,11 @@ public:
     }
 
     /**
-     * @internal
      * Returns the master CpuExecutor of this Executor.
      */
     virtual std::shared_ptr<CpuExecutor> get_master() noexcept = 0;
 
     /**
-     * @internal
      * @copydoc get_master
      */
     virtual std::shared_ptr<const CpuExecutor> get_master() const noexcept = 0;
@@ -234,7 +328,7 @@ protected:
     virtual void *raw_alloc(size_type size) const = 0;
 
     /**
-     * Copies raw data to another Executor.
+     * Copies raw data from another Executor.
      *
      * @param dest_exec  Executor from which the memory will be copied
      * @param n_bytes  number of bytes to copy
@@ -267,8 +361,8 @@ private:
     /**
      * The LambdaOperation class wraps two functor objects into an Operation.
      *
-     * The first object is called by the CpuExecutor, while the other by the
-     * GpuExecutor. When run on the DebugExecutor, the implementation will
+     * The first object is called by the CpuExecutor, while the other one by the
+     * GpuExecutor. When run on the ReferenceExecutor, the implementation will
      * launch the CPU version.
      *
      * @tparam ClosureCpu  the type of the first functor
@@ -299,11 +393,12 @@ private:
 };
 
 
+namespace detail {
+
+
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
 public:
-    ExecutorBase() = default;
-
     void run(const Operation &op) const override { op.run(self()); }
 
 protected:
@@ -326,6 +421,9 @@ private:
 };
 
 
+}  // namespace detail
+
+
 #define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                    \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
@@ -334,7 +432,7 @@ private:
 /**
  * This is the Executor subclass which represents the CPU device.
  */
-class CpuExecutor : public ExecutorBase<CpuExecutor>,
+class CpuExecutor : public detail::ExecutorBase<CpuExecutor>,
                     public std::enable_shared_from_this<CpuExecutor> {
 public:
     /**
@@ -387,7 +485,7 @@ void Operation::run(const ReferenceExecutor *executor) const
 /**
  * This is the Executor subclass which represents the GPU device.
  */
-class GpuExecutor : public ExecutorBase<GpuExecutor> {
+class GpuExecutor : public detail::ExecutorBase<GpuExecutor> {
 public:
     /**
      * Creates a new GpuExecutor.
