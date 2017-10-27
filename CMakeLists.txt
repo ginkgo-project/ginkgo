@@ -3,6 +3,7 @@ project(MSparse)
 
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
+option(BUILD_NVIDIA "Compile kernels for NVIDIA GPUs" OFF)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
