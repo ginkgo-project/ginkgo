@@ -24,6 +24,20 @@ namespace msparse {
 
 
 /**
+ * Marks a function as not compiled.
+ *
+ * Attempts to call this function will result in a runtime error of type
+ * NotCompiled
+ *
+ * @param _module  the module which should be compiled to enable the function
+ */
+#define NOT_COMPILED(_module)                                                 \
+    {                                                                         \
+        throw ::msparse::NotCompiled(__FILE__, __LINE__, __func__, #_module); \
+    }
+
+
+/**
  * Creates a NotSupported exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about _obj.
