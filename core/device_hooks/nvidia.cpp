@@ -1,43 +1,36 @@
 #include "core/base/executor.hpp"
 
 
+#include "core/base/exception_helpers.hpp"
+
+
 namespace msparse {
 
 
-#define FEATURE_NOT_COMPILED \
-    { /* TODO */             \
-    }
-
-
 void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr,
-                              void *dest_ptr) const FEATURE_NOT_COMPILED;
+                              const void *src_ptr, void *dest_ptr) const
+    NOT_COMPILED(nvidia);
 
 
-void GpuExecutor::free(void *ptr) const noexcept FEATURE_NOT_COMPILED;
-
-
-std::shared_ptr<CpuExecutor> GpuExecutor::get_master() noexcept
+void GpuExecutor::free(void *ptr) const noexcept
 {
-    return master_;
+    // Free must never fail, as it can be called in destructors.
+    // If the nvidia module was not compiled, the library couldn't have
+    // allocated the memory, so there is no need to deallocate it.
 }
 
 
-std::shared_ptr<const CpuExecutor> GpuExecutor::get_master() const noexcept
-{
-    return master_;
-}
-
-
-void *GpuExecutor::raw_alloc(size_type num_bytes) const FEATURE_NOT_COMPILED;
+void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
 
 
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
-                              const void *src_ptr,
-                              void *dest_ptr) const FEATURE_NOT_COMPILED;
+                              const void *src_ptr, void *dest_ptr) const
+    NOT_COMPILED(nvidia);
 
 
 void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr,
-                              void *dest_ptr) const FEATURE_NOT_COMPILED;
-}
+                              const void *src_ptr, void *dest_ptr) const
+    NOT_COMPILED(nvidia);
+
+
+}  // namespace msparse
