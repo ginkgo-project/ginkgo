@@ -291,7 +291,7 @@ public:
      *
      * @tparam T  datatype to copy
      *
-     * @param srch_exec  Executor from which the memory will be copied
+     * @param src_exec  Executor from which the memory will be copied
      * @param n_elems  number of elements of type T to copy
      * @param src_ptr  pointer to a block of memory containing the data to be
      *                 copied
