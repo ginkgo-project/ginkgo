@@ -1,6 +1,9 @@
 #include <core/base/executor.hpp>
 
 
+#include <type_traits>
+
+
 #include <gtest/gtest.h>
 
 
@@ -89,16 +92,15 @@ TEST(CpuExecutor, FailsWhenOverallocating)
 
 TEST(CpuExecutor, CopiesData)
 {
-    int orig[] = {0, 1, 2, 3, 5, 8, 13};
-    const int num_elems = sizeof(orig);
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr cpu = msparse::CpuExecutor::create();
     int *copy = cpu->alloc<int>(num_elems);
     // user code is run on the CPU, so local variables are in CPU memory
     cpu->copy_from(cpu.get(), num_elems, orig, copy);
 
-    for (int i = 0; i < num_elems; ++i) {
-        EXPECT_EQ(orig[i], copy[i]);
-    }
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
 
     cpu->free(copy);
 }
@@ -135,16 +137,15 @@ TEST(ReferenceExecutor, FailsWhenOverallocating)
 
 TEST(ReferenceExecutor, CopiesData)
 {
-    int orig[] = {0, 1, 2, 3, 5, 8, 13};
-    const int num_elems = sizeof(orig);
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     ref->copy_from(ref.get(), num_elems, orig, copy);
 
-    for (int i = 0; i < num_elems; ++i) {
-        EXPECT_EQ(orig[i], copy[i]);
-    }
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
 
     ref->free(copy);
 }
@@ -152,17 +153,16 @@ TEST(ReferenceExecutor, CopiesData)
 
 TEST(ReferenceExecutor, CopiesDataFromCpu)
 {
-    int orig[] = {0, 1, 2, 3, 5, 8, 13};
-    const int num_elems = sizeof(orig);
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr cpu = msparse::CpuExecutor::create();
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     ref->copy_from(cpu.get(), num_elems, orig, copy);
 
-    for (int i = 0; i < num_elems; ++i) {
-        EXPECT_EQ(orig[i], copy[i]);
-    }
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
 
     ref->free(copy);
 }
@@ -170,17 +170,16 @@ TEST(ReferenceExecutor, CopiesDataFromCpu)
 
 TEST(ReferenceExecutor, CopiesDataToCpu)
 {
-    int orig[] = {0, 1, 2, 3, 5, 8, 13};
-    const int num_elems = sizeof(orig);
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr cpu = msparse::CpuExecutor::create();
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = cpu->alloc<int>(num_elems);
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     cpu->copy_from(ref.get(), num_elems, orig, copy);
 
-    for (int i = 0; i < num_elems; ++i) {
-        EXPECT_EQ(orig[i], copy[i]);
-    }
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
 
     ref->free(copy);
 }
