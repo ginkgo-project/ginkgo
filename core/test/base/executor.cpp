@@ -27,44 +27,25 @@ public:
 };
 
 
-TEST(Executor, RunsCorrectOperation)
+TEST(CpuExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    ExampleOperation op(value);
-
     exec_ptr cpu = msparse::CpuExecutor::create();
-    cpu->run(op);
-    EXPECT_EQ(1, value);
 
-    exec_ptr gpu = msparse::GpuExecutor::create(
-        0, std::static_pointer_cast<msparse::CpuExecutor>(cpu));
-    gpu->run(op);
-    EXPECT_EQ(2, value);
-
-    exec_ptr ref = msparse::ReferenceExecutor::create();
-    ref->run(op);
-    EXPECT_EQ(3, value);
+    cpu->run(ExampleOperation(value));
+    ASSERT_EQ(1, value);
 }
 
 
-TEST(Executor, RunsCorrectLambdaOperation)
+TEST(CpuExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
     auto cpu_lambda = [&value]() { value = 1; };
     auto gpu_lambda = [&value]() { value = 2; };
-
     exec_ptr cpu = msparse::CpuExecutor::create();
+
     cpu->run(cpu_lambda, gpu_lambda);
-    EXPECT_EQ(1, value);
-
-    exec_ptr gpu = msparse::GpuExecutor::create(
-        0, std::static_pointer_cast<msparse::CpuExecutor>(cpu));
-    gpu->run(cpu_lambda, gpu_lambda);
-    EXPECT_EQ(2, value);
-
-    exec_ptr ref = msparse::ReferenceExecutor::create();
-    ref->run(cpu_lambda, gpu_lambda);
-    EXPECT_EQ(1, value);
+    ASSERT_EQ(1, value);
 }
 
 
@@ -86,6 +67,7 @@ TEST(CpuExecutor, FailsWhenOverallocating)
     int *ptr = nullptr;
 
     ASSERT_THROW(ptr = cpu->alloc<int>(num_elems), msparse::AllocationError);
+
     cpu->free(ptr);
 }
 
@@ -96,9 +78,9 @@ TEST(CpuExecutor, CopiesData)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr cpu = msparse::CpuExecutor::create();
     int *copy = cpu->alloc<int>(num_elems);
+
     // user code is run on the CPU, so local variables are in CPU memory
     cpu->copy_from(cpu.get(), num_elems, orig, copy);
-
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -109,7 +91,30 @@ TEST(CpuExecutor, CopiesData)
 TEST(CpuExecutor, IsItsOwnMaster)
 {
     exec_ptr cpu = msparse::CpuExecutor::create();
+
     ASSERT_EQ(cpu, cpu->get_master());
+}
+
+
+TEST(ReferenceExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr ref = msparse::ReferenceExecutor::create();
+
+    ref->run(ExampleOperation(value));
+    ASSERT_EQ(3, value);
+}
+
+
+TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto cpu_lambda = [&value]() { value = 1; };
+    auto gpu_lambda = [&value]() { value = 2; };
+    exec_ptr ref = msparse::ReferenceExecutor::create();
+
+    ref->run(cpu_lambda, gpu_lambda);
+    ASSERT_EQ(1, value);
 }
 
 
@@ -131,6 +136,7 @@ TEST(ReferenceExecutor, FailsWhenOverallocating)
     int *ptr = nullptr;
 
     ASSERT_THROW(ptr = ref->alloc<int>(num_elems), msparse::AllocationError);
+
     ref->free(ptr);
 }
 
@@ -141,9 +147,9 @@ TEST(ReferenceExecutor, CopiesData)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
+
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     ref->copy_from(ref.get(), num_elems, orig, copy);
-
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -158,9 +164,9 @@ TEST(ReferenceExecutor, CopiesDataFromCpu)
     exec_ptr cpu = msparse::CpuExecutor::create();
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
+
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     ref->copy_from(cpu.get(), num_elems, orig, copy);
-
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -175,9 +181,9 @@ TEST(ReferenceExecutor, CopiesDataToCpu)
     exec_ptr cpu = msparse::CpuExecutor::create();
     exec_ptr ref = msparse::ReferenceExecutor::create();
     int *copy = cpu->alloc<int>(num_elems);
+
     // ReferenceExecutor is a type of CPU executor, so this is O.K.
     cpu->copy_from(ref.get(), num_elems, orig, copy);
-
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -188,7 +194,32 @@ TEST(ReferenceExecutor, CopiesDataToCpu)
 TEST(ReferenceExecutor, IsItsOwnMaster)
 {
     exec_ptr ref = msparse::ReferenceExecutor::create();
+
     ASSERT_EQ(ref, ref->get_master());
+}
+
+
+TEST(GpuExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr gpu =
+        msparse::GpuExecutor::create(0, msparse::CpuExecutor::create());
+
+    gpu->run(ExampleOperation(value));
+    ASSERT_EQ(2, value);
+}
+
+
+TEST(GpuExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto cpu_lambda = [&value]() { value = 1; };
+    auto gpu_lambda = [&value]() { value = 2; };
+    exec_ptr gpu =
+        msparse::GpuExecutor::create(0, msparse::CpuExecutor::create());
+
+    gpu->run(cpu_lambda, gpu_lambda);
+    ASSERT_EQ(2, value);
 }
 
 
@@ -196,6 +227,7 @@ TEST(GpuExecutor, KnowsItsMaster)
 {
     auto cpu = msparse::CpuExecutor::create();
     exec_ptr gpu = msparse::GpuExecutor::create(0, cpu);
+
     ASSERT_EQ(cpu, gpu->get_master());
 }
 
@@ -204,6 +236,7 @@ TEST(GpuExecutor, KnowsItsDeviceId)
 {
     auto cpu = msparse::CpuExecutor::create();
     auto gpu = msparse::GpuExecutor::create(5, cpu);
+
     ASSERT_EQ(5, gpu->get_device_id());
 }
 
