@@ -79,6 +79,21 @@ public:
 
 
 /**
+ * NotCompiled is thrown when attempting to call an operation which is a part of
+ * a module that was not compiled on the system.
+ */
+class NotCompiled : public Error {
+public:
+    NotCompiled(const std::string &file, int line, const std::string &func,
+                const std::string &module)
+        : Error(file, line,
+                "feature " + func + " is part of the " + module +
+                    " module, which is not compiled on this system")
+    {}
+};
+
+
+/**
  * NotSupported is thrown in case it is not possible to
  * perform the requested operation on the given object type.
  */

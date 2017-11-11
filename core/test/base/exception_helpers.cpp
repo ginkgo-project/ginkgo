@@ -7,12 +7,21 @@
 namespace {
 
 
-void my_func() NOT_IMPLEMENTED;
+void not_implemented_func() NOT_IMPLEMENTED;
 
 
 TEST(NotImplemented, ThrowsWhenUsed)
 {
-    ASSERT_THROW(my_func(), msparse::NotImplemented);
+    ASSERT_THROW(not_implemented_func(), msparse::NotImplemented);
+}
+
+
+void not_compiled_func() NOT_COMPILED(cpu);
+
+
+TEST(NotCompiled, ThrowsWhenUsed)
+{
+    ASSERT_THROW(not_compiled_func(), msparse::NotCompiled);
 }
 
 

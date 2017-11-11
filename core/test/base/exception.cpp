@@ -22,6 +22,16 @@ TEST(ExceptionClasses, NotImplementedReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, NotCompiledReturnsCorrectWhatMessage)
+{
+    msparse::NotCompiled error("test_file.cpp", 345, "test_func", "nvidia");
+    ASSERT_EQ(std::string("test_file.cpp:345: feature test_func is part of the "
+                          "nvidia module, which is not compiled on this "
+                          "system"),
+              error.what());
+}
+
+
 TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
 {
     msparse::NotSupported error("test_file.cpp", 123, "test_func", "test_obj");
