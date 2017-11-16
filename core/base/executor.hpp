@@ -1,5 +1,5 @@
-#ifndef MSPARSE_CORE_EXECUTOR_HPP_
-#define MSPARSE_CORE_EXECUTOR_HPP_
+#ifndef GKO_CORE_EXECUTOR_HPP_
+#define GKO_CORE_EXECUTOR_HPP_
 
 
 #include "core/base/types.hpp"
@@ -8,17 +8,17 @@
 #include <memory>
 
 
-namespace msparse {
+namespace gko {
 
 
-#define MSPARSE_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                    \
+#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
+    _enable_macro(CpuExecutor, cpu);                \
     _enable_macro(GpuExecutor, gpu)
 
 
 #define FORWARD_DECLARE(_type, _unused) class _type
 
-MSPARSE_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
+GKO_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
 
 #undef FORWARD_DECLARE
 
@@ -50,27 +50,27 @@ class ExecutorBase;
  * device information (e.g. device type and id) of the Executor to a C++ stream:
  *
  * ```
- * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec);
+ * std::ostream& operator<<(std::ostream &os, const gko::Executor &exec);
  * ```
  *
  * One possible implementation would be to use RTTI to find the dynamic type of
- * the Executor, However, using the Operation feature of MSparse, there is a
+ * the Executor, However, using the Operation feature of Ginkgo, there is a
  * more elegant approach which utilizes polymorphism. The first step is to
  * define an Operation that will print the desired information for each Executor
  * type.
  *
  * ```
- * class DeviceInfoPrinter : public msparse::Operation {
+ * class DeviceInfoPrinter : public gko::Operation {
  * public:
  *     explicit DeviceInfoPrinter(std::ostream &os) : os_(os) {}
  *
- *     void run(const msparse::CpuExecutor *) const override { os_ << "CPU"; }
+ *     void run(const gko::CpuExecutor *) const override { os_ << "CPU"; }
  *
- *     void run(const msparse::GpuExecutor *exec) const override
+ *     void run(const gko::GpuExecutor *exec) const override
  *     { os_ << "GPU(" << exec->get_device_id() << ")"; }
  *
  *     // This is optional, if not overloaded, defaults to CpuExecutor overload
- *     void run(const msparse::ReferenceExecutor *) const override
+ *     void run(const gko::ReferenceExecutor *) const override
  *     { os_ << "Reference CPU"; }
  *
  * private:
@@ -82,7 +82,7 @@ class ExecutorBase;
  * calling the run() method of the executor.
  *
  * ```
- * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec)
+ * std::ostream& operator<<(std::ostream &os, const gko::Executor &exec)
  * {
  *     DeviceInfoPrinter printer(os);
  *     exec.run(printer);
@@ -93,10 +93,10 @@ class ExecutorBase;
  * Now it is possible to write the following code:
  *
  * ```
- * auto cpu = msparse::CpuExecutor::create();
+ * auto cpu = gko::CpuExecutor::create();
  * std::cout << *cpu << std::endl
- *           << *msparse::GpuExecutor::create(0, cpu) << std::endl
- *           << *msparse::ReferenceExecutor::create() << std::endl;
+ *           << *gko::GpuExecutor::create(0, cpu) << std::endl
+ *           << *gko::ReferenceExecutor::create() << std::endl;
  * ```
  *
  * which produces the expected output:
@@ -115,12 +115,12 @@ class ExecutorBase;
  * subclass:
  *
  * ```
- * std::ostream& operator<<(std::ostream &os, const msparse::Executor &exec)
+ * std::ostream& operator<<(std::ostream &os, const gko::Executor &exec)
  * {
  *     exec.run(
  *         [&]() { os << "CPU"; },  // CPU closure
  *         [&]() { os << "GPU("     // GPU closure
- *                    << static_cast<msparse::GpuExecutor&>(exec)
+ *                    << static_cast<gko::GpuExecutor&>(exec)
  *                         .get_device_id()
  *                    << ")"; });
  *     return os;
@@ -135,7 +135,7 @@ public:
 #define DECLARE_RUN_OVERLOAD(_type, _unused) \
     virtual void run(const _type *) const = 0
 
-    MSPARSE_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 
 #undef DECLARE_RUN_OVERLOAD
 
@@ -161,14 +161,14 @@ public:
  * MAGMA-sparse library:
  *
  * ```cpp
- * auto cpu = msparse::create<msparse::CpuExecutor>();
- * auto A = msparse::read_from_mtx<msparse::CsrMatrix<float>>("A.mtx", cpu);
+ * auto cpu = gko::create<gko::CpuExecutor>();
+ * auto A = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", cpu);
  * ```
  *
  * First, we create a CPU executor, which will be used in the next line to
  * specify where we want the data for the matrix A to be stored.
  * The second line will read a matrix from the matrix market file 'A.mtx',
- * and store the data on the CPU in CSR format (msparse::CsrMatrix is a
+ * and store the data on the CPU in CSR format (gko::CsrMatrix is a
  * MAGMA-sparse Matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
  * will be performed on the CPU. This approach is usually desired in sparse
@@ -180,8 +180,8 @@ public:
  * demonstrated by the next code snippet:
  *
  * ```cpp
- * auto gpu = msparse::create<msparse::GpuExecutor>(0, cpu);
- * auto dA = msparse::copy_to<msparse::CsrMatrix<float>>(A.get(), gpu);
+ * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
+ * auto dA = gko::copy_to<gko::CsrMatrix<float>>(A.get(), gpu);
  * ```
  *
  * The first line of the snippet creates a new GPU executor. Since there may be
@@ -193,17 +193,17 @@ public:
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
  * of the get() method. As MAGMA-sparse aims to provide automatic memory
- * management of its objects, the result of calling msparse::read_from_mtx()
+ * management of its objects, the result of calling gko::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
- * completed, the input parameter for msparse::copy_to() is a plain pointer.
+ * completed, the input parameter for gko::copy_to() is a plain pointer.
  * Thus, the get() method is used to convert from a std::unique_ptr to a
- * plain pointer, as expected by msparse::copy_to().
+ * plain pointer, as expected by gko::copy_to().
  *
- * As a side note, the msparse::copy_to routine is far more powerful than just
+ * As a side note, the gko::copy_to routine is far more powerful than just
  * copying data between different devices. It can also be used to convert data
  * between different formats. For example, if the above code used
- * msparse::EllMatrix as the template parameter, dA would be stored on the GPU,
+ * gko::EllMatrix as the template parameter, dA would be stored on the GPU,
  * in ELLPACK format.
  *
  * Finally, if all the processing of the matrix is supposed to be done on the
@@ -211,9 +211,9 @@ public:
  * matrix to the GPU directly:
  *
  * ```cpp
- * auto cpu = msparse::create<msparse::CpuExecutor>();
- * auto gpu = msparse::create<msparse::GpuExecutor>(0, cpu);
- * auto dA = msparse::read_from_mtx<msparse::CsrMatrix<float>>("A.mtx", gpu);
+ * auto cpu = gko::create<gko::CpuExecutor>();
+ * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
+ * auto dA = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", gpu);
  * ```
  * Notice that even though reading the matrix directly from a file to the
  * accelerator is not supported, the library is designed to abstract away the
@@ -353,7 +353,7 @@ protected:
     virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
                              const void *src_ptr, void *dest_ptr) const = 0
 
-    MSPARSE_ENABLE_FOR_ALL_EXECUTORS(ENABLE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(ENABLE_RAW_COPY_TO);
 
 #undef ENABLE_RAW_COPY_TO
 
@@ -454,7 +454,7 @@ protected:
 
     void *raw_alloc(size_type size) const override;
 
-    MSPARSE_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
 
 
@@ -515,7 +515,7 @@ protected:
 
     void *raw_alloc(size_type size) const override;
 
-    MSPARSE_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
 private:
     int device_id_;
@@ -526,7 +526,7 @@ private:
 #undef OVERRIDE_RAW_COPY_TO
 
 
-}  // namespace msparse
+}  // namespace gko
 
 
-#endif  // MSPARSE_CORE_EXECUTOR_HPP_
+#endif  // GKO_CORE_EXECUTOR_HPP_

@@ -4,7 +4,7 @@
 #include "core/base/exception_helpers.hpp"
 
 
-namespace msparse {
+namespace gko {
 
 
 void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
@@ -33,4 +33,4 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
     NOT_COMPILED(nvidia);
 
 
-}  // namespace msparse
+}  // namespace gko
