@@ -9,7 +9,7 @@
 #include "core/base/exception_helpers.hpp"
 
 
-namespace msparse {
+namespace gko {
 
 
 void CpuExecutor::free(void *ptr) const noexcept { std::free(ptr); }
@@ -52,4 +52,4 @@ std::shared_ptr<const CpuExecutor> GpuExecutor::get_master() const noexcept
 }
 
 
-}  // namespace msparse
+}  // namespace gko

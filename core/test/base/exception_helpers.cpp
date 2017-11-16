@@ -12,7 +12,7 @@ void not_implemented_func() NOT_IMPLEMENTED;
 
 TEST(NotImplemented, ThrowsWhenUsed)
 {
-    ASSERT_THROW(not_implemented_func(), msparse::NotImplemented);
+    ASSERT_THROW(not_implemented_func(), gko::NotImplemented);
 }
 
 
@@ -21,7 +21,7 @@ void not_compiled_func() NOT_COMPILED(cpu);
 
 TEST(NotCompiled, ThrowsWhenUsed)
 {
-    ASSERT_THROW(not_compiled_func(), msparse::NotCompiled);
+    ASSERT_THROW(not_compiled_func(), gko::NotCompiled);
 }
 
 
@@ -30,7 +30,7 @@ void does_not_support_int() { throw NOT_SUPPORTED(int); }
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
-    ASSERT_THROW(does_not_support_int(), msparse::NotSupported);
+    ASSERT_THROW(does_not_support_int(), gko::NotSupported);
 }
 
 
@@ -54,7 +54,7 @@ TEST(AssertConformant, ThrowsWhenNotConformant)
 {
     dummy_matrix oper{3, 5};
     dummy_matrix vecs{7, 3};
-    ASSERT_THROW(ASSERT_CONFORMANT(&oper, &vecs), msparse::DimensionMismatch);
+    ASSERT_THROW(ASSERT_CONFORMANT(&oper, &vecs), gko::DimensionMismatch);
 }
 
 
@@ -67,8 +67,7 @@ TEST(EnsureAllocated, DoesNotThrowWhenAllocated)
 
 TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 {
-    ASSERT_THROW(ENSURE_ALLOCATED(nullptr, "CPU", 20),
-                 msparse::AllocationError);
+    ASSERT_THROW(ENSURE_ALLOCATED(nullptr, "CPU", 20), gko::AllocationError);
 }
 
 

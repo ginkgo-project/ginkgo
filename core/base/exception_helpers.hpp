@@ -1,5 +1,5 @@
-#ifndef MSPARSE_CORE_EXCEPTION_HELPERS_HPP_
-#define MSPARSE_CORE_EXCEPTION_HELPERS_HPP_
+#ifndef GKO_CORE_EXCEPTION_HELPERS_HPP_
+#define GKO_CORE_EXCEPTION_HELPERS_HPP_
 
 
 #include "core/base/exception.hpp"
@@ -8,7 +8,7 @@
 #include <typeinfo>
 
 
-namespace msparse {
+namespace gko {
 
 
 /**
@@ -17,9 +17,9 @@ namespace msparse {
  * Attempts to call this function will result in a runtime error of type
  * NotImplemented.
  */
-#define NOT_IMPLEMENTED                                                \
-    {                                                                  \
-        throw ::msparse::NotImplemented(__FILE__, __LINE__, __func__); \
+#define NOT_IMPLEMENTED                                            \
+    {                                                              \
+        throw ::gko::NotImplemented(__FILE__, __LINE__, __func__); \
     }
 
 
@@ -31,9 +31,9 @@ namespace msparse {
  *
  * @param _module  the module which should be compiled to enable the function
  */
-#define NOT_COMPILED(_module)                                                 \
-    {                                                                         \
-        throw ::msparse::NotCompiled(__FILE__, __LINE__, __func__, #_module); \
+#define NOT_COMPILED(_module)                                             \
+    {                                                                     \
+        throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, #_module); \
     }
 
 
@@ -47,7 +47,7 @@ namespace msparse {
  * @return NotSupported
  */
 #define NOT_SUPPORTED(_obj) \
-    ::msparse::NotSupported(__FILE__, __LINE__, __func__, typeid(_obj).name())
+    ::gko::NotSupported(__FILE__, __LINE__, __func__, typeid(_obj).name())
 
 
 /**
@@ -57,7 +57,7 @@ namespace msparse {
  */
 #define ASSERT_CONFORMANT(_operator, _vectors)                         \
     if ((_operator)->get_num_cols() != (_vectors)->get_num_rows()) {   \
-        throw ::msparse::DimensionMismatch(                            \
+        throw ::gko::DimensionMismatch(                                \
             __FILE__, __LINE__, __func__, (_operator)->get_num_rows(), \
             (_operator)->get_num_cols(), (_vectors)->get_num_rows(),   \
             (_vectors)->get_num_cols());                               \
@@ -95,12 +95,11 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  *
  * @return _ptr
  */
-#define ENSURE_ALLOCATED(_ptr, _dev, _size)                                  \
-    ::msparse::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, \
-                                             _size)
+#define ENSURE_ALLOCATED(_ptr, _dev, _size) \
+    ::gko::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, _size)
 
 
-}  // namespace msparse
+}  // namespace gko
 
 
-#endif  // MSPARSE_CORE_EXCEPTION_HELPERS_HPP_
+#endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_

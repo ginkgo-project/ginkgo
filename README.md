@@ -1,5 +1,4 @@
-MSparse
+Ginkgo
 =======
 
-MSparse (Manycore Sparse) is a linear algebra library targeting manycore
-architectures.
+Ginkgo is a linear algebra library targeting manycore architectures.

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(MSparse)
+project(Ginkgo)
 
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
@@ -13,5 +13,5 @@ if(BUILD_TESTS)
 endif()
 
 add_subdirectory(third_party)  # Third-party tools and libraries
-add_subdirectory(core)         # Core MSparse types and top-level functions
+add_subdirectory(core)         # Core Ginkgo types and top-level functions
 

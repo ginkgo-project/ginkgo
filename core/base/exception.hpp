@@ -1,5 +1,5 @@
-#ifndef MSPARSE_CORE_EXCEPTION_HPP_
-#define MSPARSE_CORE_EXCEPTION_HPP_
+#ifndef GKO_CORE_EXCEPTION_HPP_
+#define GKO_CORE_EXCEPTION_HPP_
 
 
 #include "core/base/types.hpp"
@@ -9,7 +9,7 @@
 #include <string>
 
 
-namespace msparse {
+namespace gko {
 
 
 /**
@@ -28,10 +28,10 @@ namespace msparse {
  * demonstrated in the following program.
  *
  * ```cpp
- * #include <msparse.h>
+ * #include <ginkgo.h>
  * #include <iostream>
  *
- * using namespace msparse;
+ * using namespace gko;
  *
  * int main()
  * {
@@ -168,7 +168,7 @@ public:
 };
 
 
-}  // namespace msparse
+}  // namespace gko
 
 
-#endif  // MSPARSE_CORE_EXCEPTION_HPP_
+#endif  // GKO_CORE_EXCEPTION_HPP_
