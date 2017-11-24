@@ -10,6 +10,7 @@ if (NOT BUILD_CPU)
         $<TARGET_OBJECTS:ginkgo_cpu_device>
         cpu_hooks.cpp)
     target_include_directories(ginkgo_cpu PUBLIC ${PROJECT_SOURCE_DIR})
+    target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
 endif()
 
 if (NOT BUILD_REFERENCE)
