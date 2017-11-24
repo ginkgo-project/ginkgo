@@ -476,12 +476,6 @@ protected:
 };
 
 
-void Operation::run(const ReferenceExecutor *executor) const
-{
-    this->run(static_cast<const CpuExecutor *>(executor));
-}
-
-
 /**
  * This is the Executor subclass which represents the GPU device.
  */
