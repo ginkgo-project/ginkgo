@@ -48,7 +48,7 @@ public:
      * @param exec  the Executor where the array data is be allocated
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : num_elems_(num_elems), data_(nullptr), exec_(std::move(exec)){}
+        : num_elems_(0), data_(nullptr), exec_(std::move(exec))
     {
         this->resize(num_elems);
     }
@@ -145,14 +145,14 @@ public:
         this->clear();
         if (num_elems > 0) {
             num_elems_ = num_elems;
-            data = exec.alloc<value_type>(num_elems);
+            data_ = exec_->alloc<value_type>(num_elems);
         }
     }
 
     /**
      * Get the number of elements in the Array.
      */
-    num_elems get_num_elems() const noexcept { return num_elems_; }
+    size_type get_num_elems() const noexcept { return num_elems_; }
 
     /**
      * Get a pointer to the block of memory used to store the elements of the
@@ -175,7 +175,8 @@ public:
     }
 
     /**
-     * Take control of the data allocated elsewhere.
+     * Take control of the data allocated elsewhere in the program (but in the
+     * same executor).
      *
      * The behaviour of the array will be as if the data was allocated by the
      * library, i.e. the array will deallocate and change the block of data
@@ -214,7 +215,7 @@ public:
             // moving to the same executor, no-op
             return;
         }
-        Executor tmp(exec);
+        Array tmp(exec);
         tmp = *this;
         this->clear();
         exec_ = exec;
