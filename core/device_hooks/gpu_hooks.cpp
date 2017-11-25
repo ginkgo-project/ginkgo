@@ -9,7 +9,7 @@ namespace gko {
 
 void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(nvidia);
+    NOT_COMPILED(gpu);
 
 
 void GpuExecutor::free(void *ptr) const noexcept
@@ -25,12 +25,12 @@ void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
 
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(nvidia);
+    NOT_COMPILED(gpu);
 
 
 void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(nvidia);
+    NOT_COMPILED(gpu);
 
 
 }  // namespace gko
