@@ -27,10 +27,15 @@ public:
 namespace matrix {
 
 
-template <typename ValueType>
+template <typename ValueType = default_precision>
 class Dense : public LinOp, public ConvertibleTo<Dense<ValueType>> {
 public:
     using value_type = ValueType;
+
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec)
+    {
+        return create(exec, 0, 0, 0);
+    }
 
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          size_type num_rows, size_type num_cols,

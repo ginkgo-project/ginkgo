@@ -14,20 +14,29 @@ namespace gko {
  */
 using size_type = std::size_t;
 
+
 /**
  * 32-bit signed integral type.
  */
 using int32 = std::int32_t;
+
 
 /**
  * 64-bit signed integral type.
  */
 using int64 = std::int64_t;
 
+
 /**
  * The most precise floating-point type.
  */
 using full_precision = double;
+
+
+/**
+ * Precision used if no precision is explicitly specified.
+ */
+using default_precision = double;
 
 
 #define GINKGO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
