@@ -1,7 +1,7 @@
-#include "core/base/executor.hpp"
-
-
+#include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -31,6 +31,24 @@ void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
 void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     NOT_COMPILED(gpu);
+
+
+namespace kernels {
+
+
+namespace gpu {
+
+
+template <typename ValueType>
+GINKGO_DECLARE_GEMM_KERNEL(ValueType)
+NOT_COMPILED(cpu);
+GINKGO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GINKGO_DECLARE_GEMM_KERNEL);
+
+
+}  // namespace gpu
+
+
+}  // namespace kernels
 
 
 }  // namespace gko

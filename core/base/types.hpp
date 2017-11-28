@@ -30,6 +30,13 @@ using int64 = std::int64_t;
 using full_precision = double;
 
 
+#define GINKGO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
+    template _macro(float);                            \
+    template _macro(double);                           \
+    template _macro(std::complex<float>);              \
+    template _macro(std::complex<double>)
+
+
 }  // namespace gko
 
 

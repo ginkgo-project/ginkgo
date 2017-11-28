@@ -178,6 +178,11 @@ public:
     virtual std::unique_ptr<LinOp> clone_type() const = 0;
 
     /**
+     * Transform the object into an empty LinOp.
+     */
+    virtual void clear() = 0;
+
+    /**
      * Get the Executor of this object.
      */
     std::shared_ptr<const Executor> get_executor() const noexcept
@@ -220,16 +225,17 @@ public:
      */
     size_type get_num_nonzeros() const noexcept { return num_nonzeros_; }
 
-    /**
-     * Transform the object into an empty LinOp.
-     */
-    virtual void clear() = 0;
-
 protected:
     /**
      * Create a new LinOp object on the specified Executor.
      */
-    explicit LinOp(std::shared_ptr<const Executor> exec) : exec_(exec) {}
+    LinOp(std::shared_ptr<const Executor> exec, size_type num_rows,
+          size_type num_cols, size_type num_nonzeros)
+        : exec_(exec),
+          num_rows_(num_rows),
+          num_cols_(num_cols),
+          num_nonzeros_(num_nonzeros)
+    {}
 
     void set_dimensions(size_type num_rows, size_type num_cols,
                         size_type num_nonzeros) noexcept
