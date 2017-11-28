@@ -14,8 +14,23 @@ namespace reference {
 
 template <typename ValueType>
 GKO_DECLARE_GEMM_KERNEL(ValueType)
-NOT_COMPILED(cpu);
+NOT_COMPILED(reference);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GEMM_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_SCAL_KERNEL(ValueType)
+NOT_COMPILED(reference);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCAL_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_AXPY_KERNEL(ValueType)
+NOT_COMPILED(reference);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_AXPY_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_DOT_KERNEL(ValueType)
+NOT_COMPILED(reference);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DOT_KERNEL);
 
 
 }  // namespace reference

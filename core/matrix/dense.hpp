@@ -34,12 +34,9 @@ public:
             new Dense(std::move(exec), num_rows, num_cols, padding));
     }
 
-    value_type *get_values() noexcept { return values_.get_data(); }
+    Array<value_type> &get_values() noexcept { return values_; }
 
-    const value_type *get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const Array<value_type> &get_values() const noexcept { return values_; }
 
     size_type get_padding() const { return padding_; }
 
@@ -51,6 +48,12 @@ public:
 
     void apply(full_precision alpha, const LinOp *b, full_precision beta,
                LinOp *x) const override;
+
+    virtual void scale(full_precision alpha);
+
+    virtual void add_scaled(full_precision alpha, const LinOp *b);
+
+    virtual void compute_dot(const LinOp *b, Array<full_precision> &result);
 
     std::unique_ptr<LinOp> clone_type() const override;
 

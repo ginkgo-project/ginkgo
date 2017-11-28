@@ -16,32 +16,48 @@ namespace kernels {
               matrix::Dense<_type> *c)
 
 
+#define GKO_DECLARE_SCAL_KERNEL(_type) \
+    void scal(_type alpha, matrix::Dense<_type> *x)
+
+
+#define GKO_DECLARE_AXPY_KERNEL(_type)                    \
+    void axpy(_type alpha, const matrix::Dense<_type> *x, \
+              matrix::Dense<_type> *y)
+
+
+#define GKO_DECLARE_DOT_KERNEL(_type)                                      \
+    void dot(const matrix::Dense<_type> *x, const matrix::Dense<_type> *y, \
+             Array<full_precision> &result)
+
+
+#define DECLARE_ALL_AS_TEMPLATES        \
+    template <typename ValueType>       \
+    GKO_DECLARE_GEMM_KERNEL(ValueType); \
+    template <typename ValueType>       \
+    GKO_DECLARE_SCAL_KERNEL(ValueType); \
+    template <typename ValueType>       \
+    GKO_DECLARE_AXPY_KERNEL(ValueType); \
+    template <typename ValueType>       \
+    GKO_DECLARE_DOT_KERNEL(ValueType)
+
+
 namespace cpu {
 
-
-template <typename ValueType>
-GKO_DECLARE_GEMM_KERNEL(ValueType);
-
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cpu
 
 
 namespace gpu {
 
-
-template <typename ValueType>
-GKO_DECLARE_GEMM_KERNEL(ValueType);
-
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace gpu
 
 
 namespace reference {
 
-
-template <typename ValueType>
-GKO_DECLARE_GEMM_KERNEL(ValueType);
-
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace reference
 }  // namespace kernels

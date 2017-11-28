@@ -15,8 +15,11 @@ namespace {
 
 
 template <typename ValueType>
-struct TemplatedGemmOperation {
+struct TemplatedOperation {
     GKO_REGISTER_OPERATION(gemm, gemm<ValueType>);
+    GKO_REGISTER_OPERATION(scale, scal<ValueType>);
+    GKO_REGISTER_OPERATION(add_scaled, axpy<ValueType>);
+    GKO_REGISTER_OPERATION(compute_dot, dot<ValueType>);
 };
 
 
@@ -70,9 +73,45 @@ void Dense<ValueType>::apply(full_precision alpha, const LinOp *b,
     }
 
     this->get_executor()->run(
-        TemplatedGemmOperation<ValueType>::make_gemm_operation(
+        TemplatedOperation<ValueType>::make_gemm_operation(
             static_cast<ValueType>(alpha), this, dense_b,
             static_cast<ValueType>(beta), dense_x));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scale(full_precision alpha)
+{
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_scale_operation(
+            static_cast<ValueType>(alpha), this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled(full_precision alpha, const LinOp *b)
+{
+    auto dense_b = dynamic_cast<const Dense *>(b);
+    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(b);
+    }
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_add_scaled_operation(
+            static_cast<ValueType>(alpha), dense_b, this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot(const LinOp *b,
+                                   Array<full_precision> &result)
+{
+    auto dense_b = dynamic_cast<const Dense *>(b);
+    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(b);
+    }
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_compute_dot_operation(this, dense_b,
+                                                                  result));
 }
 
 

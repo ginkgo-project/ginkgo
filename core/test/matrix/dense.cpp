@@ -16,7 +16,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Dense<>::create(exec, 2, 3, 4))
     {
-        auto vals = mtx->get_values();
+        auto vals = mtx->get_values().get_data();
         vals[0 * 4 + 0] = 1.0;
         vals[0 * 4 + 1] = 2.0;
         vals[0 * 4 + 2] = 3.0;
@@ -32,7 +32,7 @@ protected:
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_padding(), 4);
         ASSERT_EQ(m->get_num_nonzeros(), 2 * 4);
-        auto vals = m->get_const_values();
+        auto vals = m->get_values().get_const_data();
         EXPECT_EQ(vals[0 * 4 + 0], 1.0);
         EXPECT_EQ(vals[0 * 4 + 1], 2.0);
         EXPECT_EQ(vals[0 * 4 + 2], 3.0);
@@ -63,7 +63,7 @@ TEST_F(Dense, CanBeEmpty)
 TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::matrix::Dense<>::create(exec);
-    ASSERT_EQ(empty->get_values(), nullptr);
+    ASSERT_EQ(empty->get_values().get_data(), nullptr);
 }
 
 
@@ -78,7 +78,7 @@ TEST_F(Dense, CanBeCopied)
     auto mtx_copy = gko::matrix::Dense<>::create(exec);
     mtx_copy->copy_from(mtx.get());
     assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values()[0] = 7;
+    mtx->get_values().get_data()[0] = 7;
     assert_equal_to_original_mtx(mtx_copy.get());
 }
 
