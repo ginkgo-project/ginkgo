@@ -6,14 +6,11 @@
 
 
 #include <memory>
+#include <tuple>
+#include <type_traits>
 
 
 namespace gko {
-
-
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
 
 
 #define FORWARD_DECLARE(_type, _unused) class _type
@@ -133,7 +130,7 @@ class ExecutorBase;
 class Operation {
 public:
 #define DECLARE_RUN_OVERLOAD(_type, _unused) \
-    virtual void run(const _type *) const = 0
+    virtual void run(const _type *) const;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 
@@ -142,6 +139,64 @@ public:
     // ReferenceExecutor overload can be defaulted to CpuExecutor's
     virtual void run(const ReferenceExecutor *executor) const;
 };
+
+
+namespace detail {
+
+
+template <int K, int... Ns, typename F, typename Tuple>
+typename std::enable_if<(K == 0)>::type call_impl(F f, Tuple &&data)
+{
+    f(std::get<Ns>(std::forward<Tuple>(data))...);
+}
+
+template <int K, int... Ns, typename F, typename Tuple>
+typename std::enable_if<(K > 0)>::type call_impl(F f, Tuple &&data)
+{
+    call_impl<K - 1, K - 1, Ns...>(f, std::forward<Tuple>(data));
+}
+
+template <typename F, typename... Args>
+void call(F f, const std::tuple<Args...> &data)
+{
+    call_impl<sizeof...(Args)>(f, data);
+}
+
+
+}  // namespace detail
+
+
+#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
+    template <typename... Args>                                                \
+    class _name##_operation : public Operation {                               \
+    public:                                                                    \
+        _name##_operation(Args... args) : data(std::forward<Args>(args)...) {} \
+                                                                               \
+        void run(const CpuExecutor *) const override                           \
+        {                                                                      \
+            detail::call(kernels::cpu::_kernel, data);                         \
+        }                                                                      \
+                                                                               \
+        void run(const GpuExecutor *) const override                           \
+        {                                                                      \
+            detail::call(kernels::gpu::_kernel, data);                         \
+        }                                                                      \
+                                                                               \
+        void run(const ReferenceExecutor *) const override                     \
+        {                                                                      \
+            detail::call(kernels::gpu::_kernel, data);                         \
+        }                                                                      \
+                                                                               \
+    private:                                                                   \
+        std::tuple<Args...> data;                                              \
+    };                                                                         \
+                                                                               \
+    template <typename... Args>                                                \
+    static _name##_operation<Args...> make_##_name##_operation(                \
+        Args &&... args)                                                       \
+    {                                                                          \
+        return _name##_operation<Args...>(std::forward<Args>(args)...);        \
+    }
 
 
 /**

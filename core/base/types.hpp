@@ -39,10 +39,15 @@ using full_precision = double;
 using default_precision = double;
 
 
-#define GINKGO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                            \
-    template _macro(double);                           \
-    template _macro(std::complex<float>);              \
+#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
+    _enable_macro(CpuExecutor, cpu);                \
+    _enable_macro(GpuExecutor, gpu);
+
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
+    template _macro(float);                         \
+    template _macro(double);                        \
+    template _macro(std::complex<float>);           \
     template _macro(std::complex<double>)
 
 

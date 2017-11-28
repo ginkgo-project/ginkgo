@@ -1,6 +1,6 @@
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
-#include "core/matrix/dense.hpp"
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -13,9 +13,9 @@ namespace cpu {
 
 
 template <typename ValueType>
-GINKGO_DECLARE_GEMM_KERNEL(ValueType)
+GKO_DECLARE_GEMM_KERNEL(ValueType)
 NOT_COMPILED(cpu);
-GINKGO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GINKGO_DECLARE_GEMM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GEMM_KERNEL);
 
 
 }  // namespace cpu

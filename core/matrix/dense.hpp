@@ -1,8 +1,9 @@
-#ifndef GINKGO_CORE_MATRIX_DENSE_HPP_
-#define GINKGO_CORE_MATRIX_DENSE_HPP_
+#ifndef GKO_CORE_MATRIX_DENSE_HPP_
+#define GKO_CORE_MATRIX_DENSE_HPP_
 
 
 #include "core/base/array.hpp"
+#include "core/base/convertible.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
 
@@ -12,18 +13,6 @@
 
 
 namespace gko {
-
-
-template <typename ResultType>
-class ConvertibleTo {
-public:
-    using result_type = ResultType;
-
-    virtual void convert_to(result_type *result) const = 0;
-    virtual void move_to(result_type *result) = 0;
-};
-
-
 namespace matrix {
 
 
@@ -86,41 +75,7 @@ private:
 
 
 }  // namespace matrix
-
-
-namespace kernels {
-
-
-#define GINKGO_DECLARE_GEMM_KERNEL(_type)                 \
-    void gemm(_type alpha, const matrix::Dense<_type> *a, \
-              const matrix::Dense<_type> *b, _type beta,  \
-              matrix::Dense<_type> *c)
-
-
-namespace cpu {
-
-
-template <typename ValueType>
-GINKGO_DECLARE_GEMM_KERNEL(ValueType);
-
-
-}  // namespace cpu
-
-
-namespace gpu {
-
-
-template <typename ValueType>
-GINKGO_DECLARE_GEMM_KERNEL(ValueType);
-
-
-}  // namespace gpu
-
-
-}  // namespace kernels
-
-
 }  // namespace gko
 
 
-#endif  // GINKGO_CORE_MATRIX_DENSE_HPP_
+#endif  // GKO_CORE_MATRIX_DENSE_HPP_

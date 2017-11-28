@@ -1,5 +1,5 @@
-#ifndef GINKGO_CORE_BASE_LIN_OP_HPP_
-#define GINKGO_CORE_BASE_LIN_OP_HPP_
+#ifndef GKO_CORE_BASE_LIN_OP_HPP_
+#define GKO_CORE_BASE_LIN_OP_HPP_
 
 
 #include "core/base/executor.hpp"
@@ -256,4 +256,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GINKGO_CORE_BASE_LIN_OP_HPP_
+#endif  // GKO_CORE_BASE_LIN_OP_HPP_
