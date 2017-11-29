@@ -1,20 +1,15 @@
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
-
 #include "core/base/types.hpp"
-
 
 #include <memory>
 
-
 namespace gko {
-
 
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(CpuExecutor, cpu);                \
     _enable_macro(GpuExecutor, gpu)
-
 
 #define FORWARD_DECLARE(_type, _unused) class _type
 
@@ -22,19 +17,14 @@ GKO_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
 
 #undef FORWARD_DECLARE
 
-
 class ReferenceExecutor;
 
-
 namespace detail {
-
 
 template <typename>
 class ExecutorBase;
 
-
 }  // namespace detail
-
 
 /**
  * Operations can be used to define functionalities whose implementations differ
@@ -143,12 +133,11 @@ public:
     virtual void run(const ReferenceExecutor *executor) const;
 };
 
-
 /**
- * The first step in using the MAGMA-sparse library consists of creating an
+ * The first step in using the GINKGO library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * MAGMA-sparse currently supports three different executor types:
+ * GINKGO currently supports three different executor types:
  *
  * +    CpuExecutor specifies that the data should be stored and the associated
  *      operations executed on the host CPU;
@@ -158,7 +147,7 @@ public:
  *      which can be used to debug the library.
  *
  * The following code snippet demonstrates the simplest possible use of the
- * MAGMA-sparse library:
+ * GINKGO library:
  *
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
@@ -169,7 +158,7 @@ public:
  * specify where we want the data for the matrix A to be stored.
  * The second line will read a matrix from the matrix market file 'A.mtx',
  * and store the data on the CPU in CSR format (gko::CsrMatrix is a
- * MAGMA-sparse Matrix class which stores its data in CSR format).
+ * GINKGO Matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
  * will be performed on the CPU. This approach is usually desired in sparse
  * linear algebra, as the cost of individual operations is several orders of
@@ -192,7 +181,7 @@ public:
  * which will be used to schedule the requested GPU kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
- * of the get() method. As MAGMA-sparse aims to provide automatic memory
+ * of the get() method. As GINKGO aims to provide automatic memory
  * management of its objects, the result of calling gko::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
@@ -392,9 +381,7 @@ private:
     };
 };
 
-
 namespace detail {
-
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
@@ -420,14 +407,11 @@ private:
     }
 };
 
-
 }  // namespace detail
-
 
 #define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                    \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
-
 
 /**
  * This is the Executor subclass which represents the CPU device.
@@ -457,7 +441,6 @@ protected:
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
 
-
 /**
  * This is a specialization of the CpuExecutor, which runs the reference
  * implementations of the kernels used for debugging purposes.
@@ -474,7 +457,6 @@ public:
 protected:
     ReferenceExecutor() = default;
 };
-
 
 /**
  * This is the Executor subclass which represents the GPU device.
@@ -516,11 +498,8 @@ private:
     std::shared_ptr<CpuExecutor> master_;
 };
 
-
 #undef OVERRIDE_RAW_COPY_TO
 
-
 }  // namespace gko
-
 
 #endif  // GKO_CORE_EXECUTOR_HPP_
