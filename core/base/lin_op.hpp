@@ -156,8 +156,8 @@ public:
      * @throw DimensionMismatch  the LinOp and the vectors are of incompatible
      *                           sizes
      */
-    virtual void apply(full_precision alpha, const LinOp *b,
-                       full_precision beta, LinOp *x) const = 0;
+    virtual void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                       LinOp *x) const = 0;
 
     /**
      * @internal

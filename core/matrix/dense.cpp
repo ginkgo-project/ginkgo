@@ -55,18 +55,32 @@ void Dense<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 template <typename ValueType>
 void Dense<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
-    this->apply(1.0, b, 0.0, x);
+    // TODO: adding some of these constants to executors can potentially save a
+    //       lot of runtime on memory allocations / deallocations
+    auto zero = Dense::create(this->get_executor(), {ValueType(0)});
+    auto one = Dense::create(this->get_executor(), {ValueType(1)});
+    this->apply(one.get(), b, zero.get(), x);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply(full_precision alpha, const LinOp *b,
-                             full_precision beta, LinOp *x) const
+void Dense<ValueType>::apply(const LinOp *alpha, const LinOp *b,
+                             const LinOp *beta, LinOp *x) const
 {
     auto dense_b = dynamic_cast<const Dense *>(b);
+    auto dense_alpha = dynamic_cast<const Dense *>(alpha);
+    auto dense_beta = dynamic_cast<const Dense *>(beta);
     auto dense_x = dynamic_cast<Dense *>(x);
     if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
         throw NOT_SUPPORTED(b);
+    }
+    if (dense_alpha == nullptr ||
+        dense_alpha->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(alpha);
+    }
+    if (dense_beta == nullptr ||
+        dense_beta->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(beta);
     }
     if (dense_x == nullptr || dense_x->get_executor() != this->get_executor()) {
         throw NOT_SUPPORTED(x);
@@ -74,44 +88,56 @@ void Dense<ValueType>::apply(full_precision alpha, const LinOp *b,
 
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_gemm_operation(
-            static_cast<ValueType>(alpha), this, dense_b,
-            static_cast<ValueType>(beta), dense_x));
+            dense_alpha, this, dense_b, dense_beta, dense_x));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale(full_precision alpha)
+void Dense<ValueType>::scale(const LinOp *alpha)
 {
+    auto dense_alpha = dynamic_cast<const Dense *>(alpha);
+    if (dense_alpha == nullptr ||
+        dense_alpha->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(alpha);
+    }
     this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_scale_operation(
-            static_cast<ValueType>(alpha), this));
+        TemplatedOperation<ValueType>::make_scale_operation(dense_alpha, this));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled(full_precision alpha, const LinOp *b)
+void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
 {
+    auto dense_alpha = dynamic_cast<const Dense *>(alpha);
     auto dense_b = dynamic_cast<const Dense *>(b);
+    if (dense_alpha == nullptr ||
+        dense_alpha->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(alpha);
+    }
     if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
         throw NOT_SUPPORTED(b);
     }
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_add_scaled_operation(
-            static_cast<ValueType>(alpha), dense_b, this));
+            dense_alpha, dense_b, this));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(const LinOp *b,
-                                   Array<full_precision> &result)
+void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     auto dense_b = dynamic_cast<const Dense *>(b);
+    auto dense_result = dynamic_cast<Dense *>(result);
     if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
         throw NOT_SUPPORTED(b);
     }
+    if (dense_result == nullptr ||
+        dense_result->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(result);
+    }
     this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_compute_dot_operation(this, dense_b,
-                                                                  result));
+        TemplatedOperation<ValueType>::make_compute_dot_operation(
+            this, dense_b, dense_result));
 }
 
 

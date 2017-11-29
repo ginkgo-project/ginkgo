@@ -10,24 +10,24 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_GEMM_KERNEL(_type)                    \
-    void gemm(_type alpha, const matrix::Dense<_type> *a, \
-              const matrix::Dense<_type> *b, _type beta,  \
-              matrix::Dense<_type> *c)
+#define GKO_DECLARE_GEMM_KERNEL(_type)                                      \
+    void gemm(const matrix::Dense<_type> *alpha,                            \
+              const matrix::Dense<_type> *a, const matrix::Dense<_type> *b, \
+              const matrix::Dense<_type> *beta, matrix::Dense<_type> *c)
 
 
 #define GKO_DECLARE_SCAL_KERNEL(_type) \
-    void scal(_type alpha, matrix::Dense<_type> *x)
+    void scal(const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
 
 
-#define GKO_DECLARE_AXPY_KERNEL(_type)                    \
-    void axpy(_type alpha, const matrix::Dense<_type> *x, \
-              matrix::Dense<_type> *y)
+#define GKO_DECLARE_AXPY_KERNEL(_type)           \
+    void axpy(const matrix::Dense<_type> *alpha, \
+              const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
 
 #define GKO_DECLARE_DOT_KERNEL(_type)                                      \
     void dot(const matrix::Dense<_type> *x, const matrix::Dense<_type> *y, \
-             Array<full_precision> &result)
+             matrix::Dense<_type> *result)
 
 
 #define DECLARE_ALL_AS_TEMPLATES        \

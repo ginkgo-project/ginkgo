@@ -14,16 +14,9 @@ class Dense : public ::testing::Test {
 protected:
     Dense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Dense<>::create(exec, 2, 3, 4))
-    {
-        auto vals = mtx->get_values().get_data();
-        vals[0 * 4 + 0] = 1.0;
-        vals[0 * 4 + 1] = 2.0;
-        vals[0 * 4 + 2] = 3.0;
-        vals[1 * 4 + 0] = 1.5;
-        vals[1 * 4 + 1] = 2.5;
-        vals[1 * 4 + 2] = 3.5;
-    }
+          mtx(gko::matrix::Dense<>::create(exec, 4,
+                                           {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}))
+    {}
 
 
     static void assert_equal_to_original_mtx(gko::matrix::Dense<> *m)
@@ -32,13 +25,12 @@ protected:
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_padding(), 4);
         ASSERT_EQ(m->get_num_nonzeros(), 2 * 4);
-        auto vals = m->get_values().get_const_data();
-        EXPECT_EQ(vals[0 * 4 + 0], 1.0);
-        EXPECT_EQ(vals[0 * 4 + 1], 2.0);
-        EXPECT_EQ(vals[0 * 4 + 2], 3.0);
-        EXPECT_EQ(vals[1 * 4 + 0], 1.5);
-        EXPECT_EQ(vals[1 * 4 + 1], 2.5);
-        ASSERT_EQ(vals[1 * 4 + 2], 3.5);
+        EXPECT_EQ(m->at(0, 0), 1.0);
+        EXPECT_EQ(m->at(0, 1), 2.0);
+        EXPECT_EQ(m->at(0, 2), 3.0);
+        EXPECT_EQ(m->at(1, 0), 1.5);
+        EXPECT_EQ(m->at(1, 1), 2.5);
+        ASSERT_EQ(m->at(1, 2), 3.5);
     }
 
     static void assert_empty(gko::matrix::Dense<> *m)
@@ -73,12 +65,67 @@ TEST_F(Dense, KnowsItsSizeAndValues)
 }
 
 
+TEST_F(Dense, CanBeListConstructed)
+{
+    auto m = gko::matrix::Dense<>::create(exec, {1.0, 2.0});
+
+    EXPECT_EQ(m->get_num_rows(), 2);
+    EXPECT_EQ(m->get_num_cols(), 1);
+    ASSERT_EQ(m->get_num_nonzeros(), 2);
+    EXPECT_EQ(m->at(0), 1);
+    EXPECT_EQ(m->at(1), 2);
+}
+
+
+TEST_F(Dense, CanBeListConstructedWithPadding)
+{
+    auto m = gko::matrix::Dense<>::create(exec, 2, {1.0, 2.0});
+    EXPECT_EQ(m->get_num_rows(), 2);
+    EXPECT_EQ(m->get_num_cols(), 1);
+    ASSERT_EQ(m->get_num_nonzeros(), 4);
+    EXPECT_EQ(m->at(0), 1.0);
+    EXPECT_EQ(m->at(1), 2.0);
+}
+
+
+TEST_F(Dense, CanBeDoubleListConstructed)
+{
+    auto m = gko::matrix::Dense<>::create(exec,
+                                          {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}});
+
+    EXPECT_EQ(m->get_num_rows(), 3);
+    EXPECT_EQ(m->get_num_cols(), 2);
+    ASSERT_EQ(m->get_num_nonzeros(), 6);
+    EXPECT_EQ(m->at(0), 1.0);
+    EXPECT_EQ(m->at(1), 2.0);
+    EXPECT_EQ(m->at(2), 3.0);
+    ASSERT_EQ(m->at(3), 4.0);
+    EXPECT_EQ(m->at(4), 5.0);
+}
+
+
+TEST_F(Dense, CanBeDoubleListConstructedWithPadding)
+{
+    auto m = gko::matrix::Dense<>::create(exec, 4,
+                                          {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}});
+
+    EXPECT_EQ(m->get_num_rows(), 3);
+    EXPECT_EQ(m->get_num_cols(), 2);
+    ASSERT_EQ(m->get_num_nonzeros(), 12);
+    EXPECT_EQ(m->at(0), 1.0);
+    EXPECT_EQ(m->at(1), 2.0);
+    EXPECT_EQ(m->at(2), 3.0);
+    ASSERT_EQ(m->at(3), 4.0);
+    EXPECT_EQ(m->at(4), 5.0);
+}
+
+
 TEST_F(Dense, CanBeCopied)
 {
     auto mtx_copy = gko::matrix::Dense<>::create(exec);
     mtx_copy->copy_from(mtx.get());
     assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values().get_data()[0] = 7;
+    mtx->at(0) = 7;
     assert_equal_to_original_mtx(mtx_copy.get());
 }
 

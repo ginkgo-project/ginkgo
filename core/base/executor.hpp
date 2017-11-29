@@ -184,7 +184,7 @@ void call(F f, const std::tuple<Args...> &data)
                                                                                \
         void run(const ReferenceExecutor *) const override                     \
         {                                                                      \
-            detail::call(kernels::gpu::_kernel, data);                         \
+            detail::call(kernels::reference::_kernel, data);                   \
         }                                                                      \
                                                                                \
     private:                                                                   \
