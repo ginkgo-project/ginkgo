@@ -64,6 +64,18 @@ namespace gko {
     }
 
 
+/**
+ * Throws CUDA Error based on the value of the error code returned.
+ * Wrapper for the actual CUDA error calling routine. Required to
+ * allow for piggyback compilation of CUDA code.
+ *
+ * @param errcode The error code returned from the cuda routine.
+ */
+#define CUDA_ERROR(errcode) \
+                            \
+    ::gko::CudaError(__FILE__, __LINE__, __func__, errcode)
+
+
 namespace detail {
 
 

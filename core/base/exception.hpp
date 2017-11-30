@@ -109,17 +109,17 @@ public:
 
 
 /**
- * MagmaInternalError is thrown in case one of the low-level MAGMA(-sparse)
- * routines exits with a nonzero error code.
+ * CudaError is thrown when the cuda routine throws a non-zero error code.
  */
-class MagmaInternalError : public Error {
+class CudaError : public Error {
 public:
-    MagmaInternalError(const std::string &file, int line,
-                       const std::string &func, int error_code)
-        : Error(file, line,
-                "Internal MAGMA error with error code: " +
-                    std::to_string(error_code))
+    CudaError(const std::string &file, int line, const std::string &func,
+              int64 error_code)
+        : Error(file, line, func + ":" + get_error(error_code))
     {}
+
+private:
+    static std::string get_error(int64 error_code){};
 };
 
 
