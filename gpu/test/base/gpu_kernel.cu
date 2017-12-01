@@ -1,4 +1,4 @@
-//#include "kernel.h"
+#include "kernel.h"
 
 #ifndef THREADS_PER_PROC
 #define THREADS_PER_PROC 20
@@ -15,8 +15,8 @@ __global__ void gpu_kernel(
 {
     const int nt = blockDim.x;
     const int np = gridDim.x;
-    const int tid = threadIdx.x + blockId.x * nt;
-    for (auto i = tid; i < size; i += np*nt){
+    const int tid = threadIdx.x + blockIdx.x * nt;
+    for (int i = tid; i < size; i += np*nt){
         x[i] = 0.5 * x[i] + 1.0;
     }
 
@@ -24,5 +24,5 @@ __global__ void gpu_kernel(
 
 template <typename T1, typename T2>
 void run_on_gpu(T1 size, T2 *d_x){
-    gpu_kernel<<<NUM_PROC,THREADS_PER_PROC>>>(size,d_x)
+    gpu_kernel<<<NUM_PROC,THREADS_PER_PROC>>>(size,d_x);
 }
