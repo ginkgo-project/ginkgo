@@ -43,6 +43,18 @@ public:
 
     void clear() override;
 
+    Array<value_type> &get_values() noexcept { return values_; }
+
+    const Array<value_type> &get_values() const noexcept { return values_; }
+
+    Array<index_type> &get_col_idxs() noexcept { return col_idxs_; }
+
+    const Array<index_type> &get_col_idxs() const noexcept { return col_idxs_; }
+
+    Array<index_type> &get_row_ptrs() noexcept { return row_ptrs_; }
+
+    const Array<index_type> &get_row_ptrs() const noexcept { return row_ptrs_; }
+
 protected:
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
