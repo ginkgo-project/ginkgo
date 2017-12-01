@@ -12,7 +12,7 @@
 
 // #include <cuda_runtime.h>
 
-// #include <gpu/test/base/gpu_kernel.cu>
+ #include <gpu/test/base/gpu_kernel.cu>
 namespace {
 
 
@@ -46,24 +46,25 @@ TEST(GpuExecutor, FailsWhenOverallocating)
 
 TEST(GpuExecutor, CopiesDataFromCpu)
 {
-    /*
-    double orig[] = {3, 8};
+    
+    double orig[] = {3.2, 8};
 
     const int num_elems = std::extent<decltype(orig)>::value;
     auto cpu = gko::CpuExecutor::create();
     exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
-    double *d_copy = gpu->alloc<int>(num_elems);
-    double *copy = cpu->alloc<int>(num_elems);
+    double *d_copy = gpu->alloc<double>(num_elems);
+    double *copy = cpu->alloc<double>(num_elems);
 
-    gpu->copy_from(cpu, num_elems, orig, copy);
+    gpu->copy_from(cpu.get(), num_elems, orig, d_copy);
 
-    run_on_gpu(num_elems, d_copy);
-    cpu->copy_from(gpu, num_elems, d_copy, copy) EXPECT_EQ(2.5, copy[0]);
-    EXPECT_EQ(5, copy[1]);
+    //run_on_gpu(num_elems, d_copy);
+    cpu->copy_from(gpu.get(), num_elems, d_copy, copy);
+    EXPECT_EQ(3.2, copy[0]);
+    EXPECT_EQ(8, copy[1]);
 
-    gpu->free(d_copy);
-    cpu->free(copy);
-    */
+    //gpu->free(d_copy);
+    //cpu->free(orig);
+    
 }
 
 
