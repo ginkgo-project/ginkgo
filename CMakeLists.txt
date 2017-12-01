@@ -22,14 +22,15 @@ option(BUILD_CPU "Compile kernels for CPUs" OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
 
+
 if(BUILD_TESTS)
     enable_testing()
 endif()
 
+
 if(BUILD_GPU)
     add_subdirectory(gpu)
 endif()
-
 add_subdirectory(third_party)  # Third-party tools and libraries
 add_subdirectory(core)         # Core Ginkgo types and top-level functions
 
