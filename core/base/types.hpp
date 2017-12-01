@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 
 #ifdef __CUDACC__
@@ -132,6 +133,85 @@ using default_precision = double;
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
 
+namespace detail {
+
+
+template <typename T>
+struct remove_complex_impl {
+    using type = T;
+};
+
+template <typename T>
+struct remove_complex_impl<std::complex<T>> {
+    using type = T;
+};
+
+
+template <typename T>
+struct reduce_precision_impl {
+    using type = T;
+};
+
+template <>
+struct reduce_precision_impl<long double> {
+    using type = double;
+};
+
+template <>
+struct reduce_precision_impl<double> {
+    using type = float;
+};
+
+template <typename T>
+struct reduce_precision_impl<std::complex<T>> {
+    using type = std::complex<typename reduce_precision_impl<
+        typename remove_complex_impl<T>::type>::type>;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Obtains a real counterpart of a std::complex type, and leaves the type
+ * unchanged if it is not a complex type.
+ */
+template <typename T>
+using remove_complex = typename detail::remove_complex_impl<T>::type;
+
+
+/**
+ * Obtains the next smaller (less precise) floating point type in the type
+ * hierarchy if such a type exists, otherwise it leaves the type unchanged.
+ */
+template <typename T>
+using reduce_precision = typename detail::reduce_precision_impl<T>::type;
+
+
+namespace {
+
+
+/**
+ * Returns the additive identity for T.
+ */
+template <typename T>
+constexpr T zero()
+{
+    return T(0);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ */
+template <typename T>
+constexpr T one()
+{
+    return T(1);
+}
+
+
+}  // namespace
 
 }  // namespace gko
 
