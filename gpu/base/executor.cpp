@@ -3,9 +3,8 @@
 
 #include "core/base/exception_helpers.hpp"
 
-#include "gpu/base/exception.hpp"
-
 #include <cuda_runtime.h>
+#include "gpu/base/exception.hpp"
 
 
 namespace gko {

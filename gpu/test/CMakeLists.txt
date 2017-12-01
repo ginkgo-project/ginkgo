@@ -1,3 +1,5 @@
+find_package(CUDA REQUIRED)
+
 function(create_test test_name)
     add_executable(${test_name} ${test_name}.cpp)
     target_link_libraries(${test_name} PRIVATE ginkgo_gpu ${CUDA_LIBRARIES} gtest_main)
