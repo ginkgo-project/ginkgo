@@ -31,7 +31,7 @@ void *GpuExecutor::raw_alloc(size_type num_bytes) const
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const {
   cudaError_t errcode;
-  errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice);
+  errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost);
   if (errcode != cudaSuccess) {
     throw CUDA_ERROR(errcode);
   }
@@ -40,7 +40,7 @@ void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
 void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const {
   cudaError_t errcode;
-  errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice);
+  errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToDevice);
   if (errcode != cudaSuccess) {
     throw CUDA_ERROR(errcode);
   }

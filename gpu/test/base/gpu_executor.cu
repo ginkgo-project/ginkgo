@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
+#include <gpu/base/exception.hpp>
 
 
 #include <gpu/test/base/gpu_kernel.cu>
@@ -32,7 +32,7 @@ TEST(GpuExecutor, AllocatesAndFreesMemory)
 
     errcode = cudaDeviceSynchronize();
 
-    gko::CudaError::get_error(errcode); 
+    //gko::CudaError::get_error(errcode); 
 }
 
 
@@ -52,21 +52,21 @@ TEST(GpuExecutor, FailsWhenOverallocating)
 TEST(GpuExecutor, CopiesDataFromCpu)
 {
     
-    double orig[] = {3.2, 8};
-
+    double orig[] = {3,8};
     const int num_elems = std::extent<decltype(orig)>::value;
     auto cpu = gko::CpuExecutor::create();
     exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
     double *d_copy = gpu->alloc<double>(num_elems);
    
     double *copy = cpu->alloc<double>(num_elems);
-    copy = orig;
-    gpu->copy_from(cpu.get(), num_elems, copy, d_copy);
+    //copy = orig;
+    //copy = {3, 8};
+    gpu->copy_from(cpu.get(), num_elems, orig, d_copy);
     //copy = NULL ;
-    //run_on_gpu(num_elems, d_copy);
+    run_on_gpu(num_elems, d_copy);
     cpu->copy_from(gpu.get(), num_elems, d_copy, copy);
-    EXPECT_EQ(3.2, copy[0]);
-    EXPECT_EQ(8, copy[1]);
+    EXPECT_EQ(2.5, copy[0]);
+    EXPECT_EQ(5, copy[1]);
 
     //gpu->free(d_copy);
     //cpu->free(orig);
