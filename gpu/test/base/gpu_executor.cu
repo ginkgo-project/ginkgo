@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <core/base/exception_helpers.hpp>
 
 #include <gpu/base/exception.hpp>
 
@@ -31,8 +32,8 @@ TEST(GpuExecutor, AllocatesAndFreesMemory)
     ASSERT_NO_THROW(gpu->free(ptr));
 
     errcode = cudaDeviceSynchronize();
-
-    //gko::CudaError::get_error(errcode); 
+    //throw CUDA_ERROR(errcode);
+    if (errcode != cudaSuccess){throw ::get_error(errcode);} 
 }
 
 
