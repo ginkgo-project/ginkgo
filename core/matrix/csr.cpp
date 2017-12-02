@@ -1,6 +1,9 @@
 #include "core/matrix/csr.hpp"
 
 
+#include "core/base/exception_helpers.hpp"
+
+
 namespace gko {
 namespace matrix {
 
@@ -8,14 +11,24 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::copy_from(const LinOp *other)
 {
-    // TODO
+    auto convertible_to_csr =
+        dynamic_cast<const ConvertibleTo<Csr<ValueType, IndexType>> *>(other);
+    if (convertible_to_csr == nullptr) {
+        throw NOT_SUPPORTED(other);
+    }
+    convertible_to_csr->convert_to(this);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
 {
-    // TODO
+    auto convertible_to_csr =
+        dynamic_cast<ConvertibleTo<Csr<ValueType, IndexType>> *>(other.get());
+    if (convertible_to_csr == nullptr) {
+        throw NOT_SUPPORTED(other);
+    }
+    convertible_to_csr->move_to(this);
 }
 
 
@@ -37,14 +50,33 @@ void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::clone_type() const
 {
-    return std::unique_ptr<LinOp>(nullptr);  // TODO
+    return std::unique_ptr<LinOp>(
+        new Csr(this->get_executor(), this->get_num_rows(),
+                this->get_num_cols(), this->get_num_nonzeros()));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::clear()
 {
-    // TODO
+    this->set_dimensions(0, 0, 0);
+    values_.clear();
+    col_idxs_.clear();
+    row_ptrs_.clear();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(Csr *other) const
+{
+    *other = *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Csr *other)
+{
+    *other = std::move(*this);
 }
 
 

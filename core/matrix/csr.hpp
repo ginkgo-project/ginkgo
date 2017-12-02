@@ -3,6 +3,7 @@
 
 
 #include "core/base/array.hpp"
+#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 
 
@@ -11,7 +12,7 @@ namespace matrix {
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public LinOp {
+class Csr : public LinOp, public ConvertibleTo<Csr<ValueType, IndexType>> {
 public:
     using value_type = ValueType;
 
@@ -43,17 +44,30 @@ public:
 
     void clear() override;
 
-    Array<value_type> &get_values() noexcept { return values_; }
+    void convert_to(Csr *other) const override;
 
-    const Array<value_type> &get_values() const noexcept { return values_; }
+    void move_to(Csr *other) override;
 
-    Array<index_type> &get_col_idxs() noexcept { return col_idxs_; }
+    value_type *get_values() noexcept { return values_.get_data(); }
 
-    const Array<index_type> &get_col_idxs() const noexcept { return col_idxs_; }
+    const value_type *get_const_values() const noexcept
+    {
+        return values_.get_const_data();
+    }
 
-    Array<index_type> &get_row_ptrs() noexcept { return row_ptrs_; }
+    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
-    const Array<index_type> &get_row_ptrs() const noexcept { return row_ptrs_; }
+    const index_type *get_const_col_idxs() const noexcept
+    {
+        return col_idxs_.get_const_data();
+    }
+
+    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+
+    const index_type *get_const_row_ptrs() const noexcept
+    {
+        return row_ptrs_.get_const_data();
+    }
 
 protected:
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
