@@ -10,9 +10,9 @@
 #include <core/base/exception.hpp>
 
 
-// #include <cuda_runtime.h>
+#include <gpu/test/base/gpu_kernel.cu>
 
- #include <gpu/test/base/gpu_kernel.cu>
+
 namespace {
 
 
@@ -24,10 +24,15 @@ TEST(GpuExecutor, AllocatesAndFreesMemory)
     const int num_elems = 10;
     auto cpu = gko::CpuExecutor::create();
     exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
-    int *ptr = nullptr;
-
+    int *ptr ;
+    
+    cudaError_t errcode;
     ASSERT_NO_THROW(ptr = gpu->alloc<int>(num_elems));
     ASSERT_NO_THROW(gpu->free(ptr));
+
+    errcode = cudaDeviceSynchronize();
+
+    gko::CudaError::get_error(errcode); 
 }
 
 
@@ -36,7 +41,7 @@ TEST(GpuExecutor, FailsWhenOverallocating)
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     auto cpu = gko::CpuExecutor::create();
     exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
-    int *ptr = nullptr;
+    int *ptr ;
 
     ASSERT_THROW(ptr = gpu->alloc<int>(num_elems), gko::AllocationError);
 
@@ -53,10 +58,11 @@ TEST(GpuExecutor, CopiesDataFromCpu)
     auto cpu = gko::CpuExecutor::create();
     exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
     double *d_copy = gpu->alloc<double>(num_elems);
+   
     double *copy = cpu->alloc<double>(num_elems);
-
-    gpu->copy_from(cpu.get(), num_elems, orig, d_copy);
-
+    copy = orig;
+    gpu->copy_from(cpu.get(), num_elems, copy, d_copy);
+    //copy = NULL ;
     //run_on_gpu(num_elems, d_copy);
     cpu->copy_from(gpu.get(), num_elems, d_copy, copy);
     EXPECT_EQ(3.2, copy[0]);

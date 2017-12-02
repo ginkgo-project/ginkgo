@@ -29,9 +29,9 @@ if(BUILD_TESTS)
 endif()
 
 
+add_subdirectory(third_party)  # Third-party tools and libraries
+add_subdirectory(core)         # Core Ginkgo types and top-level functions
 if(BUILD_GPU)
     add_subdirectory(gpu)
 endif()
-add_subdirectory(third_party)  # Third-party tools and libraries
-add_subdirectory(core)         # Core Ginkgo types and top-level functions
 
