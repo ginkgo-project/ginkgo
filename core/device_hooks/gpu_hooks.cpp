@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
+#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -75,6 +76,30 @@ std::string CudaError::get_error(int64)
 int GpuExecutor::get_num_devices() { return 0; }
 
 
+namespace kernels {
+
+
+namespace gpu {
+
+
+namespace csr {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(gpu);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(gpu);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+}  // namespace csr
+}  // namespace gpu
+}  // namespace kernels
 }  // namespace gko
 
 
