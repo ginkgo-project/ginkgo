@@ -1,4 +1,3 @@
-
 #ifndef THREADS_PER_PROC
 #define THREADS_PER_PROC 20
 #endif
@@ -23,5 +22,5 @@ __global__ void gpu_kernel(
 
 template <typename T1, typename T2>
 void run_on_gpu(T1 size, T2 *d_x){
-    gpu_kernel<<<1,1>>>(size,d_x);
+    gpu_kernel<<<NUM_PROC,THREADS_PER_PROC>>>(size,d_x);
 }

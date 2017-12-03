@@ -47,7 +47,6 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
 }
 
 void GpuExecutor::synchronize() const {
-
   auto errcode = cudaDeviceSynchronize();
   if (errcode != cudaSuccess) {
     throw CUDA_ERROR(errcode);

@@ -24,7 +24,9 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     NOT_COMPILED(gpu);
 
-void GpuExecutor::synchronize() const {};
+void GpuExecutor::synchronize() const
 
-static std::string get_error(int64 error_code) {}
+    NOT_COMPILED(gpu);
+
+static std::string get_error(int64 error_code) NOT_COMPILED(GPU);
 } // namespace gko
