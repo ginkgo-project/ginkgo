@@ -25,13 +25,14 @@ TEST(GpuExecutor, AllocatesAndFreesMemory)
     const int num_elems = 10;
     auto cpu = gko::CpuExecutor::create();
     auto gpu = gko::GpuExecutor::create(0, cpu);
+
+    ASSERT_EQ(1,cpu->GpuExecutor:getDeviceCount());
     int *ptr ;
     
     ASSERT_NO_THROW(ptr = gpu->alloc<int>(num_elems));
     ASSERT_NO_THROW(gpu->free(ptr));
 
-    ASSERT_NO_THROW(gpu->synchronize()); // allow for synchronization
-					 // to make any errors are not carried forward
+    ASSERT_NO_THROW(gpu->synchronize()); // allow for synchronization to prevent any errors to be carried forward
 }
 
 
