@@ -490,7 +490,7 @@ protected:
     {}
 
     void *raw_alloc(size_type size) const override;
-
+    void synchronize() const;
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
 private:
