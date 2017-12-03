@@ -7,9 +7,9 @@
 
 namespace gko {
 
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
+#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro)                            \
+  _enable_macro(CpuExecutor, cpu);                                             \
+  _enable_macro(GpuExecutor, gpu)
 
 #define FORWARD_DECLARE(_type, _unused) class _type
 
@@ -21,10 +21,9 @@ class ReferenceExecutor;
 
 namespace detail {
 
-template <typename>
-class ExecutorBase;
+template <typename> class ExecutorBase;
 
-}  // namespace detail
+} // namespace detail
 
 /**
  * Operations can be used to define functionalities whose implementations differ
@@ -122,15 +121,15 @@ class ExecutorBase;
  */
 class Operation {
 public:
-#define DECLARE_RUN_OVERLOAD(_type, _unused) \
-    virtual void run(const _type *) const = 0
+#define DECLARE_RUN_OVERLOAD(_type, _unused)                                   \
+  virtual void run(const _type *) const = 0
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
+  GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 
 #undef DECLARE_RUN_OVERLOAD
 
-    // ReferenceExecutor overload can be defaulted to CpuExecutor's
-    virtual void run(const ReferenceExecutor *executor) const;
+  // ReferenceExecutor overload can be defaulted to CpuExecutor's
+  virtual void run(const ReferenceExecutor *executor) const;
 };
 
 /**
@@ -215,119 +214,114 @@ public:
  * account when considering performance implications of using such operations.
  */
 class Executor {
-    template <typename T>
-    friend class detail::ExecutorBase;
+  template <typename T> friend class detail::ExecutorBase;
 
 public:
-    virtual ~Executor() = default;
+  virtual ~Executor() = default;
 
-    Executor() = default;
-    Executor(Executor &) = delete;
-    Executor(Executor &&) = default;
-    Executor &operator=(Executor &) = delete;
-    Executor &operator=(Executor &&) = default;
+  Executor() = default;
+  Executor(Executor &) = delete;
+  Executor(Executor &&) = default;
+  Executor &operator=(Executor &) = delete;
+  Executor &operator=(Executor &&) = default;
 
-    /**
-     * Runs the specified Operation using this Executor.
-     *
-     * @param op  the operation to run
-     */
-    virtual void run(const Operation &op) const = 0;
+  /**
+   * Runs the specified Operation using this Executor.
+   *
+   * @param op  the operation to run
+   */
+  virtual void run(const Operation &op) const = 0;
 
-    /**
-     * Runs one of the passed in functors, depending on the Executor type.
-     *
-     * @tparam ClosureCpu  type of op_cpu
-     * @tparam ClosureGpu  type of op_gpu
-     *
-     * @param op_cpu  functor to run in case of a CpuExecutor or
-     *                ReferenceExecutor
-     * @param op_gpu  functor to run in case of a GpuExecutor
-     */
-    template <typename ClosureCpu, typename ClosureGpu>
-    void run(const ClosureCpu &op_cpu, const ClosureGpu &op_gpu) const
-    {
-        LambdaOperation<ClosureCpu, ClosureGpu> op(op_cpu, op_gpu);
-        this->run(op);
-    }
+  /**
+   * Runs one of the passed in functors, depending on the Executor type.
+   *
+   * @tparam ClosureCpu  type of op_cpu
+   * @tparam ClosureGpu  type of op_gpu
+   *
+   * @param op_cpu  functor to run in case of a CpuExecutor or
+   *                ReferenceExecutor
+   * @param op_gpu  functor to run in case of a GpuExecutor
+   */
+  template <typename ClosureCpu, typename ClosureGpu>
+  void run(const ClosureCpu &op_cpu, const ClosureGpu &op_gpu) const {
+    LambdaOperation<ClosureCpu, ClosureGpu> op(op_cpu, op_gpu);
+    this->run(op);
+  }
 
-    /**
-     * Allocates memory in this Executor.
-     *
-     * @tparam T  datatype to allocate
-     *
-     * @param n_elems  number of elements of type T to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return pointer to allocated memory
-     */
-    template <typename T>
-    T *alloc(size_type n_elems) const
-    {
-        return static_cast<T *>(this->raw_alloc(n_elems * sizeof(T)));
-    }
+  /**
+   * Allocates memory in this Executor.
+   *
+   * @tparam T  datatype to allocate
+   *
+   * @param n_elems  number of elements of type T to allocate
+   *
+   * @throw AllocationError  if the allocation failed
+   *
+   * @return pointer to allocated memory
+   */
+  template <typename T> T *alloc(size_type n_elems) const {
+    return static_cast<T *>(this->raw_alloc(n_elems * sizeof(T)));
+  }
 
-    /**
-     * Frees memory previously allocated with Executor::alloc().
-     *
-     * @param ptr  pointer to the allocated memory block
-     */
-    virtual void free(void *ptr) const noexcept = 0;
+  /**
+   * Frees memory previously allocated with Executor::alloc().
+   *
+   * @param ptr  pointer to the allocated memory block
+   */
+  virtual void free(void *ptr) const noexcept = 0;
 
-    /**
-     * Copies data from another Executor.
-     *
-     * @tparam T  datatype to copy
-     *
-     * @param src_exec  Executor from which the memory will be copied
-     * @param n_elems  number of elements of type T to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory
-     *                  where the data will be copied to
-     */
-    template <typename T>
-    void copy_from(const Executor *src_exec, size_type n_elems,
-                   const T *src_ptr, T *dest_ptr) const
-    {
-        this->raw_copy_from(src_exec, n_elems * sizeof(T), src_ptr, dest_ptr);
-    }
+  /**
+   * Copies data from another Executor.
+   *
+   * @tparam T  datatype to copy
+   *
+   * @param src_exec  Executor from which the memory will be copied
+   * @param n_elems  number of elements of type T to copy
+   * @param src_ptr  pointer to a block of memory containing the data to be
+   *                 copied
+   * @param dest_ptr  pointer to an allocated block of memory
+   *                  where the data will be copied to
+   */
+  template <typename T>
+  void copy_from(const Executor *src_exec, size_type n_elems, const T *src_ptr,
+                 T *dest_ptr) const {
+    this->raw_copy_from(src_exec, n_elems * sizeof(T), src_ptr, dest_ptr);
+  }
 
-    /**
-     * Returns the master CpuExecutor of this Executor.
-     */
-    virtual std::shared_ptr<CpuExecutor> get_master() noexcept = 0;
+  /**
+   * Returns the master CpuExecutor of this Executor.
+   */
+  virtual std::shared_ptr<CpuExecutor> get_master() noexcept = 0;
 
-    /**
-     * @copydoc get_master
-     */
-    virtual std::shared_ptr<const CpuExecutor> get_master() const noexcept = 0;
+  /**
+   * @copydoc get_master
+   */
+  virtual std::shared_ptr<const CpuExecutor> get_master() const noexcept = 0;
 
 protected:
-    /**
-     * Allocates raw memory in this Executor.
-     *
-     * @param size  number of bytes to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return raw pointer to allocated memory
-     */
-    virtual void *raw_alloc(size_type size) const = 0;
+  /**
+   * Allocates raw memory in this Executor.
+   *
+   * @param size  number of bytes to allocate
+   *
+   * @throw AllocationError  if the allocation failed
+   *
+   * @return raw pointer to allocated memory
+   */
+  virtual void *raw_alloc(size_type size) const = 0;
 
-    /**
-     * Copies raw data from another Executor.
-     *
-     * @param dest_exec  Executor from which the memory will be copied
-     * @param n_bytes  number of bytes to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory where the data
-     *                  will be copied to
-     */
-    virtual void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                               const void *src_ptr, void *dest_ptr) const = 0;
+  /**
+   * Copies raw data from another Executor.
+   *
+   * @param dest_exec  Executor from which the memory will be copied
+   * @param n_bytes  number of bytes to copy
+   * @param src_ptr  pointer to a block of memory containing the data to be
+   *                 copied
+   * @param dest_ptr  pointer to an allocated block of memory where the data
+   *                  will be copied to
+   */
+  virtual void raw_copy_from(const Executor *src_exec, size_type n_bytes,
+                             const void *src_ptr, void *dest_ptr) const = 0;
 
 /**
  * @internal
@@ -338,80 +332,75 @@ protected:
  *
  * @param _exec_type  the Executor subclass
  */
-#define ENABLE_RAW_COPY_TO(_exec_type, _unused)                              \
-    virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
-                             const void *src_ptr, void *dest_ptr) const = 0
+#define ENABLE_RAW_COPY_TO(_exec_type, _unused)                                \
+  virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes,     \
+                           const void *src_ptr, void *dest_ptr) const = 0
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(ENABLE_RAW_COPY_TO);
+  GKO_ENABLE_FOR_ALL_EXECUTORS(ENABLE_RAW_COPY_TO);
 
 #undef ENABLE_RAW_COPY_TO
 
 private:
+  /**
+   * The LambdaOperation class wraps two functor objects into an Operation.
+   *
+   * The first object is called by the CpuExecutor, while the other one by the
+   * GpuExecutor. When run on the ReferenceExecutor, the implementation will
+   * launch the CPU version.
+   *
+   * @tparam ClosureCpu  the type of the first functor
+   * @tparam ClosureGpu  the type of the second functor
+   */
+  template <typename ClosureCpu, typename ClosureGpu>
+  class LambdaOperation : public Operation {
+  public:
     /**
-     * The LambdaOperation class wraps two functor objects into an Operation.
+     * Creates an LambdaOperation object from two functors.
      *
-     * The first object is called by the CpuExecutor, while the other one by the
-     * GpuExecutor. When run on the ReferenceExecutor, the implementation will
-     * launch the CPU version.
-     *
-     * @tparam ClosureCpu  the type of the first functor
-     * @tparam ClosureGpu  the type of the second functor
+     * @param op_cpu  a functor object which will be called by CpuExecutor
+     *                and ReferenceExecutor
+     * @param op_gpu  a functor object which will be called by GpuExecutor
      */
-    template <typename ClosureCpu, typename ClosureGpu>
-    class LambdaOperation : public Operation {
-    public:
-        /**
-         * Creates an LambdaOperation object from two functors.
-         *
-         * @param op_cpu  a functor object which will be called by CpuExecutor
-         *                and ReferenceExecutor
-         * @param op_gpu  a functor object which will be called by GpuExecutor
-         */
-        LambdaOperation(const ClosureCpu &op_cpu, const ClosureGpu &op_gpu)
-            : op_cpu_(op_cpu), op_gpu_(op_gpu)
-        {}
+    LambdaOperation(const ClosureCpu &op_cpu, const ClosureGpu &op_gpu)
+        : op_cpu_(op_cpu), op_gpu_(op_gpu) {}
 
-        void run(const CpuExecutor *) const override { op_cpu_(); }
+    void run(const CpuExecutor *) const override { op_cpu_(); }
 
-        void run(const GpuExecutor *) const override { op_gpu_(); }
+    void run(const GpuExecutor *) const override { op_gpu_(); }
 
-    private:
-        ClosureCpu op_cpu_;
-        ClosureGpu op_gpu_;
-    };
+  private:
+    ClosureCpu op_cpu_;
+    ClosureGpu op_gpu_;
+  };
 };
 
 namespace detail {
 
-template <typename ConcreteExecutor>
-class ExecutorBase : public Executor {
+template <typename ConcreteExecutor> class ExecutorBase : public Executor {
 public:
-    void run(const Operation &op) const override { op.run(self()); }
+  void run(const Operation &op) const override { op.run(self()); }
 
 protected:
-    void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                       const void *src_ptr, void *dest_ptr) const override
-    {
-        src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
-    }
+  void raw_copy_from(const Executor *src_exec, size_type n_bytes,
+                     const void *src_ptr, void *dest_ptr) const override {
+    src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
+  }
 
 private:
-    ConcreteExecutor *self() noexcept
-    {
-        return static_cast<ConcreteExecutor *>(this);
-    }
+  ConcreteExecutor *self() noexcept {
+    return static_cast<ConcreteExecutor *>(this);
+  }
 
-    const ConcreteExecutor *self() const noexcept
-    {
-        return static_cast<const ConcreteExecutor *>(this);
-    }
+  const ConcreteExecutor *self() const noexcept {
+    return static_cast<const ConcreteExecutor *>(this);
+  }
 };
 
-}  // namespace detail
+} // namespace detail
 
-#define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                    \
-    void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
-                     const void *src_ptr, void *dest_ptr) const override
+#define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                          \
+  void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes,         \
+                   const void *src_ptr, void *dest_ptr) const override
 
 /**
  * This is the Executor subclass which represents the CPU device.
@@ -419,26 +408,24 @@ private:
 class CpuExecutor : public detail::ExecutorBase<CpuExecutor>,
                     public std::enable_shared_from_this<CpuExecutor> {
 public:
-    /**
-     * Creates a new CpuExecutor.
-     */
-    static std::shared_ptr<CpuExecutor> create()
-    {
-        return std::shared_ptr<CpuExecutor>(new CpuExecutor());
-    }
+  /**
+   * Creates a new CpuExecutor.
+   */
+  static std::shared_ptr<CpuExecutor> create() {
+    return std::shared_ptr<CpuExecutor>(new CpuExecutor());
+  }
 
-    void free(void *ptr) const noexcept override;
+  void free(void *ptr) const noexcept override;
+  std::shared_ptr<CpuExecutor> get_master() noexcept override;
 
-    std::shared_ptr<CpuExecutor> get_master() noexcept override;
-
-    std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
+  std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
 protected:
-    CpuExecutor() = default;
+  CpuExecutor() = default;
 
-    void *raw_alloc(size_type size) const override;
+  void *raw_alloc(size_type size) const override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+  GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
 
 /**
@@ -447,15 +434,14 @@ protected:
  */
 class ReferenceExecutor : public CpuExecutor {
 public:
-    static std::shared_ptr<ReferenceExecutor> create()
-    {
-        return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
-    }
+  static std::shared_ptr<ReferenceExecutor> create() {
+    return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
+  }
 
-    void run(const Operation &op) const override { op.run(this); }
+  void run(const Operation &op) const override { op.run(this); }
 
 protected:
-    ReferenceExecutor() = default;
+  ReferenceExecutor() = default;
 };
 
 /**
@@ -463,43 +449,44 @@ protected:
  */
 class GpuExecutor : public detail::ExecutorBase<GpuExecutor> {
 public:
-    /**
-     * Creates a new GpuExecutor.
-     *
-     * @param device  the CUDA device number of this device
-     * @param master  a CPU executor used to invoke the device kernels
-     */
-    static std::shared_ptr<GpuExecutor> create(
-        int device_id, std::shared_ptr<CpuExecutor> master)
-    {
-        return std::shared_ptr<GpuExecutor>(
-            new GpuExecutor(device_id, std::move(master)));
-    }
+  /**
+   * Creates a new GpuExecutor.
+   *
+   * @param device  the CUDA device number of this device
+   * @param master  a CPU executor used to invoke the device kernels
+   */
+  static std::shared_ptr<GpuExecutor>
+  create(int device_id, std::shared_ptr<CpuExecutor> master) {
+    return std::shared_ptr<GpuExecutor>(
+        new GpuExecutor(device_id, std::move(master)));
+  }
 
-    void free(void *ptr) const noexcept override;
+  void free(void *ptr) const noexcept override;
 
-    std::shared_ptr<CpuExecutor> get_master() noexcept override;
+  std::shared_ptr<CpuExecutor> get_master() noexcept override;
+  /**
+   * A wrapper for the cudaDeviceSynchronize() function.
+   */
+  void synchronize() const;
 
-    std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
-
-    int get_device_id() const noexcept { return device_id_; }
+  std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
+  int get_device_id() const noexcept { return device_id_; }
 
 protected:
-    GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master)
-        : device_id_(device_id), master_(master)
-    {}
+  GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master)
+      : device_id_(device_id), master_(master) {}
 
-    void *raw_alloc(size_type size) const override;
+  void *raw_alloc(size_type size) const override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+  GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
 private:
-    int device_id_;
-    std::shared_ptr<CpuExecutor> master_;
+  int device_id_;
+  std::shared_ptr<CpuExecutor> master_;
 };
 
 #undef OVERRIDE_RAW_COPY_TO
 
-}  // namespace gko
+} // namespace gko
 
-#endif  // GKO_CORE_EXECUTOR_HPP_
+#endif // GKO_CORE_EXECUTOR_HPP_
