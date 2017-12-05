@@ -26,7 +26,7 @@ TEST(GpuExecutor, AllocatesAndFreesMemory)
     auto cpu = gko::CpuExecutor::create();
     auto gpu = gko::GpuExecutor::create(0, cpu);
 
-    ASSERT_EQ(1,cpu->GpuExecutor:getDeviceCount());
+    ASSERT_EQ(1,gpu->getDeviceCount());
     int *ptr ;
     
     ASSERT_NO_THROW(ptr = gpu->alloc<int>(num_elems));

@@ -32,5 +32,5 @@ void GpuExecutor::synchronize() const
 int GpuExecutor::getDeviceCount() const NOT_COMPILED(gpu);
 
 
-static std::string get_error(int64 error_code) NOT_COMPILED(GPU);
+static std::string get_error(int64 error_code){};
 }  // namespace gko

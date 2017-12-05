@@ -47,17 +47,18 @@ namespace gko {
  */
 class Error : public std::exception {
 public:
-  Error(const std::string &file, int line, const std::string &what)
-      : what_(file + ":" + std::to_string(line) + ": " + what) {}
+    Error(const std::string &file, int line, const std::string &what)
+        : what_(file + ":" + std::to_string(line) + ": " + what)
+    {}
 
-  /**
-   * Returns a human-readable string with a more detailed description of the
-   * error.
-   */
-  virtual const char *what() const noexcept override { return what_.c_str(); }
+    /**
+     * Returns a human-readable string with a more detailed description of the
+     * error.
+     */
+    virtual const char *what() const noexcept override { return what_.c_str(); }
 
 private:
-  const std::string what_;
+    const std::string what_;
 };
 
 /**
@@ -66,8 +67,9 @@ private:
  */
 class NotImplemented : public Error {
 public:
-  NotImplemented(const std::string &file, int line, const std::string &func)
-      : Error(file, line, func + " is not implemented") {}
+    NotImplemented(const std::string &file, int line, const std::string &func)
+        : Error(file, line, func + " is not implemented")
+    {}
 };
 
 /**
@@ -76,11 +78,12 @@ public:
  */
 class NotCompiled : public Error {
 public:
-  NotCompiled(const std::string &file, int line, const std::string &func,
-              const std::string &module)
-      : Error(file, line,
-              "feature " + func + " is part of the " + module +
-                  " module, which is not compiled on this system") {}
+    NotCompiled(const std::string &file, int line, const std::string &func,
+                const std::string &module)
+        : Error(file, line,
+                "feature " + func + " is part of the " + module +
+                    " module, which is not compiled on this system")
+    {}
 };
 
 /**
@@ -89,11 +92,12 @@ public:
  */
 class NotSupported : public Error {
 public:
-  NotSupported(const std::string &file, int line, const std::string &func,
-               const std::string &obj_type)
-      : Error(file, line,
-              "Operation " + func + " does not support parameters of type " +
-                  obj_type) {}
+    NotSupported(const std::string &file, int line, const std::string &func,
+                 const std::string &obj_type)
+        : Error(file, line,
+                "Operation " + func + " does not support parameters of type " +
+                    obj_type)
+    {}
 };
 
 /**
@@ -101,13 +105,13 @@ public:
  */
 class CudaError : public Error {
 public:
-  CudaError(const std::string &file, int line, const std::string &func,
-            int64 error_code)
-      : Error(file, line, func + ":" + get_error(error_code)) {}
+    CudaError(const std::string &file, int line, const std::string &func,
+              int64 error_code)
+        : Error(file, line, func + ":" + get_error(error_code))
+    {}
 
 private:
-  static std::string
-  get_error(int64 error_code){}; // wrong but for commit reasons BUG.
+    static std::string get_error(int64 error_code){};
 };
 
 /**
@@ -116,14 +120,15 @@ private:
  */
 class DimensionMismatch : public Error {
 public:
-  DimensionMismatch(const std::string &file, int line, const std::string &func,
-                    int64 range_dim, int64 domain_dim, int64 vector_dim,
-                    int64 num_vecs)
-      : Error(file, line,
-              func + ": attempting to apply a [" + std::to_string(range_dim) +
-                  " x " + std::to_string(domain_dim) + "] operator on a [" +
-                  std::to_string(vector_dim) + " x " +
-                  std::to_string(num_vecs) + "] batch of vectors") {}
+    DimensionMismatch(const std::string &file, int line,
+                      const std::string &func, int64 range_dim,
+                      int64 domain_dim, int64 vector_dim, int64 num_vecs)
+        : Error(file, line,
+                func + ": attempting to apply a [" + std::to_string(range_dim) +
+                    " x " + std::to_string(domain_dim) + "] operator on a [" +
+                    std::to_string(vector_dim) + " x " +
+                    std::to_string(num_vecs) + "] batch of vectors")
+    {}
 };
 
 /**
@@ -132,9 +137,10 @@ public:
  */
 class NotFound : public Error {
 public:
-  NotFound(const std::string &file, int line, const std::string &func,
-           const std::string &what)
-      : Error(file, line, func + ": " + what) {}
+    NotFound(const std::string &file, int line, const std::string &func,
+             const std::string &what)
+        : Error(file, line, func + ": " + what)
+    {}
 };
 
 /**
@@ -142,13 +148,14 @@ public:
  */
 class AllocationError : public Error {
 public:
-  AllocationError(const std::string &file, int line, const std::string &device,
-                  size_type bytes)
-      : Error(file, line,
-              device + ": failed to allocate memory block of " +
-                  std::to_string(bytes) + "B") {}
+    AllocationError(const std::string &file, int line,
+                    const std::string &device, size_type bytes)
+        : Error(file, line,
+                device + ": failed to allocate memory block of " +
+                    std::to_string(bytes) + "B")
+    {}
 };
 
-} // namespace gko
+}  // namespace gko
 
-#endif // GKO_CORE_EXCEPTION_HPP_
+#endif  // GKO_CORE_EXCEPTION_HPP_
