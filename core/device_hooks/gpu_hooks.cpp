@@ -36,7 +36,7 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
 void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
 
 
-std::string GpuExecutor::get_error(int64 error_code)
+std::string CudaError::get_error(int64 error_code)
 {
     return "ginkgo CUDA module is not compiled";
 }
