@@ -6,74 +6,98 @@
 
 #include <gtest/gtest.h>
 
-#include <core/base/exception_helpers.hpp>
 
-#include <gpu/base/exception.hpp>
-
-
-#include <gpu/test/base/gpu_kernel.cu>
+#include <core/base/exception.hpp>
 
 
 namespace {
 
 
-using exec_ptr = std::shared_ptr<gko::Executor>;
+class GpuExecutor : public ::testing::Test {
+protected:
+    GpuExecutor() : cpu(gko::CpuExecutor::create()), gpu(nullptr) {}
+
+    void SetUp()
+    {
+        ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
+        gpu = gko::GpuExecutor::create(0, cpu);
+    }
+
+    void TearDown()
+    {
+        if (gpu != nullptr) {
+            // ensure that previous calls finished and didn't throw an error
+            ASSERT_NO_THROW(gpu->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::CpuExecutor> cpu;
+    std::shared_ptr<gko::GpuExecutor> gpu;
+};
 
 
-TEST(GpuExecutor, AllocatesAndFreesMemory)
+TEST_F(GpuExecutor, AllocatesAndFreesMemory)
 {
-    const int num_elems = 10;
-    auto cpu = gko::CpuExecutor::create();
-    auto gpu = gko::GpuExecutor::create(0, cpu);
+    int *ptr = nullptr;
 
-    ASSERT_EQ(1,gpu->getDeviceCount());
-    int *ptr ;
-    
-    ASSERT_NO_THROW(ptr = gpu->alloc<int>(num_elems));
+    ASSERT_NO_THROW(ptr = gpu->alloc<int>(2));
     ASSERT_NO_THROW(gpu->free(ptr));
-
-    ASSERT_NO_THROW(gpu->synchronize()); // allow for synchronization to prevent any errors to be carried forward
 }
 
 
-TEST(GpuExecutor, FailsWhenOverallocating)
+TEST_F(GpuExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    auto cpu = gko::CpuExecutor::create();
-    auto gpu = gko::GpuExecutor::create(0, cpu);
-    int *ptr ;
+    int *ptr = nullptr;
 
-    ASSERT_THROW(ptr = gpu->alloc<int>(num_elems), gko::AllocationError);
+    ASSERT_THROW(
+        {
+            ptr = gpu->alloc<int>(num_elems);
+            gpu->synchronize();
+        },
+        gko::AllocationError);
 
     gpu->free(ptr);
-
-    ASSERT_NO_THROW(gpu->synchronize());
 }
 
 
-TEST(GpuExecutor, CopiesDataFromCpu)
+__global__ void check_data(int *data)
 {
-    
-    double orig[] = {3,8};
-    const int num_elems = std::extent<decltype(orig)>::value;
-    auto cpu = gko::CpuExecutor::create();
-    auto gpu = gko::GpuExecutor::create(0, cpu);
-    double *d_copy = gpu->alloc<double>(num_elems);
-   
-    double *copy = cpu->alloc<double>(num_elems);
-    
-    gpu->copy_from(cpu.get(), num_elems, orig, d_copy); //copy data to gpu
-    
-    run_on_gpu(num_elems, d_copy); //run a gpu kernel
-    
-    cpu->copy_from(gpu.get(), num_elems, d_copy, copy); //copy back data from gpu
-    
-    EXPECT_EQ(2.5, copy[0]);
-    EXPECT_EQ(5, copy[1]);
+    if (data[0] != 3 || data[1] != 8) {
+        asm("trap;");
+    }
+}
 
-    
+TEST_F(GpuExecutor, CopiesDataToGpu)
+{
+    int orig[] = {3, 8};
+    auto *copy = gpu->alloc<int>(2);
+
+    gpu->copy_from(cpu.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(gpu->synchronize());
- 
+    gpu->free(copy);
+}
+
+
+__global__ void init_data(int *data)
+{
+    data[0] = 5;
+    data[1] = 2;
+}
+
+TEST_F(GpuExecutor, CopiesDataFromGpu)
+{
+    int copy[2];
+    auto orig = gpu->alloc<int>(2);
+    init_data<<<1, 1>>>(orig);
+
+    cpu->copy_from(gpu.get(), 2, orig, copy);
+
+    EXPECT_EQ(5, copy[0]);
+    ASSERT_EQ(2, copy[1]);
+    gpu->free(orig);
 }
 
 

@@ -1,12 +1,16 @@
 #ifndef GKO_CORE_EXCEPTION_HPP_
 #define GKO_CORE_EXCEPTION_HPP_
 
+
 #include "core/base/types.hpp"
+
 
 #include <exception>
 #include <string>
 
+
 namespace gko {
+
 
 /**
  * The Error class is used to report exceptional behaviour in library
@@ -61,6 +65,7 @@ private:
     const std::string what_;
 };
 
+
 /**
  * NotImplemented is thrown in case an operation has not yet
  * been implemented (but will be implemented in the future).
@@ -71,6 +76,7 @@ public:
         : Error(file, line, func + " is not implemented")
     {}
 };
+
 
 /**
  * NotCompiled is thrown when attempting to call an operation which is a part of
@@ -86,6 +92,7 @@ public:
     {}
 };
 
+
 /**
  * NotSupported is thrown in case it is not possible to
  * perform the requested operation on the given object type.
@@ -100,6 +107,7 @@ public:
     {}
 };
 
+
 /**
  * CudaError is thrown when the cuda routine throws a non-zero error code.
  */
@@ -111,8 +119,9 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code){};
+    static std::string get_error(int64 error_code);
 };
+
 
 /**
  * DimensionMismatch is thrown if a LinOp is being applied to a DenseMatrix
@@ -131,6 +140,7 @@ public:
     {}
 };
 
+
 /**
  * NotFound is thrown if a requested Attachement is not found in the
  * attachement list of the LinOp.
@@ -142,6 +152,7 @@ public:
         : Error(file, line, func + ": " + what)
     {}
 };
+
 
 /**
  * AllocationError is thrown if a memory allocation fails.
@@ -156,6 +167,8 @@ public:
     {}
 };
 
+
 }  // namespace gko
+
 
 #endif  // GKO_CORE_EXCEPTION_HPP_

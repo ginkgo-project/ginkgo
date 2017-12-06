@@ -1,71 +1,84 @@
 #include "core/base/executor.hpp"
 
-#include "core/base/exception_helpers.hpp"
+
+#include <iostream>
+
 
 #include <cuda_runtime.h>
-#include "gpu/base/exception.hpp"
+
+
+#include "core/base/exception_helpers.hpp"
+
 
 namespace gko {
+
 
 void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    cudaError_t errcode;
-    errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice);
+    ASSERT_NO_CUDA_ERRORS(
+        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+}
+
+
+void GpuExecutor::free(void *ptr) const noexcept
+{
+    auto errcode = cudaFree(ptr);
     if (errcode != cudaSuccess) {
-        throw CUDA_ERROR(errcode);
+        // Unfortunately, if memory free fails, there's not much we can do
+        std::cerr << "Unrecoverable CUDA error in " << __func__ << ": "
+                  << cudaGetErrorName(errcode) << ": "
+                  << cudaGetErrorString(errcode) << std::endl
+                  << "Exiting program" << std::endl;
+        std::exit(errcode);
     }
 }
 
-void GpuExecutor::free(void *ptr) const noexcept { cudaFree(ptr); }
 
 void *GpuExecutor::raw_alloc(size_type num_bytes) const
-
 {
-    std::string gpu = "gpu";
-    void *dev_ptr;
-    cudaMalloc(&dev_ptr, num_bytes);
-    ENSURE_ALLOCATED(dev_ptr, gpu, num_bytes);
+    void *dev_ptr = nullptr;
+    auto errcode = cudaMalloc(&dev_ptr, num_bytes);
+    if (errcode != cudaErrorMemoryAllocation) {
+        ASSERT_NO_CUDA_ERRORS(errcode);
+    }
+    ENSURE_ALLOCATED(dev_ptr, "gpu", num_bytes);
     return dev_ptr;
 }
+
 
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    cudaError_t errcode;
-    errcode = cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost);
-    if (errcode != cudaSuccess) {
-        throw CUDA_ERROR(errcode);
-    }
+    ASSERT_NO_CUDA_ERRORS(
+        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
 }
+
 
 void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    cudaError_t errcode;
-    errcode =
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToDevice);
-    if (errcode != cudaSuccess) {
-        throw CUDA_ERROR(errcode);
-    }
+    ASSERT_NO_CUDA_ERRORS(
+        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToDevice));
 }
+
 
 void GpuExecutor::synchronize() const
 {
-    auto errcode = cudaDeviceSynchronize();
-    if (errcode != cudaSuccess) {
-        throw CUDA_ERROR(errcode);
-    }
+    ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
-int GpuExecutor::getDeviceCount() const
+
+int GpuExecutor::get_num_devices()
 {
     int deviceCount = 0;
     auto errcode = cudaGetDeviceCount(&deviceCount);
-    if (deviceCount == 0) {
-        throw CUDA_ERROR(errcode);
+    if (errcode == cudaErrorNoDevice) {
+        return 0;
     }
+    ASSERT_NO_CUDA_ERRORS(errcode);
     return deviceCount;
 }
+
 
 }  // namespace gko

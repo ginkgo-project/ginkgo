@@ -71,9 +71,20 @@ namespace gko {
  *
  * @param errcode The error code returned from the cuda routine.
  */
-#define CUDA_ERROR(errcode) \
-                            \
-    ::gko::CudaError(__FILE__, __LINE__, __func__, errcode)
+#define CUDA_ERROR(_errcode) \
+    ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Asserts that a cuda library call completed without errors.
+ *
+ * @param _cuda_call  a library call expression
+ */
+#define ASSERT_NO_CUDA_ERRORS(_cuda_call) \
+    auto _errcode = _cuda_call;           \
+    if (_errcode != cudaSuccess) {        \
+        throw CUDA_ERROR(_errcode);       \
+    }
 
 
 namespace detail {

@@ -1,15 +1,20 @@
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
+
 #include "core/base/types.hpp"
+
 
 #include <memory>
 
+
 namespace gko {
+
 
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(CpuExecutor, cpu);                \
     _enable_macro(GpuExecutor, gpu)
+
 
 #define FORWARD_DECLARE(_type, _unused) class _type
 
@@ -17,14 +22,19 @@ GKO_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
 
 #undef FORWARD_DECLARE
 
+
 class ReferenceExecutor;
 
+
 namespace detail {
+
 
 template <typename>
 class ExecutorBase;
 
+
 }  // namespace detail
+
 
 /**
  * Operations can be used to define functionalities whose implementations differ
@@ -132,6 +142,7 @@ public:
     // ReferenceExecutor overload can be defaulted to CpuExecutor's
     virtual void run(const ReferenceExecutor *executor) const;
 };
+
 
 /**
  * The first step in using the GINKGO library consists of creating an
@@ -381,7 +392,9 @@ private:
     };
 };
 
+
 namespace detail {
+
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
@@ -407,11 +420,14 @@ private:
     }
 };
 
+
 }  // namespace detail
+
 
 #define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                    \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
+
 
 /**
  * This is the Executor subclass which represents the CPU device.
@@ -440,6 +456,7 @@ protected:
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
 
+
 /**
  * This is a specialization of the CpuExecutor, which runs the reference
  * implementations of the kernels used for debugging purposes.
@@ -456,6 +473,7 @@ public:
 protected:
     ReferenceExecutor() = default;
 };
+
 
 /**
  * This is the Executor subclass which represents the GPU device.
@@ -478,19 +496,20 @@ public:
     void free(void *ptr) const noexcept override;
 
     std::shared_ptr<CpuExecutor> get_master() noexcept override;
+
+    std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
+
+    int get_device_id() const noexcept { return device_id_; }
+
     /**
-     * A wrapper for the cudaDeviceSynchronize() function.
+     * Synchronize the operations launched on the executor with its master.
      */
     void synchronize() const;
 
     /**
-     * A wrapper for the cudaGetDeviceCount() routine.
+     * Get the number of devices present on the system.
      */
-    int getDeviceCount() const;
-
-
-    std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
-    int get_device_id() const noexcept { return device_id_; }
+    static int get_num_devices();
 
 protected:
     GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master)
@@ -506,8 +525,11 @@ private:
     std::shared_ptr<CpuExecutor> master_;
 };
 
+
 #undef OVERRIDE_RAW_COPY_TO
 
+
 }  // namespace gko
+
 
 #endif  // GKO_CORE_EXECUTOR_HPP_
