@@ -83,15 +83,10 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
     using std::isnan;
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (rho->at(j) == zero<ValueType>() ||
-                alpha->at(j) == zero<ValueType>()) {
-                p->at(i, j) = r->at(i, j);
-            } else {
-                auto tmp =
-                    rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
-                p->at(i, j) = r->at(i, j) +
-                              tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
-            }
+            auto tmp =
+                rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
+            p->at(i, j) =
+                r->at(i, j) + tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
         }
     }
 }
@@ -108,8 +103,8 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
 {
     for (size_type i = 0; i < s->get_num_rows(); ++i) {
         for (size_type j = 0; j < s->get_num_cols(); ++j) {
-            alpha->at(j) = rho->at(j) / beta->at(j);
             if (rho->at(j) != zero<ValueType>()) {
+                alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             }
         }
@@ -131,14 +126,12 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
 {
     using std::abs;
     using std::isnan;
-    for (size_type i = 0; i < x->get_num_rows(); ++i) {
-        for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (omega->at(j) != zero<ValueType>()) {
-                omega->at(j) = omega->at(j) / beta->at(j);
-                x->at(i, j) +=
-                    alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
-                r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
-            }
+    for (size_type j = 0; j < x->get_num_cols(); ++j) {
+        omega->at(j) = omega->at(j) / beta->at(j);
+        for (size_type i = 0; i < x->get_num_rows(); ++i) {
+            x->at(i, j) +=
+                alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
+            r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
         }
     }
 }

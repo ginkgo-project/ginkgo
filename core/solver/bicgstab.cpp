@@ -110,7 +110,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
 
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
