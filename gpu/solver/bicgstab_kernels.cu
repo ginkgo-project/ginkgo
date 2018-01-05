@@ -200,8 +200,7 @@ __global__ void step_3_kernel(size_type m, size_type n, size_type lda,
                               ValueType *x, ValueType *r, const ValueType *y,
                               const ValueType *z, const ValueType *s,
                               const ValueType *t, ValueType *omega,
-                              const ValueType *alpha, const ValueType *beta,
-                              const ValueType *rho)
+                              const ValueType *alpha, const ValueType *beta)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     size_type col = tidx % lda;
@@ -237,21 +236,19 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
     ASSERT_EQUAL_DIMENSIONS(r, t);
     const size vector{x->get_num_cols(), 1};
     ASSERT_EQUAL_DIMENSIONS(beta, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
     ASSERT_EQUAL_DIMENSIONS(alpha, &vector);
     ASSERT_EQUAL_DIMENSIONS(omega, &vector);
 
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        ceildiv(x->get_num_rows() * x->get_padding(), block_size.x), 1, 1);
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
         x->get_num_rows(), x->get_num_cols(), x->get_padding(), x->get_values(),
         r->get_values(), y->get_const_values(), z->get_const_values(),
         s->get_const_values(), t->get_const_values(), omega->get_values(),
-        alpha->get_const_values(), beta->get_const_values(),
-        rho->get_const_values());
+        alpha->get_const_values(), beta->get_const_values());
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
