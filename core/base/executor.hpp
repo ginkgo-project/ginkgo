@@ -133,7 +133,7 @@ class ExecutorBase;
 class Operation {
 public:
 #define DECLARE_RUN_OVERLOAD(_type, _unused) \
-    virtual void run(const _type *) const = 0
+    virtual void run(const _type *) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 

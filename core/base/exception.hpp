@@ -109,7 +109,7 @@ public:
 
 
 /**
- * CudaError is thrown when the cuda routine throws a non-zero error code.
+ * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
 class CudaError : public Error {
 public:
