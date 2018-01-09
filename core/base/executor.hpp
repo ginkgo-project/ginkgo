@@ -315,6 +315,11 @@ public:
      */
     virtual std::shared_ptr<const CpuExecutor> get_master() const noexcept = 0;
 
+    /**
+     * Synchronize the operations launched on the executor with its master.
+     */
+    virtual void synchronize() const = 0;
+
 protected:
     /**
      * Allocates raw memory in this Executor.
@@ -444,9 +449,12 @@ public:
     }
 
     void free(void *ptr) const noexcept override;
+
     std::shared_ptr<CpuExecutor> get_master() noexcept override;
 
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
+
+    void synchronize() const override;
 
 protected:
     CpuExecutor() = default;
@@ -483,7 +491,7 @@ public:
     /**
      * Creates a new GpuExecutor.
      *
-     * @param device  the CUDA device number of this device
+     * @param device  the CUDA device id of this device
      * @param master  a CPU executor used to invoke the device kernels
      */
     static std::shared_ptr<GpuExecutor> create(
@@ -499,12 +507,12 @@ public:
 
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
-    int get_device_id() const noexcept { return device_id_; }
+    void synchronize() const override;
 
     /**
-     * Synchronize the operations launched on the executor with its master.
+     * Get the CUDA device id of the device associated to this executor.
      */
-    void synchronize() const;
+    int get_device_id() const noexcept { return device_id_; }
 
     /**
      * Get the number of devices present on the system.

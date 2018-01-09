@@ -40,4 +40,11 @@ void CpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
 }
 
 
+void CpuExecutor::synchronize() const
+{
+    // This is a no-op for single-threaded CPU
+    // TODO: change when adding support for multi-threaded CPU execution
+}
+
+
 }  // namespace gko
