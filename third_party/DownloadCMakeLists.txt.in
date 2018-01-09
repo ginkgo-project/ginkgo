@@ -2,13 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 
 include(ExternalProject)
 ExternalProject_Add(${package_name}
-    GIT_REPOSITORY "${package_url}"
-    GIT_TAG "${package_tag}"
-    SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/src"
-    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/build"
+    GIT_REPOSITORY    "${package_url}"
+    GIT_TAG           "${package_tag}"
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/src"
+    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/build"
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    TEST_COMMAND ""
-    UPDATE_DISCONNECTED 1
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
 )
