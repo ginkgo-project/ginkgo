@@ -89,7 +89,7 @@ TEST_F(Array, CanBeMoveConstructed)
 TEST_F(Array, CanBeCopied)
 {
     auto cpu = gko::CpuExecutor::create();
-    gko::Array<int> a(cpu, 2);
+    gko::Array<int> a(cpu, 3);
     a = x;
     x.get_data()[0] = 7;
 
@@ -100,7 +100,7 @@ TEST_F(Array, CanBeCopied)
 TEST_F(Array, CanBeMoved)
 {
     auto cpu = gko::CpuExecutor::create();
-    gko::Array<int> a(cpu, 2);
+    gko::Array<int> a(cpu, 3);
     a = std::move(x);
 
     assert_equal_to_original_x(a);
@@ -119,7 +119,7 @@ TEST_F(Array, CanBeCleared)
 
 TEST_F(Array, CanBeResized)
 {
-    x.resize(3);
+    x.resize_and_reset(3);
 
     x.get_data()[0] = 1;
     x.get_data()[1] = 8;
@@ -141,6 +141,7 @@ TEST_F(Array, ManagesExternalData)
     data[2] = 7;
     x.manage(3, data);
 
+    ASSERT_EQ(x.get_num_elems(), 3);
     EXPECT_EQ(x.get_const_data()[0], 1);
     EXPECT_EQ(x.get_const_data()[1], 8);
     EXPECT_EQ(x.get_const_data()[2], 7);
