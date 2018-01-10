@@ -60,6 +60,13 @@ TEST(CpuExecutor, AllocatesAndFreesMemory)
 }
 
 
+TEST(CpuExecutor, FreeAcceptsNullptr)
+{
+    exec_ptr cpu = gko::CpuExecutor::create();
+    ASSERT_NO_THROW(cpu->free(nullptr));
+}
+
+
 TEST(CpuExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
@@ -126,6 +133,13 @@ TEST(ReferenceExecutor, AllocatesAndFreesMemory)
 
     ASSERT_NO_THROW(ptr = ref->alloc<int>(num_elems));
     ASSERT_NO_THROW(ref->free(ptr));
+}
+
+
+TEST(ReferenceExecutor, FreeAcceptsNullptr)
+{
+    exec_ptr cpu = gko::ReferenceExecutor::create();
+    ASSERT_NO_THROW(cpu->free(nullptr));
 }
 
 

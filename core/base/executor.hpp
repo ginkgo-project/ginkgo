@@ -322,20 +322,22 @@ public:
      *
      * @tparam T  datatype to allocate
      *
-     * @param n_elems  number of elements of type T to allocate
+     * @param num_elems  number of elements of type T to allocate
      *
      * @throw AllocationError  if the allocation failed
      *
      * @return pointer to allocated memory
      */
     template <typename T>
-    T *alloc(size_type n_elems) const
+    T *alloc(size_type num_elems) const
     {
-        return static_cast<T *>(this->raw_alloc(n_elems * sizeof(T)));
+        return static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
     }
 
     /**
      * Frees memory previously allocated with Executor::alloc().
+     *
+     * If `ptr` is a `nullptr`, the function has no effect.
      *
      * @param ptr  pointer to the allocated memory block
      */
@@ -347,17 +349,17 @@ public:
      * @tparam T  datatype to copy
      *
      * @param src_exec  Executor from which the memory will be copied
-     * @param n_elems  number of elements of type T to copy
+     * @param num_elems  number of elements of type T to copy
      * @param src_ptr  pointer to a block of memory containing the data to be
      *                 copied
      * @param dest_ptr  pointer to an allocated block of memory
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const Executor *src_exec, size_type n_elems,
+    void copy_from(const Executor *src_exec, size_type num_elems,
                    const T *src_ptr, T *dest_ptr) const
     {
-        this->raw_copy_from(src_exec, n_elems * sizeof(T), src_ptr, dest_ptr);
+        this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
     }
 
     /**
