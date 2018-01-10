@@ -1,7 +1,5 @@
-#include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
-#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -33,37 +31,9 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
     NOT_COMPILED(gpu);
 
 
-namespace kernels {
-
-
-namespace gpu {
-
-
-template <typename ValueType>
-GKO_DECLARE_GEMM_KERNEL(ValueType)
-NOT_COMPILED(gpu);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GEMM_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_SCAL_KERNEL(ValueType)
-NOT_COMPILED(gpu);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCAL_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_AXPY_KERNEL(ValueType)
-NOT_COMPILED(gpu);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_AXPY_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_DOT_KERNEL(ValueType)
-NOT_COMPILED(gpu);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DOT_KERNEL);
-
-
-}  // namespace gpu
-
-
-}  // namespace kernels
-
-
 }  // namespace gko
+
+
+#define GKO_HOOK_MODULE gpu
+#include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_HOOK_MODULE

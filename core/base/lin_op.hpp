@@ -182,6 +182,8 @@ public:
      */
     virtual void clear() = 0;
 
+    virtual ~LinOp() = default;
+
     /**
      * Get the Executor of this object.
      */

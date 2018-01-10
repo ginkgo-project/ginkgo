@@ -10,7 +10,10 @@ class ConvertibleTo {
 public:
     using result_type = ResultType;
 
+    virtual ~ConvertibleTo() = default;
+
     virtual void convert_to(result_type *result) const = 0;
+
     virtual void move_to(result_type *result) = 0;
 };
 
