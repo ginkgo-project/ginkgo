@@ -65,7 +65,7 @@ namespace gko {
 
 
 /**
- * Tnstantiates a CudaError.
+ * Instantiates a CudaError.
  *
  * @param errcode The error code returned from a CUDA runtime API routine.
  */

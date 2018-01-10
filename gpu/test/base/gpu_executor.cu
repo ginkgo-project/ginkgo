@@ -8,6 +8,7 @@
 
 
 #include <core/base/exception.hpp>
+#include <core/base/exception_helpers.hpp>
 
 
 namespace {
@@ -100,5 +101,29 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
     gpu->free(orig);
 }
 
+TEST_F(GpuExecutor, CudaErrorThrowWorks)
+
+{
+    cudaError_t err_code1 = cudaSuccess;
+    cudaError_t err_code2 = cudaErrorMemoryAllocation;
+    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(err_code1));
+
+    ASSERT_THROW(CUDA_ERROR(err_code2), gko::CudaError);
+}
+/*
+TEST_F(GpuExecutor, SynchronizesWithMaster)
+
+{
+    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(gpu->synchronize()));
+}
+
+*/
+TEST_F(GpuExecutor, MasterKnowsNumberOfDevices)
+
+{
+    int count = 0;
+    cudaGetDeviceCount(&count);
+    ASSERT_EQ(count, gpu->get_num_devices());
+}
 
 }  // namespace
