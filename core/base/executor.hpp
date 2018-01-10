@@ -145,19 +145,19 @@ namespace detail {
 
 
 template <int K, int... Ns, typename F, typename Tuple>
-typename std::enable_if<(K == 0)>::type call_impl(F f, Tuple &&data)
+typename std::enable_if<(K == 0)>::type call_impl(F f, Tuple &data)
 {
-    f(std::get<Ns>(std::forward<Tuple>(data))...);
+    f(std::get<Ns>(data)...);
 }
 
 template <int K, int... Ns, typename F, typename Tuple>
-typename std::enable_if<(K > 0)>::type call_impl(F f, Tuple &&data)
+typename std::enable_if<(K > 0)>::type call_impl(F f, Tuple &data)
 {
-    call_impl<K - 1, K - 1, Ns...>(f, std::forward<Tuple>(data));
+    call_impl<K - 1, K - 1, Ns...>(f, data);
 }
 
 template <typename F, typename... Args>
-void call(F f, const std::tuple<Args...> &data)
+void call(F f, std::tuple<Args...> &data)
 {
     call_impl<sizeof...(Args)>(f, data);
 }
@@ -166,11 +166,66 @@ void call(F f, const std::tuple<Args...> &data)
 }  // namespace detail
 
 
+/**
+ * Binds a set of device-specific kernels to an Operation.
+ *
+ * It also defines a helper function which creates the associated operation.
+ * Any input arguments passed to the helper function are forwarded to the
+ * kernel when the operation is executed.
+ *
+ * The kernels used to bind the operation are search in `kernels::DEV_TYPE`
+ * namespace, where `DEV_TYPE` is replaced by `cpu`, `gpu`, and `,reference`.
+ *
+ * @param _name  operation name
+ * @param _kernel  kernel which will be bound to the operation
+ *
+ * Example
+ * -------
+ *
+ * ```c++
+ * // define the cpu, gpu and reference kernels which will be bound to the
+ * // operation
+ * namespace kernels {
+ * namespace cpu {
+ * void my_kernel(int x) {
+ *      // cpu code
+ * }
+ * }
+ * namespace gpu {
+ * void my_kernel(int x) {
+ *      // gpu code
+ * }
+ * }
+ * namespace reference {
+ * void my_kernel(int x) {
+ *     // reference code
+ * }
+ * }
+ *
+ * // Bind the kernels to the operation
+ * GKO_REGISTER_OPERATION(my_op, my_kernel);
+ *
+ * int main() {
+ *     // create executors
+ *     auto cpu = CpuExecutor::create();
+ *     auto gpu = GpuExecutor::create(cpu, 0);
+ *     auto ref = ReferenceExecutor::create();
+ *
+ *     // create the operation
+ *     auto op = make_my_op_operation(5); // x = 5
+ *
+ *     cpu->run(op);  // run cpu kernel
+ *     gpu->run(op);  // run gpu kernel
+ *     ref->run(op);  // run reference kernel
+ * }
+ * ```
+ */
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
     class _name##_operation : public Operation {                               \
     public:                                                                    \
-        _name##_operation(Args... args) : data(std::forward<Args>(args)...) {} \
+        _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
+        {}                                                                     \
                                                                                \
         void run(const CpuExecutor *) const override                           \
         {                                                                      \
@@ -188,7 +243,7 @@ void call(F f, const std::tuple<Args...> &data)
         }                                                                      \
                                                                                \
     private:                                                                   \
-        std::tuple<Args...> data;                                              \
+        mutable std::tuple<Args &&...> data;                                   \
     };                                                                         \
                                                                                \
     template <typename... Args>                                                \
