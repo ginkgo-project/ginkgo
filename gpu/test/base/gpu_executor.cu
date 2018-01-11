@@ -104,20 +104,23 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
 TEST_F(GpuExecutor, CudaErrorThrowWorks)
 
 {
-    cudaError_t err_code1 = cudaSuccess;
-    cudaError_t err_code2 = cudaErrorMemoryAllocation;
-    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(err_code1));
-
-    ASSERT_THROW(CUDA_ERROR(err_code2), gko::CudaError);
+    cudaError_t err_code = cudaSuccess;
+    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(err_code));
 }
-/*
-TEST_F(GpuExecutor, SynchronizesWithMaster)
+
+TEST_F(GpuExecutor, SynchronizesWithMasterDoesNotThrowError)
 
 {
-    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(gpu->synchronize()));
+    int orig[] = {3, 8};
+    auto *copy = gpu->alloc<int>(2);
+
+    gpu->copy_from(cpu.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
+    ASSERT_NO_THROW(gpu->synchronize());
 }
 
-*/
+
 TEST_F(GpuExecutor, MasterKnowsNumberOfDevices)
 
 {
