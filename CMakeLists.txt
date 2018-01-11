@@ -17,3 +17,12 @@ endif()
 add_subdirectory(third_party)  # Third-party tools and libraries
 add_subdirectory(core)         # Core Ginkgo types and top-level functions
 
+
+if(DEVEL_TOOLS)
+  set(LICENSE_SCRIPT ${CMAKE_SOURCE_DIR}/dev_tools/scripts/add_license.sh)
+
+  add_custom_target(add_license
+    COMMAND ${LICENSE_SCRIPT}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  add_dependencies(format add_license)
+endif()
