@@ -2,6 +2,7 @@
 #define GKO_CORE_TYPES_HPP_
 
 
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 

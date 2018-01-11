@@ -8,9 +8,7 @@
 #include "core/base/lin_op.hpp"
 
 
-#include <complex>
 #include <initializer_list>
-#include <memory>
 
 
 namespace gko {
