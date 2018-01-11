@@ -17,16 +17,43 @@ namespace gko {
 namespace matrix {
 
 
+/**
+ * Dense is a matrix format which explicitly stores all values of the matrix.
+ *
+ * The values are stored in row-major format (values belonging to the same row
+ * appear consecutive in the memory). Optionally, rows can be padded for better
+ * memory access.
+ *
+ * @tparam ValueType  precision of matrix elements
+ *
+ * @note While this format is not very useful for storing sparse matrices, it
+ *       is often suitable to store vectors, and sets of vectors.
+ */
 template <typename ValueType = default_precision>
 class Dense : public LinOp, public ConvertibleTo<Dense<ValueType>> {
 public:
     using value_type = ValueType;
 
+    /**
+     * Creates an empty Dense matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec)
     {
         return create(exec, 0, 0, 0);
     }
 
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows  number of rows
+     * @param num_cols  number of columns
+     * @param paddding  padding of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          size_type num_rows, size_type num_cols,
                                          size_type padding)
@@ -35,6 +62,15 @@ public:
             new Dense(std::move(exec), num_rows, num_cols, padding));
     }
 
+    /**
+     * Creates and initializes a Dense column-vector.
+     *
+     * @param exec  Executor associated to the vector
+     * @param paddding  padding of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     * @param vals  values used to initialize the vector
+     */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          size_type padding,
                                          std::initializer_list<ValueType> vals)
@@ -52,12 +88,29 @@ public:
         return result;
     }
 
+    /**
+     * Cretes and initializes a Dense column-vector.
+     *
+     * The padding of the vector is set to 1.
+     *
+     * @param exec  Executor associated to the vector
+     * @param vals  values used to initialize the vector
+     */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          std::initializer_list<ValueType> vals)
     {
         return create(std::move(exec), 1, vals);
     }
 
+    /**
+     * Creates and initializes a Dense matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param paddding  padding of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     * @param vals  values used to initialize the matrix
+     */
     static std::unique_ptr<Dense> create(
         std::shared_ptr<const Executor> exec, size_type padding,
         std::initializer_list<std::initializer_list<ValueType>> vals)
@@ -80,6 +133,14 @@ public:
         return result;
     }
 
+    /**
+     * Creates and initializes a Dense matrix.
+     *
+     * Padding is set to the number of columns of the matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param vals  values used to initialize the matrix
+     */
     static std::unique_ptr<Dense> create(
         std::shared_ptr<const Executor> exec,
         std::initializer_list<std::initializer_list<ValueType>> vals)
@@ -90,11 +151,70 @@ public:
             vals.size() > 0 ? max<size_type>(begin(vals)->size(), 1) : 1, vals);
     }
 
+    /**
+     * Gets the array containing the values of the matrix.
+     */
     Array<value_type> &get_values() noexcept { return values_; }
 
+    /**
+     * Gets the array containing the values of the matrix.
+     */
     const Array<value_type> &get_values() const noexcept { return values_; }
 
+    /**
+     * Returns the padding of the matrix.
+     */
     size_type get_padding() const { return padding_; }
+
+    /**
+     * Returns a single element of the matrix.
+     *
+     * @param row  the row of the requested element
+     * @param col  the column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    ValueType &at(size_type row, size_type col) noexcept
+    {
+        return values_.get_data()[linearize_index(row, col)];
+    }
+
+    /**
+     * @copydoc Dense::at(size_type, size_type)
+     */
+    ValueType at(size_type row, size_type col) const noexcept
+    {
+        return values_.get_const_data()[linearize_index(row, col)];
+    }
+
+    /**
+     * Returns a single element of the matrix.
+     *
+     * Useful for iterating across all elements of the matrix.
+     * However, it is less efficient than the two-parameter variant of this
+     * method.
+     *
+     * @param idx  a linear index of the requested element
+     *             (ignoring the padding)
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    ValueType &at(size_type idx) noexcept
+    {
+        return values_.get_data()[linearize_index(idx)];
+    }
+
+    /**
+     * @copydoc Dense::at(size_type)
+     */
+    ValueType at(size_type idx) const noexcept
+    {
+        return values_.get_const_data()[linearize_index(idx)];
+    }
 
     void copy_from(const LinOp *other) override;
 
@@ -118,26 +238,6 @@ public:
     void convert_to(Dense *result) const override;
 
     void move_to(Dense *result) override;
-
-    ValueType &at(size_type row, size_type col) noexcept
-    {
-        return values_.get_data()[linearize_index(row, col)];
-    }
-
-    ValueType at(size_type row, size_type col) const noexcept
-    {
-        return values_.get_const_data()[linearize_index(row, col)];
-    }
-
-    ValueType &at(size_type idx) noexcept
-    {
-        return values_.get_data()[linearize_index(idx)];
-    }
-
-    ValueType at(size_type idx) const noexcept
-    {
-        return values_.get_const_data()[linearize_index(idx)];
-    }
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
