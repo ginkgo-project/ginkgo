@@ -37,6 +37,14 @@ protected:
 };
 
 
+TEST_F(GpuExecutor, MasterKnowsNumberOfDevices)
+{
+    int count = 0;
+    cudaGetDeviceCount(&count);
+    ASSERT_EQ(count, gpu->get_num_devices());
+}
+
+
 TEST_F(GpuExecutor, AllocatesAndFreesMemory)
 {
     int *ptr = nullptr;
@@ -101,32 +109,12 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
     gpu->free(orig);
 }
 
-TEST_F(GpuExecutor, CudaErrorThrowWorks)
 
+TEST_F(GpuExecutor, Synchronizes)
 {
-    cudaError_t err_code = cudaSuccess;
-    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(err_code));
-}
-
-TEST_F(GpuExecutor, SynchronizesWithMasterDoesNotThrowError)
-
-{
-    int orig[] = {3, 8};
-    auto *copy = gpu->alloc<int>(2);
-
-    gpu->copy_from(cpu.get(), 2, orig, copy);
-
-    check_data<<<1, 1>>>(copy);
+    // Todo design a proper unit test once we support streams
     ASSERT_NO_THROW(gpu->synchronize());
 }
 
-
-TEST_F(GpuExecutor, MasterKnowsNumberOfDevices)
-
-{
-    int count = 0;
-    cudaGetDeviceCount(&count);
-    ASSERT_EQ(count, gpu->get_num_devices());
-}
 
 }  // namespace

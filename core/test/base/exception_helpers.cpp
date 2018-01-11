@@ -34,6 +34,14 @@ TEST(NotSupported, ReturnsNotSupportedException)
 }
 
 
+void throws_cuda_error() { throw CUDA_ERROR(0); }
+
+TEST(CudaError, ReturnsCudaError)
+{
+    ASSERT_THROW(throws_cuda_error(), gko::CudaError);
+}
+
+
 struct dummy_matrix {
     int rows;
     int cols;
