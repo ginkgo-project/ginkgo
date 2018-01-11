@@ -208,6 +208,13 @@ protected:
         num_nonzeros_ = num_nonzeros;
     }
 
+    void set_dimensions(const LinOp *op) noexcept
+    {
+        num_rows_ = op->num_rows_;
+        num_cols_ = op->num_cols_;
+        num_nonzeros_ = op->num_nonzeros_;
+    }
+
 private:
     std::shared_ptr<const Executor> exec_;
     size_type num_rows_;
