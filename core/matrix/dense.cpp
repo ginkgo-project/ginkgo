@@ -4,6 +4,7 @@
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
+#include "core/base/utils.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -22,28 +23,6 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
 };
-
-
-template <typename T, typename U>
-T *as(U *op)
-{
-    if (auto p = dynamic_cast<T *>(op)) {
-        return p;
-    } else {
-        throw NOT_SUPPORTED(op);
-    }
-}
-
-
-template <typename T, typename U>
-const T *as(const U *op)
-{
-    if (auto p = dynamic_cast<const T *>(op)) {
-        return p;
-    } else {
-        throw NOT_SUPPORTED(op);
-    }
-}
 
 
 }  // namespace
