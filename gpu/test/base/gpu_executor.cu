@@ -41,7 +41,7 @@ TEST_F(GpuExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;
     cudaGetDeviceCount(&count);
-    ASSERT_EQ(count, gpu->get_num_devices());
+    ASSERT_EQ(count, gko::GpuExecutor::get_num_devices());
 }
 
 
