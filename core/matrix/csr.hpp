@@ -47,6 +47,9 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType, typename IndexType>
+class Coo;
+
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
  * compressing each row of the matrix (compressed sparse row format).
