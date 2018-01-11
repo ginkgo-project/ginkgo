@@ -44,9 +44,10 @@ TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
 
 TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 {
-    gko::DimensionMismatch error("test_file.cpp", 243, "test_func", 3, 4, 2, 5);
-    ASSERT_EQ(std::string("test_file.cpp:243: test_func: attempting to apply a "
-                          "[3 x 4] operator on a [2 x 5] batch of vectors"),
+    gko::DimensionMismatch error("test_file.cpp", 243, "test_func", "a", 3, 4,
+                                 "b", 2, 5, "my_clarify");
+    ASSERT_EQ(std::string("test_file.cpp:243: test_func: attempting to combine "
+                          "operators a [3 x 4] and b [2 x 5]: my_clarify"),
               error.what());
 }
 

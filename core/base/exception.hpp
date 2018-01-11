@@ -124,19 +124,22 @@ public:
 
 
 /**
- * DimensionMismatch is thrown if a LinOp is being applied to a DenseMatrix
- * of incompatible size.
+ * DimensionMismatch is thrown if a LinOp operation is being applied on
+ * operators of incompatible size.
  */
 class DimensionMismatch : public Error {
 public:
     DimensionMismatch(const std::string &file, int line,
-                      const std::string &func, int64 range_dim,
-                      int64 domain_dim, int64 vector_dim, int64 num_vecs)
+                      const std::string &func, const std::string &first_name,
+                      size_type first_rows, size_type first_cols,
+                      const std::string &second_name, size_type second_rows,
+                      size_type second_cols, const std::string &clarification)
         : Error(file, line,
-                func + ": attempting to apply a [" + std::to_string(range_dim) +
-                    " x " + std::to_string(domain_dim) + "] operator on a [" +
-                    std::to_string(vector_dim) + " x " +
-                    std::to_string(num_vecs) + "] batch of vectors")
+                func + ": attempting to combine operators " + first_name +
+                    " [" + std::to_string(first_rows) + " x " +
+                    std::to_string(first_cols) + "] and " + second_name + " [" +
+                    std::to_string(second_rows) + " x " +
+                    std::to_string(second_cols) + "]: " + clarification)
     {}
 };
 

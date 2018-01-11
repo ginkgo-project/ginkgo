@@ -3,6 +3,7 @@
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/types.hpp"
 
 
 namespace gko {
