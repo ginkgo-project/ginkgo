@@ -1,4 +1,5 @@
-set(SOURCES "")
+set(SOURCES
+    matrix/dense_kernels.cpp)
 
 add_library(ginkgo_reference SHARED
     $<TARGET_OBJECTS:ginkgo_reference_device>
