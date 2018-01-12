@@ -209,8 +209,8 @@ void call(F f, std::tuple<Args...> &data)
  * Any input arguments passed to the helper function are forwarded to the
  * kernel when the operation is executed.
  *
- * The kernels used to bind the operation are search in `kernels::DEV_TYPE`
- * namespace, where `DEV_TYPE` is replaced by `cpu`, `gpu`, and `,reference`.
+ * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
+ * namespace, where `DEV_TYPE` is replaced by `cpu`, `gpu` and `reference`.
  *
  * @param _name  operation name
  * @param _kernel  kernel which will be bound to the operation

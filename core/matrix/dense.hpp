@@ -123,7 +123,7 @@ public:
     }
 
     /**
-     * Cretes and initializes a Dense column-vector.
+     * Creates and initializes a Dense column-vector.
      *
      * The padding of the vector is set to 1.
      *

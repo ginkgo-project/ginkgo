@@ -77,7 +77,7 @@ namespace gko {
  *
  * A key observation for providing a unified interface for matrices, solvers,
  * and preconditioners is that the most common operation performed on all of
- * them can be expressed as an application of a liner operator to a vector:
+ * them can be expressed as an application of a linear operator to a vector:
  *
  * +   the sparse matrix-vector product with a matrix \f$A\f$ is a linear
  *     operator application \f$y = Ax\f$;
@@ -206,26 +206,22 @@ public:
      *
      * In other words, the number of columns of the coefficient matrix.
      *
-     * @return the dimension of the codomain
+     * @return the dimension of the domain
      */
     size_type get_num_cols() const noexcept { return num_cols_; }
 
     /**
-     * Gets an upper bound on the number of nonzero values in the coefficient
-     * matrix of the operator.
+     * Returns the number of elements that are explicitly stored in memory for
+     * this LinOp.
      *
-     * This routine will get the number of nonzeros as seen by the library,
-     * and as used in computations, while the real number of nonzeros might
-     * be significantly lower than this value.
-     *
-     * For example, for a DenseMatrix `A` it will always hold
+     * For example, for a matrix::Dense `A` it will always hold
      * ```cpp
-     * A->get_num_nonzeros() == A->get_num_rows() * A->get_num_cols()
+     * A->get_num_stored_elements() == A->get_num_rows() * A->get_padding()
      * ```
      *
-     * @return the number of nonzeros as seen by the library
+     * @return the number of elements explicitly stored in memory
      */
-    size_type get_num_nonzeros() const noexcept { return num_nonzeros_; }
+    size_type get_num_stored_elements() const noexcept { return num_nonzeros_; }
 
 protected:
     LinOp(std::shared_ptr<const Executor> exec, size_type num_rows,
