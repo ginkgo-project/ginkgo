@@ -40,3 +40,12 @@ endif()
 if(BUILD_GPU)
     add_subdirectory(gpu)        # High-performance gpu kernels
 endif()
+
+if(DEVEL_TOOLS)
+    set(LICENSE_SCRIPT ${CMAKE_SOURCE_DIR}/dev_tools/scripts/add_license.sh)
+
+    add_custom_target(add_license
+        COMMAND ${LICENSE_SCRIPT}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    add_dependencies(format add_license)
+endif()
