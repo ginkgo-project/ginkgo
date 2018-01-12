@@ -6,7 +6,7 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 GINKGO_ROOT_DIR="${THIS_DIR}/../.."
 LICENSE_FILE="${GINKGO_ROOT_DIR}/LICENSE"
 PATTERNS="cpp|hpp|cuh|cu"
-EXCLUDED_DIRECTORIES="devel_tools|build|third_party"
+EXCLUDED_DIRECTORIES="build|third_party"
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
 echo -e "/*${GINKGO_LICENSE_BEACON}\n$(cat ${LICENSE_FILE})\n${GINKGO_LICENSE_BEACON}*/\n" > commented_license.tmp
