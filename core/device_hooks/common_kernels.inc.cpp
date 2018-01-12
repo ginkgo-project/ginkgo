@@ -31,6 +31,14 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#define GKO_HOOK_MODULE cpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+#ifndef GKO_HOOK_MODULE
+#error "Need to define GKO_HOOK_MODULE variable before including this file"
+#endif  // GKO_HOOK_MODULE
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_HOOK_MODULE {
+}  // namespace GKO_HOOK_MODULE
+}  // namespace kernels
+}  // namespace gko

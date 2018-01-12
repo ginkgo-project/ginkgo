@@ -75,6 +75,14 @@ TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, CudaErrorReturnsCorrectWhatMessage)
+{
+    gko::CudaError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 {
     gko::DimensionMismatch error("test_file.cpp", 243, "test_func", 3, 4, 2, 5);

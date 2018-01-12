@@ -31,6 +31,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#define GKO_HOOK_MODULE cpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+#include "core/base/exception.hpp"
+
+
+#include <cuda_runtime.h>
+
+
+namespace gko {
+
+
+std::string CudaError::get_error(int64 error_code)
+{
+    std::string name = cudaGetErrorName(static_cast<cudaError>(error_code));
+    std::string message =
+        cudaGetErrorString(static_cast<cudaError>(error_code));
+    return name + ": " + message;
+}
+
+
+}  // namespace gko

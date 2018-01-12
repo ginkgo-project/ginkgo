@@ -1,0 +1,2 @@
+create_cuda_test(gpu_executor)
+create_cuda_test(exception_helpers)

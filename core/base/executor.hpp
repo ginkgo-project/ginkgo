@@ -166,7 +166,7 @@ class ExecutorBase;
 class Operation {
 public:
 #define DECLARE_RUN_OVERLOAD(_type, _unused) \
-    virtual void run(const _type *) const = 0
+    virtual void run(const _type *) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 
@@ -178,10 +178,10 @@ public:
 
 
 /**
- * The first step in using the MAGMA-sparse library consists of creating an
+ * The first step in using the GINKGO library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * MAGMA-sparse currently supports three different executor types:
+ * GINKGO currently supports three different executor types:
  *
  * +    CpuExecutor specifies that the data should be stored and the associated
  *      operations executed on the host CPU;
@@ -191,7 +191,7 @@ public:
  *      which can be used to debug the library.
  *
  * The following code snippet demonstrates the simplest possible use of the
- * MAGMA-sparse library:
+ * GINKGO library:
  *
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
@@ -202,7 +202,7 @@ public:
  * specify where we want the data for the matrix A to be stored.
  * The second line will read a matrix from the matrix market file 'A.mtx',
  * and store the data on the CPU in CSR format (gko::CsrMatrix is a
- * MAGMA-sparse Matrix class which stores its data in CSR format).
+ * GINKGO Matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
  * will be performed on the CPU. This approach is usually desired in sparse
  * linear algebra, as the cost of individual operations is several orders of
@@ -225,7 +225,7 @@ public:
  * which will be used to schedule the requested GPU kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
- * of the get() method. As MAGMA-sparse aims to provide automatic memory
+ * of the get() method. As GINKGO aims to provide automatic memory
  * management of its objects, the result of calling gko::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
@@ -349,6 +349,11 @@ public:
      * @copydoc get_master
      */
     virtual std::shared_ptr<const CpuExecutor> get_master() const noexcept = 0;
+
+    /**
+     * Synchronize the operations launched on the executor with its master.
+     */
+    virtual void synchronize() const = 0;
 
 protected:
     /**
@@ -484,6 +489,8 @@ public:
 
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
+    void synchronize() const override;
+
 protected:
     CpuExecutor() = default;
 
@@ -519,7 +526,7 @@ public:
     /**
      * Creates a new GpuExecutor.
      *
-     * @param device  the CUDA device number of this device
+     * @param device  the CUDA device id of this device
      * @param master  a CPU executor used to invoke the device kernels
      */
     static std::shared_ptr<GpuExecutor> create(
@@ -535,7 +542,17 @@ public:
 
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
+    void synchronize() const override;
+
+    /**
+     * Get the CUDA device id of the device associated to this executor.
+     */
     int get_device_id() const noexcept { return device_id_; }
+
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
 
 protected:
     GpuExecutor(int device_id, std::shared_ptr<CpuExecutor> master)

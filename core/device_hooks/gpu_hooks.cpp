@@ -31,10 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/executor.hpp"
-
-
 #include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
 
 
 namespace gko {
@@ -66,4 +64,20 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
     NOT_COMPILED(gpu);
 
 
+void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
+
+
+std::string CudaError::get_error(int64)
+{
+    return "ginkgo CUDA module is not compiled";
+}
+
+int GpuExecutor::get_num_devices() { return 0; }
+
+
 }  // namespace gko
+
+
+#define GKO_HOOK_MODULE gpu
+#include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_HOOK_MODULE
