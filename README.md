@@ -1,4 +1,4 @@
 Ginkgo
 =======
 
-Ginkgo is a linear algebra library targeting manycore architectures.
+Ginkgo is a numerical linear algebra library targeting manycore architectures.
