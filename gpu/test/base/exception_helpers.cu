@@ -1,3 +1,4 @@
+/*******************************<GINKGO LICENSE>******************************
 Copyright 2017-2018
 
 Karlsruhe Institute of Technology
@@ -28,3 +29,27 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include <core/base/exception_helpers.hpp>
+
+
+#include <gtest/gtest.h>
+
+
+namespace {
+
+
+TEST(AssertNoCudaErrors, ThrowsOnError)
+{
+    ASSERT_THROW(ASSERT_NO_CUDA_ERRORS(1), gko::CudaError);
+}
+
+
+TEST(AssertNoCudaErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(cudaSuccess));
+}
+
+
+}  // namespace

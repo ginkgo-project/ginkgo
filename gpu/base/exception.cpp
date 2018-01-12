@@ -1,3 +1,4 @@
+/*******************************<GINKGO LICENSE>******************************
 Copyright 2017-2018
 
 Karlsruhe Institute of Technology
@@ -28,3 +29,24 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include "core/base/exception.hpp"
+
+
+#include <cuda_runtime.h>
+
+
+namespace gko {
+
+
+std::string CudaError::get_error(int64 error_code)
+{
+    std::string name = cudaGetErrorName(static_cast<cudaError>(error_code));
+    std::string message =
+        cudaGetErrorString(static_cast<cudaError>(error_code));
+    return name + ": " + message;
+}
+
+
+}  // namespace gko
