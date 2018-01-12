@@ -255,10 +255,10 @@ void call(F f, std::tuple<Args...> &data)
 
 
 /**
- * The first step in using the MAGMA-sparse library consists of creating an
+ * The first step in using the Ginkgo library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * MAGMA-sparse currently supports three different executor types:
+ * Ginkgo currently supports three different executor types:
  *
  * +    CpuExecutor specifies that the data should be stored and the associated
  *      operations executed on the host CPU;
@@ -268,18 +268,18 @@ void call(F f, std::tuple<Args...> &data)
  *      which can be used to debug the library.
  *
  * The following code snippet demonstrates the simplest possible use of the
- * MAGMA-sparse library:
+ * Ginkgo library:
  *
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
- * auto A = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", cpu);
+ * auto A = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", cpu);
  * ```
  *
  * First, we create a CPU executor, which will be used in the next line to
  * specify where we want the data for the matrix A to be stored.
  * The second line will read a matrix from the matrix market file 'A.mtx',
- * and store the data on the CPU in CSR format (gko::CsrMatrix is a
- * MAGMA-sparse Matrix class which stores its data in CSR format).
+ * and store the data on the CPU in CSR format (gko::matrix::Csr is a
+ * Ginkgo matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
  * will be performed on the CPU. This approach is usually desired in sparse
  * linear algebra, as the cost of individual operations is several orders of
@@ -291,7 +291,7 @@ void call(F f, std::tuple<Args...> &data)
  *
  * ```cpp
  * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
- * auto dA = gko::copy_to<gko::CsrMatrix<float>>(A.get(), gpu);
+ * auto dA = gko::copy_to<gko::matrix::Csr<float>>(A.get(), gpu);
  * ```
  *
  * The first line of the snippet creates a new GPU executor. Since there may be
@@ -302,7 +302,7 @@ void call(F f, std::tuple<Args...> &data)
  * which will be used to schedule the requested GPU kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
- * of the get() method. As MAGMA-sparse aims to provide automatic memory
+ * of the get() method. As Ginkgo aims to provide automatic memory
  * management of its objects, the result of calling gko::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
@@ -313,7 +313,7 @@ void call(F f, std::tuple<Args...> &data)
  * As a side note, the gko::copy_to routine is far more powerful than just
  * copying data between different devices. It can also be used to convert data
  * between different formats. For example, if the above code used
- * gko::EllMatrix as the template parameter, dA would be stored on the GPU,
+ * gko::matrix::Ell as the template parameter, dA would be stored on the GPU,
  * in ELLPACK format.
  *
  * Finally, if all the processing of the matrix is supposed to be done on the
@@ -323,7 +323,7 @@ void call(F f, std::tuple<Args...> &data)
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
  * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
- * auto dA = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", gpu);
+ * auto dA = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", gpu);
  * ```
  * Notice that even though reading the matrix directly from a file to the
  * accelerator is not supported, the library is designed to abstract away the

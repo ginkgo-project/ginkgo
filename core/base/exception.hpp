@@ -14,7 +14,7 @@ namespace gko {
 
 /**
  * The Error class is used to report exceptional behaviour in library
- * functions. MAGMA-sparse uses C++ exception mechanism to this end, and the
+ * functions. Ginkgo uses C++ exception mechanism to this end, and the
  * Error class represents a base class for all types of errors. The exact list
  * of errors which could occur during the execution of a certain library
  * routine is provided in the documentation of that routine, along with a short
@@ -104,21 +104,6 @@ public:
         : Error(file, line,
                 "Operation " + func + " does not support parameters of type " +
                     obj_type)
-    {}
-};
-
-
-/**
- * MagmaInternalError is thrown in case one of the low-level MAGMA(-sparse)
- * routines exits with a nonzero error code.
- */
-class MagmaInternalError : public Error {
-public:
-    MagmaInternalError(const std::string &file, int line,
-                       const std::string &func, int error_code)
-        : Error(file, line,
-                "Internal MAGMA error with error code: " +
-                    std::to_string(error_code))
     {}
 };
 
