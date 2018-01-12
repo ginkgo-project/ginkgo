@@ -72,8 +72,8 @@ namespace gko {
  * int main()
  * {
  *     auto cpu = create<CpuExecutor>();
- *     auto A = randn_fill<CsrMatrix<float>>(5, 5, 0f, 1f, cpu);
- *     auto x = fill<DenseMatrix<float>>(6, 1, 1f, cpu);
+ *     auto A = randn_fill<matrix::Csr<float>>(5, 5, 0f, 1f, cpu);
+ *     auto x = fill<matrix::Dense<float>>(6, 1, 1f, cpu);
  *     try {
  *         auto y = apply(A.get(), x.get());
  *     } catch(Error e) {
