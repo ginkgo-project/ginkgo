@@ -11,10 +11,10 @@ echo -e "/*\n" "$(cat ${LICENSE_FILE} | sed -e 's/^/ \* /')" "\n*/\n" > commente
 
 for i in ${GINKGO_ROOT_DIR}/**/*.@(${PATTERNS})
 do
-		if ! grep -q Copyright $i
-		then
-				cat commented_license.tmp $i >$i.new && mv $i.new $i
-		fi
+    if ! grep -q Copyright $i
+    then
+        cat commented_license.tmp $i >$i.new && mv $i.new $i
+    fi
 done
 
 rm commented_license.tmp
