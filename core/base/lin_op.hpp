@@ -90,7 +90,7 @@ namespace gko {
  *     \f$A^{-1}\f$.
  *
  * Finally, direct manipulation of LinOp objects is rarely required in
- * simple scenarios. As an ilustrative example, one could construct a
+ * simple scenarios. As an illustrative example, one could construct a
  * fixed-point iteration routine \f$x_{k+1} = Lx_k + b\f$ as follows:
  *
  * ```cpp
