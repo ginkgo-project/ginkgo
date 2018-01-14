@@ -81,7 +81,7 @@ public:
      * @param exec  Executor associated to the matrix
      * @param num_rows  number of rows
      * @param num_cols  number of columns
-     * @param paddding  padding of the rows (i.e. offset between the first
+     * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
@@ -97,7 +97,7 @@ public:
      * Creates and initializes a Dense column-vector.
      *
      * @param exec  Executor associated to the vector
-     * @param paddding  padding of the rows (i.e. offset between the first
+     * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      * @param vals  values used to initialize the vector
@@ -137,7 +137,7 @@ public:
      * Creates and initializes a Dense matrix.
      *
      * @param exec  Executor associated to the matrix
-     * @param paddding  padding of the rows (i.e. offset between the first
+     * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      * @param vals  values used to initialize the matrix
