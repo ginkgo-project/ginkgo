@@ -213,7 +213,7 @@ public:
      * Takes control of the data allocated elsewhere in the program (but in the
      * same executor).
      *
-     * The behaviour of the array will be as if the data was allocated by the
+     * The behavior of the array will be as if the data was allocated by the
      * library, i.e. the array will deallocate and change the block of data
      * as needed. Thus the passed block of memory must not be freed elsewhere.
      * To regain control of the memory block, call Array::release().
