@@ -194,14 +194,23 @@ public:
 
 
     /**
-     * Gets the array containing the values of the matrix.
+     * Returns a pointer to the array of values of the matrix.
+     *
+     * @return  the pointer to the array of values
      */
-    Array<value_type> &get_values() noexcept { return values_; }
+    value_type *get_values() noexcept { return values_.get_data(); }
 
     /**
-     * Gets the array containing the values of the matrix.
+     * @copydoc get_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
-    const Array<value_type> &get_values() const noexcept { return values_; }
+    const value_type *get_const_values() const noexcept
+    {
+        return values_.get_const_data();
+    }
 
     /**
      * Returns the padding of the matrix.
@@ -218,7 +227,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    ValueType &at(size_type row, size_type col) noexcept
+    value_type &at(size_type row, size_type col) noexcept
     {
         return values_.get_data()[linearize_index(row, col)];
     }
@@ -226,7 +235,7 @@ public:
     /**
      * @copydoc Dense::at(size_type, size_type)
      */
-    ValueType at(size_type row, size_type col) const noexcept
+    value_type at(size_type row, size_type col) const noexcept
     {
         return values_.get_const_data()[linearize_index(row, col)];
     }
@@ -262,10 +271,10 @@ public:
      * Scales the matrix with a scalar (aka: BLAS scal).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense column vector of values,
+     *               by alpha. If it is a Dense row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of rows of alpha has to match
-     *               the number of columns of the matrix).
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
      */
     virtual void scale(const LinOp *alpha);
 
@@ -273,10 +282,10 @@ public:
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense column vector of values,
+     *               by alpha. If it is a Dense row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of rows of alpha has to match
-     *               the number of columns of the matrix).
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
     virtual void add_scaled(const LinOp *alpha, const LinOp *b);
@@ -285,8 +294,8 @@ public:
      * Computes the column-wise dot product of this matrix and `b`.
      *
      * @param b  a Dense matrix of same dimensions as this
-     * @param result  a Dense column vector, used to store the dot product
-     *                (the number of rows in the vector must match the number
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
      *                of columns of this)
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
