@@ -105,6 +105,25 @@ using default_precision = double;
     template _macro(std::complex<double>)
 
 
+/**
+ * Instantiates a template for each value and index type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro) \
+    template _macro(float, int32);                            \
+    template _macro(double, int32);                           \
+    template _macro(std::complex<float>, int32);              \
+    template _macro(std::complex<double>, int32);             \
+    template _macro(float, int64);                            \
+    template _macro(double, int64);                           \
+    template _macro(std::complex<float>, int64);              \
+    template _macro(std::complex<double>, int64)
+
+
 }  // namespace gko
 
 
