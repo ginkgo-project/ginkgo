@@ -72,6 +72,22 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 }  // namespace detail
 
 
+/**
+ * Generates a random matrix.
+ *
+ * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
+ *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam NonzeroDistribution  type of nonzero distribution
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param exec  executor where the matrix should be allocated
+ * @param num_rows  number of rows
+ * @param num_cols  number of colums
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
+ */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine>
 std::unique_ptr<MatrixType> generate_random_matrix(

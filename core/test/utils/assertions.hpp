@@ -116,6 +116,30 @@ double get_relative_error(const matrix::Dense<ValueType1> *first,
 }  // namespace detail
 
 
+/**
+ * This is a gtest predicate which checks if two matrices are relatively near.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||first - second|| <= tolerance * max(||first||, ||second||)
+ * ```
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * ```
+ *
+ * @see ASSERT_MTX_NEAR
+ * @see EXPECT_MTX_NEAR
+ */
 template <typename ValueType1, typename ValueType2>
 ::testing::AssertionResult matrices_near(
     const char *first_expression, const char *second_expression,
@@ -217,6 +241,22 @@ T plain_ptr(T ptr)
 }  // namespace gko
 
 
+/**
+ * Checks if two matrices are near each other.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||_mtx1 - _mtx2|| <= _tol * max(||_mtx1||, ||_mtx2||)
+ * ```
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::matrices_near().
+ *
+ * @param _mtx1  first matrix
+ * @param _mtx2  second matrix
+ * @param _tol  tolerance level
+ */
 #define ASSERT_MTX_NEAR(_mtx1, _mtx2, _tol)                                   \
     do {                                                                      \
         using ::gko::test::assertions::detail::l;                             \
@@ -227,6 +267,9 @@ T plain_ptr(T ptr)
     } while (false)
 
 
+/**
+ * @copydoc ASSERT_MTX_NEAR
+ */
 #define EXPECT_MTX_NEAR(_mtx1, _mtx2, _tol)                                   \
     do {                                                                      \
         using ::gko::test::assertions::detail::l;                             \
