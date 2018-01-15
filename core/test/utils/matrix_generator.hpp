@@ -107,11 +107,11 @@ std::unique_ptr<MatrixType> generate_random_matrix(
     // convert to the correct matrix type
     // TODO: remove this intermediate step once inter-device copies are
     //       supported
-    auto dev_tmp = matrix::Dense<value_type>::create(exec);
-    dev_tmp->copy_from(std::move(tmp));
-    auto result = MatrixType::create(exec);
-    result->copy_from(std::move(dev_tmp));
-    return result;
+    auto result = MatrixType::create(exec->get_master());
+    result->copy_from(std::move(tmp));
+    auto dev_result = MatrixType::create(exec);
+    dev_result->copy_from(std::move(result));
+    return dev_result;
 }
 
 

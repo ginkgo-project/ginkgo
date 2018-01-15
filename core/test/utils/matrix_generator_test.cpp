@@ -103,9 +103,9 @@ TEST_F(MatrixGenerator, OutputHasCorrectNonzeroAverageAndDeviation)
     auto deviation = sqrt(get_nth_moment(2, average, begin(nnz_per_row_sample),
                                          end(nnz_per_row_sample)));
 
-    // check that average & deviation is within 5% of the required amount
-    ASSERT_NEAR(average, 50.0, 2.5);
-    ASSERT_NEAR(deviation, 5.0, 0.25);
+    // check that average & deviation is within 10% of the required amount
+    ASSERT_NEAR(average, 50.0, 5);
+    ASSERT_NEAR(deviation, 5.0, 0.5);
 }
 
 
@@ -117,9 +117,9 @@ TEST_F(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
     auto deviation = sqrt(
         get_nth_moment(2, average, begin(values_sample), end(values_sample)));
 
-    // check that average and deviation is within 5% of the required amount
-    ASSERT_NEAR(average, 20.0, 1.0);
-    ASSERT_NEAR(deviation, 5.0, 0.25);
+    // check that average and deviation is within 10% of the required amount
+    ASSERT_NEAR(average, 20.0, 2.0);
+    ASSERT_NEAR(deviation, 5.0, 0.5);
 }
 
 
