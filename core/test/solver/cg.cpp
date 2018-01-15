@@ -97,7 +97,7 @@ TEST_F(Cg, CgFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_num_rows(), 3);
     ASSERT_EQ(solver->get_num_cols(), 3);
-    ASSERT_EQ(solver->get_num_nonzeros(), 9);
+    ASSERT_EQ(solver->get_num_stored_elements(), 9);
     auto cg_solver = dynamic_cast<Solver *>(solver.get());
     ASSERT_EQ(cg_solver->get_max_iters(), 3);
     ASSERT_EQ(cg_solver->get_rel_residual_goal(), 1e-6);
@@ -114,7 +114,7 @@ TEST_F(Cg, CanBeCopied)
 
     ASSERT_EQ(copy->get_num_rows(), 3);
     ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_nonzeros(), 9);
+    ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_NE(copy_mtx.get(), mtx.get());
     assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
@@ -129,7 +129,7 @@ TEST_F(Cg, CanBeMoved)
 
     ASSERT_EQ(copy->get_num_rows(), 3);
     ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_nonzeros(), 9);
+    ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -141,7 +141,7 @@ TEST_F(Cg, CanBeCloned)
 
     ASSERT_EQ(clone->get_num_rows(), 3);
     ASSERT_EQ(clone->get_num_cols(), 3);
-    ASSERT_EQ(clone->get_num_nonzeros(), 9);
+    ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     ASSERT_NE(clone_mtx.get(), mtx.get());
     assert_same_matrices(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get());
@@ -154,12 +154,12 @@ TEST_F(Cg, CanBeCleared)
 
     ASSERT_EQ(solver->get_num_rows(), 0);
     ASSERT_EQ(solver->get_num_cols(), 0);
-    ASSERT_EQ(solver->get_num_nonzeros(), 0);
+    ASSERT_EQ(solver->get_num_stored_elements(), 0);
     auto solver_mtx = dynamic_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_NE(solver_mtx, nullptr);
     ASSERT_EQ(solver_mtx->get_num_rows(), 0);
     ASSERT_EQ(solver_mtx->get_num_cols(), 0);
-    ASSERT_EQ(solver_mtx->get_num_nonzeros(), 0);
+    ASSERT_EQ(solver_mtx->get_num_stored_elements(), 0);
 }
 
 

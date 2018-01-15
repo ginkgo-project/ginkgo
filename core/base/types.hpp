@@ -73,6 +73,61 @@ using full_precision = double;
 using default_precision = double;
 
 
+namespace detail {
+
+/**
+ * Keep the same data type if it is not complex.
+ */
+template <typename T>
+struct remove_complex_impl {
+    using type = T;
+};
+
+/**
+ * Use the underlying real type if it is complex type.
+ */
+template <typename T>
+struct remove_complex_impl<std::complex<T>> {
+    using type = T;
+};
+
+}  // namespace detail
+
+
+/**
+ * Obtains a real counterpart of a std::complex type, and leaves the type
+ * unchanged if it is not a complex type.
+ */
+template <typename T>
+using remove_complex = typename detail::remove_complex_impl<T>::type;
+
+
+namespace {
+
+
+/**
+ * Returns the additive identity for T.
+ */
+template <typename T>
+constexpr T zero()
+{
+    return T(0);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ */
+template <typename T>
+constexpr T one()
+{
+    return T(1);
+}
+
+
+}  // namespace
+
+
 /**
  * Calls a given macro for each executor type.
  *

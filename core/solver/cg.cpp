@@ -88,7 +88,7 @@ void Cg<ValueType>::copy_from(const LinOp *other)
     }
     system_matrix_ = other_cg->get_system_matrix()->clone();
     this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+                         other->get_num_stored_elements());
 }
 
 
@@ -101,13 +101,14 @@ void Cg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
     }
     system_matrix_ = std::move(other_cg->get_system_matrix());
     this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+                         other->get_num_stored_elements());
 }
 
 
 template <typename ValueType>
 void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
+    using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = dynamic_cast<const Vector *>(b);
     auto dense_x = dynamic_cast<Vector *>(x);

@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/types.hpp"
-#include "core/matrix/identity.hpp"
 
 
 namespace gko {

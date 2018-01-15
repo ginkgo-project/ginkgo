@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/matrix/dense_kernels.hpp"
-
+#include "core/solver/cg_kernels.hpp"
 
 #ifndef GKO_HOOK_MODULE
 #error "Need to define GKO_HOOK_MODULE variable before including this file"
@@ -80,17 +80,17 @@ namespace cg {
 
 template <typename ValueType>
 GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType)
-NOT_COMPILED(cpu);
+NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 GKO_DECLARE_CG_STEP_1_KERNEL(ValueType)
-NOT_COMPILED(cpu);
+NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 template <typename ValueType>
 GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
-NOT_COMPILED(cpu);
+NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 

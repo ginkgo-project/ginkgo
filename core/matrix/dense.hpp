@@ -181,6 +181,17 @@ public:
             std::move(exec),
             vals.size() > 0 ? max<size_type>(begin(vals)->size(), 1) : 1, vals);
     }
+    /**
+     * Creates a Dense matrix with the configuration of another Dense matrix.
+     *
+     * @param other  The other matrix whose configuration needs to copied.
+     */
+    static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
+    {
+        return create(other->get_executor(), other->get_num_rows(),
+                      other->get_num_cols(), other->get_padding());
+    }
+
 
     /**
      * Gets the array containing the values of the matrix.
