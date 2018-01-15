@@ -40,6 +40,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 
+#ifdef __CUDACC__
+#define GKO_ATTRIBUTES __host__ __device__
+#define GKO_INLINE __forceinline
+#else
+#define GKO_ATTRIBUTES
+#define GKO_INLINE inline
+#endif  // __CUDACC__
+
+
 namespace gko {
 
 

@@ -10,6 +10,10 @@ option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 
+
+include(cmake/create_test.cmake)
+
+
 if(BUILD_GPU)
     project(Ginkgo LANGUAGES CXX CUDA)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
