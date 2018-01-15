@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/base/exception_helpers.hpp"
+#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 
@@ -97,6 +98,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 }  // namespace cg
 
 
+namespace csr {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(reference);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(reference);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+}  // namespace csr
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko
