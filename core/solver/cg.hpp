@@ -50,7 +50,7 @@ template <typename>
 class CgFactory;
 
 /**
- * Cg or the conjugate gradient method is an iterative type krylov subspace
+ * CG or the conjugate gradient method is an iterative type krylov subspace
  * method which is suitable for symmetric positive definite methods.
  *
  * Though this method performs very well for symmetric positive definite
@@ -60,7 +60,7 @@ class CgFactory;
  * use of data locality. The inner operations in one iteration of CG are merged
  * into 2 separate steps.
  *
- * @tparam Valuetype precision of matrix elements
+ * @tparam ValueType precision of matrix elements
  */
 
 
@@ -74,19 +74,19 @@ public:
     /**
      * Creates a copy of the CG solver from another cg solver.
      *
-     * @param other  the Cg solver instance to copy
+     * @param other  the CG solver instance to copy
      */
     void copy_from(const LinOp *other) override;
 
     /**
-     * Moves the Cg solver from another cg solver.
+     * Moves the Cg solver from another CG solver.
      *
-     * @param other  the Cg solver instance from which it will be moved.
+     * @param other  the CG solver instance from which it will be moved.
      */
     void copy_from(std::unique_ptr<LinOp> other) override;
 
     /**
-     * Applies the Cg solver to a vector.
+     * Applies the CG solver to a vector.
      *
      * @param b  The right hand side of the linear system.
      *
@@ -95,7 +95,7 @@ public:
     void apply(const LinOp *b, LinOp *x) const override;
 
     /**
-     * Applies the Cg solver to a vector and performs a scaled addtion.
+     * Applies the CG solver to a vector and performs a scaled addtion.
      *
      * Performs the operation x = alpha * cg(b,x) + beta * x
      *
@@ -108,14 +108,14 @@ public:
                LinOp *x) const override;
 
     /**
-     * Creates a clone of the Cg solver
+     * Creates a clone of the CG solver
      *
-     * @return  A clone of the Cg solver.
+     * @return  A clone of the CG solver.
      */
     std::unique_ptr<LinOp> clone_type() const override;
 
     /**
-     * Clears the Cg solver.
+     * Clears the CG solver.
      */
     void clear() override;
 
@@ -130,7 +130,7 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the Cg solver.
+     * Gets the maximum number of iterations of the CG solver.
      *
      * @return  The maximum number of iterations.
      */
@@ -176,19 +176,21 @@ private:
 };
 
 /** The CgFactory class is derived from the LinOpFactory class and is used to
- * generate the Cg solver.
+ * generate the CG solver.
  */
 template <typename ValueType = default_precision>
 class CgFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
     /**
-     * Creates the Cg solver.
+     * Creates the CG solver.
      *
-     * @param exec The executor on which the Cg solver is to be created.
+     * @param exec The executor on which the CG solver is to be created.
      * @param max_iters  The maximum number of iterations to be pursued.
      * @param rel_residual_goal  The relative residual required for
      * convergence.
+     *
+     * @return The newly created CG solver.
      */
     static std::unique_ptr<CgFactory> create(
         std::shared_ptr<const Executor> exec, int max_iters,
@@ -199,15 +201,15 @@ public:
     }
 
     /**
-     * Generates a Cg solver from a base solver.
+     * Generates a CG solver from a base solver.
      *
-     * @param base The base Cg solver.
+     * @param base The base CG solver.
      */
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
     /**
-     * Gets the maximum number of iterations of the Cg solver.
+     * Gets the maximum number of iterations of the CG solver.
      *
      * @return  The maximum number of iterations.
      */
