@@ -49,96 +49,122 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace test {
 namespace assertions {
+namespace detail {
+
+
+template <typename Ostream, typename ValueType>
+void print_matrix(Ostream &os, const matrix::Dense<ValueType> *mtx)
+{
+    for (size_type row = 0; row < mtx->get_num_rows(); ++row) {
+        os << "\t";
+        for (size_type col = 0; col < mtx->get_num_cols(); ++col) {
+            os << mtx->at(row, col) << "\t";
+        }
+        os << "\n";
+    }
+}
+
+
+template <typename Ostream, typename ValueType1, typename ValueType2>
+void print_componentwise_error(Ostream &os,
+                               const matrix::Dense<ValueType1> *first,
+                               const matrix::Dense<ValueType2> *second)
+{
+    using std::fabs;
+    using std::max;
+    for (size_type row = 0; row < first->get_num_rows(); ++row) {
+        os << "\t";
+        for (size_type col = 0; col < first->get_num_cols(); ++col) {
+            auto r = first->at(row, col);
+            auto e = second->at(row, col);
+            auto m = max<ValueType2>(fabs(r), fabs(e));
+            if (m == zero<ValueType2>()) {
+                os << fabs(r - e) << "\t";
+            } else {
+                os << fabs((r - e) / m) << "\t";
+            }
+        }
+        os << "\n";
+    }
+}
+
+
+template <typename ValueType1, typename ValueType2>
+double get_relative_error(const matrix::Dense<ValueType1> *first,
+                          const matrix::Dense<ValueType2> *second)
+{
+    using std::max;
+    using std::sqrt;
+    double diff = 0.0;
+    double first_norm = 0.0;
+    double second_norm = 0.0;
+    for (size_type row = 0; row < first->get_num_rows(); ++row) {
+        for (size_type col = 0; col < second->get_num_cols(); ++col) {
+            auto tmp = first->at(row, col) - second->at(row, col);
+            diff += tmp * tmp;
+            first_norm += first->at(row, col) * first->at(row, col);
+            second_norm += second->at(row, col) * second->at(row, col);
+        }
+    }
+    if (first_norm == 0.0 && second_norm == 0.0) {
+        first_norm = 1.0;
+    }
+    return sqrt(diff / max(first_norm, second_norm));
+}
+
+
+}  // namespace detail
 
 
 template <typename ValueType1, typename ValueType2>
 ::testing::AssertionResult matrices_near(
-    const char *result_expression, const char *expected_expression,
-    const char *tolerance_expression, const matrix::Dense<ValueType1> *result,
-    const matrix::Dense<ValueType2> *expected, double tolerance)
+    const char *first_expression, const char *second_expression,
+    const char *tolerance_expression, const matrix::Dense<ValueType1> *first,
+    const matrix::Dense<ValueType2> *second, double tolerance)
 {
-    using std::fabs;
-    using std::sqrt;
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
-    if (num_rows != expected->get_num_rows() ||
-        num_cols != expected->get_num_cols()) {
+    auto num_rows = first->get_num_rows();
+    auto num_cols = first->get_num_cols();
+    if (num_rows != second->get_num_rows() ||
+        num_cols != second->get_num_cols()) {
         return ::testing::AssertionFailure()
-               << result_expression << " is of incorrect size\n"
-               << "\tobtained [" << num_rows << " x " << num_cols << "]\n"
-               << "\texpected [" << expected->get_num_rows() << " x "
-               << expected->get_num_cols() << "]";
+               << "Expected matrices of equal size\n\t" << first_expression
+               << "is of size [" << num_rows << " x " << num_cols << "]\n\t"
+               << second_expression << "is of size [" << second->get_num_rows()
+               << " x " << second->get_num_cols() << "]";
     }
 
-    double diff = 0.0;
-    double expected_norm = 0.0;
-    for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto tmp = result->at(row, col) - expected->at(row, col);
-            diff += tmp * tmp;
-            expected_norm += expected->at(row, col) * expected->at(row, col);
-        }
-    }
-    if (expected_norm == 0.0) {
-        expected_norm = 1.0;
-    }
-    auto err = sqrt(diff / expected_norm);
-
+    auto err = detail::get_relative_error(first, second);
     if (err <= tolerance) {
         return ::testing::AssertionSuccess();
+    } else {
+        auto fail = ::testing::AssertionFailure();
+        fail << "Relative error between " << first_expression << " and "
+             << second_expression << " is " << err << "\n"
+             << "\twhich is larger than " << tolerance_expression
+             << " (which is " << tolerance << ")\n";
+        fail << first_expression << " is:\n";
+        detail::print_matrix(fail, first);
+        fail << second_expression << " is:\n";
+        detail::print_matrix(fail, second);
+        fail << "component-wise relative error is:\n";
+        detail::print_componentwise_error(fail, first, second);
+        return fail;
     }
-
-    auto fail = ::testing::AssertionFailure();
-    fail << "Relative error between " << result_expression << " and "
-         << expected_expression << " is " << err << "\n"
-         << "\twhich is larger than " << tolerance_expression << " (which is "
-         << tolerance << ")\n";
-
-    fail << result_expression << " is:\n";
-    for (size_type row = 0; row < num_rows; ++row) {
-        fail << "\t";
-        for (size_type col = 0; col < num_cols; ++col) {
-            fail << result->at(row, col) << "\t";
-        }
-        fail << "\n";
-    }
-
-    fail << expected_expression << " is:\n";
-    for (size_type row = 0; row < num_rows; ++row) {
-        fail << "\t";
-        for (size_type col = 0; col < num_cols; ++col) {
-            fail << expected->at(row, col) << "\t";
-        }
-        fail << "\n";
-    }
-
-    fail << "component-wise relative error is:\n";
-    for (size_type row = 0; row < num_rows; ++row) {
-        fail << "\t";
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto r = result->at(row, col);
-            auto e = expected->at(row, col);
-            if (e == zero<ValueType2>()) {
-                fail << fabs(r - e) << "\t";
-            } else {
-                fail << fabs((r - e) / e) << "\t";
-            }
-        }
-        fail << "\n";
-    }
-    return fail;
 }
 
+
 template <typename ValueType1, typename U>
-::testing::AssertionResult matrices_near(
-    const char *result_expression, const char *expected_expression,
-    const char *tolerance_expression, const matrix::Dense<ValueType1> *result,
-    std::initializer_list<U> expected, double tolerance)
+::testing::AssertionResult matrices_near(const char *first_expression,
+                                         const char *second_expression,
+                                         const char *tolerance_expression,
+                                         const matrix::Dense<ValueType1> *first,
+                                         std::initializer_list<U> second,
+                                         double tolerance)
 {
-    auto expected_mtx = matrix::Dense<ValueType1>::create(
-        result->get_executor(), std::move(expected));
-    return matrices_near(result_expression, expected_expression,
-                         tolerance_expression, result, expected_mtx.get(),
+    auto second_mtx = matrix::Dense<ValueType1>::create(first->get_executor(),
+                                                        std::move(second));
+    return matrices_near(first_expression, second_expression,
+                         tolerance_expression, first, second_mtx.get(),
                          tolerance);
 }
 

@@ -36,9 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils/assertions.hpp"
-#include "core/test/utils/initialization.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/simple_converter.hpp"
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

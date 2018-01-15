@@ -95,6 +95,7 @@ TEST_F(MatricesNear, CanUseShortNotation)
 
 TEST_F(MatricesNear, CanPassInitializerList)
 {
+    EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
     ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
 }
 
