@@ -88,7 +88,7 @@ TEST_F(Dense, CanBeEmpty)
 TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::matrix::Dense<>::create(exec);
-    ASSERT_EQ(empty->get_values().get_data(), nullptr);
+    ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
 
