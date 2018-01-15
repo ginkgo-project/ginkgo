@@ -100,7 +100,6 @@ public:
      * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
-     * @param vals  values used to initialize the vector
      */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          size_type padding,
@@ -251,10 +250,10 @@ public:
      * Scales the matrix with a scalar (aka: BLAS scal).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense column vector of values,
+     *               by alpha. If it is a Dense row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of rows of alpha has to match
-     *               the number of columns of the matrix).
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
      */
     virtual void scale(const LinOp *alpha);
 
@@ -262,10 +261,10 @@ public:
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense column vector of values,
+     *               by alpha. If it is a Dense row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of rows of alpha has to match
-     *               the number of columns of the matrix).
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
     virtual void add_scaled(const LinOp *alpha, const LinOp *b);
@@ -274,8 +273,8 @@ public:
      * Computes the column-wise dot product of this matrix and `b`.
      *
      * @param b  a Dense matrix of same dimensions as this
-     * @param result  a Dense column vector, used to store the dot product
-     *                (the number of rows in the vector must match the number
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
      *                of columns of this)
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;

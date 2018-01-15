@@ -93,7 +93,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 template <typename ValueType>
 void scale(const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (alpha->get_num_rows() == 1) {
+    if (alpha->get_num_cols() == 1) {
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
             for (size_type j = 0; j < x->get_num_cols(); ++j) {
                 x->at(i, j) *= alpha->at(0, 0);
@@ -102,7 +102,7 @@ void scale(const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
     } else {
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
             for (size_type j = 0; j < x->get_num_cols(); ++j) {
-                x->at(i, j) *= alpha->at(j, 0);
+                x->at(i, j) *= alpha->at(0, j);
             }
         }
     }
@@ -115,7 +115,7 @@ template <typename ValueType>
 void add_scaled(const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (alpha->get_num_rows() == 1) {
+    if (alpha->get_num_cols() == 1) {
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
             for (size_type j = 0; j < x->get_num_cols(); ++j) {
                 y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
@@ -124,7 +124,7 @@ void add_scaled(const matrix::Dense<ValueType> *alpha,
     } else {
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
             for (size_type j = 0; j < x->get_num_cols(); ++j) {
-                y->at(i, j) += alpha->at(j, 0) * x->at(i, j);
+                y->at(i, j) += alpha->at(0, j) * x->at(i, j);
             }
         }
     }
@@ -139,11 +139,11 @@ void compute_dot(const matrix::Dense<ValueType> *x,
                  matrix::Dense<ValueType> *result)
 {
     for (size_type j = 0; j < x->get_num_cols(); ++j) {
-        result->at(j, 0) = zero<ValueType>();
+        result->at(0, j) = zero<ValueType>();
     }
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            result->at(j, 0) += gko::conj(x->at(i, j)) * y->at(i, j);
+            result->at(0, j) += gko::conj(x->at(i, j)) * y->at(i, j);
         }
     }
 }

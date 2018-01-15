@@ -117,7 +117,7 @@ TEST_F(Dense, ApplyFailsOnWrongNumberOfCols)
 
 TEST_F(Dense, ScalesData)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {2.0, -2.0});
+    auto alpha = gko::matrix::Dense<>::create(exec, {{2.0, -2.0}});
 
     mtx2->scale(alpha.get());
 
@@ -143,7 +143,7 @@ TEST_F(Dense, ScalesDataWithScalar)
 
 TEST_F(Dense, ScalesDataWithPadding)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {-1.0, 1.0, 2.0});
+    auto alpha = gko::matrix::Dense<>::create(exec, {{-1.0, 1.0, 2.0}});
 
     mtx1->scale(alpha.get());
 
@@ -158,7 +158,7 @@ TEST_F(Dense, ScalesDataWithPadding)
 
 TEST_F(Dense, AddsScaled)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {2.0, 1.0, -2.0});
+    auto alpha = gko::matrix::Dense<>::create(exec, {{2.0, 1.0, -2.0}});
 
     mtx1->add_scaled(alpha.get(), mtx3.get());
 
@@ -188,7 +188,7 @@ TEST_F(Dense, AddsScaledWithScalar)
 
 TEST_F(Dense, AddScaledFailsOnWrongSizes)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, 2, 1, 1);
+    auto alpha = gko::matrix::Dense<>::create(exec, 1, 2, 2);
 
     ASSERT_THROW(mtx1->add_scaled(alpha.get(), mtx2.get()),
                  gko::DimensionMismatch);
