@@ -80,12 +80,44 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
 
 /**
  * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 {
     return T(1);
 }
+
+namespace detail {
+
+/**
+ * Keep the same data type if it is not complex.
+ */
+template <typename T>
+struct remove_complex_impl {
+    using type = T;
+};
+
+/**
+ * Use the underlying real type if it is complex type.
+ */
+template <typename T>
+struct remove_complex_impl<std::complex<T>> {
+    using type = T;
+};
+
+}  // namespace detail
+
+
+/**
+ * Obtains a real counterpart of a std::complex type, and leaves the type
+ * unchanged if it is not a complex type.
+ */
+template <typename T>
+using remove_complex = typename detail::remove_complex_impl<T>::type;
+
+
 }  // namespace gko
 
 

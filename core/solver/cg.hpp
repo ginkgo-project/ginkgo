@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
 
 
@@ -200,11 +201,6 @@ public:
             new CgFactory(std::move(exec), max_iters, rel_residual_goal));
     }
 
-    /**
-     * Generates a CG solver from a base solver.
-     *
-     * @param base The base CG solver.
-     */
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
