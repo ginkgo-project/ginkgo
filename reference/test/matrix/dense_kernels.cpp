@@ -195,4 +195,34 @@ TEST_F(Dense, AddScaledFailsOnWrongSizes)
 }
 
 
+TEST_F(Dense, ComputesDot)
+{
+    auto result = gko::matrix::Dense<>::create(exec, 1, 3, 3);
+
+    mtx1->compute_dot(mtx3.get(), result.get());
+
+    EXPECT_EQ(result->at(0, 0), 1.75);
+    EXPECT_EQ(result->at(0, 1), 7.75);
+    ASSERT_EQ(result->at(0, 2), 17.75);
+}
+
+
+TEST_F(Dense, ComputDotFailsOnWrongInputSize)
+{
+    auto result = gko::matrix::Dense<>::create(exec, 1, 3, 3);
+
+    ASSERT_THROW(mtx1->compute_dot(mtx2.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TEST_F(Dense, ComputDotFailsOnWrongResultSize)
+{
+    auto result = gko::matrix::Dense<>::create(exec, 1, 2, 2);
+
+    ASSERT_THROW(mtx1->compute_dot(mtx3.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
 }  // namespace
