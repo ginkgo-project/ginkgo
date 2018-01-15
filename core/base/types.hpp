@@ -110,8 +110,8 @@ using default_precision = double;
  *
  * @param _macro  A macro which expands the template instantiation
  *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
  */
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro) \
     template _macro(float, int32);                            \

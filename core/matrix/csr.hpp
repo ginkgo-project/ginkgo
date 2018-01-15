@@ -11,7 +11,7 @@ namespace gko {
 namespace matrix {
 
 /**
- * Csr is a matrix format which stores only the nonzero coefficients by
+ * CSR is a matrix format which stores only the nonzero coefficients by
  * compressing each row of the matrix (compressed sparse row format).
  *
  * The nonzero elements are stored in a 1D array row-wise, and accompanied
@@ -31,12 +31,12 @@ public:
     using index_type = IndexType;
 
     /**
-     * Creates an uninitialized Dense matrix of the specified size.
+     * Creates an uninitialized CSR matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param num_rows      number of rows
      * @param num_cols      number of columns
-     * @param num_nonzeros  number of non zeros
+     * @param num_nonzeros  number of nonzeros
      */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
@@ -74,12 +74,18 @@ public:
     void move_to(Csr *other) override;
 
     /**
-     * Returns the values of the matrix
+     * Returns the values of the matrix.
+     *
+     * @return the values of the matrix.
      */
     value_type *get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Csr::get_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
     const value_type *get_const_values() const noexcept
     {
@@ -87,12 +93,18 @@ public:
     }
 
     /**
-     * Returns the column indexes of the matrix
+     * Returns the column indexes of the matrix.
+     *
+     * @return the column indexes of the matrix.
      */
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
     const index_type *get_const_col_idxs() const noexcept
     {
@@ -100,12 +112,18 @@ public:
     }
 
     /**
-     * Returns the row pointers of the matrix
+     * Returns the row pointers of the matrix.
+     *
+     * @return the row pointers of the matrix.
      */
     index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
      * @copydoc Csr::get_row_ptrs()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
     const index_type *get_const_row_ptrs() const noexcept
     {
