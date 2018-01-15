@@ -1,1 +1,1 @@
-create_test(matrix/dense_kernels)
+add_subdirectory(matrix)

@@ -100,6 +100,7 @@ public:
      * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
+     * @param vals  values used to initialize the vector
      */
     static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
                                          size_type padding,
