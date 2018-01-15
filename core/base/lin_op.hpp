@@ -251,6 +251,37 @@ private:
     size_type num_nonzeros_;
 };
 
+/**
+ * The LinOpFactory is used to generate a linear operator.
+ */
+class LinOpFactory {
+public:
+    /**
+     * Generates a Linear operator from the base linear operator.
+     *
+     * @param base  The base linear operator.
+     */
+    virtual std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const = 0;
+    /**
+     * Gets the exector on which the Linear operator exists.
+     *
+     * @return exec_ The executor.
+     */
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
+    }
+
+protected:
+    explicit LinOpFactory(std::shared_ptr<const Executor> exec)
+        : exec_(std::move(exec))
+    {}
+
+private:
+    std::shared_ptr<const Executor> exec_;
+};
+
 
 }  // namespace gko
 
