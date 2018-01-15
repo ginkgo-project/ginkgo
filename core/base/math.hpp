@@ -89,7 +89,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
     return T(1);
 }
 
+
 namespace detail {
+
 
 /**
  * Keep the same data type if it is not complex.
@@ -107,6 +109,17 @@ struct remove_complex_impl<std::complex<T>> {
     using type = T;
 };
 
+
+template <typename T>
+struct is_complex_impl : public std::integral_constant<bool, false> {
+};
+
+template <typename T>
+struct is_complex_impl<std::complex<T>>
+    : public std::integral_constant<bool, true> {
+};
+
+
 }  // namespace detail
 
 
@@ -116,6 +129,20 @@ struct remove_complex_impl<std::complex<T>> {
  */
 template <typename T>
 using remove_complex = typename detail::remove_complex_impl<T>::type;
+
+
+/**
+ * Checks if T is a complex type.
+ *
+ * @tparam T  type to check
+ *
+ * @return  `true` if T is a complex type, `false` otherwise
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
+{
+    return detail::is_complex_impl<T>::value;
+}
 
 
 }  // namespace gko
