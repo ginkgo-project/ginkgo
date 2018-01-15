@@ -10,7 +10,19 @@
 namespace gko {
 namespace matrix {
 
-
+/**
+ * Csr is a matrix format which stores only the nonzero coefficients by
+ * compressing each row of the matrix (compressed sparse row format).
+ *
+ * The nonzero elements are stored in a 1D array row-wise, and accompanied
+ * with a row pointer array which stores the starting index of each row.
+ * An additional column index array is used to identify the column of each
+ * nonzero element.
+ *
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indexes
+ *
+ */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp, public ConvertibleTo<Csr<ValueType, IndexType>> {
 public:
@@ -18,6 +30,14 @@ public:
 
     using index_type = IndexType;
 
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of non zeros
+     */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros)
@@ -26,6 +46,11 @@ public:
             new Csr(exec, num_rows, num_cols, num_nonzeros));
     }
 
+    /**
+     * Creates an empty Csr matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec)
     {
         return create(exec, 0, 0, 0);
@@ -48,22 +73,40 @@ public:
 
     void move_to(Csr *other) override;
 
+    /**
+     * Returns the values of the matrix
+     */
     value_type *get_values() noexcept { return values_.get_data(); }
 
+    /**
+     * @copydoc Csr::get_values()
+     */
     const value_type *get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
 
+    /**
+     * Returns the column indexes of the matrix
+     */
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
+    /**
+     * @copydoc Csr::get_col_idxs()
+     */
     const index_type *get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
 
+    /**
+     * Returns the row pointers of the matrix
+     */
     index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
+    /**
+     * @copydoc Csr::get_row_ptrs()
+     */
     const index_type *get_const_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
