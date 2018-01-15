@@ -75,27 +75,55 @@ TEST(CudaError, ReturnsCudaError)
 }
 
 
-struct dummy_matrix {
-    int rows;
-    int cols;
-    int get_num_rows() const { return rows; }
-    int get_num_cols() const { return cols; }
-};
-
-
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
-    dummy_matrix oper{3, 5};
-    dummy_matrix vecs{5, 6};
-    ASSERT_NO_THROW(ASSERT_CONFORMANT(&oper, &vecs));
+    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::size(3, 5), gko::size(5, 6)));
 }
 
 
 TEST(AssertConformant, ThrowsWhenNotConformant)
 {
-    dummy_matrix oper{3, 5};
-    dummy_matrix vecs{7, 3};
-    ASSERT_THROW(ASSERT_CONFORMANT(&oper, &vecs), gko::DimensionMismatch);
+    ASSERT_THROW(ASSERT_CONFORMANT(gko::size(3, 5), gko::size(7, 3)),
+                 gko::DimensionMismatch);
+}
+
+
+TEST(AssertEqualRows, DoesNotThrowWhenEqualRowSize)
+{
+    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::size(5, 3), gko::size(5, 6)));
+}
+
+
+TEST(AssertEqualRows, ThrowsWhenDifferentRowSize)
+{
+    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::size(3, 5), gko::size(7, 3)),
+                 gko::DimensionMismatch);
+}
+
+
+TEST(AssertEqualCols, DoesNotThrowWhenEqualColSize)
+{
+    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::size(3, 6), gko::size(5, 6)));
+}
+
+
+TEST(AssertEqualCols, ThrowsWhenDifferentColSize)
+{
+    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::size(3, 5), gko::size(7, 3)),
+                 gko::DimensionMismatch);
+}
+
+
+TEST(AssertEqualDimensions, DoesNotThrowWhenEqualDimensions)
+{
+    ASSERT_NO_THROW(ASSERT_EQUAL_DIMENSIONS(gko::size(5, 6), gko::size(5, 6)));
+}
+
+
+TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
+{
+    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::size(3, 5), gko::size(7, 5)),
+                 gko::DimensionMismatch);
 }
 
 

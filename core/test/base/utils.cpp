@@ -31,81 +31,60 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TYPES_HPP_
-#define GKO_CORE_TYPES_HPP_
+#include <core/base/utils.hpp>
 
 
-#include <complex>
-#include <cstddef>
-#include <cstdint>
+#include <gtest/gtest.h>
 
 
-namespace gko {
+namespace {
 
 
-/**
- * Integral type used for allocation quantities.
- */
-using size_type = std::size_t;
+class Base {
+public:
+    virtual ~Base() = default;
+};
 
 
-/**
- * 32-bit signed integral type.
- */
-using int32 = std::int32_t;
+class Derived : public Base {
+};
 
 
-/**
- * 64-bit signed integral type.
- */
-using int64 = std::int64_t;
+class NonRelated {
+    virtual ~NonRelated() = default;
+};
 
 
-/**
- * The most precise floating-point type.
- */
-using full_precision = double;
+TEST(As, ConvertsPolymorphicType)
+{
+    Derived d;
+    Base *b = &d;
+    ASSERT_EQ(gko::as<Derived>(b), &d);
+}
 
 
-/**
- * Precision used if no precision is explicitly specified.
- */
-using default_precision = double;
+TEST(As, FailsToConvertIfNotRelated)
+{
+    Derived d;
+    Base *b = &d;
+    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+}
 
 
-/**
- * Calls a given macro for each executor type.
- *
- * The macro should take two parameters:
- *
- * -   the first one is replaced with the executor class name
- * -   the second one with the executor short name (used for namespace name)
- *
- * @param _enable_macro  macro name which will be called
- *
- * @note  the macro is not called for ReferenceExecutor
- */
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
+TEST(As, ConvertsConstantPolymorphicType)
+{
+    Derived d;
+    const Base *b = &d;
+    ASSERT_EQ(gko::as<Derived>(b), &d);
+}
 
 
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                         \
-    template _macro(double);                        \
-    template _macro(std::complex<float>);           \
-    template _macro(std::complex<double>)
+TEST(As, FailsToConvertConstantIfNotRelated)
+{
+    Derived d;
+    const Base *b = &d;
+    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+}
 
 
-}  // namespace gko
-
-
-#endif  // GKO_CORE_TYPES_HPP_
+}  // namespace

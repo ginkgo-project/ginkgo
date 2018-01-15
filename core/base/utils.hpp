@@ -31,81 +31,63 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TYPES_HPP_
-#define GKO_CORE_TYPES_HPP_
+#ifndef GKO_CORE_BASE_UTILS_HPP_
+#define GKO_CORE_BASE_UTILS_HPP_
 
 
-#include <complex>
-#include <cstddef>
-#include <cstdint>
+#include "core/base/exception_helpers.hpp"
+#include "core/base/types.hpp"
 
 
 namespace gko {
 
 
 /**
- * Integral type used for allocation quantities.
- */
-using size_type = std::size_t;
-
-
-/**
- * 32-bit signed integral type.
- */
-using int32 = std::int32_t;
-
-
-/**
- * 64-bit signed integral type.
- */
-using int64 = std::int64_t;
-
-
-/**
- * The most precise floating-point type.
- */
-using full_precision = double;
-
-
-/**
- * Precision used if no precision is explicitly specified.
- */
-using default_precision = double;
-
-
-/**
- * Calls a given macro for each executor type.
+ * Performs polymorphic type conversion.
  *
- * The macro should take two parameters:
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
  *
- * -   the first one is replaced with the executor class name
- * -   the second one with the executor short name (used for namespace name)
+ * @param obj  the object which should be converted
  *
- * @param _enable_macro  macro name which will be called
- *
- * @note  the macro is not called for ReferenceExecutor
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
  */
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
-
+template <typename T, typename U>
+T *as(U *obj)
+{
+    if (auto p = dynamic_cast<T *>(obj)) {
+        return p;
+    } else {
+        throw NOT_SUPPORTED(obj);
+    }
+}
 
 /**
- * Instantiates a template for each value type compiled by Ginkgo.
+ * Performs polymorphic type conversion.
  *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
+ * This is the constant version of the function.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the object which should be converted
+ *
+ * @return If successful, returns a pointer to the subtype, otherwise throws
+ *         NotSupported.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                         \
-    template _macro(double);                        \
-    template _macro(std::complex<float>);           \
-    template _macro(std::complex<double>)
+template <typename T, typename U>
+const T *as(const U *obj)
+{
+    if (auto p = dynamic_cast<const T *>(obj)) {
+        return p;
+    } else {
+        throw NOT_SUPPORTED(obj);
+    }
+}
 
 
 }  // namespace gko
 
 
-#endif  // GKO_CORE_TYPES_HPP_
+#endif  // GKO_CORE_BASE_UTILS_HPP_

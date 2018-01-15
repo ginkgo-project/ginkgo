@@ -31,81 +31,59 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TYPES_HPP_
-#define GKO_CORE_TYPES_HPP_
+#include "core/matrix/dense_kernels.hpp"
 
 
-#include <complex>
-#include <cstddef>
-#include <cstdint>
+#include "core/base/exception_helpers.hpp"
 
 
 namespace gko {
+namespace kernels {
+namespace reference {
+namespace dense {
 
 
-/**
- * Integral type used for allocation quantities.
- */
-using size_type = std::size_t;
+template <typename ValueType>
+void simple_apply(const matrix::Dense<ValueType> *a,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
-/**
- * 32-bit signed integral type.
- */
-using int32 = std::int32_t;
+template <typename ValueType>
+void apply(const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta,
+           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
-/**
- * 64-bit signed integral type.
- */
-using int64 = std::int64_t;
+template <typename ValueType>
+void scale(const matrix::Dense<ValueType> *alpha,
+           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
-/**
- * The most precise floating-point type.
- */
-using full_precision = double;
+template <typename ValueType>
+void add_scaled(const matrix::Dense<ValueType> *alpha,
+                const matrix::Dense<ValueType> *x,
+                matrix::Dense<ValueType> *y) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
-/**
- * Precision used if no precision is explicitly specified.
- */
-using default_precision = double;
+template <typename ValueType>
+void compute_dot(const matrix::Dense<ValueType> *x,
+                 const matrix::Dense<ValueType> *y,
+                 matrix::Dense<ValueType> *result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
-/**
- * Calls a given macro for each executor type.
- *
- * The macro should take two parameters:
- *
- * -   the first one is replaced with the executor class name
- * -   the second one with the executor short name (used for namespace name)
- *
- * @param _enable_macro  macro name which will be called
- *
- * @note  the macro is not called for ReferenceExecutor
- */
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
-
-
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                         \
-    template _macro(double);                        \
-    template _macro(std::complex<float>);           \
-    template _macro(std::complex<double>)
-
-
+}  // namespace dense
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_TYPES_HPP_

@@ -7,3 +7,4 @@ function(create_test test_name)
 endfunction(create_test)
 
 add_subdirectory(base)
+add_subdirectory(matrix)

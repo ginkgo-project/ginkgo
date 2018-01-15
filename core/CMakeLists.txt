@@ -1,5 +1,6 @@
 set(SOURCES
-    base/executor.cpp)
+    base/executor.cpp
+    matrix/dense.cpp)
 
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules

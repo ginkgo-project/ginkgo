@@ -39,14 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <tuple>
+#include <type_traits>
 
 
 namespace gko {
-
-
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(CpuExecutor, cpu);                \
-    _enable_macro(GpuExecutor, gpu)
 
 
 #define FORWARD_DECLARE(_type, _unused) class _type
@@ -177,11 +174,124 @@ public:
 };
 
 
+namespace detail {
+
+
+template <int K, int... Ns, typename F, typename Tuple>
+typename std::enable_if<(K == 0)>::type call_impl(F f, Tuple &data)
+{
+    f(std::get<Ns>(data)...);
+}
+
+template <int K, int... Ns, typename F, typename Tuple>
+typename std::enable_if<(K > 0)>::type call_impl(F f, Tuple &data)
+{
+    call_impl<K - 1, K - 1, Ns...>(f, data);
+}
+
+template <typename F, typename... Args>
+void call(F f, std::tuple<Args...> &data)
+{
+    call_impl<sizeof...(Args)>(f, data);
+}
+
+
+}  // namespace detail
+
+
 /**
- * The first step in using the GINKGO library consists of creating an
+ * Binds a set of device-specific kernels to an Operation.
+ *
+ * It also defines a helper function which creates the associated operation.
+ * Any input arguments passed to the helper function are forwarded to the
+ * kernel when the operation is executed.
+ *
+ * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
+ * namespace, where `DEV_TYPE` is replaced by `cpu`, `gpu` and `reference`.
+ *
+ * @param _name  operation name
+ * @param _kernel  kernel which will be bound to the operation
+ *
+ * Example
+ * -------
+ *
+ * ```c++
+ * // define the cpu, gpu and reference kernels which will be bound to the
+ * // operation
+ * namespace kernels {
+ * namespace cpu {
+ * void my_kernel(int x) {
+ *      // cpu code
+ * }
+ * }
+ * namespace gpu {
+ * void my_kernel(int x) {
+ *      // gpu code
+ * }
+ * }
+ * namespace reference {
+ * void my_kernel(int x) {
+ *     // reference code
+ * }
+ * }
+ *
+ * // Bind the kernels to the operation
+ * GKO_REGISTER_OPERATION(my_op, my_kernel);
+ *
+ * int main() {
+ *     // create executors
+ *     auto cpu = CpuExecutor::create();
+ *     auto gpu = GpuExecutor::create(cpu, 0);
+ *     auto ref = ReferenceExecutor::create();
+ *
+ *     // create the operation
+ *     auto op = make_my_op_operation(5); // x = 5
+ *
+ *     cpu->run(op);  // run cpu kernel
+ *     gpu->run(op);  // run gpu kernel
+ *     ref->run(op);  // run reference kernel
+ * }
+ * ```
+ */
+#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
+    template <typename... Args>                                                \
+    class _name##_operation : public Operation {                               \
+    public:                                                                    \
+        _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
+        {}                                                                     \
+                                                                               \
+        void run(const CpuExecutor *) const override                           \
+        {                                                                      \
+            detail::call(kernels::cpu::_kernel, data);                         \
+        }                                                                      \
+                                                                               \
+        void run(const GpuExecutor *) const override                           \
+        {                                                                      \
+            detail::call(kernels::gpu::_kernel, data);                         \
+        }                                                                      \
+                                                                               \
+        void run(const ReferenceExecutor *) const override                     \
+        {                                                                      \
+            detail::call(kernels::reference::_kernel, data);                   \
+        }                                                                      \
+                                                                               \
+    private:                                                                   \
+        mutable std::tuple<Args &&...> data;                                   \
+    };                                                                         \
+                                                                               \
+    template <typename... Args>                                                \
+    static _name##_operation<Args...> make_##_name##_operation(                \
+        Args &&... args)                                                       \
+    {                                                                          \
+        return _name##_operation<Args...>(std::forward<Args>(args)...);        \
+    }
+
+
+/**
+ * The first step in using the Ginkgo library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * GINKGO currently supports three different executor types:
+ * Ginkgo currently supports three different executor types:
  *
  * +    CpuExecutor specifies that the data should be stored and the associated
  *      operations executed on the host CPU;
@@ -191,18 +301,18 @@ public:
  *      which can be used to debug the library.
  *
  * The following code snippet demonstrates the simplest possible use of the
- * GINKGO library:
+ * Ginkgo library:
  *
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
- * auto A = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", cpu);
+ * auto A = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", cpu);
  * ```
  *
  * First, we create a CPU executor, which will be used in the next line to
  * specify where we want the data for the matrix A to be stored.
  * The second line will read a matrix from the matrix market file 'A.mtx',
- * and store the data on the CPU in CSR format (gko::CsrMatrix is a
- * GINKGO Matrix class which stores its data in CSR format).
+ * and store the data on the CPU in CSR format (gko::matrix::Csr is a
+ * Ginkgo matrix class which stores its data in CSR format).
  * At this point, matrix A is bound to the CPU, and any routines called on it
  * will be performed on the CPU. This approach is usually desired in sparse
  * linear algebra, as the cost of individual operations is several orders of
@@ -214,7 +324,7 @@ public:
  *
  * ```cpp
  * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
- * auto dA = gko::copy_to<gko::CsrMatrix<float>>(A.get(), gpu);
+ * auto dA = gko::copy_to<gko::matrix::Csr<float>>(A.get(), gpu);
  * ```
  *
  * The first line of the snippet creates a new GPU executor. Since there may be
@@ -225,7 +335,7 @@ public:
  * which will be used to schedule the requested GPU kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
- * of the get() method. As GINKGO aims to provide automatic memory
+ * of the get() method. As Ginkgo aims to provide automatic memory
  * management of its objects, the result of calling gko::read_from_mtx()
  * is a smart pointer (std::unique_ptr) to the created object. On the other
  * hand, as the library will not hold a reference to A once the copy is
@@ -236,7 +346,7 @@ public:
  * As a side note, the gko::copy_to routine is far more powerful than just
  * copying data between different devices. It can also be used to convert data
  * between different formats. For example, if the above code used
- * gko::EllMatrix as the template parameter, dA would be stored on the GPU,
+ * gko::matrix::Ell as the template parameter, dA would be stored on the GPU,
  * in ELLPACK format.
  *
  * Finally, if all the processing of the matrix is supposed to be done on the
@@ -246,7 +356,7 @@ public:
  * ```cpp
  * auto cpu = gko::create<gko::CpuExecutor>();
  * auto gpu = gko::create<gko::GpuExecutor>(0, cpu);
- * auto dA = gko::read_from_mtx<gko::CsrMatrix<float>>("A.mtx", gpu);
+ * auto dA = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", gpu);
  * ```
  * Notice that even though reading the matrix directly from a file to the
  * accelerator is not supported, the library is designed to abstract away the
