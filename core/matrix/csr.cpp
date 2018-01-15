@@ -52,7 +52,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::clone_type() const
 {
     return std::unique_ptr<LinOp>(
         new Csr(this->get_executor(), this->get_num_rows(),
-                this->get_num_cols(), this->get_num_nonzeros()));
+                this->get_num_cols(), this->get_num_stored_elements()));
 }
 
 
