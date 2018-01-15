@@ -182,14 +182,23 @@ public:
     }
 
     /**
-     * Gets the array containing the values of the matrix.
+     * Returns a pointer to the array of values of the matrix.
+     *
+     * @return  the pointer to the array of values
      */
-    Array<value_type> &get_values() noexcept { return values_; }
+    value_type *get_values() noexcept { return values_.get_data(); }
 
     /**
-     * Gets the array containing the values of the matrix.
+     * @copydoc get_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
-    const Array<value_type> &get_values() const noexcept { return values_; }
+    const value_type *get_const_values() const noexcept
+    {
+        return values_.get_const_data();
+    }
 
     /**
      * Returns the padding of the matrix.
@@ -206,7 +215,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    ValueType &at(size_type row, size_type col) noexcept
+    value_type &at(size_type row, size_type col) noexcept
     {
         return values_.get_data()[linearize_index(row, col)];
     }
@@ -214,7 +223,7 @@ public:
     /**
      * @copydoc Dense::at(size_type, size_type)
      */
-    ValueType at(size_type row, size_type col) const noexcept
+    value_type at(size_type row, size_type col) const noexcept
     {
         return values_.get_const_data()[linearize_index(row, col)];
     }
