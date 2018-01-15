@@ -47,7 +47,7 @@ public:
     }
 
     /**
-     * Creates an empty Csr matrix.
+     * Creates an empty CSR matrix.
      *
      * @param exec  Executor associated to the matrix
      */
