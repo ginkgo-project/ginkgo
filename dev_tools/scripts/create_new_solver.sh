@@ -1,13 +1,18 @@
 #!/bin/bash
 
 function print_help {
-    echo -e "usage: $0 SOLVER_NAME"
+    echo -e "Usage: $0 [options] solvername"
+    echo -e "\tOptions:"
+    echo -e "\t--dry-run: does a dry run"
+    echo -e "\t--help: prints this help"
     echo -e ""
     echo -e "This script uses template files to generate a new solver."
     echo -e "After the correct execution of this script, it is expected that"
-    echo -e "SOLVER_NAME is integrated into Ginkgo and that you finish all todos."
+    echo -e "solvername is integrated into Ginkgo and that you finish all todos."
     exit
 }
+
+execute=1
 
 while test $# -gt 0
 do
