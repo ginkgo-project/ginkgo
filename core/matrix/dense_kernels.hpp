@@ -105,6 +105,11 @@ DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace reference
+
+
+#undef DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
 

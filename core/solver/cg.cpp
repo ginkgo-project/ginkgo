@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg.hpp"
 
 
+#include "core/base/math.hpp"
 #include "core/solver/cg_kernels.hpp"
 
 namespace gko {
