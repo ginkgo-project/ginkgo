@@ -61,8 +61,7 @@ void Csr<ValueType, IndexType>::clear()
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Csr *other) const
 {
-    other->set_dimensions(this->get_num_rows(), this->get_num_cols(),
-                          this->get_num_stored_elements());
+    other->set_dimensions(this);
     other->values_ = values_;
     other->col_idxs_ = col_idxs_;
     other->row_ptrs_ = row_ptrs_;
@@ -72,8 +71,7 @@ void Csr<ValueType, IndexType>::convert_to(Csr *other) const
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Csr *other)
 {
-    other->set_dimensions(this->get_num_rows(), this->get_num_cols(),
-                          this->get_num_stored_elements());
+    other->set_dimensions(this);
     other->values_ = std::move(values_);
     other->col_idxs_ = std::move(col_idxs_);
     other->row_ptrs_ = std::move(row_ptrs_);
