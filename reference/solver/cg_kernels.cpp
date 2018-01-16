@@ -35,7 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
-
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
 
 namespace gko {
 namespace kernels {
@@ -49,7 +50,7 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho)
 {
-    for (size_type j = 0; j < b->get_num_cols(); ++j) {
+    for (size_type j = 0; j < b->get_num_rows(); ++j) {
         rho->at(j) = zero<ValueType>();
         prev_rho->at(j) = one<ValueType>();
     }
