@@ -105,7 +105,6 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
-    // TODO: ASSERT_SQUARE(system_matrix_)
     ASSERT_CONFORMANT(system_matrix_, b);
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
@@ -173,9 +172,7 @@ void Cg<ValueType>::apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                           LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
-    if (dense_x == nullptr) {
-        throw NOT_SUPPORTED(x);
-    }
+
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
