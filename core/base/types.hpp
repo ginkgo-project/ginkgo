@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 
 #ifdef __CUDACC__
@@ -131,7 +132,6 @@ using default_precision = double;
     template _macro(double, int64);                           \
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
-
 
 }  // namespace gko
 

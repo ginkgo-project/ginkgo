@@ -31,89 +31,76 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/exception_helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
-#include "core/solver/cg_kernels.hpp"
 
-#ifndef GKO_HOOK_MODULE
-#error "Need to define GKO_HOOK_MODULE variable before including this file"
-#endif  // GKO_HOOK_MODULE
+
+#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_HOOK_MODULE {
-namespace dense {
-
-
-template <typename ValueType>
-GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
-
-
-}  // namespace dense
-
-
-namespace cg {
-
-
-template <typename ValueType>
-GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_CG_STEP_1_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
-
-
-}  // namespace cg
-
-
+namespace reference {
 namespace csr {
 
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)
-NOT_COMPILED(GKO_HOOK_MODULE);
+void spmv(const matrix::Csr<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+
+    for (size_type row = 0; row < a->get_num_rows(); ++row) {
+        for (size_type j = 0; j < c->get_num_cols(); ++j) {
+            c->at(row, j) = zero<ValueType>();
+        }
+        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            auto val = vals[k];
+            auto col = col_idxs[k];
+            for (size_type j = 0; j < c->get_num_cols(); ++j) {
+                c->at(row, j) += val * b->at(col, j);
+            }
+        }
+    }
+}
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
-NOT_COMPILED(GKO_HOOK_MODULE);
+void advanced_spmv(const matrix::Dense<ValueType> *alpha,
+                   const matrix::Csr<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c)
+{
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+
+    for (size_type row = 0; row < a->get_num_rows(); ++row) {
+        for (size_type j = 0; j < c->get_num_cols(); ++j) {
+            c->at(row, j) *= vbeta;
+        }
+        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            auto val = vals[k];
+            auto col = col_idxs[k];
+            for (size_type j = 0; j < c->get_num_cols(); ++j) {
+                c->at(row, j) += valpha * val * b->at(col, j);
+            }
+        }
+    }
+}
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
 }  // namespace csr
-}  // namespace GKO_HOOK_MODULE
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko

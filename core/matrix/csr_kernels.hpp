@@ -31,54 +31,69 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/matrix/csr_kernels.hpp"
+#ifndef GKO_CORE_MATRIX_CSR_KERNELS_HPP_
+#define GKO_CORE_MATRIX_CSR_KERNELS_HPP_
+
+
+#include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
+namespace kernels {
 
 
-void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType) \
+    void spmv(const matrix::Csr<ValueType, IndexType> *a, \
+              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+
+#define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
+    void advanced_spmv(const matrix::Dense<ValueType> *alpha,      \
+                       const matrix::Csr<ValueType, IndexType> *a, \
+                       const matrix::Dense<ValueType> *b,          \
+                       const matrix::Dense<ValueType> *beta,       \
+                       matrix::Dense<ValueType> *c)
 
 
-void GpuExecutor::free(void *ptr) const noexcept
-{
-    // Free must never fail, as it can be called in destructors.
-    // If the nvidia module was not compiled, the library couldn't have
-    // allocated the memory, so there is no need to deallocate it.
-}
+#define DECLARE_ALL_AS_TEMPLATES                       \
+    template <typename ValueType, typename IndexType>  \
+    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>  \
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
 
 
-void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
+namespace cpu {
+namespace csr {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace csr
+}  // namespace cpu
 
 
-void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+namespace gpu {
+namespace csr {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace csr
+}  // namespace gpu
 
 
-void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+namespace reference {
+namespace csr {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace csr
+}  // namespace reference
 
 
-void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
+#undef DECLARE_ALL_AS_TEMPLATES
 
 
-std::string CudaError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-int GpuExecutor::get_num_devices() { return 0; }
-
-
+}  // namespace kernels
 }  // namespace gko
 
 
-#define GKO_HOOK_MODULE gpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+#endif  // GKO_CORE_MATRIX_CSR_KERNELS_HPP_

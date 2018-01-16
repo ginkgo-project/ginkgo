@@ -37,10 +37,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/utils.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
 namespace matrix {
+
+
+namespace {
+
+
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, csr::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv<TplArgs...>);
+};
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -60,7 +75,13 @@ void Csr<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 {
-    // TODO
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -68,7 +89,16 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
                                       const LinOp *beta, LinOp *x) const
 {
-    // TODO
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
 }
 
 
