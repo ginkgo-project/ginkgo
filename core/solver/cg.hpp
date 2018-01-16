@@ -61,10 +61,8 @@ class CgFactory;
  *
  * @tparam ValueType precision of matrix elements
  */
-
-
 template <typename ValueType = default_precision>
-class Cg : public LinOp {
+class Cg : public LinOp, public ConvertibleTo<Cg<ValueType>> {
     friend class CgFactory<ValueType>;
 
 public:

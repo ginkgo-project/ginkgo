@@ -60,7 +60,6 @@ struct TemplatedOperation {
  * @param orig_tau  Original residual.
  * @param r  Relative residual goal.
  */
-
 template <typename ValueType>
 bool has_converged(const matrix::Dense<ValueType> *tau,
                    const matrix::Dense<ValueType> *orig_tau,
@@ -82,14 +81,7 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 template <typename ValueType>
 void Cg<ValueType>::copy_from(const LinOp *other)
 {
-    // auto other_cg = dynamic_cast<const Cg<ValueType> *>(other);
-    // if (other_cg == nullptr) {
-    //    throw NOT_SUPPORTED(other);
-    //}
-    // system_matrix_ = other_cg->get_system_matrix()->clone();
     as<ConvertibleTo<Cg<ValueType>>>(other)->convert_to(this);
-    // this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-    //                     other->get_num_stored_elements());
 }
 
 
@@ -97,13 +89,6 @@ template <typename ValueType>
 void Cg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
     as<ConvertibleTo<Cg<ValueType>>>(other.get())->move_to(this);
-    /*auto other_cg = dynamic_cast<Cg<ValueType> *>(other.get());
-    if (other_cg == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
-    system_matrix_ = std::move(other_cg->get_system_matrix());
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_stored_elements());*/
 }
 
 
@@ -112,14 +97,9 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = dynamic_cast<const Vector *>(b);
-    auto dense_x = dynamic_cast<Vector *>(x);
-    if (dense_b == nullptr) {
-        throw NOT_SUPPORTED(b);
-    }
-    if (dense_x == nullptr) {
-        throw NOT_SUPPORTED(x);
-    }
+    auto dense_b = as<const Vector>(b);
+    auto dense_x = as<Vector>(x);
+
     // TODO: ASSERT_SQUARE(system_matrix_)
     ASSERT_CONFORMANT(system_matrix_, b);
     ASSERT_EQUAL_DIMENSIONS(b, x);
@@ -238,6 +218,7 @@ std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
 {
     auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
+    // ASSERT_EQUAL_DIMENSIONS(cg->system_matrix_,base->system_matrix_);
     return cg;
 }
 
