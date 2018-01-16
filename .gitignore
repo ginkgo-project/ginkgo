@@ -45,3 +45,7 @@ build
 *.exe
 *.out
 *.app
+
+#other
+diff.patch
+.gitignore

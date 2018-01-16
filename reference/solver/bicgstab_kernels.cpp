@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicgstab_kernels.hpp"
 
+#include "core/base/exception_helpers.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -59,20 +61,7 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega)
-
-{
-    using std::abs;
-    using std::isnan;
-    for (size_type i = 0; i < p->get_num_rows(); ++i) {
-        for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            auto tmp =
-                rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
-            p->at(i, j) =
-                r->at(i, j) + tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
-        }
-    }
-}
+            const matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
