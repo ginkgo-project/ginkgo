@@ -219,6 +219,19 @@ public:
 };
 
 
+/**
+ * FileError is thrown if accessing a file failed.
+ */
+class FileError : public Error {
+public:
+    FileError(const std::string &file, int line, const std::string &func,
+              const std::string &filename, const std::string &message)
+        : Error(file, line,
+                func + ": error accessing " + filename + ": " + message)
+    {}
+};
+
+
 }  // namespace gko
 
 

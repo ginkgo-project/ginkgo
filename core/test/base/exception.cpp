@@ -119,4 +119,15 @@ TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, FileErrorReturnsCorrectWhatMessage)
+{
+    gko::FileError error("test_file.cpp", 75, "my_func", "my_file.txt",
+                         "my message");
+    ASSERT_EQ(
+        std::string("test_file.cpp:75: my_func: error accessing my_file.txt: "
+                    "my message"),
+        error.what());
+}
+
+
 }  // namespace

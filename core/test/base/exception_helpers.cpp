@@ -140,4 +140,15 @@ TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 }
 
 
+void func_with_file_error()
+{
+    throw FILE_ERROR("my_file.txt", "error message");
+}
+
+TEST(FileError, ThrowsFileErrorException)
+{
+    ASSERT_THROW(func_with_file_error(), gko::FileError);
+}
+
+
 }  // namespace
