@@ -48,9 +48,6 @@ template <typename ValueType, typename IndexType>
 void spmv(const matrix::Csr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    ASSERT_CONFORMANT(a, b);
-    ASSERT_EQUAL_ROWS(a, c);
-    ASSERT_EQUAL_COLS(b, c);
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
@@ -79,9 +76,6 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    ASSERT_CONFORMANT(a, b);
-    ASSERT_EQUAL_ROWS(a, c);
-    ASSERT_EQUAL_COLS(b, c);
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();

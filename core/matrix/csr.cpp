@@ -75,19 +75,13 @@ void Csr<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 {
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
     using Dense = Dense<ValueType>;
-    auto dense_b = dynamic_cast<const Dense *>(b);
-    auto dense_x = dynamic_cast<Dense *>(x);
-    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(b);
-    }
-    if (dense_x == nullptr || dense_x->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(x);
-    }
-
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, dense_b, dense_x));
+            this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -95,29 +89,16 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
                                       const LinOp *beta, LinOp *x) const
 {
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using Dense = Dense<ValueType>;
-    auto dense_b = dynamic_cast<const Dense *>(b);
-    auto dense_alpha = dynamic_cast<const Dense *>(alpha);
-    auto dense_beta = dynamic_cast<const Dense *>(beta);
-    auto dense_x = dynamic_cast<Dense *>(x);
-    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(b);
-    }
-    if (dense_alpha == nullptr ||
-        dense_alpha->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(alpha);
-    }
-    if (dense_beta == nullptr ||
-        dense_beta->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(beta);
-    }
-    if (dense_x == nullptr || dense_x->get_executor() != this->get_executor()) {
-        throw NOT_SUPPORTED(x);
-    }
-
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            dense_alpha, this, dense_b, dense_beta, dense_x));
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
 }
 
 
