@@ -1,5 +1,6 @@
 set(SOURCES
     matrix/dense_kernels.cpp
+    solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp)
 
 add_library(ginkgo_cpu SHARED

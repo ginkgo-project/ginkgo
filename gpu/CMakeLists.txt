@@ -2,6 +2,7 @@ set(SOURCES
     base/exception.cpp
     base/executor.cpp
     matrix/dense_kernels.cpp
+    solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
