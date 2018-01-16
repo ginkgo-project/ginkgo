@@ -90,6 +90,18 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 }
 
 
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return multiplicative identity for T
+ */
+template <typename T>
+GKO_ATTRIBUTES constexpr T one()
+{
+    return T(1);
+}
+
+
 namespace detail {
 
 

@@ -34,7 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "gpu/base/cublas_bindings.hpp"
 
 
 namespace gko {
@@ -46,7 +47,19 @@ namespace dense {
 template <typename ValueType>
 void simple_apply(const matrix::Dense<ValueType> *a,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+                  matrix::Dense<ValueType> *c)
+{
+    auto handle = cublas::init();
+    ASSERT_NO_CUBLAS_ERRORS(
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+    auto alpha = one<ValueType>();
+    auto beta = zero<ValueType>();
+    cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_num_cols(),
+                 c->get_num_rows(), a->get_num_cols(), &alpha,
+                 b->get_const_values(), b->get_padding(), a->get_const_values(),
+                 a->get_padding(), &beta, c->get_values(), c->get_padding());
+    cublas::destroy(handle);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
@@ -54,23 +67,65 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 template <typename ValueType>
 void apply(const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+{
+    auto handle = cublas::init();
+    cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_num_cols(),
+                 c->get_num_rows(), a->get_num_cols(),
+                 alpha->get_const_values(), b->get_const_values(),
+                 b->get_padding(), a->get_const_values(), a->get_padding(),
+                 beta->get_const_values(), c->get_values(), c->get_padding());
+    cublas::destroy(handle);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(const matrix::Dense<ValueType> *alpha,
-           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+void scale(const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
+{
+    auto handle = cublas::init();
+    if (alpha->get_num_cols() == 1) {
+        cublas::scal(handle, x->get_num_stored_elements(),
+                     alpha->get_const_values(), x->get_values(), 1);
+    } else {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_num_cols(); ++col) {
+            cublas::scal(handle, x->get_num_rows(),
+                         alpha->get_const_values() + col, x->get_values() + col,
+                         x->get_padding());
+        }
+    }
+    cublas::destroy(handle);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
 void add_scaled(const matrix::Dense<ValueType> *alpha,
-                const matrix::Dense<ValueType> *x,
-                matrix::Dense<ValueType> *y) NOT_IMPLEMENTED;
+                const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
+{
+    auto handle = cublas::init();
+    // TODO: write a custom kernel which does this more efficiently
+    if (alpha->get_num_cols() == 1) {
+        // cannot write as single kernel call, x and y can have different
+        // paddings
+        for (size_type col = 0; col < x->get_num_cols(); ++col) {
+            cublas::axpy(handle, x->get_num_rows(), alpha->get_const_values(),
+                         x->get_const_values() + col, x->get_padding(),
+                         y->get_values() + col, y->get_padding());
+        }
+    } else {
+        for (size_type col = 0; col < x->get_num_cols(); ++col) {
+            cublas::axpy(handle, x->get_num_rows(),
+                         alpha->get_const_values() + col,
+                         x->get_const_values() + col, x->get_padding(),
+                         y->get_values() + col, y->get_padding());
+        }
+    }
+    cublas::destroy(handle);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
@@ -78,7 +133,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 template <typename ValueType>
 void compute_dot(const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result) NOT_IMPLEMENTED;
+                 matrix::Dense<ValueType> *result)
+{
+    auto handle = cublas::init();
+    // TODO: write a custom kernel which does this more efficiently
+    for (size_type col = 0; col < x->get_num_cols(); ++col) {
+        cublas::dot(handle, x->get_num_rows(), x->get_const_values() + col,
+                    x->get_padding(), y->get_const_values() + col,
+                    y->get_padding(), result->get_values() + col);
+    }
+    cublas::destroy(handle);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 

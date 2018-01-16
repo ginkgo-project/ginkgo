@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception.hpp"
 
 
+#include <cublas_v2.h>
 #include <cuda_runtime.h>
 
 
@@ -46,6 +47,27 @@ std::string CudaError::get_error(int64 error_code)
     std::string message =
         cudaGetErrorString(static_cast<cudaError>(error_code));
     return name + ": " + message;
+}
+
+
+std::string CublasError::get_error(int64 error_code)
+{
+#define REGISTER_CUBLAS_ERROR(error_name)               \
+    if (error_code == static_cast<int64>(error_name)) { \
+        return #error_name;                             \
+    }
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_SUCCESS);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_NOT_INITIALIZED);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_ALLOC_FAILED);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_INVALID_VALUE);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_ARCH_MISMATCH);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_MAPPING_ERROR);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_EXECUTION_FAILED);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_INTERNAL_ERROR);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_NOT_SUPPORTED);
+    REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_LICENSE_ERROR);
+    return "Unknown error";
+#undef REGISTER_CUBLAS_ERROR
 }
 
 
