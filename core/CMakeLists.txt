@@ -1,7 +1,8 @@
 set(SOURCES
     base/executor.cpp
     matrix/csr.cpp
-    matrix/dense.cpp)
+    matrix/dense.cpp
+    solver/cg.cpp)
 
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules

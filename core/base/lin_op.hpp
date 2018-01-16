@@ -251,6 +251,81 @@ private:
     size_type num_nonzeros_;
 };
 
+/**
+ * A LinOpFactory represents a higher order mapping which transforms one
+ * linear operator into another.
+ *
+ * In Ginkgo, every linear solver is viewed as a mapping. For example,
+ * given an s.p.d linear system \f$Ax = b\f$, the solution \f$x = A^{-1}b\f$
+ * can be computed using the CG method. This algorithm can be represented in
+ * terms of linear operators and mappings between them as follows:
+ *
+ * -   A CgFactory is a higher order mapping which, given an input operator
+ *     \f$A\f$, returns a new linear operator \f$A^{-1}\f$ stored in "CG
+ *     format"
+ * -   Storing the operator \f$A^{-1}\f$ in "CG format" means that the data
+ *     structure used to store the operator is just a simple pointer to the
+ *     original matrix \f$A\f$. The application \f$x = A^{-1}b\f$ of such an
+ *     operator can then be implemented by solving the linear system
+ *     \f$Ax = b\f$ using the CG method.
+ *
+ * Another example of a LinOpFactory is a preconditioner. A preconditioner for
+ * a linear operator \f$A\f$ is a linear operator \f$M^{-1}\f$, which
+ * approximates \f$A^{-1}\f$. In addition, it is stored in a way such that
+ * both the data of \f$M^{-1}\f$ is cheap to compute from \f$A\f$, and the
+ * operation \f$x = M^{-1}b\f$ can be computed quickly. These operators are
+ * useful to accelerate the convergence of  Krylov solvers.
+ * Thus, a preconditioner also fits into the LinOpFactory framework:
+ *
+ * -   The factory maps a linear operator \f$A\f$ into a preconditioner
+ *     \f$M^{-1}\f$ which is stored in suitable format (e.g. as a product of
+ *     two factors in case of ILU preconditioners).
+ * -   The resulting linear operator implements the application operation
+ *     \f$x = M^{-1}b\f$ depending on the format the preconditioner is stored
+ *     in (e.g. as two triangular solves in case of ILU)
+ *
+ * Example: using CG in Ginkgo
+ * ---------------------------
+ *
+ * ```c++
+ * // Suppose A is a matrix, b a rhs vector, and x an initial guess
+ * // Create a CG which runs for at most 1000 iterations, and stops after
+ * // reducing the residual norm by 6 orders of magnitude
+ * auto cg_factory = solver::CgFactory<>::create(gpu, 1000, 1e-6);
+ * // create a linear operator which represents the solver
+ * auto cg = cg_factory->generate(A);
+ * // solve the system
+ * cg->apply(b.get(), x.get());
+ * ```
+ */
+class LinOpFactory {
+public:
+    /**
+     * Generates a Linear operator from the base linear operator.
+     *
+     * @param base  The base linear operator.
+     */
+    virtual std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const = 0;
+    /**
+     * Gets the exector on which the Linear operator exists.
+     *
+     * @return exec_ The executor.
+     */
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
+    }
+
+protected:
+    explicit LinOpFactory(std::shared_ptr<const Executor> exec)
+        : exec_(std::move(exec))
+    {}
+
+private:
+    std::shared_ptr<const Executor> exec_;
+};
+
 
 }  // namespace gko
 

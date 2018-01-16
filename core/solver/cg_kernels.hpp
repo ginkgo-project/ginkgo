@@ -31,79 +31,74 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
-#define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
+#ifndef GKO_CORE_SOLVER_CG_KERNELS_HPP_
+#define GKO_CORE_SOLVER_CG_KERNELS_HPP_
 
 
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
 
-
 namespace gko {
 namespace kernels {
-
-#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type) \
-    void simple_apply(const matrix::Dense<_type> *a, \
-                      const matrix::Dense<_type> *b, matrix::Dense<_type> *c)
-
-#define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                                \
-    void apply(const matrix::Dense<_type> *alpha,                            \
-               const matrix::Dense<_type> *a, const matrix::Dense<_type> *b, \
-               const matrix::Dense<_type> *beta, matrix::Dense<_type> *c)
+namespace cg {
 
 
-#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type) \
-    void scale(const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
+#define GKO_DECLARE_CG_INITIALIZE_KERNEL(_type)                              \
+    void initialize(const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
+                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
+                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
+                    matrix::Dense<_type> *rho)
 
 
-#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)     \
-    void add_scaled(const matrix::Dense<_type> *alpha, \
-                    const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
+#define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
+    void step_1(matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
+                const matrix::Dense<_type> *rho,                        \
+                const matrix::Dense<_type> *prev_rho)
 
 
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type) \
-    void compute_dot(const matrix::Dense<_type> *x, \
-                     const matrix::Dense<_type> *y, \
-                     matrix::Dense<_type> *result)
+#define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
+    void step_2(matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
+                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
+                const matrix::Dense<_type> *beta,                             \
+                const matrix::Dense<_type> *rho)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                      \
-    template <typename ValueType>                     \
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);        \
-    template <typename ValueType>                     \
-    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);        \
-    template <typename ValueType>                     \
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);   \
-    template <typename ValueType>                     \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType)
+#define DECLARE_ALL_AS_TEMPLATES                 \
+    template <typename ValueType>                \
+    GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                \
+    GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                \
+    GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
+
+
+}  // namespace cg
 
 
 namespace cpu {
-namespace dense {
+namespace cg {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace dense
+}  // namespace cg
 }  // namespace cpu
 
 
 namespace gpu {
-namespace dense {
+namespace cg {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace dense
+}  // namespace cg
 }  // namespace gpu
 
 
 namespace reference {
-namespace dense {
+namespace cg {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace dense
+}  // namespace cg
 }  // namespace reference
 
 
@@ -114,4 +109,4 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
+#endif  // GKO_CORE_SOLVER_CG_KERNELS_HPP
