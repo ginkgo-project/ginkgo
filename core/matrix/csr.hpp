@@ -63,6 +63,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>> {
+    friend class gko::matrix::Dense<ValueType>;
+
 public:
     using value_type = ValueType;
 

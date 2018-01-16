@@ -69,6 +69,9 @@ class Dense : public LinOp,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>> {
+    friend class gko::matrix::Csr<ValueType, int32>;
+    friend class gko::matrix::Csr<ValueType, int64>;
+
 public:
     using value_type = ValueType;
 

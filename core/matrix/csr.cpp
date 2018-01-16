@@ -147,10 +147,13 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    exec->run(
-        TemplatedOperation<ValueType,
-                           IndexType>::make_convert_to_dense_operation(result,
-                                                                       this));
+    auto tmp = Dense<ValueType>::create(exec, this->get_num_rows(),
+                                        this->get_num_cols(),
+                                        this->get_num_stored_elements());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->convert_to(result);
 }
 
 
@@ -158,9 +161,13 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(exec, this->get_num_rows(),
+                                        this->get_num_cols(),
+                                        this->get_num_stored_elements());
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
-            result, this));
+            tmp.get(), this));
+    tmp->move_to(result);
 }
 
 #define DECLARE_CSR_MATRIX(ValueType, IndexType) class Csr<ValueType, IndexType>

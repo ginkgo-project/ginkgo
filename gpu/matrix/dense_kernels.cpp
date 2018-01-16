@@ -148,6 +148,29 @@ void compute_dot(const matrix::Dense<ValueType> *x,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_csr(matrix::Csr<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_csr(matrix::Csr<ValueType, IndexType> *result,
+                 const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
+
+
+template <typename ValueType>
+void count_nonzeros(const matrix::Dense<ValueType> *source,
+                    int &result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
+
+
 }  // namespace dense
 }  // namespace gpu
 }  // namespace kernels

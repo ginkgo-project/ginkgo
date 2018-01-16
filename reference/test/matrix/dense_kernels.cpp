@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include <core/matrix/csr.hpp>
 
 
 namespace {
@@ -51,14 +52,17 @@ protected:
           mtx1(gko::matrix::Dense<>::create(
               exec, 4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}})),
           mtx2(gko::matrix::Dense<>::create(exec, {{1.0, -1.0}, {-2.0, 2.0}})),
-          mtx3(gko::matrix::Dense<>::create(exec, 4,
-                                            {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}}))
+          mtx3(gko::matrix::Dense<>::create(
+              exec, 4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}})),
+          mtx4(gko::matrix::Dense<>::create(exec, 4,
+                                            {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::matrix::Dense<>> mtx1;
     std::unique_ptr<gko::matrix::Dense<>> mtx2;
     std::unique_ptr<gko::matrix::Dense<>> mtx3;
+    std::unique_ptr<gko::matrix::Dense<>> mtx4;
 };
 
 
@@ -222,6 +226,33 @@ TEST_F(Dense, ComputDotFailsOnWrongResultSize)
 
     ASSERT_THROW(mtx1->compute_dot(mtx3.get(), result.get()),
                  gko::DimensionMismatch);
+}
+
+
+TEST_F(Dense, MovesToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
+
+    mtx4->move_to(csr_mtx.get());
+
+    auto v = csr_mtx->get_const_values();
+    auto c = csr_mtx->get_const_col_idxs();
+    auto r = csr_mtx->get_const_row_ptrs();
+
+    ASSERT_EQ(csr_mtx->get_num_rows(), 2);
+    ASSERT_EQ(csr_mtx->get_num_cols(), 3);
+    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 4);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 

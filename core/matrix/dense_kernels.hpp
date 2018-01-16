@@ -66,43 +66,34 @@ namespace kernels {
                      const matrix::Dense<_type> *y, \
                      matrix::Dense<_type> *result)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_INT32_KERNEL(_type)     \
-    void convert_to_csr_int32(matrix::Csr<_type, int32> *result, \
-                              const matrix::Dense<_type> *source)
+#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec) \
+    void convert_to_csr(matrix::Csr<_type, _prec> *other,     \
+                        const matrix::Dense<_type> *source)
 
+#define GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(_type, _prec) \
+    void move_to_csr(matrix::Csr<_type, _prec> *other,     \
+                     const matrix::Dense<_type> *source)
 
-#define GKO_DECLARE_DENSE_MOVE_TO_CSR_INT32_KERNEL(_type)     \
-    void move_to_csr_int32(matrix::Csr<_type, int32> *result, \
-                           matrix::Dense<_type> *source)
+#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type) \
+    void count_nonzeros(const matrix::Dense<_type> *source, int &result)
 
-
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_INT64_KERNEL(_type)    \
-    void convert_to_csr_int64(matrix::Csr<_type, int64> *other, \
-                              const matrix::Dense<_type> *source)
-
-#define GKO_DECLARE_DENSE_MOVE_TO_CSR_INT64_KERNEL(_type)    \
-    void move_to_csr_int64(matrix::Csr<_type, int64> *other, \
-                           matrix::Dense<_type> *source)
-
-#define DECLARE_ALL_AS_TEMPLATES                              \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);         \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);           \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);          \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_INT32_KERNEL(ValueType); \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_MOVE_TO_CSR_INT32_KERNEL(ValueType);    \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_INT64_KERNEL(ValueType); \
-    template <typename ValueType>                             \
-    GKO_DECLARE_DENSE_MOVE_TO_CSR_INT64_KERNEL(ValueType)
+#define DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);              \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                     \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                     \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType)
 
 
 namespace cpu {

@@ -55,17 +55,15 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(scale, dense::scale<ValueType>);
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
-    GKO_REGISTER_OPERATION(convert_to_csr_int32,
-                           dense::convert_to_csr_int32<ValueType>);
-    GKO_REGISTER_OPERATION(move_to_csr_int32,
-                           dense::move_to_csr_int32<ValueType>);
-    GKO_REGISTER_OPERATION(convert_to_csr_int64,
-                           dense::convert_to_csr_int64<ValueType>);
-    GKO_REGISTER_OPERATION(move_to_csr_int64,
-                           dense::move_to_csr_int64<ValueType>);
+    GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
 };
 
 
+template <typename... TplArgs>
+struct TemplatedOperationCsr {
+    GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_csr, dense::move_to_csr<TplArgs...>);
+};
 }  // namespace
 
 
@@ -198,9 +196,16 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     auto exec = this->get_executor();
+
+    int num_nonzeros;
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        this, num_nonzeros));
+    auto tmp = Csr<ValueType, int32>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), num_nonzeros);
     exec->run(
-        TemplatedOperation<ValueType>::make_convert_to_csr_int32_operation(
-            result, this));
+        TemplatedOperationCsr<ValueType, int32>::make_convert_to_csr_operation(
+            tmp.get(), this));
+    tmp->convert_to(result);
 }
 
 
@@ -208,8 +213,16 @@ template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
 {
     auto exec = this->get_executor();
-    exec->run(TemplatedOperation<ValueType>::make_move_to_csr_int32_operation(
-        result, this));
+
+    int num_nonzeros;
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        this, num_nonzeros));
+    auto tmp = Csr<ValueType, int32>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), num_nonzeros);
+    exec->run(
+        TemplatedOperationCsr<ValueType, int32>::make_move_to_csr_operation(
+            tmp.get(), this));
+    tmp->move_to(result);
 }
 
 
@@ -217,9 +230,15 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 {
     auto exec = this->get_executor();
+    int num_nonzeros;
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        this, num_nonzeros));
+    auto tmp = Csr<ValueType, int64>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), num_nonzeros);
     exec->run(
-        TemplatedOperation<ValueType>::make_convert_to_csr_int64_operation(
-            result, this));
+        TemplatedOperationCsr<ValueType, int64>::make_convert_to_csr_operation(
+            tmp.get(), this));
+    tmp->convert_to(result);
 }
 
 
@@ -227,8 +246,16 @@ template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
 {
     auto exec = this->get_executor();
-    exec->run(TemplatedOperation<ValueType>::make_move_to_csr_int64_operation(
-        result, this));
+
+    int num_nonzeros;
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        this, num_nonzeros));
+    auto tmp = Csr<ValueType, int64>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), num_nonzeros);
+    exec->run(
+        TemplatedOperationCsr<ValueType, int64>::make_move_to_csr_operation(
+            tmp.get(), this));
+    tmp->move_to(result);
 }
 
 
