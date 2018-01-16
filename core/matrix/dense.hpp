@@ -81,6 +81,20 @@ public:
      * @param exec  Executor associated to the matrix
      * @param num_rows  number of rows
      * @param num_cols  number of columns
+     */
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
+                                         size_type num_rows, size_type num_cols)
+    {
+        return std::unique_ptr<Dense>(
+            new Dense(std::move(exec), num_rows, num_cols, num_cols));
+    }
+
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows  number of rows
+     * @param num_cols  number of columns
      * @param padding  padding of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
