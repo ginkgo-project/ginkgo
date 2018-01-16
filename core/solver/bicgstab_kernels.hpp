@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BICGSTAB_KERNELS_HPP_
 
 
+#include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
 
 

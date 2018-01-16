@@ -33,8 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicgstab.hpp"
 
-
-#include "core/matrix/identity.hpp"
+#include "core/base/exception.hpp"
+#include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
+#include "core/base/math.hpp"
+#include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 
 namespace gko {
@@ -52,7 +55,13 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
 };
 
-
+/**
+ * Checks whether the required residual goal has been reached or not.
+ *
+ * @param tau  Residual of the iteration.
+ * @param orig_tau  Original residual.
+ * @param r  Relative residual goal.
+ */
 template <typename ValueType>
 bool has_converged(const matrix::Dense<ValueType> *tau,
                    const matrix::Dense<ValueType> *orig_tau,
@@ -74,53 +83,35 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 template <typename ValueType>
 void Bicgstab<ValueType>::copy_from(const LinOp *other)
 {
-    auto other_bicgstab = dynamic_cast<const Bicgstab<ValueType> *>(other);
-    if (other_bicgstab == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
+    auto other_bicgstab = as<Bicgstab<ValueType>>(other);
     system_matrix_ = other_bicgstab->get_system_matrix()->clone();
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+    this->set_dimensions(other);
 }
 
 
 template <typename ValueType>
 void Bicgstab<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
-    auto other_bicgstab = dynamic_cast<Bicgstab<ValueType> *>(other.get());
-    if (other_bicgstab == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
-    system_matrix_ = std::move(other_bicgstab->get_system_matrix());
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+    auto other_bicgstab = as<Bicgstab<ValueType>>(other.get());
+    system_matrix_ = std::move(other_bicgstab->get_system_matrix()->clone());
+    this->set_dimensions(other.get());
 }
 
 
 template <typename ValueType>
 void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
+    using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = dynamic_cast<const Vector *>(b);
-    auto dense_x = dynamic_cast<Vector *>(x);
-    if (dense_b == nullptr) {
-        throw NOT_SUPPORTED(b);
-    }
-    if (dense_x == nullptr) {
-        throw NOT_SUPPORTED(x);
-    }
-    // TODO: ASSERT_SQUARE(system_matrix_)
+    auto dense_b = as<Vector>(b);
+    auto dense_x = as<Vector>(x);
+
     ASSERT_CONFORMANT(system_matrix_, b);
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_num_cols();
 
-    // TODO: replace with proper preconditioner
-    /*
-    auto precond_ = matrix::Identity::create(
-            exec, this->get_num_rows(), this->get_num_cols());
-    */
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
 
@@ -133,7 +124,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto rr = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, dense_b->get_num_cols(), 1, 1);
+    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols(), 1);
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
@@ -141,7 +132,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto master_tau =
-        Vector::create(exec->get_master(), dense_b->get_num_cols(), 1, 1);
+        Vector::create(exec->get_master(), 1, dense_b->get_num_cols(), 1);
     auto starting_tau = Vector::create_with_config_of(master_tau.get());
 
     // TODO: replace this with automatic merged kernel generator
@@ -160,7 +151,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     // r = b - Ax
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    this->log(EventData::matrix_apply, r.get());
     // rr = r
     rr->copy_from(r.get());
     // rho = <rr,r>
@@ -171,13 +161,10 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     system_matrix_->apply(r.get(), v.get());
     // prev_rho->copy_from(rho.get());
     for (int iter = 0; iter < max_iters_; ++iter) {
-        this->log(EventData::iteration, iter);
         r->compute_dot(r.get(), tau.get());
-        this->log(EventData::residual, tau.get());
         master_tau->copy_from(tau.get());
         if (has_converged(master_tau.get(), starting_tau.get(),
                           rel_residual_goal_)) {
-            this->log(EventData::converged, tau.get());
             break;
         }
         // rho = <rr,r>
@@ -188,8 +175,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
             omega.get()));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        precond_->apply(p.get(), y.get());
-        this->log(EventData::precond_apply, y.get());
+        // TODO//precond_->apply(p.get(), y.get());
+        y->copy_from(p.get());
         // v = A y
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
@@ -197,8 +184,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
             r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get()));
         // alpha = rho / beta
         // s = r - alpha * v
-        precond_->apply(s.get(), z.get());
-        this->log(EventData::precond_apply, z.get());
+        // TODO//precond_->apply(s.get(), z.get());
+        z->copy_from(s.get());
         // t = A z
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), omega.get());
@@ -209,10 +196,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         // omega = omega / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
-        // printf("iter: %d, alp is %f,beta is %f,omega is %f, rho is %f,
-        // prev_rho is %f in line %d\n",iter,
-        // alpha->at(0),beta->at(0),omega->at(0),rho->at(0),prev_rho->at(0),
-        // __LINE__);
         swap(prev_rho, rho);
     }
 }
@@ -222,10 +205,8 @@ template <typename ValueType>
 void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = dynamic_cast<matrix::Dense<ValueType> *>(x);
-    if (dense_x == nullptr) {
-        throw NOT_SUPPORTED(x);
-    }
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
@@ -259,10 +240,11 @@ std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
     auto bicgstab =
         std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));
-    if (precond_factory_ != nullptr) {
-        bicgstab->set_precond(precond_factory_->generate(std::move(base)));
-    }
-    return std::move(bicgstab);
+    ASSERT_EQUAL_DIMENSIONS(bicgstab->system_matrix_,
+                            size(bicgstab->system_matrix_->get_num_cols(),
+                                 bicgstab->system_matrix_->get_num_rows()));
+
+    return bicgstab;
 }
 
 

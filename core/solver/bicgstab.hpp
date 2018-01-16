@@ -34,14 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_BICGSTAB_HPP_
 #define GKO_CORE_SOLVER_BICGSTAB_HPP_
 
-
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
+#include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/logging.hpp"
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
-#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -51,9 +47,20 @@ namespace solver {
 template <typename>
 class BicgstabFactory;
 
-
+/**
+ * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is the superset of the CG
+ * solver and as such belongs to the class of Krylov subspace solvers.
+ *
+ * Being a generic solver, it is capable of solving general matrices, including
+ * non-s.p.d matrices. Though, the memory and the computational requirement of
+ * the BiCGSTAB solver are higher than of its s.p.d solver counterpart, it has
+ * the capability to solve generic systems. It was developed by stabilizing the
+ * BiCG method.
+ *
+ * @tparam ValueType precision of the elements of the system matrix.
+ */
 template <typename ValueType = default_precision>
-class Bicgstab : public LinOp, public Loggable {
+class Bicgstab : public LinOp {
     friend class BicgstabFactory<ValueType>;
 
 public:
@@ -72,26 +79,31 @@ public:
 
     void clear() override;
 
+    /**
+     * Gets the system matrix of the linear system.
+     *
+     * @return  The system matrix.
+     */
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
 
+    /**
+     * Gets the maximum number of iterations of the CG solver.
+     *
+     * @return  The maximum number of iterations.
+     */
     int get_max_iters() const { return max_iters_; }
 
+    /**
+     * Gets the relative residual goal of the solver.
+     *
+     * @return  The relative residual goal.
+     */
     remove_complex<value_type> get_rel_residual_goal() const
     {
         return rel_residual_goal_;
-    }
-
-    void set_precond(std::shared_ptr<const LinOp> precond) noexcept
-    {
-        precond_ = precond;
-    }
-
-    std::shared_ptr<const LinOp> get_precond() const noexcept
-    {
-        return precond_;
     }
 
 protected:
@@ -102,8 +114,6 @@ protected:
                 system_matrix->get_num_rows(),
                 system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
-          precond_(matrix::Identity::create(
-              std::move(exec), this->get_num_rows(), this->get_num_cols())),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
@@ -120,14 +130,22 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_;
-    std::shared_ptr<const LinOp> precond_;
     int max_iters_;
     remove_complex<value_type> rel_residual_goal_;
 };
 
-
+/**
+ * Creates the BiCGSTAB solver.
+ *
+ * @param exec The executor on which the BiCGSTAB solver is to be created.
+ * @param max_iters  The maximum number of iterations to be pursued.
+ * @param rel_residual_goal  The relative residual required for
+ * convergence.
+ *
+ * @return The newly created BiCGSTAB solver.
+ */
 template <typename ValueType = default_precision>
-class BicgstabFactory : public LinOpFactory, public Loggable {
+class BicgstabFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
 
@@ -142,16 +160,21 @@ public:
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
+    /**
+     * Gets the maximum number of iterations of the BiCGSTAB solver.
+     *
+     * @return  The maximum number of iterations.
+     */
     int get_max_iters() const { return max_iters_; }
 
+    /**
+     * Gets the relative residual goal of the solver.
+     *
+     * @return  The relative residual goal.
+     */
     remove_complex<value_type> get_rel_residual_goal() const
     {
         return rel_residual_goal_;
-    }
-
-    void set_precond(std::shared_ptr<const LinOpFactory> precond_factory)
-    {
-        precond_factory_ = precond_factory;
     }
 
 protected:
@@ -159,13 +182,11 @@ protected:
                     remove_complex<value_type> rel_residual_goal)
         : LinOpFactory(std::move(exec)),
           max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal),
-          precond_factory_(nullptr)
+          rel_residual_goal_(rel_residual_goal)
     {}
 
     int max_iters_;
     remove_complex<value_type> rel_residual_goal_;
-    std::shared_ptr<const LinOpFactory> precond_factory_;
 };
 
 
