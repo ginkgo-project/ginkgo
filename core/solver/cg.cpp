@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/cg.hpp"
 
+#include "core/base/convertible.hpp"
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
@@ -81,14 +82,18 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 template <typename ValueType>
 void Cg<ValueType>::copy_from(const LinOp *other)
 {
-    as<ConvertibleTo<Cg<ValueType>>>(other)->convert_to(this);
+    auto other_cg = as<Cg<ValueType>>(other);
+    system_matrix_ = other_cg->get_system_matrix()->clone();
+    this->set_dimensions(other);
 }
 
 
 template <typename ValueType>
 void Cg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
-    as<ConvertibleTo<Cg<ValueType>>>(other.get())->move_to(this);
+    auto other_cg = as<Cg<ValueType>>(other.get());
+    system_matrix_ = std::move(other_cg->get_system_matrix());
+    this->set_dimensions(other.get());
 }
 
 
@@ -201,6 +206,8 @@ template <typename ValueType>
 void Cg<ValueType>::convert_to(Cg *result) const
 {
     result->set_dimensions(this);
+    result->max_iters_ = max_iters_;
+    result->rel_residual_goal_ = rel_residual_goal_;
     result->system_matrix_ = system_matrix_;
 }
 
@@ -209,6 +216,8 @@ template <typename ValueType>
 void Cg<ValueType>::move_to(Cg *result)
 {
     result->set_dimensions(this);
+    result->max_iters_ = max_iters_;
+    result->rel_residual_goal_ = rel_residual_goal_;
     result->system_matrix_ = std::move(system_matrix_);
 }
 
