@@ -106,11 +106,13 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
 
     ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
+
+    ASSERT_EQUAL_ROWS(system_matrix_, x);
+    ASSERT_EQUAL_COLS(b, x);
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_num_cols();
-
+    // printf("The num cols in b is %d", num_vectors);
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
 
@@ -119,14 +121,14 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, dense_b->get_num_cols(), 1, 1);
+    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols(), 1);
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto master_tau =
-        Vector::create(exec->get_master(), dense_b->get_num_cols(), 1, 1);
+        Vector::create(exec->get_master(), 1, dense_b->get_num_cols(), 1);
     auto starting_tau = Vector::create_with_config_of(master_tau.get());
 
     // TODO: replace this with automatic merged kernel generator
@@ -142,12 +144,16 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
 
+    printf("Entered %d\n", __LINE__);
     for (int iter = 0; iter < max_iters_; ++iter) {
+        printf("Entered %d\n", __LINE__);
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
+        printf("tau is %f\n", tau.get());
         master_tau->copy_from(tau.get());
         if (has_converged(master_tau.get(), starting_tau.get(),
                           rel_residual_goal_)) {
+            printf("Entered %d\n", __LINE__);
             break;
         }
 

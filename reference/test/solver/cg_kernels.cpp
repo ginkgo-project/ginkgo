@@ -127,19 +127,4 @@ TEST_F(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Cg, SolvesStencilSystemUsingCgPreconditioner)
-{
-    cg_factory->set_precond(gko::solver::CgFactory<>::create(exec, 3, 1e-7));
-    auto solver = cg_factory->generate(mtx);
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
-
-    solver->apply(b.get(), x.get());
-
-    EXPECT_NEAR(x->at(0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
-}
-
-
 }  // namespace
