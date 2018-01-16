@@ -112,7 +112,7 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_num_cols();
-    // printf("The num cols in b is %d", num_vectors);
+
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
 
