@@ -35,7 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
-
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
 
 namespace gko {
 namespace kernels {
@@ -47,7 +48,20 @@ template <typename ValueType>
 void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho) NOT_IMPLEMENTED;
+                matrix::Dense<ValueType> *rho)
+{
+    for (size_type j = 0; j < b->get_num_cols(); ++j) {
+        rho->at(j) = zero<ValueType>();
+        prev_rho->at(j) = one<ValueType>();
+    }
+    for (size_type i = 0; i < b->get_num_rows(); ++i) {
+        for (size_type j = 0; j < b->get_num_cols(); ++j) {
+            r->at(i, j) = b->at(i, j);
+            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
@@ -55,7 +69,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 template <typename ValueType>
 void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *prev_rho)
+{
+    for (size_type i = 0; i < p->get_num_rows(); ++i) {
+        for (size_type j = 0; j < p->get_num_cols(); ++j) {
+            if (rho->at(j) == zero<ValueType>()) {
+                p->at(i, j) = z->at(i, j);
+            } else {
+                auto tmp = rho->at(j) / prev_rho->at(j);
+                p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
+            }
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
@@ -65,7 +92,19 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *rho)
+{
+    for (size_type i = 0; i < x->get_num_rows(); ++i) {
+        for (size_type j = 0; j < x->get_num_cols(); ++j) {
+            if (rho->at(j) != zero<ValueType>()) {
+                auto tmp = rho->at(j) / beta->at(j);
+                x->at(i, j) += tmp * p->at(i, j);
+                r->at(i, j) -= tmp * q->at(i, j);
+            }
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
