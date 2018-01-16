@@ -106,9 +106,7 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
 
     ASSERT_CONFORMANT(system_matrix_, b);
-
-    ASSERT_EQUAL_ROWS(system_matrix_, x);
-    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_num_cols();
@@ -145,6 +143,7 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     starting_tau->copy_from(tau.get());
 
     for (int iter = 0; iter < max_iters_; ++iter) {
+        // TODO: replace with preconditioner application.
         z->copy_from(r.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
