@@ -37,6 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+
+
 namespace {
 
 
@@ -49,6 +53,18 @@ TEST(AssertNoCudaErrors, ThrowsOnError)
 TEST(AssertNoCudaErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(cudaSuccess));
+}
+
+
+TEST(AssertNoCublasErrors, ThrowsOnError)
+{
+    ASSERT_THROW(ASSERT_NO_CUBLAS_ERRORS(1), gko::CublasError);
+}
+
+
+TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
 }
 
 

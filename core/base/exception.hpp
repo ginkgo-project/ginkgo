@@ -163,7 +163,7 @@ class CublasError : public Error {
 public:
     CublasError(const std::string &file, int line, const std::string &func,
                 int64 error_code)
-        : Error(file, line, func + ":" + get_error(error_code))
+        : Error(file, line, func + ": " + get_error(error_code))
     {}
 
 private:

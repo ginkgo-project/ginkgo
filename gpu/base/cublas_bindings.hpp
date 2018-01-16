@@ -139,7 +139,7 @@ BIND_CUBLAS_DOT(std::complex<double>, cublasZdotc);
 #undef BIND_CUBLAS_DOT
 
 
-cublasHandle_t init()
+inline cublasHandle_t init()
 {
     cublasHandle_t handle;
     ASSERT_NO_CUBLAS_ERRORS(cublasCreate(&handle));
@@ -149,7 +149,7 @@ cublasHandle_t init()
 }
 
 
-void destroy(cublasHandle_t handle)
+inline void destroy(cublasHandle_t handle)
 {
     ASSERT_NO_CUBLAS_ERRORS(cublasDestroy(handle));
 }
