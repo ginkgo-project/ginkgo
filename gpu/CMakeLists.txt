@@ -1,6 +1,7 @@
 set(SOURCES
     base/exception.cpp
     base/executor.cpp
+    matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
     solver/cg_kernels.cpp)
 

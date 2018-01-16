@@ -1,4 +1,5 @@
 set(SOURCES
+    matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
     solver/cg_kernels.cpp)
 
