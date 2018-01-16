@@ -71,9 +71,6 @@ TEST_F(Cg, SolvesStencilSystem)
     solver->apply(b.get(), x.get());
 
     ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
-    // EXPECT_NEAR(x->at(0), 1.0, 1e-14);
-    // EXPECT_NEAR(x->at(1), 3.0, 1e-14);
-    // EXPECT_NEAR(x->at(2), 2.0, 1e-14);
 }
 
 
@@ -86,13 +83,6 @@ TEST_F(Cg, SolvesMultipleStencilSystems)
     solver->apply(b.get(), x.get());
 
     ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}), 1e-14);
-    /*EXPECT_NEAR(x->at(0, 0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), 1.0, 1e-14);*/
 }
 
 
@@ -107,9 +97,6 @@ TEST_F(Cg, SolvesStencilSystemUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
-    /*EXPECT_NEAR(x->at(0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);*/
 }
 
 
@@ -124,13 +111,6 @@ TEST_F(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
-    ASSERT_MTX_NEAR(x, l({1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}), 1e-14);
-    /*EXPECT_NEAR(x->at(0, 0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 0.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), -1.0, 1e-14);*/
 }
 
 
