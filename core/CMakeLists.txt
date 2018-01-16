@@ -2,6 +2,7 @@ set(SOURCES
     base/executor.cpp
     matrix/csr.cpp
     matrix/dense.cpp
+    solver/bicgstab.cpp
     solver/cg.cpp)
 
 add_subdirectory(devices)  # basic device functionalities, always compiled

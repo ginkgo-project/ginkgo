@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 
 #ifndef GKO_HOOK_MODULE
@@ -96,6 +97,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace bicgstab {
+
+
+template <typename ValueType>
+GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
+
+}  // namespace bicgstab
 
 
 namespace csr {
