@@ -298,7 +298,6 @@ private:
  * cg->apply(b.get(), x.get());
  * ```
  */
-
 class LinOpFactory {
 public:
     /**

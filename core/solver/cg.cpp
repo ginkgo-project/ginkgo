@@ -172,7 +172,7 @@ template <typename ValueType>
 void Cg<ValueType>::apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                           LinOp *x) const
 {
-    auto dense_x = dynamic_cast<matrix::Dense<ValueType> *>(x);
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
     if (dense_x == nullptr) {
         throw NOT_SUPPORTED(x);
     }
@@ -227,7 +227,9 @@ std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
 {
     auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
-    // ASSERT_EQUAL_DIMENSIONS(cg->system_matrix_,base->system_matrix_);
+    ASSERT_EQUAL_DIMENSIONS(cg->system_matrix_,
+                            size(cg->system_matrix_->get_num_cols(),
+                                 cg->system_matrix_->get_num_rows()));
     return cg;
 }
 
