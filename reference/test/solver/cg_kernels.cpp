@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/solver/cg.hpp>
 
+#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
 
@@ -84,7 +85,7 @@ TEST_F(Cg, SolvesMultipleStencilSystems)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
     /*EXPECT_NEAR(x->at(0, 0), 1.0, 1e-14);
     EXPECT_NEAR(x->at(1, 0), 3.0, 1e-14);
     EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
@@ -121,7 +122,7 @@ TEST_F(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
     /*EXPECT_NEAR(x->at(0, 0), 1.5, 1e-14);
     EXPECT_NEAR(x->at(1, 0), 5.0, 1e-14);
     EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
