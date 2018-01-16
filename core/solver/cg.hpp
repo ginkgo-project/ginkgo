@@ -49,7 +49,7 @@ template <typename>
 class CgFactory;
 
 /**
- * CG or the conjugate gradient method is an iterative type krylov subspace
+ * CG or the conjugate gradient method is an iterative type Krylov subspace
  * method which is suitable for symmetric positive definite methods.
  *
  * Though this method performs very well for symmetric positive definite
