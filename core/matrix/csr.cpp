@@ -52,6 +52,8 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, csr::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense<TplArgs...>);
 };
 
 
@@ -140,6 +142,26 @@ void Csr<ValueType, IndexType>::move_to(Csr *other)
     other->row_ptrs_ = std::move(row_ptrs_);
 }
 
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    exec->run(
+        TemplatedOperation<ValueType,
+                           IndexType>::make_convert_to_dense_operation(result,
+                                                                       this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    auto exec = this->get_executor();
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
+            result, this));
+}
 
 #define DECLARE_CSR_MATRIX(ValueType, IndexType) class Csr<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_CSR_MATRIX);

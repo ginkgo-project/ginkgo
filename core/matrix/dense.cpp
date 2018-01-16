@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/utils.hpp"
+#include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
-
 
 namespace gko {
 namespace matrix {
@@ -55,6 +55,14 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(scale, dense::scale<ValueType>);
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
+    GKO_REGISTER_OPERATION(convert_to_csr_int32,
+                           dense::convert_to_csr_int32<ValueType>);
+    GKO_REGISTER_OPERATION(move_to_csr_int32,
+                           dense::move_to_csr_int32<ValueType>);
+    GKO_REGISTER_OPERATION(convert_to_csr_int64,
+                           dense::convert_to_csr_int64<ValueType>);
+    GKO_REGISTER_OPERATION(move_to_csr_int64,
+                           dense::move_to_csr_int64<ValueType>);
 };
 
 
@@ -183,6 +191,44 @@ void Dense<ValueType>::move_to(Dense *result)
     result->set_dimensions(this);
     result->values_ = std::move(values_);
     result->padding_ = padding_;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
+{
+    auto exec = this->get_executor();
+    exec->run(
+        TemplatedOperation<ValueType>::make_convert_to_csr_int32_operation(
+            result, this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
+{
+    auto exec = this->get_executor();
+    exec->run(TemplatedOperation<ValueType>::make_move_to_csr_int32_operation(
+        result, this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
+{
+    auto exec = this->get_executor();
+    exec->run(
+        TemplatedOperation<ValueType>::make_convert_to_csr_int64_operation(
+            result, this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
+{
+    auto exec = this->get_executor();
+    exec->run(TemplatedOperation<ValueType>::make_move_to_csr_int64_operation(
+        result, this));
 }
 
 
