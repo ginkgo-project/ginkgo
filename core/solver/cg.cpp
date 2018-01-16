@@ -33,8 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/cg.hpp"
 
-
+#include "core/base/exception.hpp"
+#include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
 #include "core/base/math.hpp"
+#include "core/base/utils.hpp"
 #include "core/solver/cg_kernels.hpp"
 
 namespace gko {
@@ -43,10 +46,6 @@ namespace solver {
 
 namespace {
 
-/**
- * Structure that runs GKO_REGISTERED_OPERATION for the merged kernels to
- * generate the kernels for different data types.
- */
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, cg::initialize<ValueType>);
@@ -83,26 +82,28 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 template <typename ValueType>
 void Cg<ValueType>::copy_from(const LinOp *other)
 {
-    auto other_cg = dynamic_cast<const Cg<ValueType> *>(other);
-    if (other_cg == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
-    system_matrix_ = other_cg->get_system_matrix()->clone();
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_stored_elements());
+    // auto other_cg = dynamic_cast<const Cg<ValueType> *>(other);
+    // if (other_cg == nullptr) {
+    //    throw NOT_SUPPORTED(other);
+    //}
+    // system_matrix_ = other_cg->get_system_matrix()->clone();
+    as<ConvertibleTo<Cg<ValueType>>>(other)->convert_to(this);
+    // this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
+    //                     other->get_num_stored_elements());
 }
 
 
 template <typename ValueType>
 void Cg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
-    auto other_cg = dynamic_cast<Cg<ValueType> *>(other.get());
+    as<ConvertibleTo<Cg<ValueType>>>(other.get())->move_to(this);
+    /*auto other_cg = dynamic_cast<Cg<ValueType> *>(other.get());
     if (other_cg == nullptr) {
         throw NOT_SUPPORTED(other);
     }
     system_matrix_ = std::move(other_cg->get_system_matrix());
     this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_stored_elements());
+                         other->get_num_stored_elements());*/
 }
 
 
@@ -215,6 +216,21 @@ void Cg<ValueType>::clear()
     system_matrix_ = system_matrix_->clone_type();
 }
 
+
+template <typename ValueType>
+void Cg<ValueType>::convert_to(Cg *result) const
+{
+    result->set_dimensions(this);
+    result->system_matrix_ = system_matrix_;
+}
+
+
+template <typename ValueType>
+void Cg<ValueType>::move_to(Cg *result)
+{
+    result->set_dimensions(this);
+    result->system_matrix_ = std::move(system_matrix_);
+}
 
 template <typename ValueType>
 std::unique_ptr<LinOp> CgFactory<ValueType>::generate(

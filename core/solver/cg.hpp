@@ -34,10 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_CG_HPP_
 #define GKO_CORE_SOLVER_CG_HPP_
 
-
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
+#include "core/base/array.hpp"
+#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
@@ -72,53 +70,22 @@ class Cg : public LinOp {
 public:
     using value_type = ValueType;
 
-    /**
-     * Creates a copy of the CG solver from another cg solver.
-     *
-     * @param other  the CG solver instance to copy
-     */
     void copy_from(const LinOp *other) override;
 
-    /**
-     * Moves the Cg solver from another CG solver.
-     *
-     * @param other  the CG solver instance from which it will be moved.
-     */
     void copy_from(std::unique_ptr<LinOp> other) override;
 
-    /**
-     * Applies the CG solver to a vector.
-     *
-     * @param b  The right hand side of the linear system.
-     *
-     * @param x  The solution vector of the linear system.
-     */
     void apply(const LinOp *b, LinOp *x) const override;
 
-    /**
-     * Applies the CG solver to a vector and performs a scaled addtion.
-     *
-     * Performs the operation x = alpha * cg(b,x) + beta * x
-     *
-     * @param alpha Scaling of the result of cg(b,x).
-     * @param b  The right hand side of the linear system.
-     * @param beta  Scaling of the input x.
-     * @param x  The solution vector of the linear system.
-     */
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
 
-    /**
-     * Creates a clone of the CG solver
-     *
-     * @return  A clone of the CG solver.
-     */
     std::unique_ptr<LinOp> clone_type() const override;
 
-    /**
-     * Clears the CG solver.
-     */
     void clear() override;
+
+    void convert_to(Cg *result) const override;
+
+    void move_to(Cg *result) override;
 
     /**
      * Gets the system matrix of the linear system.
