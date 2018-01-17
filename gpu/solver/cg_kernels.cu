@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "gpu/base/types.hpp"
-//#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -52,9 +51,6 @@ struct size {
     constexpr size_type get_num_rows() const noexcept { return num_rows_; }
     constexpr size_type get_num_cols() const noexcept { return num_cols_; }
 };
-
-
-inline int64 ceildiv(int64 a, int64 b) { return (a + b - 1) / b; }
 
 
 template <typename ValueType>
@@ -96,7 +92,7 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
-        ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
+        gko::ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
         b->get_num_rows(), b->get_num_cols(), b->get_padding(),
@@ -140,7 +136,7 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
         as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),
@@ -191,7 +187,7 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
         as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),

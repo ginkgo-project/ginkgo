@@ -90,6 +90,13 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 }
 
 
+/**
+ * Performs the operation (a + b -1 ) / b.
+ *
+ * @return returns the ceiled quotient.
+ */
+inline constexpr int64 ceildiv(int64 a, int64 b) { return (a + b - 1) / b; }
+
 namespace detail {
 
 
