@@ -31,26 +31,35 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/* A bit complicated for now, but this is how to build it:
- *
- * Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
- * Once you built ginkgo, go to the build directory and copy the shared
- * libraries located in the following subdirectories:
- *     + core/
- *     + core/device_hooks/
- *     + reference/
- * to this directory.
- *
- * Then compile this file with the following command line:
- *
- * c++ -o test test.cpp -I.. -L. -lginkgo -lginkgo_reference -lginkgo_cpu \
- *     -lginkgo_gpu
- *
- * (if ginkgo was built in debug mode, append 'd' to every library name)
- * Now you should be able to run the program with
- *
- * LD_LIBRARY_PATH=. ./test
- */
+/*****************************<COMPILATION>***********************************
+A bit complicated for now, but this is how to build it:
+
+Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Once you built ginkgo, go to the build directory and copy the shared
+libraries located in the following subdirectories:
+
+    + core/
+    + core/device_hooks/
+    + reference/
+    + cpu/
+    + gpu/
+
+to this directory.
+
+Then compile the file with the following command line:
+
+c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
+    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu -Wl,-rpath=.
+
+(if ginkgo was built in debug mode, append 'd' to every library name)
+
+Now you should be able to run the program using:
+
+./simple_solver
+
+ALTERNATIVELY: use the build.sh script located in this directory
+*****************************<COMPILATION>**********************************/
+
 #include <include/ginkgo.hpp>
 #include <iostream>
 #include <string>
