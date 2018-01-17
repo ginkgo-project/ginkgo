@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/csr_kernels.hpp"
 
+#include "core/base/math.hpp"
 #include "gpu/base/cusparse_bindings.hpp"
 
 namespace gko {
@@ -66,10 +67,10 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
     for (size_type col = 0; col < c->get_num_cols(); ++col) {
         cusparse::cusparse_spmv(
             handle, transA, a->get_num_rows(), c->get_num_cols(),
-            row_ptrs[a->get_num_rows()] - row_ptrs[0],
-            alpha->get_const_values(), descrA, a->get_const_values() + col,
-            row_ptrs, col_idxs, b->get_const_values() + col,
-            beta->get_const_values(), c->get_values() + col);
+            a->get_num_stored_elements(), alpha->get_const_values(), descrA,
+            a->get_const_values() + col, row_ptrs, col_idxs,
+            b->get_const_values() + col, beta->get_const_values(),
+            c->get_values() + col);
     }
 
     cusparseDestroyMatDescr(descrA);

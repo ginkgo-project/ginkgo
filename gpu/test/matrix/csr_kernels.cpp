@@ -47,24 +47,28 @@ protected:
     using Vec = gko::matrix::Dense<>;
 
     Csr()
-        : ref(gko::ReferenceExecutor::create()),
-          gpu(gko::GpuExecutor::create(0, ref)),
-          mtx(Mtx::create(gpu, 2, 3, 4))
     {
-        // Mtx::value_type *v = mtx->get_values();
-        // Mtx::index_type *c = mtx->get_col_idxs();
-        // Mtx::index_type *r = mtx->get_row_ptrs();
-        // r[0] = 0;
-        // r[1] = 3;
-        // r[2] = 4;
-        // c[0] = 0;
-        // c[1] = 1;
-        // c[2] = 2;
-        // c[3] = 1;
-        // v[0] = 1.0;
-        // v[1] = 3.0;
-        // v[2] = 2.0;
-        // v[3] = 5.0;
+        ref = gko::ReferenceExecutor::create();
+        gpu = gko::GpuExecutor::create(0, ref);
+
+        mtx = Mtx::create(gpu);
+        auto tmp = Mtx::create(ref, 2, 3, 4);
+        Mtx::value_type *v = tmp->get_values();
+        Mtx::index_type *c = tmp->get_col_idxs();
+        Mtx::index_type *r = tmp->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 3;
+        r[2] = 4;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 2;
+        c[3] = 1;
+        v[0] = 1.0;
+        v[1] = 3.0;
+        v[2] = 2.0;
+        v[3] = 5.0;
+
+        mtx->copy_from(tmp.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -76,11 +80,10 @@ TEST_F(Csr, AppliesToDenseVector)
 {
     auto x = Vec::create(gpu, {2.0, 1.0, 4.0});
     auto y = Vec::create(gpu, 2, 1, 1);
-    std::unique_ptr<Vec> y_result = Vec::create(ref);
-
 
     mtx->apply(x.get(), y.get());
 
+    auto y_result = Vec::create(ref);
     y_result->copy_from(y.get());
     EXPECT_EQ(y_result->at(0), 13.0);
     EXPECT_EQ(y_result->at(1), 5.0);
@@ -90,10 +93,10 @@ TEST_F(Csr, AppliesToDenseMatrix)
 {
     auto x = Vec::create(gpu, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
     auto y = Vec::create(gpu, 2, 2, 2);
-    std::unique_ptr<Vec> y_result = Vec::create(ref);
 
     mtx->apply(x.get(), y.get());
 
+    auto y_result = Vec::create(ref);
     y_result->copy_from(y.get());
     EXPECT_EQ(y_result->at(0, 0), 13.0);
     EXPECT_EQ(y_result->at(1, 0), 5.0);
@@ -107,10 +110,10 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
     auto beta = Vec::create(gpu, {2.0});
     auto x = Vec::create(gpu, {2.0, 1.0, 4.0});
     auto y = Vec::create(gpu, {1.0, 2.0});
-    std::unique_ptr<Vec> y_result = Vec::create(ref);
 
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
+    auto y_result = Vec::create(ref);
     y_result->copy_from(y.get());
     EXPECT_EQ(y_result->at(0), -11.0);
     EXPECT_EQ(y_result->at(1), -1.0);
@@ -122,11 +125,11 @@ TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
     auto beta = Vec::create(gpu, {2.0});
     auto x = Vec::create(gpu, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
     auto y = Vec::create(gpu, {{1.0, 0.5}, {2.0, -1.5}});
-    std::unique_ptr<Vec> y_result = Vec::create(ref);
 
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    auto y_result = Vec::create(ref);
+    y_result->copy_from(y.get());
     EXPECT_EQ(y_result->at(0, 0), -11.0);
     EXPECT_EQ(y_result->at(1, 0), -1.0);
     EXPECT_EQ(y_result->at(0, 1), -2.5);
