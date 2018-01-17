@@ -33,76 +33,113 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/csr.hpp>
 
+
+#include <random>
+
+
 #include <gtest/gtest.h>
+
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
+
 
 namespace {
+
 
 class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
 
-    Csr()
+    Csr() : rand_engine(42) {}
+
+    void SetUp()
     {
+        ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         gpu = gko::GpuExecutor::create(0, ref);
+    }
 
-        mtx = Mtx::create(gpu);
-        auto tmp = Mtx::create(ref, 2, 3, 4);
-        Mtx::value_type *v = tmp->get_values();
-        Mtx::index_type *c = tmp->get_col_idxs();
-        Mtx::index_type *r = tmp->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 3;
-        r[2] = 4;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
+    void TearDown()
+    {
+        if (gpu != nullptr) {
+            ASSERT_NO_THROW(gpu->synchronize());
+        }
+    }
 
-        mtx->copy_from(tmp.get());
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    {
+        return gko::test::generate_random_matrix<Vec>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine);
+    }
+
+    void set_up_apply_data()
+    {
+        mtx = Mtx::create(ref);
+        mtx->copy_from(gen_mtx(532, 231, 1));
+        expected = gen_mtx(532, 1, 1);
+        y = gen_mtx(231, 1, 1);
+        alpha = Vec::create(ref, {2.0});
+        beta = Vec::create(ref, {-1.0});
+        dmtx = Mtx::create(gpu);
+        dmtx->copy_from(mtx.get());
+        dresult = Vec::create(gpu);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(gpu);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(gpu);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(gpu);
+        dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
+
+    std::ranlux48 rand_engine;
+
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Vec> expected;
+    std::unique_ptr<Vec> y;
+    std::unique_ptr<Vec> alpha;
+    std::unique_ptr<Vec> beta;
+
+    std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Vec> dresult;
+    std::unique_ptr<Vec> dy;
+    std::unique_ptr<Vec> dalpha;
+    std::unique_ptr<Vec> dbeta;
 };
 
-TEST_F(Csr, AppliesToDenseVector)
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRef)
 {
-    auto x = Vec::create(gpu, {2.0, 1.0, 4.0});
-    auto y = Vec::create(gpu, 2, 1, 1);
+    set_up_apply_data();
 
-    mtx->apply(x.get(), y.get());
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
 
-    auto y_result = Vec::create(ref);
-    y_result->copy_from(y.get());
-    EXPECT_EQ(y_result->at(0), 13.0);
-    EXPECT_EQ(y_result->at(1), 5.0);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Csr, AppliesLinearCombinationToDenseVector)
+TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
 {
-    auto alpha = Vec::create(gpu, {-1.0});
-    auto beta = Vec::create(gpu, {2.0});
-    auto x = Vec::create(gpu, {2.0, 1.0, 4.0});
-    auto y = Vec::create(gpu, {1.0, 2.0});
+    set_up_apply_data();
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto y_result = Vec::create(ref);
-    y_result->copy_from(y.get());
-    EXPECT_EQ(y_result->at(0), -11.0);
-    EXPECT_EQ(y_result->at(1), -1.0);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
