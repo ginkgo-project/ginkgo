@@ -75,6 +75,22 @@ TEST(CudaError, ReturnsCudaError)
 }
 
 
+void throws_cublas_error() { throw CUBLAS_ERROR(0); }
+
+TEST(CudaError, ReturnsCublasError)
+{
+    ASSERT_THROW(throws_cublas_error(), gko::CublasError);
+}
+
+
+void throws_cusparse_error() { throw CUSPARSE_ERROR(0); }
+
+TEST(CudaError, ReturnsCusparseError)
+{
+    ASSERT_THROW(throws_cusparse_error(), gko::CusparseError);
+}
+
+
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
     ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::size(3, 5), gko::size(5, 6)));
