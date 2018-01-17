@@ -208,4 +208,21 @@ TEST_F(Dense, CanBeCleared)
 }
 
 
+TEST_F(Dense, CanBeReadFromMtx)
+{
+    auto m = gko::matrix::Dense<>::create(exec);
+    m->read_from_mtx("../base/data/dense_real.mtx");
+
+    ASSERT_EQ(m->get_num_rows(), 2);
+    ASSERT_EQ(m->get_num_cols(), 3);
+    ASSERT_EQ(m->get_num_stored_elements(), 6);
+    EXPECT_EQ(m->at(0, 0), 1.0);
+    EXPECT_EQ(m->at(1, 0), 0.0);
+    EXPECT_EQ(m->at(0, 1), 3.0);
+    EXPECT_EQ(m->at(1, 1), 5.0);
+    EXPECT_EQ(m->at(0, 2), 2.0);
+    ASSERT_EQ(m->at(1, 2), 0.0);
+}
+
+
 }  // namespace

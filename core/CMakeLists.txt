@@ -1,5 +1,6 @@
 set(SOURCES
     base/executor.cpp
+    base/mtx_reader.cpp
     matrix/csr.cpp
     matrix/dense.cpp
     solver/bicgstab.cpp
@@ -10,7 +11,9 @@ add_subdirectory(device_hooks)  # placeholders for disabled modules
 
 add_library(ginkgo SHARED ${SOURCES})
 target_include_directories(ginkgo PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(ginkgo PUBLIC ginkgo_cpu ginkgo_gpu ginkgo_reference)
+target_link_libraries(ginkgo
+    PUBLIC ginkgo_cpu ginkgo_gpu ginkgo_reference
+    PRIVATE mmio)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

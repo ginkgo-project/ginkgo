@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
+#include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -251,6 +252,29 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
         TemplatedOperationCsr<ValueType, int64>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::read_from_mtx(const std::string &filename)
+{
+    auto data = read_raw_from_mtx<ValueType, int64>(filename);
+    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+                      data.num_cols, data.num_cols);
+    size_type ind = 0;
+    for (size_type row = 0; row < data.num_rows; ++row) {
+        for (size_type col = 0; col < data.num_cols; ++col) {
+            if (ind < data.nonzeros.size() &&
+                std::get<0>(data.nonzeros[ind]) == row &&
+                std::get<1>(data.nonzeros[ind]) == col) {
+                tmp->at(row, col) = std::get<2>(data.nonzeros[ind]);
+                ++ind;
+            } else {
+                tmp->at(row, col) = zero<ValueType>();
+            }
+        }
+    }
+    tmp->move_to(this);
 }
 
 
