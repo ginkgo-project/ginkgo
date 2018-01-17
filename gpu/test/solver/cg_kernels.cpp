@@ -177,14 +177,6 @@ TEST_F(Cg, GpuCgStep1IsEquivalentToRef)
     p_result->copy_from(d_p.get());
     z_result->copy_from(d_z.get());
 
-    //     printf("GPU: (padding %d) \n", p_result->get_padding());
-    // for (int row=0; row<m; row++) {
-    //     for (int col=0; col<n; col++) {
-    //         printf("%.2f  ",   p_result->at(row, col));
-    //     }
-    //     printf("\n");
-    // }
-
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
 }
