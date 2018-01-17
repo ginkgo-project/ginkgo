@@ -229,7 +229,7 @@ std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
     ASSERT_EQUAL_DIMENSIONS(cg->system_matrix_,
                             size(cg->system_matrix_->get_num_cols(),
                                  cg->system_matrix_->get_num_rows()));
-    return cg;
+    return std::move(cg);
 }
 
 
