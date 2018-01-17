@@ -35,6 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "gpu/base/types.hpp"
+//#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -111,7 +114,7 @@ __global__ void step_1_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *rho, const ValueType *prev_rho)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type row = ((tidx + lda - 1) / lda) - 1;
+    // size_type row = ((tidx + lda - 1) / lda) - 1;
     size_type col = tidx % lda;
     ValueType tmp = zero<ValueType>();
 
@@ -140,9 +143,11 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
         ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_padding(), p->get_values(),
-        z->get_const_values(), rho->get_const_values(),
-        prev_rho->get_const_values());
+        as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),
+        as_cuda_type(p->get_padding()), as_cuda_type(p->get_values()),
+        as_cuda_type(z->get_const_values()),
+        as_cuda_type(rho->get_const_values()),
+        as_cuda_type(prev_rho->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -155,7 +160,7 @@ __global__ void step_2_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *rho)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type row = ((tidx + lda - 1) / lda) - 1;
+    // size_type row = ((tidx + lda - 1) / lda) - 1;
     size_type col = tidx % lda;
     ValueType tmp = zero<ValueType>();
 
@@ -189,9 +194,12 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
         ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_padding(), x->get_values(),
-        r->get_values(), p->get_const_values(), q->get_const_values(),
-        beta->get_const_values(), rho->get_const_values());
+        as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),
+        as_cuda_type(p->get_padding()), as_cuda_type(x->get_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(p->get_const_values()),
+        as_cuda_type(q->get_const_values()),
+        as_cuda_type(beta->get_const_values()),
+        as_cuda_type(rho->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

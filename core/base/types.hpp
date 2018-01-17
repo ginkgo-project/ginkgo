@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __CUDACC__
 #define GKO_ATTRIBUTES __host__ __device__
-#define GKO_INLINE __forceinline
+#define GKO_INLINE __forceinline__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
