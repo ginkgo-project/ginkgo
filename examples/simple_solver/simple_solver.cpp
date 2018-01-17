@@ -78,11 +78,11 @@ int main(int argc, char *argv[])
 
     // Read data
     std::shared_ptr<mtx> A = mtx::create(exec);
-    A->read_from_mtx("A.mtx");
+    A->read_from_mtx("data/A.mtx");
     auto b = vec::create(exec);
-    b->read_from_mtx("b.mtx");
+    b->read_from_mtx("data/b.mtx");
     auto x = vec::create(exec);
-    x->read_from_mtx("x0.mtx");
+    x->read_from_mtx("data/x0.mtx");
 
     // Generate solver
     auto solver_gen = cg::create(exec, 20, 1e-20);
