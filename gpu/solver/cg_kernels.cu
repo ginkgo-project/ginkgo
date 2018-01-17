@@ -45,14 +45,6 @@ namespace gpu {
 namespace cg {
 
 
-struct size {
-    size_type num_rows_;
-    size_type num_cols_;
-    constexpr size_type get_num_rows() const noexcept { return num_rows_; }
-    constexpr size_type get_num_cols() const noexcept { return num_cols_; }
-};
-
-
 template <typename ValueType>
 __global__ void initialize_kernel(size_type m, size_type n, size_type lda,
                                   const ValueType *b, ValueType *r,
@@ -81,24 +73,17 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho)
 {
-    ASSERT_EQUAL_DIMENSIONS(b, r);
-    ASSERT_EQUAL_DIMENSIONS(b, z);
-    ASSERT_EQUAL_DIMENSIONS(b, p);
-    ASSERT_EQUAL_DIMENSIONS(b, z);
-    const size vector{b->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(prev_rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         gko::ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_num_rows(), b->get_num_cols(), b->get_padding(),
-        b->get_const_values(), r->get_values(), z->get_values(),
-        p->get_values(), q->get_values(), prev_rho->get_values(),
-        rho->get_values());
+        as_cuda_type(b->get_num_rows()), as_cuda_type(b->get_num_cols()),
+        as_cuda_type(b->get_padding()), as_cuda_type(b->get_const_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(z->get_values()),
+        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
+        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -110,15 +95,17 @@ __global__ void step_1_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *rho, const ValueType *prev_rho)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    // size_type row = ((tidx + lda - 1) / lda) - 1;
     size_type col = tidx % lda;
     ValueType tmp = zero<ValueType>();
 
 
     if (tidx < m * lda) {
         tmp = rho[col] / prev_rho[col];
-        p[tidx] =
-            (tmp == zero<ValueType>()) ? z[tidx] : z[tidx] + tmp * p[tidx];
+        if (tmp == zero<ValueType>()) {
+            p[tidx] = z[tidx];
+        } else {
+            p[tidx] = z[tidx] + tmp * p[tidx];
+        }
     }
 }
 
@@ -128,20 +115,14 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho)
 {
-    ASSERT_EQUAL_DIMENSIONS(p, z);
-    const size vector{p->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(prev_rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),
-        as_cuda_type(p->get_padding()), as_cuda_type(p->get_values()),
-        as_cuda_type(z->get_const_values()),
+        p->get_num_rows(), p->get_num_cols(), p->get_padding(),
+        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(prev_rho->get_const_values()));
 }
@@ -156,16 +137,19 @@ __global__ void step_2_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *rho)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    // size_type row = ((tidx + lda - 1) / lda) - 1;
     size_type col = tidx % lda;
     ValueType tmp = zero<ValueType>();
 
     if (tidx < m * lda) {
         tmp = rho[col] / beta[col];
-        x[tidx] =
-            (tmp == zero<ValueType>()) ? x[tidx] : x[tidx] + tmp * p[tidx];
-        r[tidx] =
-            (tmp == zero<ValueType>()) ? r[tidx] : r[tidx] - tmp * q[tidx];
+
+        if (tmp != zero<ValueType>()) {
+            x[tidx] = x[tidx] + tmp * p[tidx];
+        }
+
+        if (tmp != zero<ValueType>()) {
+            r[tidx] = r[tidx] - tmp * q[tidx];
+        }
     }
 }
 
@@ -177,22 +161,15 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho)
 {
-    ASSERT_EQUAL_DIMENSIONS(x, r);
-    ASSERT_EQUAL_DIMENSIONS(x, p);
-    ASSERT_EQUAL_DIMENSIONS(x, q);
-    const size vector{x->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(beta, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        as_cuda_type(p->get_num_rows()), as_cuda_type(p->get_num_cols()),
-        as_cuda_type(p->get_padding()), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(p->get_const_values()),
+        p->get_num_rows(), p->get_num_cols(), p->get_padding(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(p->get_const_values()),
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()));
