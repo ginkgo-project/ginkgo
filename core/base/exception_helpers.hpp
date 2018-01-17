@@ -179,6 +179,22 @@ private:
 #define CUDA_ERROR(_errcode) \
     ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
 
+/**
+ * Instantiates a CublasError.
+ *
+ * @param errcode The error code returned from the cuBLAS routine.
+ */
+#define CUBLAS_ERROR(_errcode) \
+    ::gko::CublasError(__FILE__, __LINE__, __func__, _errcode)
+
+/**
+ * Instantiates a CusparseError.
+ *
+ * @param errcode The error code returned from the cuSPARSE routine.
+ */
+#define CUSPARSE_ERROR(_errcode) \
+    ::gko::CusparseError(__FILE__, __LINE__, __func__, _errcode)
+
 
 /**
  * Instantiates a CublasError.
@@ -200,6 +216,32 @@ private:
         if (_errcode != cudaSuccess) {    \
             throw CUDA_ERROR(_errcode);   \
         }                                 \
+    } while (false)
+
+/**
+ * Asserts that a CUBLAS library call completed without errors.
+ *
+ * @param _cuda_call  a library call expression
+ */
+#define ASSERT_NO_CUBLAS_ERRORS(_cublas_call)    \
+    do {                                         \
+        auto _errcode = _cublas_call;            \
+        if (_errcode != CUBLAS_STATUS_SUCCESS) { \
+            throw CUBLAS_ERROR(_errcode);        \
+        }                                        \
+    } while (false)
+
+/**
+ * Asserts that a CUSPARSE library call completed without errors.
+ *
+ * @param _cuda_call  a library call expression
+ */
+#define ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call)  \
+    do {                                           \
+        auto _errcode = _cusparse_call;            \
+        if (_errcode != CUSPARSE_STATUS_SUCCESS) { \
+            throw CUSPARSE_ERROR(_errcode);        \
+        }                                          \
     } while (false)
 
 
