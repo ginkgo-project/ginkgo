@@ -6,6 +6,7 @@ endif()
 
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
+option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
@@ -43,6 +44,10 @@ if (BUILD_CPU)
 endif()
 if(BUILD_GPU)
     add_subdirectory(gpu)        # High-performance gpu kernels
+endif()
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 if(DEVEL_TOOLS)
