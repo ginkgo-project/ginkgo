@@ -240,9 +240,8 @@ std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
     auto bicgstab =
         std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));
-    ASSERT_EQUAL_DIMENSIONS(bicgstab->system_matrix_,
-                            size(bicgstab->system_matrix_->get_num_cols(),
-                                 bicgstab->system_matrix_->get_num_rows()));
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
 
     return std::move(bicgstab);
 }
