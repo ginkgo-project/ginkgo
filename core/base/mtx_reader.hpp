@@ -46,23 +46,72 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+/**
+ * This structure is used as an intermediate datatype to store the matrix
+ * read from a file in COO-like format.
+ *
+ * Note that the structure is not optimized for usual access patterns, can only
+ * exist on the CPU, and thus should only be used for reading matrices from MTX
+ * format.
+ *
+ * @tparam ValueType  type of matrix values stored in the structure
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
 template <typename ValueType = default_precision, typename IndexType = int32>
 struct MtxData {
+    /**
+     * Total number of rows of the matrix.
+     */
     size_type num_rows;
+    /**
+     * Total number of columns of the matrix.
+     */
     size_type num_cols;
-    std::vector<std::tuple<IndexType, IndexType, ValueType>> values;
+    /**
+     * A vector of tuples storing the non-zeros of the matrix.
+     *
+     * The first two elements of the tuple are the row index and the column
+     * index of a matrix element, and its third element is the value at that
+     * position.
+     */
+    std::vector<std::tuple<IndexType, IndexType, ValueType>> nonzeros;
 };
 
 
-// TODO: replace filenames with streams
+/**
+ * Reads a matrix stored in MTX (matrix market) file.
+ *
+ * @tparam ValueType  type of matrix values
+ * @tparam IndexType  type of matrix indexes
+ *
+ * @param filename  filename from which to read the data
+ *
+ * @return A structure containing the matrix. The nonzero elements are sorted
+ *         in lexicographic order of their (row, colum) indexes.
+ *
+ * @note Prefer using ReadableFromMtx::read_from_mtx interface for existing
+ *       Ginkgo types, and use this function only if you want to implement this
+ *       interface for your own types.
+ */
 template <typename ValueType = default_precision, typename IndexType = int32>
 MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename);
+// TODO: replace filenames with streams
 
 
+/**
+ * A LinOp implementing this interface can read its data from a file stored in
+ * matrix market format.
+ */
 class ReadableFromMtx {
 public:
-    // TODO: replace filenames with streams
+    /**
+     * Reads a matrix stored in MTX (matrix market) file.
+     *
+     * @param filename  filename from which to read the matrix
+     */
     virtual void read_from_mtx(const std::string &filename) = 0;
+
+    virtual ~ReadableFromMtx() = default;
 };
 
 

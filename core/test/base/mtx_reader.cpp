@@ -49,7 +49,7 @@ TEST(MtxReader, ReadsDenseRealMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -68,7 +68,7 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -88,7 +88,7 @@ TEST(MtxReader, ReadsDenseComplexMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -107,7 +107,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -124,7 +124,7 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 
     ASSERT_EQ(data.num_rows, 3);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 2.0));
     ASSERT_EQ(v[2], tpl(0, 2, 3.0));
@@ -143,7 +143,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 
     ASSERT_EQ(data.num_rows, 3);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, -2.0));
     ASSERT_EQ(v[1], tpl(0, 2, -3.0));
     ASSERT_EQ(v[2], tpl(1, 0, 2.0));
@@ -160,7 +160,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 0.0));
     ASSERT_EQ(v[1], tpl(0, 1, 0.0));
     ASSERT_EQ(v[2], tpl(0, 2, 0.0));
@@ -178,7 +178,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -196,7 +196,7 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
-    auto &v = data.values;
+    auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[1], tpl(0, 2, cpx(2.0, 4.0)));
     ASSERT_EQ(v[2], tpl(1, 0, cpx(3.0, -1.0)));

@@ -121,16 +121,16 @@ public:
                         to_string(row) + ", " + to_string(col));
             }
         }
-        data.values.push_back(std::tuple<IndexType, IndexType, ValueType>(
+        data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
             row, col, combine<ValueType>(rp, ip)));
         if (mm_is_symmetric(t_) && row != col) {
-            data.values.push_back(std::tuple<IndexType, IndexType, ValueType>(
+            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
                 col, row, combine<ValueType>(rp, ip)));
         } else if (mm_is_skew(t_)) {
-            data.values.push_back(std::tuple<IndexType, IndexType, ValueType>(
+            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
                 col, row, combine<ValueType>(-rp, -ip)));
         } else if (mm_is_hermitian(t_) && row != col) {
-            data.values.push_back(std::tuple<IndexType, IndexType, ValueType>(
+            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
                 col, row, combine<ValueType>(rp, -ip)));
         }
     }
@@ -174,7 +174,7 @@ MtxData<ValueType, IndexType> read_sparse(file_data &f, const MM_typecode &t)
         }
         mod.read_value_for(row - 1, col - 1, data);
     }
-    sort(begin(data.values), end(data.values),
+    sort(begin(data.nonzeros), end(data.nonzeros),
          coord_compare<ValueType, IndexType>);
     return data;
 }
@@ -196,7 +196,7 @@ MtxData<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
             mod.read_value_for(row, col, data);
         }
     }
-    sort(begin(data.values), end(data.values),
+    sort(begin(data.nonzeros), end(data.nonzeros),
          coord_compare<ValueType, IndexType>);
     return data;
 }
