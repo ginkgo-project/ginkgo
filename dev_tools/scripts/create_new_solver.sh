@@ -14,6 +14,11 @@ function print_help {
 
 execute=1
 
+if [ $# -l 1 ]; then
+    print_help
+    exit 1
+fi
+
 while test $# -gt 0
 do
     case "$1" in
@@ -35,6 +40,10 @@ do
     shift
 done
 
+if [ "$solvername" == "" ]; then
+    print_help
+    exit 1
+fi
 
 # Important script variable
 TMPDIR="./tmp_$(date +%s)"

@@ -24,8 +24,8 @@ do
         if [ "$(cat diff.patch)" != "" ]
         then
             patch $i diff.patch
-            rm diff.patch
         fi
+        rm diff.patch
     fi
 done
 
