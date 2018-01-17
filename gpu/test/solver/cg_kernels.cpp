@@ -66,14 +66,91 @@ protected:
         }
     }
 
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine);
+    }
+
+    void initialize_data()
+    {
+        int m = 24;
+        int n = 7;
+        auto b = gen_mtx(m, n);
+        auto r = gen_mtx(m, n);
+        auto z = gen_mtx(m, n);
+        auto p = gen_mtx(m, n);
+        auto q = gen_mtx(m, n);
+        auto prev_rho = Mtx::create(ref, n, 1);
+        auto rho = Mtx::create(ref, n, 1);
+
+        auto d_b = Mtx::create(gpu);
+        d_b->copy_from(b.get());
+        auto d_r = Mtx::create(gpu);
+        d_r->copy_from(r.get());
+        auto d_z = Mtx::create(gpu);
+        d_z->copy_from(z.get());
+        auto d_p = Mtx::create(gpu);
+        d_p->copy_from(p.get());
+        auto d_q = Mtx::create(gpu);
+        d_q->copy_from(q.get());
+        auto d_prev_rho = Mtx::create(gpu, n, 1);
+        d_prev_rho->copy_from(prev_rho.get());
+        auto d_rho = Mtx::create(gpu, n, 1);
+        d_rho->copy_from(rho.get());
+    }
+
+    void copy_back_data()
+    {
+        auto b_result = Mtx::create(ref);
+        auto r_result = Mtx::create(ref);
+        auto z_result = Mtx::create(ref);
+        auto p_result = Mtx::create(ref);
+        auto q_result = Mtx::create(ref);
+        auto prev_rho_result = Mtx::create(ref);
+        auto rho_result = Mtx::create(ref);
+        b_result->copy_from(d_b.get());
+        r_result->copy_from(d_r.get());
+        z_result->copy_from(d_z.get());
+        p_result->copy_from(d_p.get());
+        q_result->copy_from(d_q.get());
+        prev_rho_result->copy_from(d_prev_rho.get());
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
+
+    std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> b;
+    std::unique_ptr<Mtx> r;
+    std::unique_ptr<Mtx> prev_rho;
+    std::unique_ptr<Mtx> rho;
+    std::unique_ptr<Mtx> p;
+    std::unique_ptr<Mtx> q;
+    std::unique_ptr<Mtx> z;
+    std::unique_ptr<Mtx> d_b;
+    std::unique_ptr<Mtx> d_r;
+    std::unique_ptr<Mtx> d_prev_rho;
+    std::unique_ptr<Mtx> d_rho;
+    std::unique_ptr<Mtx> d_p;
+    std::unique_ptr<Mtx> d_q;
+    std::unique_ptr<Mtx> d_z;
+    std::unique_ptr<Mtx> b_result;
+    std::unique_ptr<Mtx> r_result;
+    std::unique_ptr<Mtx> prev_rho_result;
+    std::unique_ptr<Mtx> rho_result;
+    std::unique_ptr<Mtx> p_result;
+    std::unique_ptr<Mtx> q_result;
+    std::unique_ptr<Mtx> z_result;
 };
 
 
 TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
+    /*std::ranlux48 rand_engine(30);
 
 
     auto gen_mtx = [&](int m, int n) {
@@ -107,14 +184,15 @@ TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
     d_q->copy_from(q.get());
     d_prev_rho->copy_from(prev_rho.get());
     d_rho->copy_from(rho.get());
-
+*/
+    initialize_data();
     gko::kernels::reference::cg::initialize(b.get(), r.get(), z.get(), p.get(),
                                             q.get(), prev_rho.get(), rho.get());
     gko::kernels::gpu::cg::initialize(d_b.get(), d_r.get(), d_z.get(),
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
                                       d_rho.get());
 
-    auto b_result = Mtx::create(ref);
+    /*auto b_result = Mtx::create(ref);
     auto r_result = Mtx::create(ref);
     auto z_result = Mtx::create(ref);
     auto p_result = Mtx::create(ref);
@@ -128,7 +206,8 @@ TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
     q_result->copy_from(d_q.get());
     prev_rho_result->copy_from(d_prev_rho.get());
     rho_result->copy_from(d_rho.get());
-
+*/
+    copy_back_data();
     ASSERT_MTX_NEAR(b_result, b, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
