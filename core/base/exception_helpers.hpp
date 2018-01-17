@@ -197,15 +197,6 @@ private:
 
 
 /**
- * Instantiates a CublasError.
- *
- * @param errcode The error code returned from the cuBLAS routine.
- */
-#define CUBLAS_ERROR(_errcode) \
-    ::gko::CublasError(__FILE__, __LINE__, __func__, _errcode)
-
-
-/**
  * Asserts that a CUDA library call completed without errors.
  *
  * @param _cuda_call  a library call expression
@@ -232,7 +223,7 @@ private:
     } while (false)
 
 /**
- * Asserts that a CUSPARSE library call completed without errors.
+ * Asserts that a cuSPARSE library call completed without errors.
  *
  * @param _cuda_call  a library call expression
  */
@@ -242,20 +233,6 @@ private:
         if (_errcode != CUSPARSE_STATUS_SUCCESS) { \
             throw CUSPARSE_ERROR(_errcode);        \
         }                                          \
-    } while (false)
-
-
-/**
- * Asserts that a cuBLAS library call completed without errors.
- *
- * @param _cuda_call  a library call expression
- */
-#define ASSERT_NO_CUBLAS_ERRORS(_cublas_call)    \
-    do {                                         \
-        auto _errcode = _cublas_call;            \
-        if (_errcode != CUBLAS_STATUS_SUCCESS) { \
-            throw CUBLAS_ERROR(_errcode);        \
-        }                                        \
     } while (false)
 
 
