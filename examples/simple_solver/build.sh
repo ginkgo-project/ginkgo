@@ -22,7 +22,7 @@ for prefix in ${LIBRARY_DIRS}; do
 done
 
 # figure out correct compiler flags
-if ls ${THIS_DIR} | grep -F "libginkgo.*"; then
+if ls ${THIS_DIR} | grep -F "libginkgo."; then
     LINK_FLAGS="-lginkgo -lginkgo_cpu -lginkgo_gpu -lginkgo_reference"
 else
     LINK_FLAGS="-lginkgod -lginkgo_cpud -lginkgo_gpud -lginkgo_referenced"
