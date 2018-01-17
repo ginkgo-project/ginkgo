@@ -64,6 +64,24 @@ struct TemplatedOperationCsr {
     GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_csr, dense::move_to_csr<TplArgs...>);
 };
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Csr<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+
+    Array<size_type> num_stored_nonzeros(exec, 1);
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        source, num_stored_nonzeros.get_data()));
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, source->get_num_rows(), source->get_num_cols(),
+        *num_stored_nonzeros.get_data());
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
+}
 }  // namespace
 
 
@@ -192,62 +210,47 @@ void Dense<ValueType>::move_to(Dense *result)
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> create_receiving_mtx(
-    const Dense<ValueType> *source)
-{
-    auto exec = source->get_executor();
-
-    Array<size_type> num_stored_nonzeros(exec, 1);
-    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
-        source, num_stored_nonzeros.get_data()));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, source->get_num_rows(), source->get_num_cols(),
-        *num_stored_nonzeros.get_data());
-    return tmp;
-}
-
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
-    auto tmp = create_receiving_mtx<ValueType, int32>(this);
-    this->get_executor()->run(
-        TemplatedOperationCsr<ValueType, int32>::make_convert_to_csr_operation(
-            tmp.get(), this));
-    tmp->move_to(result);
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int32>::
+            template make_convert_to_csr_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
 {
-    auto tmp = create_receiving_mtx<ValueType, int32>(this);
-    this->get_executor()->run(
-        TemplatedOperationCsr<ValueType, int32>::make_convert_to_csr_operation(
-            tmp.get(), this));
-    tmp->move_to(result);
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int32>::
+            template make_move_to_csr_operation<decltype(result),
+                                                Dense<ValueType> *&>);
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 {
-    auto tmp = create_receiving_mtx<ValueType, int64>(this);
-    this->get_executor()->run(
-        TemplatedOperationCsr<ValueType, int64>::make_convert_to_csr_operation(
-            tmp.get(), this));
-    tmp->move_to(result);
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int64>::
+            template make_convert_to_csr_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
 {
-    auto tmp = create_receiving_mtx<ValueType, int64>(this);
-    this->get_executor()->run(
-        TemplatedOperationCsr<ValueType, int64>::make_move_to_csr_operation(
-            tmp.get(), this));
-    tmp->move_to(result);
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int64>::
+            template make_move_to_csr_operation<decltype(result),
+                                                Dense<ValueType> *&>);
 }
 
 

@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils/assertions.hpp>
 
 
 namespace {
@@ -160,30 +161,24 @@ TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
 TEST_F(Csr, ConvertsToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
     mtx->convert_to(dense_mtx.get());
 
-    EXPECT_EQ(dense_mtx->at(0, 0), 1.0);
-    EXPECT_EQ(dense_mtx->at(0, 1), 3.0);
-    EXPECT_EQ(dense_mtx->at(0, 2), 2.0);
-    EXPECT_EQ(dense_mtx->at(1, 0), 0.0);
-    EXPECT_EQ(dense_mtx->at(1, 1), 5.0);
-    ASSERT_EQ(dense_mtx->at(1, 2), 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
 TEST_F(Csr, MovesToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
     mtx->move_to(dense_mtx.get());
 
-    EXPECT_EQ(dense_mtx->at(0, 0), 1.0);
-    EXPECT_EQ(dense_mtx->at(0, 1), 3.0);
-    EXPECT_EQ(dense_mtx->at(0, 2), 2.0);
-    EXPECT_EQ(dense_mtx->at(1, 0), 0.0);
-    EXPECT_EQ(dense_mtx->at(1, 1), 5.0);
-    ASSERT_EQ(dense_mtx->at(1, 2), 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
