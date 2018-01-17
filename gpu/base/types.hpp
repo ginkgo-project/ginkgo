@@ -31,61 +31,70 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/matrix/csr_kernels.hpp"
+#ifndef GKO_GPU_BASE_TYPES_HPP_
+#define GKO_GPU_BASE_TYPES_HPP_
+
+
+#include <cublas_v2.h>
 
 
 namespace gko {
 
 
-void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+namespace detail {
 
 
-void GpuExecutor::free(void *ptr) const noexcept
+template <typename T>
+struct culibs_type_impl {
+    using type = T;
+};
+
+template <typename T>
+struct culibs_type_impl<T *> {
+    using type = typename culibs_type_impl<T>::type *;
+};
+
+template <typename T>
+struct culibs_type_impl<T &> {
+    using type = typename culibs_type_impl<T>::type &;
+};
+
+template <typename T>
+struct culibs_type_impl<const T> {
+    using type = const typename culibs_type_impl<T>::type;
+};
+
+template <typename T>
+struct culibs_type_impl<volatile T> {
+    using type = volatile typename culibs_type_impl<T>::type;
+};
+
+template <>
+struct culibs_type_impl<std::complex<float>> {
+    using type = cuComplex;
+};
+
+template <>
+struct culibs_type_impl<std::complex<double>> {
+    using type = cuDoubleComplex;
+};
+
+
+}  // namespace detail
+
+
+template <typename T>
+using culibs_type = typename detail::culibs_type_impl<T>::type;
+
+
+template <typename T>
+inline culibs_type<T> as_culibs_type(T val)
 {
-    // Free must never fail, as it can be called in destructors.
-    // If the nvidia module was not compiled, the library couldn't have
-    // allocated the memory, so there is no need to deallocate it.
+    return reinterpret_cast<culibs_type<T>>(val);
 }
-
-
-void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
-
-
-void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
-
-
-void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
-
-
-void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
-
-
-std::string CudaError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-
-std::string CublasError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-
-int GpuExecutor::get_num_devices() { return 0; }
 
 
 }  // namespace gko
 
 
-#define GKO_HOOK_MODULE gpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+#endif  // GKO_GPU_BASE_TYPES_HPP_

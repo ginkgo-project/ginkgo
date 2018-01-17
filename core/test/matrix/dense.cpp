@@ -92,6 +92,28 @@ TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
 }
 
 
+TEST_F(Dense, CanBeConstructedWithSize)
+{
+    auto m = gko::matrix::Dense<>::create(exec, 2, 3);
+
+    EXPECT_EQ(m->get_num_rows(), 2);
+    EXPECT_EQ(m->get_num_cols(), 3);
+    EXPECT_EQ(m->get_padding(), 3);
+    ASSERT_EQ(m->get_num_stored_elements(), 6);
+}
+
+
+TEST_F(Dense, CanBeConstructedWithSizeAndPadding)
+{
+    auto m = gko::matrix::Dense<>::create(exec, 2, 3, 4);
+
+    EXPECT_EQ(m->get_num_rows(), 2);
+    EXPECT_EQ(m->get_num_cols(), 3);
+    EXPECT_EQ(m->get_padding(), 4);
+    ASSERT_EQ(m->get_num_stored_elements(), 8);
+}
+
+
 TEST_F(Dense, KnowsItsSizeAndValues)
 {
     assert_equal_to_original_mtx(mtx.get());
