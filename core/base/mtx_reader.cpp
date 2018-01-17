@@ -229,19 +229,9 @@ MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename)
 }
 
 
-template <typename ValueType, typename IndexType>
-void save_raw_to_mtx(const std::string &filename,
-                     const MtxData<ValueType, IndexType> &data) NOT_IMPLEMENTED;
-
-
 #define DECLARE_READ_FROM_MTX_FUNCTION(ValueType, IndexType) \
     MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_FROM_MTX_FUNCTION);
-
-#define DECLARE_SAVE_TO_MTX_FUNCTION(ValueType, IndexType) \
-    void save_raw_to_mtx(const std::string &filename,      \
-                         const MtxData<ValueType, IndexType> &data)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SAVE_TO_MTX_FUNCTION);
 
 
 }  // namespace gko

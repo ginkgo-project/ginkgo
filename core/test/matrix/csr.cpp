@@ -159,4 +159,14 @@ TEST_F(Csr, CanBeCleared)
 }
 
 
+TEST_F(Csr, CanBeReadFromMtx)
+{
+    auto m = Mtx::create(exec);
+
+    m->read_from_mtx("../base/data/dense_real.mtx");
+
+    assert_equal_to_original_mtx(m.get());
+}
+
+
 }  // namespace

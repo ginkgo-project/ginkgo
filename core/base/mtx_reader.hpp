@@ -59,17 +59,10 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename);
 
 
-// TODO: replace filenames with streams
-template <typename ValueType = default_precision, typename IndexType = int32>
-void save_raw_to_mtx(const std::string &filename,
-                     const MtxData<ValueType, IndexType> &data);
-
-
 class ReadableFromMtx {
 public:
     // TODO: replace filenames with streams
     virtual void read_from_mtx(const std::string &filename) = 0;
-    virtual void save_to_mtx(const std::string &filename) const = 0;
 };
 
 

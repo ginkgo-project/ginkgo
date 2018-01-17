@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/mtx_reader.hpp"
 
 
 namespace gko {
@@ -62,7 +63,8 @@ class Dense;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>> {
+            public ConvertibleTo<Dense<ValueType>>,
+            public ReadableFromMtx {
     friend class gko::matrix::Dense<ValueType>;
 
 public:
@@ -116,6 +118,8 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void read_from_mtx(const std::string &filename) override;
 
     /**
      * Returns the values of the matrix.
