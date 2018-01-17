@@ -93,7 +93,7 @@ template <typename ValueType>
 void Bicgstab<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
     auto other_bicgstab = as<Bicgstab<ValueType>>(other.get());
-    system_matrix_ = std::move(other_bicgstab->get_system_matrix()->clone());
+    system_matrix_ = std::move(other_bicgstab->get_system_matrix());
     this->set_dimensions(other.get());
 }
 
