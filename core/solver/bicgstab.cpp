@@ -244,7 +244,7 @@ std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
                             size(bicgstab->system_matrix_->get_num_cols(),
                                  bicgstab->system_matrix_->get_num_rows()));
 
-    return bicgstab;
+    return std::move(bicgstab);
 }
 
 
