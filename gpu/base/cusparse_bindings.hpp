@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GPU_BASE_CUSPARSE_BINDINGS_HPP
-#define GPU_BASE_CUSPARSE_BINDINGS_HPP
+#ifndef GPU_BASE_CUSPARSE_BINDINGS_HPP_
+#define GPU_BASE_CUSPARSE_BINDINGS_HPP_
 
 
 #include <cusparse.h>
@@ -47,12 +47,12 @@ namespace cusparse {
 namespace {
 
 #define BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                         \
-    inline void cusparse_spmv(                                                \
-        cusparseHandle_t handle, cusparseOperation_t transA, size_type m,     \
-        size_type n, size_type nnz, const ValueType *alpha,                   \
-        const cusparseMatDescr_t descrA, const ValueType *csrValA,            \
-        const int32 *csrRowPtrA, const int32 *csrColIndA, const ValueType *x, \
-        const ValueType *beta, ValueType *y)                                  \
+    inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
+                     size_type m, size_type n, size_type nnz,                 \
+                     const ValueType *alpha, const cusparseMatDescr_t descrA, \
+                     const ValueType *csrValA, const int32 *csrRowPtrA,       \
+                     const int32 *csrColIndA, const ValueType *x,             \
+                     const ValueType *beta, ValueType *y)                     \
     {                                                                         \
         ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                               \
             handle, transA, m, n, nnz, as_culibs_type(alpha), descrA,         \
@@ -61,13 +61,12 @@ namespace {
     }
 
 #define BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                         \
-    inline void cusparse_spmv(                                                \
-        cusparseHandle_t handle, cusparseOperation_t transA, size_type m,     \
-        size_type n, size_type nnz, const ValueType *alpha,                   \
-        const cusparseMatDescr_t descrA, const ValueType *csrValA,            \
-        const int64 *csrRowPtrA, const int64 *csrColIndA, const ValueType *x, \
-        const ValueType *beta, ValueType *y) NOT_IMPLEMENTED;
-
+    inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
+                     size_type m, size_type n, size_type nnz,                 \
+                     const ValueType *alpha, const cusparseMatDescr_t descrA, \
+                     const ValueType *csrValA, const int64 *csrRowPtrA,       \
+                     const int64 *csrColIndA, const ValueType *x,             \
+                     const ValueType *beta, ValueType *y) NOT_IMPLEMENTED;
 
 BIND_CUSPARSE32_SPMV(float, cusparseScsrmv);
 BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv);
@@ -83,7 +82,7 @@ BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
 
 inline cusparseHandle_t init()
 {
-    cusparseHandle_t handle;
+    cusparseHandle_t handle{};
     ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
     ASSERT_NO_CUSPARSE_ERRORS(
         cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
@@ -97,9 +96,23 @@ inline void destroy(cusparseHandle_t handle)
 }
 
 
+inline cusparseMatDescr_t create_mat_descr()
+{
+    cusparseMatDescr_t descr{};
+    ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&descr));
+    return descr;
+}
+
+
+inline void destroy(cusparseMatDescr_t descr)
+{
+    ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
+}
+
+
 }  // namespace
 }  // namespace cusparse
 }  // namespace gko
 
 
-#endif  // GPU_BASE_CUSPARSE_BINDINGS_HPP
+#endif  // GPU_BASE_CUSPARSE_BINDINGS_HPP_

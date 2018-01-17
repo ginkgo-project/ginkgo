@@ -209,8 +209,9 @@ private:
         }                                 \
     } while (false)
 
+
 /**
- * Asserts that a CUBLAS library call completed without errors.
+ * Asserts that a cuBLAS library call completed without errors.
  *
  * @param _cuda_call  a library call expression
  */
@@ -221,6 +222,7 @@ private:
             throw CUBLAS_ERROR(_errcode);        \
         }                                        \
     } while (false)
+
 
 /**
  * Asserts that a cuSPARSE library call completed without errors.

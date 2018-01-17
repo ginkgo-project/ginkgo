@@ -89,20 +89,6 @@ TEST_F(Csr, AppliesToDenseVector)
     EXPECT_EQ(y_result->at(1), 5.0);
 }
 
-TEST_F(Csr, AppliesToDenseMatrix)
-{
-    auto x = Vec::create(gpu, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    auto y = Vec::create(gpu, 2, 2, 2);
-
-    mtx->apply(x.get(), y.get());
-
-    auto y_result = Vec::create(ref);
-    y_result->copy_from(y.get());
-    EXPECT_EQ(y_result->at(0, 0), 13.0);
-    EXPECT_EQ(y_result->at(1, 0), 5.0);
-    EXPECT_EQ(y_result->at(0, 1), 3.5);
-    EXPECT_EQ(y_result->at(1, 1), -7.5);
-}
 
 TEST_F(Csr, AppliesLinearCombinationToDenseVector)
 {
@@ -119,45 +105,5 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
     EXPECT_EQ(y_result->at(1), -1.0);
 }
 
-TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
-{
-    auto alpha = Vec::create(gpu, {-1.0});
-    auto beta = Vec::create(gpu, {2.0});
-    auto x = Vec::create(gpu, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    auto y = Vec::create(gpu, {{1.0, 0.5}, {2.0, -1.5}});
-
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
-
-    auto y_result = Vec::create(ref);
-    y_result->copy_from(y.get());
-    EXPECT_EQ(y_result->at(0, 0), -11.0);
-    EXPECT_EQ(y_result->at(1, 0), -1.0);
-    EXPECT_EQ(y_result->at(0, 1), -2.5);
-    EXPECT_EQ(y_result->at(1, 1), 4.5);
-}
-
-TEST_F(Csr, ApplyFailsOnWrongInnerDimension)
-{
-    auto x = Vec::create(gpu, 2, 2, 2);
-    auto y = Vec::create(gpu, 2, 2, 2);
-
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
-
-TEST_F(Csr, ApplyFailsOnWrongNumberOfRows)
-{
-    auto x = Vec::create(gpu, 3, 2, 2);
-    auto y = Vec::create(gpu, 3, 2, 2);
-
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
-
-TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
-{
-    auto x = Vec::create(gpu, 3, 3, 2);
-    auto y = Vec::create(gpu, 2, 2, 2);
-
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
 
 }  // namespace
