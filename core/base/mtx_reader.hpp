@@ -47,7 +47,7 @@ namespace gko {
 
 
 /**
- * This structure is used as an intermediate datatype to store the matrix
+ * This structure is used as an intermediate data type to store the matrix
  * read from a file in COO-like format.
  *
  * Note that the structure is not optimized for usual access patterns, can only
