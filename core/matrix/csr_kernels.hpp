@@ -54,12 +54,23 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,       \
                        matrix::Dense<ValueType> *c)
 
+#define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void convert_to_dense(matrix::Dense<ValueType> *result,           \
+                          const matrix::Csr<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                       \
-    template <typename ValueType, typename IndexType>  \
-    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>  \
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void move_to_dense(matrix::Dense<ValueType> *result,           \
+                       matrix::Csr<ValueType, IndexType> *source)
+
+#define DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
 namespace cpu {

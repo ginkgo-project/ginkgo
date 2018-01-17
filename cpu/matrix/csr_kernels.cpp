@@ -57,6 +57,24 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(matrix::Dense<ValueType> *result,
+                      const matrix::Csr<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_dense(matrix::Dense<ValueType> *result,
+                   matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
+
+
 }  // namespace csr
 }  // namespace cpu
 }  // namespace kernels

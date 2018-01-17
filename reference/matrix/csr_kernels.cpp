@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -56,7 +57,8 @@ void spmv(const matrix::Csr<ValueType, IndexType> *a,
         for (size_type j = 0; j < c->get_num_cols(); ++j) {
             c->at(row, j) = zero<ValueType>();
         }
-        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_num_cols(); ++j) {
@@ -86,7 +88,8 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
         for (size_type j = 0; j < c->get_num_cols(); ++j) {
             c->at(row, j) *= vbeta;
         }
-        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_num_cols(); ++j) {
@@ -99,6 +102,48 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(matrix::Dense<ValueType> *result,
+                      const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto exec = result->get_executor();
+    if (exec != exec->get_master()) {
+        NOT_SUPPORTED(exec);
+    }
+
+    auto num_rows = source->get_num_rows();
+    auto num_cols = source->get_num_cols();
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto col_idxs = source->get_const_col_idxs();
+    auto vals = source->get_const_values();
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type col = 0; col < num_cols; ++col) {
+            result->at(row, col) = zero<ValueType>();
+        }
+        for (size_type i = row_ptrs[row];
+             i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
+            result->at(row, col_idxs[i]) = vals[i];
+        }
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_dense(matrix::Dense<ValueType> *result,
+                   matrix::Csr<ValueType, IndexType> *source)
+{
+    reference::csr::convert_to_dense(result, source);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
 }  // namespace csr
 }  // namespace reference

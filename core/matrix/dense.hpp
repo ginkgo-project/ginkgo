@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/convertible.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/types.hpp"
 
 
 #include <initializer_list>
@@ -47,6 +48,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+
+template <typename ValueType, typename IndexType>
+class Csr;
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -61,7 +65,13 @@ namespace matrix {
  *       is often suitable to store vectors, and sets of vectors.
  */
 template <typename ValueType = default_precision>
-class Dense : public LinOp, public ConvertibleTo<Dense<ValueType>> {
+class Dense : public LinOp,
+              public ConvertibleTo<Dense<ValueType>>,
+              public ConvertibleTo<Csr<ValueType, int32>>,
+              public ConvertibleTo<Csr<ValueType, int64>> {
+    friend class gko::matrix::Csr<ValueType, int32>;
+    friend class gko::matrix::Csr<ValueType, int64>;
+
 public:
     using value_type = ValueType;
 
@@ -330,6 +340,14 @@ public:
     void convert_to(Dense *result) const override;
 
     void move_to(Dense *result) override;
+
+    void convert_to(Csr<ValueType, int32> *result) const override;
+
+    void move_to(Csr<ValueType, int32> *result) override;
+
+    void convert_to(Csr<ValueType, int64> *result) const override;
+
+    void move_to(Csr<ValueType, int64> *result) override;
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,

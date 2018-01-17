@@ -43,6 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+template <typename ValueType>
+class Dense;
+
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
  * compressing each row of the matrix (compressed sparse row format).
@@ -57,7 +60,11 @@ namespace matrix {
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public LinOp, public ConvertibleTo<Csr<ValueType, IndexType>> {
+class Csr : public LinOp,
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>> {
+    friend class gko::matrix::Dense<ValueType>;
+
 public:
     using value_type = ValueType;
 
@@ -105,6 +112,10 @@ public:
     void convert_to(Csr *other) const override;
 
     void move_to(Csr *other) override;
+
+    void convert_to(Dense<ValueType> *other) const override;
+
+    void move_to(Dense<ValueType> *other) override;
 
     /**
      * Returns the values of the matrix.

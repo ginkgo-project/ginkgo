@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils/assertions.hpp>
 
 
 namespace {
@@ -114,7 +115,6 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
     EXPECT_EQ(y->at(1), -1.0);
 }
 
-
 TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 {
     auto alpha = Vec::create(exec, {-1.0});
@@ -155,6 +155,30 @@ TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
     auto y = Vec::create(exec, 2, 2, 2);
 
     ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Csr, ConvertsToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+
+    mtx->convert_to(dense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Csr, MovesToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+
+    mtx->move_to(dense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
