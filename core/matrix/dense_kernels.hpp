@@ -75,7 +75,7 @@ namespace kernels {
                      const matrix::Dense<_type> *source)
 
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type) \
-    void count_nonzeros(const matrix::Dense<_type> *source, int &result)
+    void count_nonzeros(const matrix::Dense<_type> *source, size_type *result)
 
 #define DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType>                                  \

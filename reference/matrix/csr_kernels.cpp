@@ -57,7 +57,8 @@ void spmv(const matrix::Csr<ValueType, IndexType> *a,
         for (size_type j = 0; j < c->get_num_cols(); ++j) {
             c->at(row, j) = zero<ValueType>();
         }
-        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_num_cols(); ++j) {
@@ -87,7 +88,8 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
         for (size_type j = 0; j < c->get_num_cols(); ++j) {
             c->at(row, j) *= vbeta;
         }
-        for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_num_cols(); ++j) {
@@ -120,8 +122,8 @@ void convert_to_dense(matrix::Dense<ValueType> *result,
         for (size_type col = 0; col < num_cols; ++col) {
             result->at(row, col) = zero<ValueType>();
         }
-        for (size_type i = row_ptrs[row]; i < (unsigned long)row_ptrs[row + 1];
-             ++i) {
+        for (size_type i = row_ptrs[row];
+             i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
             result->at(row, col_idxs[i]) = vals[i];
         }
     }

@@ -195,7 +195,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void count_nonzeros(const matrix::Dense<ValueType> *source, int &result)
+void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
 {
     auto num_rows = source->get_num_rows();
     auto num_cols = source->get_num_cols();
@@ -207,7 +207,7 @@ void count_nonzeros(const matrix::Dense<ValueType> *source, int &result)
         }
     }
 
-    result = num_nonzeros;
+    *result = num_nonzeros;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);

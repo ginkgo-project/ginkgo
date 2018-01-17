@@ -157,6 +157,21 @@ TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TEST_F(Csr, ConvertsToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->convert_to(dense_mtx.get());
+
+    EXPECT_EQ(dense_mtx->at(0, 0), 1.0);
+    EXPECT_EQ(dense_mtx->at(0, 1), 3.0);
+    EXPECT_EQ(dense_mtx->at(0, 2), 2.0);
+    EXPECT_EQ(dense_mtx->at(1, 0), 0.0);
+    EXPECT_EQ(dense_mtx->at(1, 1), 5.0);
+    ASSERT_EQ(dense_mtx->at(1, 2), 0.0);
+}
+
+
 TEST_F(Csr, MovesToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());

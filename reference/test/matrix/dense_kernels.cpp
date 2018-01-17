@@ -229,6 +229,33 @@ TEST_F(Dense, ComputDotFailsOnWrongResultSize)
 }
 
 
+TEST_F(Dense, ConvertsToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(csr_mtx.get());
+
+    auto v = csr_mtx->get_const_values();
+    auto c = csr_mtx->get_const_col_idxs();
+    auto r = csr_mtx->get_const_row_ptrs();
+
+    ASSERT_EQ(csr_mtx->get_num_rows(), 2);
+    ASSERT_EQ(csr_mtx->get_num_cols(), 3);
+    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 4);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
+}
+
+
 TEST_F(Dense, MovesToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
