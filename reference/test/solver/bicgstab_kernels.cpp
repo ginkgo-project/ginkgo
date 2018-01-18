@@ -128,20 +128,4 @@ TEST_F(Bicgstab, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Bicgstab, SolvesStencilSystemUsingBicgstabPreconditioner)
-{
-    bicgstab_factory->set_precond(
-        gko::solver::BicgstabFactory<>::create(exec, 3, 1e-7));
-    auto solver = bicgstab_factory->generate(mtx);
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
-
-    solver->apply(b.get(), x.get());
-
-    EXPECT_NEAR(x->at(0), -4.0, 1e-8);
-    EXPECT_NEAR(x->at(1), -1.0, 1e-8);
-    EXPECT_NEAR(x->at(2), 4.0, 1e-8);
-}
-
-
 }  // namespace
