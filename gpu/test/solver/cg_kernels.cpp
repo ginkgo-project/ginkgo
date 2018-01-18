@@ -269,7 +269,7 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     auto result = Mtx::create(ref);
     result->copy_from(d_x.get());
 
-    ASSERT_MTX_NEAR(result, x, 1e-12);
+    ASSERT_MTX_NEAR(result, x, 1e-14);
 }
 
 
