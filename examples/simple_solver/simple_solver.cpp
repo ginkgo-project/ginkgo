@@ -32,10 +32,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /*****************************<COMPILATION>***********************************
-A bit complicated for now, but this is how to build it:
+The easiest way to build the example solver is to use the script provided:
+./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
 Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
-Once you built ginkgo, go to the build directory and copy the shared
+
+Alternatively, you can setup the configuration manually:
+
+Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
 libraries located in the following subdirectories:
 
     + core/
@@ -57,7 +61,6 @@ Now you should be able to run the program using:
 
 env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
-ALTERNATIVELY: use the build.sh script located in this directory
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
