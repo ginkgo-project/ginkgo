@@ -45,25 +45,15 @@ namespace gpu {
 namespace bicgstab {
 
 
-struct size {
-    size_type num_rows_;
-    size_type num_cols_;
-    constexpr size_type get_num_rows() const noexcept { return num_rows_; }
-    constexpr size_type get_num_cols() const noexcept { return num_cols_; }
-};
-
-
-inline int64 ceildiv(int64 a, int64 b) { return (a + b - 1) / b; }
+constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-__global__ void initialize_kernel(size_type m, size_type n, size_type lda,
-                                  const ValueType *b, ValueType *r,
-                                  ValueType *z, ValueType *p, ValueType *v,
-                                  ValueType *t, ValueType *y, ValueType *rr,
-                                  ValueType *s, ValueType *prev_rho,
-                                  ValueType *rho, ValueType *beta,
-                                  ValueType *alpha, ValueType *omega)
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type m, size_type n, size_type lda, const ValueType *b, ValueType *r,
+    ValueType *z, ValueType *p, ValueType *v, ValueType *t, ValueType *y,
+    ValueType *rr, ValueType *s, ValueType *prev_rho, ValueType *rho,
+    ValueType *beta, ValueType *alpha, ValueType *omega)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -97,8 +87,7 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *omega)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
 
@@ -117,11 +106,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-__global__ void step_1_kernel(size_type m, size_type n, size_type lda,
-                              ValueType *p, const ValueType *r,
-                              const ValueType *v, const ValueType *rho,
-                              const ValueType *prev_rho, const ValueType *alpha,
-                              const ValueType *omega)
+__global__ __launch_bounds__(default_block_size) void step_1_kernel(
+    size_type m, size_type n, size_type lda, ValueType *p, const ValueType *r,
+    const ValueType *v, const ValueType *rho, const ValueType *prev_rho,
+    const ValueType *alpha, const ValueType *omega)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % lda;
@@ -145,8 +133,7 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
@@ -164,10 +151,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-__global__ void step_2_kernel(size_type m, size_type n, size_type lda,
-                              ValueType *s, const ValueType *r,
-                              const ValueType *v, ValueType *alpha,
-                              const ValueType *beta, const ValueType *rho)
+__global__ __launch_bounds__(default_block_size) void step_2_kernel(
+    size_type m, size_type n, size_type lda, ValueType *s, const ValueType *r,
+    const ValueType *v, ValueType *alpha, const ValueType *beta,
+    const ValueType *rho)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % lda;
@@ -192,8 +179,7 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(s->get_num_rows() * s->get_padding(), block_size.x), 1, 1);
 
@@ -209,11 +195,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-__global__ void step_3_kernel(size_type m, size_type n, size_type lda,
-                              ValueType *x, ValueType *r, const ValueType *y,
-                              const ValueType *z, const ValueType *s,
-                              const ValueType *t, ValueType *omega,
-                              const ValueType *alpha, const ValueType *beta)
+__global__ __launch_bounds__(default_block_size) void step_3_kernel(
+    size_type m, size_type n, size_type lda, ValueType *x, ValueType *r,
+    const ValueType *y, const ValueType *z, const ValueType *s,
+    const ValueType *t, ValueType *omega, const ValueType *alpha,
+    const ValueType *beta)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % lda;
@@ -243,8 +229,7 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *beta,
             matrix::Dense<ValueType> *omega)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(x->get_num_rows() * x->get_padding(), block_size.x), 1, 1);
 

@@ -81,6 +81,20 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 
 
 /**
+ * Performs integer division with rounding up.
+ *
+ * @param num  numerator
+ * @param den  denominator
+ *
+ * @return returns the ceiled quotient.
+ */
+GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
+{
+    return (num + den - 1) / den;
+}
+
+
+/**
  * Returns the additive identity for T.
  *
  * @return additive identity for T
