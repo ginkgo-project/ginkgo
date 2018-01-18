@@ -4,7 +4,7 @@ set(SOURCES
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
     solver/bicgstab_kernels.cpp
-    solver/cg_kernels.cpp)
+    solver/cg_kernels.cu)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS cudart

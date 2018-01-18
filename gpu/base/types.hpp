@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cublas_v2.h>
+#include <thrust/complex.h>
 
 
 namespace gko {
@@ -80,7 +81,54 @@ struct culibs_type_impl<std::complex<double>> {
 };
 
 
+template <typename T>
+struct cuda_type_impl {
+    using type = T;
+};
+
+template <typename T>
+struct cuda_type_impl<T *> {
+    using type = typename cuda_type_impl<T>::type *;
+};
+
+template <typename T>
+struct cuda_type_impl<T &> {
+    using type = typename cuda_type_impl<T>::type &;
+};
+
+template <typename T>
+struct cuda_type_impl<const T> {
+    using type = const typename cuda_type_impl<T>::type;
+};
+
+template <typename T>
+struct cuda_type_impl<volatile T> {
+    using type = volatile typename cuda_type_impl<T>::type;
+};
+
+template <>
+struct cuda_type_impl<std::complex<float>> {
+    using type = thrust::complex<float>;
+};
+
+template <>
+struct cuda_type_impl<std::complex<double>> {
+    using type = thrust::complex<double>;
+};
+
+
 }  // namespace detail
+
+
+template <typename T>
+using cuda_type = typename detail::cuda_type_impl<T>::type;
+
+
+template <typename T>
+inline cuda_type<T> as_cuda_type(T val)
+{
+    return reinterpret_cast<cuda_type<T>>(val);
+}
 
 
 template <typename T>
