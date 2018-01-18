@@ -85,6 +85,15 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine);
     }
 
+    void make_symetric(Mtx *mtx)
+    {
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
+                mtx->at(i, j) = mtx->at(j, i);
+            }
+        }
+    }
+
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
@@ -96,6 +105,13 @@ protected:
             mtx->at(i, i) = sum;
         }
     }
+
+    void make_spd(Mtx *mtx)
+    {
+        make_symetric(mtx);
+        make_diag_dominant(mtx);
+    }
+
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
@@ -374,7 +390,34 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
 }
 
-TEST_F(Bicgstab, GpuBicgstabApplyIsEquivalentToRef)
+TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
+{
+    int m = 48;
+    int n = 1;
+
+    auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
+    auto ref_solver = ref_bicgstab_factory->generate(mtx);
+
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(gpu);
+    auto d_x = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    gpu_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b.get(), x.get());
+
+
+    auto b_result = Mtx::create(ref);
+    auto x_result = Mtx::create(ref);
+    b_result->copy_from(d_b.get());
+    x_result->copy_from(d_x.get());
+    ASSERT_MTX_NEAR(b_result, b, 1e-13);
+    ASSERT_MTX_NEAR(x_result, x, 1e-13);
+}
+
+TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 48;
     int n = 16;
@@ -397,9 +440,8 @@ TEST_F(Bicgstab, GpuBicgstabApplyIsEquivalentToRef)
     auto x_result = Mtx::create(ref);
     b_result->copy_from(d_b.get());
     x_result->copy_from(d_x.get());
-    ASSERT_MTX_NEAR(b_result, b, 1e-14);
-    ASSERT_MTX_NEAR(x_result, x, 1e-14);
+    ASSERT_MTX_NEAR(b_result, b, 1e-13);
+    ASSERT_MTX_NEAR(x_result, x, 1e-13);
 }
-
 
 }  // namespace
