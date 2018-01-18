@@ -105,12 +105,8 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     if (col >= num_cols || tidx >= num_rows * padding) {
         return;
     }
-    if (rho[col] == zero<ValueType>()) {
-        p[tidx] = z[tidx];
-    } else {
-        const auto tmp = rho[col] / prev_rho[col];
-        p[tidx] = z[tidx] + tmp * p[tidx];
-    }
+    const auto tmp = rho[col] / prev_rho[col];
+    p[tidx] = rho[col] == zero<ValueType>() ? z[tidx] : z[tidx] + tmp * p[tidx];
 }
 
 
@@ -149,8 +145,8 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     }
     if (rho[col] != zero<ValueType>()) {
         const auto tmp = rho[col] / beta[col];
-        x[tidx] = x[tidx] + tmp * p[tidx];
-        r[tidx] = r[tidx] - tmp * q[tidx];
+        x[tidx] += tmp * p[tidx];
+        r[tidx] -= tmp * q[tidx];
     }
 }
 
