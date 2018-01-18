@@ -58,7 +58,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    if (tidx < num_rows) {
+    if (tidx < padding) {
         rho[tidx] = zero<ValueType>();
         prev_rho[tidx] = one<ValueType>();
     }
