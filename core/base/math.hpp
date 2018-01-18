@@ -67,6 +67,20 @@ inline T conj(T x)
 
 
 /**
+ * Performs integer division with rounding up.
+ *
+ * @param num  numerator
+ * @param den  denominator
+ *
+ * @return returns the ceiled quotient.
+ */
+GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
+{
+    return (num + den - 1) / den;
+}
+
+
+/**
  * Returns the additive identity for T.
  *
  * @return additive identity for T
@@ -89,13 +103,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
     return T(1);
 }
 
-
-/**
- * Performs the operation (a + b -1 ) / b.
- *
- * @return returns the ceiled quotient.
- */
-inline constexpr int64 ceildiv(int64 a, int64 b) { return (a + b - 1) / b; }
 
 namespace detail {
 
