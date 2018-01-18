@@ -59,6 +59,15 @@ protected:
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         gpu = gko::GpuExecutor::create(0, ref);
+
+        mtx = gen_mtx(48, 48);
+        make_diag_dominant(mtx.get());
+        d_mtx = Mtx::create(gpu);
+        d_mtx->copy_from(mtx.get());
+        gpu_bicgstab_factory =
+            gko::solver::BicgstabFactory<>::create(gpu, 48, 1e-15);
+        ref_bicgstab_factory =
+            gko::solver::BicgstabFactory<>::create(ref, 48, 1e-15);
     }
 
     void TearDown()
@@ -76,10 +85,28 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine);
     }
 
+    void make_diag_dominant(Mtx *mtx)
+    {
+        using std::abs;
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            auto sum = gko::zero<Mtx::value_type>();
+            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+                sum += abs(mtx->at(i, j));
+            }
+            mtx->at(i, i) = sum;
+        }
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
 
     std::ranlux48 rand_engine;
+
+
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> d_mtx;
+    std::unique_ptr<gko::solver::BicgstabFactory<>> gpu_bicgstab_factory;
+    std::unique_ptr<gko::solver::BicgstabFactory<>> ref_bicgstab_factory;
 };
 
 
@@ -345,6 +372,33 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     ASSERT_MTX_NEAR(y_result, y, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
     ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
+}
+
+TEST_F(Bicgstab, GpuBicgstabApplyIsEquivalentToRef)
+{
+    int m = 48;
+    int n = 16;
+
+    auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
+    auto ref_solver = ref_bicgstab_factory->generate(mtx);
+
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(gpu);
+    auto d_x = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    gpu_solver->apply(d_b.get(), d_x.get());
+    ref_solver->apply(b.get(), x.get());
+
+
+    auto b_result = Mtx::create(ref);
+    auto x_result = Mtx::create(ref);
+    b_result->copy_from(d_b.get());
+    x_result->copy_from(d_x.get());
+    ASSERT_MTX_NEAR(b_result, b, 1e-14);
+    ASSERT_MTX_NEAR(x_result, x, 1e-14);
 }
 
 
