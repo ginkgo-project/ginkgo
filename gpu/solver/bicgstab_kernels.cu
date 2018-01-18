@@ -2,6 +2,8 @@
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "gpu/base/types.hpp"
 
 
 namespace gko {
@@ -30,7 +32,7 @@ __global__ void initialize_kernel(size_type m, size_type n, size_type lda,
                                   ValueType *rho, ValueType *beta,
                                   ValueType *alpha, ValueType *omega)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (tidx < n) {
         rho[tidx] = one<ValueType>();
@@ -62,21 +64,6 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *omega)
 {
-    ASSERT_EQUAL_DIMENSIONS(b, r);
-    ASSERT_EQUAL_DIMENSIONS(b, z);
-    ASSERT_EQUAL_DIMENSIONS(b, p);
-    ASSERT_EQUAL_DIMENSIONS(b, v);
-    ASSERT_EQUAL_DIMENSIONS(b, t);
-    ASSERT_EQUAL_DIMENSIONS(b, y);
-    ASSERT_EQUAL_DIMENSIONS(b, rr);
-    ASSERT_EQUAL_DIMENSIONS(b, s);
-    const size vector{b->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(prev_rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(beta, &vector);
-    ASSERT_EQUAL_DIMENSIONS(alpha, &vector);
-    ASSERT_EQUAL_DIMENSIONS(omega, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
@@ -84,11 +71,13 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
         b->get_num_rows(), b->get_num_cols(), b->get_padding(),
-        b->get_const_values(), r->get_values(), z->get_values(),
-        p->get_values(), v->get_values(), t->get_values(), y->get_values(),
-        rr->get_values(), s->get_values(), prev_rho->get_values(),
-        rho->get_values(), beta->get_values(), alpha->get_values(),
-        omega->get_values());
+        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
+        as_cuda_type(v->get_values()), as_cuda_type(t->get_values()),
+        as_cuda_type(y->get_values()), as_cuda_type(rr->get_values()),
+        as_cuda_type(s->get_values()), as_cuda_type(prev_rho->get_values()),
+        as_cuda_type(rho->get_values()), as_cuda_type(beta->get_values()),
+        as_cuda_type(alpha->get_values()), as_cuda_type(omega->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -101,8 +90,8 @@ __global__ void step_1_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *prev_rho, const ValueType *alpha,
                               const ValueType *omega)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type col = tidx % lda;
+    const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const size_type col = tidx % lda;
     ValueType tmp = zero<ValueType>();
 
 
@@ -123,23 +112,19 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega)
 {
-    ASSERT_EQUAL_DIMENSIONS(p, r);
-    const size vector{p->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(prev_rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(omega, &vector);
-    ASSERT_EQUAL_DIMENSIONS(alpha, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_padding(), p->get_values(),
-        r->get_const_values(), v->get_const_values(), rho->get_const_values(),
-        prev_rho->get_const_values(), alpha->get_const_values(),
-        omega->get_const_values());
+        p->get_num_rows(), p->get_num_cols(), p->get_padding(),
+        as_cuda_type(p->get_values()), as_cuda_type(r->get_const_values()),
+        as_cuda_type(v->get_const_values()),
+        as_cuda_type(rho->get_const_values()),
+        as_cuda_type(prev_rho->get_const_values()),
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(omega->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -151,8 +136,8 @@ __global__ void step_2_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *v, ValueType *alpha,
                               const ValueType *beta, const ValueType *rho)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type col = tidx % lda;
+    const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const size_type col = tidx % lda;
     // ValueType tmp = zero<ValueType>();
     if (tidx < n) {
         alpha[n] = rho[n] / beta[n];
@@ -174,22 +159,17 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta)
 {
-    ASSERT_EQUAL_DIMENSIONS(s, r);
-    ASSERT_EQUAL_DIMENSIONS(s, v);
-    const size vector{s->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(beta, &vector);
-    ASSERT_EQUAL_DIMENSIONS(rho, &vector);
-    ASSERT_EQUAL_DIMENSIONS(alpha, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         ceildiv(s->get_num_rows() * s->get_padding(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        s->get_num_rows(), s->get_num_cols(), s->get_padding(), s->get_values(),
-        r->get_const_values(), v->get_const_values(), alpha->get_values(),
-        beta->get_const_values(), rho->get_const_values());
+        s->get_num_rows(), s->get_num_cols(), s->get_padding(),
+        as_cuda_type(s->get_values()), as_cuda_type(r->get_const_values()),
+        as_cuda_type(v->get_const_values()), as_cuda_type(alpha->get_values()),
+        as_cuda_type(beta->get_const_values()),
+        as_cuda_type(rho->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
@@ -202,8 +182,8 @@ __global__ void step_3_kernel(size_type m, size_type n, size_type lda,
                               const ValueType *t, ValueType *omega,
                               const ValueType *alpha, const ValueType *beta)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type col = tidx % lda;
+    const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    const size_type col = tidx % lda;
     // ValueType tmp = zero<ValueType>();
     if (tidx < n) {
         omega[n] = omega[n] / beta[n];
@@ -230,25 +210,20 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *beta,
             matrix::Dense<ValueType> *omega)
 {
-    ASSERT_EQUAL_DIMENSIONS(x, y);
-    ASSERT_EQUAL_DIMENSIONS(x, z);
-    ASSERT_EQUAL_DIMENSIONS(r, s);
-    ASSERT_EQUAL_DIMENSIONS(r, t);
-    const size vector{x->get_num_cols(), 1};
-    ASSERT_EQUAL_DIMENSIONS(beta, &vector);
-    ASSERT_EQUAL_DIMENSIONS(alpha, &vector);
-    ASSERT_EQUAL_DIMENSIONS(omega, &vector);
-
     constexpr int block_size_x = 512;
     const dim3 block_size(block_size_x, 1, 1);
     const dim3 grid_size(
         ceildiv(x->get_num_rows() * x->get_padding(), block_size.x), 1, 1);
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
-        x->get_num_rows(), x->get_num_cols(), x->get_padding(), x->get_values(),
-        r->get_values(), y->get_const_values(), z->get_const_values(),
-        s->get_const_values(), t->get_const_values(), omega->get_values(),
-        alpha->get_const_values(), beta->get_const_values());
+        x->get_num_rows(), x->get_num_cols(), x->get_padding(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(y->get_const_values()),
+        as_cuda_type(z->get_const_values()),
+        as_cuda_type(s->get_const_values()),
+        as_cuda_type(t->get_const_values()), as_cuda_type(omega->get_values()),
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(beta->get_const_values()));
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
