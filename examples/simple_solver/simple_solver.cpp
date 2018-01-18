@@ -49,13 +49,13 @@ to this directory.
 Then compile the file with the following command line:
 
 c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu -Wl,-rpath=.
+    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-./simple_solver
+env LD_LIBRARY_PATH=. ./simple_solver
 
 ALTERNATIVELY: use the build.sh script located in this directory
 *****************************<COMPILATION>**********************************/
