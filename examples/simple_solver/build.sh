@@ -34,4 +34,4 @@ fi
 # build
 ${CXX} -std=c++11 -o ${THIS_DIR}/simple_solver ${THIS_DIR}/simple_solver.cpp \
     -I${THIS_DIR}/../..                                                      \
-    -L${THIS_DIR} ${LINK_FLAGS} -Wl,-rpath=${THIS_DIR}
+    -L${THIS_DIR} ${LINK_FLAGS} -Wl,-rpath,${THIS_DIR}
