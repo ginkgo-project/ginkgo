@@ -1,3 +1,36 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright 2017-2018
+
+Karlsruhe Institute of Technology
+Universitat Jaume I
+University of Tennessee
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
 #include <core/solver/bicgstab.hpp>
 
 
@@ -19,6 +52,8 @@ namespace {
 class Bicgstab : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    Bicgstab() : rand_engine(30) {}
+
     void SetUp()
     {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
@@ -33,22 +68,23 @@ protected:
         }
     }
 
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine);
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
+
+    std::ranlux48 rand_engine;
 };
 
 
 TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
     int m = 24;
     int n = 7;
 
@@ -153,15 +189,6 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
 
 TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
     int m = 24;
     int n = 7;
 
@@ -202,14 +229,6 @@ TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
     r_result->copy_from(d_r.get());
     v_result->copy_from(d_v.get());
 
-    //     printf("GPU: (padding %d) \n", p_result->get_padding());
-    // for (int row=0; row<m; row++) {
-    //     for (int col=0; col<n; col++) {
-    //         printf("%.2f  ",   p_result->at(row, col));
-    //     }
-    //     printf("\n");
-    // }
-
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(v_result, v, 1e-14);
@@ -218,15 +237,6 @@ TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
 
 TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
     int m = 24;
     int n = 7;
 
@@ -274,15 +284,6 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
 
 TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
     int m = 24;
     int n = 7;
 
