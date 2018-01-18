@@ -55,7 +55,7 @@ c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=. ./simple_solver
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
 ALTERNATIVELY: use the build.sh script located in this directory
 *****************************<COMPILATION>**********************************/
