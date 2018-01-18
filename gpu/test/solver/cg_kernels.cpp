@@ -131,6 +131,33 @@ protected:
         rho_result->copy_from(d_rho.get());
     }
 
+    void make_symetric(Mtx *mtx)
+    {
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
+                mtx->at(i, j) = mtx->at(j, i);
+            }
+        }
+    }
+
+    void make_diag_dominant(Mtx *mtx)
+    {
+        using std::abs;
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            auto sum = gko::zero<Mtx::value_type>();
+            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+                sum += abs(mtx->at(i, j));
+            }
+            mtx->at(i, i) = sum;
+        }
+    }
+
+    void make_spd(Mtx *mtx)
+    {
+        make_symetric(mtx);
+        make_diag_dominant(mtx);
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
 
@@ -216,6 +243,33 @@ TEST_F(Cg, GpuCgStep2IsEquivalentToRef)
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(q_result, q, 1e-14);
+}
+
+
+TEST_F(Cg, ApplyIsEquivalentToRef)
+{
+    auto mtx = gen_mtx(50, 50);
+    make_spd(mtx.get());
+    auto x = gen_mtx(50, 3);
+    auto b = gen_mtx(50, 3);
+    auto d_mtx = Mtx::create(gpu);
+    d_mtx->copy_from(mtx.get());
+    auto d_x = Mtx::create(gpu);
+    d_x->copy_from(x.get());
+    auto d_b = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    auto cg_factory = gko::solver::CgFactory<>::create(ref, 50, 1e-14);
+    auto d_cg_factory = gko::solver::CgFactory<>::create(gpu, 50, 1e-14);
+    auto solver = cg_factory->generate(std::move(mtx));
+    auto d_solver = d_cg_factory->generate(std::move(d_mtx));
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    auto result = Mtx::create(ref);
+    result->copy_from(d_x.get());
+
+    ASSERT_MTX_NEAR(result, x, 1e-12);
 }
 
 
