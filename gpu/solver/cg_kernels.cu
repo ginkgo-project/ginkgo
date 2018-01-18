@@ -45,24 +45,29 @@ namespace gpu {
 namespace cg {
 
 
-template <typename ValueType>
-__global__ void initialize_kernel(size_type m, size_type n, size_type lda,
-                                  const ValueType *b, ValueType *r,
-                                  ValueType *z, ValueType *p, ValueType *q,
-                                  ValueType *prev_rho, ValueType *rho)
-{
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+constexpr int default_block_size = 512;
 
-    if (tidx < n) {
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type num_rows, size_type padding, const ValueType *__restrict__ b,
+    ValueType *__restrict__ r, ValueType *__restrict__ z,
+    ValueType *__restrict__ p, ValueType *__restrict__ q,
+    ValueType *__restrict__ prev_rho, ValueType *__restrict__ rho)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_rows) {
         rho[tidx] = zero<ValueType>();
         prev_rho[tidx] = one<ValueType>();
     }
 
-    if (tidx < m * lda) {
+    if (tidx < num_rows * padding) {
         r[tidx] = b[tidx];
         z[tidx] = zero<ValueType>();
-        q[tidx] = zero<ValueType>();
         p[tidx] = zero<ValueType>();
+        q[tidx] = zero<ValueType>();
     }
 }
 
@@ -73,39 +78,38 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        gko::ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
+        ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        as_cuda_type(b->get_num_rows()), as_cuda_type(b->get_num_cols()),
-        as_cuda_type(b->get_padding()), as_cuda_type(b->get_const_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(z->get_values()),
-        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
-        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()));
+        b->get_num_rows(), b->get_padding(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
+        as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
+        as_cuda_type(rho->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-__global__ void step_1_kernel(size_type m, size_type n, size_type lda,
-                              ValueType *p, const ValueType *z,
-                              const ValueType *rho, const ValueType *prev_rho)
+__global__ __launch_bounds__(default_block_size) void step_1_kernel(
+    size_type num_rows, size_type num_cols, size_type padding,
+    ValueType *__restrict__ p, const ValueType *__restrict__ z,
+    const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type col = tidx % lda;
-    ValueType tmp = zero<ValueType>();
-
-
-    if (tidx < m * lda) {
-        tmp = rho[col] / prev_rho[col];
-        if (tmp == zero<ValueType>()) {
-            p[tidx] = z[tidx];
-        } else {
-            p[tidx] = z[tidx] + tmp * p[tidx];
-        }
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto col = tidx % padding;
+    if (col >= num_cols || tidx >= num_rows * padding) {
+        return;
+    }
+    if (rho[col] == zero<ValueType>()) {
+        p[tidx] = z[tidx];
+    } else {
+        const auto tmp = rho[col] / prev_rho[col];
+        p[tidx] = z[tidx] + tmp * p[tidx];
     }
 }
 
@@ -115,10 +119,9 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
         p->get_num_rows(), p->get_num_cols(), p->get_padding(),
@@ -131,25 +134,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-__global__ void step_2_kernel(size_type m, size_type n, size_type lda,
-                              ValueType *x, ValueType *r, const ValueType *p,
-                              const ValueType *q, const ValueType *beta,
-                              const ValueType *rho)
+__global__ __launch_bounds__(default_block_size) void step_2_kernel(
+    size_type num_rows, size_type num_cols, size_type padding,
+    ValueType *__restrict__ x, ValueType *__restrict__ r,
+    const ValueType *__restrict__ p, const ValueType *__restrict__ q,
+    const ValueType *__restrict__ beta, const ValueType *__restrict__ rho)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    size_type col = tidx % lda;
-    ValueType tmp = zero<ValueType>();
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto col = tidx % padding;
 
-    if (tidx < m * lda) {
-        tmp = rho[col] / beta[col];
-
-        if (tmp != zero<ValueType>()) {
-            x[tidx] = x[tidx] + tmp * p[tidx];
-        }
-
-        if (tmp != zero<ValueType>()) {
-            r[tidx] = r[tidx] - tmp * q[tidx];
-        }
+    if (col >= num_cols || tidx >= num_rows * num_cols) {
+        return;
+    }
+    if (rho[col] != zero<ValueType>()) {
+        const auto tmp = rho[col] / beta[col];
+        x[tidx] = x[tidx] + tmp * p[tidx];
+        r[tidx] = r[tidx] - tmp * q[tidx];
     }
 }
 
@@ -161,10 +162,9 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho)
 {
-    constexpr int block_size_x = 512;
-    const dim3 block_size(block_size_x, 1, 1);
+    const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        gko::ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
         p->get_num_rows(), p->get_num_cols(), p->get_padding(),

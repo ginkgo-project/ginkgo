@@ -73,7 +73,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine);
     }
 
     void initialize_data()
@@ -86,12 +86,10 @@ protected:
         p = gen_mtx(m, n);
         q = gen_mtx(m, n);
         x = gen_mtx(m, n);
-        beta = Mtx::create(ref, n, 1);
-        prev_rho = Mtx::create(ref, n, 1);
-        rho = Mtx::create(ref, n, 1);
+        beta = gen_mtx(1, n);
+        prev_rho = gen_mtx(1, n);
+        rho = gen_mtx(1, n);
 
-        d_x = Mtx::create(gpu);
-        d_x->copy_from(x.get());
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());
         d_r = Mtx::create(gpu);
@@ -102,34 +100,35 @@ protected:
         d_p->copy_from(p.get());
         d_q = Mtx::create(gpu);
         d_q->copy_from(q.get());
-        d_prev_rho = Mtx::create(gpu, n, 1);
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(gpu, n, 1);
-        d_rho->copy_from(rho.get());
-        d_beta = Mtx::create(gpu, n, 1);
+        d_x = Mtx::create(gpu);
+        d_x->copy_from(x.get());
+        d_beta = Mtx::create(gpu);
         d_beta->copy_from(beta.get());
-    }
+        d_prev_rho = Mtx::create(gpu);
+        d_prev_rho->copy_from(prev_rho.get());
+        d_rho = Mtx::create(gpu);
+        d_rho->copy_from(rho.get());
 
-    void copy_back_data()
-    {
-        b_result = Mtx::create(ref);
         r_result = Mtx::create(ref);
         z_result = Mtx::create(ref);
         p_result = Mtx::create(ref);
         q_result = Mtx::create(ref);
         x_result = Mtx::create(ref);
+        beta_result = Mtx::create(ref);
         prev_rho_result = Mtx::create(ref);
         rho_result = Mtx::create(ref);
-        beta_result = Mtx::create(ref);
-        b_result->copy_from(d_b.get());
-        x_result->copy_from(d_x.get());
+    }
+
+    void copy_back_data()
+    {
         r_result->copy_from(d_r.get());
         z_result->copy_from(d_z.get());
         p_result->copy_from(d_p.get());
         q_result->copy_from(d_q.get());
+        x_result->copy_from(d_x.get());
+        beta_result->copy_from(d_beta.get());
         prev_rho_result->copy_from(d_prev_rho.get());
         rho_result->copy_from(d_rho.get());
-        beta_result->copy_from(d_beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -139,51 +138,52 @@ protected:
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> prev_rho;
-    std::unique_ptr<Mtx> rho;
+    std::unique_ptr<Mtx> z;
     std::unique_ptr<Mtx> p;
     std::unique_ptr<Mtx> q;
-    std::unique_ptr<Mtx> z;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> beta;
+    std::unique_ptr<Mtx> prev_rho;
+    std::unique_ptr<Mtx> rho;
+
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_prev_rho;
-    std::unique_ptr<Mtx> d_rho;
+    std::unique_ptr<Mtx> d_z;
     std::unique_ptr<Mtx> d_p;
     std::unique_ptr<Mtx> d_q;
-    std::unique_ptr<Mtx> d_z;
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_beta;
-    std::unique_ptr<Mtx> b_result;
+    std::unique_ptr<Mtx> d_prev_rho;
+    std::unique_ptr<Mtx> d_rho;
+
     std::unique_ptr<Mtx> r_result;
-    std::unique_ptr<Mtx> prev_rho_result;
-    std::unique_ptr<Mtx> rho_result;
+    std::unique_ptr<Mtx> z_result;
     std::unique_ptr<Mtx> p_result;
     std::unique_ptr<Mtx> q_result;
-    std::unique_ptr<Mtx> z_result;
     std::unique_ptr<Mtx> x_result;
     std::unique_ptr<Mtx> beta_result;
+    std::unique_ptr<Mtx> prev_rho_result;
+    std::unique_ptr<Mtx> rho_result;
 };
 
 
 TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
 {
     initialize_data();
+
     gko::kernels::reference::cg::initialize(b.get(), r.get(), z.get(), p.get(),
                                             q.get(), prev_rho.get(), rho.get());
     gko::kernels::gpu::cg::initialize(d_b.get(), d_r.get(), d_z.get(),
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
                                       d_rho.get());
+
     copy_back_data();
-    ASSERT_MTX_NEAR(b_result, b, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(q_result, q, 1e-14);
     ASSERT_MTX_NEAR(prev_rho_result, prev_rho, 1e-14);
     ASSERT_MTX_NEAR(rho_result, rho, 1e-14);
-    printf("%d\n", __LINE__);
 }
 
 
