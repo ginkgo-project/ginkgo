@@ -33,19 +33,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/csr_kernels.hpp"
 
-#include "core/base/exception_helpers.hpp"
 
-#include <cusparse.h>
+#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "gpu/base/cusparse_bindings.hpp"
+
 
 namespace gko {
 namespace kernels {
 namespace gpu {
 namespace csr {
 
+
 template <typename ValueType, typename IndexType>
 void spmv(const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    // TODO: add implementation for int64 and multiple RHS
+    auto handle = cusparse::init();
+    auto descr = cusparse::create_mat_descr();
+    ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto alpha = one<ValueType>();
+    auto beta = zero<ValueType>();
+    if (b->get_padding() != 1 || c->get_padding() != 1) NOT_IMPLEMENTED;
+
+    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
+                   a->get_num_cols(), a->get_num_stored_elements(), &alpha,
+                   descr, a->get_const_values(), row_ptrs, col_idxs,
+                   b->get_const_values(), &beta, c->get_values());
+
+    cusparse::destroy(descr);
+    cusparse::destroy(handle);
+};
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
@@ -54,7 +78,26 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
                    const matrix::Csr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *c)
+{
+    // TODO: add implementation for int64 and multiple RHS
+    auto handle = cusparse::init();
+    auto descr = cusparse::create_mat_descr();
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+
+    if (b->get_padding() != 1 || c->get_padding() != 1) NOT_IMPLEMENTED;
+
+    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
+                   a->get_num_cols(), a->get_num_stored_elements(),
+                   alpha->get_const_values(), descr, a->get_const_values(),
+                   row_ptrs, col_idxs, b->get_const_values(),
+                   beta->get_const_values(), c->get_values());
+
+    cusparse::destroy(descr);
+    cusparse::destroy(handle);
+};
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);

@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GPU_BASE_CUBLAS_BINDINGS_HPP
-#define GPU_BASE_CUBLAS_BINDINGS_HPP
+#ifndef GPU_BASE_CUBLAS_BINDINGS_HPP_
+#define GPU_BASE_CUBLAS_BINDINGS_HPP_
 
 
 #include <cublas_v2.h>
@@ -160,4 +160,4 @@ inline void destroy(cublasHandle_t handle)
 }  // namespace gko
 
 
-#endif  // GPU_BASE_CUBLAS_BINDINGS_HPP
+#endif  // GPU_BASE_CUBLAS_BINDINGS_HPP_

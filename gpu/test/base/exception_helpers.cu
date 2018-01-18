@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusparse.h>
 
 
 namespace {
@@ -65,6 +66,18 @@ TEST(AssertNoCublasErrors, ThrowsOnError)
 TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoCusparseErrors, ThrowsOnError)
+{
+    ASSERT_THROW(ASSERT_NO_CUSPARSE_ERRORS(1), gko::CusparseError);
+}
+
+
+TEST(AssertNoCusparseErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(ASSERT_NO_CUSPARSE_ERRORS(CUSPARSE_STATUS_SUCCESS));
 }
 
 

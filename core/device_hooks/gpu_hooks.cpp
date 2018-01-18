@@ -80,6 +80,12 @@ std::string CublasError::get_error(int64)
 }
 
 
+std::string CusparseError::get_error(int64)
+{
+    return "ginkgo CUDA module is not compiled";
+}
+
+
 int GpuExecutor::get_num_devices() { return 0; }
 
 
