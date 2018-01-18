@@ -80,8 +80,6 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *omega)
 
 {
-    using std::abs;
-    using std::isnan;
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
             auto tmp =
@@ -125,8 +123,6 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *beta,
             matrix::Dense<ValueType> *omega)
 {
-    using std::abs;
-    using std::isnan;
     for (size_type j = 0; j < x->get_num_cols(); ++j) {
         omega->at(j) = omega->at(j) / beta->at(j);
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
