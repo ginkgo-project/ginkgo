@@ -68,7 +68,7 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
                    remove_complex<ValueType> r)
 {
     using std::abs;
-    for (int i = 0; i < tau->get_num_rows(); ++i) {
+    for (size_type i = 0; i < tau->get_num_rows(); ++i) {
         if (abs(tau->at(i, 0)) >= r * abs(orig_tau->at(i, 0))) {
             return false;
         }
@@ -110,7 +110,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
 
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});

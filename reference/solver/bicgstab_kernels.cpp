@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/bicgstab_kernels.hpp"
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
 
 
 namespace gko {
@@ -49,8 +50,28 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
-                matrix::Dense<ValueType> *beta,
-                matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *omega)
+{
+    for (size_type j = 0; j < b->get_num_cols(); ++j) {
+        rho->at(j) = one<ValueType>();
+        prev_rho->at(j) = one<ValueType>();
+        alpha->at(j) = one<ValueType>();
+        beta->at(j) = one<ValueType>();
+        omega->at(j) = one<ValueType>();
+    }
+    for (size_type i = 0; i < b->get_num_rows(); ++i) {
+        for (size_type j = 0; j < b->get_num_cols(); ++j) {
+            r->at(i, j) = b->at(i, j);
+            rr->at(i, j) = zero<ValueType>();
+            z->at(i, j) = zero<ValueType>();
+            v->at(i, j) = zero<ValueType>();
+            s->at(i, j) = zero<ValueType>();
+            t->at(i, j) = zero<ValueType>();
+            y->at(i, j) = zero<ValueType>();
+            p->at(i, j) = zero<ValueType>();
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
@@ -61,7 +82,22 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *omega)
+
+{
+    for (size_type i = 0; i < p->get_num_rows(); ++i) {
+        for (size_type j = 0; j < p->get_num_cols(); ++j) {
+            if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
+                auto tmp =
+                    rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
+                p->at(i, j) = r->at(i, j) +
+                              tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
+            } else {
+                p->at(i, j) = r->at(i, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
@@ -71,7 +107,20 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *beta)
+{
+    for (size_type i = 0; i < s->get_num_rows(); ++i) {
+        for (size_type j = 0; j < s->get_num_cols(); ++j) {
+            if (beta->at(j) != zero<ValueType>()) {
+                alpha->at(j) = rho->at(j) / beta->at(j);
+                s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
+            } else {
+                alpha->at(j) = zero<ValueType>();
+                s->at(i, j) = r->at(i, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
@@ -84,7 +133,23 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+            matrix::Dense<ValueType> *omega)
+{
+    for (size_type j = 0; j < x->get_num_cols(); ++j) {
+        if (beta->at(j) != zero<ValueType>()) {
+            omega->at(j) = omega->at(j) / beta->at(j);
+        } else {
+            omega->at(j) = zero<ValueType>();
+        }
+    }
+    for (size_type i = 0; i < x->get_num_rows(); ++i) {
+        for (size_type j = 0; j < x->get_num_cols(); ++j) {
+            x->at(i, j) +=
+                alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
+            r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
