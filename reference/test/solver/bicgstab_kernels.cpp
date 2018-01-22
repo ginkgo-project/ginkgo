@@ -71,7 +71,7 @@ TEST_F(Bicgstab, SolvesDenseSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-13);
+    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
 }
 
 
