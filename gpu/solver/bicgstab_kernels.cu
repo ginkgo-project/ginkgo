@@ -50,14 +50,15 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type m, size_type n, size_type lda, const ValueType *b, ValueType *r,
-    ValueType *z, ValueType *p, ValueType *v, ValueType *t, ValueType *y,
-    ValueType *rr, ValueType *s, ValueType *prev_rho, ValueType *rho,
-    ValueType *beta, ValueType *alpha, ValueType *omega)
+    size_type num_rows, size_type num_cols, size_type padding,
+    const ValueType *b, ValueType *r, ValueType *z, ValueType *p, ValueType *v,
+    ValueType *t, ValueType *y, ValueType *rr, ValueType *s,
+    ValueType *prev_rho, ValueType *rho, ValueType *beta, ValueType *alpha,
+    ValueType *omega)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (tidx < n) {
+    if (tidx < num_cols) {
         rho[tidx] = one<ValueType>();
         alpha[tidx] = one<ValueType>();
         beta[tidx] = one<ValueType>();
@@ -65,7 +66,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         prev_rho[tidx] = one<ValueType>();
     }
 
-    if (tidx < m * lda) {
+    if (tidx < num_rows * padding) {
         r[tidx] = b[tidx];
         rr[tidx] = zero<ValueType>();
         z[tidx] = zero<ValueType>();
@@ -107,23 +108,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
-    size_type m, size_type n, size_type lda, ValueType *p, const ValueType *r,
-    const ValueType *v, const ValueType *rho, const ValueType *prev_rho,
-    const ValueType *alpha, const ValueType *omega)
+    size_type num_rows, size_type num_cols, size_type padding, ValueType *p,
+    const ValueType *r, const ValueType *v, const ValueType *rho,
+    const ValueType *prev_rho, const ValueType *alpha, const ValueType *omega)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    const size_type col = tidx % lda;
+    const size_type col = tidx % padding;
     ValueType tmp = zero<ValueType>();
 
-
-    if (tidx < m * lda) {
-        tmp = (prev_rho[col] * omega[col] != zero<ValueType>())
-                  ? rho[col] / prev_rho[col] * alpha[col] / omega[col]
-                  : zero<ValueType>();
-        p[tidx] = (tmp == zero<ValueType>())
-                      ? r[tidx]
-                      : r[tidx] + tmp * (p[tidx] - omega[col] * v[tidx]);
+    if (col >= num_cols || tidx >= num_rows * padding) {
+        return;
     }
+    tmp = (prev_rho[col] * omega[col] != zero<ValueType>())
+              ? rho[col] / prev_rho[col] * alpha[col] / omega[col]
+              : zero<ValueType>();
+    p[tidx] = (tmp == zero<ValueType>())
+                  ? r[tidx]
+                  : r[tidx] + tmp * (p[tidx] - omega[col] * v[tidx]);
 }
 
 
@@ -154,19 +155,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type m, size_type n, size_type lda, ValueType *s, const ValueType *r,
-    const ValueType *v, ValueType *alpha, const ValueType *beta,
-    const ValueType *rho)
+    size_type num_rows, size_type num_cols, size_type padding, ValueType *s,
+    const ValueType *r, const ValueType *v, ValueType *alpha,
+    const ValueType *beta, const ValueType *rho)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    const size_type col = tidx % lda;
-    // ValueType tmp = zero<ValueType>();
-    if (tidx < n) {
-        alpha[n] = (beta[n] != zero<ValueType>()) ? rho[n] / beta[n]
-                                                  : zero<ValueType>();
-    }
-    __syncthreads();
-    if (tidx < m * lda) {
+    const size_type col = tidx % padding;
+    if (tidx < num_rows * padding) {
         alpha[col] = (beta[col] != zero<ValueType>()) ? rho[col] / beta[col]
                                                       : zero<ValueType>();
         s[tidx] = (alpha[col] == zero<ValueType>())
@@ -200,20 +195,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_3_kernel(
-    size_type m, size_type n, size_type lda, ValueType *x, ValueType *r,
-    const ValueType *y, const ValueType *z, const ValueType *s,
+    size_type num_rows, size_type num_cols, size_type padding, ValueType *x,
+    ValueType *r, const ValueType *y, const ValueType *z, const ValueType *s,
     const ValueType *t, ValueType *omega, const ValueType *alpha,
     const ValueType *beta)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    const size_type col = tidx % lda;
-    // ValueType tmp = zero<ValueType>();
-    if (tidx < n) {
-        omega[n] = (beta[n] != zero<ValueType>()) ? omega[n] / beta[n]
-                                                  : zero<ValueType>();
-    }
-    __syncthreads();
-    if (tidx < m * lda) {
+    const size_type col = tidx % padding;
+    if (tidx < num_rows * padding) {
         omega[col] = (beta[col] != zero<ValueType>()) ? omega[col] / beta[col]
                                                       : zero<ValueType>();
         // x[tidx] = (omega[col] == zero<ValueType>()) ? x[tidx] : x[tidx] +

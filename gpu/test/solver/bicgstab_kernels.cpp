@@ -261,20 +261,20 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
 
     copy_back_data();
 
-    ASSERT_MTX_NEAR(b_result, b, 1e-14);
-    ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(z_result, z, 1e-14);
-    ASSERT_MTX_NEAR(p_result, p, 1e-14);
-    ASSERT_MTX_NEAR(y_result, y, 1e-14);
-    ASSERT_MTX_NEAR(t_result, t, 1e-14);
-    ASSERT_MTX_NEAR(s_result, s, 1e-14);
-    ASSERT_MTX_NEAR(rr_result, rr, 1e-14);
-    ASSERT_MTX_NEAR(v_result, v, 1e-14);
-    ASSERT_MTX_NEAR(prev_rho_result, prev_rho, 1e-14);
-    ASSERT_MTX_NEAR(rho_result, rho, 1e-14);
-    ASSERT_MTX_NEAR(alpha_result, alpha, 1e-14);
-    ASSERT_MTX_NEAR(beta_result, beta, 1e-14);
-    ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
+    EXPECT_MTX_NEAR(b_result, b, 1e-14);
+    EXPECT_MTX_NEAR(r_result, r, 1e-14);
+    EXPECT_MTX_NEAR(z_result, z, 1e-14);
+    EXPECT_MTX_NEAR(p_result, p, 1e-14);
+    EXPECT_MTX_NEAR(y_result, y, 1e-14);
+    EXPECT_MTX_NEAR(t_result, t, 1e-14);
+    EXPECT_MTX_NEAR(s_result, s, 1e-14);
+    EXPECT_MTX_NEAR(rr_result, rr, 1e-14);
+    EXPECT_MTX_NEAR(v_result, v, 1e-14);
+    EXPECT_MTX_NEAR(prev_rho_result, prev_rho, 1e-14);
+    EXPECT_MTX_NEAR(rho_result, rho, 1e-14);
+    EXPECT_MTX_NEAR(alpha_result, alpha, 1e-14);
+    EXPECT_MTX_NEAR(beta_result, beta, 1e-14);
+    EXPECT_MTX_NEAR(omega_result, omega, 1e-14);
 }
 
 
