@@ -19,10 +19,6 @@ if(BUILD_GPU)
     project(Ginkgo LANGUAGES CXX CUDA)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
     set(CMAKE_CUDA_STANDARD 11)
-    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
-        set(CMAKE_CUDA_FLAGS "-Wno-deprecated-declarations ${CMAKE_CUDA_FLAGS}"
-            CACHE string "")
-    endif()
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9)
         set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr
             ${CMAKE_CUDA_FLAGS}" CACHE string "")
