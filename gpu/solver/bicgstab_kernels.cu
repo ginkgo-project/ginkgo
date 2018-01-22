@@ -161,13 +161,14 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % padding;
-    if (tidx < num_rows * padding) {
-        alpha[col] = (beta[col] != zero<ValueType>()) ? rho[col] / beta[col]
-                                                      : zero<ValueType>();
-        s[tidx] = (alpha[col] == zero<ValueType>())
-                      ? r[tidx]
-                      : r[tidx] - alpha[col] * v[tidx];
+    if (col >= num_cols || tidx >= num_rows * padding) {
+        return;
     }
+    alpha[col] = (beta[col] != zero<ValueType>()) ? rho[col] / beta[col]
+                                                  : zero<ValueType>();
+    s[tidx] = (alpha[col] == zero<ValueType>())
+                  ? r[tidx]
+                  : r[tidx] - alpha[col] * v[tidx];
 }
 
 
@@ -202,16 +203,18 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % padding;
-    if (tidx < num_rows * padding && tidx < num_rows * padding_b) {
-        omega[col] = (beta[col] != zero<ValueType>()) ? omega[col] / beta[col]
-                                                      : zero<ValueType>();
-        // x[tidx] = (omega[col] == zero<ValueType>()) ? x[tidx] : x[tidx] +
-        // alpha[col] * y[tidx] + omega[col]*z[tidx];
-        x[tidx] = x[tidx] + alpha[col] * y[tidx] + omega[col] * z[tidx];
-        // r[tidx] = (omega[col] == zero<ValueType>()) ? r[tidx] : r[tidx] - tmp
-        // * q[tidx];
-        r[tidx] = s[tidx] - omega[col] * t[tidx];
+    if (col >= num_cols || tidx >= num_rows * padding ||
+        tidx >= num_rows * padding_b) {
+        return;
     }
+    omega[col] = (beta[col] != zero<ValueType>()) ? omega[col] / beta[col]
+                                                  : zero<ValueType>();
+    // x[tidx] = (omega[col] == zero<ValueType>()) ? x[tidx] : x[tidx] +
+    // alpha[col] * y[tidx] + omega[col]*z[tidx];
+    x[tidx] = x[tidx] + alpha[col] * y[tidx] + omega[col] * z[tidx];
+    // r[tidx] = (omega[col] == zero<ValueType>()) ? r[tidx] : r[tidx] - tmp
+    // * q[tidx];
+    r[tidx] = s[tidx] - omega[col] * t[tidx];
 }
 
 template <typename ValueType>
