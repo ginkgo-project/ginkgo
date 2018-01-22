@@ -84,13 +84,6 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystems)
     solver->apply(b.get(), x.get());
 
     ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
-
-    // EXPECT_NEAR(x->at(0, 0), -4.0, 1e-8);
-    // EXPECT_NEAR(x->at(1, 0), -1.0, 1e-8);
-    // EXPECT_NEAR(x->at(2, 0), 4.0, 1e-8);
-    // EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
-    // EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
-    // EXPECT_NEAR(x->at(2, 1), -1.0, 1e-8);
 }
 
 
@@ -121,13 +114,6 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
 
 
     ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
-
-    // EXPECT_NEAR(x->at(0, 0), -8.5, 1e-8);
-    // EXPECT_NEAR(x->at(1, 0), -3.0, 1e-8);
-    // EXPECT_NEAR(x->at(2, 0), 6.0, 1e-8);
-    // EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
-    // EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
-    // EXPECT_NEAR(x->at(2, 1), -5.0, 1e-8);
 }
 
 

@@ -143,7 +143,9 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
         } else {
             omega->at(j) = zero<ValueType>();
         }
-        for (size_type i = 0; i < x->get_num_rows(); ++i) {
+    }
+    for (size_type i = 0; i < x->get_num_rows(); ++i) {
+        for (size_type j = 0; j < x->get_num_cols(); ++j) {
             x->at(i, j) +=
                 alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
             r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
