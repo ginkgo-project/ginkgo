@@ -67,7 +67,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
 
     if (tidx < m * lda) {
         r[tidx] = b[tidx];
-        rr[tidx] = b[tidx];
+        rr[tidx] = zero<ValueType>();
         z[tidx] = zero<ValueType>();
         p[tidx] = zero<ValueType>();
         v[tidx] = zero<ValueType>();
@@ -117,7 +117,10 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 
 
     if (tidx < m * lda) {
-        tmp = rho[col] / prev_rho[col] * alpha[col] / omega[col];
+        tmp = (prev_rho[col] != zero<ValueType>() &&
+               omega[col] != zero<ValueType>())
+                  ? rho[col] / prev_rho[col] * alpha[col] / omega[col]
+                  : zero<ValueType>();
         p[tidx] = (tmp == zero<ValueType>())
                       ? r[tidx]
                       : r[tidx] + tmp * (p[tidx] - omega[col] * v[tidx]);
@@ -160,11 +163,13 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const size_type col = tidx % lda;
     // ValueType tmp = zero<ValueType>();
     if (tidx < n) {
-        alpha[n] = rho[n] / beta[n];
+        alpha[n] = (beta[n] != zero<ValueType>()) ? rho[n] / beta[n]
+                                                  : zero<ValueType>();
     }
     __syncthreads();
     if (tidx < m * lda) {
-        alpha[col] = rho[col] / beta[col];
+        alpha[col] = (beta[col] != zero<ValueType>()) ? rho[col] / beta[col]
+                                                      : zero<ValueType>();
         s[tidx] = (alpha[col] == zero<ValueType>())
                       ? r[tidx]
                       : r[tidx] - alpha[col] * v[tidx];
@@ -205,11 +210,13 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     const size_type col = tidx % lda;
     // ValueType tmp = zero<ValueType>();
     if (tidx < n) {
-        omega[n] = omega[n] / beta[n];
+        omega[n] = (beta[n] != zero<ValueType>()) ? omega[n] / beta[n]
+                                                  : zero<ValueType>();
     }
     __syncthreads();
     if (tidx < m * lda) {
-        omega[col] = omega[col] / beta[col];
+        omega[col] = (beta[col] != zero<ValueType>()) ? omega[col] / beta[col]
+                                                      : zero<ValueType>();
         // x[tidx] = (omega[col] == zero<ValueType>()) ? x[tidx] : x[tidx] +
         // alpha[col] * y[tidx] + omega[col]*z[tidx];
         x[tidx] = x[tidx] + alpha[col] * y[tidx] + omega[col] * z[tidx];
