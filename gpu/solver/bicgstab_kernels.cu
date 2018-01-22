@@ -196,13 +196,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     size_type num_rows, size_type num_cols, size_type padding, ValueType *x,
-    ValueType *r, const ValueType *y, const ValueType *z, const ValueType *s,
-    const ValueType *t, ValueType *omega, const ValueType *alpha,
-    const ValueType *beta)
+    size_type padding_b, ValueType *r, const ValueType *y, const ValueType *z,
+    const ValueType *s, const ValueType *t, ValueType *omega,
+    const ValueType *alpha, const ValueType *beta)
 {
     const size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     const size_type col = tidx % padding;
-    if (tidx < num_rows * padding) {
+    if (tidx < num_rows * padding && tidx < num_rows * padding_b) {
         omega[col] = (beta[col] != zero<ValueType>()) ? omega[col] / beta[col]
                                                       : zero<ValueType>();
         // x[tidx] = (omega[col] == zero<ValueType>()) ? x[tidx] : x[tidx] +
@@ -230,8 +230,8 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
         x->get_num_rows(), x->get_num_cols(), x->get_padding(),
-        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(y->get_const_values()),
+        as_cuda_type(x->get_values()), t->get_padding(),
+        as_cuda_type(r->get_values()), as_cuda_type(y->get_const_values()),
         as_cuda_type(z->get_const_values()),
         as_cuda_type(s->get_const_values()),
         as_cuda_type(t->get_const_values()), as_cuda_type(omega->get_values()),
