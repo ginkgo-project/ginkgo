@@ -51,7 +51,8 @@ namespace bicgstab {
                     matrix::Dense<_type> *z, matrix::Dense<_type> *v,        \
                     matrix::Dense<_type> *p, matrix::Dense<_type> *prev_rho, \
                     matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha,  \
-                    matrix::Dense<_type> *beta, matrix::Dense<_type> *omega)
+                    matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma, \
+                    matrix::Dense<_type> *omega)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                       \
@@ -69,12 +70,13 @@ namespace bicgstab {
                 const matrix::Dense<_type> *beta)
 
 
-#define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)                             \
-    void step_3(matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                const matrix::Dense<_type> *s, const matrix::Dense<_type> *t, \
-                const matrix::Dense<_type> *y, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *alpha,                            \
-                const matrix::Dense<_type> *beta, matrix::Dense<_type> *omega)
+#define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)                            \
+    void step_3(                                                             \
+        matrix::Dense<_type> *x, matrix::Dense<_type> *r,                    \
+        const matrix::Dense<_type> *s, const matrix::Dense<_type> *t,        \
+        const matrix::Dense<_type> *y, const matrix::Dense<_type> *z,        \
+        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *beta, \
+        const matrix::Dense<_type> *gamma, matrix::Dense<_type> *omega)
 
 #define DECLARE_ALL_AS_TEMPLATES                       \
     template <typename ValueType>                      \

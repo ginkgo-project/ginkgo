@@ -100,11 +100,12 @@ protected:
         t = gen_mtx(m, n);
         y = gen_mtx(m, n);
         v = gen_mtx(m, n);
-        prev_rho = Mtx::create(ref, 1, n);
-        rho = Mtx::create(ref, 1, n);
-        alpha = Mtx::create(ref, 1, n);
-        beta = Mtx::create(ref, 1, n);
-        omega = Mtx::create(ref, 1, n);
+        prev_rho = gen_mtx(1, n);
+        rho = gen_mtx(1, n);
+        alpha = gen_mtx(1, n);
+        beta = gen_mtx(1, n);
+        gamma = gen_mtx(1, n);
+        omega = gen_mtx(1, n);
 
         d_x = Mtx::create(gpu);
         d_b = Mtx::create(gpu);
@@ -116,11 +117,12 @@ protected:
         d_y = Mtx::create(gpu);
         d_v = Mtx::create(gpu);
         d_rr = Mtx::create(gpu);
-        d_prev_rho = Mtx::create(gpu, 1, n);
-        d_rho = Mtx::create(gpu, 1, n);
-        d_alpha = Mtx::create(gpu, 1, n);
-        d_beta = Mtx::create(gpu, 1, n);
-        d_omega = Mtx::create(gpu, 1, n);
+        d_prev_rho = Mtx::create(gpu);
+        d_rho = Mtx::create(gpu);
+        d_alpha = Mtx::create(gpu);
+        d_beta = Mtx::create(gpu);
+        d_gamma = Mtx::create(gpu);
+        d_omega = Mtx::create(gpu);
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
         d_r->copy_from(r.get());
@@ -135,6 +137,7 @@ protected:
         d_rho->copy_from(rho.get());
         d_alpha->copy_from(alpha.get());
         d_beta->copy_from(beta.get());
+        d_gamma->copy_from(gamma.get());
         d_omega->copy_from(omega.get());
 
         x_result = Mtx::create(ref);
@@ -151,6 +154,7 @@ protected:
         rho_result = Mtx::create(ref);
         alpha_result = Mtx::create(ref);
         beta_result = Mtx::create(ref);
+        gamma_result = Mtx::create(ref);
         omega_result = Mtx::create(ref);
     }
 
@@ -170,6 +174,7 @@ protected:
         rho_result->copy_from(d_rho.get());
         alpha_result->copy_from(d_alpha.get());
         beta_result->copy_from(d_beta.get());
+        gamma_result->copy_from(d_gamma.get());
         omega_result->copy_from(d_omega.get());
     }
 
@@ -209,6 +214,7 @@ protected:
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
+    std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
 
     std::unique_ptr<Mtx> d_x;
@@ -225,6 +231,7 @@ protected:
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_alpha;
     std::unique_ptr<Mtx> d_beta;
+    std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
 
     std::unique_ptr<Mtx> x_result;
@@ -241,6 +248,7 @@ protected:
     std::unique_ptr<Mtx> rho_result;
     std::unique_ptr<Mtx> alpha_result;
     std::unique_ptr<Mtx> beta_result;
+    std::unique_ptr<Mtx> gamma_result;
     std::unique_ptr<Mtx> omega_result;
 };
 
@@ -252,15 +260,14 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
     gko::kernels::reference::bicgstab::initialize(
         b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        omega.get());
+        gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::initialize(
         d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
-        d_alpha.get(), d_beta.get(), d_omega.get());
+        d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
     copy_back_data();
 
-    EXPECT_MTX_NEAR(b_result, b, 1e-14);
     EXPECT_MTX_NEAR(r_result, r, 1e-14);
     EXPECT_MTX_NEAR(z_result, z, 1e-14);
     EXPECT_MTX_NEAR(p_result, p, 1e-14);
@@ -273,6 +280,7 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
     EXPECT_MTX_NEAR(rho_result, rho, 1e-14);
     EXPECT_MTX_NEAR(alpha_result, alpha, 1e-14);
     EXPECT_MTX_NEAR(beta_result, beta, 1e-14);
+    EXPECT_MTX_NEAR(gamma_result, gamma, 1e-14);
     EXPECT_MTX_NEAR(omega_result, omega, 1e-14);
 }
 
@@ -291,8 +299,6 @@ TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
     copy_back_data();
 
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
-    ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(v_result, v, 1e-14);
 }
 
 
@@ -308,10 +314,8 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
 
     copy_back_data();
 
-    ASSERT_MTX_NEAR(s_result, s, 1e-14);
-    ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(v_result, v, 1e-14);
     ASSERT_MTX_NEAR(alpha_result, alpha, 1e-14);
+    ASSERT_MTX_NEAR(s_result, s, 1e-14);
 }
 
 
@@ -321,20 +325,16 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
 
     gko::kernels::reference::bicgstab::step_3(
         x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-        beta.get(), omega.get());
+        beta.get(), gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::step_3(
         d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
-        d_alpha.get(), d_beta.get(), d_omega.get());
+        d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
     copy_back_data();
 
+    ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
     ASSERT_MTX_NEAR(x_result, x, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(s_result, s, 1e-14);
-    ASSERT_MTX_NEAR(t_result, t, 1e-14);
-    ASSERT_MTX_NEAR(y_result, y, 1e-14);
-    ASSERT_MTX_NEAR(z_result, z, 1e-14);
-    ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
 }
 
 
@@ -356,11 +356,11 @@ TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
     gpu_solver->apply(d_b.get(), d_x.get());
     ref_solver->apply(b.get(), x.get());
 
-
     auto b_result = Mtx::create(ref);
     auto x_result = Mtx::create(ref);
     b_result->copy_from(d_b.get());
     x_result->copy_from(d_x.get());
+
     ASSERT_MTX_NEAR(b_result, b, 1e-13);
     ASSERT_MTX_NEAR(x_result, x, 1e-13);
 }
@@ -384,11 +384,11 @@ TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
     gpu_solver->apply(d_b.get(), d_x.get());
     ref_solver->apply(b.get(), x.get());
 
-
     auto b_result = Mtx::create(ref);
     auto x_result = Mtx::create(ref);
     b_result->copy_from(d_b.get());
     x_result->copy_from(d_x.get());
+
     ASSERT_MTX_NEAR(b_result, b, 1e-13);
     ASSERT_MTX_NEAR(x_result, x, 1e-13);
 }

@@ -125,6 +125,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
     auto beta = Vector::create_with_config_of(alpha.get());
+    auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
@@ -138,9 +139,9 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        omega.get()));
+        gamma.get(), omega.get()));
     // r = dense_b
-    // prev_rho = rho = omega = alpha = beta = 1.0
+    // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
@@ -180,12 +181,12 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         // TODO: replace copy with preconditioner application
         z->copy_from(s.get());
         system_matrix_->apply(z.get(), t.get());
-        s->compute_dot(t.get(), omega.get());
+        s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), omega.get()));
-        // omega = omega / beta
+            beta.get(), gamma.get(), omega.get()));
+        // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);

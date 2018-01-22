@@ -50,13 +50,15 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
-                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *omega)
+                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
+                matrix::Dense<ValueType> *omega)
 {
     for (size_type j = 0; j < b->get_num_cols(); ++j) {
         rho->at(j) = one<ValueType>();
         prev_rho->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
         beta->at(j) = one<ValueType>();
+        gamma->at(j) = one<ValueType>();
         omega->at(j) = one<ValueType>();
     }
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
@@ -126,18 +128,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *s,
-            const matrix::Dense<ValueType> *t,
-            const matrix::Dense<ValueType> *y,
-            const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta,
-            matrix::Dense<ValueType> *omega)
+void step_3(
+    matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+    const matrix::Dense<ValueType> *s, const matrix::Dense<ValueType> *t,
+    const matrix::Dense<ValueType> *y, const matrix::Dense<ValueType> *z,
+    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *beta,
+    const matrix::Dense<ValueType> *gamma, matrix::Dense<ValueType> *omega)
 {
     for (size_type j = 0; j < x->get_num_cols(); ++j) {
         if (beta->at(j) != zero<ValueType>()) {
-            omega->at(j) = omega->at(j) / beta->at(j);
+            omega->at(j) = gamma->at(j) / beta->at(j);
         } else {
             omega->at(j) = zero<ValueType>();
         }
