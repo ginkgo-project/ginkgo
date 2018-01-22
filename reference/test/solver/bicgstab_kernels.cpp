@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
@@ -62,7 +63,7 @@ protected:
 };
 
 
-TEST_F(Bicgstab, SolvesStencilSystem)
+TEST_F(Bicgstab, SolvesDenseSystem)
 {
     auto solver = bicgstab_factory->generate(mtx);
     auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
@@ -70,13 +71,11 @@ TEST_F(Bicgstab, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), -4.0, 1e-8);
-    EXPECT_NEAR(x->at(1), -1.0, 1e-8);
-    EXPECT_NEAR(x->at(2), 4.0, 1e-8);
+    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-13);
 }
 
 
-TEST_F(Bicgstab, SolvesMultipleStencilSystems)
+TEST_F(Bicgstab, SolvesMultipleDenseSystems)
 {
     auto solver = bicgstab_factory->generate(mtx);
     auto b = Mtx::create(exec, {{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}});
@@ -84,16 +83,18 @@ TEST_F(Bicgstab, SolvesMultipleStencilSystems)
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), -4.0, 1e-8);
-    EXPECT_NEAR(x->at(1, 0), -1.0, 1e-8);
-    EXPECT_NEAR(x->at(2, 0), 4.0, 1e-8);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
-    EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
-    EXPECT_NEAR(x->at(2, 1), -1.0, 1e-8);
+    ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
+
+    // EXPECT_NEAR(x->at(0, 0), -4.0, 1e-8);
+    // EXPECT_NEAR(x->at(1, 0), -1.0, 1e-8);
+    // EXPECT_NEAR(x->at(2, 0), 4.0, 1e-8);
+    // EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
+    // EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
+    // EXPECT_NEAR(x->at(2, 1), -1.0, 1e-8);
 }
 
 
-TEST_F(Bicgstab, SolvesStencilSystemUsingAdvancedApply)
+TEST_F(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
 {
     auto solver = bicgstab_factory->generate(mtx);
     auto alpha = Mtx::create(exec, {2.0});
@@ -103,13 +104,12 @@ TEST_F(Bicgstab, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), -8.5, 1e-8);
-    EXPECT_NEAR(x->at(1), -3.0, 1e-8);
-    EXPECT_NEAR(x->at(2), 6.0, 1e-8);
+
+    ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
 }
 
 
-TEST_F(Bicgstab, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
 {
     auto solver = bicgstab_factory->generate(mtx);
     auto alpha = Mtx::create(exec, {2.0});
@@ -119,12 +119,15 @@ TEST_F(Bicgstab, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), -8.5, 1e-8);
-    EXPECT_NEAR(x->at(1, 0), -3.0, 1e-8);
-    EXPECT_NEAR(x->at(2, 0), 6.0, 1e-8);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
-    EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
-    EXPECT_NEAR(x->at(2, 1), -5.0, 1e-8);
+
+    ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
+
+    // EXPECT_NEAR(x->at(0, 0), -8.5, 1e-8);
+    // EXPECT_NEAR(x->at(1, 0), -3.0, 1e-8);
+    // EXPECT_NEAR(x->at(2, 0), 6.0, 1e-8);
+    // EXPECT_NEAR(x->at(0, 1), 1.0, 1e-8);
+    // EXPECT_NEAR(x->at(1, 1), 2.0, 1e-8);
+    // EXPECT_NEAR(x->at(2, 1), -5.0, 1e-8);
 }
 
 

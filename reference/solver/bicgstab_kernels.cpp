@@ -61,9 +61,14 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
     }
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
         for (size_type j = 0; j < b->get_num_cols(); ++j) {
-            r->at(i, j) = rr->at(i, j) = b->at(i, j);
-            z->at(i, j) = v->at(i, j) = s->at(i, j) = t->at(i, j) =
-                y->at(i, j) = p->at(i, j) = zero<ValueType>();
+            r->at(i, j) = b->at(i, j);
+            rr->at(i, j) = zero<ValueType>();
+            z->at(i, j) = zero<ValueType>();
+            v->at(i, j) = zero<ValueType>();
+            s->at(i, j) = zero<ValueType>();
+            t->at(i, j) = zero<ValueType>();
+            y->at(i, j) = zero<ValueType>();
+            p->at(i, j) = zero<ValueType>();
         }
     }
 }
@@ -82,10 +87,15 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            auto tmp =
-                rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
-            p->at(i, j) =
-                r->at(i, j) + tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
+            if (prev_rho->at(j) != zero<ValueType>() &&
+                omega->at(j) != zero<ValueType>()) {
+                auto tmp =
+                    rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
+                p->at(i, j) = r->at(i, j) +
+                              tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
+            } else {
+                p->at(i, j) = r->at(i, j);
+            }
         }
     }
 }
@@ -102,9 +112,13 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
 {
     for (size_type i = 0; i < s->get_num_rows(); ++i) {
         for (size_type j = 0; j < s->get_num_cols(); ++j) {
-            if (rho->at(j) != zero<ValueType>()) {
+            if (rho->at(j) != zero<ValueType>() &&
+                beta->at(j) != zero<ValueType>()) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
+            } else {
+                alpha->at(j) = zero<ValueType>();
+                s->at(i, j) = r->at(i, j);
             }
         }
     }
@@ -124,7 +138,11 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *omega)
 {
     for (size_type j = 0; j < x->get_num_cols(); ++j) {
-        omega->at(j) = omega->at(j) / beta->at(j);
+        if (beta->at(j) != zero<ValueType>()) {
+            omega->at(j) = omega->at(j) / beta->at(j);
+        } else {
+            omega->at(j) = zero<ValueType>();
+        }
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
             x->at(i, j) +=
                 alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
