@@ -117,8 +117,7 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 
 
     if (tidx < m * lda) {
-        tmp = (prev_rho[col] != zero<ValueType>() &&
-               omega[col] != zero<ValueType>())
+        tmp = (prev_rho[col] * omega[col] != zero<ValueType>())
                   ? rho[col] / prev_rho[col] * alpha[col] / omega[col]
                   : zero<ValueType>();
         p[tidx] = (tmp == zero<ValueType>())
