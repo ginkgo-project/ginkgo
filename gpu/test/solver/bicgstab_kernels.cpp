@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/solver/bicgstab_kernels.hpp>
 #include <core/test/utils.hpp>
 
+
 namespace {
 
 
@@ -60,14 +61,14 @@ protected:
         ref = gko::ReferenceExecutor::create();
         gpu = gko::GpuExecutor::create(0, ref);
 
-        mtx = gen_mtx(48, 48);
+        mtx = gen_mtx(123, 123);
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(gpu);
         d_mtx->copy_from(mtx.get());
         gpu_bicgstab_factory =
-            gko::solver::BicgstabFactory<>::create(gpu, 48, 1e-15);
+            gko::solver::BicgstabFactory<>::create(gpu, 246, 1e-15);
         ref_bicgstab_factory =
-            gko::solver::BicgstabFactory<>::create(ref, 48, 1e-15);
+            gko::solver::BicgstabFactory<>::create(ref, 246, 1e-15);
     }
 
     void TearDown()
@@ -153,7 +154,6 @@ protected:
         omega_result = Mtx::create(ref);
     }
 
-
     void copy_back_data()
     {
         x_result->copy_from(d_x.get());
@@ -189,7 +189,6 @@ protected:
     std::shared_ptr<const gko::GpuExecutor> gpu;
 
     std::ranlux48 rand_engine;
-
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
@@ -338,9 +337,10 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
 }
 
+
 TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
 {
-    int m = 48;
+    int m = 123;
     int n = 1;
 
     auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
@@ -365,9 +365,10 @@ TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
     ASSERT_MTX_NEAR(x_result, x, 1e-13);
 }
 
+
 TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 48;
+    int m = 123;
     int n = 16;
 
     auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
@@ -391,5 +392,6 @@ TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
     ASSERT_MTX_NEAR(b_result, b, 1e-13);
     ASSERT_MTX_NEAR(x_result, x, 1e-13);
 }
+
 
 }  // namespace
