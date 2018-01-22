@@ -87,8 +87,7 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (prev_rho->at(j) != zero<ValueType>() &&
-                omega->at(j) != zero<ValueType>()) {
+            if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
                 auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
                 p->at(i, j) = r->at(i, j) +
@@ -112,8 +111,7 @@ void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
 {
     for (size_type i = 0; i < s->get_num_rows(); ++i) {
         for (size_type j = 0; j < s->get_num_cols(); ++j) {
-            if (rho->at(j) != zero<ValueType>() &&
-                beta->at(j) != zero<ValueType>()) {
+            if (beta->at(j) != zero<ValueType>()) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             } else {
