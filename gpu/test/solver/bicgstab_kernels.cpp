@@ -99,11 +99,11 @@ protected:
         t = gen_mtx(m, n);
         y = gen_mtx(m, n);
         v = gen_mtx(m, n);
-        prev_rho = Mtx::create(ref, n, 1);
-        rho = Mtx::create(ref, n, 1);
-        alpha = Mtx::create(ref, n, 1);
+        prev_rho = Mtx::create(ref, 1, n);
+        rho = Mtx::create(ref, 1, n);
+        alpha = Mtx::create(ref, 1, n);
         beta = Mtx::create(ref, 1, n);
-        omega = Mtx::create(ref, n, 1);
+        omega = Mtx::create(ref, 1, n);
 
         d_x = Mtx::create(gpu);
         d_b = Mtx::create(gpu);
@@ -115,11 +115,11 @@ protected:
         d_y = Mtx::create(gpu);
         d_v = Mtx::create(gpu);
         d_rr = Mtx::create(gpu);
-        d_prev_rho = Mtx::create(gpu, n, 1);
-        d_rho = Mtx::create(gpu, n, 1);
-        d_alpha = Mtx::create(gpu, n, 1);
+        d_prev_rho = Mtx::create(gpu, 1, n);
+        d_rho = Mtx::create(gpu, 1, n);
+        d_alpha = Mtx::create(gpu, 1, n);
         d_beta = Mtx::create(gpu, 1, n);
-        d_omega = Mtx::create(gpu, n, 1);
+        d_omega = Mtx::create(gpu, 1, n);
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
         d_r->copy_from(r.get());
