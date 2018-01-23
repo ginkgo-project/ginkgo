@@ -90,7 +90,7 @@ void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
             if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
-                auto tmp =
+                const auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
                 p->at(i, j) = r->at(i, j) +
                               tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
