@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicgstab.hpp"
 
+
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
@@ -40,10 +41,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 
+
 namespace gko {
 namespace solver {
-
-
 namespace {
 
 
@@ -54,6 +54,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
 };
+
 
 /**
  * Checks whether the required residual goal has been reached or not.
@@ -103,9 +104,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = as<Vector>(b);
-    auto dense_x = as<Vector>(x);
-
     ASSERT_CONFORMANT(system_matrix_, b);
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
@@ -114,6 +112,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto one_op = Vector::create(exec, {one<ValueType>()});
     auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
 
+    auto dense_b = as<Vector>(b);
+    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
     auto y = Vector::create_with_config_of(dense_b);
@@ -123,42 +123,32 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto rr = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols(), 1);
+    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
     auto beta = Vector::create_with_config_of(alpha.get());
+    auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols(), 1);
+        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
     auto starting_tau = Vector::create_with_config_of(master_tau.get());
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        omega.get()));
+        gamma.get(), omega.get()));
     // r = dense_b
-    // rr = r
-    // rho = 1.0
-    // omega = 1.0
-    // beta = 1.0
-    // alpha = 1.0
-    // prev_rho = 1.0
-    // v = s = t = z = y = p = 0
+    // prev_rho = rho = omega = alpha = beta = gamma = 1.0
+    // rr = v = s = t = z = y = p = 0
 
-    // r = b - Ax
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    // rr = r
     rr->copy_from(r.get());
-    // rho = <rr,r>
-    // tau = <r,r>
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
-    // v = A r
     system_matrix_->apply(r.get(), v.get());
-    // prev_rho->copy_from(rho.get());
     for (int iter = 0; iter < max_iters_; ++iter) {
         r->compute_dot(r.get(), tau.get());
         master_tau->copy_from(tau.get());
@@ -166,7 +156,6 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
                           rel_residual_goal_)) {
             break;
         }
-        // rho = <rr,r>
         rr->compute_dot(r.get(), rho.get());
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
@@ -174,25 +163,30 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
             omega.get()));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        // TODO//precond_->apply(p.get(), y.get());
+
+        // TODO: replace copy with preconditioner application
         y->copy_from(p.get());
-        // v = A y
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get()));
         // alpha = rho / beta
         // s = r - alpha * v
-        // TODO//precond_->apply(s.get(), z.get());
+
+        // TODO: Add second convergence check
+        if (++iter == max_iters_) {
+            dense_x->add_scaled(alpha.get(), y.get());
+            break;
+        }
+        // TODO: replace copy with preconditioner application
         z->copy_from(s.get());
-        // t = A z
         system_matrix_->apply(z.get(), t.get());
-        s->compute_dot(t.get(), omega.get());
+        s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), omega.get()));
-        // omega = omega / beta
+            beta.get(), gamma.get(), omega.get()));
+        // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);

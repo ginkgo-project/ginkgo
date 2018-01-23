@@ -54,7 +54,7 @@ protected:
           mtx(Mtx::create(
               exec, {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}})),
           bicgstab_factory(
-              gko::solver::BicgstabFactory<>::create(exec, 4, 1e-15))
+              gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
