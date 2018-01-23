@@ -111,7 +111,7 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     std::unique_ptr<Csr> trans_cpy =
-        create(this->get_executor(), this->get_num_rows(), this->get_num_cols(),
+        create(this->get_executor(), this->get_num_cols(), this->get_num_rows(),
                this->get_num_stored_elements());
 
     this->get_executor()->run(
@@ -125,7 +125,7 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 {
     std::unique_ptr<Csr> trans_cpy =
-        create(this->get_executor(), this->get_num_rows(), this->get_num_cols(),
+        create(this->get_executor(), this->get_num_cols(), this->get_num_rows(),
                this->get_num_stored_elements());
 
     this->get_executor()->run(

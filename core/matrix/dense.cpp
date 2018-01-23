@@ -183,7 +183,7 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
     std::unique_ptr<Dense> trans_cpy =
-        create(this->get_executor(), this->get_num_rows(), this->get_num_cols(),
+        create(this->get_executor(), this->get_num_cols(), this->get_num_rows(),
                this->get_padding());
 
     this->get_executor()->run(

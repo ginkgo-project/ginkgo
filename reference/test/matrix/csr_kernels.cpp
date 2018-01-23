@@ -182,21 +182,21 @@ TEST_F(Csr, MovesToDense)
 }
 
 
-TEST_F(Dense, IsTransposable)
+TEST_F(Csr, IsTransposable)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
+    auto trans = mtx->transpose();
 
-    if (auto tmp = dynamic_cast<Transposable * trans> op) {
-        auto trans = tmp->transpose();
-    }
+    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
-    auto v = trans->get_const_values();
-    auto c = trans->get_const_col_idxs();
-    auto r = trans->get_const_row_ptrs();
+    ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
+    ASSERT_EQ(trans_as_csr->get_num_cols(), 2);
+    ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 4);
 
-    ASSERT_EQ(trans->get_num_rows(), 3);
-    ASSERT_EQ(trans->get_num_cols(), 2);
-    ASSERT_EQ(trans->get_num_stored_elements(), 4);
+
+    Mtx::value_type *v = trans_as_csr->get_values();
+    Mtx::index_type *c = trans_as_csr->get_col_idxs();
+    Mtx::index_type *r = trans_as_csr->get_row_ptrs();
+
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 1);
     EXPECT_EQ(r[2], 3);

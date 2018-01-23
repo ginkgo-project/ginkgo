@@ -54,8 +54,10 @@ protected:
           mtx2(gko::matrix::Dense<>::create(exec, {{1.0, -1.0}, {-2.0, 2.0}})),
           mtx3(gko::matrix::Dense<>::create(
               exec, 4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}})),
-          mtx4(gko::matrix::Dense<>::create(exec, 4,
-                                            {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}))
+          mtx4(gko::matrix::Dense<>::create(
+              exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}})),
+          mtx5(gko::matrix::Dense<>::create(
+              exec, {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -63,6 +65,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<>> mtx2;
     std::unique_ptr<gko::matrix::Dense<>> mtx3;
     std::unique_ptr<gko::matrix::Dense<>> mtx4;
+    std::unique_ptr<gko::matrix::Dense<>> mtx5;
 };
 
 
@@ -283,20 +286,34 @@ TEST_F(Dense, MovesToCsr)
 }
 
 
-TEST_F(Dense, IsTransposable)
+TEST_F(Dense, SquareMatrixIsTransposable)
 {
-    std::unique_ptr<gko::matrix::Dense> orig = gko::matrix::Dense<>::create(
-        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto trans = mtx5->transpose();
 
-    if (auto tmp = dynamic_cast<Transposable *>(orig)) {
-        auto trans = tmp->transpose();
-    }
+    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+
+    ASSERT_EQ(trans_as_dense->get_num_cols(), mtx5->get_num_rows());
+    ASSERT_EQ(trans_as_dense->get_num_rows(), mtx5->get_num_cols());
+    EXPECT_EQ(trans_as_dense->at(0, 0), mtx5->at(0, 0));
+    EXPECT_EQ(trans_as_dense->at(1, 0), mtx5->at(0, 1));
+    EXPECT_EQ(trans_as_dense->at(1, 1), mtx5->at(1, 1));
+    EXPECT_EQ(trans_as_dense->at(2, 0), mtx5->at(0, 2));
+    EXPECT_EQ(trans_as_dense->at(2, 1), mtx5->at(1, 2));
+}
 
 
-    EXPECT_EQ(trans->at(0, 0), 0.0);
-    EXPECT_EQ(trans->at(1, 1), 3.0);
-    EXPECT_EQ(trans->at(1, 0), 5.0);
-    EXPECT_EQ(trans->at(2, 1), 2.0);
-    EXPECT_EQ(trans->at(2, 0), 0.0);
+TEST_F(Dense, NonSquareMatrixIsTransposable)
+{
+    auto trans = mtx4->transpose();
+
+    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+
+    ASSERT_EQ(trans_as_dense->get_num_cols(), mtx4->get_num_rows());
+    ASSERT_EQ(trans_as_dense->get_num_rows(), mtx4->get_num_cols());
+    EXPECT_EQ(trans_as_dense->at(0, 0), mtx4->at(0, 0));
+    EXPECT_EQ(trans_as_dense->at(1, 0), mtx4->at(0, 1));
+    EXPECT_EQ(trans_as_dense->at(1, 1), mtx4->at(1, 1));
+    EXPECT_EQ(trans_as_dense->at(2, 0), mtx4->at(0, 2));
+    EXPECT_EQ(trans_as_dense->at(2, 1), mtx4->at(1, 2));
 }
 }  // namespace

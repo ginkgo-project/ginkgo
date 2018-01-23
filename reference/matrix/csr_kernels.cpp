@@ -149,7 +149,7 @@ template <typename ValueType, typename IndexType>
 void transpose(matrix::Csr<ValueType, IndexType> *trans,
                const matrix::Csr<ValueType, IndexType> *orig)
 {
-    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    // ASSERT_EQUAL_ROW(trans, orig);
     auto orig_row_ptrs = orig->get_const_row_ptrs();
     auto orig_col_idxs = orig->get_const_col_idxs();
     auto orig_vals = orig->get_const_values();
@@ -221,7 +221,7 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
 {
-    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    // ASSERT_EQUAL_DIMENSIONS(trans, orig);
     auto orig_row_ptrs = orig->get_const_row_ptrs();
     auto orig_col_idxs = orig->get_const_col_idxs();
     auto orig_vals = orig->get_const_values();
