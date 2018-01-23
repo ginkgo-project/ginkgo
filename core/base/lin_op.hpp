@@ -326,6 +326,20 @@ private:
     std::shared_ptr<const Executor> exec_;
 };
 
+class Transposable {
+public:
+    /**
+     * Returns a LinOp representing the transpose of the Transposable object.
+     */
+    virtual std::unique_ptr<LinOp> transpose() const = 0;
+
+    /**
+     * Returns a LinOp representing the conjugate transpose of the Transposable
+     * object.
+     */
+    virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
+};
+
 
 }  // namespace gko
 

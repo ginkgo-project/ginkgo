@@ -145,6 +145,151 @@ void move_to_dense(matrix::Dense<ValueType> *result,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void transpose(matrix::Csr<ValueType, IndexType> *trans,
+               const matrix::Csr<ValueType, IndexType> *orig)
+{
+    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    auto orig_row_ptrs = orig->get_const_row_ptrs();
+    auto orig_col_idxs = orig->get_const_col_idxs();
+    auto orig_vals = orig->get_const_values();
+    auto orig_nnz = orig_row_ptrs[orig->get_num_rows()];
+
+    auto tmp_row_ptrs = trans->get_row_ptrs();
+    auto tmp_col_idxs = trans->get_col_idxs();
+
+    auto trans_row_ptrs = trans->get_row_ptrs();
+    auto trans_col_idxs = trans->get_col_idxs();
+    auto trans_vals = trans->get_values();
+
+    std::vector<IndexType> linked_list(0, orig_nnz);
+
+    auto last_rowel = trans->get_row_ptrs();
+
+    for (size_type row = 0; row < orig->get_num_rows(); ++row) {
+        tmp_row_ptrs[row] = -1;
+    }
+
+    for (size_type row = 0; row < trans->get_num_rows() + 1; ++row) {
+        trans_row_ptrs[row] = 0;
+    }
+
+    for (size_type i = 0; i < orig_nnz; ++i) {
+        IndexType row = trans_col_idxs[i];
+        {
+            if (tmp_row_ptrs[row] == -1) {
+                tmp_row_ptrs[row] = i;
+                linked_list[i] = 0;
+                last_rowel[row] = i;
+            } else {
+                linked_list[last_rowel[row]] = i;
+                linked_list[i] = 0;
+                last_rowel[row] = i;
+            }
+            trans_row_ptrs[row + 1] += 1;
+        }
+    }
+
+    trans_row_ptrs[0] = 0;
+
+    // create_row_ptr here
+    for (size_type row = 1; row < trans->get_num_rows(); ++row) {
+        trans_row_ptrs[row] += trans_row_ptrs[row - 1];
+    }
+    trans_row_ptrs[trans->get_num_rows()] = orig_nnz;
+
+    for (size_type row = 0; row < orig->get_num_rows(); ++row) {
+        auto el = tmp_row_ptrs[row];
+        {
+            if (el > -1) {
+                for (auto i = trans_row_ptrs[row]; i < trans_row_ptrs[row + 1];
+                     ++i) {
+                    trans_vals[i] = orig_vals[el];
+                    trans_col_idxs[i] = tmp_row_ptrs[el];
+                    el = linked_list[el];
+                }
+            }
+            trans_row_ptrs[row + 1] += 1;
+        }
+    }
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
+                    const matrix::Csr<ValueType, IndexType> *orig)
+{
+    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    auto orig_row_ptrs = orig->get_const_row_ptrs();
+    auto orig_col_idxs = orig->get_const_col_idxs();
+    auto orig_vals = orig->get_const_values();
+    auto orig_nnz = orig_row_ptrs[orig->get_num_rows()];
+
+    auto tmp_row_ptrs = trans->get_row_ptrs();
+    auto tmp_col_idxs = trans->get_col_idxs();
+
+    auto trans_row_ptrs = trans->get_row_ptrs();
+    auto trans_col_idxs = trans->get_col_idxs();
+    auto trans_vals = trans->get_values();
+
+    std::vector<IndexType> linked_list(0, orig_nnz);
+
+    auto last_rowel = trans->get_row_ptrs();
+
+    for (size_type row = 0; row < orig->get_num_rows(); ++row) {
+        tmp_row_ptrs[row] = -1;
+    }
+
+    for (size_type row = 0; row < trans->get_num_rows() + 1; ++row) {
+        trans_row_ptrs[row] = 0;
+    }
+
+    for (size_type i = 0; i < orig_nnz; ++i) {
+        IndexType row = trans_col_idxs[i];
+        {
+            if (tmp_row_ptrs[row] == -1) {
+                tmp_row_ptrs[row] = i;
+                linked_list[i] = 0;
+                last_rowel[row] = i;
+            } else {
+                linked_list[last_rowel[row]] = i;
+                linked_list[i] = 0;
+                last_rowel[row] = i;
+            }
+            trans_row_ptrs[row + 1] += 1;
+        }
+    }
+
+    trans_row_ptrs[0] = 0;
+
+    // create_row_ptr here
+    for (size_type row = 1; row < trans->get_num_rows(); ++row) {
+        trans_row_ptrs[row] += trans_row_ptrs[row - 1];
+    }
+    trans_row_ptrs[trans->get_num_rows()] = orig_nnz;
+
+    for (size_type row = 0; row < orig->get_num_rows(); ++row) {
+        auto el = tmp_row_ptrs[row];
+        {
+            if (el > -1) {
+                for (auto i = trans_row_ptrs[row]; i < trans_row_ptrs[row + 1];
+                     ++i) {
+                    trans_vals[i] = std::conj(orig_vals[el]);
+                    trans_col_idxs[i] = tmp_row_ptrs[el];
+                    el = linked_list[el];
+                }
+            }
+            trans_row_ptrs[row + 1] += 1;
+        }
+    }
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace csr
 }  // namespace reference
 }  // namespace kernels

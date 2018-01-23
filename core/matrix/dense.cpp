@@ -57,6 +57,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
+    GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
+    GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
 
 
@@ -174,6 +176,34 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
         NOT_IMPLEMENTED;
     exec->run(TemplatedOperation<ValueType>::make_compute_dot_operation(
         this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(result)));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
+{
+    std::unique_ptr<Dense> trans_cpy =
+        create(this->get_executor(), this->get_num_rows(), this->get_num_cols(),
+               this->get_padding());
+
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_transpose_operation(trans_cpy.get(),
+                                                                this));
+    return trans_cpy;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
+{
+    std::unique_ptr<Dense> trans_cpy =
+        create(this->get_executor(), this->get_num_rows(), this->get_num_cols(),
+               this->get_padding());
+
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_conj_transpose_operation(
+            trans_cpy.get(), this));
+    return trans_cpy;
 }
 
 

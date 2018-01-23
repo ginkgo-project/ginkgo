@@ -283,4 +283,20 @@ TEST_F(Dense, MovesToCsr)
 }
 
 
+TEST_F(Dense, IsTransposable)
+{
+    std::unique_ptr<gko::matrix::Dense> orig = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+
+    if (auto tmp = dynamic_cast<Transposable *>(orig)) {
+        auto trans = tmp->transpose();
+    }
+
+
+    EXPECT_EQ(trans->at(0, 0), 0.0);
+    EXPECT_EQ(trans->at(1, 1), 3.0);
+    EXPECT_EQ(trans->at(1, 0), 5.0);
+    EXPECT_EQ(trans->at(2, 1), 2.0);
+    EXPECT_EQ(trans->at(2, 0), 0.0);
+}
 }  // namespace

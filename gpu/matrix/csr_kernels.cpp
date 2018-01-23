@@ -120,6 +120,54 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void transpose(matrix::Csr<ValueType, IndexType> *trans,
+               const matrix::Csr<ValueType, IndexType> *orig)
+{
+    auto handle = cusparse::init();
+
+    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    auto row_ptrs = orig->get_const_row_ptrs();
+    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+
+    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
+                        row_ptrs[orig->get_num_rows()] - row_ptrs[0],
+                        orig->get_const_values(), orig->get_const_row_ptrs(),
+                        orig->get_const_col_idxs(), trans->get_values(),
+                        trans->get_row_ptrs(), trans->get_col_idxs(),
+                        copyValues, idxBase);
+
+    cusparse::destroy(handle);
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
+                    const matrix::Csr<ValueType, IndexType> *orig)
+{
+    auto handle = cusparse::init();
+    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+    ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    auto row_ptrs = orig->get_const_row_ptrs();
+
+    cusparse::conj_transpose(
+        handle, orig->get_num_rows(), orig->get_num_cols(),
+        row_ptrs[orig->get_num_rows()] - row_ptrs[0], orig->get_const_values(),
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        trans->get_values(), trans->get_row_ptrs(), trans->get_col_idxs(),
+        copyValues, idxBase);
+
+    cusparse::destroy(handle);
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace csr
 }  // namespace gpu
 }  // namespace kernels

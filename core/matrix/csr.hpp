@@ -64,7 +64,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMtx {
+            public ReadableFromMtx,
+            public Transposable {
     friend class gko::matrix::Dense<ValueType>;
 
 public:
@@ -106,6 +107,10 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<LinOp> clone_type() const override;
 

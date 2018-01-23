@@ -212,6 +212,51 @@ void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
+template <typename ValueType>
+void transpose(matrix::Dense<ValueType> *trans,
+               const matrix::Dense<ValueType> *orig)
+{
+    using std::swap;
+    // ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
+            trans->at(i, j) = orig->at(i, j);
+        }
+    }
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = i; j < orig->get_num_cols(); ++j) {
+            // auto tmp = trans->at(j, i);
+            swap(trans->at(j, i), trans->at(i, j));
+            // trans->at(i, j) = tmp;
+        }
+    }
+};
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void conj_transpose(matrix::Dense<ValueType> *trans,
+                    const matrix::Dense<ValueType> *orig)
+{
+    using std::swap;
+    // ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
+            auto tmp = orig->at(i, j);
+            trans->at(i, j) = std::conj(tmp);
+        }
+    }
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = i; j < orig->get_num_cols(); ++j) {
+            // auto tmp = trans->at(j, i);
+            swap(trans->at(j, i), trans->at(i, j));
+            // trans->at(i, j) = tmp;
+        }
+    }
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
 
 }  // namespace dense
 }  // namespace reference

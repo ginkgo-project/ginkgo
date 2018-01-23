@@ -106,6 +106,20 @@ void count_nonzeros(const matrix::Dense<ValueType> *source,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType>
+void transpose(matrix::Dense<ValueType> *trans,
+               const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void conj_transpose(matrix::Dense<ValueType> *trans,
+                    const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace dense
 }  // namespace cpu
 }  // namespace kernels
