@@ -73,31 +73,31 @@ namespace kernels {
     GKO_DECLARE_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
-// namespace cpu {
-// namespace ell {
+namespace cpu {
+namespace ell {
 
-// DECLARE_ALL_AS_TEMPLATES;
+DECLARE_ALL_AS_TEMPLATES;
 
-// }  // namespace ell
-// }  // namespace cpu
-
-
-// namespace gpu {
-// namespace ell {
-
-// DECLARE_ALL_AS_TEMPLATES;
-
-// }  // namespace ell
-// }  // namespace gpu
+}  // namespace ell
+}  // namespace cpu
 
 
-// namespace reference {
-// namespace ell {
+namespace gpu {
+namespace ell {
 
-// DECLARE_ALL_AS_TEMPLATES;
+DECLARE_ALL_AS_TEMPLATES;
 
-// }  // namespace ell
-// }  // namespace reference
+}  // namespace ell
+}  // namespace gpu
+
+
+namespace reference {
+namespace ell {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ell
+}  // namespace reference
 
 
 #undef DECLARE_ALL_AS_TEMPLATES

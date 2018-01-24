@@ -30,3 +30,69 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include <core/matrix/ell.hpp>
+
+
+#include <random>
+
+
+#include <gtest/gtest.h>
+
+
+#include <core/base/exception.hpp>
+#include <core/base/executor.hpp>
+#include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
+
+
+namespace {
+
+
+class Ell : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::Ell<>;
+    using Vec = gko::matrix::Dense<>;
+
+    Ell() : rand_engine(42) {}
+
+    void SetUp()
+    NOT_IMPLEMENTED;
+
+    void TearDown()
+    NOT_IMPLEMENTED;
+
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    NOT_IMPLEMENTED;
+
+    void set_up_apply_data()
+    NOT_IMPLEMENTED;
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::GpuExecutor> gpu;
+
+    std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Vec> expected;
+    std::unique_ptr<Vec> y;
+    std::unique_ptr<Vec> alpha;
+    std::unique_ptr<Vec> beta;
+
+    std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Vec> dresult;
+    std::unique_ptr<Vec> dy;
+    std::unique_ptr<Vec> dalpha;
+    std::unique_ptr<Vec> dbeta;
+};
+
+
+TEST_F(Ell, SimpleApplyIsEquivalentToRef)
+NOT_IMPLEMENTED;
+
+
+TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
+NOT_IMPLEMENTED;
+
+
+}  // namespace
