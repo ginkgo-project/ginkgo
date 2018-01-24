@@ -178,7 +178,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type get_max_nnz_row() const noexcept
+    const index_type get_const_max_nnz_row() const noexcept
     {
         return max_nnz_row_;
     }

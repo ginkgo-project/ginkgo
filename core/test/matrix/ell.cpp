@@ -46,12 +46,12 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Ell<>::create(exec, 2, 3, 4))
+          mtx(gko::matrix::Ell<>::create(exec, 2, 3, 4, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type n = mtx->get_max_nnz_row();
-        n = 3
+        n = 3;
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
@@ -99,7 +99,7 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_const_max_nnz_row(), nullptr);
+        ASSERT_EQ(m->get_const_max_nnz_row(), 0);
     }
 };
 

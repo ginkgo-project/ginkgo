@@ -111,7 +111,7 @@ std::unique_ptr<LinOp> Ell<ValueType, IndexType>::clone_type() const
     return std::unique_ptr<LinOp>(
         new Ell(this->get_executor(), this->get_num_rows(),
                 this->get_num_cols(), this->get_num_stored_elements(),
-                this->get_max_nnz_row()));
+                this->get_const_max_nnz_row()));
 }
 
 
