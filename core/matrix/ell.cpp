@@ -110,7 +110,8 @@ std::unique_ptr<LinOp> Ell<ValueType, IndexType>::clone_type() const
 {
     return std::unique_ptr<LinOp>(
         new Ell(this->get_executor(), this->get_num_rows(),
-                this->get_num_cols(), this->get_num_stored_elements()));
+                this->get_num_cols(), this->get_num_stored_elements(),
+                this->get_max_nnz_row()));
 }
 
 
@@ -120,7 +121,6 @@ void Ell<ValueType, IndexType>::clear()
     this->set_dimensions(0, 0, 0);
     values_.clear();
     col_idxs_.clear();
-    row_ptrs_.clear();
 }
 
 
@@ -175,31 +175,31 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
-    size_type nnz = 0;
-    for (const auto &elem : data.nonzeros) {
-        nnz += (std::get<2>(elem) != zero<ValueType>());
-    }
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz);
-    size_type ind = 0;
-    size_type cur_ptr = 0;
-    tmp->get_row_ptrs()[0] = cur_ptr;
-    for (size_type row = 0; row < data.num_rows; ++row) {
-        for (; ind < data.nonzeros.size(); ++ind) {
-            if (std::get<0>(data.nonzeros[ind]) > row) {
-                break;
-            }
-            auto val = std::get<2>(data.nonzeros[ind]);
-            if (val != zero<ValueType>()) {
-                tmp->get_values()[cur_ptr] = val;
-                tmp->get_col_idxs()[cur_ptr] = std::get<1>(data.nonzeros[ind]);
-                ++cur_ptr;
-            }
-        }
-        tmp->get_row_ptrs()[row + 1] = cur_ptr;
-    }
-    tmp->move_to(this);
+    // auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+    // size_type nnz = 0;
+    // for (const auto &elem : data.nonzeros) {
+    //     nnz += (std::get<2>(elem) != zero<ValueType>());
+    // }
+    // auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+    //                   data.num_cols, nnz);
+    // size_type ind = 0;
+    // size_type cur_ptr = 0;
+    // tmp->get_row_ptrs()[0] = cur_ptr;
+    // for (size_type row = 0; row < data.num_rows; ++row) {
+    //     for (; ind < data.nonzeros.size(); ++ind) {
+    //         if (std::get<0>(data.nonzeros[ind]) > row) {
+    //             break;
+    //         }
+    //         auto val = std::get<2>(data.nonzeros[ind]);
+    //         if (val != zero<ValueType>()) {
+    //             tmp->get_values()[cur_ptr] = val;
+    //             tmp->get_col_idxs()[cur_ptr] = std::get<1>(data.nonzeros[ind]);
+    //             ++cur_ptr;
+    //         }
+    //     }
+    //     tmp->get_row_ptrs()[row + 1] = cur_ptr;
+    // }
+    // tmp->move_to(this);
 }
 
 
