@@ -49,6 +49,7 @@ namespace {
 class Dense : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
 
     Dense() : rand_engine(15) {}
 
@@ -69,6 +70,14 @@ protected:
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine);
+    }
+
+    std::unique_ptr<ComplexMtx> gen_mtx_complex(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<ComplexMtx>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(0.0, 1.0), rand_engine);
@@ -96,12 +105,15 @@ protected:
     void set_up_apply_data()
     {
         x = gen_mtx(25, 15);
+        c_x = gen_mtx_complex(25, 15);
         y = gen_mtx(15, 35);
         expected = gen_mtx(25, 35);
         alpha = Mtx::create(ref, {2.0});
         beta = Mtx::create(ref, {-1.0});
         dx = Mtx::create(gpu);
         dx->copy_from(x.get());
+        dc_x = ComplexMtx::create(gpu);
+        dc_x->copy_from(c_x.get());
         dy = Mtx::create(gpu);
         dy->copy_from(y.get());
         dresult = Mtx::create(gpu);
@@ -118,12 +130,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> x;
+    std::unique_ptr<ComplexMtx> c_x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> expected;
     std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
+    std::unique_ptr<ComplexMtx> dc_x;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
@@ -270,10 +284,24 @@ TEST_F(Dense, IsTransposable)
 
     auto result = Mtx::create(ref);
     result->copy_from(d_trans.get());
-    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+    auto trans_as_dense = static_cast<Mtx *>(trans.get());
 
     ASSERT_MTX_NEAR(result, trans_as_dense, 0);
 }
 
 
+TEST_F(Dense, IsConjugateTransposable)
+{
+    set_up_apply_data();
+
+
+    auto trans = c_x->transpose();
+    auto d_trans = dc_x->transpose();
+
+    auto result = ComplexMtx::create(ref);
+    result->copy_from(d_trans.get());
+    auto trans_as_dense = static_cast<ComplexMtx *>(trans.get());
+
+    ASSERT_MTX_NEAR(result, trans_as_dense, 0);
+}
 }  // namespace

@@ -183,8 +183,8 @@ void transpose(matrix::Dense<ValueType> *trans,
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
 
-    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, trans->get_num_cols(),
-                 trans->get_num_rows(), &alpha, orig->get_const_values(),
+    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_num_rows(),
+                 orig->get_num_cols(), &alpha, orig->get_const_values(),
                  orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
                  trans->get_values(), trans->get_padding());
 
@@ -207,10 +207,10 @@ void conj_transpose(matrix::Dense<ValueType> *trans,
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
 
-    cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, trans->get_num_rows(),
-                 trans->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, nullptr, 0, trans->get_values(),
-                 trans->get_padding());
+    cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_num_rows(),
+                 orig->get_num_cols(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_padding());
 
     cublas::destroy(handle);
 };
