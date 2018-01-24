@@ -43,7 +43,7 @@ For Ginkgo core library:
 *   C++11 compliant compiler, one of:
     *   _gcc 4.8.1+_ (__TODO__: verify)
     *   _clang 3.3+_ (__TODO__: verify)
-    *   _Apple LLVM 9.0+_
+    *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
 The Ginkgo GPU module has the following __additional__ requirements:
 
@@ -51,8 +51,7 @@ The Ginkgo GPU module has the following __additional__ requirements:
 *   _CUDA 7.0+_ (__TODO__: verify)
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
-    [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements)
-
+    [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
