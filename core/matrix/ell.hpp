@@ -169,7 +169,7 @@ public:
      *
      * @return the maximum number of one row.
      */
-    index_type *get_max_nnz_row() noexcept { return max_nnz_row_; }
+    index_type get_max_nnz_row() noexcept { return max_nnz_row_; }
 
     /**
      * @copydoc Ell::get_max_nnz_row()
@@ -206,9 +206,9 @@ protected:
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          max_nnz_row_(max_nnz_row_)
+          values_(exec, num_rows*max_nnz_row),
+          col_idxs_(exec, num_rows*max_nnz_row),
+          max_nnz_row_(max_nnz_row)
     {}
 
 private:
