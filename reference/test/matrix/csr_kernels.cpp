@@ -182,32 +182,4 @@ TEST_F(Csr, MovesToDense)
 }
 
 
-TEST_F(Csr, IsTransposable)
-{
-    auto trans = mtx->transpose();
-
-    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
-
-    ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
-    ASSERT_EQ(trans_as_csr->get_num_cols(), 2);
-    ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 4);
-
-
-    Mtx::value_type *v = trans_as_csr->get_values();
-    Mtx::index_type *c = trans_as_csr->get_col_idxs();
-    Mtx::index_type *r = trans_as_csr->get_row_ptrs();
-
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 1);
-    EXPECT_EQ(r[2], 3);
-    EXPECT_EQ(r[3], 4);
-    EXPECT_EQ(c[0], 1);
-    EXPECT_EQ(c[1], 0);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
-    EXPECT_EQ(v[3], 2.0);
-}
 }  // namespace
