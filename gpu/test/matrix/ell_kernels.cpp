@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
 
@@ -56,17 +57,21 @@ protected:
 
     Ell() : rand_engine(42) {}
 
-    void SetUp()
-    NOT_IMPLEMENTED;
+    void SetUp() {
+        NOT_IMPLEMENTED;
+    }
 
-    void TearDown()
-    NOT_IMPLEMENTED;
+    void TearDown() {
+        NOT_IMPLEMENTED;
+    }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
-    NOT_IMPLEMENTED;
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row) {
+        NOT_IMPLEMENTED;
+    }
 
-    void set_up_apply_data()
-    NOT_IMPLEMENTED;
+    void set_up_apply_data() {
+        NOT_IMPLEMENTED;
+    }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
@@ -87,12 +92,14 @@ protected:
 };
 
 
-TEST_F(Ell, SimpleApplyIsEquivalentToRef)
-NOT_IMPLEMENTED;
+TEST_F(Ell, SimpleApplyIsEquivalentToRef) {
+        NOT_IMPLEMENTED;
+    }
 
 
-TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
-NOT_IMPLEMENTED;
+TEST_F(Ell, AdvancedApplyIsEquivalentToRef) {
+        NOT_IMPLEMENTED;
+    }
 
 
 }  // namespace

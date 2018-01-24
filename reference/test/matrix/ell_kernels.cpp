@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
 
@@ -53,7 +54,7 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, 3, 4))
+          mtx(Mtx::create(exec, 2, 3, 4, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
