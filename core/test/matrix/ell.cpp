@@ -55,13 +55,15 @@ protected:
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
-        c[3] = -1;
+        c[3] = 1;
         c[4] = 2;
-        c[5] = -1;
+        c[5] = 1;
         v[0] = 1.0;
         v[1] = 5.0;
         v[2] = 3.0;
+        v[3] = 0.0;
         v[4] = 2.0;
+        v[5] = 0.0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -79,13 +81,15 @@ protected:
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], -1);
+        EXPECT_EQ(c[3], 1);
         EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], -1);
+        EXPECT_EQ(c[5], 1);
         EXPECT_EQ(v[0], 1.0);
         EXPECT_EQ(v[1], 5.0);
         EXPECT_EQ(v[2], 3.0);
+        EXPECT_EQ(v[3], 0.0);
         EXPECT_EQ(v[4], 2.0);
+        EXPECT_EQ(v[5], 0.0);
     }
 
     void assert_empty(const Mtx *m)
