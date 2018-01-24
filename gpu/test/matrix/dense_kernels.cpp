@@ -260,4 +260,19 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, IsTransposable)
+{
+    set_up_apply_data();
+
+    auto trans = x->transpose();
+    auto d_trans = dx->transpose();
+
+
+    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+    auto d_trans_as_dense = static_cast<gko::matrix::Dense<> *>(d_trans.get());
+
+    auto result = Mtx::create(ref);
+    result->copy_from(d_trans_as_dense);
+    ASSERT_MTX_NEAR(result, expected, 0);
+}
 }  // namespace
