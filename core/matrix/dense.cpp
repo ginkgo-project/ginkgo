@@ -43,8 +43,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-#include <iostream>
-
 namespace gko {
 namespace matrix {
 
@@ -185,27 +183,12 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
-    std::unique_ptr<Dense> trans_cpy = Dense<ValueType>::create(
-        this->get_executor(), this->get_num_cols(), this->get_num_rows());
-
-    if (trans_cpy->get_executor() != this->get_executor()) {
-        std::cout << "something went wrong" << std::endl;
-    }
-    std::cout << trans_cpy->get_num_rows() << ", " << trans_cpy->get_num_cols()
-              << std::endl;
-    std::cout << "transpose -> OK" << std::endl;
-
-    auto op = TemplatedOperation<ValueType>::make_transpose_operation(
-        trans_cpy.get(), this);
-    std::cout << "transpose -> OK2" << std::endl;
-
     auto exec = this->get_executor();
+    std::unique_ptr<Dense> trans_cpy = Dense<ValueType>::create(
+        exec, this->get_num_cols(), this->get_num_rows());
 
-    std::cout << "transpose -> OK3" << std::endl;
-
-    exec->run(op);
-
-    std::cout << "transpose -> OK4" << std::endl;
+    exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
+        trans_cpy.get(), this));
 
     return trans_cpy;
 }

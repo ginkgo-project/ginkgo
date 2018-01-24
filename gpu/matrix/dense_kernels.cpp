@@ -38,8 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cublas_bindings.hpp"
 
 
-#include <iostream>
-
 namespace gko {
 namespace kernels {
 namespace gpu {
@@ -177,7 +175,6 @@ template <typename ValueType>
 void transpose(matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
-    std::cout << "OK" << std::endl;
     auto handle = cublas::init();
 
     ASSERT_NO_CUBLAS_ERRORS(
@@ -186,13 +183,11 @@ void transpose(matrix::Dense<ValueType> *trans,
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
 
-    std::cout << "OK" << std::endl;
-    /*
-    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, trans->get_num_rows(),
-                 trans->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, nullptr, 0, trans->get_values(),
-                 trans->get_padding());
-                 */
+    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, trans->get_num_cols(),
+                 trans->get_num_rows(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_padding());
+
     cublas::destroy(handle);
 };
 

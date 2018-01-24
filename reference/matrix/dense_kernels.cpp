@@ -38,9 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 
 
-#include <iostream>
-
-
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -215,18 +212,16 @@ void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
+
 template <typename ValueType>
 void transpose(matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
-    std::cout << "ref 1" << std::endl;
     for (size_type i = 0; i < orig->get_num_rows(); ++i) {
         for (size_type j = 0; j < orig->get_num_cols(); ++j) {
-            std::cout << i << ", " << j << std::endl;
             trans->at(j, i) = orig->at(i, j);
         }
     }
-    std::cout << "ref 2" << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
