@@ -47,11 +47,11 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 class Csr;
 
 /**
- * CSR is a matrix format which stores only the nonzero coefficients by
+ * Ell is a matrix format which stores only the nonzero coefficients by
  * compressing each row of the matrix (compressed sparse row format).
  *
  * The nonzero elements are stored in a 1D array row-wise, and accompanied
@@ -98,7 +98,7 @@ public:
      *
      * @param exec  Executor associated to the matrix
      */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec)
+    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec)
     {
         return create(exec, 0, 0, 0, 0);
     }
@@ -116,9 +116,9 @@ public:
 
     void clear() override;
 
-    void convert_to(Csr *other) const override;
+    void convert_to(Ell *other) const override;
 
-    void move_to(Csr *other) override;
+    void move_to(Ell *other) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -208,7 +208,6 @@ protected:
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, num_rows + (num_rows > 0)),  // avoid allocation for 0
           max_nnz_row_(max_nnz_row_)
     {}
 
