@@ -30,3 +30,52 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include "core/matrix/ell_kernels.hpp"
+
+#include "core/base/exception_helpers.hpp"
+
+namespace gko {
+namespace kernels {
+namespace cpu {
+namespace ell {
+
+template <typename ValueType, typename IndexType>
+void spmv(const matrix::Ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(const matrix::Dense<ValueType> *alpha,
+                   const matrix::Ell<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(matrix::Dense<ValueType> *result,
+                      const matrix::Ell<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_dense(matrix::Dense<ValueType> *result,
+                   matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_MOVE_TO_DENSE_KERNEL);
+
+
+}  // namespace ell
+}  // namespace cpu
+}  // namespace kernels
+}  // namespace gko
