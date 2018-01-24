@@ -94,7 +94,7 @@ public:
     }
 
     /**
-     * Creates an empty CSR matrix.
+     * Creates an empty ELL matrix.
      *
      * @param exec  Executor associated to the matrix
      */

@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
 #include <vector>
+#include <iostream>
 
 namespace gko {
 namespace matrix {
@@ -121,6 +122,7 @@ void Ell<ValueType, IndexType>::clear()
     this->set_dimensions(0, 0, 0);
     values_.clear();
     col_idxs_.clear();
+    max_nnz_row_ = 0;
 }
 
 
@@ -189,18 +191,25 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
                       data.num_cols, nnz, max_nnz_row);
     size_type ind = 0;
+    int n = data.nonzeros.size();
     for (size_type row = 0; row < data.num_rows; row++) {
-        for (size_type col = 0; col < max_nnz_row; col++) {
-            size_type ell_ind = row+col*data.num_rows;
+        size_type col = 0;
+        for (; ind < n && col < max_nnz_row; ind++) {
             if (std::get<0>(data.nonzeros[ind]) > row) {
-                tmp->get_col_idxs()[ell_ind] = (col == 0) ?
-                    0 : tmp->get_col_idxs()[ell_ind-data.num_rows];
-                tmp->get_values()[ell_ind] = 0;
-            } else {
-                tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
-                tmp->get_values()[ell_ind] = std::get<2>(data.nonzeros[ind]);
-                ++ind;
+                break;
             }
+            auto val = std::get<2>(data.nonzeros[ind]);
+            auto ell_ind = row+col*data.num_rows;
+            if (val != zero<ValueType>()) {
+                tmp->get_values()[ell_ind] = val;
+                tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
+                col++;
+            }
+        }
+        for (auto i = col; i < max_nnz_row; i++) {
+            auto ell_ind = row+i*data.num_rows;
+            tmp->get_values()[ell_ind] = 0;
+            tmp->get_col_idxs()[ell_ind] = tmp->get_col_idxs()[ell_ind-data.num_rows];
         }
     }
     tmp->move_to(this);
