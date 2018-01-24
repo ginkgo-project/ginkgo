@@ -38,6 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 
 
+#include <iostream>
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -216,21 +219,16 @@ template <typename ValueType>
 void transpose(matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
-    using std::swap;
-    // ASSERT_EQUAL_DIMENSIONS(trans, orig);
+    std::cout << "ref 1" << std::endl;
     for (size_type i = 0; i < orig->get_num_rows(); ++i) {
         for (size_type j = 0; j < orig->get_num_cols(); ++j) {
-            trans->at(i, j) = orig->at(i, j);
+            std::cout << i << ", " << j << std::endl;
+            trans->at(j, i) = orig->at(i, j);
         }
     }
-    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
-        for (size_type j = i; j < orig->get_num_cols(); ++j) {
-            // auto tmp = trans->at(j, i);
-            swap(trans->at(j, i), trans->at(i, j));
-            // trans->at(i, j) = tmp;
-        }
-    }
-};
+    std::cout << "ref 2" << std::endl;
+}
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
 
 
@@ -238,22 +236,12 @@ template <typename ValueType>
 void conj_transpose(matrix::Dense<ValueType> *trans,
                     const matrix::Dense<ValueType> *orig)
 {
-    using std::swap;
-    // ASSERT_EQUAL_DIMENSIONS(trans, orig);
     for (size_type i = 0; i < orig->get_num_rows(); ++i) {
         for (size_type j = 0; j < orig->get_num_cols(); ++j) {
-            auto tmp = orig->at(i, j);
-            trans->at(i, j) = std::conj(tmp);
+            trans->at(j, i) = gko::conj(orig->at(i, j));
         }
     }
-    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
-        for (size_type j = i; j < orig->get_num_cols(); ++j) {
-            // auto tmp = trans->at(j, i);
-            swap(trans->at(j, i), trans->at(i, j));
-            // trans->at(i, j) = tmp;
-        }
-    }
-};
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
 

@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cublas_bindings.hpp"
 
 
+#include <iostream>
+
 namespace gko {
 namespace kernels {
 namespace gpu {
@@ -175,6 +177,7 @@ template <typename ValueType>
 void transpose(matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
+    std::cout << "OK" << std::endl;
     auto handle = cublas::init();
 
     ASSERT_NO_CUBLAS_ERRORS(
@@ -183,12 +186,13 @@ void transpose(matrix::Dense<ValueType> *trans,
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
 
-    ASSERT_EQUAL_DIMENSIONS(trans, orig);
-    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_num_rows(),
-                 orig->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, orig->get_const_values(),
-                 orig->get_padding(), trans->get_values(),
+    std::cout << "OK" << std::endl;
+    /*
+    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, trans->get_num_rows(),
+                 trans->get_num_cols(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, 0, trans->get_values(),
                  trans->get_padding());
+                 */
     cublas::destroy(handle);
 };
 
@@ -208,12 +212,11 @@ void conj_transpose(matrix::Dense<ValueType> *trans,
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
 
-    ASSERT_EQUAL_DIMENSIONS(trans, orig);
-    cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_num_rows(),
-                 orig->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, orig->get_const_values(),
-                 orig->get_padding(), trans->get_values(),
+    cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, trans->get_num_rows(),
+                 trans->get_num_cols(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, 0, trans->get_values(),
                  trans->get_padding());
+
     cublas::destroy(handle);
 };
 

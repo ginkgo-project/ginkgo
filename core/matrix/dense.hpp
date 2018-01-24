@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <initializer_list>
 
+#include <iostream>
 
 namespace gko {
 namespace matrix {
@@ -256,6 +257,9 @@ public:
      */
     value_type &at(size_type row, size_type col) noexcept
     {
+        auto tmp = linearize_index(row, col);
+        std::cout << "accessing element " << tmp << "of "
+                  << values_.get_num_elems() << std::endl;
         return values_.get_data()[linearize_index(row, col)];
     }
 
@@ -264,6 +268,9 @@ public:
      */
     value_type at(size_type row, size_type col) const noexcept
     {
+        auto tmp = linearize_index(row, col);
+        std::cout << "accessing const element " << tmp << "of "
+                  << values_.get_num_elems() << std::endl;
         return values_.get_const_data()[linearize_index(row, col)];
     }
 

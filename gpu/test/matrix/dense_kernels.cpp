@@ -264,15 +264,22 @@ TEST_F(Dense, IsTransposable)
 {
     set_up_apply_data();
 
-    auto trans = x->transpose();
-    auto d_trans = dx->transpose();
+    std::cout << "T0" << std::endl;
 
+    auto trans = x->transpose();
+
+    std::cout << "T1" << std::endl;
 
     auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
-    auto d_trans_as_dense = static_cast<gko::matrix::Dense<> *>(d_trans.get());
 
+    std::cout << "T2" << std::endl;
+    auto d_trans = dx->transpose();
+
+    std::cout << "T3" << std::endl;
     auto result = Mtx::create(ref);
-    result->copy_from(d_trans_as_dense);
-    ASSERT_MTX_NEAR(result, expected, 0);
+    result->copy_from(d_trans.get());
+    ASSERT_MTX_NEAR(result, trans_as_dense, 0);
 }
+
+
 }  // namespace

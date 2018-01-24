@@ -49,7 +49,7 @@ namespace gko {
  * @return  conjugate of `x`
  */
 template <typename T>
-inline std::complex<T> conj(std::complex<T> x)
+inline std::complex<T> conj(const std::complex<T> &x)
 {
     return std::conj(x);
 }
