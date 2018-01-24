@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
-
+#include <vector>
 
 namespace gko {
 namespace matrix {
@@ -175,13 +175,35 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
-    // auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
-    // size_type nnz = 0;
-    // for (const auto &elem : data.nonzeros) {
-    //     nnz += (std::get<2>(elem) != zero<ValueType>());
-    // }
-    // auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-    //                   data.num_cols, nnz);
+    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+    size_type nnz = 0;
+    std::vector<index_type> nnz_row(data.num_rows, 0);
+    for (const auto &elem : data.nonzeros) {
+        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz_row.at(std::get<0>(elem))++;
+    }
+    index_type max_nnz_row = 0;
+    for (const auto &elem : nnz_row) {
+        max_nnz_row = std::max(max_nnz_row, elem);
+    }
+    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+                      data.num_cols, nnz, max_nnz_row);
+    size_type ind = 0;
+    for (size_type row = 0; row < data.num_rows; row++) {
+        for (size_type col = 0; col < max_nnz_row; col++) {
+            size_type ell_ind = row+col*data.num_rows;
+            if (std::get<0>(data.nonzeros[ind]) > row) {
+                tmp->get_col_idxs()[ell_ind] = (col == 0) ?
+                    0 : tmp->get_col_idxs()[ell_ind-data.num_rows];
+                tmp->get_values()[ell_ind] = 0;
+            } else {
+                tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
+                tmp->get_values()[ell_ind] = std::get<2>(data.nonzeros[ind]);
+                ++ind;
+            }
+        }
+    }
+    tmp->move_to(this);
     // size_type ind = 0;
     // size_type cur_ptr = 0;
     // tmp->get_row_ptrs()[0] = cur_ptr;
