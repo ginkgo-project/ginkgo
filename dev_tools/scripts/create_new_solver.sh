@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function print_help {
     echo -e "Usage: $0 [options] solvername"
@@ -14,7 +14,7 @@ function print_help {
 
 execute=1
 
-if [ $# -l 1 ]; then
+if [ $# -lt 1 ]; then
     print_help
     exit 1
 fi
