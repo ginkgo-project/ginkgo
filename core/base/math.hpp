@@ -162,7 +162,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)
 {
-    return std::real(gko::conj(x) * x);
+    using std::real;
+    return real(gko::conj(x) * x);
 }
 
 }  // namespace gko
