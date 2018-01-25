@@ -295,8 +295,8 @@ TEST_F(Dense, IsConjugateTransposable)
     set_up_apply_data();
 
 
-    auto trans = c_x->transpose();
-    auto d_trans = dc_x->transpose();
+    auto trans = c_x->conj_transpose();
+    auto d_trans = dc_x->conj_transpose();
 
     auto result = ComplexMtx::create(ref);
     result->copy_from(d_trans.get());
