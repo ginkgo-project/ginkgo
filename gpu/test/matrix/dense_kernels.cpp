@@ -104,10 +104,10 @@ protected:
 
     void set_up_apply_data()
     {
-        x = gen_mtx(25, 15);
-        c_x = gen_mtx_complex(25, 15);
-        y = gen_mtx(15, 35);
-        expected = gen_mtx(25, 35);
+        x = gen_mtx(40, 25);
+        c_x = gen_mtx_complex(40, 25);
+        y = gen_mtx(25, 35);
+        expected = gen_mtx(40, 35);
         alpha = Mtx::create(ref, {2.0});
         beta = Mtx::create(ref, {-1.0});
         dx = Mtx::create(gpu);

@@ -184,8 +184,7 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
-    std::unique_ptr<Dense> trans_cpy = Dense<ValueType>::create(
-        exec, this->get_num_cols(), this->get_num_rows());
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
 
     exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
         trans_cpy.get(), this));
@@ -197,8 +196,8 @@ std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 {
-    std::unique_ptr<Dense> trans_cpy = create(
-        this->get_executor(), this->get_num_cols(), this->get_num_rows());
+    auto trans_cpy = create(this->get_executor(), this->get_num_cols(),
+                            this->get_num_rows());
 
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_conj_transpose_operation(

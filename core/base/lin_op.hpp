@@ -330,12 +330,16 @@ class Transposable {
 public:
     /**
      * Returns a LinOp representing the transpose of the Transposable object.
+     *
+     * @return A pointer to the new transposed object.
      */
     virtual std::unique_ptr<LinOp> transpose() const = 0;
 
     /**
      * Returns a LinOp representing the conjugate transpose of the Transposable
      * object.
+     *
+     * @return A pointer to the new conjugate transposed object.
      */
     virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
 };
