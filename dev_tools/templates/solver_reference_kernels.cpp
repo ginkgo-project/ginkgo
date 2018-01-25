@@ -34,6 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/xxsolverxx_kernels.hpp"
 
 
+#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -72,7 +77,7 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
     using std::isnan;
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (rho->at(j) == zero<ValueType>()) {
+            if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
                 auto tmp = rho->at(j) / prev_rho->at(j);
@@ -94,7 +99,7 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (rho->at(j) != zero<ValueType>()) {
+            if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);

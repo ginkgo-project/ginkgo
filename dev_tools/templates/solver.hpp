@@ -34,14 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_XXSOLVERXX_HPP_
 #define GKO_CORE_SOLVER_XXSOLVERXX_HPP_
 
-
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
+#include "core/base/array.hpp"
+#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/logging.hpp"
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
-#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -51,9 +48,21 @@ namespace solver {
 template <typename>
 class XxsolverxxFactory;
 
-
+/**
+ * XXSOLVERXX or the conjugate gradient method is an iterative type Krylov
+ * subspace method which is suitable for symmetric positive definite methods.
+ *
+ * Though this method performs very well for symmetric positive definite
+ * matrices, it is in general not suitable for general matrices.
+ *
+ * The implementation in Ginkgo makes use of the merged kernel to make the best
+ * use of data locality. The inner operations in one iteration of XXSOLVERXX are
+ * merged into 2 separate steps.
+ *
+ * @tparam ValueType precision of matrix elements
+ */
 template <typename ValueType = default_precision>
-class Xxsolverxx : public LinOp, public Loggable {
+class Xxsolverxx : public LinOp, public ConvertibleTo<Xxsolverxx<ValueType>> {
     friend class XxsolverxxFactory<ValueType>;
 
 public:
@@ -72,29 +81,40 @@ public:
 
     void clear() override;
 
+    void convert_to(Xxsolverxx *result) const override;
+
+    void move_to(Xxsolverxx *result) override;
+
+    /**
+     * Gets the system matrix of the linear system.
+     *
+     * @return  The system matrix.
+     */
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
 
+    /**
+     * Gets the maximum number of iterations of the XXSOLVERXX solver.
+     *
+     * @return  The maximum number of iterations.
+     */
     int get_max_iters() const { return max_iters_; }
 
+
+    /**
+     * Gets the relative residual goal of the solver.
+     *
+     * @return  The relative residual goal.
+     */
     remove_complex<value_type> get_rel_residual_goal() const
     {
         return rel_residual_goal_;
     }
 
-    void set_precond(std::shared_ptr<const LinOp> precond) noexcept
-    {
-        precond_ = precond;
-    }
 
-    std::shared_ptr<const LinOp> get_precond() const noexcept
-    {
-        return precond_;
-    }
-
-protected:
+private:
     Xxsolverxx(std::shared_ptr<const Executor> exec, int max_iters,
                remove_complex<value_type> rel_residual_goal,
                std::shared_ptr<const LinOp> system_matrix)
@@ -102,8 +122,6 @@ protected:
                 system_matrix->get_num_rows(),
                 system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
-          precond_(matrix::Identity::create(
-              std::move(exec), this->get_num_rows(), this->get_num_cols())),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
@@ -118,19 +136,28 @@ protected:
                            std::move(system_matrix)));
     }
 
-private:
     std::shared_ptr<const LinOp> system_matrix_;
-    std::shared_ptr<const LinOp> precond_;
     int max_iters_;
     remove_complex<value_type> rel_residual_goal_;
 };
 
-
+/** The XxsolverxxFactory class is derived from the LinOpFactory class and is
+ * used to generate the XXSOLVERXX solver.
+ */
 template <typename ValueType = default_precision>
-class XxsolverxxFactory : public LinOpFactory, public Loggable {
+class XxsolverxxFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
-
+    /**
+     * Creates the XXSOLVERXX solver.
+     *
+     * @param exec The executor on which the XXSOLVERXX solver is to be created.
+     * @param max_iters  The maximum number of iterations to be pursued.
+     * @param rel_residual_goal  The relative residual required for
+     * convergence.
+     *
+     * @return The newly created XXSOLVERXX solver.
+     */
     static std::unique_ptr<XxsolverxxFactory> create(
         std::shared_ptr<const Executor> exec, int max_iters,
         remove_complex<value_type> rel_residual_goal)
@@ -142,30 +169,34 @@ public:
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
+    /**
+     * Gets the maximum number of iterations of the XXSOLVERXX solver.
+     *
+     * @return  The maximum number of iterations.
+     */
     int get_max_iters() const { return max_iters_; }
 
+    /**
+     * Gets the relative residual goal of the solver.
+     *
+     * @return  The relative residual goal.
+     */
     remove_complex<value_type> get_rel_residual_goal() const
     {
         return rel_residual_goal_;
     }
 
-    void set_precond(std::shared_ptr<const LinOpFactory> precond_factory)
-    {
-        precond_factory_ = precond_factory;
-    }
-
 protected:
-    XxsolverxxFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                      remove_complex<value_type> rel_residual_goal)
+    explicit XxsolverxxFactory(std::shared_ptr<const Executor> exec,
+                               int max_iters,
+                               remove_complex<value_type> rel_residual_goal)
         : LinOpFactory(std::move(exec)),
           max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal),
-          precond_factory_(nullptr)
+          rel_residual_goal_(rel_residual_goal)
     {}
 
     int max_iters_;
     remove_complex<value_type> rel_residual_goal_;
-    std::shared_ptr<const LinOpFactory> precond_factory_;
 };
 
 
@@ -173,4 +204,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_XXSOLVERXX_HPP_
+#endif  // GKO_CORE_SOLVER_XXSOLVERXX_HPP

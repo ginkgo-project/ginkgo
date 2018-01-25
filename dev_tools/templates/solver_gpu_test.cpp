@@ -48,12 +48,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
 // This is example code for the CG case - has to be modified for the new solver
 /*
+
 
 class Xxsolverxx : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    Xxsolverxx() : rand_engine(30) {}
+
     void SetUp()
     {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
@@ -68,47 +72,135 @@ protected:
         }
     }
 
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine);
+    }
+
+    void initialize_data()
+    {
+        int m = 97;
+        int n = 43;
+        b = gen_mtx(m, n);
+        r = gen_mtx(m, n);
+        z = gen_mtx(m, n);
+        p = gen_mtx(m, n);
+        q = gen_mtx(m, n);
+        x = gen_mtx(m, n);
+        beta = gen_mtx(1, n);
+        prev_rho = gen_mtx(1, n);
+        rho = gen_mtx(1, n);
+
+        d_b = Mtx::create(gpu);
+        d_b->copy_from(b.get());
+        d_r = Mtx::create(gpu);
+        d_r->copy_from(r.get());
+        d_z = Mtx::create(gpu);
+        d_z->copy_from(z.get());
+        d_p = Mtx::create(gpu);
+        d_p->copy_from(p.get());
+        d_q = Mtx::create(gpu);
+        d_q->copy_from(q.get());
+        d_x = Mtx::create(gpu);
+        d_x->copy_from(x.get());
+        d_beta = Mtx::create(gpu);
+        d_beta->copy_from(beta.get());
+        d_prev_rho = Mtx::create(gpu);
+        d_prev_rho->copy_from(prev_rho.get());
+        d_rho = Mtx::create(gpu);
+        d_rho->copy_from(rho.get());
+
+        r_result = Mtx::create(ref);
+        z_result = Mtx::create(ref);
+        p_result = Mtx::create(ref);
+        q_result = Mtx::create(ref);
+        x_result = Mtx::create(ref);
+        beta_result = Mtx::create(ref);
+        prev_rho_result = Mtx::create(ref);
+        rho_result = Mtx::create(ref);
+    }
+
+    void copy_back_data()
+    {
+        r_result->copy_from(d_r.get());
+        z_result->copy_from(d_z.get());
+        p_result->copy_from(d_p.get());
+        q_result->copy_from(d_q.get());
+        x_result->copy_from(d_x.get());
+        beta_result->copy_from(d_beta.get());
+        prev_rho_result->copy_from(d_prev_rho.get());
+        rho_result->copy_from(d_rho.get());
+    }
+
+    void make_symetric(Mtx *mtx)
+    {
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
+                mtx->at(i, j) = mtx->at(j, i);
+            }
+        }
+    }
+
+    void make_diag_dominant(Mtx *mtx)
+    {
+        using std::abs;
+        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+            auto sum = gko::zero<Mtx::value_type>();
+            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+                sum += abs(mtx->at(i, j));
+            }
+            mtx->at(i, i) = sum;
+        }
+    }
+
+    void make_spd(Mtx *mtx)
+    {
+        make_symetric(mtx);
+        make_diag_dominant(mtx);
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
+
+    std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> b;
+    std::unique_ptr<Mtx> r;
+    std::unique_ptr<Mtx> z;
+    std::unique_ptr<Mtx> p;
+    std::unique_ptr<Mtx> q;
+    std::unique_ptr<Mtx> x;
+    std::unique_ptr<Mtx> beta;
+    std::unique_ptr<Mtx> prev_rho;
+    std::unique_ptr<Mtx> rho;
+
+    std::unique_ptr<Mtx> d_b;
+    std::unique_ptr<Mtx> d_r;
+    std::unique_ptr<Mtx> d_z;
+    std::unique_ptr<Mtx> d_p;
+    std::unique_ptr<Mtx> d_q;
+    std::unique_ptr<Mtx> d_x;
+    std::unique_ptr<Mtx> d_beta;
+    std::unique_ptr<Mtx> d_prev_rho;
+    std::unique_ptr<Mtx> d_rho;
+
+    std::unique_ptr<Mtx> r_result;
+    std::unique_ptr<Mtx> z_result;
+    std::unique_ptr<Mtx> p_result;
+    std::unique_ptr<Mtx> q_result;
+    std::unique_ptr<Mtx> x_result;
+    std::unique_ptr<Mtx> beta_result;
+    std::unique_ptr<Mtx> prev_rho_result;
+    std::unique_ptr<Mtx> rho_result;
 };
 
 
 TEST_F(Xxsolverxx, GpuXxsolverxxInitializeIsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
-    int m = 24;
-    int n = 7;
-
-    auto b = gen_mtx(m, n);
-    auto r = gen_mtx(m, n);
-    auto z = gen_mtx(m, n);
-    auto p = gen_mtx(m, n);
-    auto q = gen_mtx(m, n);
-    auto prev_rho = Mtx::create(ref, n, 1);
-    auto rho = Mtx::create(ref, n, 1);
-
-    auto d_b = Mtx::create(gpu);
-    auto d_r = Mtx::create(gpu);
-    auto d_z = Mtx::create(gpu);
-    auto d_p = Mtx::create(gpu);
-    auto d_q = Mtx::create(gpu);
-    auto d_prev_rho = Mtx::create(gpu, n, 1);
-    auto d_rho = Mtx::create(gpu, n, 1);
-    d_b->copy_from(b.get());
-    d_r->copy_from(r.get());
-    d_z->copy_from(z.get());
-    d_p->copy_from(p.get());
-    d_q->copy_from(q.get());
-    d_prev_rho->copy_from(prev_rho.get());
-    d_rho->copy_from(rho.get());
+    initialize_data();
 
     gko::kernels::reference::xxsolverxx::initialize(b.get(), r.get(), z.get(),
 p.get(), q.get(), prev_rho.get(), rho.get());
@@ -116,22 +208,7 @@ p.get(), q.get(), prev_rho.get(), rho.get());
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
                                       d_rho.get());
 
-    auto b_result = Mtx::create(ref);
-    auto r_result = Mtx::create(ref);
-    auto z_result = Mtx::create(ref);
-    auto p_result = Mtx::create(ref);
-    auto q_result = Mtx::create(ref);
-    auto prev_rho_result = Mtx::create(ref);
-    auto rho_result = Mtx::create(ref);
-    b_result->copy_from(d_b.get());
-    r_result->copy_from(d_r.get());
-    z_result->copy_from(d_z.get());
-    p_result->copy_from(d_p.get());
-    q_result->copy_from(d_q.get());
-    prev_rho_result->copy_from(d_prev_rho.get());
-    rho_result->copy_from(d_rho.get());
-
-    ASSERT_MTX_NEAR(b_result, b, 1e-14);
+    copy_back_data();
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
@@ -143,49 +220,13 @@ p.get(), q.get(), prev_rho.get(), rho.get());
 
 TEST_F(Xxsolverxx, GpuXxsolverxxStep1IsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
-    int m = 24;
-    int n = 7;
-
-    auto p = gen_mtx(m, n);
-    auto z = gen_mtx(m, n);
-    auto rho = gen_mtx(n, 1);
-    auto prev_rho = gen_mtx(n, 1);
-
-    auto d_p = Mtx::create(gpu);
-    auto d_z = Mtx::create(gpu);
-    auto d_prev_rho = Mtx::create(gpu, n, 1);
-    auto d_rho = Mtx::create(gpu, n, 1);
-    d_p->copy_from(p.get());
-    d_z->copy_from(z.get());
-    d_rho->copy_from(rho.get());
-    d_prev_rho->copy_from(prev_rho.get());
+    initialize_data();
 
     gko::kernels::reference::xxsolverxx::step_1(p.get(), z.get(), rho.get(),
                                         prev_rho.get());
     gko::kernels::gpu::xxsolverxx::step_1(d_p.get(), d_z.get(), d_rho.get(),
                                   d_prev_rho.get());
-
-    auto p_result = Mtx::create(ref);
-    auto z_result = Mtx::create(ref);
-    p_result->copy_from(d_p.get());
-    z_result->copy_from(d_z.get());
-
-    //     printf("GPU: (padding %d) \n", p_result->get_padding());
-    // for (int row=0; row<m; row++) {
-    //     for (int col=0; col<n; col++) {
-    //         printf("%.2f  ",   p_result->at(row, col));
-    //     }
-    //     printf("\n");
-    // }
+    copy_back_data();
 
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
@@ -194,57 +235,48 @@ TEST_F(Xxsolverxx, GpuXxsolverxxStep1IsEquivalentToRef)
 
 TEST_F(Xxsolverxx, GpuXxsolverxxStep2IsEquivalentToRef)
 {
-    std::ranlux48 rand_engine(30);
-
-
-    auto gen_mtx = [&](int m, int n) {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, m, n, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    };
-
-    int m = 24;
-    int n = 7;
-
-    auto x = gen_mtx(m, n);
-    auto r = gen_mtx(m, n);
-    auto p = gen_mtx(m, n);
-    auto q = gen_mtx(m, n);
-    auto beta = gen_mtx(n, 1);
-    auto rho = gen_mtx(n, 1);
-
-    auto d_x = Mtx::create(gpu);
-    auto d_r = Mtx::create(gpu);
-    auto d_p = Mtx::create(gpu);
-    auto d_q = Mtx::create(gpu);
-    auto d_beta = Mtx::create(gpu, n, 1);
-    auto d_rho = Mtx::create(gpu, n, 1);
-    d_x->copy_from(x.get());
-    d_r->copy_from(r.get());
-    d_p->copy_from(p.get());
-    d_q->copy_from(q.get());
-    d_beta->copy_from(beta.get());
-    d_rho->copy_from(rho.get());
-
+    initialize_data();
     gko::kernels::reference::xxsolverxx::step_2(x.get(), r.get(), p.get(),
 q.get(), beta.get(), rho.get());
     gko::kernels::gpu::xxsolverxx::step_2(d_x.get(), d_r.get(), d_p.get(),
 d_q.get(), d_beta.get(), d_rho.get());
 
-    auto x_result = Mtx::create(ref);
-    auto r_result = Mtx::create(ref);
-    auto p_result = Mtx::create(ref);
-    auto q_result = Mtx::create(ref);
-    x_result->copy_from(d_x.get());
-    r_result->copy_from(d_r.get());
-    p_result->copy_from(d_p.get());
-    q_result->copy_from(d_q.get());
+    copy_back_data();
 
     ASSERT_MTX_NEAR(x_result, x, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
     ASSERT_MTX_NEAR(q_result, q, 1e-14);
 }
+
+
+TEST_F(Xxsolverxx, ApplyIsEquivalentToRef)
+{
+    auto mtx = gen_mtx(50, 50);
+    make_spd(mtx.get());
+    auto x = gen_mtx(50, 3);
+    auto b = gen_mtx(50, 3);
+    auto d_mtx = Mtx::create(gpu);
+    d_mtx->copy_from(mtx.get());
+    auto d_x = Mtx::create(gpu);
+    d_x->copy_from(x.get());
+    auto d_b = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    auto xxsolverxx_factory = gko::solver::XxsolverxxFactory<>::create(ref, 50,
+1e-14); auto d_xxsolverxx_factory =
+gko::solver::XxsolverxxFactory<>::create(gpu, 50, 1e-14); auto solver =
+xxsolverxx_factory->generate(std::move(mtx)); auto d_solver =
+d_xxsolverxx_factory->generate(std::move(d_mtx));
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    auto result = Mtx::create(ref);
+    result->copy_from(d_x.get());
+
+    ASSERT_MTX_NEAR(result, x, 1e-14);
+}
+
 
 */
 
