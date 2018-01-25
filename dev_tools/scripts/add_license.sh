@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 shopt -s globstar
 shopt -s extglob
 
