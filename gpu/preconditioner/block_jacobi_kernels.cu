@@ -35,7 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
-#include "core/matrix/csr.hpp"
 
 
 namespace gko {
@@ -45,8 +44,17 @@ namespace block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
+void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix,
+                 uint32 max_block_size, size_type &num_blocks,
+                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
-              uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
 

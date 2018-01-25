@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_BLOCK_JACOBI_KERNELS_HPP_
 
 
-#include "core/matrix/dense.hpp"
+#include "core/matrix/csr.hpp"
 #include "core/preconditioner/block_jacobi.hpp"
 
 
@@ -43,14 +43,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)    \
-    void generate(const matrix::Csr<ValueType, IndexType> *system_matrix, \
-                  uint32 max_block_size, size_type padding,               \
-                  const Array<IndexType> &block_pointers,                 \
+#define GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)    \
+    void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix, \
+                     uint32 max_block_size, size_type &num_blocks,           \
+                     Array<IndexType> &block_pointers)
+
+#define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)       \
+    void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,    \
+                  size_type num_blocks, uint32 max_block_size,               \
+                  size_type padding, const Array<IndexType> &block_pointers, \
                   Array<ValueType> &blocks)
 
-#define DECLARE_ALL_AS_TEMPLATES                      \
-    template <typename ValueType, typename IndexType> \
+#define DECLARE_ALL_AS_TEMPLATES                                       \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)
 
 

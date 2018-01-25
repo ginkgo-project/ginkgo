@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
+#include "core/base/utils.hpp"
+#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/preconditioner/block_jacobi_kernels.hpp"
 
@@ -47,6 +49,7 @@ namespace {
 
 template <typename... TArgs>
 struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(find_blocks, block_jacobi::find_blocks<TArgs...>);
     GKO_REGISTER_OPERATION(generate, block_jacobi::generate<TArgs...>);
 };
 
@@ -118,7 +121,17 @@ void BlockJacobi<ValueType, IndexType>::move_to(
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    // TODO
+    auto csr_mtx = as<matrix::Csr<ValueType, IndexType>>(system_matrix);
+    auto exec = this->get_executor();
+    if (block_pointers_.get_data() == nullptr) {
+        block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
+        exec->run(TemplatedOperation<ValueType, IndexType>::
+                      make_find_blocks_operation(csr_mtx, max_block_size_,
+                                                 num_blocks_, block_pointers_));
+    }
+    exec->run(TemplatedOperation<ValueType, IndexType>::make_generate_operation(
+        csr_mtx, num_blocks_, max_block_size_, this->get_padding(),
+        block_pointers_, blocks_));
 }
 
 
