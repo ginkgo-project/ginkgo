@@ -30,3 +30,195 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include "core/matrix/sliced_ell.hpp"
+
+
+#include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
+#include "core/base/math.hpp"
+#include "core/base/utils.hpp"
+#include "core/matrix/sliced_ell_kernels.hpp"
+#include "core/matrix/dense.hpp"
+#include <vector>
+
+namespace gko {
+namespace matrix {
+
+
+namespace {
+
+
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, sliced_ell::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, sliced_ell::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense, sliced_ell::convert_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_dense, sliced_ell::move_to_dense<TplArgs...>);
+};
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::copy_from(const LinOp *other)
+{
+    as<ConvertibleTo<Sliced_ell<ValueType, IndexType>>>(other)->convert_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
+{
+    as<ConvertibleTo<Sliced_ell<ValueType, IndexType>>>(other.get())->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, as<Dense>(b), as<Dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
+                                      const LinOp *beta, LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Sliced_ell<ValueType, IndexType>::clone_type() const
+{
+    return std::unique_ptr<LinOp>(
+        new Sliced_ell(this->get_executor(), this->get_num_rows(),
+                this->get_num_cols(), this->get_num_stored_elements(),
+                this->get_const_max_nnz_rows()));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::clear()
+{
+    this->set_dimensions(0, 0, 0);
+    values_.clear();
+    col_idxs_.clear();
+    max_nnz_rows_.clear();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::convert_to(Sliced_ell *other) const
+{
+    other->set_dimensions(this);
+    other->values_ = values_;
+    other->col_idxs_ = col_idxs_;
+    // other->row_ptrs_ = row_ptrs_;
+    other->max_nnz_rows_ = max_nnz_rows_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::move_to(Sliced_ell *other)
+{
+    other->set_dimensions(this);
+    other->values_ = std::move(values_);
+    other->col_idxs_ = std::move(col_idxs_);
+    // other->row_ptrs_ = std::move(row_ptrs_);
+    other->max_nnz_rows_ = std::move(max_nnz_rows_);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
+            tmp.get(), this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+{
+    // auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+    // size_type nnz = 0;
+    // std::vector<index_type> nnz_row(data.num_rows, 0);
+    // for (const auto &elem : data.nonzeros) {
+    //     nnz += (std::get<2>(elem) != zero<ValueType>());
+    //     nnz_row.at(std::get<0>(elem))++;
+    // }
+    // index_type max_nnz_row = 0;
+    // for (const auto &elem : nnz_row) {
+    //     max_nnz_row = std::max(max_nnz_row, elem);
+    // }
+    // auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+    //                   data.num_cols, nnz, max_nnz_row);
+    // size_type ind = 0;
+    // int n = data.nonzeros.size();
+    // for (size_type row = 0; row < data.num_rows; row++) {
+    //     size_type col = 0;
+    //     for (; ind < n && col < max_nnz_row; ind++) {
+    //         if (std::get<0>(data.nonzeros[ind]) > row) {
+    //             break;
+    //         }
+    //         auto val = std::get<2>(data.nonzeros[ind]);
+    //         auto ell_ind = row+col*data.num_rows;
+    //         if (val != zero<ValueType>()) {
+    //             tmp->get_values()[ell_ind] = val;
+    //             tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
+    //             col++;
+    //         }
+    //     }
+    //     for (auto i = col; i < max_nnz_row; i++) {
+    //         auto ell_ind = row+i*data.num_rows;
+    //         tmp->get_values()[ell_ind] = 0;
+    //         tmp->get_col_idxs()[ell_ind] = tmp->get_col_idxs()[ell_ind-data.num_rows];
+    //     }
+    // }
+    // tmp->move_to(this);
+}
+
+
+#define DECLARE_SLICED_ELL_MATRIX(ValueType, IndexType) class Sliced_ell<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SLICED_ELL_MATRIX);
+#undef DECLARE_SLICED_ELL_MATRIX
+
+
+}  // namespace matrix
+}  // namespace gko

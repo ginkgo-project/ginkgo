@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
+#include "core/matrix/sliced_ell_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 
@@ -174,6 +175,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 }  // namespace csr
 
+
 namespace ell {
 
 
@@ -201,6 +203,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_MOVE_TO_DENSE_KERNEL);
 
 }  // namespace ell
+
+
+namespace sliced_ell {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SLICED_ELL_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SLICED_ELL_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SLICED_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_CONVERT_TO_DENSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SLICED_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_MOVE_TO_DENSE_KERNEL);
+
+}  // namespace sliced_ell 
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko
