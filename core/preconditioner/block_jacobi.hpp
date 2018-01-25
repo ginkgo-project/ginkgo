@@ -81,7 +81,7 @@ public:
         num_blocks_ = num_blocks;
     }
 
-    int32 get_max_block_size() const noexcept { return max_block_size_; }
+    uint32 get_max_block_size() const noexcept { return max_block_size_; }
 
     const Array<IndexType> &get_block_pointers() const noexcept
     {
@@ -101,7 +101,7 @@ public:
 
 protected:
     BlockJacobi(std::shared_ptr<const Executor> exec,
-                const LinOp *system_matrix, int32 max_block_size,
+                const LinOp *system_matrix, uint32 max_block_size,
                 const Array<IndexType> &block_pointers)
         : LinOp(exec, system_matrix->get_num_rows(),
                 system_matrix->get_num_cols(),
@@ -117,7 +117,7 @@ protected:
 
     static std::unique_ptr<BlockJacobi> create(
         std::shared_ptr<const Executor> exec, const LinOp *system_matrix,
-        int32 max_block_size, const Array<IndexType> &block_pointers)
+        uint32 max_block_size, const Array<IndexType> &block_pointers)
     {
         return std::unique_ptr<BlockJacobi>(new BlockJacobi(
             std::move(exec), system_matrix, max_block_size, block_pointers));
@@ -127,7 +127,7 @@ protected:
 
 private:
     size_type num_blocks_;
-    int32 max_block_size_;
+    uint32 max_block_size_;
     Array<IndexType> block_pointers_;
     Array<ValueType> blocks_;
 };
@@ -140,7 +140,7 @@ public:
     using index_type = IndexType;
 
     static std::unique_ptr<BlockJacobiFactory> create(
-        std::shared_ptr<const Executor> exec, int32 max_block_size)
+        std::shared_ptr<const Executor> exec, uint32 max_block_size)
     {
         return std::unique_ptr<BlockJacobiFactory>(
             new BlockJacobiFactory(std::move(exec), max_block_size));
@@ -149,7 +149,7 @@ public:
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
-    int32 get_max_block_size() const noexcept { return max_block_size_; }
+    uint32 get_max_block_size() const noexcept { return max_block_size_; }
 
     void set_block_pointers(const Array<IndexType> &block_pointers)
     {
@@ -168,14 +168,14 @@ public:
 
 protected:
     BlockJacobiFactory(std::shared_ptr<const Executor> exec,
-                       int32 max_block_size)
+                       uint32 max_block_size)
         : LinOpFactory(exec),
           max_block_size_(max_block_size),
           block_pointers_(exec)
     {}
 
 private:
-    int32 max_block_size_;
+    uint32 max_block_size_;
     Array<IndexType> block_pointers_;
 };
 

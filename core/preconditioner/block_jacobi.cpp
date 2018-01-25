@@ -37,10 +37,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/preconditioner/block_jacobi_kernels.hpp"
 
 
 namespace gko {
 namespace preconditioner {
+namespace {
+
+
+template <typename... TArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(generate, block_jacobi::generate<TArgs...>);
+};
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
