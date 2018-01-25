@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 
 
@@ -58,11 +59,136 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
+                          IndexType block_size, IndexType block_start,
+                          ValueType *block, size_type padding)
+{
+    for (int i = 0; i < block_size; ++i) {
+        for (int j = 0; j < block_size; ++j) {
+            block[i * padding + j] = zero<ValueType>();
+        }
+    }
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto vals = mtx->get_const_values();
+    for (int row = 0; row < block_size; ++row) {
+        const auto start = row_ptrs[block_start + row];
+        const auto end = row_ptrs[block_start + row + 1];
+        for (int i = start; i < end; ++i) {
+            const auto col = col_idxs[i] - block_start;
+            if (0 <= col && col < block_size) {
+                block[row * padding + col] = vals[i];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
+                              size_type padding)
+{
+    using std::abs;
+    IndexType cp = 0;
+    for (IndexType i = 1; i < block_size; ++i) {
+        if (abs(block[cp * padding]) < abs(block[i * padding])) {
+            cp = i;
+        }
+    }
+    return cp;
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
+                      ValueType *block, size_type padding)
+{
+    using std::swap;
+    for (IndexType i = 0; i < block_size; ++i) {
+        swap(block[row1 * padding + i], block[row2 * padding + i]);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
+                                         IndexType block_size, ValueType *block,
+                                         size_type padding)
+{
+    const auto d = block[row * padding + col];
+    for (IndexType i = 0; i < block_size; ++i) {
+        block[i * padding + col] /= -d;
+    }
+    block[row * padding + col] = zero<ValueType>();
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            block[i * padding + j] +=
+                block[i * padding + col] * block[row * padding + j];
+        }
+    }
+    for (IndexType j = 0; j < block_size; ++j) {
+        block[row * padding + j] /= d;
+    }
+    block[row * padding + col] = one<ValueType>() / d;
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void permute_columns(const IndexType *perm, IndexType block_size,
+                            ValueType *block, size_type padding)
+{
+    std::vector<ValueType> tmp(block_size);
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            tmp[perm[j]] = block[i * padding + j];
+        }
+        for (IndexType j = 0; j < block_size; ++j) {
+            block[i * padding + j] = tmp[j];
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void invert_block(IndexType block_size, ValueType *block,
+                         size_type padding)
+{
+    using std::abs;
+    using std::swap;
+    std::vector<IndexType> piv(block_size);
+    iota(begin(piv), end(piv), IndexType(0));
+    for (IndexType k = 0; k < block_size; ++k) {
+        const auto cp =
+            choose_pivot(block_size - k, block + k * padding + k, padding) + k;
+        swap_rows(k, cp, block_size, block, padding);
+        swap(piv[k], piv[cp]);
+        apply_gauss_jordan_transform(k, k, block_size, block, padding);
+    }
+    permute_columns(piv.data(), block_size, block, padding);
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
-              const Array<IndexType> &block_pointers,
-              Array<ValueType> &blocks) NOT_IMPLEMENTED;
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type b = 0; b < num_blocks; ++b) {
+        const auto block = blocks.get_data() + padding * ptrs[b];
+        const auto block_size = ptrs[b + 1] - ptrs[b];
+        extract_block(system_matrix, block_size, ptrs[b], block, padding);
+        invert_block(block_size, block, padding);
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
