@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
+#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 
 
@@ -98,11 +99,6 @@ public:
         return blocks_.get_const_data();
     }
 
-    std::shared_ptr<const LinOp> get_system_matrix() const noexcept
-    {
-        return system_matrix_;
-    }
-
 protected:
     BlockJacobi(std::shared_ptr<const Executor> exec,
                 const LinOp *system_matrix, int32 max_block_size,
@@ -120,13 +116,11 @@ protected:
     }
 
     static std::unique_ptr<BlockJacobi> create(
-        std::shared_ptr<const Executor> exec,
-        std::shared_ptr<const LinOp> system_matrix, int32 max_block_size,
-        const Array<IndexType> &block_pointers)
+        std::shared_ptr<const Executor> exec, const LinOp *system_matrix,
+        int32 max_block_size, const Array<IndexType> &block_pointers)
     {
-        return std::unique_ptr<BlockJacobi>(
-            new BlockJacobi(std::move(exec), std::move(system_matrix),
-                            max_block_size, block_pointers));
+        return std::unique_ptr<BlockJacobi>(new BlockJacobi(
+            std::move(exec), system_matrix, max_block_size, block_pointers));
     }
 
     void generate(const LinOp *system_matrix);
@@ -143,6 +137,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobiFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
+    using index_type = IndexType;
 
     static std::unique_ptr<BlockJacobiFactory> create(
         std::shared_ptr<const Executor> exec, int32 max_block_size)

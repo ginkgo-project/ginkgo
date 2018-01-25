@@ -3,6 +3,7 @@ set(SOURCES
     base/mtx_reader.cpp
     matrix/csr.cpp
     matrix/dense.cpp
+    preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/fcg.cpp
     solver/cg.cpp)
