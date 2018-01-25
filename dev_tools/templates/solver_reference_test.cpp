@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/solver/xxsolverxx.hpp>
 
+#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
 

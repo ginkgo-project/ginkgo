@@ -33,8 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/xxsolverxx.hpp"
 
-
-#include "core/matrix/identity.hpp"
+#include "core/base/convertible.hpp"
+#include "core/base/exception.hpp"
+#include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
+#include "core/base/math.hpp"
+#include "core/base/utils.hpp"
 #include "core/solver/xxsolverxx_kernels.hpp"
 
 namespace gko {
@@ -43,11 +47,10 @@ namespace solver {
 
 namespace {
 
-
 template <typename ValueType>
 struct TemplatedOperation {
-    // This is example code for the CG case - has to be modified for the new
-    // solver
+    // This is example code for the XXSOLVERXX case - has to be modified for the
+    // new solver
     /*
 
 
@@ -59,7 +62,13 @@ struct TemplatedOperation {
     */
 };
 
-
+/**
+ * Checks whether the required residual goal has been reached or not.
+ *
+ * @param tau  Residual of the iteration.
+ * @param orig_tau  Original residual.
+ * @param r  Relative residual goal.
+ */
 template <typename ValueType>
 bool has_converged(const matrix::Dense<ValueType> *tau,
                    const matrix::Dense<ValueType> *orig_tau,
@@ -81,47 +90,34 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 template <typename ValueType>
 void Xxsolverxx<ValueType>::copy_from(const LinOp *other)
 {
-    auto other_xxsolverxx = dynamic_cast<const Xxsolverxx<ValueType> *>(other);
-    if (other_xxsolverxx == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
+    auto other_xxsolverxx = as<Xxsolverxx<ValueType>>(other);
     system_matrix_ = other_xxsolverxx->get_system_matrix()->clone();
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+    this->set_dimensions(other);
 }
 
 
 template <typename ValueType>
 void Xxsolverxx<ValueType>::copy_from(std::unique_ptr<LinOp> other)
 {
-    auto other_xxsolverxx = dynamic_cast<Xxsolverxx<ValueType> *>(other.get());
-    if (other_xxsolverxx == nullptr) {
-        throw NOT_SUPPORTED(other);
-    }
+    auto other_xxsolverxx = as<Xxsolverxx<ValueType>>(other.get());
     system_matrix_ = std::move(other_xxsolverxx->get_system_matrix());
-    this->set_dimensions(other->get_num_rows(), other->get_num_cols(),
-                         other->get_num_nonzeros());
+    this->set_dimensions(other.get());
 }
 
 
 template <typename ValueType>
 void Xxsolverxx<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
-    // This is example code for the CG case - has to be modified for the new
-    // solver
+    // This is example code for the XXSOLVERXX case - has to be modified for the
+    // new solver
     /*
 
 
+        using std::swap;
         using Vector = matrix::Dense<ValueType>;
-        auto dense_b = dynamic_cast<const Vector *>(b);
-        auto dense_x = dynamic_cast<Vector *>(x);
-        if (dense_b == nullptr) {
-            throw NOT_SUPPORTED(b);
-        }
-        if (dense_x == nullptr) {
-            throw NOT_SUPPORTED(x);
-        }
-        // TODO: ASSERT_SQUARE(system_matrix_)
+        auto dense_b = as<const Vector>(b);
+        auto dense_x = as<Vector>(x);
+
         ASSERT_CONFORMANT(system_matrix_, b);
         ASSERT_EQUAL_DIMENSIONS(b, x);
 
@@ -136,14 +132,14 @@ void Xxsolverxx<ValueType>::apply(const LinOp *b, LinOp *x) const
         auto p = Vector::create_with_config_of(dense_b);
         auto q = Vector::create_with_config_of(dense_b);
 
-        auto alpha = Vector::create(exec, dense_b->get_num_cols(), 1, 1);
+        auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
         auto beta = Vector::create_with_config_of(alpha.get());
         auto prev_rho = Vector::create_with_config_of(alpha.get());
         auto rho = Vector::create_with_config_of(alpha.get());
         auto tau = Vector::create_with_config_of(alpha.get());
 
         auto master_tau =
-            Vector::create(exec->get_master(), dense_b->get_num_cols(), 1, 1);
+            Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
         auto starting_tau = Vector::create_with_config_of(master_tau.get());
 
         // TODO: replace this with automatic merged kernel generator
@@ -156,29 +152,25 @@ void Xxsolverxx<ValueType>::apply(const LinOp *b, LinOp *x) const
         // z = p = q = 0
 
         system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-        this->log(EventData::matrix_apply, r.get());
         r->compute_dot(r.get(), tau.get());
         starting_tau->copy_from(tau.get());
 
         for (int iter = 0; iter < max_iters_; ++iter) {
-            this->log(EventData::iteration, iter);
-            precond_->apply(r.get(), z.get());
-            this->log(EventData::precond_apply, z.get());
+            // TODO: replace with preconditioner application.
+            z->copy_from(r.get());
             r->compute_dot(z.get(), rho.get());
             r->compute_dot(r.get(), tau.get());
-            this->log(EventData::residual, tau.get());
             master_tau->copy_from(tau.get());
             if (has_converged(master_tau.get(), starting_tau.get(),
                               rel_residual_goal_)) {
-                this->log(EventData::converged, tau.get());
                 break;
             }
+
             exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
                 p.get(), z.get(), rho.get(), prev_rho.get()));
             // tmp = rho / prev_rho
             // p = z + tmp * p
             system_matrix_->apply(p.get(), q.get());
-            this->log(EventData::matrix_apply, q.get());
             p->compute_dot(q.get(), beta.get());
             exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
                 dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get()));
@@ -188,6 +180,7 @@ void Xxsolverxx<ValueType>::apply(const LinOp *b, LinOp *x) const
             swap(prev_rho, rho);
         }
 
+
     */
 }
 
@@ -196,10 +189,8 @@ template <typename ValueType>
 void Xxsolverxx<ValueType>::apply(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = dynamic_cast<matrix::Dense<ValueType> *>(x);
-    if (dense_x == nullptr) {
-        throw NOT_SUPPORTED(x);
-    }
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
@@ -227,15 +218,34 @@ void Xxsolverxx<ValueType>::clear()
 
 
 template <typename ValueType>
+void Xxsolverxx<ValueType>::convert_to(Xxsolverxx *result) const
+{
+    result->set_dimensions(this);
+    result->max_iters_ = max_iters_;
+    result->rel_residual_goal_ = rel_residual_goal_;
+    result->system_matrix_ = system_matrix_;
+}
+
+
+template <typename ValueType>
+void Xxsolverxx<ValueType>::move_to(Xxsolverxx *result)
+{
+    result->set_dimensions(this);
+    result->max_iters_ = max_iters_;
+    result->rel_residual_goal_ = rel_residual_goal_;
+    result->system_matrix_ = std::move(system_matrix_);
+}
+
+template <typename ValueType>
 std::unique_ptr<LinOp> XxsolverxxFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
     auto xxsolverxx =
         std::unique_ptr<Xxsolverxx<ValueType>>(Xxsolverxx<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));
-    if (precond_factory_ != nullptr) {
-        xxsolverxx->set_precond(precond_factory_->generate(std::move(base)));
-    }
+    ASSERT_EQUAL_DIMENSIONS(xxsolverxx->system_matrix_,
+                            size(xxsolverxx->system_matrix_->get_num_cols(),
+                                 xxsolverxx->system_matrix_->get_num_rows()));
     return std::move(xxsolverxx);
 }
 
