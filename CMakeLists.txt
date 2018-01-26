@@ -10,6 +10,7 @@ option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
+option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 
 
 include(cmake/create_test.cmake)
@@ -20,8 +21,11 @@ if(BUILD_GPU)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
     set(CMAKE_CUDA_STANDARD 11)
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9)
-        set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr
-            ${CMAKE_CUDA_FLAGS}" CACHE string "")
+        set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr")
+    endif()
+    if(SET_CUDA_HOST_COMPILER)
+        set(CMAKE_CUDA_FLAGS
+            "--compiler-bindir ${CMAKE_CXX_COMPILER} ${CMAKE_CUDA_FLAGS}")
     endif()
 else()
     project(Ginkgo LANGUAGES CXX)

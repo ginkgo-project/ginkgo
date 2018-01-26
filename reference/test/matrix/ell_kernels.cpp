@@ -81,29 +81,28 @@ protected:
 
 TEST_F(Ell, AppliesToDenseVector)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, {2.0, 1.0, 4.0});
-    // auto y = Vec::create(exec, 2, 1, 1);
+	
+    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
+    auto y = Vec::create(exec, 2, 1, 1);
 
-    // mtx->apply(x.get(), y.get());
+    mtx->apply(x.get(), y.get());
 
-    // EXPECT_EQ(y->at(0), 13.0);
-    // EXPECT_EQ(y->at(1), 5.0);
+    EXPECT_EQ(y->at(0), 13.0);
+    EXPECT_EQ(y->at(1), 5.0);
 }
 
 
 TEST_F(Ell, AppliesToDenseMatrix)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    // auto y = Vec::create(exec, 2, 2, 2);
+    auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
+    auto y = Vec::create(exec, 2, 2, 2);
 
-    // mtx->apply(x.get(), y.get());
+    mtx->apply(x.get(), y.get());
 
-    // EXPECT_EQ(y->at(0, 0), 13.0);
-    // EXPECT_EQ(y->at(1, 0), 5.0);
-    // EXPECT_EQ(y->at(0, 1), 3.5);
-    // EXPECT_EQ(y->at(1, 1), -7.5);
+    EXPECT_EQ(y->at(0, 0), 13.0);
+    EXPECT_EQ(y->at(1, 0), 5.0);
+    EXPECT_EQ(y->at(0, 1), 3.5);
+    EXPECT_EQ(y->at(1, 1), -7.5);
 }
 
 

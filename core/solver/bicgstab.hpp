@@ -48,8 +48,7 @@ template <typename>
 class BicgstabFactory;
 
 /**
- * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is the superset of the CG
- * solver and as such belongs to the class of Krylov subspace solvers.
+ * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.
  *
  * Being a generic solver, it is capable of solving general matrices, including
  * non-s.p.d matrices. Though, the memory and the computational requirement of
@@ -90,7 +89,7 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the CG solver.
+     * Gets the maximum number of iterations of the BiCGSTAB solver.
      *
      * @return  The maximum number of iterations.
      */

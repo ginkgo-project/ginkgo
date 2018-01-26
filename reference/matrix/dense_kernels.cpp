@@ -36,7 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
-
+#include "core/matrix/ell.hpp"
+#include <iostream>
 
 namespace gko {
 namespace kernels {
@@ -193,6 +194,49 @@ void move_to_csr(matrix::Csr<ValueType, IndexType> *result,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void convert_to_ell(matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source)
+{
+    auto num_rows = result->get_num_rows();
+    auto num_cols = result->get_num_cols();
+    auto num_nonzeros = result->get_num_stored_elements();
+
+    auto max_nnz_row = result->get_max_nnz_row();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+    // std::cout << "nnz per row: " << max_nnz_row << std::endl;
+    for (size_type row = 0; row < num_rows; ++row) {
+        size_type temp = 0;
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                col_idxs[row+num_rows*temp] = col;
+                values[row+num_rows*temp] = val;
+                temp++;
+            }
+        }
+        for (; temp < max_nnz_row; temp++) {
+            values[row+num_rows*temp] = 0;
+            col_idxs[row+num_rows*temp] = col_idxs[row+num_rows*(temp-1)];  
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_ell(matrix::Ell<ValueType, IndexType> *result,
+                 const matrix::Dense<ValueType> *source)
+{
+    reference::dense::convert_to_ell(result, source);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
+
 
 template <typename ValueType>
 void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
@@ -212,6 +256,25 @@ void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
+template <typename ValueType>
+void count_max_nnz_row(const matrix::Dense<ValueType> *source, size_type *result)
+{
+    auto num_rows = source->get_num_rows();
+    auto num_cols = source->get_num_cols();
+    auto max_nnz_row = 0;
+    auto temp = 0;
+    for (size_type row = 0; row < num_rows; ++row) {
+        temp = 0;
+        for (size_type col = 0; col < num_cols; ++col) {
+            temp += (source->at(row, col) != zero<ValueType>());
+        }
+        max_nnz_row = (max_nnz_row < temp) ? temp : max_nnz_row;
+    }
+
+    *result = max_nnz_row;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
 
 }  // namespace dense
 }  // namespace reference

@@ -3,8 +3,8 @@ set(SOURCES
     base/executor.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
-    matrix/ell_kernels.cpp
-    solver/bicgstab_kernels.cpp
+    matrix/ell_kernels.cu
+    solver/bicgstab_kernels.cu
     solver/cg_kernels.cu)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

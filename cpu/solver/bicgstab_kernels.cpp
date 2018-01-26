@@ -50,7 +50,7 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
-                matrix::Dense<ValueType> *beta,
+                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -85,6 +85,7 @@ void step_3(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *gamma,
             matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
