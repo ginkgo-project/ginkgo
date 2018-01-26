@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
+
 namespace gko {
 namespace matrix {
 
@@ -57,6 +58,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
+    GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
+    GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
 
 
@@ -275,6 +278,31 @@ void Dense<ValueType>::read_from_mtx(const std::string &filename)
         }
     }
     tmp->move_to(this);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
+
+    exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
+        trans_cpy.get(), this));
+
+    return std::move(trans_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
+
+    exec->run(TemplatedOperation<ValueType>::make_conj_transpose_operation(
+        trans_cpy.get(), this));
+    return std::move(trans_cpy);
 }
 
 

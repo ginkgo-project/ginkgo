@@ -171,6 +171,49 @@ void count_nonzeros(const matrix::Dense<ValueType> *source,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType>
+void transpose(matrix::Dense<ValueType> *trans,
+               const matrix::Dense<ValueType> *orig)
+{
+    auto handle = cublas::init();
+    ASSERT_NO_CUBLAS_ERRORS(
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+
+    auto alpha = one<ValueType>();
+    auto beta = zero<ValueType>();
+    cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_num_rows(),
+                 orig->get_num_cols(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_padding());
+
+    cublas::destroy(handle);
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void conj_transpose(matrix::Dense<ValueType> *trans,
+                    const matrix::Dense<ValueType> *orig)
+
+{
+    auto handle = cublas::init();
+    ASSERT_NO_CUBLAS_ERRORS(
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+
+    auto alpha = one<ValueType>();
+    auto beta = zero<ValueType>();
+    cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_num_rows(),
+                 orig->get_num_cols(), &alpha, orig->get_const_values(),
+                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_padding());
+
+    cublas::destroy(handle);
+};
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace dense
 }  // namespace gpu
 }  // namespace kernels

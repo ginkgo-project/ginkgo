@@ -62,6 +62,14 @@ namespace kernels {
     void move_to_dense(matrix::Dense<ValueType> *result,           \
                        matrix::Csr<ValueType, IndexType> *source)
 
+#define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType) \
+    void transpose(matrix::Csr<ValueType, IndexType> *trans,   \
+                   const matrix::Csr<ValueType, IndexType> *orig)
+
+#define GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType) \
+    void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,   \
+                        const matrix::Csr<ValueType, IndexType> *orig)
+
 #define DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);             \
@@ -70,7 +78,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
 namespace cpu {

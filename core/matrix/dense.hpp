@@ -70,7 +70,8 @@ class Dense : public LinOp,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
-              public ReadableFromMtx {
+              public ReadableFromMtx,
+              public Transposable {
     friend class gko::matrix::Csr<ValueType, int32>;
     friend class gko::matrix::Csr<ValueType, int64>;
 
@@ -352,6 +353,10 @@ public:
     void move_to(Csr<ValueType, int64> *result) override;
 
     void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,

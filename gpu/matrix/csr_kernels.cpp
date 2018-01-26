@@ -120,6 +120,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void transpose(matrix::Csr<ValueType, IndexType> *trans,
+               const matrix::Csr<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
+                    const matrix::Csr<ValueType, IndexType> *orig)
+    NOT_IMPLEMENTED;
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace csr
 }  // namespace gpu
 }  // namespace kernels

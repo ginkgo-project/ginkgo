@@ -64,7 +64,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMtx {
+            public ReadableFromMtx,
+            public Transposable {
     friend class gko::matrix::Dense<ValueType>;
 
 public:
@@ -120,6 +121,10 @@ public:
     void move_to(Dense<ValueType> *other) override;
 
     void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns the values of the matrix.
