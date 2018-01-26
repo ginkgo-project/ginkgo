@@ -108,10 +108,6 @@ public:
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
     std::unique_ptr<LinOp> clone_type() const override;
 
     void clear() override;
@@ -125,6 +121,10 @@ public:
     void move_to(Dense<ValueType> *other) override;
 
     void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns the values of the matrix.

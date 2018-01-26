@@ -181,32 +181,6 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
-
-    exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
-        trans_cpy.get(), this));
-
-    return trans_cpy;
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
-{
-    auto trans_cpy = create(this->get_executor(), this->get_num_cols(),
-                            this->get_num_rows());
-
-    this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_conj_transpose_operation(
-            trans_cpy.get(), this));
-    return trans_cpy;
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::clone_type() const
 {
     return std::unique_ptr<Dense>(new Dense(this->get_executor(), 0, 0, 0));
@@ -304,6 +278,31 @@ void Dense<ValueType>::read_from_mtx(const std::string &filename)
         }
     }
     tmp->move_to(this);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
+
+    exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
+        trans_cpy.get(), this));
+
+    return std::move(trans_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows());
+
+    exec->run(TemplatedOperation<ValueType>::make_conj_transpose_operation(
+        trans_cpy.get(), this));
+    return std::move(trans_cpy);
 }
 
 

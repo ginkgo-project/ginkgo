@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/dense.hpp>
 
+#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
 
@@ -292,13 +293,16 @@ TEST_F(Dense, SquareMatrixIsTransposable)
 
     auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
 
-    ASSERT_EQ(trans_as_dense->get_num_cols(), mtx5->get_num_rows());
+    /*ASSERT_EQ(trans_as_dense->get_num_cols(), mtx5->get_num_rows());
     ASSERT_EQ(trans_as_dense->get_num_rows(), mtx5->get_num_cols());
     EXPECT_EQ(trans_as_dense->at(0, 0), mtx5->at(0, 0));
     EXPECT_EQ(trans_as_dense->at(1, 0), mtx5->at(0, 1));
     EXPECT_EQ(trans_as_dense->at(1, 1), mtx5->at(1, 1));
     EXPECT_EQ(trans_as_dense->at(2, 0), mtx5->at(0, 2));
-    EXPECT_EQ(trans_as_dense->at(2, 1), mtx5->at(1, 2));
+    EXPECT_EQ(trans_as_dense->at(2, 1), mtx5->at(1, 2));*/
+    ASSERT_MTX_NEAR(trans_as_dense,
+                    l({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
+                    0.0);
 }
 
 
@@ -308,12 +312,14 @@ TEST_F(Dense, NonSquareMatrixIsTransposable)
 
     auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
 
-    ASSERT_EQ(trans_as_dense->get_num_cols(), mtx4->get_num_rows());
+    /*ASSERT_EQ(trans_as_dense->get_num_cols(), mtx4->get_num_rows());
     ASSERT_EQ(trans_as_dense->get_num_rows(), mtx4->get_num_cols());
     EXPECT_EQ(trans_as_dense->at(0, 0), mtx4->at(0, 0));
     EXPECT_EQ(trans_as_dense->at(1, 0), mtx4->at(0, 1));
     EXPECT_EQ(trans_as_dense->at(1, 1), mtx4->at(1, 1));
     EXPECT_EQ(trans_as_dense->at(2, 0), mtx4->at(0, 2));
-    EXPECT_EQ(trans_as_dense->at(2, 1), mtx4->at(1, 2));
+    EXPECT_EQ(trans_as_dense->at(2, 1), mtx4->at(1, 2));*/
+    ASSERT_MTX_NEAR(trans_as_dense, l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}),
+                    0.0);
 }
 }  // namespace

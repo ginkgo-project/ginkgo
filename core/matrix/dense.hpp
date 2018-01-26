@@ -338,10 +338,6 @@ public:
 
     std::unique_ptr<LinOp> clone_type() const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
     void clear() override;
 
     void convert_to(Dense *result) const override;
@@ -357,6 +353,10 @@ public:
     void move_to(Csr<ValueType, int64> *result) override;
 
     void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,

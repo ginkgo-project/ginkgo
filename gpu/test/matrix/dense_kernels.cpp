@@ -67,17 +67,10 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Mtx>(
-            ref, num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
-    }
-
-    std::unique_ptr<ComplexMtx> gen_mtx_complex(int num_rows, int num_cols)
-    {
-        return gko::test::generate_random_matrix<ComplexMtx>(
+        return gko::test::generate_random_matrix<MtxType>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(0.0, 1.0), rand_engine);
@@ -85,10 +78,10 @@ protected:
 
     void set_up_vector_data(int num_vecs, bool different_alpha = false)
     {
-        x = gen_mtx(1000, num_vecs);
-        y = gen_mtx(1000, num_vecs);
+        x = gen_mtx<Mtx>(1000, num_vecs);
+        y = gen_mtx<Mtx>(1000, num_vecs);
         if (different_alpha) {
-            alpha = gen_mtx(1, num_vecs);
+            alpha = gen_mtx<Mtx>(1, num_vecs);
         } else {
             alpha = Mtx::create(ref, {2.0});
         }
@@ -104,10 +97,10 @@ protected:
 
     void set_up_apply_data()
     {
-        x = gen_mtx(40, 25);
-        c_x = gen_mtx_complex(40, 25);
-        y = gen_mtx(25, 35);
-        expected = gen_mtx(40, 35);
+        x = gen_mtx<Mtx>(40, 25);
+        c_x = gen_mtx<ComplexMtx>(40, 25);
+        y = gen_mtx<Mtx>(25, 35);
+        expected = gen_mtx<Mtx>(40, 35);
         alpha = Mtx::create(ref, {2.0});
         beta = Mtx::create(ref, {-1.0});
         dx = Mtx::create(gpu);
@@ -278,7 +271,6 @@ TEST_F(Dense, IsTransposable)
 {
     set_up_apply_data();
 
-
     auto trans = x->transpose();
     auto d_trans = dx->transpose();
 
@@ -293,7 +285,6 @@ TEST_F(Dense, IsTransposable)
 TEST_F(Dense, IsConjugateTransposable)
 {
     set_up_apply_data();
-
 
     auto trans = c_x->conj_transpose();
     auto d_trans = dc_x->conj_transpose();

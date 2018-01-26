@@ -108,34 +108,6 @@ void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
-{
-    std::unique_ptr<Csr> trans_cpy =
-        create(this->get_executor(), this->get_num_cols(), this->get_num_rows(),
-               this->get_num_stored_elements());
-
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
-            trans_cpy.get(), this));
-    return trans_cpy;
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
-{
-    std::unique_ptr<Csr> trans_cpy =
-        create(this->get_executor(), this->get_num_cols(), this->get_num_rows(),
-               this->get_num_stored_elements());
-
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
-            trans_cpy.get(), this));
-    return trans_cpy;
-}
-
-
-template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::clone_type() const
 {
     return std::unique_ptr<LinOp>(
@@ -228,6 +200,34 @@ void Csr<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         tmp->get_row_ptrs()[row + 1] = cur_ptr;
     }
     tmp->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
 }
 
 
