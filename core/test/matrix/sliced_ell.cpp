@@ -30,3 +30,147 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include <core/matrix/sliced_ell.hpp>
+
+
+#include <gtest/gtest.h>
+
+
+namespace {
+
+
+class Sliced_ell : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::Sliced_ell<>;
+
+    Sliced_ell()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx(gko::matrix::Sliced_ell<>::create(exec, 2, 3, 4, 3))
+    {
+        Mtx::value_type *v = mtx->get_values();
+        Mtx::index_type *c = mtx->get_col_idxs();
+        Mtx::index_type n = mtx->get_max_nnz_row();
+        n = 3;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 1;
+        c[3] = 1;
+        c[4] = 2;
+        c[5] = 1;
+        v[0] = 1.0;
+        v[1] = 5.0;
+        v[2] = 3.0;
+        v[3] = 0.0;
+        v[4] = 2.0;
+        v[5] = 0.0;
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Mtx> mtx;
+
+    void assert_equal_to_original_mtx(const Mtx *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto n = m->get_const_max_nnz_row();
+        ASSERT_EQ(m->get_num_rows(), 2);
+        ASSERT_EQ(m->get_num_cols(), 3);
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(n, 3);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 1);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(c[4], 2);
+        EXPECT_EQ(c[5], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 5.0);
+        EXPECT_EQ(v[2], 3.0);
+        EXPECT_EQ(v[3], 0.0);
+        EXPECT_EQ(v[4], 2.0);
+        EXPECT_EQ(v[5], 0.0);
+    }
+
+    void assert_empty(const Mtx *m)
+    {
+        ASSERT_EQ(m->get_num_rows(), 0);
+        ASSERT_EQ(m->get_num_cols(), 0);
+        ASSERT_EQ(m->get_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_const_values(), nullptr);
+        ASSERT_EQ(m->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(m->get_const_max_nnz_row(), 0);
+    }
+};
+
+
+TEST_F(Sliced_ell, KnowsItsSize)
+{
+    ASSERT_EQ(mtx->get_num_rows(), 2);
+    ASSERT_EQ(mtx->get_num_cols(), 3);
+    ASSERT_EQ(mtx->get_num_stored_elements(), 4);
+}
+
+
+TEST_F(Sliced_ell, ContainsCorrectData) { assert_equal_to_original_mtx(mtx.get()); }
+
+
+TEST_F(Sliced_ell, CanBeEmpty)
+{
+    auto mtx = Mtx::create(exec);
+
+    assert_empty(mtx.get());
+}
+
+
+TEST_F(Sliced_ell, CanBeCopied)
+{
+    auto copy = Mtx::create(exec);
+
+    copy->copy_from(mtx.get());
+
+    assert_equal_to_original_mtx(mtx.get());
+    mtx->get_values()[1] = 5.0;
+    assert_equal_to_original_mtx(copy.get());
+}
+
+
+TEST_F(Sliced_ell, CanBeMoved)
+{
+    auto copy = Mtx::create(exec);
+
+    copy->copy_from(std::move(mtx));
+
+    assert_equal_to_original_mtx(copy.get());
+}
+
+
+TEST_F(Sliced_ell, CanBeCloned)
+{
+    auto clone = mtx->clone();
+
+    assert_equal_to_original_mtx(mtx.get());
+    mtx->get_values()[1] = 5.0;
+    assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+}
+
+
+TEST_F(Sliced_ell, CanBeCleared)
+{
+    mtx->clear();
+
+    assert_empty(mtx.get());
+}
+
+
+TEST_F(Sliced_ell, CanBeReadFromMtx)
+{
+    auto m = Mtx::create(exec);
+
+    m->read_from_mtx("../base/data/dense_real.mtx");
+
+    assert_equal_to_original_mtx(m.get());
+}
+
+
+}  // namespace

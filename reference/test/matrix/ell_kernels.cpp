@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/ell.hpp>
+#include <core/matrix/sliced_ell.hpp>
 
 
 #include <gtest/gtest.h>
@@ -47,12 +47,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Ell : public ::testing::Test {
+class Sliced_ell : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Ell<>;
+    using Mtx = gko::matrix::Sliced_ell<>;
     using Vec = gko::matrix::Dense<>;
 
-    Ell()
+    Sliced_ell()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, 2, 3, 4, 3))
     {
@@ -79,7 +79,7 @@ protected:
 };
 
 
-TEST_F(Ell, AppliesToDenseVector)
+TEST_F(Sliced_ell, AppliesToDenseVector)
 {
 	
     auto x = Vec::create(exec, {2.0, 1.0, 4.0});
@@ -92,7 +92,7 @@ TEST_F(Ell, AppliesToDenseVector)
 }
 
 
-TEST_F(Ell, AppliesToDenseMatrix)
+TEST_F(Sliced_ell, AppliesToDenseMatrix)
 {
     auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
     auto y = Vec::create(exec, 2, 2, 2);
@@ -106,7 +106,7 @@ TEST_F(Ell, AppliesToDenseMatrix)
 }
 
 
-TEST_F(Ell, AppliesLinearCombinationToDenseVector)
+TEST_F(Sliced_ell, AppliesLinearCombinationToDenseVector)
 {
 	NOT_IMPLEMENTED;
     // auto alpha = Vec::create(exec, {-1.0});
@@ -120,7 +120,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseVector)
     // EXPECT_EQ(y->at(1), -1.0);
 }
 
-TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
+TEST_F(Sliced_ell, AppliesLinearCombinationToDenseMatrix)
 {
 	NOT_IMPLEMENTED;
     // auto alpha = Vec::create(exec, {-1.0});
@@ -137,7 +137,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Ell, ApplyFailsOnWrongInnerDimension)
+TEST_F(Sliced_ell, ApplyFailsOnWrongInnerDimension)
 {
 	NOT_IMPLEMENTED;
     // auto x = Vec::create(exec, 2, 2, 2);
@@ -147,7 +147,7 @@ TEST_F(Ell, ApplyFailsOnWrongInnerDimension)
 }
 
 
-TEST_F(Ell, ApplyFailsOnWrongNumberOfRows)
+TEST_F(Sliced_ell, ApplyFailsOnWrongNumberOfRows)
 {
 	NOT_IMPLEMENTED;
     // auto x = Vec::create(exec, 3, 2, 2);
@@ -157,7 +157,7 @@ TEST_F(Ell, ApplyFailsOnWrongNumberOfRows)
 }
 
 
-TEST_F(Ell, ApplyFailsOnWrongNumberOfCols)
+TEST_F(Sliced_ell, ApplyFailsOnWrongNumberOfCols)
 {
 	NOT_IMPLEMENTED;
     // auto x = Vec::create(exec, 3, 3, 2);
@@ -167,7 +167,7 @@ TEST_F(Ell, ApplyFailsOnWrongNumberOfCols)
 }
 
 
-TEST_F(Ell, ConvertsToDense)
+TEST_F(Sliced_ell, ConvertsToDense)
 {
 	NOT_IMPLEMENTED;
     // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
@@ -180,7 +180,7 @@ TEST_F(Ell, ConvertsToDense)
 }
 
 
-TEST_F(Ell, MovesToDense)
+TEST_F(Sliced_ell, MovesToDense)
 {
 	NOT_IMPLEMENTED;
     // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());

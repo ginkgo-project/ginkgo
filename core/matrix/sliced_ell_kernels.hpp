@@ -30,3 +30,82 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_CORE_MATRIX_SLICED_ELL_KERNELS_HPP_
+#define GKO_CORE_MATRIX_SLICED_ELL_KERNELS_HPP_
+
+
+#include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
+#include "core/matrix/ell.hpp"
+#include "core/matrix/sliced_ell.hpp"
+
+namespace gko {
+namespace kernels {
+
+
+#define GKO_DECLARE_SLICED_ELL_SPMV_KERNEL(ValueType, IndexType) \
+    void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a, \
+              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+
+#define GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
+    void advanced_spmv(const matrix::Dense<ValueType> *alpha,      \
+                       const matrix::Sliced_ell<ValueType, IndexType> *a, \
+                       const matrix::Dense<ValueType> *b,          \
+                       const matrix::Dense<ValueType> *beta,       \
+                       matrix::Dense<ValueType> *c)
+
+#define GKO_DECLARE_SLICED_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void convert_to_dense(matrix::Dense<ValueType> *result,           \
+                          const matrix::Sliced_ell<ValueType, IndexType> *source)
+
+#define GKO_DECLARE_SLICED_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void move_to_dense(matrix::Dense<ValueType> *result,           \
+                       matrix::Sliced_ell<ValueType, IndexType> *source)
+
+#define DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_SLICED_ELL_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_SLICED_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_SLICED_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
+
+
+namespace cpu {
+namespace sliced_ell {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sliced_ell
+}  // namespace cpu
+
+
+namespace gpu {
+namespace sliced_ell {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sliced_ell
+}  // namespace gpu
+
+
+namespace reference {
+namespace sliced_ell {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sliced_ell
+}  // namespace reference
+
+
+#undef DECLARE_ALL_AS_TEMPLATES
+
+
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_MATRIX_SLICED_ELL_KERNELS_HPP_

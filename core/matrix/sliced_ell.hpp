@@ -204,18 +204,18 @@ public:
 
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
+        size_type num_cols, size_type num_nonzeros, size_type max_nnz_rows)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, num_rows*max_nnz_row),
-          col_idxs_(exec, num_rows*max_nnz_row),
-          max_nnz_row_(max_nnz_row)
+          values_(exec, num_rows),
+          col_idxs_(exec, num_rows),
+          max_nnz_rows_(exec, num_rows)
     {}
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     // Array<index_type> row_ptrs_;
-    index_type max_nnz_row_;
+    index_type max_nnz_rows_;
 
 };
 
