@@ -59,15 +59,14 @@ class BicgstabFactory;
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public LinOp {
+class Bicgstab : public BasicLinOp<Bicgstab<ValueType>> {
     friend class BicgstabFactory<ValueType>;
 
 public:
+    using BasicLinOp<Bicgstab>::convert_to;
+    using BasicLinOp<Bicgstab>::move_to;
+
     using value_type = ValueType;
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -109,9 +108,10 @@ protected:
     Bicgstab(std::shared_ptr<const Executor> exec, int max_iters,
              remove_complex<value_type> rel_residual_goal,
              std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(exec, system_matrix->get_num_cols(),
-                system_matrix->get_num_rows(),
-                system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Bicgstab>(
+              exec, system_matrix->get_num_cols(),
+              system_matrix->get_num_rows(),
+              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)

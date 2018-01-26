@@ -61,16 +61,17 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public LinOp,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
+class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMtx,
             public Transposable {
     friend class gko::matrix::Dense<ValueType>;
 
 public:
-    using value_type = ValueType;
+    using BasicLinOp<Csr>::convert_to;
+    using BasicLinOp<Csr>::move_to;
 
+    using value_type = ValueType;
     using index_type = IndexType;
 
     /**
@@ -99,10 +100,6 @@ public:
         return create(exec, 0, 0, 0);
     }
 
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
-
     void apply(const LinOp *b, LinOp *x) const override;
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -111,10 +108,6 @@ public:
     std::unique_ptr<LinOp> clone_type() const override;
 
     void clear() override;
-
-    void convert_to(Csr *other) const override;
-
-    void move_to(Csr *other) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -186,7 +179,7 @@ public:
 protected:
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
-        : LinOp(exec, num_rows, num_cols, num_nonzeros),
+        : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0

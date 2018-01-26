@@ -80,24 +80,6 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 template <typename ValueType>
-void Fcg<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_fcg = as<Fcg<ValueType>>(other);
-    system_matrix_ = other_fcg->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_fcg = as<Fcg<ValueType>>(other.get());
-    system_matrix_ = std::move(other_fcg->get_system_matrix());
-    this->set_dimensions(other.get());
-}
-
-
-template <typename ValueType>
 void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     using std::swap;
@@ -207,25 +189,6 @@ void Fcg<ValueType>::clear()
     system_matrix_ = system_matrix_->clone_type();
 }
 
-
-template <typename ValueType>
-void Fcg<ValueType>::convert_to(Fcg *result) const
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = system_matrix_;
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::move_to(Fcg *result)
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = std::move(system_matrix_);
-}
 
 template <typename ValueType>
 std::unique_ptr<LinOp> FcgFactory<ValueType>::generate(

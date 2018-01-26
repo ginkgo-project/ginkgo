@@ -62,15 +62,14 @@ class CgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public LinOp, public ConvertibleTo<Cg<ValueType>> {
+class Cg : public BasicLinOp<Cg<ValueType>> {
     friend class CgFactory<ValueType>;
 
 public:
+    using BasicLinOp<Cg>::convert_to;
+    using BasicLinOp<Cg>::move_to;
+
     using value_type = ValueType;
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -80,10 +79,6 @@ public:
     std::unique_ptr<LinOp> clone_type() const override;
 
     void clear() override;
-
-    void convert_to(Cg *result) const override;
-
-    void move_to(Cg *result) override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -118,9 +113,10 @@ private:
     Cg(std::shared_ptr<const Executor> exec, int max_iters,
        remove_complex<value_type> rel_residual_goal,
        std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(exec, system_matrix->get_num_cols(),
-                system_matrix->get_num_rows(),
-                system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Cg>(
+              exec, system_matrix->get_num_cols(),
+              system_matrix->get_num_rows(),
+              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)

@@ -66,8 +66,7 @@ class Csr;
  *       is often suitable to store vectors, and sets of vectors.
  */
 template <typename ValueType = default_precision>
-class Dense : public LinOp,
-              public ConvertibleTo<Dense<ValueType>>,
+class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ReadableFromMtx,
@@ -76,6 +75,9 @@ class Dense : public LinOp,
     friend class gko::matrix::Csr<ValueType, int64>;
 
 public:
+    using BasicLinOp<Dense>::convert_to;
+    using BasicLinOp<Dense>::move_to;
+
     using value_type = ValueType;
 
     /**
@@ -327,10 +329,6 @@ public:
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
-
     void apply(const LinOp *b, LinOp *x) const override;
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -339,10 +337,6 @@ public:
     std::unique_ptr<LinOp> clone_type() const override;
 
     void clear() override;
-
-    void convert_to(Dense *result) const override;
-
-    void move_to(Dense *result) override;
 
     void convert_to(Csr<ValueType, int32> *result) const override;
 
@@ -361,7 +355,7 @@ public:
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type padding)
-        : LinOp(exec, num_rows, num_cols, num_rows * padding),
+        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * padding),
           values_(exec, num_rows * padding),
           padding_(padding)
     {}

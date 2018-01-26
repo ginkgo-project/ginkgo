@@ -117,7 +117,6 @@ TEST_F(Bicgstab, CanBeCopied)
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_NE(copy_mtx.get(), mtx.get());
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
@@ -144,7 +143,6 @@ TEST_F(Bicgstab, CanBeCloned)
     ASSERT_EQ(clone->get_num_cols(), 3);
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    ASSERT_NE(clone_mtx.get(), mtx.get());
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
 

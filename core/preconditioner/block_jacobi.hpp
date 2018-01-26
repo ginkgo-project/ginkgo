@@ -70,12 +70,11 @@ class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>> {
     friend class BlockJacobiFactory<ValueType, IndexType>;
 
 public:
+    using BasicLinOp<BlockJacobi>::convert_to;
+    using BasicLinOp<BlockJacobi>::move_to;
+
     using value_type = ValueType;
     using index_type = IndexType;
-
-    // void copy_from(const LinOp *other) override;
-
-    // void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -85,11 +84,6 @@ public:
     std::unique_ptr<LinOp> clone_type() const override;
 
     void clear() override;
-
-    // void convert_to(BlockJacobi<ValueType, IndexType> *result) const
-    // override;
-
-    // void move_to(BlockJacobi<ValueType, IndexType> *result) override;
 
     /**
      * Returns the number of blocks of the operator.

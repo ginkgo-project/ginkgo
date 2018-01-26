@@ -90,20 +90,6 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
 
 
 template <typename ValueType>
-void Dense<ValueType>::copy_from(const LinOp *other)
-{
-    as<ConvertibleTo<Dense<ValueType>>>(other)->convert_to(this);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    as<ConvertibleTo<Dense<ValueType>>>(other.get())->move_to(this);
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     ASSERT_CONFORMANT(this, b);
@@ -193,24 +179,6 @@ void Dense<ValueType>::clear()
     this->set_dimensions(0, 0, 0);
     values_.clear();
     padding_ = 0;
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Dense *result) const
-{
-    result->set_dimensions(this);
-    result->values_ = values_;
-    result->padding_ = padding_;
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Dense *result)
-{
-    result->set_dimensions(this);
-    result->values_ = std::move(values_);
-    result->padding_ = padding_;
 }
 
 

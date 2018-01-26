@@ -106,7 +106,6 @@ TEST_F(Fcg, CanBeCopied)
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_NE(copy_mtx.get(), mtx.get());
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
                     1e-14);
 }
@@ -135,7 +134,6 @@ TEST_F(Fcg, CanBeCloned)
     ASSERT_EQ(clone->get_num_cols(), 3);
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
-    ASSERT_NE(clone_mtx.get(), mtx.get());
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
                     1e-14);
 }

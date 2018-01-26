@@ -82,24 +82,6 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other);
-    system_matrix_ = other_bicgstab->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other.get());
-    system_matrix_ = std::move(other_bicgstab->get_system_matrix());
-    this->set_dimensions(other.get());
-}
-
-
-template <typename ValueType>
 void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     using std::swap;
