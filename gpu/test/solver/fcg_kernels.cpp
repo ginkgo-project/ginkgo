@@ -82,7 +82,6 @@ protected:
         int n = 43;
         b = gen_mtx(m, n);
         r = gen_mtx(m, n);
-        prev_r = gen_mtx(m, n);
         t = gen_mtx(m, n);
         z = gen_mtx(m, n);
         p = gen_mtx(m, n);
@@ -97,8 +96,6 @@ protected:
         d_b->copy_from(b.get());
         d_r = Mtx::create(gpu);
         d_r->copy_from(r.get());
-        d_prev_r = Mtx::create(gpu);
-        d_prev_r->copy_from(prev_r.get());
         d_t = Mtx::create(gpu);
         d_t->copy_from(t.get());
         d_z = Mtx::create(gpu);
@@ -119,7 +116,6 @@ protected:
         d_rho->copy_from(rho.get());
 
         r_result = Mtx::create(ref);
-        prev_r_result = Mtx::create(ref);
         t_result = Mtx::create(ref);
         z_result = Mtx::create(ref);
         p_result = Mtx::create(ref);
@@ -134,7 +130,6 @@ protected:
     void copy_back_data()
     {
         r_result->copy_from(d_r.get());
-        prev_r_result->copy_from(d_prev_r.get());
         t_result->copy_from(d_t.get());
         z_result->copy_from(d_z.get());
         p_result->copy_from(d_p.get());
@@ -180,7 +175,6 @@ protected:
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> prev_r;
     std::unique_ptr<Mtx> t;
     std::unique_ptr<Mtx> z;
     std::unique_ptr<Mtx> p;
@@ -193,7 +187,6 @@ protected:
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_prev_r;
     std::unique_ptr<Mtx> d_t;
     std::unique_ptr<Mtx> d_z;
     std::unique_ptr<Mtx> d_p;
@@ -206,7 +199,6 @@ protected:
 
     std::unique_ptr<Mtx> r_result;
     std::unique_ptr<Mtx> z_result;
-    std::unique_ptr<Mtx> prev_r_result;
     std::unique_ptr<Mtx> t_result;
     std::unique_ptr<Mtx> p_result;
     std::unique_ptr<Mtx> q_result;
@@ -222,16 +214,15 @@ TEST_F(Fcg, GpuFcgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::fcg::initialize(
-        b.get(), r.get(), z.get(), p.get(), q.get(), prev_r.get(), t.get(),
-        prev_rho.get(), rho.get(), rho_t.get());
+    gko::kernels::reference::fcg::initialize(b.get(), r.get(), z.get(), p.get(),
+                                             q.get(), t.get(), prev_rho.get(),
+                                             rho.get(), rho_t.get());
     gko::kernels::gpu::fcg::initialize(
-        d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_prev_r.get(),
-        d_t.get(), d_prev_rho.get(), d_rho.get(), d_rho_t.get());
+        d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
+        d_prev_rho.get(), d_rho.get(), d_rho_t.get());
 
     copy_back_data();
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(prev_r_result, prev_r, 1e-14);
     ASSERT_MTX_NEAR(t_result, t, 1e-14);
     ASSERT_MTX_NEAR(z_result, z, 1e-14);
     ASSERT_MTX_NEAR(p_result, p, 1e-14);
@@ -260,12 +251,10 @@ TEST_F(Fcg, GpuFcgStep1IsEquivalentToRef)
 TEST_F(Fcg, GpuFcgStep2IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::fcg::step_2(x.get(), r.get(), prev_r.get(),
-                                         t.get(), p.get(), q.get(), beta.get(),
-                                         rho.get());
-    gko::kernels::gpu::fcg::step_2(d_x.get(), d_r.get(), d_prev_r.get(),
-                                   d_t.get(), d_p.get(), d_q.get(),
-                                   d_beta.get(), d_rho.get());
+    gko::kernels::reference::fcg::step_2(x.get(), r.get(), t.get(), p.get(),
+                                         q.get(), beta.get(), rho.get());
+    gko::kernels::gpu::fcg::step_2(d_x.get(), d_r.get(), d_t.get(), d_p.get(),
+                                   d_q.get(), d_beta.get(), d_rho.get());
 
     copy_back_data();
 

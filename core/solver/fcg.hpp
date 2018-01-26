@@ -49,11 +49,16 @@ template <typename>
 class FcgFactory;
 
 /**
- * FCG or the conjugate gradient method is an iterative type Krylov
+ * FCG or the flexible conjugate gradient method is an iterative type Krylov
  * subspace method which is suitable for symmetric positive definite methods.
  *
  * Though this method performs very well for symmetric positive definite
  * matrices, it is in general not suitable for general matrices.
+ *
+ * In contrast to the standard CG based on the Polack-Ribiere formula, the
+ * flexible CG uses the Fletcher-Reeves formula for creating the orthonormal
+ * vectors spanning the Krylov subspace. This increases the computational cost
+ * of every Krylov solver iteration but allows for non-constant preconditioners.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of FCG are
@@ -141,8 +146,9 @@ private:
     remove_complex<value_type> rel_residual_goal_;
 };
 
-/** The FcgFactory class is derived from the LinOpFactory class and is
- * used to generate the FCG solver.
+/**
+ * The FcgFactory class is derived from the LinOpFactory class and is
+ * used to generate the FCG factory.
  */
 template <typename ValueType = default_precision>
 class FcgFactory : public LinOpFactory {

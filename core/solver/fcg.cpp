@@ -119,7 +119,6 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
-    auto prev_r = Vector::create_with_config_of(dense_b);
 
     auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
     auto beta = Vector::create_with_config_of(alpha.get());
@@ -134,10 +133,9 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-        dense_b, r.get(), z.get(), p.get(), q.get(), prev_r.get(), t.get(),
-        prev_rho.get(), rho.get(), rho_t.get()));
+        dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
+        rho.get(), rho_t.get()));
     // r = dense_b
-    // prev_r = 0
     // t = r
     // rho = 0.0
     // prev_rho = 1.0
@@ -167,13 +165,13 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), prev_r.get(), t.get(), p.get(), q.get(),
-            beta.get(), rho.get()));
+            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(),
+            rho.get()));
         // tmp = rho / beta
-        // prev_r = r
+        // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
-        // t = r - prev_r
+        // t = r - [prev_r]
         swap(prev_rho, rho);
     }
 }
@@ -184,7 +182,6 @@ void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
                            const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
-
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);

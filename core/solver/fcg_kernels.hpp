@@ -43,12 +43,12 @@ namespace kernels {
 namespace fcg {
 
 
-#define GKO_DECLARE_FCG_INITIALIZE_KERNEL(_type)                             \
-    void initialize(const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_r,   \
-                    matrix::Dense<_type> *t, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho, matrix::Dense<_type> *rho_t)
+#define GKO_DECLARE_FCG_INITIALIZE_KERNEL(_type)                               \
+    void initialize(const matrix::Dense<_type> *b, matrix::Dense<_type> *r,    \
+                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,          \
+                    matrix::Dense<_type> *q, matrix::Dense<_type> *t,          \
+                    matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho, \
+                    matrix::Dense<_type> *rho_t)
 
 
 #define GKO_DECLARE_FCG_STEP_1_KERNEL(_type)                            \
@@ -57,11 +57,11 @@ namespace fcg {
                 const matrix::Dense<_type> *prev_rho)
 
 
-#define GKO_DECLARE_FCG_STEP_2_KERNEL(_type)                                  \
-    void step_2(matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                matrix::Dense<_type> *prev_r, matrix::Dense<_type> *t,        \
-                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
-                const matrix::Dense<_type> *beta,                             \
+#define GKO_DECLARE_FCG_STEP_2_KERNEL(_type)                            \
+    void step_2(matrix::Dense<_type> *x, matrix::Dense<_type> *r,       \
+                matrix::Dense<_type> *t, const matrix::Dense<_type> *p, \
+                const matrix::Dense<_type> *q,                          \
+                const matrix::Dense<_type> *beta,                       \
                 const matrix::Dense<_type> *rho)
 
 

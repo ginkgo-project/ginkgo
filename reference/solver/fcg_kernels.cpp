@@ -49,7 +49,6 @@ template <typename ValueType>
 void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *prev_r,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t)
 {
@@ -61,8 +60,7 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
         for (size_type j = 0; j < b->get_num_cols(); ++j) {
             t->at(i, j) = r->at(i, j) = b->at(i, j);
-            prev_r->at(i, j) = z->at(i, j) = p->at(i, j) = q->at(i, j) =
-                zero<ValueType>();
+            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
         }
     }
 }
@@ -92,25 +90,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *prev_r, matrix::Dense<ValueType> *t,
-            const matrix::Dense<ValueType> *p,
+            matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho)
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            prev_r->at(i, j) = r->at(i, j);
-        }
-    }
-
-    for (size_type i = 0; i < x->get_num_rows(); ++i) {
-        for (size_type j = 0; j < x->get_num_cols(); ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
+                auto prev_r = r->at(i, j);
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
-                t->at(i, j) = r->at(i, j) - prev_r->at(i, j);
+                t->at(i, j) = r->at(i, j) - prev_r;
             }
         }
     }

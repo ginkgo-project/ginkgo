@@ -52,9 +52,8 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_rows, size_type padding, const ValueType *__restrict__ b,
     ValueType *__restrict__ r, ValueType *__restrict__ z,
     ValueType *__restrict__ p, ValueType *__restrict__ q,
-    ValueType *__restrict__ prev_r, ValueType *__restrict__ t,
-    ValueType *__restrict__ prev_rho, ValueType *__restrict__ rho,
-    ValueType *__restrict__ rho_t)
+    ValueType *__restrict__ t, ValueType *__restrict__ prev_rho,
+    ValueType *__restrict__ rho, ValueType *__restrict__ rho_t)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -70,7 +69,6 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         z[tidx] = zero<ValueType>();
         p[tidx] = zero<ValueType>();
         q[tidx] = zero<ValueType>();
-        prev_r[tidx] = zero<ValueType>();
         t[tidx] = b[tidx];
     }
 }
@@ -80,7 +78,6 @@ template <typename ValueType>
 void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *prev_r,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t)
 {
@@ -92,9 +89,9 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
         b->get_num_rows(), b->get_padding(),
         as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
         as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(prev_r->get_values()),
-        as_cuda_type(t->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()), as_cuda_type(rho_t->get_values()));
+        as_cuda_type(q->get_values()), as_cuda_type(t->get_values()),
+        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()),
+        as_cuda_type(rho_t->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -141,9 +138,9 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type num_rows, size_type num_cols, size_type padding,
     size_type x_padding, ValueType *__restrict__ x, ValueType *__restrict__ r,
-    ValueType *__restrict__ prev_r, ValueType *__restrict__ t,
-    const ValueType *__restrict__ p, const ValueType *__restrict__ q,
-    const ValueType *__restrict__ beta, const ValueType *__restrict__ rho)
+    ValueType *__restrict__ t, const ValueType *__restrict__ p,
+    const ValueType *__restrict__ q, const ValueType *__restrict__ beta,
+    const ValueType *__restrict__ rho)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -155,18 +152,17 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     }
     if (beta[col] != zero<ValueType>()) {
         const auto tmp = rho[col] / beta[col];
-        prev_r[tidx] = r[tidx];
+        const auto prev_r = r[tidx];
         x[row * x_padding + col] += tmp * p[tidx];
         r[tidx] -= tmp * q[tidx];
-        t[tidx] = r[tidx] - prev_r[tidx];
+        t[tidx] = r[tidx] - prev_r;
     }
 }
 
 
 template <typename ValueType>
 void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *prev_r, matrix::Dense<ValueType> *t,
-            const matrix::Dense<ValueType> *p,
+            matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho)
@@ -178,8 +174,8 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
         p->get_num_rows(), p->get_num_cols(), p->get_padding(),
         x->get_padding(), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(prev_r->get_values()),
-        as_cuda_type(t->get_values()), as_cuda_type(p->get_const_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(t->get_values()),
+        as_cuda_type(p->get_const_values()),
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()));
