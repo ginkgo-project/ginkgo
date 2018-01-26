@@ -105,19 +105,17 @@ public:
      *
      * @return  The maximum number of iterations.
      */
-    int get_max_iters() const { return max_iters_; }
-
+    int get_max_iters() const noexcept { return max_iters_; }
 
     /**
      * Gets the relative residual goal of the solver.
      *
      * @return  The relative residual goal.
      */
-    remove_complex<value_type> get_rel_residual_goal() const
+    remove_complex<value_type> get_rel_residual_goal() const noexcept
     {
         return rel_residual_goal_;
     }
-
 
 private:
     Fcg(std::shared_ptr<const Executor> exec, int max_iters,
@@ -148,21 +146,21 @@ private:
 
 /**
  * The FcgFactory class is derived from the LinOpFactory class and is
- * used to generate the FCG factory.
+ * used to generate the FCG solver.
  */
 template <typename ValueType = default_precision>
 class FcgFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
     /**
-     * Creates the FCG solver.
+     * Creates the FCG factory.
      *
      * @param exec The executor on which the FCG solver is to be created.
      * @param max_iters  The maximum number of iterations to be pursued.
      * @param rel_residual_goal  The relative residual required for
      * convergence.
      *
-     * @return The newly created FCG solver.
+     * @return The newly created FCG factory.
      */
     static std::unique_ptr<FcgFactory> create(
         std::shared_ptr<const Executor> exec, int max_iters,
@@ -180,14 +178,14 @@ public:
      *
      * @return  The maximum number of iterations.
      */
-    int get_max_iters() const { return max_iters_; }
+    int get_max_iters() const noexcept { return max_iters_; }
 
     /**
      * Gets the relative residual goal of the solver.
      *
      * @return  The relative residual goal.
      */
-    remove_complex<value_type> get_rel_residual_goal() const
+    remove_complex<value_type> get_rel_residual_goal() const noexcept
     {
         return rel_residual_goal_;
     }
