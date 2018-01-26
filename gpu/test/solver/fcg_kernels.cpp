@@ -260,8 +260,6 @@ TEST_F(Fcg, GpuFcgStep2IsEquivalentToRef)
 
     ASSERT_MTX_NEAR(x_result, x, 1e-14);
     ASSERT_MTX_NEAR(r_result, r, 1e-14);
-    ASSERT_MTX_NEAR(p_result, p, 1e-14);
-    ASSERT_MTX_NEAR(q_result, q, 1e-14);
     ASSERT_MTX_NEAR(t_result, t, 1e-14);
 }
 
