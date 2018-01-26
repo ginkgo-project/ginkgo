@@ -224,7 +224,7 @@ public:
      *                        the performance of the preconditioner generation
      *                        and application)
      *
-     * @return a unique pointer to the newly created factory.
+     * @return a unique pointer to the newly created factory
      */
     static std::unique_ptr<BlockJacobiFactory> create(
         std::shared_ptr<const Executor> exec, uint32 max_block_size)
@@ -238,6 +238,8 @@ public:
 
     /**
      * Returns the maximum allowed size of diagonal blocks.
+     *
+     * @return the maximum allowed size of diagonal blocks
      */
     uint32 get_max_block_size() const noexcept { return max_block_size_; }
 
@@ -269,7 +271,7 @@ public:
     /**
      * Returns a reference to the array of block pointers
      *
-     * @return  the array of block pointers
+     * @return the array of block pointers
      */
     const Array<IndexType> &get_block_pointers() const noexcept
     {
