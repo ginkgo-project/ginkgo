@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
+#include "core/solver/fcg_kernels.hpp"
 
 #ifndef GKO_HOOK_MODULE
 #error "Need to define GKO_HOOK_MODULE variable before including this file"
@@ -117,6 +118,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace fcg {
+
+
+template <typename ValueType>
+GKO_DECLARE_FCG_INITIALIZE_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_FCG_STEP_1_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_FCG_STEP_2_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
+
+
+}  // namespace fcg
 
 
 namespace bicgstab {
