@@ -34,9 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/preconditioner/block_jacobi_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+
 
 #ifndef GKO_HOOK_MODULE
 #error "Need to define GKO_HOOK_MODULE variable before including this file"
@@ -74,20 +76,17 @@ GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
-
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
 
-
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
-
 
 template <typename ValueType>
 GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType)
@@ -175,6 +174,7 @@ GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
+
 }  // namespace bicgstab
 
 
@@ -217,6 +217,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace csr
+
+
+namespace block_jacobi {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+}  // namespace block_jacobi
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

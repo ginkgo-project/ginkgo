@@ -3,6 +3,7 @@ set(SOURCES
     base/executor.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
+    preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
     solver/fcg_kernels.cu
     solver/cg_kernels.cu)

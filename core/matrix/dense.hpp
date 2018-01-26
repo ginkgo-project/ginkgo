@@ -242,7 +242,7 @@ public:
     /**
      * Returns the padding of the matrix.
      */
-    size_type get_padding() const { return padding_; }
+    size_type get_padding() const noexcept { return padding_; }
 
     /**
      * Returns a single element of the matrix.
