@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
@@ -61,17 +62,6 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    {
-        ASSERT_EQ(m1->get_num_rows(), m2->get_num_rows());
-        ASSERT_EQ(m1->get_num_cols(), m2->get_num_cols());
-        for (gko::size_type i = 0; i < m1->get_num_rows(); ++i) {
-            for (gko::size_type j = 0; j < m2->get_num_cols(); ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 
@@ -117,7 +107,8 @@ TEST_F(Fcg, CanBeCopied)
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_NE(copy_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 
@@ -131,7 +122,8 @@ TEST_F(Fcg, CanBeMoved)
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 
@@ -144,7 +136,8 @@ TEST_F(Fcg, CanBeCloned)
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     ASSERT_NE(clone_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 

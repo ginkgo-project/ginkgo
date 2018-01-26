@@ -75,8 +75,6 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho)
 {
-    using std::abs;
-    using std::isnan;
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
             if (prev_rho->at(j) == zero<ValueType>()) {
