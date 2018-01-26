@@ -66,17 +66,16 @@ class BlockJacobiFactory;
  *                    block
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class BlockJacobi : public LinOp,
-                    public ConvertibleTo<BlockJacobi<ValueType, IndexType>> {
+class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>> {
     friend class BlockJacobiFactory<ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
 
-    void copy_from(const LinOp *other) override;
+    // void copy_from(const LinOp *other) override;
 
-    void copy_from(std::unique_ptr<LinOp> other) override;
+    // void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -87,9 +86,10 @@ public:
 
     void clear() override;
 
-    void convert_to(BlockJacobi<ValueType, IndexType> *result) const override;
+    // void convert_to(BlockJacobi<ValueType, IndexType> *result) const
+    // override;
 
-    void move_to(BlockJacobi<ValueType, IndexType> *result) override;
+    // void move_to(BlockJacobi<ValueType, IndexType> *result) override;
 
     /**
      * Returns the number of blocks of the operator.
@@ -167,13 +167,11 @@ protected:
     BlockJacobi(std::shared_ptr<const Executor> exec,
                 const LinOp *system_matrix, uint32 max_block_size,
                 const Array<IndexType> &block_pointers)
-        : LinOp(exec, system_matrix->get_num_rows(),
-                system_matrix->get_num_cols(),
-                system_matrix->get_num_rows() * max_block_size),
+        : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
           block_pointers_(block_pointers),
-          blocks_(exec, system_matrix->get_num_rows() * max_block_size)
+          blocks_(exec)
     {
         block_pointers_.set_executor(this->get_executor());
         this->generate(system_matrix);

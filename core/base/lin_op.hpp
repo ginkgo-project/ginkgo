@@ -35,8 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
 
+#include "core/base/convertible.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/types.hpp"
+#include "core/base/utils.hpp"
 
 
 #include <memory>
@@ -120,6 +122,17 @@ namespace gko {
  */
 class LinOp {
 public:
+    LinOp &operator=(const LinOp &other)
+    {
+        // keep the executor as it is
+        num_rows_ = other.num_rows_;
+        num_cols_ = other.num_cols_;
+        num_stored_elements_ = other.num_stored_elements_;
+        return *this;
+    }
+
+    virtual ~LinOp() = default;
+
     /**
      * Creates a copy of another LinOp.
      *
@@ -179,8 +192,6 @@ public:
      */
     virtual void clear() = 0;
 
-    virtual ~LinOp() = default;
-
     /**
      * Gets the Executor of this object.
      */
@@ -218,38 +229,80 @@ public:
      *
      * @return the number of elements explicitly stored in memory
      */
-    size_type get_num_stored_elements() const noexcept { return num_nonzeros_; }
+    size_type get_num_stored_elements() const noexcept
+    {
+        return num_stored_elements_;
+    }
 
 protected:
     LinOp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type num_nonzeros)
+          size_type num_cols, size_type num_stored_elements)
         : exec_(exec),
           num_rows_(num_rows),
           num_cols_(num_cols),
-          num_nonzeros_(num_nonzeros)
+          num_stored_elements_(num_stored_elements)
     {}
 
     void set_dimensions(size_type num_rows, size_type num_cols,
-                        size_type num_nonzeros) noexcept
+                        size_type num_stored_elements) noexcept
     {
         num_rows_ = num_rows;
         num_cols_ = num_cols;
-        num_nonzeros_ = num_nonzeros;
+        num_stored_elements_ = num_stored_elements;
     }
 
     void set_dimensions(const LinOp *op) noexcept
     {
         num_rows_ = op->num_rows_;
         num_cols_ = op->num_cols_;
-        num_nonzeros_ = op->num_nonzeros_;
+        num_stored_elements_ = op->num_stored_elements_;
     }
 
 private:
     std::shared_ptr<const Executor> exec_;
     size_type num_rows_;
     size_type num_cols_;
-    size_type num_nonzeros_;
+    size_type num_stored_elements_;
 };
+
+
+template <typename ConcreteLinOp>
+class BasicLinOp : public LinOp, public ConvertibleTo<ConcreteLinOp> {
+public:
+    using LinOp::LinOp;
+
+    BasicLinOp &operator=(const BasicLinOp &) = default;
+
+    BasicLinOp &operator=(BasicLinOp &&) = default;
+
+    void copy_from(const LinOp *other) override
+    {
+        auto conv = as<ConvertibleTo<ConcreteLinOp>>(other);
+        conv->convert_to(self());
+    }
+
+    void copy_from(std::unique_ptr<LinOp> other) override
+    {
+        auto conv = as<ConvertibleTo<ConcreteLinOp>>(other.get());
+        conv->move_to(self());
+    }
+
+    void convert_to(ConcreteLinOp *other) const override { *other = *self(); }
+
+    void move_to(ConcreteLinOp *other) override { *other = std::move(*self()); }
+
+private:
+    ConcreteLinOp *self() noexcept
+    {
+        return static_cast<ConcreteLinOp *>(this);
+    }
+
+    const ConcreteLinOp *self() const noexcept
+    {
+        return static_cast<const ConcreteLinOp *>(this);
+    }
+};
+
 
 /**
  * A LinOpFactory represents a higher order mapping which transforms one
@@ -325,6 +378,7 @@ protected:
 private:
     std::shared_ptr<const Executor> exec_;
 };
+
 
 /**
  * Linear operators which support transposition implement the Transposable

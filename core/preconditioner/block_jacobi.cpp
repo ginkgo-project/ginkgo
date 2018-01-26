@@ -58,20 +58,6 @@ struct TemplatedOperation {
 
 
 template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::copy_from(const LinOp *other)
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 {
     // TODO
@@ -103,24 +89,15 @@ void BlockJacobi<ValueType, IndexType>::clear()
 
 
 template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::convert_to(
-    BlockJacobi<ValueType, IndexType> *result) const
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::move_to(
-    BlockJacobi<ValueType, IndexType> *result)
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
+    if (system_matrix == nullptr) {
+        return;
+    }
+    this->set_dimensions(system_matrix->get_num_rows(),
+                         system_matrix->get_num_cols(),
+                         system_matrix->get_num_rows() * max_block_size_);
+    blocks_.resize_and_reset(this->get_num_stored_elements());
     auto csr_mtx = as<matrix::Csr<ValueType, IndexType>>(system_matrix);
     auto exec = this->get_executor();
     if (block_pointers_.get_data() == nullptr) {
