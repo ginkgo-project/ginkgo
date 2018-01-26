@@ -249,8 +249,8 @@ public:
      *                         `i` of the array should be set to the row
      *                         where the `i`-th block starts. In addition, the
      *                         last value of the array should be set to the
-     *                         number of rows of the matrix. (Thus, the total
-     *                         amount of blocks is
+     *                         number of rows of the matrix. Thus, the total
+     *                         number of blocks is
      *                         `block_pointers.get_num_elems() - 1`.
      */
     void set_block_pointers(const Array<IndexType> &block_pointers)
