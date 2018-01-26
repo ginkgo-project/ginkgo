@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
-
+#include <iostream>
 
 namespace {
 
@@ -58,19 +58,44 @@ protected:
     Ell() : rand_engine(42) {}
 
     void SetUp() {
-        NOT_IMPLEMENTED;
+        ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
+        ref = gko::ReferenceExecutor::create();
+        gpu = gko::GpuExecutor::create(0, ref);
     }
 
     void TearDown() {
-        NOT_IMPLEMENTED;
+        if (gpu != nullptr) {
+            ASSERT_NO_THROW(gpu->synchronize());
+        }
     }
 
     std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row) {
-        NOT_IMPLEMENTED;
+        return gko::test::generate_random_matrix<Vec>(
+            ref, num_rows, num_cols,
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine);
     }
 
     void set_up_apply_data() {
-        NOT_IMPLEMENTED;
+        mtx = Mtx::create(ref);
+        std::cout << "CPU C\n";
+        mtx->copy_from(gen_mtx(532, 231, 1));
+        expected = gen_mtx(532, 1, 1);
+        y = gen_mtx(231, 1, 1);
+        alpha = Vec::create(ref, {2.0});
+        beta = Vec::create(ref, {-1.0});
+        dmtx = Mtx::create(gpu);
+        std::cout << "GPU C \n";
+        dmtx->copy_from(mtx.get());
+        std::cout << "DDD\n";
+        dresult = Vec::create(gpu);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(gpu);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(gpu);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(gpu);
+        dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -93,7 +118,18 @@ protected:
 
 
 TEST_F(Ell, SimpleApplyIsEquivalentToRef) {
-        NOT_IMPLEMENTED;
+    std::cout << "Step 0 \n";
+    set_up_apply_data();
+    std::cout << "Step 1 \n";
+    mtx->apply(y.get(), expected.get());
+    std::cout << "Step 2 \n";
+    dmtx->apply(dy.get(), dresult.get());
+    std::cout << "Step 3 \n";
+    auto result = Vec::create(ref);
+    std::cout << "Step 4 \n";
+    result->copy_from(dresult.get());
+    std::cout << "Step 5 \n";
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
     }
 
 

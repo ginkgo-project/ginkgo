@@ -81,14 +81,14 @@ protected:
 
 TEST_F(Ell, AppliesToDenseVector)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, {2.0, 1.0, 4.0});
-    // auto y = Vec::create(exec, 2, 1, 1);
+	
+    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
+    auto y = Vec::create(exec, 2, 1, 1);
 
-    // mtx->apply(x.get(), y.get());
+    mtx->apply(x.get(), y.get());
 
-    // EXPECT_EQ(y->at(0), 13.0);
-    // EXPECT_EQ(y->at(1), 5.0);
+    EXPECT_EQ(y->at(0), 13.0);
+    EXPECT_EQ(y->at(1), 5.0);
 }
 
 

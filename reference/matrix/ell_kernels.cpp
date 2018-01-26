@@ -49,11 +49,23 @@ template <typename ValueType, typename IndexType>
 void spmv(const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-	NOT_IMPLEMENTED;
     // auto row_ptrs = a->get_const_row_ptrs();
-    // auto col_idxs = a->get_const_col_idxs();
-    // auto vals = a->get_const_values();
-
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+    auto max_nnz_row = a->get_const_max_nnz_row();
+    auto arows = a->get_num_rows();
+    for (size_type row = 0; row < arows; row++) {
+        for (size_type j = 0; j < c->get_num_cols(); j++) {
+            c->at(row, j) = zero<ValueType>();
+        }
+        for (size_type i = 0; i < max_nnz_row; i++) {
+            auto val = vals[row + i*arows];
+            auto col = col_idxs[row + i*arows];
+            for (size_type j = 0; j < c->get_num_cols(); j++) {
+                c->at(row, j) += val*b->at(col, j);
+            }
+        }
+    }
     // for (size_type row = 0; row < a->get_num_rows(); ++row) {
     //     for (size_type j = 0; j < c->get_num_cols(); ++j) {
     //         c->at(row, j) = zero<ValueType>();

@@ -1,9 +1,9 @@
 set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
+    matrix/ell.cpp
     matrix/csr.cpp
     matrix/dense.cpp
-    matrix/ell.cpp
     solver/bicgstab.cpp
     solver/cg.cpp)
 
