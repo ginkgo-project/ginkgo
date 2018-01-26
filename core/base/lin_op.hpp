@@ -327,8 +327,8 @@ private:
 };
 
 /**
- * The transposable class represents the transpose operation for a linear
- * operator.
+ * Linear operators which support transposition implement the Transposable
+ * interface.
  *
  * It provides two functionalities, the normal transpose and the
  * conjugate transpose.
@@ -336,17 +336,19 @@ private:
  * The normal transpose returns the transpose of the linear operator without
  * changing any of its elements representing the operation, \f$B = A^{T}\f$.
  *
- * The conjugate transpose returns the conjugate of each of the element and
+ * The conjugate transpose returns the conjugate of each of the elements and
  * additionally transposes the linear operator representing the operation, \f$B
  * = A^{H}\f$.
  *
- * Example:
+ * Example: Transposing a Csr matrix:
+ * ------------------------------------
+ *
  * ```c++
  * //Transposing an object of LinOp type.
  * //The object you want to transpose.
  * std::unique_ptr<LinOp> op = matrix::Csr::create(exec);
  * //Transpose the object by first converting it to a transposable type.
- * auto trans = as<Transposable>(op.get()) -> transpose();
+ * auto trans = as<Transposable>(op.get())->transpose();
  * //This returns the object of type LinOp, and needs to be cast to the
  * appropriate type for usage.
  * ```
