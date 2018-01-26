@@ -155,10 +155,7 @@ TEST_F(Bicgstab, CanBeCleared)
     ASSERT_EQ(solver->get_num_cols(), 0);
     ASSERT_EQ(solver->get_num_stored_elements(), 0);
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
-    ASSERT_NE(solver_mtx, nullptr);
-    ASSERT_EQ(solver_mtx->get_num_rows(), 0);
-    ASSERT_EQ(solver_mtx->get_num_cols(), 0);
-    ASSERT_EQ(solver_mtx->get_num_stored_elements(), 0);
+    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 

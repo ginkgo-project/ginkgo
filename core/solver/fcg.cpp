@@ -172,25 +172,6 @@ void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Fcg<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Fcg>(new Fcg(this->get_executor(), max_iters_,
-                                        rel_residual_goal_,
-                                        system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> FcgFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {

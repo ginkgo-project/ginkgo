@@ -65,7 +65,8 @@ class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMtx,
             public Transposable {
-    friend class gko::matrix::Dense<ValueType>;
+    friend class BasicLinOp<Csr>;
+    friend class Dense<ValueType>;
 
 public:
     using BasicLinOp<Csr>::convert_to;
@@ -104,10 +105,6 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -177,6 +174,13 @@ public:
     }
 
 protected:
+    Csr(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Csr>(exec, 0, 0, 0),
+          values_(exec),
+          col_idxs_(exec),
+          row_ptrs_(exec)
+    {}
+
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
         : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),

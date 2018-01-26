@@ -94,25 +94,6 @@ void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csr<ValueType, IndexType>::clone_type() const
-{
-    return std::unique_ptr<LinOp>(
-        new Csr(this->get_executor(), this->get_num_rows(),
-                this->get_num_cols(), this->get_num_stored_elements()));
-}
-
-
-template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    values_.clear();
-    col_idxs_.clear();
-    row_ptrs_.clear();
-}
-
-
-template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();

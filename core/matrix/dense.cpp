@@ -167,22 +167,6 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Dense>(new Dense(this->get_executor(), 0, 0, 0));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    values_.clear();
-    padding_ = 0;
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     conversion_helper(

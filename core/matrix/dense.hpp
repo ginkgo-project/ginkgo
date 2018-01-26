@@ -71,8 +71,9 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ReadableFromMtx,
               public Transposable {
-    friend class gko::matrix::Csr<ValueType, int32>;
-    friend class gko::matrix::Csr<ValueType, int64>;
+    friend class BasicLinOp<Dense>;
+    friend class Csr<ValueType, int32>;
+    friend class Csr<ValueType, int64>;
 
 public:
     using BasicLinOp<Dense>::convert_to;
@@ -221,6 +222,24 @@ public:
                       other->get_num_cols(), other->get_padding());
     }
 
+    void apply(const LinOp *b, LinOp *x) const override;
+
+    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+               LinOp *x) const override;
+
+    void convert_to(Csr<ValueType, int32> *result) const override;
+
+    void move_to(Csr<ValueType, int32> *result) override;
+
+    void convert_to(Csr<ValueType, int64> *result) const override;
+
+    void move_to(Csr<ValueType, int64> *result) override;
+
+    void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -329,30 +348,11 @@ public:
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Csr<ValueType, int32> *result) const override;
-
-    void move_to(Csr<ValueType, int32> *result) override;
-
-    void convert_to(Csr<ValueType, int64> *result) const override;
-
-    void move_to(Csr<ValueType, int64> *result) override;
-
-    void read_from_mtx(const std::string &filename) override;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
 protected:
+    Dense(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Dense>(exec, 0, 0, 0), values_(exec)
+    {}
+
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type padding)
         : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * padding),
@@ -373,7 +373,7 @@ protected:
 
 private:
     Array<value_type> values_;
-    size_type padding_;
+    size_type padding_{};
 };
 
 

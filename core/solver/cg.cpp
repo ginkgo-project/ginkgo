@@ -165,25 +165,6 @@ void Cg<ValueType>::apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Cg<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Cg>(new Cg(this->get_executor(), max_iters_,
-                                      rel_residual_goal_,
-                                      system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Cg<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {

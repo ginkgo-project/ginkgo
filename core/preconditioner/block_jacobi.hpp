@@ -67,6 +67,7 @@ class BlockJacobiFactory;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>> {
+    friend class BasicLinOp<BlockJacobi>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
 
 public:
@@ -80,10 +81,6 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
 
     /**
      * Returns the number of blocks of the operator.
@@ -158,6 +155,12 @@ public:
     }
 
 protected:
+    BlockJacobi(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
+          block_pointers_(exec),
+          blocks_(exec)
+    {}
+
     BlockJacobi(std::shared_ptr<const Executor> exec,
                 const LinOp *system_matrix, uint32 max_block_size,
                 const Array<IndexType> &block_pointers)
@@ -182,8 +185,8 @@ protected:
     void generate(const LinOp *system_matrix);
 
 private:
-    size_type num_blocks_;
-    uint32 max_block_size_;
+    size_type num_blocks_{};
+    uint32 max_block_size_{};
     Array<IndexType> block_pointers_;
     Array<ValueType> blocks_;
 };

@@ -60,6 +60,7 @@ class BicgstabFactory;
  */
 template <typename ValueType = default_precision>
 class Bicgstab : public BasicLinOp<Bicgstab<ValueType>> {
+    friend class BasicLinOp<Bicgstab>;
     friend class BicgstabFactory<ValueType>;
 
 public:
@@ -72,10 +73,6 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -105,6 +102,10 @@ public:
     }
 
 protected:
+    Bicgstab(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Bicgstab>(exec, 0, 0, 0)
+    {}
+
     Bicgstab(std::shared_ptr<const Executor> exec, int max_iters,
              remove_complex<value_type> rel_residual_goal,
              std::shared_ptr<const LinOp> system_matrix)
@@ -128,10 +129,11 @@ protected:
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_;
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
+    std::shared_ptr<const LinOp> system_matrix_{};
+    int max_iters_{};
+    remove_complex<value_type> rel_residual_goal_{};
 };
+
 
 /**
  * Creates the BiCGSTAB solver.

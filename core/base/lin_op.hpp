@@ -169,23 +169,49 @@ public:
                        LinOp *x) const = 0;
 
     /**
+     * Creates a new 0x0 LinOp of the same type as this LinOp.
+     *
+     * @param exec the executor where the clone will be created
+     *
+     * @return  a LinOp object of the same type as this
+     */
+    virtual std::unique_ptr<LinOp> create_null_clone(
+        std::shared_ptr<const Executor> exec) const = 0;
+
+    /**
+     * Creates a new 0x0 LinOp of the same type as this LinOp.
+     *
+     * The new LinOp is created on the same executor as this.
+     *
+     * @return  a LinOp object of the same type as this
+     */
+    std::unique_ptr<LinOp> create_null_clone() const
+    {
+        return this->create_null_clone(exec_);
+    }
+
+    /**
      * Creates a clone of the LinOp.
+     *
+     * @param exec the executor where the clone will be created
      *
      * @return A clone of the LinOp.
      */
-    std::unique_ptr<LinOp> clone() const
+    std::unique_ptr<LinOp> clone_to(std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->clone_type();
+        auto new_op = this->create_null_clone(exec);
         new_op->copy_from(this);
         return new_op;
     }
 
     /**
-     * Creates a new 0x0 LinOp of the same type.
+     * Creates a clone of the LinOp.
      *
-     * @return  a LinOp object of the same type as this
+     * The clone is created on the same executor as this.
+     *
+     * @return A clone of the LinOp.
      */
-    virtual std::unique_ptr<LinOp> clone_type() const = 0;
+    std::unique_ptr<LinOp> clone() const { return this->clone_to(exec_); }
 
     /**
      * Transforms the object into an empty LinOp.
@@ -277,15 +303,21 @@ public:
 
     void copy_from(const LinOp *other) override
     {
-        auto conv = as<ConvertibleTo<ConcreteLinOp>>(other);
-        conv->convert_to(self());
+        as<ConvertibleTo<ConcreteLinOp>>(other)->convert_to(self());
     }
 
     void copy_from(std::unique_ptr<LinOp> other) override
     {
-        auto conv = as<ConvertibleTo<ConcreteLinOp>>(other.get());
-        conv->move_to(self());
+        as<ConvertibleTo<ConcreteLinOp>>(other.get())->move_to(self());
     }
+
+    std::unique_ptr<LinOp> create_null_clone(
+        std::shared_ptr<const Executor> exec) const override
+    {
+        return std::unique_ptr<LinOp>(new ConcreteLinOp{exec});
+    }
+
+    void clear() override { *self() = ConcreteLinOp{this->get_executor()}; }
 
     void convert_to(ConcreteLinOp *other) const override { *other = *self(); }
 

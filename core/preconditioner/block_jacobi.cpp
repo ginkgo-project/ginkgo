@@ -74,21 +74,6 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> BlockJacobi<ValueType, IndexType>::clone_type() const
-{
-    // TODO
-    return std::unique_ptr<LinOp>();
-}
-
-
-template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::clear()
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
     if (system_matrix == nullptr) {
