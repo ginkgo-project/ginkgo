@@ -129,20 +129,4 @@ TEST_F(Xxsolverxx, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Xxsolverxx, SolvesStencilSystemUsingXxsolverxxPreconditioner)
-{
-    xxsolverxx_factory->set_precond(
-        gko::solver::XxsolverxxFactory<>::create(exec, 3, 1e-7));
-    auto solver = xxsolverxx_factory->generate(mtx);
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
-
-    solver->apply(b.get(), x.get());
-
-    EXPECT_NEAR(x->at(0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
-}
-
-
 }  // namespace
