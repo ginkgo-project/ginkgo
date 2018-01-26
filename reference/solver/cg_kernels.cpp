@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -62,7 +63,6 @@ void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
@@ -73,7 +73,7 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (rho->at(j) == zero<ValueType>()) {
+            if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
                 auto tmp = rho->at(j) / prev_rho->at(j);
@@ -82,7 +82,6 @@ void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
         }
     }
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
@@ -96,7 +95,7 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (rho->at(j) != zero<ValueType>()) {
+            if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
@@ -104,7 +103,6 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
         }
     }
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
