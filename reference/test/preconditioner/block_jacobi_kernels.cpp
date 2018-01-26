@@ -106,7 +106,7 @@ TEST_F(BlockJacobi, CanBeGenerated)
     EXPECT_EQ(bj->get_num_rows(), 5);
     EXPECT_EQ(bj->get_num_cols(), 5);
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_block_pointers().get_const_data();
+    auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     ASSERT_EQ(ptrs[2], 5);
