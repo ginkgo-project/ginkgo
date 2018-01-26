@@ -86,11 +86,10 @@ public:
      */
     static std::unique_ptr<Sliced_ell> create(std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
-                                       size_type num_nonzeros,
-                                       size_type max_nnz_rows)
+                                       size_type num_nonzeros)
     {
         return std::unique_ptr<Sliced_ell>(
-            new Sliced_ell(exec, num_rows, num_cols, num_nonzeros, max_nnz_rows));
+            new Sliced_ell(exec, num_rows, num_cols, num_nonzeros));
     }
 
     /**
@@ -100,7 +99,7 @@ public:
      */
     static std::unique_ptr<Sliced_ell> create(std::shared_ptr<const Executor> exec)
     {
-        return create(exec, 0, 0, 0, 0);
+        return create(exec, 0, 0, 0);
     }
 
     void copy_from(const LinOp *other) override;
@@ -172,7 +171,7 @@ public:
     index_type *get_max_nnz_rows() noexcept { return max_nnz_rows_.get_data(); }
 
     /**
-     * @copydoc Sliced_ell::get_max_nnz_row()
+     * @copydoc Sliced_ell::get_max_nnz_rows()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -204,7 +203,7 @@ public:
 
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros, size_type max_nnz_rows)
+        size_type num_cols, size_type num_nonzeros)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_rows),
           col_idxs_(exec, num_rows),
@@ -215,7 +214,7 @@ private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     // Array<index_type> row_ptrs_;
-    index_type max_nnz_rows_;
+    Array<index_type> max_nnz_rows_;
 
 };
 

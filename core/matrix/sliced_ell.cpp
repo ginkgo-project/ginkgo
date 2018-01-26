@@ -110,8 +110,7 @@ std::unique_ptr<LinOp> Sliced_ell<ValueType, IndexType>::clone_type() const
 {
     return std::unique_ptr<LinOp>(
         new Sliced_ell(this->get_executor(), this->get_num_rows(),
-                this->get_num_cols(), this->get_num_stored_elements(),
-                this->get_const_max_nnz_rows()));
+                this->get_num_cols(), this->get_num_stored_elements()));
 }
 
 

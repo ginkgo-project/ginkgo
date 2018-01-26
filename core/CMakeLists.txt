@@ -4,6 +4,7 @@ set(SOURCES
     matrix/ell.cpp
     matrix/csr.cpp
     matrix/dense.cpp
+    matrix/sliced_ell.cpp
     solver/bicgstab.cpp
     solver/cg.cpp)
 
