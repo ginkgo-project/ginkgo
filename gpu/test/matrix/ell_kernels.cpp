@@ -78,16 +78,13 @@ protected:
 
     void set_up_apply_data() {
         mtx = Mtx::create(ref);
-        std::cout << "CPU C\n";
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
         alpha = Vec::create(ref, {2.0});
         beta = Vec::create(ref, {-1.0});
         dmtx = Mtx::create(gpu);
-        std::cout << "GPU C \n";
         dmtx->copy_from(mtx.get());
-        std::cout << "DDD\n";
         dresult = Vec::create(gpu);
         dresult->copy_from(expected.get());
         dy = Vec::create(gpu);

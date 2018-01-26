@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"
-
+#include <iostream>
 
 namespace gko {
 namespace kernels {
@@ -205,20 +205,20 @@ void convert_to_ell(matrix::Ell<ValueType, IndexType> *result,
     auto max_nnz_row = result->get_max_nnz_row();
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
-
+    // std::cout << "nnz per row: " << max_nnz_row << std::endl;
     for (size_type row = 0; row < num_rows; ++row) {
         size_type temp = 0;
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-                col_idxs[row*num_rows+temp] = col;
-                values[row*num_rows+temp] = val;
+                col_idxs[row+num_rows*temp] = col;
+                values[row+num_rows*temp] = val;
                 temp++;
             }
         }
         for (; temp < max_nnz_row; temp++) {
-            values[row*num_rows+temp] = 0;
-            col_idxs[row*num_rows+temp] = col_idxs[(row-1)*num_rows+temp];  
+            values[row+num_rows*temp] = 0;
+            col_idxs[row+num_rows*temp] = col_idxs[row+num_rows*(temp-1)];  
         }
     }
 }

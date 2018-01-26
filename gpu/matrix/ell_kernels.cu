@@ -57,9 +57,11 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     ValueType temp = 0;
+    IndexType ind = 0;
     if (tidx < num_rows) {
         for (IndexType i = 0; i < max_nnz_row; i++) {
-            temp += val[tidx + i*num_rows];
+            ind = tidx + i*num_rows;
+            temp += val[ind]*b[col[ind]];
         }
         c[tidx] = temp;
     }
