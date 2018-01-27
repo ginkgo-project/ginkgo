@@ -175,7 +175,7 @@ public:
      *
      * @return  a LinOp object of the same type as this
      */
-    virtual std::unique_ptr<LinOp> create_null_clone(
+    virtual std::unique_ptr<LinOp> create_empty_clone(
         std::shared_ptr<const Executor> exec) const = 0;
 
     /**
@@ -185,9 +185,9 @@ public:
      *
      * @return  a LinOp object of the same type as this
      */
-    std::unique_ptr<LinOp> create_null_clone() const
+    std::unique_ptr<LinOp> create_empty_clone() const
     {
-        return this->create_null_clone(exec_);
+        return this->create_empty_clone(exec_);
     }
 
     /**
@@ -199,7 +199,7 @@ public:
      */
     std::unique_ptr<LinOp> clone_to(std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->create_null_clone(exec);
+        auto new_op = this->create_empty_clone(exec);
         new_op->copy_from(this);
         return new_op;
     }
@@ -293,8 +293,8 @@ private:
 
 
 /**
- * The BasicLinOp CRTP can be used to provide sensible default implementation
- * of the majority of LinOp's methods.
+ * The BasicLinOp CRTP (Curiously Recurring Template Pattern) can be used to
+ * provide sensible default implementation of the majority of LinOp's methods.
  *
  * The only overrides that the user has to provide are the two overloads of the
  * LinOp::apply() method. The user also has to define a constructor which takes
@@ -324,7 +324,7 @@ public:
         as<ConvertibleTo<ConcreteLinOp>>(other.get())->move_to(self());
     }
 
-    std::unique_ptr<LinOp> create_null_clone(
+    std::unique_ptr<LinOp> create_empty_clone(
         std::shared_ptr<const Executor> exec) const override
     {
         return std::unique_ptr<LinOp>(new ConcreteLinOp{exec});
