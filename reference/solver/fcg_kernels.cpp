@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/xxsolverxx_kernels.hpp"
+#include "core/solver/fcg_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -42,57 +42,55 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
-namespace xxsolverxx {
+namespace fcg {
 
-// This is example code for the CG case - has to be modified for the new solver
-/*
 
 template <typename ValueType>
 void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho)
+                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
+                matrix::Dense<ValueType> *prev_rho,
+                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t)
 {
     for (size_type j = 0; j < b->get_num_cols(); ++j) {
         rho->at(j) = zero<ValueType>();
         prev_rho->at(j) = one<ValueType>();
+        rho_t->at(j) = one<ValueType>();
     }
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
         for (size_type j = 0; j < b->get_num_cols(); ++j) {
-            r->at(i, j) = b->at(i, j);
+            t->at(i, j) = r->at(i, j) = b->at(i, j);
             z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
 void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho,
+            const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho)
 {
-    using std::abs;
-    using std::isnan;
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
             if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
-                auto tmp = rho->at(j) / prev_rho->at(j);
+                auto tmp = rho_t->at(j) / prev_rho->at(j);
                 p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
 void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
+            matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho)
@@ -101,18 +99,19 @@ void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
+                auto prev_r = r->at(i, j);
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
+                t->at(i, j) = r->at(i, j) - prev_r;
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
 
-*/
 
-}  // namespace xxsolverxx
+}  // namespace fcg
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

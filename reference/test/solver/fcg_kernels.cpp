@@ -31,72 +31,60 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/xxsolverxx.hpp>
-
-#include <core/test/utils/assertions.hpp>
-
 #include <gtest/gtest.h>
-
-
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/solver/fcg.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
-class Xxsolverxx : public ::testing::Test {
+class Fcg : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    Xxsolverxx()
+    Fcg()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec,
                           {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
-          xxsolverxx_factory(
-              gko::solver::XxsolverxxFactory<>::create(exec, 4, 1e-15))
+          fcg_factory(gko::solver::FcgFactory<>::create(exec, 4, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::XxsolverxxFactory<>> xxsolverxx_factory;
+    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
 };
 
 
-TEST_F(Xxsolverxx, SolvesStencilSystem)
+TEST_F(Fcg, SolvesStencilSystem)
 {
-    auto solver = xxsolverxx_factory->generate(mtx);
+    auto solver = fcg_factory->generate(mtx);
     auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
     auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
 
-TEST_F(Xxsolverxx, SolvesMultipleStencilSystems)
+TEST_F(Fcg, SolvesMultipleStencilSystems)
 {
-    auto solver = xxsolverxx_factory->generate(mtx);
+    auto solver = fcg_factory->generate(mtx);
     auto b = Mtx::create(exec, {{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}});
     auto x = Mtx::create(exec, {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}});
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), 1.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
 }
 
 
-TEST_F(Xxsolverxx, SolvesStencilSystemUsingAdvancedApply)
+TEST_F(Fcg, SolvesStencilSystemUsingAdvancedApply)
 {
-    auto solver = xxsolverxx_factory->generate(mtx);
+    auto solver = fcg_factory->generate(mtx);
     auto alpha = Mtx::create(exec, {2.0});
     auto beta = Mtx::create(exec, {-1.0});
     auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
@@ -104,15 +92,13 @@ TEST_F(Xxsolverxx, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
 }
 
 
-TEST_F(Xxsolverxx, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TEST_F(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    auto solver = xxsolverxx_factory->generate(mtx);
+    auto solver = fcg_factory->generate(mtx);
     auto alpha = Mtx::create(exec, {2.0});
     auto beta = Mtx::create(exec, {-1.0});
     auto b = Mtx::create(exec, {{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}});
@@ -120,12 +106,7 @@ TEST_F(Xxsolverxx, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 0.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), -1.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
 }
 
 

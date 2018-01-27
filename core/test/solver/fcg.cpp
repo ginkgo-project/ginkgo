@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/xxsolverxx.hpp>
+#include <core/solver/fcg.hpp>
 
 
 #include <gtest/gtest.h>
@@ -39,77 +39,66 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
-class Xxsolverxx : public ::testing::Test {
+class Fcg : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Xxsolverxx<>;
+    using Solver = gko::solver::Fcg<>;
 
-    Xxsolverxx()
+    Fcg()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec,
                           {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
-          xxsolverxx_factory(
-              gko::solver::XxsolverxxFactory<>::create(exec, 3, 1e-6)),
-          solver(xxsolverxx_factory->generate(mtx))
+          fcg_factory(gko::solver::FcgFactory<>::create(exec, 3, 1e-6)),
+          solver(fcg_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::XxsolverxxFactory<>> xxsolverxx_factory;
+    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    {
-        ASSERT_EQ(m1->get_num_rows(), m2->get_num_rows());
-        ASSERT_EQ(m1->get_num_cols(), m2->get_num_cols());
-        for (gko::size_type i = 0; i < m1->get_num_rows(); ++i) {
-            for (gko::size_type j = 0; j < m2->get_num_cols(); ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 
-TEST_F(Xxsolverxx, XxsolverxxFactoryKnowsItsExecutor)
+TEST_F(Fcg, FcgFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(xxsolverxx_factory->get_executor(), exec);
+    ASSERT_EQ(fcg_factory->get_executor(), exec);
 }
 
 
-TEST_F(Xxsolverxx, XxsolverxxFactoryKnowsItsIterationLimit)
+TEST_F(Fcg, FcgFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(xxsolverxx_factory->get_max_iters(), 3);
+    ASSERT_EQ(fcg_factory->get_max_iters(), 3);
 }
 
 
-TEST_F(Xxsolverxx, XxsolverxxFactoryKnowsItsRelResidualGoal)
+TEST_F(Fcg, FcgFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(xxsolverxx_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(fcg_factory->get_rel_residual_goal(), 1e-6);
 }
 
 
-TEST_F(Xxsolverxx, XxsolverxxFactoryCreatesCorrectSolver)
+TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_num_rows(), 3);
     ASSERT_EQ(solver->get_num_cols(), 3);
     ASSERT_EQ(solver->get_num_stored_elements(), 9);
-    auto xxsolverxx_solver = dynamic_cast<Solver *>(solver.get());
-    ASSERT_EQ(xxsolverxx_solver->get_max_iters(), 3);
-    ASSERT_EQ(xxsolverxx_solver->get_rel_residual_goal(), 1e-6);
-    ASSERT_NE(xxsolverxx_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(xxsolverxx_solver->get_system_matrix(), mtx);
+    auto fcg_solver = dynamic_cast<Solver *>(solver.get());
+    ASSERT_EQ(fcg_solver->get_max_iters(), 3);
+    ASSERT_EQ(fcg_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(fcg_solver->get_system_matrix(), mtx);
 }
 
 
-TEST_F(Xxsolverxx, CanBeCopied)
+TEST_F(Fcg, CanBeCopied)
 {
-    auto copy = xxsolverxx_factory->generate(Mtx::create(exec));
+    auto copy = fcg_factory->generate(Mtx::create(exec));
 
     copy->copy_from(solver.get());
 
@@ -118,13 +107,14 @@ TEST_F(Xxsolverxx, CanBeCopied)
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_NE(copy_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 
-TEST_F(Xxsolverxx, CanBeMoved)
+TEST_F(Fcg, CanBeMoved)
 {
-    auto copy = xxsolverxx_factory->generate(Mtx::create(exec));
+    auto copy = fcg_factory->generate(Mtx::create(exec));
 
     copy->copy_from(std::move(solver));
 
@@ -132,11 +122,12 @@ TEST_F(Xxsolverxx, CanBeMoved)
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 
-TEST_F(Xxsolverxx, CanBeCloned)
+TEST_F(Fcg, CanBeCloned)
 {
     auto clone = solver->clone();
 
@@ -145,11 +136,12 @@ TEST_F(Xxsolverxx, CanBeCloned)
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     ASSERT_NE(clone_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
+                    1e-14);
 }
 
 
-TEST_F(Xxsolverxx, CanBeCleared)
+TEST_F(Fcg, CanBeCleared)
 {
     solver->clear();
 

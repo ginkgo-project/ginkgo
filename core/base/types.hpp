@@ -72,6 +72,18 @@ using int64 = std::int64_t;
 
 
 /**
+ * 32-bit unsigned integral type.
+ */
+using uint32 = std::uint32_t;
+
+
+/**
+ * 64-bit unsigned integral type.
+ */
+using uint64 = std::uint64_t;
+
+
+/**
  * The most precise floating-point type.
  */
 using full_precision = double;

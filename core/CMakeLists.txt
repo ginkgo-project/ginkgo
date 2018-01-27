@@ -4,7 +4,9 @@ set(SOURCES
     matrix/ell.cpp
     matrix/csr.cpp
     matrix/dense.cpp
+    preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
+    solver/fcg.cpp
     solver/cg.cpp)
 
 add_subdirectory(devices)  # basic device functionalities, always compiled

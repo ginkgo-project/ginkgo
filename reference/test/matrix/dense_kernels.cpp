@@ -33,14 +33,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/dense.hpp>
 
+#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
-
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/csr.hpp>
 
+#include <complex>
 
 namespace {
 
@@ -54,15 +55,24 @@ protected:
           mtx2(gko::matrix::Dense<>::create(exec, {{1.0, -1.0}, {-2.0, 2.0}})),
           mtx3(gko::matrix::Dense<>::create(
               exec, 4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}})),
-          mtx4(gko::matrix::Dense<>::create(exec, 4,
-                                            {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}))
+          mtx4(gko::matrix::Dense<>::create(
+              exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}})),
+          mtx5(gko::matrix::Dense<>::create(
+              exec, {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}})),
+          mtx6(gko::matrix::Dense<std::complex<double>>::create(
+              exec, {{1.0 + 2.0 * i, -1.0 + 2.1 * i},
+                     {-2.0 + 1.5 * i, 4.5 + 0.0 * i},
+                     {1.0 + 0.0 * i, i}}))
     {}
 
+    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::matrix::Dense<>> mtx1;
     std::unique_ptr<gko::matrix::Dense<>> mtx2;
     std::unique_ptr<gko::matrix::Dense<>> mtx3;
     std::unique_ptr<gko::matrix::Dense<>> mtx4;
+    std::unique_ptr<gko::matrix::Dense<>> mtx5;
+    std::unique_ptr<gko::matrix::Dense<std::complex<double>>> mtx6;
 };
 
 
@@ -283,4 +293,36 @@ TEST_F(Dense, MovesToCsr)
 }
 
 
+TEST_F(Dense, SquareMatrixIsTransposable)
+{
+    auto trans = mtx5->transpose();
+    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+
+    ASSERT_MTX_NEAR(trans_as_dense,
+                    l({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
+                    0.0);
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsTransposable)
+{
+    auto trans = mtx4->transpose();
+    auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
+
+    ASSERT_MTX_NEAR(trans_as_dense, l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}),
+                    0.0);
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
+{
+    auto trans = mtx6->conj_transpose();
+    auto trans_as_dense =
+        static_cast<gko::matrix::Dense<std::complex<double>> *>(trans.get());
+
+    ASSERT_MTX_NEAR(trans_as_dense,
+                    l({{1.0 - 2.0 * i, -2.0 - 1.5 * i, 1.0 + 0.0 * i},
+                       {-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
+                    0.0);
+}
 }  // namespace

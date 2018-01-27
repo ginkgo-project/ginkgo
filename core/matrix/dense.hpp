@@ -74,7 +74,8 @@ class Dense : public LinOp,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
-              public ReadableFromMtx {
+              public ReadableFromMtx,
+              public Transposable {
     friend class gko::matrix::Csr<ValueType, int32>;
     friend class gko::matrix::Csr<ValueType, int64>;
     friend class gko::matrix::Ell<ValueType, int32>;
@@ -247,7 +248,7 @@ public:
     /**
      * Returns the padding of the matrix.
      */
-    size_type get_padding() const { return padding_; }
+    size_type get_padding() const noexcept { return padding_; }
 
     /**
      * Returns a single element of the matrix.
@@ -366,6 +367,10 @@ public:
     void move_to(Ell<ValueType, int64> *result) override;
 
     void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,

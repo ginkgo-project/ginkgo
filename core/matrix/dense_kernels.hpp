@@ -88,6 +88,14 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL(_type) \
     void count_max_nnz_row(const matrix::Dense<_type> *source, size_type *result)
 
+#define GKO_DECLARE_TRANSPOSE_KERNEL(_type)     \
+    void transpose(matrix::Dense<_type> *trans, \
+                   const matrix::Dense<_type> *orig)
+
+#define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)     \
+    void conj_transpose(matrix::Dense<_type> *trans, \
+                        const matrix::Dense<_type> *orig)
+
 #define DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType>                                  \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);              \
@@ -110,7 +118,12 @@ namespace kernels {
     template <typename ValueType>                                  \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);            \
     template <typename ValueType>                                  \
-    GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL(ValueType)
+    GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL(ValueType);         \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                       \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
+
 
 namespace cpu {
 namespace dense {

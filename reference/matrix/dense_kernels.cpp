@@ -276,6 +276,34 @@ void count_max_nnz_row(const matrix::Dense<ValueType> *source, size_type *result
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
 
+template <typename ValueType>
+void transpose(matrix::Dense<ValueType> *trans,
+               const matrix::Dense<ValueType> *orig)
+{
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
+            trans->at(j, i) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void conj_transpose(matrix::Dense<ValueType> *trans,
+                    const matrix::Dense<ValueType> *orig)
+{
+    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
+        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
+            trans->at(j, i) = gko::conj(orig->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace dense
 }  // namespace reference
 }  // namespace kernels

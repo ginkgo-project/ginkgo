@@ -31,66 +31,38 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/csr_kernels.hpp"
+#include "core/preconditioner/block_jacobi_kernels.hpp"
+
 
 #include "core/base/exception_helpers.hpp"
+
 
 namespace gko {
 namespace kernels {
 namespace cpu {
-namespace csr {
+namespace block_jacobi {
+
 
 template <typename ValueType, typename IndexType>
-void spmv(const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
-
-template <typename ValueType, typename IndexType>
-void advanced_spmv(const matrix::Dense<ValueType> *alpha,
-                   const matrix::Csr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix,
+                 uint32 max_block_size, size_type &num_blocks,
+                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(matrix::Dense<ValueType> *result,
-                      const matrix::Csr<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size, size_type padding,
+              const Array<IndexType> &block_pointers,
+              Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void move_to_dense(matrix::Dense<ValueType> *result,
-                   matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
-
-template <typename ValueType, typename IndexType>
-void transpose(matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
-                    const matrix::Csr<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
-
-
-}  // namespace csr
+}  // namespace block_jacobi
 }  // namespace cpu
 }  // namespace kernels
 }  // namespace gko

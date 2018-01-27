@@ -49,7 +49,7 @@ namespace gko {
  * @return  conjugate of `x`
  */
 template <typename T>
-inline std::complex<T> conj(std::complex<T> x)
+inline std::complex<T> conj(const std::complex<T> &x)
 {
     return std::conj(x);
 }
@@ -158,6 +158,20 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
     return detail::is_complex_impl<T>::value;
 }
 
+
+/**
+ * Returns the squared norm of the object.
+ *
+ * @tparam T type of the object.
+ *
+ * @return  The squared norm of the object.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)
+{
+    using std::real;
+    return real(gko::conj(x) * x);
+}
 
 }  // namespace gko
 

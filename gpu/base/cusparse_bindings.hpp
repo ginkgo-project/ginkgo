@@ -80,6 +80,68 @@ BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
 #undef BIND_CUSPARSE32_SPMV
 #undef BIND_CUSPARSE64_SPMV
 
+
+#define BIND_CUSPARSE_TRANSPOSE32(ValueType, CusparseName)                    \
+    inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \
+                          size_type nnz, const ValueType *OrigValA,           \
+                          const int32 *OrigRowPtrA, const int32 *OrigColIndA, \
+                          ValueType *TransValA, int32 *TransRowPtrA,          \
+                          int32 *TransColIndA, cusparseAction_t copyValues,   \
+                          cusparseIndexBase_t idxBase)                        \
+    {                                                                         \
+        ASSERT_NO_CUSPARSE_ERRORS(                                            \
+            CusparseName(handle, m, n, nnz, as_culibs_type(OrigValA),         \
+                         OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
+                         TransRowPtrA, TransColIndA, copyValues, idxBase));   \
+    }
+
+#define BIND_CUSPARSE_TRANSPOSE64(ValueType, CusparseName)                    \
+    inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \
+                          size_type nnz, const ValueType *OrigValA,           \
+                          const int64 *OrigRowPtrA, const int64 *OrigColIndA, \
+                          ValueType *TransValA, int64 *TransRowPtrA,          \
+                          int64 *TransColIndA, cusparseAction_t copyValues,   \
+                          cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+
+BIND_CUSPARSE_TRANSPOSE32(float, cusparseScsr2csc);
+BIND_CUSPARSE_TRANSPOSE32(double, cusparseDcsr2csc);
+BIND_CUSPARSE_TRANSPOSE64(float, cusparseScsr2csc);
+BIND_CUSPARSE_TRANSPOSE64(double, cusparseDcsr2csc);
+BIND_CUSPARSE_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
+BIND_CUSPARSE_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
+BIND_CUSPARSE_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
+BIND_CUSPARSE_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+
+#undef BIND_CUSPARSE_TRANSPOSE
+
+#define BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, CusparseName)              \
+    inline void conj_transpose(                                              \
+        cusparseHandle_t handle, size_type m, size_type n, size_type nnz,    \
+        const ValueType *OrigValA, const int32 *OrigRowPtrA,                 \
+        const int32 *OrigColIndA, ValueType *TransValA, int32 *TransRowPtrA, \
+        int32 *TransColIndA, cusparseAction_t copyValues,                    \
+        cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+
+#define BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, CusparseName)              \
+    inline void conj_transpose(                                              \
+        cusparseHandle_t handle, size_type m, size_type n, size_type nnz,    \
+        const ValueType *OrigValA, const int64 *OrigRowPtrA,                 \
+        const int64 *OrigColIndA, ValueType *TransValA, int64 *TransRowPtrA, \
+        int64 *TransColIndA, cusparseAction_t copyValues,                    \
+        cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+
+BIND_CUSPARSE_CONJ_TRANSPOSE32(float, cusparseScsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE32(double, cusparseDcsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE64(float, cusparseScsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE64(double, cusparseDcsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
+BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+
+#undef BIND_CUSPARSE_CONJ_TRANSPOSE
+
+
 inline cusparseHandle_t init()
 {
     cusparseHandle_t handle{};

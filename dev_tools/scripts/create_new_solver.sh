@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function print_help {
     echo -e "Usage: $0 [options] solvername"
@@ -14,7 +14,7 @@ function print_help {
 
 execute=1
 
-if [ $# -l 1 ]; then
+if [ $# -lt 1 ]; then
     print_help
     exit 1
 fi
@@ -135,7 +135,7 @@ then
     # for each file, make sure it does not exist yet
     for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
     do
-        filename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/solver/${solvername}/")
+        filename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/solver/${solvername}/" | sed "s/cpu_//;s/gpu_//;s/reference_//")
         destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/$filename
         if [ ! -f ${GINKGO_ROOT_DIR}/$destpath ]; then
             cp ${TMPDIR}/${TEMPLATE_FILES[$i-1]} ${GINKGO_ROOT_DIR}/$destpath
@@ -161,7 +161,7 @@ fi
 echo -e "\nSummary:"                                                                 | tee -a todo_${solvername}.txt
 for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
-    filename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/solver/${solvername}/")
+    filename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/solver/${solvername}/" | sed "s/cpu_//;s/gpu_//;s/reference_//")
     destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/$filename
 
     echo "Created ${TEMPLATE_FILES_TYPES[$i-1]}"         | tee -a todo_${solvername}.txt

@@ -55,6 +55,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(transpose, csr::transpose<TplArgs...>);
+    GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose<TplArgs...>);
 };
 
 
@@ -198,6 +200,34 @@ void Csr<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         tmp->get_row_ptrs()[row + 1] = cur_ptr;
     }
     tmp->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
 }
 
 

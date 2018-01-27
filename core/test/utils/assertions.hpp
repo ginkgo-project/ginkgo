@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cmath>
+#include <cstdlib>
 #include <initializer_list>
 
 
@@ -70,18 +71,19 @@ void print_componentwise_error(Ostream &os,
                                const matrix::Dense<ValueType1> *first,
                                const matrix::Dense<ValueType2> *second)
 {
-    using std::fabs;
+    using real_vt = remove_complex<ValueType2>;
+    using std::abs;
     using std::max;
     for (size_type row = 0; row < first->get_num_rows(); ++row) {
         os << "\t";
         for (size_type col = 0; col < first->get_num_cols(); ++col) {
             auto r = first->at(row, col);
             auto e = second->at(row, col);
-            auto m = max<ValueType2>(fabs(r), fabs(e));
-            if (m == zero<ValueType2>()) {
-                os << fabs(r - e) << "\t";
+            auto m = max<real_vt>(abs(r), abs(e));
+            if (m == zero<real_vt>()) {
+                os << abs(r - e) << "\t";
             } else {
-                os << fabs((r - e) / m) << "\t";
+                os << abs((r - e) / m) << "\t";
             }
         }
         os << "\n";
@@ -101,9 +103,9 @@ double get_relative_error(const matrix::Dense<ValueType1> *first,
     for (size_type row = 0; row < first->get_num_rows(); ++row) {
         for (size_type col = 0; col < second->get_num_cols(); ++col) {
             auto tmp = first->at(row, col) - second->at(row, col);
-            diff += tmp * tmp;
-            first_norm += first->at(row, col) * first->at(row, col);
-            second_norm += second->at(row, col) * second->at(row, col);
+            diff += squared_norm(tmp);
+            first_norm += squared_norm(first->at(row, col));
+            second_norm += squared_norm(second->at(row, col));
         }
     }
     if (first_norm == 0.0 && second_norm == 0.0) {
