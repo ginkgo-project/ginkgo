@@ -102,7 +102,7 @@ public:
     }
 
 protected:
-    Bicgstab(std::shared_ptr<const Executor> exec)
+    explicit Bicgstab(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Bicgstab>(exec, 0, 0, 0)
     {}
 

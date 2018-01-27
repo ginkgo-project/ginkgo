@@ -155,7 +155,7 @@ public:
     }
 
 protected:
-    BlockJacobi(std::shared_ptr<const Executor> exec)
+    explicit BlockJacobi(std::shared_ptr<const Executor> exec)
         : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
           block_pointers_(exec),
           blocks_(exec)

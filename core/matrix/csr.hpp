@@ -174,7 +174,7 @@ public:
     }
 
 protected:
-    Csr(std::shared_ptr<const Executor> exec)
+    explicit Csr(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Csr>(exec, 0, 0, 0),
           values_(exec),
           col_idxs_(exec),

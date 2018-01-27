@@ -110,7 +110,8 @@ public:
     }
 
 private:
-    Fcg(std::shared_ptr<const Executor> exec) : BasicLinOp<Fcg>(exec, 0, 0, 0)
+    explicit Fcg(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Fcg>(exec, 0, 0, 0)
     {}
 
     Fcg(std::shared_ptr<const Executor> exec, int max_iters,

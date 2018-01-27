@@ -107,7 +107,9 @@ public:
     }
 
 private:
-    Cg(std::shared_ptr<const Executor> exec) : BasicLinOp<Cg>(exec, 0, 0, 0) {}
+    explicit Cg(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Cg>(exec, 0, 0, 0)
+    {}
 
     Cg(std::shared_ptr<const Executor> exec, int max_iters,
        remove_complex<value_type> rel_residual_goal,

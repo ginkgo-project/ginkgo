@@ -292,6 +292,19 @@ private:
 };
 
 
+/**
+ * The BasicLinOp CRTP can be used to provide sensible default implementation
+ * of the majority of LinOp's methods.
+ *
+ * The only overrides that the user has to provide are the two overloads of the
+ * LinOp::apply() method. The user also has to define a constructor which takes
+ * only a shared pointer to a constant executor as input, and the assignment
+ * operator (if the default one is not suitable for his class).
+ *
+ * The CRTP then takes care of implementing the rest of LinOp's methods, and
+ * adds a default implementation of `ConvertibleTo` interface for the derived
+ * class.
+ */
 template <typename ConcreteLinOp>
 class BasicLinOp : public LinOp, public ConvertibleTo<ConcreteLinOp> {
 public:

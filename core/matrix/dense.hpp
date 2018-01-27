@@ -349,7 +349,7 @@ public:
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
 protected:
-    Dense(std::shared_ptr<const Executor> exec)
+    explicit Dense(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Dense>(exec, 0, 0, 0), values_(exec)
     {}
 
