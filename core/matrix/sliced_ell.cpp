@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense.hpp"
 #include <vector>
 
+// constexpr int default_slice_size = 32;
+
 namespace gko {
 namespace matrix {
 
@@ -120,7 +122,9 @@ void Sliced_ell<ValueType, IndexType>::clear()
     this->set_dimensions(0, 0, 0);
     values_.clear();
     col_idxs_.clear();
-    max_nnz_rows_.clear();
+    // max_nnz_rows_.clear();
+    slice_lens_.clear();
+    slice_sets_.clear();
 }
 
 
@@ -131,7 +135,9 @@ void Sliced_ell<ValueType, IndexType>::convert_to(Sliced_ell *other) const
     other->values_ = values_;
     other->col_idxs_ = col_idxs_;
     // other->row_ptrs_ = row_ptrs_;
-    other->max_nnz_rows_ = max_nnz_rows_;
+    // other->max_nnz_rows_ = max_nnz_rows_;
+    other->slice_lens_ = std::move(slice_lens_);
+    other->slice_sets_ = std::move(slice_sets_);
 }
 
 
@@ -142,7 +148,9 @@ void Sliced_ell<ValueType, IndexType>::move_to(Sliced_ell *other)
     other->values_ = std::move(values_);
     other->col_idxs_ = std::move(col_idxs_);
     // other->row_ptrs_ = std::move(row_ptrs_);
-    other->max_nnz_rows_ = std::move(max_nnz_rows_);
+    // other->max_nnz_rows_ = std::move(max_nnz_rows_);
+    other->slice_lens_ = std::move(slice_lens_);
+    other->slice_sets_ = std::move(slice_sets_);
 }
 
 
@@ -175,19 +183,66 @@ void Sliced_ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
+    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+    size_type nnz = 0;
+    std::vector<index_type> nnz_row(data.num_rows, 0);
+    index_type slice_num = static_cast<index_type>(data.num_rows / default_slice_size + 1);
+    std::vector<index_type> slice_cols(slice_num, 0);
+    size_type total_col = 0;
     // auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
     // size_type nnz = 0;
     // std::vector<index_type> nnz_row(data.num_rows, 0);
+    for (const auto &elem : data.nonzeros) {
+        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz_row.at(std::get<0>(elem))++;
+    }
     // for (const auto &elem : data.nonzeros) {
     //     nnz += (std::get<2>(elem) != zero<ValueType>());
     //     nnz_row.at(std::get<0>(elem))++;
     // }
+    for (size_type row = 0; row < data.num_rows; row++) {
+        index_type slice_id = static_cast<index_type>(row / default_slice_size);
+        slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
+    }
     // index_type max_nnz_row = 0;
     // for (const auto &elem : nnz_row) {
     //     max_nnz_row = std::max(max_nnz_row, elem);
     // }
+    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+                      data.num_cols, nnz);
     // auto tmp = create(this->get_executor()->get_master(), data.num_rows,
     //                   data.num_cols, nnz, max_nnz_row);
+    index_type start_col = 0;
+    for (index_type slice = 0; slice < slice_num; slice++) {
+        tmp->get_slice_lens()[slice] = slice_cols[slice];
+        tmp->get_slice_sets()[slice] = start_col;
+        start_col += slice_cols[slice];
+    }
+    size_type ind = 0;
+    int n = data.nonzeros.size();
+    for (size_type row = 0; row < default_slice_size; row++) {
+        index_type slice = 0, start_col = 0;
+        for (; slice < slice_num; start_col += slice_cols[slice], slice++) {
+            size_type col = 0;
+            for (; ind < n && col < slice_cols[slice]) {
+                if (std::get<0>(data.nonzeros[ind]) > row) {
+                    break;
+                }
+                auto val = std::get<2>(data.nonzeros[ind]);
+                auto sliced_ell_ind = row + (start_col+col)*default_slice_size;
+                if (val != zero<ValueType>()) {
+                    tmp->get_values()[sliced_ell_ind] = val;
+                    tmp->get_col_idxs()[sliced_ell_ind] = std::get<1>(data.nonzeros[ind]);
+                    col++;
+                }
+            }
+            for (auto i = col; i < slice_cols[slice]; i++) {
+                auto sliced_ell_ind = row+(start_col+i)*default_slice_size;
+                tmp->get_values()[sliced_ell_ind] = 0;
+                tmp->get_col_idxs()[sliced_ell_ind] = tmp->get_col_idxs[sliced_ell_ind-default_slice_size];
+            }
+        }
+    }
     // size_type ind = 0;
     // int n = data.nonzeros.size();
     // for (size_type row = 0; row < data.num_rows; row++) {
@@ -197,7 +252,7 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
     //             break;
     //         }
     //         auto val = std::get<2>(data.nonzeros[ind]);
-    //         auto ell_ind = row+col*data.num_rows;
+    //         auto ell_ind = row+col*data.num_rows;8
     //         if (val != zero<ValueType>()) {
     //             tmp->get_values()[ell_ind] = val;
     //             tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
@@ -210,6 +265,7 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
     //         tmp->get_col_idxs()[ell_ind] = tmp->get_col_idxs()[ell_ind-data.num_rows];
     //     }
     // }
+    tmp->move_to(this);
     // tmp->move_to(this);
 }
 

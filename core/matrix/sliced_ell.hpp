@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/mtx_reader.hpp"
 
+constexpr int default_slice_size = 32;
+
 
 namespace gko {
 namespace matrix {
@@ -82,7 +84,7 @@ public:
      * @param num_rows      number of rows
      * @param num_cols      number of columns
      * @param num_nonzeros  number of nonzeros
-     * @param max_nnz_row   maximum number of nonzeros in one row
+     * 
      */
     static std::unique_ptr<Sliced_ell> create(std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
@@ -93,7 +95,7 @@ public:
     }
 
     /**
-     * Creates an empty ELL matrix.
+     * Creates an empty Sliced ELL matrix.
      *
      * @param exec  Executor associated to the matrix
      */
@@ -164,57 +166,59 @@ public:
     }
 
     /**
-     * Returns the maximum number of rows of all slices.
+     * Returns the lengths(columns) of slices.
      *
-     * @return the maximum number of rows of all slices.
+     * @return the lengths(columns) of slices.
      */
-    index_type *get_max_nnz_rows() noexcept { return max_nnz_rows_.get_data(); }
+    index_type *get_slice_lens() noexcept { return slice_lens_.get_data(); }
 
     /**
-     * @copydoc Sliced_ell::get_max_nnz_rows()
+     * @copydoc Sliced_ell::get_slice_lens()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_max_nnz_rows() const noexcept
+    const index_type *get_const_slice_lens() const noexcept
     {
-        return max_nnz_rows_.get_const_data();
+        return slice_lens_.get_const_data();
     }
-    
-    // /**
-    //  * Returns the row pointers of the matrix.
-    //  *
-    //  * @return the row pointers of the matrix.
-    //  */
-    // index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
-    // /**
-    //  * @copydoc Sliced_ell::get_row_ptrs()
-    //  *
-    //  * @note This is the constant version of the function, which can be
-    //  *       significantly more memory efficient than the non-constant version,
-    //  *       so always prefer this version.
-    //  */
-    // const index_type *get_const_row_ptrs() const noexcept
-    // {
-    //     return row_ptrs_.get_const_data();
-    // }
+    /**
+     * Returns the offsets of slices.
+     *
+     * @return the offsets of slices.
+     */
+    index_type *get_slice_sets() noexcept { return slice_sets_.get_data(); }
+
+    /**
+     * @copydoc Sliced_ell::get_slice_sets()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const index_type *get_const_slice_sets() const noexcept
+    {
+        return slice_sets_.get_const_data();
+    }
 
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, num_rows),
-          col_idxs_(exec, num_rows),
-          max_nnz_rows_(exec, num_rows)
+          values_(exec, num_nonzeros),
+          col_idxs_(exec, num_nonzeros),
+          slice_lens_(exec, static_cast<size_type>(num_rows / default_slice_size)),
+          slice_sets_(exec, static_cast<size_type>(num_rows / default_slice_size)),
     {}
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     // Array<index_type> row_ptrs_;
-    Array<index_type> max_nnz_rows_;
+    Array<index_type> slice_lens_;
+    Array<index_type> slice_sets_;
 
 };
 
