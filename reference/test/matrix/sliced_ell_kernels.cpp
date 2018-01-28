@@ -166,27 +166,25 @@ TEST_F(Sliced_ell, ApplyFailsOnWrongNumberOfCols)
 
 TEST_F(Sliced_ell, ConvertsToDense)
 {
-	NOT_IMPLEMENTED;
-    // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    // auto dense_other = gko::matrix::Dense<>::create(
-    //     exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
-    // mtx->convert_to(dense_mtx.get());
+    mtx->convert_to(dense_mtx.get());
 
-    // ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
 TEST_F(Sliced_ell, MovesToDense)
 {
-	NOT_IMPLEMENTED;
-    // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    // auto dense_other = gko::matrix::Dense<>::create(
-    //     exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
-    // mtx->move_to(dense_mtx.get());
+    mtx->move_to(dense_mtx.get());
 
-    // ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 

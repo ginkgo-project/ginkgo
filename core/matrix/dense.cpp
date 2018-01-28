@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"
+#include "core/matrix/sliced_ell.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 namespace gko {
@@ -72,6 +73,12 @@ template <typename... TplArgs>
 struct TemplatedOperationEll {
     GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_ell, dense::move_to_ell<TplArgs...>);
+};
+
+template <typename... TplArgs>
+struct TemplatedOperationSliced_ell {
+    GKO_REGISTER_OPERATION(convert_to_sliced_ell, dense::convert_to_sliced_ell<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_sliced_ell, dense::move_to_sliced_ell<TplArgs...>);
 };
 
 
@@ -111,6 +118,28 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
         *num_stored_nonzeros.get_data(), *num_stored_max_nnz_row.get_data());
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Sliced_ell<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    NOT_IMPLEMENTED;
+    // auto exec = source->get_executor();
+
+    // Array<size_type> num_stored_nonzeros(exec, 1);
+    // Array<size_type> num_stored_max_nnz_row(exec, 1);
+    // exec->run(TemplatedOperation<ValueType>::make_count_max_nnz_row_operation(
+    //     source, num_stored_max_nnz_row.get_data()));
+    // exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+    //     source, num_stored_nonzeros.get_data()));
+    // auto tmp = Ell<ValueType, IndexType>::create(
+    //     exec, source->get_num_rows(), source->get_num_cols(),
+    //     *num_stored_nonzeros.get_data(), *num_stored_max_nnz_row.get_data());
+    // exec->run(op(tmp.get(), source));
+    // tmp->move_to(result);
 }
 }  // namespace
 
@@ -324,6 +353,50 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
         result, this,
         TemplatedOperationEll<ValueType, int64>::
             template make_move_to_ell_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sliced_ell<ValueType, int32> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSliced_ell<ValueType, int32>::
+            template make_convert_to_sliced_ell_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sliced_ell<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSliced_ell<ValueType, int32>::
+            template make_move_to_sliced_ell_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sliced_ell<ValueType, int64> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSliced_ell<ValueType, int64>::
+            template make_convert_to_sliced_ell_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sliced_ell<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSliced_ell<ValueType, int64>::
+            template make_move_to_sliced_ell_operation<decltype(result),
                                                 Dense<ValueType> *&>);
 }
 

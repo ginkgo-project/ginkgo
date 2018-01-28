@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/dense_kernels.hpp"
-
+#include "core/base/exception_helpers.hpp"
 
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
@@ -236,6 +236,51 @@ void move_to_ell(matrix::Ell<ValueType, IndexType> *result,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source)
+{
+    NOT_IMPLEMENTED;
+    // auto num_rows = result->get_num_rows();
+    // auto num_cols = result->get_num_cols();
+    // auto num_nonzeros = result->get_num_stored_elements();
+
+    // auto max_nnz_row = result->get_max_nnz_row();
+    // auto col_idxs = result->get_col_idxs();
+    // auto values = result->get_values();
+    // // std::cout << "nnz per row: " << max_nnz_row << std::endl;
+    // for (size_type row = 0; row < num_rows; ++row) {
+    //     size_type temp = 0;
+    //     for (size_type col = 0; col < num_cols; ++col) {
+    //         auto val = source->at(row, col);
+    //         if (val != zero<ValueType>()) {
+    //             col_idxs[row+num_rows*temp] = col;
+    //             values[row+num_rows*temp] = val;
+    //             temp++;
+    //         }
+    //     }
+    //     for (; temp < max_nnz_row; temp++) {
+    //         values[row+num_rows*temp] = 0;
+    //         col_idxs[row+num_rows*temp] = col_idxs[row+num_rows*(temp-1)];  
+    //     }
+    // }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
+                 const matrix::Dense<ValueType> *source)
+{
+    reference::dense::convert_to_sliced_ell(result, source);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL);
 
 
 template <typename ValueType>

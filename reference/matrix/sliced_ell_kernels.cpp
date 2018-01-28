@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/dense.hpp"
+#include <iostream>
 
 
 namespace gko {
@@ -119,27 +120,31 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(matrix::Dense<ValueType> *result,
                       const matrix::Sliced_ell<ValueType, IndexType> *source)
 {
-	NOT_IMPLEMENTED;
-    // auto exec = result->get_executor();
-    // if (exec != exec->get_master()) {
-    //     NOT_SUPPORTED(exec);
-    // }
-
-    // auto num_rows = source->get_num_rows();
-    // auto num_cols = source->get_num_cols();
-    // auto row_ptrs = source->get_const_row_ptrs();
-    // auto col_idxs = source->get_const_col_idxs();
-    // auto vals = source->get_const_values();
-
-    // for (size_type row = 0; row < num_rows; ++row) {
-    //     for (size_type col = 0; col < num_cols; ++col) {
-    //         result->at(row, col) = zero<ValueType>();
-    //     }
-    //     for (size_type i = row_ptrs[row];
-    //          i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
-    //         result->at(row, col_idxs[i]) = vals[i];
-    //     }
-    // }
+	auto exec = result->get_executor();
+    if (exec != exec->get_master()) {
+        NOT_SUPPORTED(exec);
+    }
+    auto num_rows = source->get_num_rows();
+    auto num_cols = source->get_num_cols();
+    auto vals = source->get_const_values();
+    auto col_idxs = source->get_const_col_idxs();
+    auto slice_lens = source->get_const_slice_lens();
+    auto slice_sets = source->get_const_slice_sets();
+    int slice_num = (source->get_num_rows() + default_slice_size - 1) / default_slice_size;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < default_slice_size; row++) {
+            size_type global_row = slice * default_slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            for (size_type col = 0; col < num_cols; col++) {
+                result->at(global_row, col) = zero<ValueType>();
+            }
+            for (size_type i = slice_sets[slice]; i < slice_sets[slice] + slice_lens[slice]; i++) {
+                result->at(global_row, col_idxs[row + i * default_slice_size]) += vals[row + i * default_slice_size];
+            }
+        }
+    }
 }
 
 
