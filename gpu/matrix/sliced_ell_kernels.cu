@@ -44,54 +44,90 @@ namespace kernels {
 namespace gpu {
 namespace sliced_ell {
 
-constexpr int default_block_size = 512;
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_slice_size) void spmv_kernel(
+    size_type num_rows,
+    const IndexType *__restrict__ slice_lens,
+    const IndexType *__restrict__ slice_sets,
+    const ValueType *__restrict__ a, const IndexType *__restrict__ col,
+    const ValueType *__restrict__ b,
+    ValueType *__restrict__ c) {
 
-// template <typename ValueType, typename IndexType>
-// __global__ __launch_bounds__(default_block_size) void spmv_kernel(
-//     size_type num_rows, IndexType max_nnz_row,
-//     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-//     const ValueType *__restrict__ b,
-//     ValueType *__restrict__ c)
-// {
-//     const auto tidx =
-//         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-//     ValueType temp = 0;
-//     IndexType ind = 0;
-//     if (tidx < num_rows) {
-//         for (IndexType i = 0; i < max_nnz_row; i++) {
-//             ind = tidx + i*num_rows;
-//             temp += val[ind]*b[col[ind]];
-//         }
-//         c[tidx] = temp;
-//     }
-// }
+    const auto idx = static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    ValueType val = 0;
+    IndexType ind = 0;
+    if (idx < num_rows) {
+        for (size_type i = 0; i < slice_lens[blockIdx.x]; i++) {
+            ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
+            val += a[ind] * b[col[ind]];
+        }
+        c[idx] = val;
+    }
+}
 
 template <typename ValueType, typename IndexType>
 void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c) {
-    NOT_IMPLEMENTED;
-    // const dim3 block_size(default_block_size, 1, 1);
-    // const dim3 grid_size(
-    //     ceildiv(a->get_num_rows(), block_size.x), 1, 1);
 
-    // spmv_kernel<<<grid_size, block_size, 0, 0>>>(
-    //     a->get_num_rows(), a->get_const_max_nnz_row(),
-    //     as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-    //     as_cuda_type(b->get_const_values()),
-    //     as_cuda_type(c->get_values()));
+    const dim3 blockSize(default_slice_size);
+    const dim3 gridSize(ceildiv(a->get_num_rows(), blockSize.x));
+
+    spmv_kernel<<<gridSize, blockSize>>>(
+        a->get_num_rows(),
+        a->get_const_slice_lens(),
+        a->get_const_slice_sets(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()),
+        as_cuda_type(c->get_values()));
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SLICED_ELL_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_slice_size) void advanced_spmv_kernel(
+    size_type num_rows,
+    const IndexType *__restrict__ slice_lens,
+    const IndexType *__restrict__ slice_sets,
+    const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ a, const IndexType *__restrict__ col,
+    const ValueType *__restrict__ b,
+    const ValueType *__restrict__ beta,
+    ValueType *__restrict__ c) {
+
+    const auto idx = static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    ValueType val = 0;
+    IndexType ind = 0;
+    if (idx < num_rows) {
+        for (size_type i = 0; i < slice_lens[blockIdx.x]; i++) {
+            ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
+            val += alpha[0] * a[ind] * b[col[ind]];
+        }
+        c[idx] = beta[0] * c[idx] + val;
+    }
+}
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(const matrix::Dense<ValueType> *alpha,
                    const matrix::Sliced_ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
-NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *c) {
+
+    const dim3 blockSize(default_slice_size);
+    const dim3 gridSize(ceildiv(a->get_num_rows(), blockSize.x));
+
+    advanced_spmv_kernel<<<gridSize, blockSize>>>(
+        a->get_num_rows(),
+        a->get_const_slice_lens(),
+        a->get_const_slice_sets(),
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()),
+        as_cuda_type(beta->get_const_values()),
+        as_cuda_type(c->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL);

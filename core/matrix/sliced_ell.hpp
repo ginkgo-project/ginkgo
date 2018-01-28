@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/mtx_reader.hpp"
 #include "core/base/math.hpp"
 
-constexpr int default_slice_size = 8;
+constexpr int default_slice_size = 32;
 
 
 namespace gko {
