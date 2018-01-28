@@ -91,8 +91,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto exec = this->get_executor();
 
-    auto one_op = Vector::create(exec, {one<ValueType>()});
-    auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto dense_b = as<Vector>(b);
     auto dense_x = as<Vector>(x);

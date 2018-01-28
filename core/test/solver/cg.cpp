@@ -51,8 +51,8 @@ protected:
 
     Cg()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec,
-                          {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
+          mtx(gko::initialize<Mtx>(
+              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           cg_factory(gko::solver::CgFactory<>::create(exec, 3, 1e-6)),
           solver(cg_factory->generate(mtx))
     {}

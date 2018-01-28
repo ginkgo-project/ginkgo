@@ -48,21 +48,23 @@ namespace {
 
 class Dense : public ::testing::Test {
 protected:
+    using Mtx = gko::matrix::Dense<>;
     Dense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx1(gko::matrix::Dense<>::create(
-              exec, 4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}})),
-          mtx2(gko::matrix::Dense<>::create(exec, {{1.0, -1.0}, {-2.0, 2.0}})),
-          mtx3(gko::matrix::Dense<>::create(
-              exec, 4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}})),
-          mtx4(gko::matrix::Dense<>::create(
-              exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}})),
-          mtx5(gko::matrix::Dense<>::create(
-              exec, {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}})),
-          mtx6(gko::matrix::Dense<std::complex<double>>::create(
-              exec, {{1.0 + 2.0 * i, -1.0 + 2.1 * i},
-                     {-2.0 + 1.5 * i, 4.5 + 0.0 * i},
-                     {1.0 + 0.0 * i, i}}))
+          mtx1(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
+                                    exec)),
+          mtx2(gko::initialize<Mtx>({{1.0, -1.0}, {-2.0, 2.0}}, exec)),
+          mtx3(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}},
+                                    exec)),
+          mtx4(gko::initialize<Mtx>(4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}},
+                                    exec)),
+          mtx5(gko::initialize<Mtx>(
+              {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}, exec)),
+          mtx6(gko::initialize<gko::matrix::Dense<std::complex<double>>>(
+              {{1.0 + 2.0 * i, -1.0 + 2.1 * i},
+               {-2.0 + 1.5 * i, 4.5 + 0.0 * i},
+               {1.0 + 0.0 * i, i}},
+              exec))
     {}
 
     std::complex<double> i{0, 1};
@@ -91,8 +93,8 @@ TEST_F(Dense, AppliesToDense)
 
 TEST_F(Dense, AppliesLinearCombinationToDense)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {-1.0});
-    auto beta = gko::matrix::Dense<>::create(exec, {2.0});
+    auto alpha = gko::initialize<Mtx>({-1.0}, exec);
+    auto beta = gko::initialize<Mtx>({2.0}, exec);
 
     mtx2->apply(alpha.get(), mtx1.get(), beta.get(), mtx3.get());
 
@@ -131,7 +133,7 @@ TEST_F(Dense, ApplyFailsOnWrongNumberOfCols)
 
 TEST_F(Dense, ScalesData)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {{2.0, -2.0}});
+    auto alpha = gko::initialize<Mtx>({{2.0, -2.0}}, exec);
 
     mtx2->scale(alpha.get());
 
@@ -144,7 +146,7 @@ TEST_F(Dense, ScalesData)
 
 TEST_F(Dense, ScalesDataWithScalar)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {2.0});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
 
     mtx2->scale(alpha.get());
 
@@ -157,7 +159,7 @@ TEST_F(Dense, ScalesDataWithScalar)
 
 TEST_F(Dense, ScalesDataWithPadding)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {{-1.0, 1.0, 2.0}});
+    auto alpha = gko::initialize<Mtx>({{-1.0, 1.0, 2.0}}, exec);
 
     mtx1->scale(alpha.get());
 
@@ -172,7 +174,7 @@ TEST_F(Dense, ScalesDataWithPadding)
 
 TEST_F(Dense, AddsScaled)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {{2.0, 1.0, -2.0}});
+    auto alpha = gko::initialize<Mtx>({{2.0, 1.0, -2.0}}, exec);
 
     mtx1->add_scaled(alpha.get(), mtx3.get());
 
@@ -187,7 +189,7 @@ TEST_F(Dense, AddsScaled)
 
 TEST_F(Dense, AddsScaledWithScalar)
 {
-    auto alpha = gko::matrix::Dense<>::create(exec, {2.0});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
 
     mtx1->add_scaled(alpha.get(), mtx3.get());
 
@@ -325,4 +327,6 @@ TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
                        {-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
                     0.0);
 }
+
+
 }  // namespace

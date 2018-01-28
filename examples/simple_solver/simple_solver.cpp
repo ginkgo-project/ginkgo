@@ -113,9 +113,9 @@ int main(int argc, char *argv[])
     std::cout << "];" << std::endl;
 
     // Calculate residual
-    auto one = vec::create(exec, {1.0});
-    auto neg_one = vec::create(exec, {-1.0});
-    auto res = vec::create(exec, {0.0});
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+    auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(one.get(), x.get(), neg_one.get(), b.get());
     b->compute_dot(b.get(), res.get());
 

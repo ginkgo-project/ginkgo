@@ -51,8 +51,8 @@ protected:
     using Mtx = gko::matrix::Dense<>;
     Bicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(
-              exec, {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}})),
+          mtx(gko::initialize<Mtx>(
+              {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
               gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15))
     {}
@@ -66,8 +66,8 @@ protected:
 TEST_F(Bicgstab, SolvesDenseSystem)
 {
     auto solver = bicgstab_factory->generate(mtx);
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
 
@@ -78,8 +78,9 @@ TEST_F(Bicgstab, SolvesDenseSystem)
 TEST_F(Bicgstab, SolvesMultipleDenseSystems)
 {
     auto solver = bicgstab_factory->generate(mtx);
-    auto b = Mtx::create(exec, {{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}});
-    auto x = Mtx::create(exec, {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}});
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
+    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
 
     solver->apply(b.get(), x.get());
 
@@ -90,10 +91,10 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystems)
 TEST_F(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
 {
     auto solver = bicgstab_factory->generate(mtx);
-    auto alpha = Mtx::create(exec, {2.0});
-    auto beta = Mtx::create(exec, {-1.0});
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.5, 1.0, 2.0});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -105,10 +106,11 @@ TEST_F(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
 TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
 {
     auto solver = bicgstab_factory->generate(mtx);
-    auto alpha = Mtx::create(exec, {2.0});
-    auto beta = Mtx::create(exec, {-1.0});
-    auto b = Mtx::create(exec, {{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}});
-    auto x = Mtx::create(exec, {{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
+    auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 

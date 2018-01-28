@@ -336,6 +336,13 @@ public:
 
     void move_to(ConcreteLinOp *other) override { *other = std::move(*self()); }
 
+    template <typename... TArgs>
+    static std::unique_ptr<ConcreteLinOp> create(TArgs &&... args)
+    {
+        return std::unique_ptr<ConcreteLinOp>(
+            new ConcreteLinOp(std::forward<TArgs>(args)...));
+    }
+
 private:
     ConcreteLinOp *self() noexcept
     {

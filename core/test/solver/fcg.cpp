@@ -52,8 +52,8 @@ protected:
 
     Fcg()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec,
-                          {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
+          mtx(gko::initialize<Mtx>(
+              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           fcg_factory(gko::solver::FcgFactory<>::create(exec, 3, 1e-6)),
           solver(fcg_factory->generate(mtx))
     {}

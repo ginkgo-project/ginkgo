@@ -69,37 +69,12 @@ class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
     friend class Dense<ValueType>;
 
 public:
+    using BasicLinOp<Csr>::create;
     using BasicLinOp<Csr>::convert_to;
     using BasicLinOp<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
-
-    /**
-     * Creates an uninitialized CSR matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
-     * @param num_nonzeros  number of nonzeros
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       size_type num_rows, size_type num_cols,
-                                       size_type num_nonzeros)
-    {
-        return std::unique_ptr<Csr>(
-            new Csr(exec, num_rows, num_cols, num_nonzeros));
-    }
-
-    /**
-     * Creates an empty CSR matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec)
-    {
-        return create(exec, 0, 0, 0);
-    }
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -174,6 +149,11 @@ public:
     }
 
 protected:
+    /**
+     * Creates an empty CSR matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     */
     explicit Csr(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Csr>(exec, 0, 0, 0),
           values_(exec),
@@ -181,6 +161,14 @@ protected:
           row_ptrs_(exec)
     {}
 
+    /**
+     * Creates an uninitialized CSR matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of nonzeros
+     */
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
         : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),

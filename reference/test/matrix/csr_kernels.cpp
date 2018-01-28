@@ -78,7 +78,7 @@ protected:
 
 TEST_F(Csr, AppliesToDenseVector)
 {
-    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = Vec::create(exec, 2, 1, 1);
 
     mtx->apply(x.get(), y.get());
@@ -90,7 +90,7 @@ TEST_F(Csr, AppliesToDenseVector)
 
 TEST_F(Csr, AppliesToDenseMatrix)
 {
-    auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
+    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
     auto y = Vec::create(exec, 2, 2, 2);
 
     mtx->apply(x.get(), y.get());
@@ -104,10 +104,10 @@ TEST_F(Csr, AppliesToDenseMatrix)
 
 TEST_F(Csr, AppliesLinearCombinationToDenseVector)
 {
-    auto alpha = Vec::create(exec, {-1.0});
-    auto beta = Vec::create(exec, {2.0});
-    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
-    auto y = Vec::create(exec, {1.0, 2.0});
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
 
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
@@ -117,10 +117,10 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
 
 TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 {
-    auto alpha = Vec::create(exec, {-1.0});
-    auto beta = Vec::create(exec, {2.0});
-    auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    auto y = Vec::create(exec, {{1.0, 0.5}, {2.0, -1.5}});
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>({{1.0, 0.5}, {2.0, -1.5}}, exec);
 
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
@@ -161,8 +161,8 @@ TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
 TEST_F(Csr, ConvertsToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_other = gko::matrix::Dense<>::create(
-        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
+        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
 
     mtx->convert_to(dense_mtx.get());
 
@@ -173,8 +173,8 @@ TEST_F(Csr, ConvertsToDense)
 TEST_F(Csr, MovesToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_other = gko::matrix::Dense<>::create(
-        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
+        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
 
     mtx->move_to(dense_mtx.get());
 

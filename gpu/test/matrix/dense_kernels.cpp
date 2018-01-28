@@ -83,7 +83,7 @@ protected:
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(1, num_vecs);
         } else {
-            alpha = Mtx::create(ref, {2.0});
+            alpha = gko::initialize<Mtx>({2.0}, ref);
         }
         dx = Mtx::create(gpu);
         dx->copy_from(x.get());
@@ -101,8 +101,8 @@ protected:
         c_x = gen_mtx<ComplexMtx>(40, 25);
         y = gen_mtx<Mtx>(25, 35);
         expected = gen_mtx<Mtx>(40, 35);
-        alpha = Mtx::create(ref, {2.0});
-        beta = Mtx::create(ref, {-1.0});
+        alpha = gko::initialize<Mtx>({2.0}, ref);
+        beta = gko::initialize<Mtx>({-1.0}, ref);
         dx = Mtx::create(gpu);
         dx->copy_from(x.get());
         dc_x = ComplexMtx::create(gpu);

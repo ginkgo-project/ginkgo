@@ -48,12 +48,12 @@ protected:
     using Mtx = gko::matrix::Dense<>;
     MatricesNear()
         : exec(gko::ReferenceExecutor::create()),
-          mtx1(gko::matrix::Dense<>::create(
-              exec, {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}})),
-          mtx2(gko::matrix::Dense<>::create(
-              exec, {{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}})),
-          mtx3(gko::matrix::Dense<>::create(exec,
-                                            {{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}))
+          mtx1(gko::initialize<gko::matrix::Dense<>>(
+              {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
+          mtx2(gko::initialize<gko::matrix::Dense<>>(
+              {{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
+          mtx3(gko::initialize<gko::matrix::Dense<>>(
+              {{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
