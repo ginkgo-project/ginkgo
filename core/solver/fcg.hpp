@@ -110,6 +110,8 @@ public:
     }
 
 private:
+    using BasicLinOp<Fcg>::create;
+
     explicit Fcg(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Fcg>(exec, 0, 0, 0)
     {}
@@ -126,20 +128,11 @@ private:
           rel_residual_goal_(rel_residual_goal)
     {}
 
-    static std::unique_ptr<Fcg> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-    {
-        return std::unique_ptr<Fcg>(new Fcg(std::move(exec), max_iters,
-                                            rel_residual_goal,
-                                            std::move(system_matrix)));
-    }
-
     std::shared_ptr<const LinOp> system_matrix_{};
     int max_iters_{};
     remove_complex<value_type> rel_residual_goal_{};
 };
+
 
 /**
  * The FcgFactory class is derived from the LinOpFactory class and is

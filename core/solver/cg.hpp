@@ -107,6 +107,8 @@ public:
     }
 
 private:
+    using BasicLinOp<Cg>::create;
+
     explicit Cg(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Cg>(exec, 0, 0, 0)
     {}
@@ -122,16 +124,6 @@ private:
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
-
-    static std::unique_ptr<Cg> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-    {
-        return std::unique_ptr<Cg>(new Cg(std::move(exec), max_iters,
-                                          rel_residual_goal,
-                                          std::move(system_matrix)));
-    }
 
     std::shared_ptr<const LinOp> system_matrix_{};
     int max_iters_{};

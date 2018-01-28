@@ -295,4 +295,6 @@ TEST_F(Dense, IsConjugateTransposable)
 
     ASSERT_MTX_NEAR(result, trans_as_dense, 0);
 }
+
+
 }  // namespace

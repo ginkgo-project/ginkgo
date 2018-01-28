@@ -102,6 +102,8 @@ public:
     }
 
 protected:
+    using BasicLinOp<Bicgstab>::create;
+
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
         : BasicLinOp<Bicgstab>(exec, 0, 0, 0)
     {}
@@ -117,16 +119,6 @@ protected:
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
-
-    static std::unique_ptr<Bicgstab> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-    {
-        return std::unique_ptr<Bicgstab>(
-            new Bicgstab(std::move(exec), max_iters, rel_residual_goal,
-                         std::move(system_matrix)));
-    }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

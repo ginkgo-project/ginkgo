@@ -155,6 +155,8 @@ public:
     }
 
 protected:
+    using BasicLinOp<BlockJacobi>::create;
+
     explicit BlockJacobi(std::shared_ptr<const Executor> exec)
         : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
           block_pointers_(exec),
@@ -172,14 +174,6 @@ protected:
     {
         block_pointers_.set_executor(this->get_executor());
         this->generate(system_matrix);
-    }
-
-    static std::unique_ptr<BlockJacobi> create(
-        std::shared_ptr<const Executor> exec, const LinOp *system_matrix,
-        uint32 max_block_size, const Array<IndexType> &block_pointers)
-    {
-        return std::unique_ptr<BlockJacobi>(new BlockJacobi(
-            std::move(exec), system_matrix, max_block_size, block_pointers));
     }
 
     void generate(const LinOp *system_matrix);
