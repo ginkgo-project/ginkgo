@@ -76,13 +76,6 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    if (system_matrix == nullptr) {
-        return;
-    }
-    this->set_dimensions(system_matrix->get_num_rows(),
-                         system_matrix->get_num_cols(),
-                         system_matrix->get_num_rows() * max_block_size_);
-    blocks_.resize_and_reset(this->get_num_stored_elements());
     auto csr_mtx = as<matrix::Csr<ValueType, IndexType>>(system_matrix);
     auto exec = this->get_executor();
     if (block_pointers_.get_data() == nullptr) {

@@ -166,11 +166,14 @@ protected:
     BlockJacobi(std::shared_ptr<const Executor> exec,
                 const LinOp *system_matrix, uint32 max_block_size,
                 const Array<IndexType> &block_pointers)
-        : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
+        : BasicLinOp<BlockJacobi>(
+              exec, system_matrix->get_num_rows(),
+              system_matrix->get_num_cols(),
+              system_matrix->get_num_cols() * max_block_size),
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
           block_pointers_(block_pointers),
-          blocks_(exec)
+          blocks_(exec, this->get_num_stored_elements())
     {
         block_pointers_.set_executor(this->get_executor());
         this->generate(system_matrix);
