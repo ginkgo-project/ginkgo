@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sliced_ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
 #include <vector>
+// #include <iostream>
 
 // constexpr int default_slice_size = 32;
 
@@ -186,7 +187,7 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
     auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
     size_type nnz = 0;
     std::vector<index_type> nnz_row(data.num_rows, 0);
-    index_type slice_num = static_cast<index_type>(data.num_rows / default_slice_size + 1);
+    index_type slice_num = static_cast<index_type>((data.num_rows+default_slice_size-1) / default_slice_size);
     std::vector<index_type> slice_cols(slice_num, 0);
     size_type total_col = 0;
     // auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
@@ -204,6 +205,7 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
         index_type slice_id = static_cast<index_type>(row / default_slice_size);
         slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
     }
+    // std::cout << "slice length = " << slice_cols[0] << std::endl;
     // index_type max_nnz_row = 0;
     // for (const auto &elem : nnz_row) {
     //     max_nnz_row = std::max(max_nnz_row, elem);
@@ -224,11 +226,12 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
         index_type slice = 0, start_col = 0;
         for (; slice < slice_num; start_col += slice_cols[slice], slice++) {
             size_type col = 0;
-            for (; ind < n && col < slice_cols[slice]) {
+            for (; ind < n && col < slice_cols[slice]; ind++) {
                 if (std::get<0>(data.nonzeros[ind]) > row) {
                     break;
                 }
                 auto val = std::get<2>(data.nonzeros[ind]);
+                // std::cout << "ind = " << ind << ", val = " << val << std::endl;
                 auto sliced_ell_ind = row + (start_col+col)*default_slice_size;
                 if (val != zero<ValueType>()) {
                     tmp->get_values()[sliced_ell_ind] = val;
@@ -239,7 +242,7 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx(const std::string &filename
             for (auto i = col; i < slice_cols[slice]; i++) {
                 auto sliced_ell_ind = row+(start_col+i)*default_slice_size;
                 tmp->get_values()[sliced_ell_ind] = 0;
-                tmp->get_col_idxs()[sliced_ell_ind] = tmp->get_col_idxs[sliced_ell_ind-default_slice_size];
+                tmp->get_col_idxs()[sliced_ell_ind] = tmp->get_col_idxs()[sliced_ell_ind-default_slice_size];
             }
         }
     }

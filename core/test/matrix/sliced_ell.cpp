@@ -46,24 +46,26 @@ protected:
 
     Sliced_ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Sliced_ell<>::create(exec, 2, 3, 4, 3))
+          mtx(gko::matrix::Sliced_ell<>::create(exec, 2, 3, 4))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type n = mtx->get_max_nnz_row();
-        n = 3;
+        Mtx::index_type *l = mtx->get_slice_lens();
+        Mtx::index_type *s = mtx->get_slice_sets();
+        l[0] = 3;
+        s[0] = 0;
         c[0] = 0;
         c[1] = 1;
-        c[2] = 1;
-        c[3] = 1;
-        c[4] = 2;
-        c[5] = 1;
+        c[default_slice_size] = 1;
+        c[default_slice_size+1] = 1;
+        c[2*default_slice_size] = 2;
+        c[2*default_slice_size+1] = 1;
         v[0] = 1.0;
         v[1] = 5.0;
-        v[2] = 3.0;
-        v[3] = 0.0;
-        v[4] = 2.0;
-        v[5] = 0.0;
+        v[default_slice_size] = 3.0;
+        v[default_slice_size+1] = 0.0;
+        v[2*default_slice_size] = 2.0;
+        v[2*default_slice_size+1] = 0.0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -73,23 +75,25 @@ protected:
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
-        auto n = m->get_const_max_nnz_row();
+        auto l = m->get_const_slice_lens();
+        auto s = m->get_const_slice_sets();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
-        EXPECT_EQ(n, 3);
+        EXPECT_EQ(l[0], 3);
+        EXPECT_EQ(s[0], 0);
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], 1);
+        EXPECT_EQ(c[default_slice_size], 1);
+        EXPECT_EQ(c[default_slice_size+1], 1);
+        EXPECT_EQ(c[2*default_slice_size], 2);
+        EXPECT_EQ(c[2*default_slice_size+1], 1);
         EXPECT_EQ(v[0], 1.0);
         EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[2], 3.0);
-        EXPECT_EQ(v[3], 0.0);
-        EXPECT_EQ(v[4], 2.0);
-        EXPECT_EQ(v[5], 0.0);
+        EXPECT_EQ(v[default_slice_size], 3.0);
+        EXPECT_EQ(v[default_slice_size+1], 0.0);
+        EXPECT_EQ(v[2*default_slice_size], 2.0);
+        EXPECT_EQ(v[2*default_slice_size+1], 0.0);
     }
 
     void assert_empty(const Mtx *m)
@@ -99,7 +103,8 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_const_max_nnz_row(), 0);
+        ASSERT_EQ(m->get_const_slice_lens(), nullptr);
+        ASSERT_EQ(m->get_const_slice_sets(), nullptr);
     }
 };
 
