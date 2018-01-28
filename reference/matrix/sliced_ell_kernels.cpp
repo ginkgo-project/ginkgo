@@ -49,12 +49,33 @@ template <typename ValueType, typename IndexType>
 void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-	NOT_IMPLEMENTED;
-    // // auto row_ptrs = a->get_const_row_ptrs();
+	auto vals = a->get_const_values();
+    auto col_idxs = a->get_const_col_idxs();
+    auto slice_lens = a->get_const_slice_lens();
+    auto slice_sets = a->get_const_slice_sets();
+    int slice_num = (a->get_num_rows() + default_slice_size - 1) / default_slice_size;
     // auto col_idxs = a->get_const_col_idxs();
     // auto vals = a->get_const_values();
     // auto max_nnz_row = a->get_const_max_nnz_row();
     // auto arows = a->get_num_rows();
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < default_slice_size; row++) {
+            size_type global_row = slice * default_slice_size + row;
+            if (global_row >= a->get_num_rows()) {
+                break;
+            }
+            for (size_type j = 0; j < c->get_num_cols(); j++) {
+                c->at(global_row, j) = zero<ValueType>();
+            }
+            for (size_type i = 0; i < slice_lens[slice]; i++) {
+                auto val = vals[row + (slice_sets[slice] + i) * default_slice_size];
+                auto col = col_idxs[row + (slice_sets[slice] + i) * default_slice_size];
+                for (size_type j = 0; j < c->get_num_cols(); j++) {
+                    c->at(global_row, j) += val * b->at(col, j);
+                }
+            }
+        }
+    }
     // for (size_type row = 0; row < arows; row++) {
     //     for (size_type j = 0; j < c->get_num_cols(); j++) {
     //         c->at(row, j) = zero<ValueType>();
@@ -67,19 +88,6 @@ void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a,
     //         }
     //     }
     // }
-    // // for (size_type row = 0; row < a->get_num_rows(); ++row) {
-    // //     for (size_type j = 0; j < c->get_num_cols(); ++j) {
-    // //         c->at(row, j) = zero<ValueType>();
-    // //     }
-    // //     for (size_type k = row_ptrs[row];
-    // //          k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-    // //         auto val = vals[k];
-    // //         auto col = col_idxs[k];
-    // //         for (size_type j = 0; j < c->get_num_cols(); ++j) {
-    // //             c->at(row, j) += val * b->at(col, j);
-    // //         }
-    // //     }
-    // // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SLICED_ELL_SPMV_KERNEL);
@@ -92,13 +100,36 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-	NOT_IMPLEMENTED;
+	auto vals = a->get_const_values();
+    auto col_idxs = a->get_const_col_idxs();
+    auto slice_lens = a->get_const_slice_lens();
+    auto slice_sets = a->get_const_slice_sets();
+    int slice_num = (a->get_num_rows() + default_slice_size - 1) / default_slice_size;
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
     // auto row_ptrs = a->get_const_row_ptrs();
     // auto col_idxs = a->get_const_col_idxs();
     // auto vals = a->get_const_values();
     // auto valpha = alpha->at(0, 0);
     // auto vbeta = beta->at(0, 0);
-
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < default_slice_size; row++) {
+            size_type global_row = slice * default_slice_size + row;
+            if (global_row >= a->get_num_rows()) {
+                break;
+            }
+            for (size_type j = 0; j < c->get_num_cols(); j++) {
+                c->at(global_row, j) *= vbeta;
+            }
+            for (size_type i = 0; i < slice_lens[slice]; i++) {
+                auto val = vals[row + (slice_sets[slice] + i) * default_slice_size];
+                auto col = col_idxs[row + (slice_sets[slice] + i) * default_slice_size];
+                for (size_type j = 0; j < c->get_num_cols(); j++) {
+                    c->at(global_row, j) += valpha * val * b->at(col, j);
+                }
+            }
+        }
+    }
     // for (size_type row = 0; row < a->get_num_rows(); ++row) {
     //     for (size_type j = 0; j < c->get_num_cols(); ++j) {
     //         c->at(row, j) *= vbeta;

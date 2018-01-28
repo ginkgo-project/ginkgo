@@ -58,22 +58,22 @@ protected:
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *l = mtx->get_col_lens();
-        Mtx::index_type *s = mtx->get_col_sets();
+        Mtx::index_type *l = mtx->get_slice_lens();
+        Mtx::index_type *s = mtx->get_slice_sets();
         l[0] = 3;
         s[0] = 0;
         c[0] = 0;
         c[1] = 1;
-        c[2] = 1;
-        c[3] = 1;
-        c[4] = 2;
-        c[5] = 1;
+        c[default_slice_size] = 1;
+        c[default_slice_size+1] = 1;
+        c[2*default_slice_size] = 2;
+        c[2*default_slice_size+1] = 1;
         v[0] = 1.0;
         v[1] = 5.0;
-        v[2] = 3.0;
-        v[3] = 0.0;
-        v[4] = 2.0;
-        v[5] = 0.0;
+        v[default_slice_size] = 3.0;
+        v[default_slice_size+1] = 0.0;
+        v[2*default_slice_size] = 2.0;
+        v[2*default_slice_size+1] = 0.0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -110,62 +110,57 @@ TEST_F(Sliced_ell, AppliesToDenseMatrix)
 
 TEST_F(Sliced_ell, AppliesLinearCombinationToDenseVector)
 {
-	NOT_IMPLEMENTED;
-    // auto alpha = Vec::create(exec, {-1.0});
-    // auto beta = Vec::create(exec, {2.0});
-    // auto x = Vec::create(exec, {2.0, 1.0, 4.0});
-    // auto y = Vec::create(exec, {1.0, 2.0});
+    auto alpha = Vec::create(exec, {-1.0});
+    auto beta = Vec::create(exec, {2.0});
+    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
+    auto y = Vec::create(exec, {1.0, 2.0});
 
-    // mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    // EXPECT_EQ(y->at(0), -11.0);
-    // EXPECT_EQ(y->at(1), -1.0);
+    EXPECT_EQ(y->at(0), -11.0);
+    EXPECT_EQ(y->at(1), -1.0);
 }
 
 TEST_F(Sliced_ell, AppliesLinearCombinationToDenseMatrix)
 {
-	NOT_IMPLEMENTED;
-    // auto alpha = Vec::create(exec, {-1.0});
-    // auto beta = Vec::create(exec, {2.0});
-    // auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    // auto y = Vec::create(exec, {{1.0, 0.5}, {2.0, -1.5}});
+    auto alpha = Vec::create(exec, {-1.0});
+    auto beta = Vec::create(exec, {2.0});
+    auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
+    auto y = Vec::create(exec, {{1.0, 0.5}, {2.0, -1.5}});
 
-    // mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    // EXPECT_EQ(y->at(0, 0), -11.0);
-    // EXPECT_EQ(y->at(1, 0), -1.0);
-    // EXPECT_EQ(y->at(0, 1), -2.5);
-    // EXPECT_EQ(y->at(1, 1), 4.5);
+    EXPECT_EQ(y->at(0, 0), -11.0);
+    EXPECT_EQ(y->at(1, 0), -1.0);
+    EXPECT_EQ(y->at(0, 1), -2.5);
+    EXPECT_EQ(y->at(1, 1), 4.5);
 }
 
 
 TEST_F(Sliced_ell, ApplyFailsOnWrongInnerDimension)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 2, 2, 2);
-    // auto y = Vec::create(exec, 2, 2, 2);
+    auto x = Vec::create(exec, 2, 2, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Sliced_ell, ApplyFailsOnWrongNumberOfRows)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 3, 2, 2);
-    // auto y = Vec::create(exec, 3, 2, 2);
+    auto x = Vec::create(exec, 3, 2, 2);
+    auto y = Vec::create(exec, 3, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Sliced_ell, ApplyFailsOnWrongNumberOfCols)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 3, 3, 2);
-    // auto y = Vec::create(exec, 2, 2, 2);
+    auto x = Vec::create(exec, 3, 3, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
