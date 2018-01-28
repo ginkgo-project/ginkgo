@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"
-#include <iostream>
+#include "core/matrix/sliced_ell.hpp"
 
 namespace gko {
 namespace kernels {
@@ -205,7 +205,6 @@ void convert_to_ell(matrix::Ell<ValueType, IndexType> *result,
     auto max_nnz_row = result->get_max_nnz_row();
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
-    // std::cout << "nnz per row: " << max_nnz_row << std::endl;
     for (size_type row = 0; row < num_rows; ++row) {
         size_type temp = 0;
         for (size_type col = 0; col < num_cols; ++col) {
@@ -242,30 +241,49 @@ template <typename ValueType, typename IndexType>
 void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
 {
-    NOT_IMPLEMENTED;
-    // auto num_rows = result->get_num_rows();
-    // auto num_cols = result->get_num_cols();
-    // auto num_nonzeros = result->get_num_stored_elements();
-
-    // auto max_nnz_row = result->get_max_nnz_row();
-    // auto col_idxs = result->get_col_idxs();
-    // auto values = result->get_values();
-    // // std::cout << "nnz per row: " << max_nnz_row << std::endl;
-    // for (size_type row = 0; row < num_rows; ++row) {
-    //     size_type temp = 0;
-    //     for (size_type col = 0; col < num_cols; ++col) {
-    //         auto val = source->at(row, col);
-    //         if (val != zero<ValueType>()) {
-    //             col_idxs[row+num_rows*temp] = col;
-    //             values[row+num_rows*temp] = val;
-    //             temp++;
-    //         }
-    //     }
-    //     for (; temp < max_nnz_row; temp++) {
-    //         values[row+num_rows*temp] = 0;
-    //         col_idxs[row+num_rows*temp] = col_idxs[row+num_rows*(temp-1)];  
-    //     }
-    // }
+    auto num_rows = result->get_num_rows();
+    auto num_cols = result->get_num_cols();
+    auto num_nonzeros = result->get_num_stored_elements();
+    auto vals = result->get_values();
+    auto col_idxs = result->get_col_idxs();
+    auto slice_lens = result->get_slice_lens();
+    auto slice_sets = result->get_slice_sets();
+    int slice_num = ceildiv(num_rows, default_slice_size);
+    slice_sets[0] = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        if (slice > 0) {
+            slice_sets[slice] = slice_lens[slice - 1];
+        }
+        slice_lens[slice] = 0;
+        for (size_type row = 0; row < default_slice_size; row++) {
+            size_type global_row = slice * default_slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            IndexType max_col = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                if (source->at(global_row, col) != zero<ValueType>()) {
+                    max_col += 1;
+                }
+            }
+            slice_lens[slice] = std::max(slice_lens[slice], max_col);
+        }
+        for (size_type row = 0; row < default_slice_size; row++) {
+            size_type global_row = slice * default_slice_size + row;
+            size_type sliced_ell_ind = slice_sets[slice] * default_slice_size + row;
+            for (size_type col = 0; col < num_cols; col++) {
+                if (source->at(global_row, col) != zero<ValueType>()) {
+                    col_idxs[sliced_ell_ind] = col;
+                    vals[sliced_ell_ind] = source->at(global_row, col);
+                    sliced_ell_ind += default_slice_size;
+                }
+            }
+            for (size_type i = sliced_ell_ind; i < (slice_sets[slice]+slice_lens[slice])*default_slice_size+row; i += default_slice_size) {
+                col_idxs[i] = col_idxs[sliced_ell_ind - default_slice_size];
+                vals[i] = 0;
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

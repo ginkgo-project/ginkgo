@@ -126,20 +126,17 @@ template <typename ValueType, typename IndexType, typename MatrixType,
 inline void conversion_helper(Sliced_ell<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
-    NOT_IMPLEMENTED;
-    // auto exec = source->get_executor();
+    auto exec = source->get_executor();
 
-    // Array<size_type> num_stored_nonzeros(exec, 1);
-    // Array<size_type> num_stored_max_nnz_row(exec, 1);
-    // exec->run(TemplatedOperation<ValueType>::make_count_max_nnz_row_operation(
-    //     source, num_stored_max_nnz_row.get_data()));
-    // exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
-    //     source, num_stored_nonzeros.get_data()));
-    // auto tmp = Ell<ValueType, IndexType>::create(
-    //     exec, source->get_num_rows(), source->get_num_cols(),
-    //     *num_stored_nonzeros.get_data(), *num_stored_max_nnz_row.get_data());
-    // exec->run(op(tmp.get(), source));
-    // tmp->move_to(result);
+    Array<size_type> num_stored_nonzeros(exec, 1);
+    Array<size_type> num_stored_max_nnz_row(exec, 1);
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        source, num_stored_nonzeros.get_data()));
+    auto tmp = Sliced_ell<ValueType, IndexType>::create(
+        exec, source->get_num_rows(), source->get_num_cols(),
+        *num_stored_nonzeros.get_data());
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
 }
 }  // namespace
 

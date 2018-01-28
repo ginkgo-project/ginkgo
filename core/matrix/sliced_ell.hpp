@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/mtx_reader.hpp"
+#include "core/base/math.hpp"
 
 constexpr int default_slice_size = 8;
 
@@ -207,10 +208,10 @@ protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, static_cast<size_type>((num_rows+default_slice_size-1) / default_slice_size)*default_slice_size*num_cols),
-          col_idxs_(exec, static_cast<size_type>((num_rows+default_slice_size-1) / default_slice_size)*default_slice_size*num_cols),
-          slice_lens_(exec, static_cast<size_type>((num_rows+default_slice_size-1) / default_slice_size)),
-          slice_sets_(exec, static_cast<size_type>((num_rows+default_slice_size-1) / default_slice_size))
+          values_(exec, ceildiv(num_rows, default_slice_size)*default_slice_size*num_cols),
+          col_idxs_(exec, ceildiv(num_rows, default_slice_size)*default_slice_size*num_cols),
+          slice_lens_(exec, ceildiv(num_rows, default_slice_size)),
+          slice_sets_(exec, ceildiv(num_rows, default_slice_size))
     {}
 
 private:

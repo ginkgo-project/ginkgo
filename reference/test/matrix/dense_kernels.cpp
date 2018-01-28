@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/csr.hpp>
+#include <core/matrix/sliced_ell.hpp>
 
 
 namespace {
@@ -280,6 +281,68 @@ TEST_F(Dense, MovesToCsr)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 5.0);
+}
+
+
+TEST_F(Dense, ConvertsToSliced_ell)
+{
+    auto sliced_ell_mtx = gko::matrix::Sliced_ell<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(sliced_ell_mtx.get());
+
+    auto v = sliced_ell_mtx->get_const_values();
+    auto c = sliced_ell_mtx->get_const_col_idxs();
+    auto l = sliced_ell_mtx->get_const_slice_lens();
+    auto s = sliced_ell_mtx->get_const_slice_sets();
+
+    ASSERT_EQ(sliced_ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(sliced_ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(sliced_ell_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(l[0], 3);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[default_slice_size], 1);
+    EXPECT_EQ(c[default_slice_size+1], 1);
+    EXPECT_EQ(c[2*default_slice_size], 2);
+    EXPECT_EQ(c[2*default_slice_size+1], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+    EXPECT_EQ(v[default_slice_size], 3.0);
+    EXPECT_EQ(v[default_slice_size+1], 0.0);
+    EXPECT_EQ(v[2*default_slice_size], 2.0);
+    EXPECT_EQ(v[2*default_slice_size+1], 0.0);
+}
+
+
+TEST_F(Dense, MovesToSliced_ell)
+{
+    auto sliced_ell_mtx = gko::matrix::Sliced_ell<>::create(mtx4->get_executor());
+
+    mtx4->move_to(sliced_ell_mtx.get());
+
+    auto v = sliced_ell_mtx->get_const_values();
+    auto c = sliced_ell_mtx->get_const_col_idxs();
+    auto l = sliced_ell_mtx->get_const_slice_lens();
+    auto s = sliced_ell_mtx->get_const_slice_sets();
+
+    ASSERT_EQ(sliced_ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(sliced_ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(sliced_ell_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(l[0], 3);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[default_slice_size], 1);
+    EXPECT_EQ(c[default_slice_size+1], 1);
+    EXPECT_EQ(c[2*default_slice_size], 2);
+    EXPECT_EQ(c[2*default_slice_size+1], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+    EXPECT_EQ(v[default_slice_size], 3.0);
+    EXPECT_EQ(v[default_slice_size+1], 0.0);
+    EXPECT_EQ(v[2*default_slice_size], 2.0);
+    EXPECT_EQ(v[2*default_slice_size+1], 0.0);
 }
 
 
