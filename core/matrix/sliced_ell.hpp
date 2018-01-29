@@ -40,8 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/mtx_reader.hpp"
 #include "core/base/math.hpp"
+#include <vector>
 
 constexpr int default_slice_size = 32;
+constexpr int default_padding_factor = 1;
 
 
 namespace gko {
@@ -87,12 +89,48 @@ public:
      * @param num_nonzeros  number of nonzeros
      * 
      */
-    static std::unique_ptr<Sliced_ell> create(std::shared_ptr<const Executor> exec,
+    static std::unique_ptr<Sliced_ell> create( \
+                                       std::shared_ptr<const Executor> exec,
+                                       size_type num_rows, size_type num_cols,
+                                       size_type num_nonzeros,
+                                       size_type slice_size,
+                                       size_type padding_factor)
+    {
+        return std::unique_ptr<Sliced_ell>(
+            new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
+                           slice_size, padding_factor));
+    }
+
+    /**
+     * Creates an uninitialized Sliced_ell matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of nonzeros
+     * 
+     */
+    static std::unique_ptr<Sliced_ell> create( \
+                                       std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros)
     {
         return std::unique_ptr<Sliced_ell>(
-            new Sliced_ell(exec, num_rows, num_cols, num_nonzeros));
+            new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
+                           default_slice_size, default_padding_factor));
+    }
+
+    /**
+     * Creates an empty Sliced ELL matrix with defined slice size.
+     *
+     * @param exec  Executor associated to the matrix
+     */
+    static std::unique_ptr<Sliced_ell> create( \
+                                       std::shared_ptr<const Executor> exec,
+                                       size_type slice_size,
+                                       size_type padding_factor)
+    {
+        return create(exec, 0, 0, 0, slice_size, padding_factor);
     }
 
     /**
@@ -100,7 +138,8 @@ public:
      *
      * @param exec  Executor associated to the matrix
      */
-    static std::unique_ptr<Sliced_ell> create(std::shared_ptr<const Executor> exec)
+    static std::unique_ptr<Sliced_ell> create( \
+                                       std::shared_ptr<const Executor> exec)
     {
         return create(exec, 0, 0, 0);
     }
@@ -204,22 +243,67 @@ public:
         return slice_sets_.get_const_data();
     }
 
+    /**
+     * Returns the size of a slice.
+     *
+     * @return the size of a slice.
+     */
+    size_type get_slice_size() const { return slice_size_; }
+
+    /**
+     * Returns the padding factor(t) of SELL-P.
+     *
+     * @return the padding factor(t) of SELL-P.
+     */
+    size_type get_padding_factor() const { return padding_factor_; }
+
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros)
+        size_type num_cols, size_type num_nonzeros,
+        size_type slice_size, size_type padding_factor)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, ceildiv(num_rows, default_slice_size)*default_slice_size*num_cols),
-          col_idxs_(exec, ceildiv(num_rows, default_slice_size)*default_slice_size*num_cols),
-          slice_lens_(exec, ceildiv(num_rows, default_slice_size)),
-          slice_sets_(exec, ceildiv(num_rows, default_slice_size))
+          values_(exec, ceildiv(num_rows, slice_size)* \
+                        slice_size*(num_cols+padding_factor)),
+          col_idxs_(exec, ceildiv(num_rows, slice_size)* \
+                        slice_size*(num_cols+padding_factor)),
+          slice_lens_(exec, ceildiv(num_rows, slice_size)),
+          slice_sets_(exec, ceildiv(num_rows, slice_size)),
+          slice_size_(slice_size),
+          padding_factor_(padding_factor)
     {}
+
+    size_type linearize_index(size_type row,
+                              size_type slice_set,
+                              size_type col) const noexcept
+    {
+        return (slice_set + col) * slice_size_ + row;
+    }
+
+    size_type linearize_index(size_type row,
+                              size_type col) const noexcept
+    {
+        size_type slice_num = slice_sets_.get_num_elems();
+        size_type slice_set = 0;
+        for (index_type i = 1; i < slice_num; i++) {
+            if (col > slice_sets_.get_const_data()[i]) {
+                slice_set = slice_sets_.get_const_data()[i];
+            }
+        }
+        return linearize_index(row, slice_set, col);
+    }
+
+    size_type linearize_index(size_type idx) const noexcept
+    {
+        return linearize_index(idx % slice_size_, idx / slice_size_);
+    }
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    // Array<index_type> row_ptrs_;
     Array<index_type> slice_lens_;
     Array<index_type> slice_sets_;
+    size_type slice_size_;
+    size_type padding_factor_;
 
 };
 
