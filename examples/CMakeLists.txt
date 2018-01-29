@@ -1,1 +1,2 @@
 add_subdirectory(simple_solver)
+add_subdirectory(simple_spmv)
