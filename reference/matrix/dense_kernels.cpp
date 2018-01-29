@@ -72,9 +72,17 @@ void apply(const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 {
-    for (size_type row = 0; row < c->get_num_rows(); ++row) {
-        for (size_type col = 0; col < c->get_num_cols(); ++col) {
-            c->at(row, col) *= beta->at(0, 0);
+    if (beta->at(0, 0) != zero<ValueType>()) {
+        for (size_type row = 0; row < c->get_num_rows(); ++row) {
+            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+                c->at(row, col) *= beta->at(0, 0);
+            }
+        }
+    } else {
+        for (size_type row = 0; row < c->get_num_rows(); ++row) {
+            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+                c->at(row, col) *= zero<ValueType>();
+            }
         }
     }
 

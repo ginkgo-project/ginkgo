@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/csr.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
@@ -52,6 +53,7 @@ protected:
     using BjFactory = gko::preconditioner::BlockJacobiFactory<>;
     using Bj = gko::preconditioner::BlockJacobi<>;
     using Mtx = gko::matrix::Csr<>;
+    using Vec = gko::matrix::Dense<>;
 
     BlockJacobi()
         : exec(gko::ReferenceExecutor::create()),
@@ -98,7 +100,7 @@ TEST_F(BlockJacobi, CanBeGenerated)
 {
     bj_factory->set_block_pointers(block_pointers);
     bj_lin_op = bj_factory->generate(mtx);
-    bj = dynamic_cast<Bj *>(bj_lin_op.get());
+    bj = static_cast<Bj *>(bj_lin_op.get());
 
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
@@ -119,7 +121,7 @@ TEST_F(BlockJacobi, InvertsDiagonalBlocks)
 
     bj_lin_op = bj_factory->generate(mtx);
 
-    bj = dynamic_cast<Bj *>(bj_lin_op.get());
+    bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_padding();
     auto b1 = bj->get_blocks();
     EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-14);
@@ -158,7 +160,7 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
 
     bj_lin_op = bj_factory->generate(std::move(mtx));
 
-    bj = dynamic_cast<Bj *>(bj_lin_op.get());
+    bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_padding();
     auto b1 = bj->get_blocks();
     EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-14);
@@ -170,6 +172,74 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
     EXPECT_NEAR(b1[2 * p + 0], 0.0 / 4.0, 1e-14);
     EXPECT_NEAR(b1[2 * p + 1], 1.0 / 4.0, 1e-14);
     EXPECT_NEAR(b1[2 * p + 2], 0.0 / 4.0, 1e-14);
+}
+
+
+TEST_F(BlockJacobi, AppliesToVector)
+{
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
+    bj_factory->set_block_pointers(block_pointers);
+    auto bj = bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
+}
+
+
+TEST_F(BlockJacobi, AppliesToMultipleVectors)
+{
+    auto x = gko::initialize<Vec>(
+        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
+        exec);
+    auto b = gko::initialize<Vec>(
+        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
+        exec);
+    bj_factory->set_block_pointers(block_pointers);
+    auto bj = bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
+        1e-14);
+}
+
+
+TEST_F(BlockJacobi, AppliesLinearCombinationToVector)
+{
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    bj_factory->set_block_pointers(block_pointers);
+    auto bj = bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
+}
+
+
+TEST_F(BlockJacobi, AppliesLinearCombinationToMultipleVectors)
+{
+    auto x = gko::initialize<Vec>(
+        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
+        exec);
+    auto b = gko::initialize<Vec>(
+        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
+        exec);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    bj_factory->set_block_pointers(block_pointers);
+    auto bj = bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
+        1e-14);
 }
 
 

@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -189,9 +190,47 @@ void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+namespace {
+
+
+template <typename ValueType>
+void apply_block(size_type block_size, size_type num_rhs,
+                 const ValueType *block, size_type padding, ValueType alpha,
+                 const ValueType *b, size_type padding_b, ValueType beta,
+                 ValueType *x, size_type padding_x)
+{
+    if (beta != zero<ValueType>()) {
+        for (size_type row = 0; row < block_size; ++row) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] *= beta;
+            }
+        }
+    } else {
+        for (size_type row = 0; row < block_size; ++row) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] = zero<ValueType>();
+            }
+        }
+    }
+
+    for (size_type row = 0; row < block_size; ++row) {
+        for (size_type inner = 0; inner < block_size; ++inner) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] += alpha *
+                                            block[row * padding + inner] *
+                                            b[inner * padding_b + col];
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
 
 template <typename ValueType, typename IndexType>
 void apply(size_type num_blocks, uint32 max_block_size, size_type padding,
@@ -199,8 +238,19 @@ void apply(size_type num_blocks, uint32 max_block_size, size_type padding,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        apply_block(block_size, b->get_num_cols(), block, padding,
+                    alpha->at(0, 0), block_b, b->get_padding(), beta->at(0, 0),
+                    block_x, x->get_padding());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
@@ -211,7 +261,19 @@ void simple_apply(size_type num_blocks, uint32 max_block_size,
                   size_type padding, const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+                  matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        apply_block(block_size, b->get_num_cols(), block, padding,
+                    one<ValueType>(), block_b, b->get_padding(),
+                    zero<ValueType>(), block_x, x->get_padding());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
