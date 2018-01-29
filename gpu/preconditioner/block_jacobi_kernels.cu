@@ -62,6 +62,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void apply(size_type num_blocks, uint32 max_block_size, size_type padding,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta,
+           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void simple_apply(size_type num_blocks, uint32 max_block_size,
+                  size_type padding, const Array<IndexType> &block_pointers,
+                  const Array<ValueType> &blocks,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
 }  // namespace block_jacobi
 }  // namespace gpu
 }  // namespace kernels
