@@ -98,4 +98,18 @@ TEST_F(Identity, AppliesToMultipleVectors)
 }
 
 
+TEST(IdentityFactory, CanGenerateIdentityMatrix)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto id_factory = gko::matrix::IdentityFactory<>::create(exec);
+    auto mtx = gko::matrix::Dense<>::create(exec, 5, 5);
+
+    auto id = id_factory->generate(std::move(mtx));
+
+    ASSERT_EQ(id->get_num_rows(), 5);
+    ASSERT_EQ(id->get_num_cols(), 5);
+    ASSERT_EQ(id->get_num_stored_elements(), 0);
+}
+
+
 }  // namespace

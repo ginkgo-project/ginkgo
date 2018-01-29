@@ -93,6 +93,43 @@ protected:
 };
 
 
+/**
+ * This factory is a utility which can be used to generate Identity operators.
+ *
+ * The factory will generate the Identity matrix with the same dimensions as
+ * the passed in operator. It will throw an exception if the operator is  not
+ * square.
+ *
+ * @tparam ValueType  precision of matrix elements
+ */
+template <typename ValueType = default_precision>
+class IdentityFactory : public LinOpFactory {
+public:
+    using value_type = ValueType;
+
+    /**
+     * Creates a new Identity factory.
+     *
+     * @param exec  the executor where the Identity operator will be stored
+     *
+     * @return a unique pointer to the newly created factory
+     */
+    static std::unique_ptr<IdentityFactory> create(
+        std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<IdentityFactory>(
+            new IdentityFactory(std::move(exec)));
+    }
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+
+protected:
+    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
+    {}
+};
+
+
 }  // namespace matrix
 }  // namespace gko
 

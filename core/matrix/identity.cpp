@@ -68,9 +68,23 @@ void Identity<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 }
 
 
+template <typename ValueType>
+std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate(
+    std::shared_ptr<const LinOp> base) const
+{
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
+    return Identity<ValueType>::create(this->get_executor(),
+                                       base->get_num_rows());
+}
+
+
 #define DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_MATRIX);
 #undef DECLARE_IDENTITY_MATRIX
+#define DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_FACTORY);
+#undef DECLARE_IDENTITY_FACTORY
 
 
 }  // namespace matrix
