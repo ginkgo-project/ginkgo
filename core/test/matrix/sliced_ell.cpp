@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <core/matrix/sliced_ell.hpp>
+#include <core/base/math.hpp>
 
 
 #include <gtest/gtest.h>
@@ -52,7 +53,7 @@ protected:
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *l = mtx->get_slice_lens();
         Mtx::index_type *s = mtx->get_slice_sets();
-        l[0] = 3;
+        l[0] = default_padding_factor * gko::ceildiv(3, default_padding_factor);
         s[0] = 0;
         c[0] = 0;
         c[1] = 1;
@@ -66,6 +67,12 @@ protected:
         v[default_slice_size+1] = 0.0;
         v[2*default_slice_size] = 2.0;
         v[2*default_slice_size+1] = 0.0;
+        for (int i = 3; i < l[0]; i++) {
+            for (int j = 0; j < 2; j++) {
+                c[i*default_slice_size+j] = c[2*default_slice_size+j];
+                v[i*default_slice_size+j] = 0;
+            }
+        }
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -94,6 +101,12 @@ protected:
         EXPECT_EQ(v[default_slice_size+1], 0.0);
         EXPECT_EQ(v[2*default_slice_size], 2.0);
         EXPECT_EQ(v[2*default_slice_size+1], 0.0);
+        for (int i = 3; i < l[0]; i++) {
+            for (int j = 0; j < 2; j++) {
+                EXPECT_EQ(c[i*default_slice_size+j], c[2*default_slice_size+j]);
+                EXPECT_EQ(v[i*default_slice_size+j], 0);
+            }
+        }
     }
 
     void assert_empty(const Mtx *m)

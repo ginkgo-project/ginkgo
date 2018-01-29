@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/sliced_ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
-#include <vector>
 
 
 namespace gko {

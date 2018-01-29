@@ -42,8 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include <vector>
 
-constexpr int default_slice_size = 32;
-constexpr int default_padding_factor = 1;
+constexpr int default_slice_size = 8;
+constexpr int default_padding_factor = 8;
 
 
 namespace gko {
