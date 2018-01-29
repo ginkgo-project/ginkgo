@@ -199,7 +199,7 @@ protected:
 
     Sliced_ell_SELFDEFINE()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Sliced_ell<>::create(exec, 2, 3, 4, 2, 2))
+          mtx(gko::matrix::Sliced_ell<>::create(exec, 2, 3, 4, 2, 2, 4))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();

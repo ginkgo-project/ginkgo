@@ -111,7 +111,8 @@ std::unique_ptr<LinOp> Sliced_ell<ValueType, IndexType>::clone_type() const
     return std::unique_ptr<LinOp>(
         new Sliced_ell(this->get_executor(), this->get_num_rows(),
                        this->get_num_cols(), this->get_num_stored_elements(),
-                       this->get_slice_size(), this->get_padding_factor()));
+                       this->get_slice_size(), this->get_padding_factor(),
+                       this->get_total_col()));
 }
 
 
@@ -136,6 +137,7 @@ void Sliced_ell<ValueType, IndexType>::convert_to(Sliced_ell *other) const
     other->slice_sets_ = std::move(slice_sets_);
     other->slice_size_ = std::move(slice_size_);
     other->padding_factor_ = std::move(padding_factor_);
+    other->total_col_ = std::move(total_col_);
 }
 
 
@@ -149,6 +151,7 @@ void Sliced_ell<ValueType, IndexType>::move_to(Sliced_ell *other)
     other->slice_sets_ = std::move(slice_sets_);
     other->slice_size_ = std::move(slice_size_);
     other->padding_factor_ = std::move(padding_factor_);
+    other->total_col_ = std::move(total_col_);
 }
 
 
@@ -190,7 +193,6 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
     auto padding_factor = this->get_padding_factor();
     index_type slice_num = \
         static_cast<index_type>((data.num_rows+slice_size-1) / slice_size);
-    std::cout << "slice number = " << slice_num << std::endl;
     std::vector<index_type> slice_cols(slice_num, 0);
 
     // Count number of nonzeros in every row
@@ -205,8 +207,14 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
         slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
     }
 
+    // Find total column length
+    size_type total_col = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        total_col += slice_cols[slice];
+    }
+
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz, slice_size, padding_factor);
+                      data.num_cols, nnz, slice_size, padding_factor, total_col);
 
     // Setup slice_lens and slice_sets
     index_type start_col = 0;
@@ -216,38 +224,26 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
         tmp->get_slice_sets()[slice] = start_col;
         start_col += tmp->get_slice_lens()[slice];
     }
-    for (int i = 0; i < slice_num; ++i)
-    {
-        std::cout << "slice lens = " << tmp->get_slice_lens()[i] << std::endl;
-        std::cout << "slice sets = " << tmp->get_slice_sets()[i] << std::endl;
-    }
 
     // Get values and column idxs
     size_type ind = 0;
     int n = data.nonzeros.size();
-    for (size_type slice = 0; slice < slice_num; slice++)
-    {
-        for (size_type row = 0; row < slice_size; row++)
-        {
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < slice_size; row++) {
             size_type col = 0;
-            for (; ind < n; ind++)
-            {
-                if (std::get<0>(data.nonzeros[ind]) > slice * slice_size + row)
-                {
-                    std::cout << "ind = " << ind << ", col = " << col << std::endl;
+            for (; ind < n; ind++) {
+                if (std::get<0>(data.nonzeros[ind]) > slice * slice_size + row) {
                     break;
                 }
                 auto val = std::get<2>(data.nonzeros[ind]);
                 auto sliced_ell_ind = row + (tmp->get_slice_sets()[slice] + col) * slice_size;
-                if (val != zero<ValueType>())
-                {
+                if (val != zero<ValueType>()) {
                     tmp->get_values()[sliced_ell_ind] = val;
                     tmp->get_col_idxs()[sliced_ell_ind] = std::get<1>(data.nonzeros[ind]);
                     col++;
                 }
             }
-            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++)
-            {
+            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
                 auto sliced_ell_ind = row + (tmp->get_slice_sets()[slice] + i) * slice_size;
                 tmp->get_values()[sliced_ell_ind] = 0;
                 tmp->get_col_idxs()[sliced_ell_ind] = tmp->get_col_idxs()[sliced_ell_ind-slice_size];

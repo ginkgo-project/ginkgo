@@ -94,11 +94,12 @@ public:
                                        size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros,
                                        size_type slice_size,
-                                       size_type padding_factor)
+                                       size_type padding_factor,
+                                       size_type total_col)
     {
         return std::unique_ptr<Sliced_ell>(
             new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
-                           slice_size, padding_factor));
+                           slice_size, padding_factor, total_col));
     }
 
     /**
@@ -115,9 +116,10 @@ public:
                                        size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros)
     {
+        // TODO: write a count total column function.
         return std::unique_ptr<Sliced_ell>(
             new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
-                           default_slice_size, default_padding_factor));
+                           default_slice_size, default_padding_factor, 100));
     }
 
     /**
@@ -130,7 +132,7 @@ public:
                                        size_type slice_size,
                                        size_type padding_factor)
     {
-        return create(exec, 0, 0, 0, slice_size, padding_factor);
+        return create(exec, 0, 0, 0, slice_size, padding_factor, 100);
     }
 
     /**
@@ -141,7 +143,7 @@ public:
     static std::unique_ptr<Sliced_ell> create( \
                                        std::shared_ptr<const Executor> exec)
     {
-        return create(exec, 0, 0, 0);
+        return create(exec, 0, 0, 0, 0, 0, 0);
     }
 
     void copy_from(const LinOp *other) override;
@@ -257,19 +259,26 @@ public:
      */
     size_type get_padding_factor() const { return padding_factor_; }
 
+    /**
+     * Returns the total column number.
+     *
+     * @return the total column number.
+     */
+    size_type get_total_col() const { return total_col_; }
+
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros,
-        size_type slice_size, size_type padding_factor)
+        size_type slice_size, size_type padding_factor,
+        size_type total_col)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, ceildiv(num_rows, slice_size)* \
-                        slice_size*(num_cols+padding_factor)),
-          col_idxs_(exec, ceildiv(num_rows, slice_size)* \
-                        slice_size*(num_cols+padding_factor)),
+          values_(exec, slice_size * total_col),
+          col_idxs_(exec, slice_size * total_col),
           slice_lens_(exec, ceildiv(num_rows, slice_size)),
           slice_sets_(exec, ceildiv(num_rows, slice_size)),
           slice_size_(slice_size),
-          padding_factor_(padding_factor)
+          padding_factor_(padding_factor),
+          total_col_(total_col)
     {}
 
     size_type linearize_index(size_type row,
@@ -304,6 +313,7 @@ private:
     Array<index_type> slice_sets_;
     size_type slice_size_;
     size_type padding_factor_;
+    size_type total_col_;
 
 };
 
