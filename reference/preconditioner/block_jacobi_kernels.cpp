@@ -52,79 +52,78 @@ namespace block_jacobi {
 namespace {
 
 
+template <typename IndexType>
+inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
+                                     const IndexType *curr_row_ptr,
+                                     const IndexType *next_row_ptr)
+{
+    if (next_row_ptr - curr_row_ptr != curr_row_ptr - prev_row_ptr) {
+        return false;
+    }
+    for (; curr_row_ptr < next_row_ptr; ++prev_row_ptr, ++curr_row_ptr) {
+        if (*curr_row_ptr != *prev_row_ptr) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 template <typename ValueType, typename IndexType>
-int32 find_natural_blocks(std::shared_ptr<const Executor> exec,
-                          const matrix::Csr<ValueType, IndexType> *mtx,
-                          int32 max_block_size, IndexType *block_ptrs)
+size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
+                              int32 max_block_size, IndexType *block_ptrs)
 {
     const auto rows = mtx->get_num_rows();
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idx = mtx->get_const_col_idxs();
-
-    Array<int32> varray(exec, rows + 1);
-    auto v = varray.get_data();
-
-    int32 prev_matches = 0;
-    int32 blocksize = 0;
-    int32 current_size = 0;
-    for (size_type i = 0; i < rows; ++i) {
-        bool match = 1;  // 1 = a row has the same pattern like the previous row
-        if (prev_matches == max_block_size) {
-            match = 0;  // no match because block would be too big
-            prev_matches = 0;
-        } else if (((row_ptrs[i + 1] - row_ptrs[i]) -
-                    (row_ptrs[i] - row_ptrs[i - 1])) != 0) {
-            match = 0;  // no match because rows have different nnz count
-            prev_matches = 0;
+    block_ptrs[0] = 0;
+    if (rows == 0) {
+        return 0;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = 1;
+    for (size_type i = 1; i < rows; ++i) {
+        const auto prev_row_ptr = col_idx + row_ptrs[i - 1];
+        const auto curr_row_ptr = col_idx + row_ptrs[i];
+        const auto next_row_ptr = col_idx + row_ptrs[i + 1];
+        if (current_block_size < max_block_size &&
+            has_same_nonzero_pattern(prev_row_ptr, curr_row_ptr,
+                                     next_row_ptr)) {
+            ++current_block_size;
         } else {
-            int32 length = (row_ptrs[i + 1] - row_ptrs[i]);
-            int32 start1 = row_ptrs[i - 1];
-            int32 start2 = row_ptrs[i];
-            for (size_type j = 0; j < length; ++j) {
-                if (col_idx[start1 + j] != col_idx[start2 + j]) {
-                    match = 0;  // no match - different columns are filled
-                    prev_matches = 0;
-                }
-            }
-            if (match == 0) {
-                prev_matches++;  // add one match to the block
-            }
-        }
-        v[i] = match;
-    }
-    int blockcount = 0;
-    for (size_type i = 0; i < mtx->get_num_rows(); ++i) {
-        if (v[i] == 0) {
-            block_ptrs[blockcount] = i;
-            blockcount++;
+            block_ptrs[num_blocks] =
+                block_ptrs[num_blocks - 1] + current_block_size;
+            ++num_blocks;
+            current_block_size = 1;
         }
     }
-    block_ptrs[blockcount] = mtx->get_num_rows();
-    return blockcount;
+    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
+    return num_blocks;
 }
 
 
 template <typename IndexType>
-int32 agglomerate_supervariables(const IndexType *start, int32 max_block_size,
-                                 int32 blockcount, IndexType *block_ptrs)
+inline size_type agglomerate_supervariables(int32 max_block_size,
+                                            size_type num_natural_blocks,
+                                            IndexType *block_ptrs)
 {
-    int32 current_size = 0;
-    int32 blockcount2 = 0;
-    block_ptrs[blockcount2] = 0;
-    for (size_type i = 0; i < blockcount; ++i) {
-        int32 block_size = start[i + 1] - start[i];
-        if (current_size + block_size > max_block_size) {
-            blockcount2++;
-            block_ptrs[blockcount2] = start[i];  // keep the block as is
-            current_size = block_size;           // start new block
+    if (num_natural_blocks == 0) {
+        return 0;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    for (size_type i = 1; i < num_natural_blocks; ++i) {
+        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        if (current_block_size + block_size <= max_block_size) {
+            current_block_size += block_size;
         } else {
-            current_size = current_size + block_size;  // add to prev. block
+            block_ptrs[num_blocks] = block_ptrs[i];
+            ++num_blocks;
+            current_block_size = block_size;
         }
     }
-    blockcount2++;
-    block_ptrs[blockcount2] = start[blockcount];
-
-    return blockcount2;
+    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
+    return num_blocks;
 }
 
 
@@ -137,11 +136,9 @@ void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
 {
-    Array<IndexType> start_array(exec, system_matrix->get_num_rows() + 1);
-    auto num_natural_blocks = find_natural_blocks(
-        exec, system_matrix, max_block_size, start_array.get_data());
-    num_blocks = agglomerate_supervariables(start_array.get_const_data(),
-                                            max_block_size, num_natural_blocks,
+    num_blocks = find_natural_blocks(system_matrix, max_block_size,
+                                     block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(max_block_size, num_blocks,
                                             block_pointers.get_data());
 }
 
