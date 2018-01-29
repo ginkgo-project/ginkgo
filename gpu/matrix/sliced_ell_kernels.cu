@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "gpu/base/cusparse_bindings.hpp"
 #include "gpu/base/types.hpp"
+#include <iostream>
 
 namespace gko {
 namespace kernels {
@@ -71,7 +72,7 @@ void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c) {
 
     const dim3 blockSize(default_slice_size);
-    const dim3 gridSize(ceildiv(a->get_num_rows(), blockSize.x));
+    const dim3 gridSize(ceildiv(a->get_num_rows(), default_slice_size));
 
     spmv_kernel<<<gridSize, blockSize>>>(
         a->get_num_rows(),

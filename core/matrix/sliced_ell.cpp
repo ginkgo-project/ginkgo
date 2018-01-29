@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/sliced_ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
-
+#include <iostream>
 
 namespace gko {
 namespace matrix {
@@ -190,8 +190,8 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
     auto padding_factor = this->get_padding_factor();
     index_type slice_num = \
         static_cast<index_type>((data.num_rows+slice_size-1) / slice_size);
+    std::cout << "slice number = " << slice_num << std::endl;
     std::vector<index_type> slice_cols(slice_num, 0);
-    size_type total_col = 0;
 
     // Count number of nonzeros in every row
     for (const auto &elem : data.nonzeros) {
@@ -216,32 +216,41 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
         tmp->get_slice_sets()[slice] = start_col;
         start_col += tmp->get_slice_lens()[slice];
     }
+    for (int i = 0; i < slice_num; ++i)
+    {
+        std::cout << "slice lens = " << tmp->get_slice_lens()[i] << std::endl;
+        std::cout << "slice sets = " << tmp->get_slice_sets()[i] << std::endl;
+    }
 
     // Get values and column idxs
     size_type ind = 0;
     int n = data.nonzeros.size();
-    for (size_type row = 0; row < slice_size; row++) {
-        index_type slice = 0, start_col = 0;
-        for (; slice < slice_num; start_col += slice_cols[slice], slice++) {
+    for (size_type slice = 0; slice < slice_num; slice++)
+    {
+        for (size_type row = 0; row < slice_size; row++)
+        {
             size_type col = 0;
-            for (; ind < n && col < slice_cols[slice]; ind++) {
-                if (std::get<0>(data.nonzeros[ind]) > row) {
+            for (; ind < n; ind++)
+            {
+                if (std::get<0>(data.nonzeros[ind]) > slice * slice_size + row)
+                {
+                    std::cout << "ind = " << ind << ", col = " << col << std::endl;
                     break;
                 }
                 auto val = std::get<2>(data.nonzeros[ind]);
-                auto sliced_ell_ind = row + (start_col+col)*slice_size;
-                if (val != zero<ValueType>()) {
+                auto sliced_ell_ind = row + (tmp->get_slice_sets()[slice] + col) * slice_size;
+                if (val != zero<ValueType>())
+                {
                     tmp->get_values()[sliced_ell_ind] = val;
-                    tmp->get_col_idxs()[sliced_ell_ind] = \
-                        std::get<1>(data.nonzeros[ind]);
+                    tmp->get_col_idxs()[sliced_ell_ind] = std::get<1>(data.nonzeros[ind]);
                     col++;
                 }
             }
-            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
-                auto sliced_ell_ind = row+(start_col+i)*slice_size;
+            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++)
+            {
+                auto sliced_ell_ind = row + (tmp->get_slice_sets()[slice] + i) * slice_size;
                 tmp->get_values()[sliced_ell_ind] = 0;
-                tmp->get_col_idxs()[sliced_ell_ind] = \
-                    tmp->get_col_idxs()[sliced_ell_ind-slice_size];
+                tmp->get_col_idxs()[sliced_ell_ind] = tmp->get_col_idxs()[sliced_ell_ind-slice_size];
             }
         }
     }
