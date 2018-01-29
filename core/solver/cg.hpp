@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_CG_HPP_
 #define GKO_CORE_SOLVER_CG_HPP_
 
+
 #include "core/base/array.hpp"
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
@@ -47,6 +48,7 @@ namespace solver {
 
 template <typename>
 class CgFactory;
+
 
 /**
  * CG or the conjugate gradient method is an iterative type Krylov subspace
@@ -62,28 +64,20 @@ class CgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public LinOp, public ConvertibleTo<Cg<ValueType>> {
+class Cg : public BasicLinOp<Cg<ValueType>> {
+    friend class BasicLinOp<Cg>;
     friend class CgFactory<ValueType>;
 
 public:
+    using BasicLinOp<Cg>::convert_to;
+    using BasicLinOp<Cg>::move_to;
+
     using value_type = ValueType;
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Cg *result) const override;
-
-    void move_to(Cg *result) override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -102,7 +96,6 @@ public:
      */
     int get_max_iters() const { return max_iters_; }
 
-
     /**
      * Gets the relative residual goal of the solver.
      *
@@ -113,35 +106,33 @@ public:
         return rel_residual_goal_;
     }
 
-
 private:
+    using BasicLinOp<Cg>::create;
+
+    explicit Cg(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Cg>(exec, 0, 0, 0)
+    {}
+
     Cg(std::shared_ptr<const Executor> exec, int max_iters,
        remove_complex<value_type> rel_residual_goal,
        std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(exec, system_matrix->get_num_cols(),
-                system_matrix->get_num_rows(),
-                system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Cg>(
+              exec, system_matrix->get_num_cols(),
+              system_matrix->get_num_rows(),
+              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
 
-    static std::unique_ptr<Cg> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-    {
-        return std::unique_ptr<Cg>(new Cg(std::move(exec), max_iters,
-                                          rel_residual_goal,
-                                          std::move(system_matrix)));
-    }
-
-    std::shared_ptr<const LinOp> system_matrix_;
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
+    std::shared_ptr<const LinOp> system_matrix_{};
+    int max_iters_{};
+    remove_complex<value_type> rel_residual_goal_{};
 };
 
-/** The CgFactory class is derived from the LinOpFactory class and is used to
+
+/**
+ * The CgFactory class is derived from the LinOpFactory class and is used to
  * generate the CG solver.
  */
 template <typename ValueType = default_precision>

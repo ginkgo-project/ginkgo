@@ -82,24 +82,6 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other);
-    system_matrix_ = other_bicgstab->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other.get());
-    system_matrix_ = std::move(other_bicgstab->get_system_matrix());
-    this->set_dimensions(other.get());
-}
-
-
-template <typename ValueType>
 void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     using std::swap;
@@ -109,8 +91,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto exec = this->get_executor();
 
-    auto one_op = Vector::create(exec, {one<ValueType>()});
-    auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto dense_b = as<Vector>(b);
     auto dense_x = as<Vector>(x);
@@ -204,25 +186,6 @@ void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
     dense_x->add_scaled(alpha, x_clone.get());
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Bicgstab<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Bicgstab>(
-        new Bicgstab(this->get_executor(), max_iters_, rel_residual_goal_,
-                     system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
 }
 
 

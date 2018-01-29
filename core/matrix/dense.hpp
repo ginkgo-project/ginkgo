@@ -66,148 +66,22 @@ class Csr;
  *       is often suitable to store vectors, and sets of vectors.
  */
 template <typename ValueType = default_precision>
-class Dense : public LinOp,
-              public ConvertibleTo<Dense<ValueType>>,
+class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ReadableFromMtx,
               public Transposable {
-    friend class gko::matrix::Csr<ValueType, int32>;
-    friend class gko::matrix::Csr<ValueType, int64>;
+    friend class BasicLinOp<Dense>;
+    friend class Csr<ValueType, int32>;
+    friend class Csr<ValueType, int64>;
 
 public:
+    using BasicLinOp<Dense>::create;
+    using BasicLinOp<Dense>::convert_to;
+    using BasicLinOp<Dense>::move_to;
+
     using value_type = ValueType;
 
-    /**
-     * Creates an empty Dense matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec)
-    {
-        return create(exec, 0, 0, 0);
-    }
-
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         size_type num_rows, size_type num_cols)
-    {
-        return std::unique_ptr<Dense>(
-            new Dense(std::move(exec), num_rows, num_cols, num_cols));
-    }
-
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
-     * @param padding  padding of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         size_type num_rows, size_type num_cols,
-                                         size_type padding)
-    {
-        return std::unique_ptr<Dense>(
-            new Dense(std::move(exec), num_rows, num_cols, padding));
-    }
-
-    /**
-     * Creates and initializes a Dense column-vector.
-     *
-     * @param exec  Executor associated to the vector
-     * @param padding  padding of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
-     * @param vals  values used to initialize the vector
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         size_type padding,
-                                         std::initializer_list<ValueType> vals)
-    {
-        int num_rows = vals.size();
-        std::unique_ptr<Dense> tmp(
-            new Dense(exec->get_master(), num_rows, 1, padding));
-        size_type idx = 0;
-        for (const auto &elem : vals) {
-            tmp->at(idx) = elem;
-            ++idx;
-        }
-        auto result = create(std::move(exec));
-        result->copy_from(std::move(tmp));
-        return result;
-    }
-
-    /**
-     * Creates and initializes a Dense column-vector.
-     *
-     * The padding of the vector is set to 1.
-     *
-     * @param exec  Executor associated to the vector
-     * @param vals  values used to initialize the vector
-     */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         std::initializer_list<ValueType> vals)
-    {
-        return create(std::move(exec), 1, vals);
-    }
-
-    /**
-     * Creates and initializes a Dense matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param padding  padding of the rows (i.e. offset between the first
-     *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
-     * @param vals  values used to initialize the matrix
-     */
-    static std::unique_ptr<Dense> create(
-        std::shared_ptr<const Executor> exec, size_type padding,
-        std::initializer_list<std::initializer_list<ValueType>> vals)
-    {
-        int num_rows = vals.size();
-        int num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-        std::unique_ptr<Dense> tmp(
-            new Dense(exec->get_master(), num_rows, num_cols, padding));
-        size_type ridx = 0;
-        for (const auto &row : vals) {
-            size_type cidx = 0;
-            for (const auto &elem : row) {
-                tmp->at(ridx, cidx) = elem;
-                ++cidx;
-            }
-            ++ridx;
-        }
-        auto result = create(std::move(exec));
-        result->copy_from(std::move(tmp));
-        return result;
-    }
-
-    /**
-     * Creates and initializes a Dense matrix.
-     *
-     * Padding is set to the number of columns of the matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param vals  values used to initialize the matrix
-     */
-    static std::unique_ptr<Dense> create(
-        std::shared_ptr<const Executor> exec,
-        std::initializer_list<std::initializer_list<ValueType>> vals)
-    {
-        using std::max;
-        return create(
-            std::move(exec),
-            vals.size() > 0 ? max<size_type>(begin(vals)->size(), 1) : 1, vals);
-    }
     /**
      * Creates a Dense matrix with the configuration of another Dense matrix.
      *
@@ -219,6 +93,24 @@ public:
                       other->get_num_cols(), other->get_padding());
     }
 
+    void apply(const LinOp *b, LinOp *x) const override;
+
+    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+               LinOp *x) const override;
+
+    void convert_to(Csr<ValueType, int32> *result) const override;
+
+    void move_to(Csr<ValueType, int32> *result) override;
+
+    void convert_to(Csr<ValueType, int64> *result) const override;
+
+    void move_to(Csr<ValueType, int64> *result) override;
+
+    void read_from_mtx(const std::string &filename) override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -327,43 +219,43 @@ public:
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Dense *result) const override;
-
-    void move_to(Dense *result) override;
-
-    void convert_to(Csr<ValueType, int32> *result) const override;
-
-    void move_to(Csr<ValueType, int32> *result) override;
-
-    void convert_to(Csr<ValueType, int64> *result) const override;
-
-    void move_to(Csr<ValueType, int64> *result) override;
-
-    void read_from_mtx(const std::string &filename) override;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
 protected:
+    /**
+     * Creates an empty Dense matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     */
+    explicit Dense(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Dense>(exec, 0, 0, 0), values_(exec)
+    {}
+
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows  number of rows
+     * @param num_cols  number of columns
+     * @param padding  padding of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     */
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type padding)
-        : LinOp(exec, num_rows, num_cols, num_rows * padding),
+        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * padding),
           values_(exec, num_rows * padding),
           padding_(padding)
+    {}
+
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows  number of rows
+     * @param num_cols  number of columns
+     */
+    Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
+          size_type num_cols)
+        : Dense(std::move(exec), num_rows, num_cols, num_cols)
     {}
 
     size_type linearize_index(size_type row, size_type col) const noexcept
@@ -379,11 +271,152 @@ protected:
 
 private:
     Array<value_type> values_;
-    size_type padding_;
+    size_type padding_{};
 };
 
 
 }  // namespace matrix
+
+
+/**
+ * Creates and initializes a column-vector.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param padding  row padding for the temporary Dense matrix
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    size_type padding, std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    using dense = matrix::Dense<typename Matrix::value_type>;
+    int num_rows = vals.size();
+    auto tmp = dense::create(exec->get_master(), num_rows, 1, padding);
+    size_type idx = 0;
+    for (const auto &elem : vals) {
+        tmp->at(idx) = elem;
+        ++idx;
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
+}
+
+/**
+ * Creates and initializes a column-vector.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type. The padding of
+ * the intermediate Dense matrix is set to 1.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    return initialize<Matrix>(1, vals, std::move(exec),
+                              std::forward<TArgs>(create_args)...);
+}
+
+
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param padding  row padding for the temporary Dense matrix
+ * @param vals  values used to initialize the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    size_type padding,
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    using dense = matrix::Dense<typename Matrix::value_type>;
+    int num_rows = vals.size();
+    int num_cols = num_rows > 0 ? begin(vals)->size() : 1;
+    auto tmp = dense::create(exec->get_master(), num_rows, num_cols, padding);
+    size_type ridx = 0;
+    for (const auto &row : vals) {
+        size_type cidx = 0;
+        for (const auto &elem : row) {
+            tmp->at(ridx, cidx) = elem;
+            ++cidx;
+        }
+        ++ridx;
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
+}
+
+
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type. The padding of
+ * the intermediate Dense matrix is set to the number of columns of the
+ * initializer list.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param vals  values used to initialize the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
+                              std::move(exec),
+                              std::forward<TArgs>(create_args)...);
+}
+
+
 }  // namespace gko
 
 

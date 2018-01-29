@@ -51,8 +51,8 @@ protected:
 
     Cg()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec,
-                          {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
+          mtx(gko::initialize<Mtx>(
+              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           cg_factory(gko::solver::CgFactory<>::create(exec, 3, 1e-6)),
           solver(cg_factory->generate(mtx))
     {}
@@ -116,7 +116,6 @@ TEST_F(Cg, CanBeCopied)
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_NE(copy_mtx.get(), mtx.get());
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
@@ -143,7 +142,6 @@ TEST_F(Cg, CanBeCloned)
     ASSERT_EQ(clone->get_num_cols(), 3);
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    ASSERT_NE(clone_mtx.get(), mtx.get());
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
 
@@ -156,10 +154,7 @@ TEST_F(Cg, CanBeCleared)
     ASSERT_EQ(solver->get_num_cols(), 0);
     ASSERT_EQ(solver->get_num_stored_elements(), 0);
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
-    ASSERT_NE(solver_mtx, nullptr);
-    ASSERT_EQ(solver_mtx->get_num_rows(), 0);
-    ASSERT_EQ(solver_mtx->get_num_cols(), 0);
-    ASSERT_EQ(solver_mtx->get_num_stored_elements(), 0);
+    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 

@@ -84,8 +84,8 @@ protected:
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
-        alpha = Vec::create(ref, {2.0});
-        beta = Vec::create(ref, {-1.0});
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(gpu);

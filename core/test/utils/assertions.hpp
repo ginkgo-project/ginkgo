@@ -187,8 +187,8 @@ template <typename ValueType1, typename U>
                                          std::initializer_list<U> second,
                                          double tolerance)
 {
-    auto second_mtx = matrix::Dense<ValueType1>::create(first->get_executor(),
-                                                        std::move(second));
+    auto second_mtx = initialize<matrix::Dense<ValueType1>>(
+        second, first->get_executor()->get_master());
     return matrices_near(first_expression, second_expression,
                          tolerance_expression, first, second_mtx.get(),
                          tolerance);

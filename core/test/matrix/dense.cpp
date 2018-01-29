@@ -47,8 +47,8 @@ class Dense : public ::testing::Test {
 protected:
     Dense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Dense<>::create(exec, 4,
-                                           {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}))
+          mtx(gko::initialize<gko::matrix::Dense<>>(
+              4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec))
     {}
 
 
@@ -122,7 +122,7 @@ TEST_F(Dense, KnowsItsSizeAndValues)
 
 TEST_F(Dense, CanBeListConstructed)
 {
-    auto m = gko::matrix::Dense<>::create(exec, {1.0, 2.0});
+    auto m = gko::initialize<gko::matrix::Dense<>>({1.0, 2.0}, exec);
 
     EXPECT_EQ(m->get_num_rows(), 2);
     EXPECT_EQ(m->get_num_cols(), 1);
@@ -134,7 +134,7 @@ TEST_F(Dense, CanBeListConstructed)
 
 TEST_F(Dense, CanBeListConstructedWithPadding)
 {
-    auto m = gko::matrix::Dense<>::create(exec, 2, {1.0, 2.0});
+    auto m = gko::initialize<gko::matrix::Dense<>>(2, {1.0, 2.0}, exec);
     EXPECT_EQ(m->get_num_rows(), 2);
     EXPECT_EQ(m->get_num_cols(), 1);
     ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -145,8 +145,8 @@ TEST_F(Dense, CanBeListConstructedWithPadding)
 
 TEST_F(Dense, CanBeDoubleListConstructed)
 {
-    auto m = gko::matrix::Dense<>::create(exec,
-                                          {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}});
+    auto m = gko::initialize<gko::matrix::Dense<>>(
+        {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
     EXPECT_EQ(m->get_num_rows(), 3);
     EXPECT_EQ(m->get_num_cols(), 2);
@@ -161,8 +161,8 @@ TEST_F(Dense, CanBeDoubleListConstructed)
 
 TEST_F(Dense, CanBeDoubleListConstructedWithPadding)
 {
-    auto m = gko::matrix::Dense<>::create(exec, 4,
-                                          {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}});
+    auto m = gko::initialize<gko::matrix::Dense<>>(
+        4, {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
     EXPECT_EQ(m->get_num_rows(), 3);
     EXPECT_EQ(m->get_num_cols(), 2);
