@@ -86,7 +86,8 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
 
 
 template <typename ValueType>
-void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
+void initialize(std::shared_ptr<const GpuExecutor> exec,
+                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *rr, matrix::Dense<ValueType> *y,
                 matrix::Dense<ValueType> *s, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
@@ -138,7 +139,8 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 
 
 template <typename ValueType>
-void step_1(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
+void step_1(std::shared_ptr<const GpuExecutor> exec,
+            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
@@ -187,7 +189,8 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 
 
 template <typename ValueType>
-void step_2(const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
+void step_2(std::shared_ptr<const GpuExecutor> exec,
+            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
@@ -241,11 +244,12 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
 
 template <typename ValueType>
 void step_3(
-    matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-    const matrix::Dense<ValueType> *s, const matrix::Dense<ValueType> *t,
-    const matrix::Dense<ValueType> *y, const matrix::Dense<ValueType> *z,
-    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *beta,
-    const matrix::Dense<ValueType> *gamma, matrix::Dense<ValueType> *omega)
+    std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *x,
+    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
+    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
+    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
+    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
+    matrix::Dense<ValueType> *omega)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(

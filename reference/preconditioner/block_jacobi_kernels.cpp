@@ -132,7 +132,7 @@ int32 agglomerate_supervariables(const IndexType *start, int32 max_block_size,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const Executor> exec,
+void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
@@ -266,7 +266,8 @@ inline void invert_block(IndexType block_size, ValueType *block,
 
 
 template <typename ValueType, typename IndexType>
-void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
@@ -287,10 +288,11 @@ namespace {
 
 
 template <typename ValueType>
-void apply_block(size_type block_size, size_type num_rhs,
-                 const ValueType *block, size_type padding, ValueType alpha,
-                 const ValueType *b, size_type padding_b, ValueType beta,
-                 ValueType *x, size_type padding_x)
+inline void apply_block(size_type block_size, size_type num_rhs,
+                        const ValueType *block, size_type padding,
+                        ValueType alpha, const ValueType *b,
+                        size_type padding_b, ValueType beta, ValueType *x,
+                        size_type padding_x)
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
@@ -322,7 +324,8 @@ void apply_block(size_type block_size, size_type num_rhs,
 
 
 template <typename ValueType, typename IndexType>
-void apply(size_type num_blocks, uint32 max_block_size, size_type padding,
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type padding,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -346,7 +349,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(size_type num_blocks, uint32 max_block_size,
+void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
+                  size_type num_blocks, uint32 max_block_size,
                   size_type padding, const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,

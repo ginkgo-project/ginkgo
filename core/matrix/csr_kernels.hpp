@@ -43,31 +43,37 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType) \
-    void spmv(const matrix::Csr<ValueType, IndexType> *a, \
+#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)  \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
+              const matrix::Csr<ValueType, IndexType> *a,  \
               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(const matrix::Dense<ValueType> *alpha,      \
-                       const matrix::Csr<ValueType, IndexType> *a, \
-                       const matrix::Dense<ValueType> *b,          \
-                       const matrix::Dense<ValueType> *beta,       \
+#define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
+    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
+                       const matrix::Dense<ValueType> *alpha,       \
+                       const matrix::Csr<ValueType, IndexType> *a,  \
+                       const matrix::Dense<ValueType> *b,           \
+                       const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
-    void convert_to_dense(matrix::Dense<ValueType> *result,           \
+#define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Dense<ValueType> *result,            \
                           const matrix::Csr<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType) \
-    void move_to_dense(matrix::Dense<ValueType> *result,           \
+#define GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)  \
+    void move_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
+                       matrix::Dense<ValueType> *result,            \
                        matrix::Csr<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType) \
-    void transpose(matrix::Csr<ValueType, IndexType> *trans,   \
+#define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)  \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec, \
+                   matrix::Csr<ValueType, IndexType> *trans,    \
                    const matrix::Csr<ValueType, IndexType> *orig)
 
-#define GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType) \
-    void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,   \
+#define GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)  \
+    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Csr<ValueType, IndexType> *trans,    \
                         const matrix::Csr<ValueType, IndexType> *orig)
 
 #define DECLARE_ALL_AS_TEMPLATES                                   \

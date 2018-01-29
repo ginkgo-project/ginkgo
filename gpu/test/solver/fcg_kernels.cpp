@@ -214,11 +214,11 @@ TEST_F(Fcg, GpuFcgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::fcg::initialize(b.get(), r.get(), z.get(), p.get(),
-                                             q.get(), t.get(), prev_rho.get(),
-                                             rho.get(), rho_t.get());
+    gko::kernels::reference::fcg::initialize(
+        ref, b.get(), r.get(), z.get(), p.get(), q.get(), t.get(),
+        prev_rho.get(), rho.get(), rho_t.get());
     gko::kernels::gpu::fcg::initialize(
-        d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
+        gpu, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get());
 
     copy_back_data();
@@ -237,9 +237,9 @@ TEST_F(Fcg, GpuFcgStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::fcg::step_1(p.get(), z.get(), rho_t.get(),
+    gko::kernels::reference::fcg::step_1(ref, p.get(), z.get(), rho_t.get(),
                                          prev_rho.get());
-    gko::kernels::gpu::fcg::step_1(d_p.get(), d_z.get(), d_rho_t.get(),
+    gko::kernels::gpu::fcg::step_1(gpu, d_p.get(), d_z.get(), d_rho_t.get(),
                                    d_prev_rho.get());
     copy_back_data();
 
@@ -251,10 +251,12 @@ TEST_F(Fcg, GpuFcgStep1IsEquivalentToRef)
 TEST_F(Fcg, GpuFcgStep2IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::fcg::step_2(x.get(), r.get(), t.get(), p.get(),
-                                         q.get(), beta.get(), rho.get());
-    gko::kernels::gpu::fcg::step_2(d_x.get(), d_r.get(), d_t.get(), d_p.get(),
-                                   d_q.get(), d_beta.get(), d_rho.get());
+    gko::kernels::reference::fcg::step_2(ref, x.get(), r.get(), t.get(),
+                                         p.get(), q.get(), beta.get(),
+                                         rho.get());
+    gko::kernels::gpu::fcg::step_2(gpu, d_x.get(), d_r.get(), d_t.get(),
+                                   d_p.get(), d_q.get(), d_beta.get(),
+                                   d_rho.get());
 
     copy_back_data();
 

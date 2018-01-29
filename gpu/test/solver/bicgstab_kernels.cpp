@@ -258,11 +258,11 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::initialize(
-        b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
-        p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
+        ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
+        v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::initialize(
-        d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
+        gpu, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
@@ -289,10 +289,10 @@ TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::bicgstab::step_1(r.get(), p.get(), v.get(),
+    gko::kernels::reference::bicgstab::step_1(ref, r.get(), p.get(), v.get(),
                                               rho.get(), prev_rho.get(),
                                               alpha.get(), omega.get());
-    gko::kernels::gpu::bicgstab::step_1(d_r.get(), d_p.get(), d_v.get(),
+    gko::kernels::gpu::bicgstab::step_1(gpu, d_r.get(), d_p.get(), d_v.get(),
                                         d_rho.get(), d_prev_rho.get(),
                                         d_alpha.get(), d_omega.get());
 
@@ -307,8 +307,8 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_2(
-        r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get());
-    gko::kernels::gpu::bicgstab::step_2(d_r.get(), d_s.get(), d_v.get(),
+        ref, r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get());
+    gko::kernels::gpu::bicgstab::step_2(gpu, d_r.get(), d_s.get(), d_v.get(),
                                         d_rho.get(), d_alpha.get(),
                                         d_beta.get());
 
@@ -324,10 +324,10 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_3(
-        x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+        ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
         beta.get(), gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::step_3(
-        d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
+        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
     copy_back_data();

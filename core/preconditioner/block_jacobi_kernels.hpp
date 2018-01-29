@@ -44,20 +44,22 @@ namespace kernels {
 
 
 #define GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)    \
-    void find_blocks(std::shared_ptr<const Executor> exec,                   \
+    void find_blocks(std::shared_ptr<const DefaultExecutor> exec,            \
                      const matrix::Csr<ValueType, IndexType> *system_matrix, \
                      uint32 max_block_size, size_type &num_blocks,           \
                      Array<IndexType> &block_pointers)
 
 #define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)       \
-    void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,    \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,               \
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,    \
                   size_type num_blocks, uint32 max_block_size,               \
                   size_type padding, const Array<IndexType> &block_pointers, \
                   Array<ValueType> &blocks)
 
 #define GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)            \
     void apply(                                                                \
-        size_type num_blocks, uint32 max_block_size, size_type padding,        \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
+        uint32 max_block_size, size_type padding,                              \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
         const matrix::Dense<ValueType> *b,                                     \
@@ -65,7 +67,8 @@ namespace kernels {
 
 #define GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType) \
     void simple_apply(                                                     \
-        size_type num_blocks, uint32 max_block_size, size_type padding,    \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
+        uint32 max_block_size, size_type padding,                          \
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)

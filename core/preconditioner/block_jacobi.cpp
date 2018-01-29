@@ -111,7 +111,7 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
     if (block_pointers_.get_data() == nullptr) {
         block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
         exec->run(TemplatedOperation<ValueType, IndexType>::
-                      make_find_blocks_operation(exec, csr_mtx, max_block_size_,
+                      make_find_blocks_operation(csr_mtx, max_block_size_,
                                                  num_blocks_, block_pointers_));
     }
     exec->run(TemplatedOperation<ValueType, IndexType>::make_generate_operation(

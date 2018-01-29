@@ -46,7 +46,8 @@ namespace fcg {
 
 
 template <typename ValueType>
-void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
+void initialize(std::shared_ptr<const ReferenceExecutor> exec,
+                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *prev_rho,
@@ -69,7 +70,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
+void step_1(std::shared_ptr<const ReferenceExecutor> exec,
+            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho)
 {
@@ -89,7 +91,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+void step_2(std::shared_ptr<const ReferenceExecutor> exec,
+            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,

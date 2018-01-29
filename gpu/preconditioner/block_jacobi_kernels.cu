@@ -44,7 +44,7 @@ namespace block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const Executor> exec,
+void find_blocks(std::shared_ptr<const GpuExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
@@ -54,7 +54,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void generate(std::shared_ptr<const GpuExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
@@ -64,7 +65,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void apply(size_type num_blocks, uint32 max_block_size, size_type padding,
+void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type padding,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -77,8 +79,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(size_type num_blocks, uint32 max_block_size,
-                  size_type padding, const Array<IndexType> &block_pointers,
+void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
+                  uint32 max_block_size, size_type padding,
+                  const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
