@@ -44,7 +44,8 @@ namespace block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void find_blocks(std::shared_ptr<const Executor> exec,
+                 const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
 
