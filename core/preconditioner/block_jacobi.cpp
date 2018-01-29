@@ -95,6 +95,8 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
+    ASSERT_EQUAL_DIMENSIONS(system_matrix, size(system_matrix->get_num_cols(),
+                                                system_matrix->get_num_rows()));
     using csr = matrix::Csr<ValueType, IndexType>;
     std::unique_ptr<csr> csr_mtx_handle{};
     const csr *csr_mtx;
