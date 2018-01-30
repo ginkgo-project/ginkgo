@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -64,7 +65,7 @@ class CgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public BasicLinOp<Cg<ValueType>> {
+class Cg : public BasicLinOp<Cg<ValueType>>, public PreconditionedMethod {
     friend class BasicLinOp<Cg>;
     friend class CgFactory<ValueType>;
 
@@ -136,7 +137,7 @@ private:
  * generate the CG solver.
  */
 template <typename ValueType = default_precision>
-class CgFactory : public LinOpFactory {
+class CgFactory : public LinOpFactory, public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
     /**
@@ -180,13 +181,15 @@ public:
 protected:
     explicit CgFactory(std::shared_ptr<const Executor> exec, int max_iters,
                        remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(std::move(exec)),
+        : LinOpFactory(exec),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
 
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
+    int max_iters_{};
+    remove_complex<value_type> rel_residual_goal_{};
 };
 
 

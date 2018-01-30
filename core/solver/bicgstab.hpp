@@ -34,10 +34,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_BICGSTAB_HPP_
 #define GKO_CORE_SOLVER_BICGSTAB_HPP_
 
+
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -59,7 +61,8 @@ class BicgstabFactory;
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public BasicLinOp<Bicgstab<ValueType>> {
+class Bicgstab : public BasicLinOp<Bicgstab<ValueType>>,
+                 public PreconditionedMethod {
     friend class BasicLinOp<Bicgstab>;
     friend class BicgstabFactory<ValueType>;
 
@@ -138,7 +141,8 @@ private:
  * @return The newly created BiCGSTAB solver.
  */
 template <typename ValueType = default_precision>
-class BicgstabFactory : public LinOpFactory {
+class BicgstabFactory : public LinOpFactory,
+                        public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
 
@@ -173,7 +177,9 @@ public:
 protected:
     BicgstabFactory(std::shared_ptr<const Executor> exec, int max_iters,
                     remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(std::move(exec)),
+        : LinOpFactory(exec),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
