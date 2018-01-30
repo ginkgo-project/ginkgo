@@ -32,6 +32,6 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/ginkgo_overhead \
+${CXX} -std=c++11 -O3 -o ${THIS_DIR}/ginkgo_overhead \
     ${THIS_DIR}/ginkgo_overhead.cpp \
     -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}

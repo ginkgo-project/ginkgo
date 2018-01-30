@@ -52,7 +52,7 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
+c++ -O3 -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
