@@ -84,8 +84,8 @@ mkdir build; cd build
 cmake -G "Unix Makefiles" [OPTIONS] .. && make
 ```
 
-Replace [OPTIONS] with your options desired cmake options.
-Ginkgo adds the following options to control what is being built:
+Replace `[OPTIONS]` with desired cmake options for your build.
+Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DDEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),

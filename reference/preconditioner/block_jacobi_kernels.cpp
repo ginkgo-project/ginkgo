@@ -42,18 +42,105 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace reference {
 namespace block_jacobi {
+namespace {
+
+
+template <typename IndexType>
+inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
+                                     const IndexType *curr_row_ptr,
+                                     const IndexType *next_row_ptr)
+{
+    if (next_row_ptr - curr_row_ptr != curr_row_ptr - prev_row_ptr) {
+        return false;
+    }
+    for (; curr_row_ptr < next_row_ptr; ++prev_row_ptr, ++curr_row_ptr) {
+        if (*curr_row_ptr != *prev_row_ptr) {
+            return false;
+        }
+    }
+    return true;
+}
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix,
+size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
+                              int32 max_block_size, IndexType *block_ptrs)
+{
+    const auto rows = mtx->get_num_rows();
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idx = mtx->get_const_col_idxs();
+    block_ptrs[0] = 0;
+    if (rows == 0) {
+        return 0;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = 1;
+    for (size_type i = 1; i < rows; ++i) {
+        const auto prev_row_ptr = col_idx + row_ptrs[i - 1];
+        const auto curr_row_ptr = col_idx + row_ptrs[i];
+        const auto next_row_ptr = col_idx + row_ptrs[i + 1];
+        if (current_block_size < max_block_size &&
+            has_same_nonzero_pattern(prev_row_ptr, curr_row_ptr,
+                                     next_row_ptr)) {
+            ++current_block_size;
+        } else {
+            block_ptrs[num_blocks] =
+                block_ptrs[num_blocks - 1] + current_block_size;
+            ++num_blocks;
+            current_block_size = 1;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
+    return num_blocks;
+}
+
+
+template <typename IndexType>
+inline size_type agglomerate_supervariables(int32 max_block_size,
+                                            size_type num_natural_blocks,
+                                            IndexType *block_ptrs)
+{
+    if (num_natural_blocks == 0) {
+        return 0;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    for (size_type i = 1; i < num_natural_blocks; ++i) {
+        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        if (current_block_size + block_size <= max_block_size) {
+            current_block_size += block_size;
+        } else {
+            block_ptrs[num_blocks] = block_ptrs[i];
+            ++num_blocks;
+            current_block_size = block_size;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
+    return num_blocks;
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
+                 const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
+                 Array<IndexType> &block_pointers)
+{
+    num_blocks = find_natural_blocks(system_matrix, max_block_size,
+                                     block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(max_block_size, num_blocks,
+                                            block_pointers.get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
@@ -176,7 +263,8 @@ inline void invert_block(IndexType block_size, ValueType *block,
 
 
 template <typename ValueType, typename IndexType>
-void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
@@ -189,9 +277,96 @@ void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+namespace {
+
+
+template <typename ValueType>
+inline void apply_block(size_type block_size, size_type num_rhs,
+                        const ValueType *block, size_type padding,
+                        ValueType alpha, const ValueType *b,
+                        size_type padding_b, ValueType beta, ValueType *x,
+                        size_type padding_x)
+{
+    if (beta != zero<ValueType>()) {
+        for (size_type row = 0; row < block_size; ++row) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] *= beta;
+            }
+        }
+    } else {
+        for (size_type row = 0; row < block_size; ++row) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] = zero<ValueType>();
+            }
+        }
+    }
+
+    for (size_type row = 0; row < block_size; ++row) {
+        for (size_type inner = 0; inner < block_size; ++inner) {
+            for (size_type col = 0; col < num_rhs; ++col) {
+                x[row * padding_x + col] += alpha *
+                                            block[row * padding + inner] *
+                                            b[inner * padding_b + col];
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type padding,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        apply_block(block_size, b->get_num_cols(), block, padding,
+                    alpha->at(0, 0), block_b, b->get_padding(), beta->at(0, 0),
+                    block_x, x->get_padding());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
+                  size_type num_blocks, uint32 max_block_size,
+                  size_type padding, const Array<IndexType> &block_pointers,
+                  const Array<ValueType> &blocks,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        apply_block(block_size, b->get_num_cols(), block, padding,
+                    one<ValueType>(), block_b, b->get_padding(),
+                    zero<ValueType>(), block_x, x->get_padding());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
 }  // namespace block_jacobi

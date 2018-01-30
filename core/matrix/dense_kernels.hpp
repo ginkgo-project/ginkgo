@@ -42,47 +42,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 
-#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type) \
-    void simple_apply(const matrix::Dense<_type> *a, \
+#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type)               \
+    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                      const matrix::Dense<_type> *a,               \
                       const matrix::Dense<_type> *b, matrix::Dense<_type> *c)
 
 #define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                                \
-    void apply(const matrix::Dense<_type> *alpha,                            \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,                  \
+               const matrix::Dense<_type> *alpha,                            \
                const matrix::Dense<_type> *a, const matrix::Dense<_type> *b, \
                const matrix::Dense<_type> *beta, matrix::Dense<_type> *c)
 
 
-#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type) \
-    void scale(const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
+#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type)               \
+    void scale(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
 
 
-#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)     \
-    void add_scaled(const matrix::Dense<_type> *alpha, \
+#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)               \
+    void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
+                    const matrix::Dense<_type> *alpha,           \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
 
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type) \
-    void compute_dot(const matrix::Dense<_type> *x, \
-                     const matrix::Dense<_type> *y, \
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
+    void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
+                     const matrix::Dense<_type> *x,               \
+                     const matrix::Dense<_type> *y,               \
                      matrix::Dense<_type> *result)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec) \
-    void convert_to_csr(matrix::Csr<_type, _prec> *other,     \
+#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)        \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Csr<_type, _prec> *other,            \
                         const matrix::Dense<_type> *source)
 
-#define GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(_type, _prec) \
-    void move_to_csr(matrix::Csr<_type, _prec> *other,     \
+#define GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(_type, _prec)        \
+    void move_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                     matrix::Csr<_type, _prec> *other,            \
                      const matrix::Dense<_type> *source)
 
-#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type) \
-    void count_nonzeros(const matrix::Dense<_type> *source, size_type *result)
+#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
+    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
+                        const matrix::Dense<_type> *source, size_type *result)
 
-#define GKO_DECLARE_TRANSPOSE_KERNEL(_type)     \
-    void transpose(matrix::Dense<_type> *trans, \
+#define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec, \
+                   matrix::Dense<_type> *trans,                 \
                    const matrix::Dense<_type> *orig)
 
-#define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)     \
-    void conj_transpose(matrix::Dense<_type> *trans, \
+#define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)                     \
+    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Dense<_type> *trans,                 \
                         const matrix::Dense<_type> *orig)
 
 #define DECLARE_ALL_AS_TEMPLATES                                   \

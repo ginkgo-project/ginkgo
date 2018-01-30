@@ -163,36 +163,38 @@ class ExecutorBase;
 class Operation {
 public:
 #define DECLARE_RUN_OVERLOAD(_type, _unused) \
-    virtual void run(const _type *) const
+    virtual void run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
 
 #undef DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to CpuExecutor's
-    virtual void run(const ReferenceExecutor *executor) const;
+    virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
 };
 
 
 namespace detail {
 
 
-template <int K, int... Ns, typename F, typename Tuple>
-typename std::enable_if<(K == 0)>::type call_impl(F f, Tuple &data)
+template <int K, int... Ns, typename F, typename Exec, typename Tuple>
+typename std::enable_if<(K == 0)>::type call_impl(
+    F f, std::shared_ptr<const Exec> &exec, Tuple &data)
 {
-    f(std::get<Ns>(data)...);
+    f(exec, std::get<Ns>(data)...);
 }
 
-template <int K, int... Ns, typename F, typename Tuple>
-typename std::enable_if<(K > 0)>::type call_impl(F f, Tuple &data)
+template <int K, int... Ns, typename F, typename Exec, typename Tuple>
+typename std::enable_if<(K > 0)>::type call_impl(
+    F f, std::shared_ptr<const Exec> &exec, Tuple &data)
 {
-    call_impl<K - 1, K - 1, Ns...>(f, data);
+    call_impl<K - 1, K - 1, Ns...>(f, exec, data);
 }
 
-template <typename F, typename... Args>
-void call(F f, std::tuple<Args...> &data)
+template <typename F, typename Exec, typename... Args>
+void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
 {
-    call_impl<sizeof...(Args)>(f, data);
+    call_impl<sizeof...(Args)>(f, exec, data);
 }
 
 
@@ -260,19 +262,19 @@ void call(F f, std::tuple<Args...> &data)
         _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
         {}                                                                     \
                                                                                \
-        void run(const CpuExecutor *) const override                           \
+        void run(std::shared_ptr<const CpuExecutor> exec) const override       \
         {                                                                      \
-            detail::call(kernels::cpu::_kernel, data);                         \
+            detail::call(kernels::cpu::_kernel, exec, data);                   \
         }                                                                      \
                                                                                \
-        void run(const GpuExecutor *) const override                           \
+        void run(std::shared_ptr<const GpuExecutor> exec) const override       \
         {                                                                      \
-            detail::call(kernels::gpu::_kernel, data);                         \
+            detail::call(kernels::gpu::_kernel, exec, data);                   \
         }                                                                      \
                                                                                \
-        void run(const ReferenceExecutor *) const override                     \
+        void run(std::shared_ptr<const ReferenceExecutor> exec) const override \
         {                                                                      \
-            detail::call(kernels::reference::_kernel, data);                   \
+            detail::call(kernels::reference::_kernel, exec, data);             \
         }                                                                      \
                                                                                \
     private:                                                                   \
@@ -532,9 +534,15 @@ private:
             : op_cpu_(op_cpu), op_gpu_(op_gpu)
         {}
 
-        void run(const CpuExecutor *) const override { op_cpu_(); }
+        void run(std::shared_ptr<const CpuExecutor>) const override
+        {
+            op_cpu_();
+        }
 
-        void run(const GpuExecutor *) const override { op_gpu_(); }
+        void run(std::shared_ptr<const GpuExecutor>) const override
+        {
+            op_gpu_();
+        }
 
     private:
         ClosureCpu op_cpu_;
@@ -549,7 +557,10 @@ namespace detail {
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
 public:
-    void run(const Operation &op) const override { op.run(self()); }
+    void run(const Operation &op) const override
+    {
+        op.run(self()->shared_from_this());
+    }
 
 protected:
     void raw_copy_from(const Executor *src_exec, size_type n_bytes,
@@ -584,6 +595,8 @@ private:
  */
 class CpuExecutor : public detail::ExecutorBase<CpuExecutor>,
                     public std::enable_shared_from_this<CpuExecutor> {
+    friend class detail::ExecutorBase<CpuExecutor>;
+
 public:
     /**
      * Creates a new CpuExecutor.
@@ -610,6 +623,13 @@ protected:
 };
 
 
+namespace kernels {
+namespace cpu {
+using DefaultExecutor = CpuExecutor;
+}  // namespace cpu
+}  // namespace kernels
+
+
 /**
  * This is a specialization of the CpuExecutor, which runs the reference
  * implementations of the kernels used for debugging purposes.
@@ -621,17 +641,31 @@ public:
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
     }
 
-    void run(const Operation &op) const override { op.run(this); }
+    void run(const Operation &op) const override
+    {
+        op.run(std::static_pointer_cast<const ReferenceExecutor>(
+            this->shared_from_this()));
+    }
 
 protected:
     ReferenceExecutor() = default;
 };
 
 
+namespace kernels {
+namespace reference {
+using DefaultExecutor = ReferenceExecutor;
+}  // namespace reference
+}  // namespace kernels
+
+
 /**
  * This is the Executor subclass which represents the GPU device.
  */
-class GpuExecutor : public detail::ExecutorBase<GpuExecutor> {
+class GpuExecutor : public detail::ExecutorBase<GpuExecutor>,
+                    public std::enable_shared_from_this<GpuExecutor> {
+    friend class ExecutorBase<GpuExecutor>;
+
 public:
     /**
      * Creates a new GpuExecutor.
@@ -677,6 +711,13 @@ private:
     int device_id_;
     std::shared_ptr<CpuExecutor> master_;
 };
+
+
+namespace kernels {
+namespace gpu {
+using DefaultExecutor = GpuExecutor;
+}  // namespace gpu
+}  // namespace kernels
 
 
 #undef OVERRIDE_RAW_COPY_TO

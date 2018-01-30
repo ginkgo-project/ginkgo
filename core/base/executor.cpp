@@ -41,15 +41,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void Operation::run(const CpuExecutor *executor) const NOT_IMPLEMENTED;
+void Operation::run(std::shared_ptr<const CpuExecutor> executor) const
+    NOT_IMPLEMENTED;
 
 
-void Operation::run(const GpuExecutor *executor) const NOT_IMPLEMENTED;
+void Operation::run(std::shared_ptr<const GpuExecutor> executor) const
+    NOT_IMPLEMENTED;
 
 
-void Operation::run(const ReferenceExecutor *executor) const
+void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
 {
-    this->run(static_cast<const CpuExecutor *>(executor));
+    this->run(static_cast<std::shared_ptr<const CpuExecutor>>(executor));
 }
 
 

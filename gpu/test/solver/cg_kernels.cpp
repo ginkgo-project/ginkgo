@@ -198,9 +198,10 @@ TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::initialize(b.get(), r.get(), z.get(), p.get(),
-                                            q.get(), prev_rho.get(), rho.get());
-    gko::kernels::gpu::cg::initialize(d_b.get(), d_r.get(), d_z.get(),
+    gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
+                                            p.get(), q.get(), prev_rho.get(),
+                                            rho.get());
+    gko::kernels::gpu::cg::initialize(gpu, d_b.get(), d_r.get(), d_z.get(),
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
                                       d_rho.get());
 
@@ -218,9 +219,9 @@ TEST_F(Cg, GpuCgStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::step_1(p.get(), z.get(), rho.get(),
+    gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
                                         prev_rho.get());
-    gko::kernels::gpu::cg::step_1(d_p.get(), d_z.get(), d_rho.get(),
+    gko::kernels::gpu::cg::step_1(gpu, d_p.get(), d_z.get(), d_rho.get(),
                                   d_prev_rho.get());
     copy_back_data();
 
@@ -232,10 +233,10 @@ TEST_F(Cg, GpuCgStep1IsEquivalentToRef)
 TEST_F(Cg, GpuCgStep2IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::cg::step_2(x.get(), r.get(), p.get(), q.get(),
+    gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
                                         beta.get(), rho.get());
-    gko::kernels::gpu::cg::step_2(d_x.get(), d_r.get(), d_p.get(), d_q.get(),
-                                  d_beta.get(), d_rho.get());
+    gko::kernels::gpu::cg::step_2(gpu, d_x.get(), d_r.get(), d_p.get(),
+                                  d_q.get(), d_beta.get(), d_rho.get());
 
     copy_back_data();
 
