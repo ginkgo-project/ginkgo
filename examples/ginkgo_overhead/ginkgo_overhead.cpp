@@ -52,74 +52,70 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
+c++ -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
 
 *****************************<COMPILATION>**********************************/
 
+
 #include <include/ginkgo.hpp>
+
+
+#include <chrono>
+#include <cmath>
 #include <iostream>
-#include <string>
+
+
+[[noreturn]] void print_usage_and_exit(const char *name)
+{
+    std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
+    std::exit(-1);
+}
+
 
 int main(int argc, char *argv[])
 {
-    // Some shortcuts
     using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
+    using mtx = gko::matrix::Dense<>;
     using cg = gko::solver::CgFactory<>;
 
-    // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cpu") {
-        exec = gko::CpuExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "gpu" &&
-               gko::GpuExecutor::get_num_devices() > 0) {
-        exec = gko::GpuExecutor::create(0, gko::CpuExecutor::create());
-    } else {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
-        std::exit(-1);
+    long num_iters = 1000000;
+    if (argc > 2) {
+        print_usage_and_exit(argv[0]);
+    }
+    if (argc == 2) {
+        num_iters = std::atol(argv[1]);
+        if (num_iters == 0) {
+            print_usage_and_exit(argv[0]);
+        }
     }
 
-    // Read data
-    std::shared_ptr<mtx> A = mtx::create(exec);
-    A->read_from_mtx("data/A.mtx");
-    auto b = vec::create(exec);
-    b->read_from_mtx("data/b.mtx");
-    auto x = vec::create(exec);
-    x->read_from_mtx("data/x0.mtx");
+    auto exec = gko::ReferenceExecutor::create();
 
-    // Generate solver
-    auto solver_gen = cg::create(exec, 20, 1e-20);
-    auto solver = solver_gen->generate(A);
+    auto cg_factory = cg::create(exec, num_iters, 0.0);
+    auto A = gko::initialize<mtx>({1.0}, exec);
+    auto b = gko::initialize<vec>({std::nan("")}, exec);
+    auto x = gko::initialize<vec>({0.0}, exec);
 
-    // Solve system
-    solver->apply(b.get(), x.get());
+    auto tic = std::chrono::system_clock::now();
 
-    // Print result
-    auto h_x = vec::create(exec->get_master());
-    h_x->copy_from(x.get());
-    std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_num_rows(); ++i) {
-        std::cout << "    " << h_x->at(i, 0) << std::endl;
-    }
-    std::cout << "];" << std::endl;
+    auto solver = cg_factory->generate(std::move(A));
+    solver->apply(x.get(), b.get());
+    exec->synchronize();
 
-    // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(one.get(), x.get(), neg_one.get(), b.get());
-    b->compute_dot(b.get(), res.get());
+    auto tac = std::chrono::system_clock::now();
 
-    auto h_res = vec::create(exec->get_master());
-    h_res->copy_from(std::move(res));
-    std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
+    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
+    std::cout << "Running " << num_iters
+              << " iterations of the CG solver took a total of "
+              << 1.0 * time.count() / std::nano::den << " seconds." << std::endl
+              << "\tAverage library overhead:     "
+              << 1.0 * time.count() / num_iters << " [nanoseconds / iteration]"
+              << std::endl;
 }
