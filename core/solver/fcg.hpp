@@ -34,11 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_FCG_HPP_
 #define GKO_CORE_SOLVER_FCG_HPP_
 
+
 #include "core/base/array.hpp"
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -67,7 +69,7 @@ class FcgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Fcg : public BasicLinOp<Fcg<ValueType>> {
+class Fcg : public BasicLinOp<Fcg<ValueType>>, public PreconditionedMethod {
     friend class BasicLinOp<Fcg>;
     friend class FcgFactory<ValueType>;
 
@@ -139,7 +141,7 @@ private:
  * used to generate the FCG solver.
  */
 template <typename ValueType = default_precision>
-class FcgFactory : public LinOpFactory {
+class FcgFactory : public LinOpFactory, public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
     /**
@@ -183,7 +185,9 @@ public:
 protected:
     explicit FcgFactory(std::shared_ptr<const Executor> exec, int max_iters,
                         remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(std::move(exec)),
+        : LinOpFactory(exec),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}

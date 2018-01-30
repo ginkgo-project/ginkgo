@@ -151,4 +151,33 @@ TEST_F(Fcg, CanBeCleared)
 }
 
 
+TEST_F(Fcg, CanSetPreconditioner)
+{
+    std::shared_ptr<Mtx> precond =
+        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
+    auto fcg_solver = static_cast<gko::solver::Fcg<> *>(solver.get());
+
+    fcg_solver->set_preconditioner(precond);
+
+    ASSERT_EQ(fcg_solver->get_preconditioner(), precond);
+}
+
+
+TEST_F(Fcg, CanSetPreconditionerGenertor)
+{
+    fcg_factory->set_preconditioner(
+        gko::solver::FcgFactory<>::create(exec, 3, 0.0));
+    auto solver = fcg_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
+        static_cast<gko::solver::Fcg<> *>(solver.get())
+            ->get_preconditioner()
+            .get());
+
+    ASSERT_NE(precond, nullptr);
+    ASSERT_EQ(precond->get_num_rows(), 3);
+    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_system_matrix(), mtx);
+}
+
+
 }  // namespace

@@ -125,8 +125,7 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     starting_tau->copy_from(tau.get());
 
     for (int iter = 0; iter < max_iters_; ++iter) {
-        // TODO: replace with preconditioner application.
-        z->copy_from(r.get());
+        preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         master_tau->copy_from(tau.get());
@@ -168,11 +167,11 @@ template <typename ValueType>
 std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
     auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
-    ASSERT_EQUAL_DIMENSIONS(cg->system_matrix_,
-                            size(cg->system_matrix_->get_num_cols(),
-                                 cg->system_matrix_->get_num_rows()));
+    cg->set_preconditioner(precond_factory_->generate(base));
     return std::move(cg);
 }
 

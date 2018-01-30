@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/solver/cg.hpp>
 
 
+#include <typeinfo>
+
+
 #include <gtest/gtest.h>
 
 
@@ -155,6 +158,35 @@ TEST_F(Cg, CanBeCleared)
     ASSERT_EQ(solver->get_num_stored_elements(), 0);
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
+}
+
+
+TEST_F(Cg, CanSetPreconditioner)
+{
+    std::shared_ptr<Mtx> precond =
+        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
+    auto cg_solver = static_cast<gko::solver::Cg<> *>(solver.get());
+
+    cg_solver->set_preconditioner(precond);
+
+    ASSERT_EQ(cg_solver->get_preconditioner(), precond);
+}
+
+
+TEST_F(Cg, CanSetPreconditionerGenertor)
+{
+    cg_factory->set_preconditioner(
+        gko::solver::CgFactory<>::create(exec, 3, 0.0));
+    auto solver = cg_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::Cg<> *>(
+        static_cast<gko::solver::Cg<> *>(solver.get())
+            ->get_preconditioner()
+            .get());
+
+    ASSERT_NE(precond, nullptr);
+    ASSERT_EQ(precond->get_num_rows(), 3);
+    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 
 

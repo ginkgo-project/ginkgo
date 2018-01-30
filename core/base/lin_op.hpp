@@ -478,6 +478,87 @@ public:
 };
 
 
+/**
+ * PreconditionedMethod is inherited by linear operators that support
+ * preconditioning.
+ *
+ * The class adds utilities for setting and getting the preconditioner operator.
+ */
+class PreconditionedMethod {
+public:
+    /**
+     * Sets the preconditioner operator used by PreconditionedMethod.
+     *
+     * @param preconditioner  the precondtioner operator
+     */
+    void set_preconditioner(
+        std::shared_ptr<const LinOp> preconditioner) noexcept
+    {
+        preconditioner_ = preconditioner;
+    }
+
+    /**
+     * Returns the preconditioner operator used by PreconditionedMethod.
+     *
+     * @return the preconditioner operator
+     */
+    std::shared_ptr<const LinOp> get_preconditioner() const noexcept
+    {
+        return preconditioner_;
+    }
+
+protected:
+    PreconditionedMethod() = default;
+
+    explicit PreconditionedMethod(std::shared_ptr<const LinOp> preconditioner)
+        : preconditioner_(preconditioner)
+    {}
+
+    std::shared_ptr<const LinOp> preconditioner_{};
+};
+
+
+/**
+ * PreconditionedMethodFactory is inherited by operator factories which
+ * generate PreconditionedMethod operators.
+ *
+ * The class adds utilities for setting and getting the LinOpFactory
+ * used to generate the preconditioner.
+ */
+class PreconditionedMethodFactory {
+public:
+    /**
+     * Sets the LinOpFactory which will be used by the
+     * PreconditionedMethodFactory to generate the preconditioner.
+     *
+     * @param precond_factory  LinOp factory used to generate the preconditioner
+     */
+    void set_preconditioner(std::shared_ptr<const LinOpFactory> precond_factory)
+    {
+        precond_factory_ = precond_factory;
+    }
+
+    /**
+     * Returns the LinOpFactory used by the PreconditionedMethodFactory to
+     * generate the preconditioner.
+     *
+     * @return the LinOpFactory used to generate the preconditioner
+     */
+    std::shared_ptr<const LinOpFactory> get_preconditioner() const
+    {
+        return precond_factory_;
+    }
+
+protected:
+    explicit PreconditionedMethodFactory(
+        std::shared_ptr<const LinOpFactory> precond_factory_)
+        : precond_factory_(precond_factory_)
+    {}
+
+    std::shared_ptr<const LinOpFactory> precond_factory_{};
+};
+
+
 }  // namespace gko
 
 
