@@ -49,12 +49,9 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 /**
- * COO is a matrix format which stores only the nonzero coefficients by
- * compressing the entire 2D coefficient table (coordinate matrix format).
- *
- * The nonzero elements are stored in a 1D array row-wise. Additional row index
- * and column index arrays are used to identify both the row and the column of
- * each nonzero element.
+ * COO stores a matrix in the coordinate matrix format. That is, the nonzero
+ * elements are stored in a array complemented by two arrays containing the row
+ * and column indexes of each nonzero element of the matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -67,6 +64,7 @@ class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
     friend class BasicLinOp<Coo>;
 
 public:
+    using BasicLinOp<Coo>::clear;
     using BasicLinOp<Coo>::create;
     using BasicLinOp<Coo>::convert_to;
     using BasicLinOp<Coo>::move_to;
@@ -78,8 +76,6 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    void clear() override;
 
     void convert_to(Csr<ValueType, IndexType> *other) const override;
 

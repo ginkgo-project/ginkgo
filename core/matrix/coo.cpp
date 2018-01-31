@@ -137,12 +137,12 @@ void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
                       data.num_cols, nnz);
     size_type elt = 0;
-    for (size_type ind = 0; ind < data.nonzeros.size(); ind++) {
-        auto val = std::get<2>(data.nonzeros[ind]);
+    for (auto data : data.nonzeros) {
+        auto val = std::get<2>(data);
         if (val != zero<ValueType>()) {
-            tmp->get_row_idxs()[elt] = std::get<0>(data.nonzeros[ind]);
-            tmp->get_col_idxs()[elt] = std::get<1>(data.nonzeros[ind]);
-            tmp->get_values()[elt] = std::get<2>(data.nonzeros[ind]);
+            tmp->get_row_idxs()[elt] = std::get<0>(data);
+            tmp->get_col_idxs()[elt] = std::get<1>(data);
+            tmp->get_values()[elt] = std::get<2>(data);
             elt++;
         }
     }
