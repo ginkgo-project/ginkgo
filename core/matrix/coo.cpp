@@ -109,6 +109,8 @@ void Coo<ValueType, IndexType>::convert_to(
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_convert_to_csr_operation(
             tmp.get(), this));
+    tmp->values_ = this->values_;
+    tmp->col_idxs_ = this->col_idxs_;
     tmp->move_to(result);
 }
 
@@ -123,6 +125,8 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_move_to_csr_operation(
             tmp.get(), this));
+    tmp->values_ = std::move(this->values_);
+    tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);
 }
 

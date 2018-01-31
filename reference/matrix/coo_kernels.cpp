@@ -77,22 +77,17 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 {
     size_type ind = 0;
     size_type cur_ptr = 0;
+    size_type cumsum = 0;
 
-    result->get_values()[0] = cur_ptr;
+    result->get_row_ptrs()[0] = cur_ptr;
     for (size_type row = 0; row < source->get_num_rows(); ++row) {
         for (; ind < source->get_num_stored_elements(); ++ind) {
             if (source->get_const_row_idxs()[ind] > (IndexType)row) {
                 break;
             }
-            auto val = source->get_const_values()[ind];
-            if (val != zero<ValueType>()) {
-                result->get_values()[cur_ptr] = val;
-                result->get_values()[cur_ptr] =
-                    source->get_const_row_idxs()[ind];
-                ++cur_ptr;
-            }
+            ++cur_ptr;
         }
-        result->get_values()[row + 1] = cur_ptr;
+        result->get_row_ptrs()[row + 1] = cur_ptr;
     }
 }
 

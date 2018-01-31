@@ -49,6 +49,7 @@ namespace {
 
 class Coo : public ::testing::Test {
 protected:
+    using Csr = gko::matrix::Csr<>;
     using Mtx = gko::matrix::Coo<>;
     using Vec = gko::matrix::Dense<>;
 
@@ -73,18 +74,17 @@ protected:
         v[3] = 5.0;
     }
 
-    void assert_equal_to_mtx_in_csr_format(const Mtx *m)
+    void assert_equal_to_mtx_in_csr_format(const Csr *m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_idxs();
+        auto r = m->get_const_row_ptrs();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 0);
-        EXPECT_EQ(r[2], 0);
-        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(r[1], 3);
+        EXPECT_EQ(r[2], 4);
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
@@ -104,7 +104,7 @@ TEST_F(Coo, ConvertsToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
     mtx->convert_to(csr_mtx.get());
-    assert_equal_to_mtx_in_csr_format(mtx.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx.get());
 }
 
 
@@ -112,7 +112,7 @@ TEST_F(Coo, MovesToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
     mtx->move_to(csr_mtx.get());
-    assert_equal_to_mtx_in_csr_format(mtx.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx.get());
 }
 
 
