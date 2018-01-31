@@ -64,7 +64,6 @@ class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
     friend class BasicLinOp<Coo>;
 
 public:
-    using BasicLinOp<Coo>::clear;
     using BasicLinOp<Coo>::create;
     using BasicLinOp<Coo>::convert_to;
     using BasicLinOp<Coo>::move_to;

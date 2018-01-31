@@ -126,6 +126,7 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
     tmp->move_to(result);
 }
 
+
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
@@ -137,12 +138,12 @@ void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
                       data.num_cols, nnz);
     size_type elt = 0;
-    for (auto data : data.nonzeros) {
-        auto val = std::get<2>(data);
+    for (const auto &elem : data.nonzeros) {
+        auto val = std::get<2>(elem);
         if (val != zero<ValueType>()) {
-            tmp->get_row_idxs()[elt] = std::get<0>(data);
-            tmp->get_col_idxs()[elt] = std::get<1>(data);
-            tmp->get_values()[elt] = std::get<2>(data);
+            tmp->get_row_idxs()[elt] = std::get<0>(elem);
+            tmp->get_col_idxs()[elt] = std::get<1>(elem);
+            tmp->get_values()[elt] = std::get<2>(elem);
             elt++;
         }
     }
