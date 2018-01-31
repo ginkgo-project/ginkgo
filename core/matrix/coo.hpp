@@ -49,9 +49,11 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 /**
- * COO stores a matrix in the coordinate matrix format. That is, the nonzero
- * elements are stored in a array complemented by two arrays containing the row
- * and column indexes of each nonzero element of the matrix.
+ * COO stores a matrix in the coordinate matrix format.
+ *
+ * The nonzero elements are stored in an array row-wise (but not neccessarily
+ * sorted by column index within a row). Two extra arrays contain the row and
+ * column indexes of each nonzero element of the matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
