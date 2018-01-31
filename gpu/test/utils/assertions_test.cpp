@@ -31,31 +31,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/csr.hpp>
 
-
-#include <random>
+#include <core/test/utils/assertions.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
+#include <core/matrix/csr.hpp>
 #include <core/matrix/dense.hpp>
-#include <core/test/utils.hpp>
 
 
 namespace {
 
 
-class Csr : public ::testing::Test {
+class MatricesNear : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<>;
-    using Vec = gko::matrix::Dense<>;
-
-    Csr() : rand_engine(42) {}
-
     void SetUp()
     {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
@@ -70,72 +61,23 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
-    {
-        return gko::test::generate_random_matrix<Vec>(
-            ref, num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine);
-    }
-
-    void set_up_apply_data()
-    {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
-        alpha = gko::initialize<Vec>({2.0}, ref);
-        beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(gpu);
-        dmtx->copy_from(mtx.get());
-        dresult = Vec::create(gpu);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(gpu);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(gpu);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(gpu);
-        dbeta->copy_from(beta.get());
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
-
-    std::ranlux48 rand_engine;
-
-    std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Vec> expected;
-    std::unique_ptr<Vec> y;
-    std::unique_ptr<Vec> alpha;
-    std::unique_ptr<Vec> beta;
-
-    std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<Vec> dresult;
-    std::unique_ptr<Vec> dy;
-    std::unique_ptr<Vec> dalpha;
-    std::unique_ptr<Vec> dbeta;
 };
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRef)
+TEST_F(MatricesNear, CanPassGpuMatrix)
 {
-    set_up_apply_data();
+    auto mtx = gko::initialize<gko::matrix::Dense<>>(
+        {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
+    // TODO: GPU conversion Dense -> Csr not yet implemented
+    auto csr_cpu = gko::matrix::Csr<>::create(ref);
+    csr_cpu->copy_from(mtx.get());
+    auto csr_mtx = gko::matrix::Csr<>::create(gpu);
+    csr_mtx->copy_from(std::move(csr_cpu));
 
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }
 
 

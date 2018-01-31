@@ -115,35 +115,8 @@ double get_relative_error(const matrix::Dense<ValueType1> *first,
 }
 
 
-}  // namespace detail
-
-
-/**
- * This is a gtest predicate which checks if two matrices are relatively near.
- *
- * More formally, it checks whether the following equation holds:
- *
- * ```
- * ||first - second|| <= tolerance * max(||first||, ||second||)
- * ```
- *
- * This function should not be called directly, but used in conjunction with
- * `ASSERT_PRED_FORMAT3` as follows:
- *
- * ```
- * // Check if first and second are near
- * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
- *                     first, second, tolerance);
- * // Check if first and second are far
- * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
- *                     first, second, tolerance);
- * ```
- *
- * @see ASSERT_MTX_NEAR
- * @see EXPECT_MTX_NEAR
- */
 template <typename ValueType1, typename ValueType2>
-::testing::AssertionResult matrices_near(
+::testing::AssertionResult matrices_near_impl(
     const char *first_expression, const char *second_expression,
     const char *tolerance_expression, const matrix::Dense<ValueType1> *first,
     const matrix::Dense<ValueType2> *second, double tolerance)
@@ -179,15 +152,77 @@ template <typename ValueType1, typename ValueType2>
 }
 
 
-template <typename ValueType1, typename U>
+template <typename T>
+struct remove_container_impl {
+    using type = T;
+};
+
+template <typename T>
+struct remove_container_impl<std::initializer_list<T>> {
+    using type = typename remove_container_impl<T>::type;
+};
+
+
+template <typename T>
+using remove_container = typename remove_container_impl<T>::type;
+
+
+}  // namespace detail
+
+
+/**
+ * This is a gtest predicate which checks if two matrices are relatively near.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||first - second|| <= tolerance * max(||first||, ||second||)
+ * ```
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * ```
+ *
+ * @see ASSERT_MTX_NEAR
+ * @see EXPECT_MTX_NEAR
+ */
+template <typename LinOp1, typename LinOp2>
 ::testing::AssertionResult matrices_near(const char *first_expression,
                                          const char *second_expression,
                                          const char *tolerance_expression,
-                                         const matrix::Dense<ValueType1> *first,
-                                         std::initializer_list<U> second,
+                                         const LinOp1 *first,
+                                         const LinOp2 *second, double tolerance)
+{
+    auto exec = first->get_executor()->get_master();
+    auto first_dense = matrix::Dense<typename LinOp1::value_type>::create(exec);
+    auto second_dense =
+        matrix::Dense<typename LinOp2::value_type>::create(exec);
+    first_dense->copy_from(first->clone_to(exec));
+    second_dense->copy_from(second->clone_to(exec));
+
+    return detail::matrices_near_impl(first_expression, second_expression,
+                                      tolerance_expression, first_dense.get(),
+                                      second_dense.get(), tolerance);
+}
+
+
+template <typename LinOp1, typename T>
+::testing::AssertionResult matrices_near(const char *first_expression,
+                                         const char *second_expression,
+                                         const char *tolerance_expression,
+                                         const LinOp1 *first,
+                                         std::initializer_list<T> second,
                                          double tolerance)
 {
-    auto second_mtx = initialize<matrix::Dense<ValueType1>>(
+    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
         second, first->get_executor()->get_master());
     return matrices_near(first_expression, second_expression,
                          tolerance_expression, first, second_mtx.get(),
@@ -259,26 +294,26 @@ T plain_ptr(T ptr)
  * @param _mtx2  second matrix
  * @param _tol  tolerance level
  */
-#define ASSERT_MTX_NEAR(_mtx1, _mtx2, _tol)                                   \
-    do {                                                                      \
-        using ::gko::test::assertions::detail::l;                             \
-        auto res = ::gko::test::assertions::detail::plain_ptr(_mtx1);         \
-        auto exp = ::gko::test::assertions::detail::plain_ptr(_mtx2);         \
-        ASSERT_PRED_FORMAT3(::gko::test::assertions::matrices_near, res, exp, \
-                            _tol);                                            \
+#define ASSERT_MTX_NEAR(_mtx1, _mtx2, _tol)                                  \
+    do {                                                                     \
+        using ::gko::test::assertions::detail::l;                            \
+        auto _result = ::gko::test::assertions::detail::plain_ptr(_mtx1);    \
+        auto _expected = ::gko::test::assertions::detail::plain_ptr(_mtx2);  \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::matrices_near, _result, \
+                            _expected, _tol);                                \
     } while (false)
 
 
 /**
  * @copydoc ASSERT_MTX_NEAR
  */
-#define EXPECT_MTX_NEAR(_mtx1, _mtx2, _tol)                                   \
-    do {                                                                      \
-        using ::gko::test::assertions::detail::l;                             \
-        auto res = ::gko::test::assertions::detail::plain_ptr(_mtx1);         \
-        auto exp = ::gko::test::assertions::detail::plain_ptr(_mtx2);         \
-        EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near, res, exp, \
-                            _tol);                                            \
+#define EXPECT_MTX_NEAR(_mtx1, _mtx2, _tol)                                  \
+    do {                                                                     \
+        using ::gko::test::assertions::detail::l;                            \
+        auto _result = ::gko::test::assertions::detail::plain_ptr(_mtx1);    \
+        auto _expected = ::gko::test::assertions::detail::plain_ptr(_mtx2);  \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near, _result, \
+                            _expected, _tol);                                \
     } while (false)
 
 

@@ -157,9 +157,7 @@ TEST_F(Dense, MultipleVectorGpuScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -170,9 +168,7 @@ TEST_F(Dense, MultipleVectorGpuScaleWithDifferentAlphaIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -183,9 +179,7 @@ TEST_F(Dense, SingleVectorGpuAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -196,9 +190,7 @@ TEST_F(Dense, MultipleVectorGpuAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -209,9 +201,7 @@ TEST_F(Dense, MultipleVectorGpuAddScaledWithDifferentAlphaIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -222,9 +212,7 @@ TEST_F(Dense, SingleVectorGpuComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -235,9 +223,7 @@ TEST_F(Dense, MultipleVectorGpuComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -248,9 +234,7 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
     x->apply(y.get(), expected.get());
     dx->apply(dy.get(), dresult.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -261,9 +245,7 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     x->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -272,13 +254,10 @@ TEST_F(Dense, IsTransposable)
     set_up_apply_data();
 
     auto trans = x->transpose();
-    auto d_trans = dx->transpose();
+    auto dtrans = dx->transpose();
 
-    auto result = Mtx::create(ref);
-    result->copy_from(d_trans.get());
-    auto trans_as_dense = static_cast<Mtx *>(trans.get());
-
-    ASSERT_MTX_NEAR(result, trans_as_dense, 0);
+    ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                    static_cast<Mtx *>(trans.get()), 0);
 }
 
 
@@ -287,13 +266,10 @@ TEST_F(Dense, IsConjugateTransposable)
     set_up_apply_data();
 
     auto trans = c_x->conj_transpose();
-    auto d_trans = dc_x->conj_transpose();
+    auto dtrans = dc_x->conj_transpose();
 
-    auto result = ComplexMtx::create(ref);
-    result->copy_from(d_trans.get());
-    auto trans_as_dense = static_cast<ComplexMtx *>(trans.get());
-
-    ASSERT_MTX_NEAR(result, trans_as_dense, 0);
+    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
+                    static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
 
