@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/base/shuffle.cuh"
+#include "gpu/base/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -267,7 +268,8 @@ __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
     int perm = threadIdx.x;
     int iperm = threadIdx.x;
     ValueType row[max_block_size];
-    __shared__ ValueType sM[max_block_size * warps_per_block];
+    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+        sM;
 
     extract_transposed_diag_blocks<max_block_size, subwarp_size,
                                    warps_per_block>(
