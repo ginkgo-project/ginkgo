@@ -74,11 +74,11 @@ namespace kernels {
         matrix::Dense<ValueType> *x)
 
 #define GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,         \
-                          size_type num_blocks,                                \
-                          const Array<IndexType> &block_pointers,              \
-                          const Array<ValueType> &blocks,                      \
-                          ValueType *result_values, size_type padding)
+    void convert_to_dense(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
+        const Array<IndexType> &block_pointers,                                \
+        const Array<ValueType> &blocks, size_type block_padding,               \
+        ValueType *result_values, size_type result_padding)
 
 #define DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType, typename IndexType>                   \

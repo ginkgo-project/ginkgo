@@ -102,9 +102,9 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
                                                 this->get_num_cols());
     exec->run(TemplatedOperation<ValueType, IndexType>::
-                  make_convert_to_dense_operation(num_blocks_, block_pointers_,
-                                                  blocks_, tmp->get_values(),
-                                                  tmp->get_padding()));
+                  make_convert_to_dense_operation(
+                      num_blocks_, block_pointers_, blocks_, max_block_size_,
+                      tmp->get_values(), tmp->get_padding()));
     tmp->move_to(result);
 }
 
@@ -113,8 +113,7 @@ template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::move_to(
     matrix::Dense<ValueType> *result)
 {
-    // no special optimization possible here
-    this->convert_to(result);
+    this->convert_to(result);  // no special optimization possible here
 }
 
 
