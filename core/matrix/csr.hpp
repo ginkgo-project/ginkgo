@@ -89,6 +89,10 @@ public:
 
     void move_to(Dense<ValueType> *other) override;
 
+    void convert_to(Coo<ValueType, IndexType> *result) const override;
+
+    void move_to(Coo<ValueType, IndexType> *result) override;
+
     void read_from_mtx(const std::string &filename) override;
 
     std::unique_ptr<LinOp> transpose() const override;

@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
+#include "core/matrix/coo.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense.hpp"
 
@@ -53,6 +54,8 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, csr::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_coo, csr::move_to_coo<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense<TplArgs...>);
     GKO_REGISTER_OPERATION(transpose, csr::transpose<TplArgs...>);
@@ -90,6 +93,39 @@ void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
         TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
             as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
             as<Dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Coo<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Coo<ValueType, IndexType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(),
+        this->get_num_stored_elements());
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_convert_to_coo_operation(
+            tmp.get(), this));
+    tmp->values_ = this->values_;
+    tmp->col_idxs_ = this->col_idxs_;
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType> *result)
+{
+    auto exec = this->get_executor();
+    auto tmp = Coo<ValueType, IndexType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(),
+        this->get_num_stored_elements());
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_move_to_coo_operation(
+            tmp.get(), this));
+    tmp->values_ = std::move(this->values_);
+    tmp->col_idxs_ = std::move(this->col_idxs_);
+    tmp->move_to(result);
 }
 
 

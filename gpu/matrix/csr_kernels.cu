@@ -110,6 +110,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const GpuExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_coo(std::shared_ptr<const GpuExecutor> exec,
+                 matrix::Coo<ValueType, IndexType> *result,
+                 matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_COO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *result,
     const matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;

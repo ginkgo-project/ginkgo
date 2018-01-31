@@ -64,6 +64,7 @@ class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
             public ReadableFromMtx,
             public Transposable {
     friend class BasicLinOp<Coo>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
     using BasicLinOp<Coo>::create;

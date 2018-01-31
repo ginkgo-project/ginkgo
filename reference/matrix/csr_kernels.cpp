@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "core/matrix/coo.hpp"
 #include "core/matrix/dense.hpp"
 #include "reference/components/convert_idxs.hpp"
 
@@ -110,6 +111,40 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto nnz = source->get_num_stored_elements();
+    auto num_rows = source->get_num_rows();
+    auto row_ptrs = source->get_const_row_ptrs();
+    size_type ind = 0;
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type i = row_ptrs[row];
+             i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
+            result->get_row_idxs()[ind++] = row;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
+                 matrix::Coo<ValueType, IndexType> *result,
+                 matrix::Csr<ValueType, IndexType> *source)
+{
+    reference::csr::convert_to_coo(exec, result, source);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_COO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
