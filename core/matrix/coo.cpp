@@ -1,0 +1,217 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright 2017-2018
+
+Karlsruhe Institute of Technology
+Universitat Jaume I
+University of Tennessee
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include "core/matrix/coo.hpp"
+#include "core/matrix/csr.hpp"
+
+
+#include "core/base/exception_helpers.hpp"
+#include "core/base/executor.hpp"
+#include "core/base/math.hpp"
+#include "core/base/utils.hpp"
+#include "core/matrix/coo_kernels.hpp"
+#include "core/matrix/dense.hpp"
+
+
+#include <algorithm>
+#include <numeric>
+
+
+namespace gko {
+namespace matrix {
+
+
+namespace {
+
+
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, coo::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_csr, coo::move_to_csr<TplArgs...>);
+    GKO_REGISTER_OPERATION(transpose, coo::transpose<TplArgs...>);
+    GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose<TplArgs...>);
+};
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+{
+    using Dense = Dense<ValueType>;
+    auto dense_b = dynamic_cast<const Dense *>(b);
+    auto dense_x = dynamic_cast<Dense *>(x);
+    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(b);
+    }
+    if (dense_x == nullptr || dense_x->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(x);
+    }
+
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, dense_b, dense_x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
+                                      const LinOp *beta, LinOp *x) const
+{
+    using Dense = Dense<ValueType>;
+    auto dense_b = dynamic_cast<const Dense *>(b);
+    auto dense_alpha = dynamic_cast<const Dense *>(alpha);
+    auto dense_beta = dynamic_cast<const Dense *>(beta);
+    auto dense_x = dynamic_cast<Dense *>(x);
+    if (dense_b == nullptr || dense_b->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(b);
+    }
+    if (dense_alpha == nullptr ||
+        dense_alpha->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(alpha);
+    }
+    if (dense_beta == nullptr ||
+        dense_beta->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(beta);
+    }
+    if (dense_x == nullptr || dense_x->get_executor() != this->get_executor()) {
+        throw NOT_SUPPORTED(x);
+    }
+
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            dense_alpha, this, dense_b, dense_beta, dense_x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::clear()
+{
+    this->set_dimensions(0, 0, 0);
+    values_.clear();
+    col_idxs_.clear();
+    row_idxs_.clear();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(),
+        this->get_num_stored_elements());
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_convert_to_csr_operation(
+            tmp.get(), this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(),
+        this->get_num_stored_elements());
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_move_to_csr_operation(
+            tmp.get(), this));
+    tmp->move_to(result);
+}
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+{
+    auto exec = this->get_executor();
+    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+    size_type nnz = 0;
+    for (const auto &elem : data.nonzeros) {
+        nnz += (std::get<2>(elem) != zero<ValueType>());
+    }
+    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
+                      data.num_cols, nnz);
+    size_type elt = 0;
+    for (size_type ind = 0; ind < data.nonzeros.size(); ind++) {
+        auto val = std::get<2>(data.nonzeros[ind]);
+        if (val != zero<ValueType>()) {
+            tmp->get_row_idxs()[elt] = std::get<0>(data.nonzeros[ind]);
+            tmp->get_col_idxs()[elt] = std::get<1>(data.nonzeros[ind]);
+            tmp->get_values()[elt] = std::get<2>(data.nonzeros[ind]);
+            elt++;
+        }
+    }
+    this->copy_from(std::move(tmp));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
+                            this->get_num_stored_elements());
+
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
+            trans_cpy.get(), this));
+    return std::move(trans_cpy);
+}
+
+
+#define DECLARE_COO_MATRIX(ValueType, IndexType) class Coo<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_COO_MATRIX);
+#undef DECLARE_COO_MATRIX
+
+
+}  // namespace matrix
+}  // namespace gko
