@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -66,7 +67,8 @@ class BlockJacobiFactory;
  *                    block
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>> {
+class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>>,
+                    public ConvertibleTo<matrix::Dense<ValueType>> {
     friend class BasicLinOp<BlockJacobi>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
 
@@ -81,6 +83,10 @@ public:
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
+
+    void convert_to(matrix::Dense<ValueType> *result) const override;
+
+    void move_to(matrix::Dense<ValueType> *result) override;
 
     /**
      * Returns the number of blocks of the operator.

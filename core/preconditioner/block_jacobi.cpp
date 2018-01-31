@@ -49,6 +49,8 @@ namespace {
 
 template <typename... TArgs>
 struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           block_jacobi::convert_to_dense<TArgs...>);
     GKO_REGISTER_OPERATION(simple_apply, block_jacobi::simple_apply<TArgs...>);
     GKO_REGISTER_OPERATION(apply, block_jacobi::apply<TArgs...>);
     GKO_REGISTER_OPERATION(find_blocks, block_jacobi::find_blocks<TArgs...>);
@@ -89,6 +91,30 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
             num_blocks_, max_block_size_, max_block_size_, block_pointers_,
             blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
             as<dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void BlockJacobi<ValueType, IndexType>::convert_to(
+    matrix::Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
+                                                this->get_num_cols());
+    exec->run(TemplatedOperation<ValueType, IndexType>::
+                  make_convert_to_dense_operation(num_blocks_, block_pointers_,
+                                                  blocks_, tmp->get_values(),
+                                                  tmp->get_padding()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void BlockJacobi<ValueType, IndexType>::move_to(
+    matrix::Dense<ValueType> *result)
+{
+    // no special optimization possible here
+    this->convert_to(result);
 }
 
 
