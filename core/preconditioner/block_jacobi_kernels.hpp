@@ -73,15 +73,24 @@ namespace kernels {
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
 
-#define DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void convert_to_dense(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
+        const Array<IndexType> &block_pointers,                                \
+        const Array<ValueType> &blocks, size_type block_padding,               \
+        ValueType *result_values, size_type result_padding)
+
+#define DECLARE_ALL_AS_TEMPLATES                                        \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
 namespace cpu {

@@ -369,6 +369,54 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+inline void copy_block(IndexType block_size, const ValueType *from,
+                       size_type from_padding, ValueType *to,
+                       size_type to_padding) noexcept
+{
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            to[i * to_padding + j] = from[i * from_padding + j];
+        }
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                      size_type num_blocks,
+                      const Array<IndexType> &block_pointers,
+                      const Array<ValueType> &blocks, size_type block_padding,
+                      ValueType *result_values, size_type result_padding)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+    size_type current_block = 0;
+    for (size_type i = 0; i < matrix_size; ++i) {
+        for (size_type j = 0; j < matrix_size; ++j) {
+            result_values[i * result_padding + j] = zero<ValueType>();
+        }
+    }
+
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + block_padding * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        copy_block(block_size, block, block_padding,
+                   result_values + ptrs[i] * result_padding + ptrs[i],
+                   result_padding);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
 }  // namespace block_jacobi
 }  // namespace reference
 }  // namespace kernels

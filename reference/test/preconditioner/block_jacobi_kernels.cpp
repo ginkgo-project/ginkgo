@@ -339,4 +339,22 @@ TEST_F(BlockJacobi, AppliesLinearCombinationToMultipleVectors)
 }
 
 
+TEST_F(BlockJacobi, ConvertsToDense)
+{
+    auto dense = gko::matrix::Dense<>::create(exec);
+    bj_factory->set_block_pointers(block_pointers);
+
+    dense->copy_from(bj_factory->generate(mtx));
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense,
+        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), 1e-14);
+    // clang-format on
+}
+
+
 }  // namespace
