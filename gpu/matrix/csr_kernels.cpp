@@ -126,7 +126,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const GpuExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+               const matrix::Csr<ValueType, IndexType> *orig)
+{
+    auto handle = cusparse::init();
+    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+
+    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
+                        orig->get_num_stored_elements(),
+                        orig->get_const_values(), orig->get_const_row_ptrs(),
+                        orig->get_const_col_idxs(), trans->get_values(),
+                        trans->get_col_idxs(), trans->get_row_ptrs(),
+                        copyValues, idxBase);
+
+    cusparse::destroy(handle);
+};
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
@@ -134,7 +148,20 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
+{
+    auto handle = cusparse::init();
+    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+
+    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
+                        orig->get_num_stored_elements(),
+                        orig->get_const_values(), orig->get_const_row_ptrs(),
+                        orig->get_const_col_idxs(), trans->get_values(),
+                        trans->get_col_idxs(), trans->get_row_ptrs(),
+                        copyValues, idxBase);
+
+    cusparse::destroy(handle);
+};
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 

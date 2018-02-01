@@ -139,4 +139,23 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, TransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    auto dense_result = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_trans = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    auto result = Mtx::create(ref);
+    result->copy_from(d_trans.get());
+
+    auto trans_as_csr = static_cast<Mtx *>(trans.get());
+
+    result->convert_to(dense_result.get());
+    trans_as_csr->convert_to(dense_trans.get());
+    ASSERT_MTX_NEAR(dense_result, dense_trans, 0);
+}
 }  // namespace
