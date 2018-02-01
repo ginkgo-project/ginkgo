@@ -78,38 +78,17 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithBlockSize32)
     std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 128, 128, std::uniform_int_distribution<>(100, 110),
         std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
     gko::Array<gko::int32> block_ptrs(ref, 5);
     gko::test::init_array(block_ptrs.get_data(), {0, 32, 64, 96, 128});
+    auto bj_factory = BjFactory::create(ref, 32);
+    auto d_bj_factory = BjFactory::create(gpu, 32);
     bj_factory->set_block_pointers(block_ptrs);
     d_bj_factory->set_block_pointers(block_ptrs);
 
-    auto bj_lin_op = bj_factory->generate(mtx);
-    auto d_bj_lin_op = d_bj_factory->generate(d_mtx);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    auto bj = dynamic_cast<Bj *>(bj_lin_op.get());
-    auto d_bj = dynamic_cast<Bj *>(d_bj_lin_op.get());
-
-    auto expected = bj->get_blocks();
-    auto d_result = d_bj->get_blocks();
-
-    gko::Array<double> result_array(ref, 32 * 128);
-    auto result = result_array.get_data();
-    ref->copy_from(gpu.get(), 32 * 128, d_result, result);
-
-    for (int block = 0; block < 4; ++block) {
-        for (int row = 0; row < 32; ++row) {
-            for (int col = 0; col < 32; ++col) {
-                EXPECT_NEAR(result[block * 32 * 32 + row * 32 + col],
-                            expected[block * 32 * 32 + row * 32 + col], 1e-12)
-                    << "Results differ at block " << block << ", position ("
-                    << row << ", " << col << ")";
-            }
-        }
-    }
+    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 
@@ -118,42 +97,18 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithDifferentBlockSize)
     std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 100, 100, std::uniform_int_distribution<>(97, 99),
         std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
     gko::Array<gko::int32> block_ptrs(ref, 11);
     gko::test::init_array(block_ptrs.get_data(),
                           {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
+    auto bj_factory = BjFactory::create(ref, 32);
+    auto d_bj_factory = BjFactory::create(gpu, 32);
     bj_factory->set_block_pointers(block_ptrs);
     d_bj_factory->set_block_pointers(block_ptrs);
 
-    auto bj_lin_op = bj_factory->generate(mtx);
-    auto d_bj_lin_op = d_bj_factory->generate(d_mtx);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    auto bj = dynamic_cast<Bj *>(bj_lin_op.get());
-    auto d_bj = dynamic_cast<Bj *>(d_bj_lin_op.get());
-
-    auto expected = bj->get_blocks();
-    auto d_result = d_bj->get_blocks();
-
-    gko::Array<double> result_array(ref, 32 * 100);
-    auto result = result_array.get_data();
-    ref->copy_from(gpu.get(), 32 * 100, d_result, result);
-
-    ASSERT_EQ(d_bj->get_padding(), 32);
-    for (int block = 0; block < 10; ++block) {
-        auto bptr = block_ptrs.get_const_data();
-        auto bsize = bptr[block + 1] - bptr[block];
-        for (int row = 0; row < bsize; ++row) {
-            for (int col = 0; col < bsize; ++col) {
-                EXPECT_NEAR(result[(bptr[block] + row) * 32 + col],
-                            expected[(bptr[block] + row) * 32 + col], 1e-12)
-                    << "Results differ at block " << block << ", position ("
-                    << row << ", " << col << ")";
-            }
-        }
-    }
+    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 
@@ -162,42 +117,18 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithMPW)
     std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 100, 100, std::uniform_int_distribution<>(97, 99),
         std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 13);
-    auto d_bj_factory = BjFactory::create(gpu, 13);
     gko::Array<gko::int32> block_ptrs(ref, 11);
     gko::test::init_array(block_ptrs.get_data(),
                           {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
+    auto bj_factory = BjFactory::create(ref, 13);
+    auto d_bj_factory = BjFactory::create(gpu, 13);
     bj_factory->set_block_pointers(block_ptrs);
     d_bj_factory->set_block_pointers(block_ptrs);
 
-    auto bj_lin_op = bj_factory->generate(mtx);
-    auto d_bj_lin_op = d_bj_factory->generate(d_mtx);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    auto bj = dynamic_cast<Bj *>(bj_lin_op.get());
-    auto d_bj = dynamic_cast<Bj *>(d_bj_lin_op.get());
-
-    auto expected = bj->get_blocks();
-    auto d_result = d_bj->get_blocks();
-
-    gko::Array<double> result_array(ref, 13 * 100);
-    auto result = result_array.get_data();
-    ref->copy_from(gpu.get(), 13 * 100, d_result, result);
-
-    ASSERT_EQ(d_bj->get_padding(), 13);
-    for (int block = 0; block < 10; ++block) {
-        auto bptr = block_ptrs.get_const_data();
-        auto bsize = bptr[block + 1] - bptr[block];
-        for (int row = 0; row < bsize; ++row) {
-            for (int col = 0; col < bsize; ++col) {
-                EXPECT_NEAR(result[(bptr[block] + row) * 13 + col],
-                            expected[(bptr[block] + row) * 13 + col], 1e-12)
-                    << "Results differ at block " << block << ", position ("
-                    << row << ", " << col << ")";
-            }
-        }
-    }
+    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 

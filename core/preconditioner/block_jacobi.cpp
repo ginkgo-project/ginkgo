@@ -126,13 +126,14 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
     std::unique_ptr<csr> csr_mtx_handle{};
     const csr *csr_mtx;
     auto exec = this->get_executor();
-    if (auto ptr = dynamic_cast<const csr *>(system_matrix)) {
-        // use the matrix as is if it's already in CSR
+    auto ptr = dynamic_cast<const csr *>(system_matrix);
+    if (ptr != nullptr && ptr->get_executor() == exec) {
+        // use the matrix as is
         csr_mtx = ptr;
     } else {
-        // otherwise, try to convert it
+        // convert it and bring it to the right executor
         csr_mtx_handle = csr::create(exec);
-        as<ConvertibleTo<csr>>(system_matrix)->convert_to(csr_mtx_handle.get());
+        csr_mtx_handle->copy_from(system_matrix);
         csr_mtx = csr_mtx_handle.get();
     }
     if (block_pointers_.get_data() == nullptr) {
