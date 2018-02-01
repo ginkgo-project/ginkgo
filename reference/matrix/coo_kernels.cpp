@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -77,7 +79,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 {
     size_type ind = 0;
     size_type cur_ptr = 0;
-    size_type cumsum = 0;
 
     result->get_row_ptrs()[0] = cur_ptr;
     for (size_type row = 0; row < source->get_num_rows(); ++row) {

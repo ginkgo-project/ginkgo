@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/coo.hpp"
-#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
 
 
