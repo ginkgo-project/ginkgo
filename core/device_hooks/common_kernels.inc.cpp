@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/base/exception_helpers.hpp"
+#include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/block_jacobi_kernels.hpp"
@@ -217,6 +218,47 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace csr
+
+
+namespace coo {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_MOVE_TO_CSR_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_MOVE_TO_CSR_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_TRANSPOSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
+
+
+}  // namespace coo
 
 
 namespace block_jacobi {

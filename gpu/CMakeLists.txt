@@ -1,6 +1,7 @@
 set(SOURCES
     base/exception.cpp
     base/executor.cpp
+    matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
     preconditioner/block_jacobi_kernels.cu

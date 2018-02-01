@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_CSR_HPP_
-#define GKO_CORE_MATRIX_CSR_HPP_
+#ifndef GKO_CORE_MATRIX_COO_HPP_
+#define GKO_CORE_MATRIX_COO_HPP_
 
 
 #include "core/base/array.hpp"
@@ -44,38 +44,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
-template <typename ValueType>
-class Dense;
 
 template <typename ValueType, typename IndexType>
-class Coo;
+class Csr;
 
 /**
- * CSR is a matrix format which stores only the nonzero coefficients by
- * compressing each row of the matrix (compressed sparse row format).
+ * COO stores a matrix in the coordinate matrix format.
  *
- * The nonzero elements are stored in a 1D array row-wise, and accompanied
- * with a row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column of each
- * nonzero element.
+ * The nonzero elements are stored in an array row-wise (but not neccessarily
+ * sorted by column index within a row). Two extra arrays contain the row and
+ * column indexes of each nonzero element of the matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
- *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
+class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ReadableFromMtx,
             public Transposable {
-    friend class BasicLinOp<Csr>;
-    friend class Coo<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    friend class BasicLinOp<Coo>;
 
 public:
-    using BasicLinOp<Csr>::create;
-    using BasicLinOp<Csr>::convert_to;
-    using BasicLinOp<Csr>::move_to;
+    using BasicLinOp<Coo>::create;
+    using BasicLinOp<Coo>::convert_to;
+    using BasicLinOp<Coo>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -85,9 +78,9 @@ public:
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType> *other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Csr<ValueType, IndexType> *other) override;
 
     void read_from_mtx(const std::string &filename) override;
 
@@ -134,57 +127,57 @@ public:
     }
 
     /**
-     * Returns the row pointers of the matrix.
+     * Returns the row indexes of the matrix.
      *
-     * @return the row pointers of the matrix.
+     * @return the row indexes of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type *get_row_idxs() noexcept { return row_idxs_.get_data(); }
 
     /**
-     * @copydoc Csr::get_row_ptrs()
+     * @copydoc Csr::get_row_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    const index_type *get_const_row_idxs() const noexcept
     {
-        return row_ptrs_.get_const_data();
+        return row_idxs_.get_const_data();
     }
 
 protected:
     /**
-     * Creates an empty CSR matrix.
+     * Creates an empty COO matrix.
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Csr(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Csr>(exec, 0, 0, 0),
+    explicit Coo(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Coo>(exec, 0, 0, 0),
           values_(exec),
           col_idxs_(exec),
-          row_ptrs_(exec)
+          row_idxs_(exec)
     {}
 
     /**
-     * Creates an uninitialized CSR matrix of the specified size.
+     * Creates an uninitialized COO matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param num_rows      number of rows
      * @param num_cols      number of columns
      * @param num_nonzeros  number of nonzeros
      */
-    Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
+    Coo(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
-        : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),
+        : BasicLinOp<Coo>(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
+          row_idxs_(exec, num_nonzeros)
     {}
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
+    Array<index_type> row_idxs_;
 };
 
 
@@ -192,4 +185,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_CSR_HPP_
+#endif  // GKO_CORE_MATRIX_COO_HPP_
