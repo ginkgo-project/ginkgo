@@ -47,6 +47,19 @@ namespace gpu {
 namespace block_jacobi {
 
 
+template <int... Values>
+struct compile_int_list {
+};
+
+
+template <typename... Values>
+struct compile_type_list {
+};
+
+
+using compiled_kernels = compile_int_list<1, 16, 32>;
+
+
 template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const GpuExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
@@ -323,12 +336,20 @@ __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
 }  // namespace device
 
 
-template <int max_block_size, int subwarp_size, int warps_per_block,
-          typename ValueType, typename IndexType>
-void launch_generate_kernel(const matrix::Csr<ValueType, IndexType> *mtx,
+constexpr int get_larger_power(int value, int guess = 1)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
+
+
+template <int warps_per_block, int max_block_size, typename ValueType,
+          typename IndexType>
+void launch_generate_kernel(compile_int_list<max_block_size>,
+                            const matrix::Csr<ValueType, IndexType> *mtx,
                             ValueType *block_data, size_type padding,
                             const IndexType *block_ptrs, size_type num_blocks)
 {
+    constexpr int subwarp_size = get_larger_power(max_block_size);
     const int blocks_per_warp = cuda_warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
@@ -342,13 +363,15 @@ void launch_generate_kernel(const matrix::Csr<ValueType, IndexType> *mtx,
 }
 
 
-template <int max_block_size, int subwarp_size, int warps_per_block,
-          typename ValueType, typename IndexType>
-void launch_apply_kernel(size_type num_blocks, const IndexType *block_pointers,
+template <int warps_per_block, int max_block_size, typename ValueType,
+          typename IndexType>
+void launch_apply_kernel(compile_int_list<max_block_size>, size_type num_blocks,
+                         const IndexType *block_pointers,
                          const ValueType *blocks, size_type block_padding,
                          const ValueType *b, size_type b_padding, ValueType *x,
                          size_type x_padding)
 {
+    constexpr int subwarp_size = get_larger_power(max_block_size);
     const int blocks_per_warp = cuda_warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
@@ -361,57 +384,35 @@ void launch_apply_kernel(size_type num_blocks, const IndexType *block_pointers,
 }
 
 
-template <int max_block_size, int subwarp_size = max_block_size>
-struct select_and_launch {
-    template <int warps_per_block, typename... Args>
-    static void generate(int runtime_max_block_size, Args &&... args)
-    {
-        if (runtime_max_block_size == max_block_size) {
-            launch_generate_kernel<max_block_size, subwarp_size,
-                                   warps_per_block>(
-                std::forward<Args>(args)...);
-        } else {
-            constexpr int new_subwarp_size =
-                (max_block_size - 1 == subwarp_size / 2) ? subwarp_size / 2
-                                                         : subwarp_size;
-            return select_and_launch<max_block_size - 1, new_subwarp_size>::
-                template generate<warps_per_block>(runtime_max_block_size,
-                                                   std::forward<Args>(args)...);
-        }
+#define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                  \
+    template <typename Predicate, int... IntArgs, typename... TArgs,           \
+              typename... InferredArgs>                                        \
+    void select_##_name(compile_int_list<>, Predicate,                         \
+                        compile_int_list<IntArgs...>,                          \
+                        compile_type_list<TArgs...>, InferredArgs...)          \
+    {                                                                          \
+        throw "TODO";                                                          \
+    }                                                                          \
+                                                                               \
+    template <int K, int... Rest, typename Predicate, int... IntArgs,          \
+              typename... TArgs, typename... InferredArgs>                     \
+    void select_##_name(compile_int_list<K, Rest...>, Predicate is_eligible,   \
+                        compile_int_list<IntArgs...> int_args,                 \
+                        compile_type_list<TArgs...> type_args,                 \
+                        InferredArgs... args)                                  \
+    {                                                                          \
+        if (is_eligible(K)) {                                                  \
+            _callable<IntArgs..., TArgs...>(                                   \
+                compile_int_list<K>(), std::forward<InferredArgs>(args)...);   \
+        } else {                                                               \
+            select_##_name(compile_int_list<Rest...>(), is_eligible, int_args, \
+                           type_args, std::forward<InferredArgs>(args)...);    \
+        }                                                                      \
     }
 
-    template <int warps_per_block, typename... Args>
-    static void apply(int runtime_max_block_size, Args &&... args)
-    {
-        if (runtime_max_block_size == max_block_size) {
-            launch_apply_kernel<max_block_size, subwarp_size, warps_per_block>(
-                std::forward<Args>(args)...);
-        } else {
-            constexpr int new_subwarp_size =
-                (max_block_size - 1 == subwarp_size / 2) ? subwarp_size / 2
-                                                         : subwarp_size;
-            return select_and_launch<max_block_size - 1, new_subwarp_size>::
-                template apply<warps_per_block>(runtime_max_block_size,
-                                                std::forward<Args>(args)...);
-        }
-    }
-};
 
-
-template <>
-struct select_and_launch<0, 0> {
-    template <int warps_per_block, typename... Args>
-    static void generate(Args &&...)
-    {
-        throw "TODO";
-    }
-
-    template <int warps_per_block, typename... Args>
-    static void apply(Args &&...)
-    {
-        throw "TODO";
-    }
-};
+GKO_ENABLE_IMPLEMENTATION_SELECTION(generate, launch_generate_kernel);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(apply, launch_apply_kernel);
 
 
 }  // namespace
@@ -424,10 +425,13 @@ void generate(std::shared_ptr<const GpuExecutor> exec,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const int warps_per_block = 4;
-    const int block_size_limit = cuda_warp_size;
-    select_and_launch<block_size_limit>::generate<warps_per_block>(
-        max_block_size, system_matrix, blocks.get_data(), padding,
-        block_pointers.get_const_data(), num_blocks);
+    select_generate(compiled_kernels(),
+                    [&](int compiled_block_size) {
+                        return max_block_size <= compiled_block_size;
+                    },
+                    compile_int_list<warps_per_block>(), compile_type_list<>(),
+                    system_matrix, blocks.get_data(), padding,
+                    block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -464,13 +468,17 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                   matrix::Dense<ValueType> *x)
 {
     const int warps_per_block = 4;
-    const int block_size_limit = cuda_warp_size;
-    // TODO write a special kernels for multiple RHS
+    // TODO: write a special kernel for multiple RHS
     for (size_type col = 0; col < b->get_num_cols(); ++col) {
-        select_and_launch<block_size_limit>::apply<warps_per_block>(
-            max_block_size, num_blocks, block_pointers.get_const_data(),
-            blocks.get_const_data(), padding, b->get_const_values() + col,
-            b->get_padding(), x->get_values() + col, x->get_padding());
+        select_apply(compiled_kernels(),
+                     [&](int compiled_block_size) {
+                         return max_block_size <= compiled_block_size;
+                     },
+                     compile_int_list<warps_per_block>(), compile_type_list<>(),
+                     num_blocks, block_pointers.get_const_data(),
+                     blocks.get_const_data(), padding,
+                     b->get_const_values() + col, b->get_padding(),
+                     x->get_values() + col, x->get_padding());
     }
 }
 
