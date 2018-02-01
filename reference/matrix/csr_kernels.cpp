@@ -146,7 +146,54 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+               const matrix::Csr<ValueType, IndexType> *orig)
+{
+    auto trans_row_ptrs = trans->get_row_ptrs();
+    auto orig_row_ptrs = orig->get_const_row_ptrs();
+    auto trans_col_idxs = trans->get_col_idxs();
+    auto orig_col_idxs = orig->get_const_col_idxs();
+    auto trans_vals = trans->get_values();
+    auto orig_vals = orig->get_const_values();
+
+    auto orig_num_cols = orig->get_num_cols();
+    auto orig_num_rows = orig->get_num_rows();
+    auto orig_nnz = orig_row_ptrs[orig_num_rows];
+
+    std::fill(trans_row_ptrs, trans_row_ptrs + orig_num_cols, 0);
+
+    for (size_type n = 0; n < orig_nnz; ++n) {
+        trans_row_ptrs[orig_col_idxs[n]]++;
+    }
+    auto cumul_sum = 0;
+    auto tmp = 0;
+    for (size_type col = 0; col < orig_num_cols; ++col) {
+        tmp = trans_row_ptrs[col];
+        trans_row_ptrs[col] = cumul_sum;
+        cumul_sum += tmp;
+    }
+    trans_row_ptrs[orig_num_cols] = orig_nnz;
+
+    auto col = 0;
+    auto dest = 0;
+    for (size_type row = 0; row < orig_num_rows; ++row) {
+        for (size_type jj = orig_row_ptrs[row]; jj < orig_row_ptrs[row + 1];
+             ++jj) {
+            col = orig_col_idxs[jj];
+            dest = trans_row_ptrs[col];
+
+            trans_col_idxs[dest] = row;
+            trans_vals[dest] = orig_vals[jj];
+
+            trans_row_ptrs[col]++;
+        }
+    }
+    auto last = 0;
+    for (size_type col = 0; col <= orig_num_cols; ++col) {
+        tmp = trans_row_ptrs[col];
+        trans_row_ptrs[col] = last;
+        last = tmp;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
@@ -155,7 +202,53 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
+{
+    auto trans_row_ptrs = trans->get_row_ptrs();
+    auto orig_row_ptrs = orig->get_const_row_ptrs();
+    auto trans_col_idxs = trans->get_col_idxs();
+    auto orig_col_idxs = orig->get_const_col_idxs();
+    auto trans_vals = trans->get_values();
+    auto orig_vals = orig->get_const_values();
+
+    auto orig_num_cols = orig->get_num_cols();
+    auto orig_num_rows = orig->get_num_rows();
+    auto orig_nnz = orig_row_ptrs[orig_num_rows];
+
+    std::fill(trans_row_ptrs, trans_row_ptrs + orig_num_cols, 0);
+
+    for (size_type n = 0; n < orig_nnz; ++n) {
+        trans_row_ptrs[orig_col_idxs[n]]++;
+    }
+    auto cumul_sum = 0;
+    auto tmp = 0;
+    for (size_type col = 0; col < orig_num_cols; ++col) {
+        tmp = trans_row_ptrs[col];
+        trans_row_ptrs[col] = cumul_sum;
+        cumul_sum += tmp;
+    }
+    trans_row_ptrs[orig_num_cols] = orig_nnz;
+
+    auto col = 0;
+    auto dest = 0;
+    for (size_type row = 0; row < orig_num_rows; ++row) {
+        for (size_type jj = orig_row_ptrs[row]; jj < orig_row_ptrs[row + 1];
+             ++jj) {
+            col = orig_col_idxs[jj];
+            dest = trans_row_ptrs[col];
+
+            trans_col_idxs[dest] = row;
+            trans_vals[dest] = gko::conj(orig_vals[jj]);
+
+            trans_row_ptrs[col]++;
+        }
+    }
+    auto last = 0;
+    for (size_type col = 0; col <= orig_num_cols; ++col) {
+        tmp = trans_row_ptrs[col];
+        trans_row_ptrs[col] = last;
+        last = tmp;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
