@@ -66,6 +66,7 @@ class Coo;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMtx,
             public Transposable {
     friend class BasicLinOp<Csr>;
