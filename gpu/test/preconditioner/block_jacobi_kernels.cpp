@@ -69,7 +69,8 @@ protected:
     }
 
     void initialize_data(std::initializer_list<gko::int32> block_pointers,
-                         gko::int32 max_block_size, int min_nnz, int max_nnz)
+                         gko::int32 max_block_size, int min_nnz, int max_nnz,
+                         int num_rhs = 1)
     {
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -82,12 +83,17 @@ protected:
         d_bj_factory = BjFactory::create(gpu, max_block_size);
         d_bj_factory->set_block_pointers(block_ptrs);
         b = gko::test::generate_random_matrix<Vec>(
-            ref, dim, 1, std::uniform_int_distribution<>(1, 1),
+            ref, dim, num_rhs,
+            std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<>(0.0, 1.0), engine);
         d_b = Vec::create(gpu);
         d_b->copy_from(b.get());
-        x = Vec::create(ref, dim, 1);
-        d_x = Vec::create(gpu, dim, 1);
+        x = gko::test::generate_random_matrix<Vec>(
+            ref, dim, num_rhs,
+            std::uniform_int_distribution<>(num_rhs, num_rhs),
+            std::normal_distribution<>(0.0, 1.0), engine);
+        d_x = Vec::create(gpu);
+        d_x->copy_from(x.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -162,7 +168,7 @@ TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithDifferentBlockSize)
 }
 
 
-TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithMpw)
+TEST_F(BlockJacobi, GpuApplyEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
     auto bj = bj_factory->generate(mtx);
@@ -170,6 +176,55 @@ TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithMpw)
 
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(BlockJacobi, GpuLinearCombinationApplyEquivalentToRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, gpu);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, gpu);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(BlockJacobi, GpuApplyToMultipleVectorsEquivalentToRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99,
+                    5);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(BlockJacobi, GpuLinearCombinationApplyToMultipleVectorsEquivalentToRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99,
+                    5);
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, gpu);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, gpu);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+    d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
