@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/base/shuffle.cuh"
 #include "gpu/base/uninitialized_array.hpp"
@@ -45,19 +46,6 @@ namespace gko {
 namespace kernels {
 namespace gpu {
 namespace block_jacobi {
-
-
-template <int... Values>
-struct compile_int_list {
-};
-
-
-template <typename... Values>
-struct compile_type_list {
-};
-
-
-using compiled_kernels = compile_int_list<1, 16, 32>;
 
 
 template <typename ValueType, typename IndexType>
@@ -71,9 +59,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 namespace {
-
-
-constexpr int cuda_warp_size = 32;
 
 
 uint64 ceildiv(uint64 num, uint64 denom) { return (num - 1) / denom + 1; }
@@ -198,7 +183,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     const IndexType *__restrict__ block_ptrs, size_type num_blocks,
     ValueType *__restrict__ B, int binc, ValueType *sB)
 {
-    const int bpw = cuda_warp_size / ws;
+    const int bpw = warp_size / ws;
     const int tid = threadIdx.y * ws + threadIdx.x;
     IndexType bid = blockIdx.x * wpb * bpw + threadIdx.z * bpw;
     auto bstart = block_ptrs[bid];
@@ -221,7 +206,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             const auto row = bstart + i;
             const auto rstart = Arow[row] + tid;
             const auto rend = Arow[row + 1];
-            for (auto j = rstart; j < rend; j += cuda_warp_size) {
+            for (auto j = rstart; j < rend; j += warp_size) {
                 const auto col = Acol[j] - bstart;
                 if (col >= bsize) {
                     break;
@@ -245,7 +230,7 @@ __device__ __forceinline__ void insert_diag_blocks_trans(
     const IndexType *__restrict__ block_ptrs,
     ValueType *__restrict__ block_data, size_type padding, size_type num_blocks)
 {
-    const int bpw = cuda_warp_size / ws;
+    const int bpw = warp_size / ws;
     const size_type bid =
         blockIdx.x * wpb * bpw + threadIdx.z * bpw + threadIdx.y;
     const IndexType bstart = bid < num_blocks ? block_ptrs[bid] : 0;
@@ -266,14 +251,14 @@ __device__ __forceinline__ void insert_diag_blocks_trans(
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
+__global__ void __launch_bounds__(warps_per_block *warp_size)
     generate(size_type num_rows, const IndexType *__restrict__ row_ptrs,
              const IndexType *__restrict__ col_idxs,
              const ValueType *__restrict__ values,
              ValueType *__restrict__ block_data, size_type padding,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
-    const int blocks_per_warp = cuda_warp_size / subwarp_size;
+    const int blocks_per_warp = warp_size / subwarp_size;
     const size_type bid = blockIdx.x * warps_per_block * blocks_per_warp +
                           threadIdx.z * blocks_per_warp + threadIdx.y;
     const int block_size =
@@ -299,13 +284,13 @@ __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
+__global__ void __launch_bounds__(warps_per_block *warp_size)
     apply(const ValueType *__restrict__ block_data, int32 padding,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
           const ValueType *__restrict__ b, int32 b_padding,
           ValueType *__restrict__ x, int32 x_padding)
 {
-    const int bpw = cuda_warp_size / subwarp_size;
+    const int bpw = warp_size / subwarp_size;
     const IndexType bid =
         blockIdx.x * warps_per_block * bpw + threadIdx.z * bpw + threadIdx.y;
     if (bid >= num_blocks) {
@@ -344,13 +329,13 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void launch_generate_kernel(compile_int_list<max_block_size>,
-                            const matrix::Csr<ValueType, IndexType> *mtx,
-                            ValueType *block_data, size_type padding,
-                            const IndexType *block_ptrs, size_type num_blocks)
+void generate(syn::compile_int_list<max_block_size>,
+              const matrix::Csr<ValueType, IndexType> *mtx,
+              ValueType *block_data, size_type padding,
+              const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    const int blocks_per_warp = cuda_warp_size / subwarp_size;
+    const int blocks_per_warp = warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -362,17 +347,18 @@ void launch_generate_kernel(compile_int_list<max_block_size>,
             as_cuda_type(block_data), padding, block_ptrs, num_blocks);
 }
 
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
+
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void launch_apply_kernel(compile_int_list<max_block_size>, size_type num_blocks,
-                         const IndexType *block_pointers,
-                         const ValueType *blocks, size_type block_padding,
-                         const ValueType *b, size_type b_padding, ValueType *x,
-                         size_type x_padding)
+void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
+           const IndexType *block_pointers, const ValueType *blocks,
+           size_type block_padding, const ValueType *b, size_type b_padding,
+           ValueType *x, size_type x_padding)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    const int blocks_per_warp = cuda_warp_size / subwarp_size;
+    const int blocks_per_warp = warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -383,39 +369,13 @@ void launch_apply_kernel(compile_int_list<max_block_size>, size_type num_blocks,
             as_cuda_type(b), b_padding, as_cuda_type(x), x_padding);
 }
 
-
-#define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                  \
-    template <typename Predicate, int... IntArgs, typename... TArgs,           \
-              typename... InferredArgs>                                        \
-    void select_##_name(compile_int_list<>, Predicate,                         \
-                        compile_int_list<IntArgs...>,                          \
-                        compile_type_list<TArgs...>, InferredArgs...)          \
-    {                                                                          \
-        throw "TODO";                                                          \
-    }                                                                          \
-                                                                               \
-    template <int K, int... Rest, typename Predicate, int... IntArgs,          \
-              typename... TArgs, typename... InferredArgs>                     \
-    void select_##_name(compile_int_list<K, Rest...>, Predicate is_eligible,   \
-                        compile_int_list<IntArgs...> int_args,                 \
-                        compile_type_list<TArgs...> type_args,                 \
-                        InferredArgs... args)                                  \
-    {                                                                          \
-        if (is_eligible(K)) {                                                  \
-            _callable<IntArgs..., TArgs...>(                                   \
-                compile_int_list<K>(), std::forward<InferredArgs>(args)...);   \
-        } else {                                                               \
-            select_##_name(compile_int_list<Rest...>(), is_eligible, int_args, \
-                           type_args, std::forward<InferredArgs>(args)...);    \
-        }                                                                      \
-    }
-
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(generate, launch_generate_kernel);
-GKO_ENABLE_IMPLEMENTATION_SELECTION(apply, launch_apply_kernel);
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 
 }  // namespace
+
+
+using compiled_kernels = syn::compile_int_list<1, 16, 32>;
 
 
 template <typename ValueType, typename IndexType>
@@ -429,9 +389,10 @@ void generate(std::shared_ptr<const GpuExecutor> exec,
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
                     },
-                    compile_int_list<warps_per_block>(), compile_type_list<>(),
-                    system_matrix, blocks.get_data(), padding,
-                    block_pointers.get_const_data(), num_blocks);
+                    syn::compile_int_list<warps_per_block>(),
+                    syn::compile_type_list<>(), system_matrix,
+                    blocks.get_data(), padding, block_pointers.get_const_data(),
+                    num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -474,10 +435,10 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;
                      },
-                     compile_int_list<warps_per_block>(), compile_type_list<>(),
-                     num_blocks, block_pointers.get_const_data(),
-                     blocks.get_const_data(), padding,
-                     b->get_const_values() + col, b->get_padding(),
+                     syn::compile_int_list<warps_per_block>(),
+                     syn::compile_type_list<>(), num_blocks,
+                     block_pointers.get_const_data(), blocks.get_const_data(),
+                     padding, b->get_const_values() + col, b->get_padding(),
                      x->get_values() + col, x->get_padding());
     }
 }
