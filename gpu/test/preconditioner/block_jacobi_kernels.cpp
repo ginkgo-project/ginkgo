@@ -68,22 +68,45 @@ protected:
         }
     }
 
+    void initialize_data(std::initializer_list<gko::int32> block_pointers,
+                         gko::int32 max_block_size, int min_nnz, int max_nnz)
+    {
+        std::ranlux48 engine(42);
+        const auto dim = *(end(block_pointers) - 1);
+        mtx = gko::test::generate_random_matrix<Mtx>(
+            ref, dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
+            std::normal_distribution<>(0.0, 1.0), engine);
+        gko::Array<gko::int32> block_ptrs(ref, block_pointers.size());
+        gko::test::init_array(block_ptrs.get_data(), block_pointers);
+        bj_factory = BjFactory::create(ref, max_block_size);
+        bj_factory->set_block_pointers(block_ptrs);
+        d_bj_factory = BjFactory::create(gpu, max_block_size);
+        d_bj_factory->set_block_pointers(block_ptrs);
+        b = gko::test::generate_random_matrix<Vec>(
+            ref, dim, 1, std::uniform_int_distribution<>(1, 1),
+            std::normal_distribution<>(0.0, 1.0), engine);
+        d_b = Vec::create(gpu);
+        d_b->copy_from(b.get());
+        x = Vec::create(ref, dim, 1);
+        d_x = Vec::create(gpu, dim, 1);
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::GpuExecutor> gpu;
+    std::shared_ptr<Mtx> mtx;
+    std::unique_ptr<Vec> x;
+    std::unique_ptr<Vec> b;
+    std::unique_ptr<Vec> d_x;
+    std::unique_ptr<Vec> d_b;
+
+    std::unique_ptr<BjFactory> bj_factory;
+    std::unique_ptr<BjFactory> d_bj_factory;
 };
 
 
 TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithBlockSize32)
 {
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 128, 128, std::uniform_int_distribution<>(100, 110),
-        std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    gko::Array<gko::int32> block_ptrs(ref, 5);
-    gko::test::init_array(block_ptrs.get_data(), {0, 32, 64, 96, 128});
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 32, 64, 96, 128}, 32, 100, 110);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -94,16 +117,7 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithBlockSize32)
 
 TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithDifferentBlockSize)
 {
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 100, 100, std::uniform_int_distribution<>(97, 99),
-        std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 32, 97, 99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -114,16 +128,7 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithDifferentBlockSize)
 
 TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithMPW)
 {
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 100, 100, std::uniform_int_distribution<>(97, 99),
-        std::normal_distribution<>(0.0, 1.0), std::ranlux48(42));
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    auto bj_factory = BjFactory::create(ref, 13);
-    auto d_bj_factory = BjFactory::create(gpu, 13);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -134,23 +139,7 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithMPW)
 
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithBlockSize32)
 {
-    std::ranlux48 engine(42);
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 128, 128, std::uniform_int_distribution<>(100, 120),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto b = gko::test::generate_random_matrix<Vec>(
-        ref, 128, 1, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto d_b = gko::matrix::Dense<>::create(gpu);
-    d_b->copy_from(b.get());
-    auto x = gko::matrix::Dense<>::create(ref, 128, 1, 1);
-    auto d_x = gko::matrix::Dense<>::create(gpu, 128, 1, 1);
-    gko::Array<gko::int32> block_ptrs(ref, 5);
-    gko::test::init_array(block_ptrs.get_data(), {0, 32, 64, 96, 128});
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 32, 64, 96, 128}, 32, 100, 111);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -163,24 +152,7 @@ TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithBlockSize32)
 
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithDifferentBlockSize)
 {
-    std::ranlux48 engine(42);
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 100, 100, std::uniform_int_distribution<>(97, 99),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto b = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
-        ref, 100, 1, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto d_b = gko::matrix::Dense<>::create(gpu);
-    d_b->copy_from(b.get());
-    auto x = gko::matrix::Dense<>::create(ref, 100, 1, 1);
-    auto d_x = gko::matrix::Dense<>::create(gpu, 100, 1, 1);
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 32, 97, 99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -193,24 +165,7 @@ TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithDifferentBlockSize)
 
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithMpw)
 {
-    std::ranlux48 engine(42);
-    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
-        ref, 100, 100, std::uniform_int_distribution<>(97, 99),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto b = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
-        ref, 100, 1, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine);
-    auto d_b = gko::matrix::Dense<>::create(gpu);
-    d_b->copy_from(b.get());
-    auto x = gko::matrix::Dense<>::create(ref, 100, 1, 1);
-    auto d_x = gko::matrix::Dense<>::create(gpu, 100, 1, 1);
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    auto bj_factory = BjFactory::create(ref, 13);
-    auto d_bj_factory = BjFactory::create(gpu, 13);
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
