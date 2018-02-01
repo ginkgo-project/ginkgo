@@ -289,7 +289,8 @@ template <int max_block_size, int subwarp_size, int warps_per_block,
 __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
     apply(const ValueType *__restrict__ block_data, int32 padding,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-          const ValueType *__restrict__ b, ValueType *__restrict__ x)
+          const ValueType *__restrict__ b, int32 b_padding,
+          ValueType *__restrict__ x, int32 x_padding)
 {
     const int bpw = cuda_warp_size / subwarp_size;
     const IndexType bid =
@@ -300,8 +301,10 @@ __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
     const auto bstart = block_ptrs[bid];
     const auto bsize = block_ptrs[bid + 1] - bstart;
     auto rstart = bstart * padding;
-    auto v =
-        (threadIdx.x < bsize) ? b[bstart + threadIdx.x] : zero<ValueType>();
+    ValueType v = zero<ValueType>();
+    if (threadIdx.x < bsize) {
+        v = b[(bstart + threadIdx.x) * b_padding];
+    }
     auto a = zero<ValueType>();
     for (int i = 0; i < bsize; ++i) {
         if (threadIdx.x < bsize) {
@@ -310,7 +313,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_warp_size)
         auto out = warp::reduce<subwarp_size>(
             a * v, [](ValueType x, ValueType y) { return x + y; });
         if (threadIdx.x == 0) {
-            x[bstart + i] = out;
+            x[(bstart + i) * x_padding] = out;
         }
         rstart += padding;
     }
@@ -341,22 +344,20 @@ void launch_generate_kernel(const matrix::Csr<ValueType, IndexType> *mtx,
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-void launch_apply_kernel(
-    const preconditioner::BlockJacobi<ValueType, IndexType> *precond,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+void launch_apply_kernel(size_type num_blocks, const IndexType *block_pointers,
+                         const ValueType *blocks, size_type block_padding,
+                         const ValueType *b, size_type b_padding, ValueType *x,
+                         size_type x_padding)
 {
     const int blocks_per_warp = cuda_warp_size / subwarp_size;
-    const dim3 grid_size(
-        ceildiv(precond->get_num_blocks(), warps_per_block * blocks_per_warp),
-        1, 1);
+    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
+                         1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    // TODO: support multiple RHS
     device::apply<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
-            precond->get_const_blocks(), precond->get_padding(),
-            precond->get_block_pointers().get_const_data(),
-            precond->get_num_blocks(), b->get_const_values(), x->get_values());
+            as_cuda_type(blocks), block_padding, block_pointers, num_blocks,
+            as_cuda_type(b), b_padding, as_cuda_type(x), x_padding);
 }
 
 
@@ -440,8 +441,15 @@ void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+{
+    // TODO: do this efficiently
+    auto tmp = matrix::Dense<ValueType>::create_with_config_of(x);
+    simple_apply(exec, num_blocks, max_block_size, padding, block_pointers,
+                 blocks, b, static_cast<matrix::Dense<ValueType> *>(tmp.get()));
+    x->scale(beta);
+    x->add_scaled(alpha, tmp.get());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
@@ -453,7 +461,18 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                   const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+                  matrix::Dense<ValueType> *x)
+{
+    const int warps_per_block = 4;
+    const int block_size_limit = cuda_warp_size;
+    // TODO write a special kernels for multiple RHS
+    for (size_type col = 0; col < b->get_num_cols(); ++col) {
+        select_and_launch<block_size_limit>::apply<warps_per_block>(
+            max_block_size, num_blocks, block_pointers.get_const_data(),
+            blocks.get_const_data(), padding, b->get_const_values() + col,
+            b->get_padding(), x->get_values() + col, x->get_padding());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);

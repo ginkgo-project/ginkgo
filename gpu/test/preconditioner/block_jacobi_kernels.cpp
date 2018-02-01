@@ -132,111 +132,93 @@ TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithMPW)
 }
 
 
-/*
-
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithBlockSize32)
 {
     std::ranlux48 engine(42);
-    auto tmp_mtx = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
+    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 128, 128, std::uniform_int_distribution<>(100, 120),
         std::normal_distribution<>(0.0, 1.0), engine);
-    std::shared_ptr<Mtx> mtx = gko::test::convert_to<Mtx>(tmp_mtx.get());
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    gko::Array<gko::int32> block_ptrs(ref, 5);
-    gko::test::init_array(block_ptrs.get_data(), {0, 32, 64, 96, 128});
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
-    auto bj = bj_factory->generate(mtx);
-    auto d_bj = d_bj_factory->generate(d_mtx);
-    auto b = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
+    auto b = gko::test::generate_random_matrix<Vec>(
         ref, 128, 1, std::uniform_int_distribution<>(1, 1),
         std::normal_distribution<>(0.0, 1.0), engine);
     auto d_b = gko::matrix::Dense<>::create(gpu);
     d_b->copy_from(b.get());
-    auto expected = gko::matrix::Dense<>::create(ref, 128, 1, 1);
+    auto x = gko::matrix::Dense<>::create(ref, 128, 1, 1);
     auto d_x = gko::matrix::Dense<>::create(gpu, 128, 1, 1);
+    gko::Array<gko::int32> block_ptrs(ref, 5);
+    gko::test::init_array(block_ptrs.get_data(), {0, 32, 64, 96, 128});
+    auto bj_factory = BjFactory::create(ref, 32);
+    auto d_bj_factory = BjFactory::create(gpu, 32);
+    bj_factory->set_block_pointers(block_ptrs);
+    d_bj_factory->set_block_pointers(block_ptrs);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), expected.get());
+    bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    auto result = gko::matrix::Dense<>::create(ref);
-    result->copy_from(d_x.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-12);
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithDifferentBlockSize)
 {
     std::ranlux48 engine(42);
-    auto tmp_mtx = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
+    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 100, 100, std::uniform_int_distribution<>(97, 99),
         std::normal_distribution<>(0.0, 1.0), engine);
-    std::shared_ptr<Mtx> mtx = gko::test::convert_to<Mtx>(tmp_mtx.get());
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 32);
-    auto d_bj_factory = BjFactory::create(gpu, 32);
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
-    auto bj = bj_factory->generate(mtx);
-    auto d_bj = d_bj_factory->generate(d_mtx);
     auto b = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
         ref, 100, 1, std::uniform_int_distribution<>(1, 1),
         std::normal_distribution<>(0.0, 1.0), engine);
     auto d_b = gko::matrix::Dense<>::create(gpu);
     d_b->copy_from(b.get());
-    auto expected = gko::matrix::Dense<>::create(ref, 100, 1, 1);
+    auto x = gko::matrix::Dense<>::create(ref, 100, 1, 1);
     auto d_x = gko::matrix::Dense<>::create(gpu, 100, 1, 1);
+    gko::Array<gko::int32> block_ptrs(ref, 11);
+    gko::test::init_array(block_ptrs.get_data(),
+                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
+    auto bj_factory = BjFactory::create(ref, 32);
+    auto d_bj_factory = BjFactory::create(gpu, 32);
+    bj_factory->set_block_pointers(block_ptrs);
+    d_bj_factory->set_block_pointers(block_ptrs);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), expected.get());
+    bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    auto result = gko::matrix::Dense<>::create(ref);
-    result->copy_from(d_x.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-12);
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
 TEST_F(BlockJacobi, GpuApplyEquivalentToRefWithMpw)
 {
     std::ranlux48 engine(42);
-    auto tmp_mtx = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
+    std::shared_ptr<Mtx> mtx = gko::test::generate_random_matrix<Mtx>(
         ref, 100, 100, std::uniform_int_distribution<>(97, 99),
         std::normal_distribution<>(0.0, 1.0), engine);
-    std::shared_ptr<Mtx> mtx = gko::test::convert_to<Mtx>(tmp_mtx.get());
-    std::shared_ptr<Mtx> d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto bj_factory = BjFactory::create(ref, 13);
-    auto d_bj_factory = BjFactory::create(gpu, 13);
-    gko::Array<gko::int32> block_ptrs(ref, 11);
-    gko::test::init_array(block_ptrs.get_data(),
-                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
-    bj_factory->set_block_pointers(block_ptrs);
-    d_bj_factory->set_block_pointers(block_ptrs);
-    auto bj = bj_factory->generate(mtx);
-    auto d_bj = d_bj_factory->generate(d_mtx);
     auto b = gko::test::generate_random_matrix<gko::matrix::Dense<>>(
         ref, 100, 1, std::uniform_int_distribution<>(1, 1),
         std::normal_distribution<>(0.0, 1.0), engine);
     auto d_b = gko::matrix::Dense<>::create(gpu);
     d_b->copy_from(b.get());
-    auto expected = gko::matrix::Dense<>::create(ref, 100, 1, 1);
+    auto x = gko::matrix::Dense<>::create(ref, 100, 1, 1);
     auto d_x = gko::matrix::Dense<>::create(gpu, 100, 1, 1);
+    gko::Array<gko::int32> block_ptrs(ref, 11);
+    gko::test::init_array(block_ptrs.get_data(),
+                          {0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100});
+    auto bj_factory = BjFactory::create(ref, 13);
+    auto d_bj_factory = BjFactory::create(gpu, 13);
+    bj_factory->set_block_pointers(block_ptrs);
+    d_bj_factory->set_block_pointers(block_ptrs);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-    bj->apply(b.get(), expected.get());
+    bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    auto result = gko::matrix::Dense<>::create(ref);
-    result->copy_from(d_x.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-12);
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
-*/
 
 }  // namespace
