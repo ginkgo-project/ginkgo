@@ -39,21 +39,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/matrix_generator.hpp"
 
 
-namespace gko {
-namespace test {
-
-
-template <typename T, typename U>
-void init_array(T *ptr, std::initializer_list<U> init_list)
-{
-    for (const auto &elem : init_list) {
-        *ptr = elem;
-        ++ptr;
-    }
-}
-
-
-}  // namespace test
-}  // namespace gko
-
 #endif  // GKO_CORE_TEST_UTILS_HPP_

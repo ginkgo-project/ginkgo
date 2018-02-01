@@ -76,9 +76,9 @@ public:
     /**
      * Creates an array on the specified Executor.
      *
+     * @param exec  the Executor where the array data is be allocated
      * @param num_elems  the amount of memory (expressed as the number of
      *                   `value_type` elements) allocated on the Executor
-     * @param exec  the Executor where the array data is be allocated
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
         : num_elems_(num_elems), data_(nullptr), exec_(std::move(exec))
@@ -86,6 +86,29 @@ public:
         if (num_elems > 0) {
             data_ = exec_->alloc<value_type>(num_elems);
         }
+    }
+
+    /**
+     * Creates an array on the specified Executor and initializes it with
+     * values.
+     *
+     * @tparam T  type of values used to initialize the array (T has to be
+     *            implicitly convertible to value_type)
+     *
+     * @param exec  the Executor where the array data is be allocated
+     * @param init_list  list of values used to initialize the Array
+     */
+    template <typename T>
+    Array(std::shared_ptr<const Executor> exec,
+          std::initializer_list<T> init_list)
+        : Array(exec)
+    {
+        Array tmp(exec->get_master(), init_list.size());
+        int i = 0;
+        for (const auto &elem : init_list) {
+            tmp.data_[i++] = elem;
+        }
+        *this = std::move(tmp);
     }
 
     /**

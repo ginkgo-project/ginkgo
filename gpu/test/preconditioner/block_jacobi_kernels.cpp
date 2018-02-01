@@ -76,8 +76,7 @@ protected:
         mtx = gko::test::generate_random_matrix<Mtx>(
             ref, dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
             std::normal_distribution<>(0.0, 1.0), engine);
-        gko::Array<gko::int32> block_ptrs(ref, block_pointers.size());
-        gko::test::init_array(block_ptrs.get_data(), block_pointers);
+        gko::Array<gko::int32> block_ptrs(ref, block_pointers);
         bj_factory = BjFactory::create(ref, max_block_size);
         bj_factory->set_block_pointers(block_ptrs);
         d_bj_factory = BjFactory::create(gpu, max_block_size);
