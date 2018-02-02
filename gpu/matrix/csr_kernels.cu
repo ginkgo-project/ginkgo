@@ -75,8 +75,8 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     cusparse::destroy(handle);
 };
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
@@ -164,6 +164,7 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
 
     cusparse::destroy(handle);
 };
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
