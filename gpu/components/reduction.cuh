@@ -81,7 +81,7 @@ __device__ __forceinline__ ValueType reduce(ValueType local_data,
  * Only the values from threads which set `is_pivoted` to `false` will be
  * considered.
  */
-template <int subwarp_size, typename ValueType>
+template <int32 subwarp_size, typename ValueType>
 __device__ __forceinline__ int choose_pivot(ValueType local_data,
                                             bool is_pivoted)
 {

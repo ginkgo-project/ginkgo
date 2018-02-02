@@ -37,8 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "gpu/base/math.hpp"
+#include "gpu/components/diagonal_block_manipulation.cuh"
 #include "gpu/components/reduction.cuh"
 #include "gpu/components/uninitialized_array.hpp"
+
+
+#include <cassert>
 
 
 namespace gko {
@@ -77,6 +81,8 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int key_row,
                                                              int key_col,
                                                              ValueType *row)
 {
+    static_assert(max_problem_size <= subwarp_size,
+                  "max_problem_size cannot be larger than subwarp_size");
     auto key_col_elem = gpu::warp::shuffle(row[key_col], key_row, subwarp_size);
     if (key_col_elem == zero<ValueType>()) {
         // TODO: implement error handling for GPUs to be able to properly
@@ -131,11 +137,13 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int key_row,
  * @param tperm  a value to hold an element of permutation matrix \f$ P^T \f$
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
-__device__ __forceinline__ void invert_block(int problem_size, ValueType *row,
+__device__ __forceinline__ void invert_block(int problem_size,
+                                             ValueType *__restrict__ row,
                                              int &perm, int &tperm)
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
+    assert(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
     auto pivoted = threadIdx.x >= problem_size;
 #pragma unroll
@@ -163,79 +171,6 @@ __device__ __forceinline__ void invert_block(int problem_size, ValueType *row,
 namespace device {
 
 
-template <int mbs, int ws, int wpb, typename ValueType, typename IndexType>
-__device__ __forceinline__ void extract_transposed_diag_blocks(
-    size_type num_rows, const IndexType *__restrict__ Arow,
-    const IndexType *__restrict__ Acol, const ValueType *__restrict__ Aval,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-    ValueType *__restrict__ B, int binc, ValueType *sB)
-{
-    const int bpw = warp_size / ws;
-    const int tid = threadIdx.y * ws + threadIdx.x;
-    IndexType bid = blockIdx.x * wpb * bpw + threadIdx.z * bpw;
-    auto bstart = block_ptrs[bid];
-    IndexType bsize = 0;
-#pragma unroll
-    for (int b = 0; b < bpw; ++b, ++bid) {
-        if (bid >= num_blocks) {
-            break;
-        }
-        bstart += bsize;
-        bsize = block_ptrs[bid + 1] - bstart;
-#pragma unroll
-        for (int i = 0; i < mbs; ++i) {
-            if (i >= bsize) {
-                break;
-            }
-            if (threadIdx.y == b && threadIdx.x < mbs) {
-                sB[threadIdx.x] = zero<ValueType>();
-            }
-            const auto row = bstart + i;
-            const auto rstart = Arow[row] + tid;
-            const auto rend = Arow[row + 1];
-            for (auto j = rstart; j < rend; j += warp_size) {
-                const auto col = Acol[j] - bstart;
-                if (col >= bsize) {
-                    break;
-                }
-                if (col >= 0) {
-                    sB[col] = Aval[j];
-                }
-            }
-            __threadfence_block();
-            if (threadIdx.y == b && threadIdx.x < bsize) {
-                B[i * binc] = sB[threadIdx.x];
-            }
-        }
-    }
-}
-
-
-template <int mbs, int ws, int wpb, typename ValueType, typename IndexType>
-__device__ __forceinline__ void insert_diag_blocks_trans(
-    int rperm, int cperm, const ValueType *__restrict__ B, int binc,
-    const IndexType *__restrict__ block_ptrs,
-    ValueType *__restrict__ block_data, size_type padding, size_type num_blocks)
-{
-    const int bpw = warp_size / ws;
-    const size_type bid =
-        blockIdx.x * wpb * bpw + threadIdx.z * bpw + threadIdx.y;
-    const IndexType bstart = bid < num_blocks ? block_ptrs[bid] : 0;
-    const IndexType bsize = bid < num_blocks ? block_ptrs[bid + 1] - bstart : 0;
-#pragma unroll
-    for (int i = 0; i < mbs; ++i) {
-        if (i >= bsize) {
-            break;
-        }
-        const auto idx = gpu::warp::shuffle(cperm, i, ws);
-        const auto rstart = (bstart + idx) * padding;
-        if (bid < num_blocks && threadIdx.x < bsize) {
-            block_data[rstart + rperm] = B[i * binc];
-        }
-    }
-}
-
-
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *warp_size)
@@ -256,15 +191,16 @@ __global__ void __launch_bounds__(warps_per_block *warp_size)
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         sM;
 
-    extract_transposed_diag_blocks<max_block_size, subwarp_size,
-                                   warps_per_block>(
-        num_rows, row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
+    gpu::device::csr::extract_transposed_diag_blocks<
+        max_block_size, subwarp_size, warps_per_block>(
+        row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
         sM + threadIdx.z * max_block_size);
     if (bid < num_blocks) {
         warp::invert_block<max_block_size, subwarp_size>(block_size, row, perm,
                                                          iperm);
     }
-    insert_diag_blocks_trans<max_block_size, subwarp_size, warps_per_block>(
+    gpu::device::csr::insert_diag_blocks_trans<max_block_size, subwarp_size,
+                                               warps_per_block>(
         perm, iperm, row, 1, block_ptrs, block_data, padding, num_blocks);
 }
 
