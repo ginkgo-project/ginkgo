@@ -160,12 +160,13 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
     ASSERT_MTX_NEAR(dense_result, dense_trans, 0);
 }
 
+
 TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto trans = mtx->transpose();
-    auto d_trans = dmtx->transpose();
+    auto trans = mtx->conj_transpose();
+    auto d_trans = dmtx->conj_transpose();
 
     auto dense_result = gko::matrix::Dense<>::create(mtx->get_executor());
     auto dense_trans = gko::matrix::Dense<>::create(mtx->get_executor());
@@ -179,5 +180,6 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
     trans_as_csr->convert_to(dense_trans.get());
     ASSERT_MTX_NEAR(dense_result, dense_trans, 0);
 }
+
 
 }  // namespace

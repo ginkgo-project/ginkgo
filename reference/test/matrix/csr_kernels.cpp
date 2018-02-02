@@ -238,6 +238,7 @@ TEST_F(Csr, SquareMtxIsTransposable)
     EXPECT_EQ(v[5], 2.0);
 }
 
+
 TEST_F(Csr, NonSquareMtxIsTransposable)
 {
     auto trans = mtx->transpose();
@@ -266,6 +267,7 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     EXPECT_EQ(v[2], 5.0);
     EXPECT_EQ(v[3], 2.0);
 }
+
 
 TEST_F(Csr, MtxIsConjugateTransposable)
 {
@@ -322,5 +324,6 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 2.0);
 }
+
 
 }  // namespace

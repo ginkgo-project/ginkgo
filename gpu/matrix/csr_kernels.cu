@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cusparse_bindings.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/base/types.hpp"
-//#include <thrust/complex.h>
 
 namespace gko {
 namespace kernels {
@@ -146,6 +145,7 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
 
     cusparse::destroy(handle);
 };
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
@@ -187,6 +187,7 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
     conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
         trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
 };
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
