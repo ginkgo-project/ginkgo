@@ -49,6 +49,7 @@ namespace {
 class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
     Csr()
@@ -71,6 +72,7 @@ protected:
         v[3] = 5.0;
     }
 
+    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 };
@@ -264,4 +266,61 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     EXPECT_EQ(v[2], 5.0);
     EXPECT_EQ(v[3], 2.0);
 }
+
+TEST_F(Csr, MtxIsConjugateTransposable)
+{
+    auto mtx2 = gko::matrix::Csr<std::complex<double>>::create(
+        mtx->get_executor(), 3, 3, 6);
+
+    ComplexMtx::value_type *v_orig = mtx2->get_values();
+    ComplexMtx::index_type *c_orig = mtx2->get_col_idxs();
+    ComplexMtx::index_type *r_orig = mtx2->get_row_ptrs();
+    r_orig[0] = 0;
+    r_orig[1] = 3;
+    r_orig[2] = 4;
+    r_orig[3] = 6;
+    c_orig[0] = 0;
+    c_orig[1] = 1;
+    c_orig[2] = 2;
+    c_orig[3] = 1;
+    c_orig[4] = 1;
+    c_orig[5] = 2;
+    v_orig[0] = 1.0 + 2.0 * i;
+    v_orig[1] = 3.0;
+    v_orig[2] = 2.0;
+    v_orig[3] = 5.0 - 3.5 * i;
+    v_orig[4] = 1.5 * i;
+    v_orig[5] = 2.0;
+    auto trans = mtx2->conj_transpose();
+
+    auto trans_as_csr =
+        static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
+
+    ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
+    ASSERT_EQ(trans_as_csr->get_num_cols(), 3);
+    ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 6);
+
+
+    ComplexMtx::value_type *v = trans_as_csr->get_values();
+    ComplexMtx::index_type *c = trans_as_csr->get_col_idxs();
+    ComplexMtx::index_type *r = trans_as_csr->get_row_ptrs();
+
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 1);
+    EXPECT_EQ(r[2], 4);
+    EXPECT_EQ(r[3], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 0);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 2);
+    EXPECT_EQ(c[4], 0);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], 1.0 - 2.0 * i);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 5.0 + 3.5 * i);
+    EXPECT_EQ(v[3], -1.5 * i);
+    EXPECT_EQ(v[4], 2.0);
+    EXPECT_EQ(v[5], 2.0);
+}
+
 }  // namespace

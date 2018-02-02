@@ -37,12 +37,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "gpu/base/cusparse_bindings.hpp"
-
+#include "gpu/base/math.hpp"
+#include "gpu/base/types.hpp"
+//#include <thrust/complex.h>
 
 namespace gko {
 namespace kernels {
 namespace gpu {
 namespace csr {
+
+
+constexpr int default_block_size = 512;
 
 
 template <typename ValueType, typename IndexType>
@@ -144,11 +149,28 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void conjugate_kernel(
+    size_type num_nonzeros, ValueType *__restrict__ val)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_nonzeros) {
+        val[tidx] = gko::conj(val[tidx]);
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
 {
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
+
     auto handle = cusparse::init();
     cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
     cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
@@ -161,6 +183,9 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
                         copyValues, idxBase);
 
     cusparse::destroy(handle);
+
+    conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
+        trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
 };
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
