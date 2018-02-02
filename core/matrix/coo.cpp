@@ -58,8 +58,8 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, coo::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_csr, coo::move_to_csr<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs,
+                           coo::convert_row_idxs_to_ptrs<TplArgs...>);
     GKO_REGISTER_OPERATION(transpose, coo::transpose<TplArgs...>);
     GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose<TplArgs...>);
 };
@@ -106,9 +106,8 @@ void Coo<ValueType, IndexType>::convert_to(
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_num_rows(), this->get_num_cols(),
         this->get_num_stored_elements());
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_convert_to_csr_operation(
-            tmp.get(), this));
+    exec->run(TemplatedOperation<ValueType, IndexType>::
+                  make_convert_row_idxs_to_ptrs_operation(tmp.get(), this));
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     tmp->move_to(result);
@@ -122,9 +121,8 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_num_rows(), this->get_num_cols(),
         this->get_num_stored_elements());
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_move_to_csr_operation(
-            tmp.get(), this));
+    exec->run(TemplatedOperation<ValueType, IndexType>::
+                  make_convert_row_idxs_to_ptrs_operation(tmp.get(), this));
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);

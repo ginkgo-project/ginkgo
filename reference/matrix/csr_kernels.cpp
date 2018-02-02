@@ -114,11 +114,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
+                              matrix::Coo<ValueType, IndexType> *result,
+                              const matrix::Csr<ValueType, IndexType> *source)
 {
-    auto nnz = source->get_num_stored_elements();
     auto num_rows = source->get_num_rows();
     auto row_ptrs = source->get_const_row_ptrs();
     size_type ind = 0;
@@ -132,19 +131,7 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                 matrix::Coo<ValueType, IndexType> *result,
-                 matrix::Csr<ValueType, IndexType> *source)
-{
-    reference::csr::convert_to_coo(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_COO_KERNEL);
+    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

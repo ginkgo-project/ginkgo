@@ -48,6 +48,7 @@ void spmv(std::shared_ptr<const CpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
@@ -59,23 +60,16 @@ void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const CpuExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+void convert_row_ptrs_to_idxs(std::shared_ptr<const CpuExecutor> exec,
+                              matrix::Coo<ValueType, IndexType> *result,
+                              const matrix::Csr<ValueType, IndexType> *source)
     NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
+    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
-
-template <typename ValueType, typename IndexType>
-void move_to_coo(std::shared_ptr<const CpuExecutor> exec,
-                 matrix::Coo<ValueType, IndexType> *result,
-                 matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_COO_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
@@ -93,6 +87,7 @@ void move_to_dense(std::shared_ptr<const CpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CpuExecutor> exec,
