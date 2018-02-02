@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_BASE_SHUFLE_CUH_
-#define GKO_GPU_BASE_SHUFLE_CUH_
+#ifndef GKO_GPU_COMPONENTS_SHUFLE_CUH_
+#define GKO_GPU_COMPONENTS_SHUFLE_CUH_
 
 
 #include "gpu/base/types.hpp"
@@ -205,4 +205,4 @@ __device__ __forceinline__ T shuffle_xor(T var, int lane_mask,
 }  // namespace gko
 
 
-#endif  // GKO_GPU_BASE_SHUFLE_CUH_
+#endif  // GKO_GPU_COMPONENTS_SHUFFLE_CUH_

@@ -35,11 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "gpu/base/math.hpp"
-#include "gpu/base/shuffle.cuh"
-#include "gpu/base/uninitialized_array.hpp"
+#include "gpu/components/reduction.cuh"
+#include "gpu/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -59,113 +58,101 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 namespace {
-
-
-uint64 ceildiv(uint64 num, uint64 denom) { return (num - 1) / denom + 1; }
-
-
 namespace warp {
 
 
-// Computes a reduction using the binary operation `reduce_op` on a block of
-// block_size threads (block_size <= MagmaWarpSize).
-// Each thread contributes with one element `local_data`. The local thread
-// element is always passed as the first parameter to the `reduce_op`.
-// The function returns the result of the reduction on all threads.
-//
-// NOTE: The function is guarantied to return the correct value on all threads
-// only if `reduce_op` is comutative (in addition to being asociative).
-// Otherwise, the correct value is returned only to the first thread (use
-// gpu::warp::shuffle to exchange it with the other threads).
-template <int ws, typename ValueType, typename Operator>
-__device__ __forceinline__ ValueType reduce(ValueType local_data,
-                                            Operator reduce_op)
+/**
+ * @internal
+ *
+ * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
+ * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using
+ * `subwarp_size` threads (restrictions from `gpu::warp::reduce` apply, and
+ * `max_problem_size` must not be greater than `subwarp_size`.
+ * Each thread contributes one `row` of the matrix, and the routine uses warp
+ * shuffles to exchange data between rows. The transform is performed by using
+ * the `key_row`-th row and `key_col`-th column of the matrix.
+ */
+template <int max_problem_size, int subwarp_size, typename ValueType>
+__device__ __forceinline__ void apply_gauss_jordan_transform(int key_row,
+                                                             int key_col,
+                                                             ValueType *row)
 {
-#pragma unroll
-    for (int bitmask = 1; bitmask < ws; bitmask <<= 1) {
-        const auto remote_data =
-            gpu::warp::shuffle_xor(local_data, bitmask, ws);
-        local_data = reduce_op(local_data, remote_data);
+    auto key_col_elem = gpu::warp::shuffle(row[key_col], key_row, subwarp_size);
+    if (key_col_elem == zero<ValueType>()) {
+        // TODO: implement error handling for GPUs to be able to properly
+        //       report it here
+        return;
     }
-    return local_data;
-}
-
-
-// Returns the index of the thread that has the element with the largest
-// magnitude among all the threads in the block of block_size threads
-// (block_size <= MagmaWarpSize) which called this function with is_pivoted set
-// to false.
-template <int ws, typename ValueType>
-__device__ __forceinline__ int choose_pivot(ValueType local_data,
-                                            bool is_pivoted)
-{
-    using real = remove_complex<ValueType>;
-    real lmag = is_pivoted ? -one<real>() : abs(local_data);
-    const auto pivot = reduce<ws>(threadIdx.x, [&](int lidx, int ridx) {
-        const auto rmag = gpu::warp::shuffle(lmag, ridx, ws);
-        if (rmag > lmag) {
-            lmag = rmag;
-            lidx = ridx;
-        }
-        return lidx;
-    });
-    // make sure everyone has the same pivot, as the above reduction operator is
-    // not comutative
-    return gpu::warp::shuffle(pivot, 0, ws);
-}
-
-
-// Applies a Gauss-Jordan elimination to a block_size-by-block_size matrix,
-// (block_size <= MagmaWarpSize) using the element at position (key_r, key_c).
-// Each of the block_size threads in the block supplies a single row of the
-// matrix as row_reg argument when calling this function.
-template <int mps, int ws, typename ValueType>
-__device__ __forceinline__ void apply_gauss_jordan_step(int key_r, int key_c,
-                                                        ValueType *row)
-{
-    auto key_col = gpu::warp::shuffle(row[key_c], key_r, ws);
-    if (key_col == zero<ValueType>()) {
-        return;  // TODO(Goran): report error here!
-    }
-    if (threadIdx.x == key_r) {
-        key_col = one<ValueType>() / key_col;
+    if (threadIdx.x == key_row) {
+        key_col_elem = one<ValueType>() / key_col_elem;
     } else {
-        key_col = -row[key_c] / key_col;
+        key_col_elem = -row[key_col] / key_col_elem;
     }
 #pragma unroll
-    for (int i = 0; i < mps; ++i) {
-        const auto key_row_elem = gpu::warp::shuffle(row[i], key_r, ws);
-        if (threadIdx.x == key_r) {
+    for (int i = 0; i < max_problem_size; ++i) {
+        const auto key_row_elem =
+            gpu::warp::shuffle(row[i], key_row, subwarp_size);
+        if (threadIdx.x == key_row) {
             row[i] = zero<ValueType>();
         }
-        row[i] += key_col * key_row_elem;
+        row[i] += key_col_elem * key_row_elem;
     }
-    row[key_c] = key_col;
+    row[key_col] = key_col_elem;
 }
 
 
-template <int mps, int ws, typename ValueType>
-__device__ __forceinline__ void invert_using_gauss_jordan(ValueType *row,
-                                                          int *perm, int *iperm,
-                                                          int size)
+/**
+ * @internal
+ *
+ * Inverts a matrix using Gauss-Jordan elimination. The inversion is
+ * done in-place, so the original matrix will be overridden with the inverse.
+ * The inversion routine uses implicit pivoting, so the returned matrix will be
+ * a permuted inverse (from both sides). To obtain the correct inverse, the
+ * rows of the result should be permuted with \f$P\f$, and the columns with
+ * \f$ P^T \f$ (i.e.
+ * \f$ A^{-1} = P X P \f$, where \f$ X \f$ is the returned matrix). These
+ * permutation matrices are returned compressed as vectors `perm` and `tperm`,
+ * respectively. `i`-th value of each of the vectors is returned to sub-warp
+ * thread with index `i`.
+ *
+ * @tparam max_problem_size  the maximum problem size that will be passed to the
+ *                           inversion routine (a tighter bound results in
+ *                           faster code
+ * @tparam subwarp_size  the size of the sub-warp used to invert the block,
+ *                       cannot be smaller than `max_problem_size`
+ * @tparam ValueType  type of values stored in the matrix
+ *
+ * @param problem_size  the actual size of the matrix (cannot be larger than
+ *                      max_problem_size)
+ * @param row  a pointer to the matrix row (i-th thread in the subwarp should
+ *             pass the pointer to the i-th row), has to have at least
+ *             max_problem_size elements
+ * @param perm  a value to hold an element of permutation matrix \f$ P \f$
+ * @param tperm  a value to hold an element of permutation matrix \f$ P^T \f$
+ */
+template <int max_problem_size, int subwarp_size, typename ValueType>
+__device__ __forceinline__ void invert_block(int problem_size, ValueType *row,
+                                             int &perm, int &tperm)
 {
-    // prevent rows after real size to become pivots.
-    auto pivoted = threadIdx.x >= size;
+    static_assert(max_problem_size <= subwarp_size,
+                  "max_problem_size cannot be larger than subwarp_size");
+    // prevent rows after problem_size to become pivots
+    auto pivoted = threadIdx.x >= problem_size;
 #pragma unroll
-    for (int i = 0; i < mps; ++i) {
-        if (i >= size) {
+    for (int i = 0; i < max_problem_size; ++i) {
+        if (i >= problem_size) {
             break;
         }
-        const auto piv = choose_pivot<ws>(row[i], pivoted);
+        const auto piv = gpu::warp::choose_pivot<subwarp_size>(row[i], pivoted);
         if (threadIdx.x == piv) {
-            // I'm selected at step i, so my result needs to go to output row i.
-            *perm = i;
+            perm = i;
             pivoted = true;
         }
         if (threadIdx.x == i) {
-            *iperm = piv;
+            tperm = piv;
         }
-        apply_gauss_jordan_step<mps, ws>(piv, i, row);
+        apply_gauss_jordan_transform<max_problem_size, subwarp_size>(piv, i,
+                                                                     row);
     }
 }
 
@@ -274,8 +261,8 @@ __global__ void __launch_bounds__(warps_per_block *warp_size)
         num_rows, row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
         sM + threadIdx.z * max_block_size);
     if (bid < num_blocks) {
-        warp::invert_using_gauss_jordan<max_block_size, subwarp_size>(
-            row, &perm, &iperm, block_size);
+        warp::invert_block<max_block_size, subwarp_size>(block_size, row, perm,
+                                                         iperm);
     }
     insert_diag_blocks_trans<max_block_size, subwarp_size, warps_per_block>(
         perm, iperm, row, 1, block_ptrs, block_data, padding, num_blocks);
@@ -308,7 +295,7 @@ __global__ void __launch_bounds__(warps_per_block *warp_size)
         if (threadIdx.x < bsize) {
             a = block_data[rstart + threadIdx.x];
         }
-        auto out = warp::reduce<subwarp_size>(
+        auto out = gpu::warp::reduce<subwarp_size>(
             a * v, [](ValueType x, ValueType y) { return x + y; });
         if (threadIdx.x == 0) {
             x[(bstart + i) * x_padding] = out;
@@ -335,7 +322,7 @@ void generate(syn::compile_int_list<max_block_size>,
               const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    const int blocks_per_warp = warp_size / subwarp_size;
+    constexpr int blocks_per_warp = warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -375,7 +362,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 }  // namespace
 
 
-using compiled_kernels = syn::compile_int_list<1, 16, 32>;
+using compiled_kernels = syn::compile_int_list<1, 3, 16, 32>;
 
 
 template <typename ValueType, typename IndexType>
