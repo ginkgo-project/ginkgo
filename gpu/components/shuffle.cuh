@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/types.hpp"
 
 
+#include <cassert>
 #include <cstddef>
 
 
@@ -57,15 +58,14 @@ __device__ __forceinline__ T shuffle(T var, int32 src_lane,
 {
     static_assert(sizeof(T) % sizeof(int32) == 0,
                   "Unable to shuffle sizes which are not 4-byte multiples");
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     constexpr auto size = sizeof(T) / sizeof(int32);
     T result;
     auto var_array = reinterpret_cast<int32 *>(&var);
     auto var_result = reinterpret_cast<int32 *>(&result);
 #pragma unroll
     for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl(var, src_lane, width);
+        var_result[i] = __shfl(var_array[i], src_lane, width);
     }
     return result;
 }
@@ -78,15 +78,14 @@ __device__ __forceinline__ T shuffle_up(T var, uint32 delta,
 {
     static_assert(sizeof(T) % sizeof(int32) == 0,
                   "Unable to shuffle sizes which are not 4-byte multiples");
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     constexpr auto size = sizeof(T) / sizeof(int32);
     T result;
     auto var_array = reinterpret_cast<int32 *>(&var);
     auto var_result = reinterpret_cast<int32 *>(&result);
 #pragma unroll
     for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_up(var, delta, width);
+        var_result[i] = __shfl_up(var_array[i], delta, width);
     }
     return result;
 }
@@ -99,15 +98,14 @@ __device__ __forceinline__ T shuffle_down(T var, uint32 delta,
 {
     static_assert(sizeof(T) % sizeof(int32) == 0,
                   "Unable to shuffle sizes which are not 4-byte multiples");
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     constexpr auto size = sizeof(T) / sizeof(int32);
     T result;
     auto var_array = reinterpret_cast<int32 *>(&var);
     auto var_result = reinterpret_cast<int32 *>(&result);
 #pragma unroll
     for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_down(var, delta, width);
+        var_result[i] = __shfl_down(var_array[i], delta, width);
     }
     return result;
 }
@@ -120,15 +118,14 @@ __device__ __forceinline__ T shuffle_xor(T var, int32 lane_mask,
 {
     static_assert(sizeof(T) % sizeof(int32) == 0,
                   "Unable to shuffle sizes which are not 4-byte multiples");
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     constexpr auto size = sizeof(T) / sizeof(int32);
     T result;
     auto var_array = reinterpret_cast<int32 *>(&var);
     auto var_result = reinterpret_cast<int32 *>(&result);
 #pragma unroll
     for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_xor(var, lane_mask, width);
+        var_result[i] = __shfl_xor(var_array[i], lane_mask, width);
     }
     return result;
 }

@@ -38,6 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/types.hpp"
 
 
+#include <cassert>
+
+
 namespace gko {
 namespace kernels {
 namespace gpu {
@@ -64,8 +67,7 @@ __device__ __forceinline__ void synchronize(uint32 mask = full_lane_mask)
 __device__ __forceinline__ bool any(bool predicate,
                                     uint32 mask = full_lane_mask)
 {
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     return __any(predicate);
 }
 
@@ -73,8 +75,7 @@ __device__ __forceinline__ bool any(bool predicate,
 __device__ __forceinline__ bool all(bool predicate,
                                     uint32 mask = full_lane_mask)
 {
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     return __all(predicate);
 }
 
@@ -82,8 +83,7 @@ __device__ __forceinline__ bool all(bool predicate,
 __device__ __forceinline__ int32 count(bool predicate,
                                        uint32 mask = full_lane_mask)
 {
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     return __popc(__ballot(predicate));
 }
 
@@ -91,8 +91,7 @@ __device__ __forceinline__ int32 count(bool predicate,
 __device__ __forceinline__ uint32 ballot(bool predicate,
                                          uint32 mask = full_lane_mask)
 {
-    static_assert(mask == full_lane_mask,
-                  "mask has to be full_lane_mask for CUDA version less than 9");
+    assert(mask == full_lane_mask);
     return __ballot(predicate);
 }
 
