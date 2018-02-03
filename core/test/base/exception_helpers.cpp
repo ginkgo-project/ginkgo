@@ -167,4 +167,12 @@ TEST(FileError, ThrowsFileErrorException)
 }
 
 
+void non_existing_kernel() KERNEL_NOT_FOUND;
+
+TEST(KernelNotFound, ThrowsKernelNotFoundException)
+{
+    ASSERT_THROW(non_existing_kernel(), gko::KernelNotFound);
+}
+
+
 }  // namespace

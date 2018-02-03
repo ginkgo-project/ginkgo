@@ -208,19 +208,6 @@ public:
 
 
 /**
- * NotFound is thrown if a requested Attachement is not found in the
- * attachement list of the LinOp.
- */
-class NotFound : public Error {
-public:
-    NotFound(const std::string &file, int line, const std::string &func,
-             const std::string &what)
-        : Error(file, line, func + ": " + what)
-    {}
-};
-
-
-/**
  * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {
@@ -243,6 +230,18 @@ public:
               const std::string &filename, const std::string &message)
         : Error(file, line,
                 func + ": error accessing " + filename + ": " + message)
+    {}
+};
+
+
+/**
+ * KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the
+ * criteria imposed by the input arguments.
+ */
+class KernelNotFound : public Error {
+public:
+    KernelNotFound(const std::string &file, int line, const std::string &func)
+        : Error(file, line, func + ": unable to find an eligible kernel")
     {}
 };
 

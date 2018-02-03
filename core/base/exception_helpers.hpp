@@ -289,4 +289,16 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 }  // namespace gko
 
 
+/**
+ * Marks a kernel as not eligible for any predicate.
+ *
+ * Attempts to call this kernel will result in a runtime error of type
+ * KernelNotFound.
+ */
+#define KERNEL_NOT_FOUND                                           \
+    {                                                              \
+        throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__); \
+    }
+
+
 #endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_

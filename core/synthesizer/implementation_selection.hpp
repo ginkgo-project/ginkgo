@@ -35,6 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SYNTHESIZER_IMPLEMENTATION_SELECTION_
 
 
+#include "core/base/exception_helpers.hpp"
+
+
 #include <utility>
 
 
@@ -58,10 +61,7 @@ struct compile_type_list {
     inline void _name(::gko::syn::compile_int_list<>, Predicate,             \
                       ::gko::syn::compile_int_list<IntArgs...>,              \
                       ::gko::syn::compile_type_list<TArgs...>,               \
-                      InferredArgs...)                                       \
-    {                                                                        \
-        throw "TODO";                                                        \
-    }                                                                        \
+                      InferredArgs...) KERNEL_NOT_FOUND;                     \
                                                                              \
     template <int K, int... Rest, typename Predicate, int... IntArgs,        \
               typename... TArgs, typename... InferredArgs>                   \

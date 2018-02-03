@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_GPU_COMPONENTS_WARP_BLAS_CUH_
 
 
+#include "gpu/base/math.hpp"
 #include "gpu/components/reduction.cuh"
 
 
