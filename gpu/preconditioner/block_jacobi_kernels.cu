@@ -38,137 +38,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/components/diagonal_block_manipulation.cuh"
-#include "gpu/components/reduction.cuh"
 #include "gpu/components/uninitialized_array.hpp"
-
-
-#include <cassert>
+#include "gpu/components/warp_blas.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace gpu {
-namespace block_jacobi {
-
-
-template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const GpuExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType> *system_matrix,
-                 uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
-
-
+namespace kernel {
 namespace {
-namespace warp {
-
-
-/**
- * @internal
- *
- * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
- * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using
- * `subwarp_size` threads (restrictions from `gpu::warp::reduce` apply, and
- * `max_problem_size` must not be greater than `subwarp_size`.
- * Each thread contributes one `row` of the matrix, and the routine uses warp
- * shuffles to exchange data between rows. The transform is performed by using
- * the `key_row`-th row and `key_col`-th column of the matrix.
- */
-template <int max_problem_size, int subwarp_size, typename ValueType>
-__device__ __forceinline__ void apply_gauss_jordan_transform(int key_row,
-                                                             int key_col,
-                                                             ValueType *row)
-{
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
-    auto key_col_elem = gpu::warp::shuffle(row[key_col], key_row, subwarp_size);
-    if (key_col_elem == zero<ValueType>()) {
-        // TODO: implement error handling for GPUs to be able to properly
-        //       report it here
-        return;
-    }
-    if (threadIdx.x == key_row) {
-        key_col_elem = one<ValueType>() / key_col_elem;
-    } else {
-        key_col_elem = -row[key_col] / key_col_elem;
-    }
-#pragma unroll
-    for (int i = 0; i < max_problem_size; ++i) {
-        const auto key_row_elem =
-            gpu::warp::shuffle(row[i], key_row, subwarp_size);
-        if (threadIdx.x == key_row) {
-            row[i] = zero<ValueType>();
-        }
-        row[i] += key_col_elem * key_row_elem;
-    }
-    row[key_col] = key_col_elem;
-}
-
-
-/**
- * @internal
- *
- * Inverts a matrix using Gauss-Jordan elimination. The inversion is
- * done in-place, so the original matrix will be overridden with the inverse.
- * The inversion routine uses implicit pivoting, so the returned matrix will be
- * a permuted inverse (from both sides). To obtain the correct inverse, the
- * rows of the result should be permuted with \f$P\f$, and the columns with
- * \f$ P^T \f$ (i.e.
- * \f$ A^{-1} = P X P \f$, where \f$ X \f$ is the returned matrix). These
- * permutation matrices are returned compressed as vectors `perm` and `tperm`,
- * respectively. `i`-th value of each of the vectors is returned to sub-warp
- * thread with index `i`.
- *
- * @tparam max_problem_size  the maximum problem size that will be passed to the
- *                           inversion routine (a tighter bound results in
- *                           faster code
- * @tparam subwarp_size  the size of the sub-warp used to invert the block,
- *                       cannot be smaller than `max_problem_size`
- * @tparam ValueType  type of values stored in the matrix
- *
- * @param problem_size  the actual size of the matrix (cannot be larger than
- *                      max_problem_size)
- * @param row  a pointer to the matrix row (i-th thread in the subwarp should
- *             pass the pointer to the i-th row), has to have at least
- *             max_problem_size elements
- * @param perm  a value to hold an element of permutation matrix \f$ P \f$
- * @param tperm  a value to hold an element of permutation matrix \f$ P^T \f$
- */
-template <int max_problem_size, int subwarp_size, typename ValueType>
-__device__ __forceinline__ void invert_block(int problem_size,
-                                             ValueType *__restrict__ row,
-                                             int &perm, int &tperm)
-{
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
-    assert(problem_size <= max_problem_size);
-    // prevent rows after problem_size to become pivots
-    auto pivoted = threadIdx.x >= problem_size;
-#pragma unroll
-    for (int i = 0; i < max_problem_size; ++i) {
-        if (i >= problem_size) {
-            break;
-        }
-        const auto piv = gpu::warp::choose_pivot<subwarp_size>(row[i], pivoted);
-        if (threadIdx.x == piv) {
-            perm = i;
-            pivoted = true;
-        }
-        if (threadIdx.x == i) {
-            tperm = piv;
-        }
-        apply_gauss_jordan_transform<max_problem_size, subwarp_size>(piv, i,
-                                                                     row);
-    }
-}
-
-
-}  // namespace warp
-
-
-namespace device {
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
@@ -180,68 +58,62 @@ __global__ void __launch_bounds__(warps_per_block *warp_size)
              ValueType *__restrict__ block_data, size_type padding,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
-    const int blocks_per_warp = warp_size / subwarp_size;
-    const size_type bid = blockIdx.x * warps_per_block * blocks_per_warp +
-                          threadIdx.z * blocks_per_warp + threadIdx.y;
-    const int block_size =
-        (bid < num_blocks) ? block_ptrs[bid + 1] - block_ptrs[bid] : 0;
-    int perm = threadIdx.x;
-    int iperm = threadIdx.x;
+    constexpr int blocks_per_warp = warp_size / subwarp_size;
+    const auto bid =
+        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
+        threadIdx.z * blocks_per_warp + threadIdx.y;
     ValueType row[max_block_size];
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
-        sM;
+        workspace;
 
-    gpu::device::csr::extract_transposed_diag_blocks<
-        max_block_size, subwarp_size, warps_per_block>(
+    device::csr::extract_transposed_diag_blocks<max_block_size, subwarp_size,
+                                                warps_per_block>(
         row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
-        sM + threadIdx.z * max_block_size);
+        workspace + threadIdx.z * max_block_size);
     if (bid < num_blocks) {
+        const auto block_size = block_ptrs[bid + 1] - block_ptrs[bid];
+        auto perm = threadIdx.x;
+        auto iperm = threadIdx.x;
         warp::invert_block<max_block_size, subwarp_size>(block_size, row, perm,
                                                          iperm);
+        warp::copy_matrix<max_block_size, subwarp_size>(
+            block_size, row, 1, perm, iperm,
+            block_data + (block_ptrs[bid] * padding), padding);
     }
-    gpu::device::csr::insert_diag_blocks_trans<max_block_size, subwarp_size,
-                                               warps_per_block>(
-        perm, iperm, row, 1, block_ptrs, block_data, padding, num_blocks);
 }
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *warp_size)
-    apply(const ValueType *__restrict__ block_data, int32 padding,
+    apply(const ValueType *__restrict__ blocks, int32 padding,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
           const ValueType *__restrict__ b, int32 b_padding,
           ValueType *__restrict__ x, int32 x_padding)
 {
-    const int bpw = warp_size / subwarp_size;
-    const IndexType bid =
-        blockIdx.x * warps_per_block * bpw + threadIdx.z * bpw + threadIdx.y;
+    constexpr int blocks_per_warp = warp_size / subwarp_size;
+    const auto bid =
+        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
+        threadIdx.z * blocks_per_warp + threadIdx.y;
     if (bid >= num_blocks) {
         return;
     }
-    const auto bstart = block_ptrs[bid];
-    const auto bsize = block_ptrs[bid + 1] - bstart;
-    auto rstart = bstart * padding;
+    const auto block_size = block_ptrs[bid + 1] - block_ptrs[bid];
     ValueType v = zero<ValueType>();
-    if (threadIdx.x < bsize) {
-        v = b[(bstart + threadIdx.x) * b_padding];
+    if (threadIdx.x < block_size) {
+        v = b[(block_ptrs[bid] + threadIdx.x) * b_padding];
     }
-    auto a = zero<ValueType>();
-    for (int i = 0; i < bsize; ++i) {
-        if (threadIdx.x < bsize) {
-            a = block_data[rstart + threadIdx.x];
-        }
-        auto out = gpu::warp::reduce<subwarp_size>(
-            a * v, [](ValueType x, ValueType y) { return x + y; });
-        if (threadIdx.x == 0) {
-            x[(bstart + i) * x_padding] = out;
-        }
-        rstart += padding;
-    }
+    warp::multiply_transposed_vec<max_block_size, subwarp_size>(
+        block_size, v, blocks + block_ptrs[bid] * padding + threadIdx.x,
+        padding, x + block_ptrs[bid] * x_padding, x_padding);
 }
 
 
-}  // namespace device
+}  // namespace
+}  // namespace kernel
+
+
+namespace {
 
 
 constexpr int get_larger_power(int value, int guess = 1)
@@ -263,7 +135,7 @@ void generate(syn::compile_int_list<max_block_size>,
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    device::generate<max_block_size, subwarp_size, warps_per_block>
+    kernel::generate<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
             mtx->get_num_rows(), mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
@@ -286,7 +158,7 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    device::apply<max_block_size, subwarp_size, warps_per_block>
+    kernel::apply<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
             as_cuda_type(blocks), block_padding, block_pointers, num_blocks,
             as_cuda_type(b), b_padding, as_cuda_type(x), x_padding);
@@ -295,10 +167,23 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 
+using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+
+
 }  // namespace
 
 
-using compiled_kernels = syn::compile_int_list<1, 3, 16, 32>;
+namespace block_jacobi {
+
+
+template <typename ValueType, typename IndexType>
+void find_blocks(std::shared_ptr<const GpuExecutor> exec,
+                 const matrix::Csr<ValueType, IndexType> *system_matrix,
+                 uint32 max_block_size, size_type &num_blocks,
+                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

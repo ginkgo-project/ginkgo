@@ -45,7 +45,12 @@ namespace gpu {
 namespace device {
 namespace csr {
 
-
+/**
+ * @internal
+ *
+ * @note assumes that block dimensions are in "standard format":
+ *       (subwarp_size, warp_size / subwarp_size, z)
+ */
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __device__ __forceinline__ void extract_transposed_diag_blocks(
@@ -56,10 +61,11 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     ValueType *__restrict__ block_row, int increment,
     ValueType *__restrict__ workspace)
 {
-    const int blocks_per_warp = warp_size / subwarp_size;
+    constexpr int blocks_per_warp = warp_size / subwarp_size;
     const int tid = threadIdx.y * subwarp_size + threadIdx.x;
-    IndexType bid =
-        (blockIdx.x * warps_per_block + threadIdx.z) * blocks_per_warp;
+    auto bid =
+        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
+        threadIdx.z * blocks_per_warp;
     auto bstart = block_ptrs[bid];
     IndexType bsize = 0;
 #pragma unroll
@@ -94,31 +100,6 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             if (threadIdx.y == b && threadIdx.x < bsize) {
                 block_row[i * increment] = workspace[threadIdx.x];
             }
-        }
-    }
-}
-
-
-template <int mbs, int ws, int wpb, typename ValueType, typename IndexType>
-__device__ __forceinline__ void insert_diag_blocks_trans(
-    int rperm, int cperm, const ValueType *__restrict__ B, int binc,
-    const IndexType *__restrict__ block_ptrs,
-    ValueType *__restrict__ block_data, size_type padding, size_type num_blocks)
-{
-    const int bpw = warp_size / ws;
-    const size_type bid =
-        blockIdx.x * wpb * bpw + threadIdx.z * bpw + threadIdx.y;
-    const IndexType bstart = bid < num_blocks ? block_ptrs[bid] : 0;
-    const IndexType bsize = bid < num_blocks ? block_ptrs[bid + 1] - bstart : 0;
-#pragma unroll
-    for (int i = 0; i < mbs; ++i) {
-        if (i >= bsize) {
-            break;
-        }
-        const auto idx = gpu::warp::shuffle(cperm, i, ws);
-        const auto rstart = (bstart + idx) * padding;
-        if (bid < num_blocks && threadIdx.x < bsize) {
-            block_data[rstart + rperm] = B[i * binc];
         }
     }
 }
