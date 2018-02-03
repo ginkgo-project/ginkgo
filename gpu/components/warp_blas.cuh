@@ -126,7 +126,8 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void invert_block(uint32 problem_size,
                                              ValueType *__restrict__ row,
-                                             uint32 &perm, uint32 &tperm)
+                                             uint32 &__restrict__ perm,
+                                             uint32 &__restrict__ tperm)
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
@@ -152,33 +153,99 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
 }
 
 
+/**
+ * @internal
+ *
+ * Copies a matrix stored as a collection of rows in different threads of the
+ * warp in a block of memory accessible by all threads in row-major order.
+ * Optionally permutes rows and columns of the matrix in the process.
+ *
+ * @tparam max_problem_size  maximum problem size passed to the routine
+ *                          (`max_problem_size <= subwarp_size`)
+ * @tparam subwarp_size  size of the sub-warp used to store the matrix
+ * @tparam ValueType  type of values stored in the matrix
+ *
+ * @param problem_size  actual size of the matrix
+ *                      (`problem_size <= max_problem_size`)
+ * @param source_row  pointer to memory used to store a row of the source matrix
+ *                    `i`-th thread of the sub-warp should pass in the `i`-th
+ *                    row of the matrix
+ * @param increment  offset between two consecutive elements of the row
+ * @param row_perm  permutation vector to apply on the rows of the matrix
+ *                  (thread `i` supplies the `i`-th value of the vector)
+ * @param col_perm  permutation vector to apply on the column of the matrix
+ *                  (thread `i` supplies the `i`-th value of the vector)
+ * @param destination  pointer to memory where the result will be stored
+ *                     (all threads supply the same value)
+ * @param padding  offset between two consecutive rows of the matrix
+ *
+ * @note assumes that block dimensions are in "standard format":
+ *       (subwarp_size, warp_size / subwarp_size, z)
+ */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void copy_matrix(
     uint32 problem_size, const ValueType *__restrict__ source_row,
-    uint32 increment, uint32 rperm, uint32 cperm,
+    uint32 increment, uint32 row_perm, uint32 col_perm,
     ValueType *__restrict__ destination, size_type padding)
 {
+    static_assert(max_problem_size <= subwarp_size,
+                  "max_problem_size cannot be larger than subwarp_size");
+    assert(problem_size <= max_problem_size);
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
         }
-        const auto idx = warp::shuffle(cperm, i, subwarp_size);
+        const auto idx = warp::shuffle(col_perm, i, subwarp_size);
         if (threadIdx.x < problem_size) {
-            destination[idx * padding + rperm] = source_row[i * increment];
+            destination[idx * padding + row_perm] = source_row[i * increment];
         }
     }
 }
 
 
+/**
+ * @internal
+ *
+ * Multiplies a transposed vector and a matrix stored in column-major order.
+ *
+ * In mathematical terms, performs the operation \f$ res^T = vec^T \cdot mtx\f$.
+ *
+ * @tparam max_problem_size  maximum problem size passed to the routine
+ *                          (`max_problem_size <= subwarp_size`)
+ * @tparam subwarp_size  size of the sub-warp used to store the matrix
+ * @tparam ValueType  type of values stored in matrix and vectors
+ *
+ * @param problem_size  actual size of the matrix
+ *                      (`problem_size <= max_problem_size`)
+ * @param vec  input vector to multiply (thread `i` supplies the `i`-th value of
+ *             the vector)
+ * @param mtx_row  pointer to memory used to store a row of the input matrix,
+ *                    `i`-th thread of the sub-warp should pass in the
+ *                    `i`-th row of the matrix
+ * @param mtx_increment  offset between two consecutive elements of the row
+ * @param res  pointer to a block of memory where the result will be written
+ *             (only thread 0 of the subwarp has to supply a valid value)
+ * @param mtx_increment  offset between two consecutive elements of the result
+ *
+ * @note assumes that block dimensions are in "standard format":
+ *       (subwarp_size, warp_size / subwarp_size, z)
+ */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void multiply_transposed_vec(
     uint32 problem_size, const ValueType &__restrict__ vec,
     const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
     ValueType *__restrict__ res, uint32 res_increment)
 {
+    static_assert(max_problem_size <= subwarp_size,
+                  "max_problem_size cannot be larger than subwarp_size");
+    assert(problem_size <= max_problem_size);
     auto mtx_elem = zero<ValueType>();
-    for (uint32 i = 0; i < problem_size; ++i) {
+#pragma unroll
+    for (int32 i = 0; i < max_problem_size; ++i) {
+        if (i >= problem_size) {
+            break;
+        }
         if (threadIdx.x < problem_size) {
             mtx_elem = mtx_row[i * mtx_increment];
         }
