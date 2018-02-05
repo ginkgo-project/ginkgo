@@ -170,13 +170,15 @@ using remove_container = typename remove_container_impl<T>::type;
 
 std::string remove_pointer_wrapper(const std::string &expression)
 {
-    return expression.substr(sizeof("plain_ptr(") - 1, expression.size() - 1);
+    constexpr auto prefix_len = sizeof("plain_ptr(") - 1;
+    return expression.substr(prefix_len, expression.size() - prefix_len - 1);
 }
 
 
 std::string remove_list_wrapper(const std::string &expression)
 {
-    return expression.substr(sizeof("l(") - 1, expression.size() - 1);
+    constexpr auto prefix_len = sizeof("l(") - 1;
+    return expression.substr(prefix_len, expression.size() - prefix_len - 1);
 }
 
 
