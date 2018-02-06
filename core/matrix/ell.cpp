@@ -213,24 +213,6 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         }
     }
     tmp->move_to(this);
-    // size_type ind = 0;
-    // size_type cur_ptr = 0;
-    // tmp->get_row_ptrs()[0] = cur_ptr;
-    // for (size_type row = 0; row < data.num_rows; ++row) {
-    //     for (; ind < data.nonzeros.size(); ++ind) {
-    //         if (std::get<0>(data.nonzeros[ind]) > row) {
-    //             break;
-    //         }
-    //         auto val = std::get<2>(data.nonzeros[ind]);
-    //         if (val != zero<ValueType>()) {
-    //             tmp->get_values()[cur_ptr] = val;
-    //             tmp->get_col_idxs()[cur_ptr] = std::get<1>(data.nonzeros[ind]);
-    //             ++cur_ptr;
-    //         }
-    //     }
-    //     tmp->get_row_ptrs()[row + 1] = cur_ptr;
-    // }
-    // tmp->move_to(this);
 }
 
 

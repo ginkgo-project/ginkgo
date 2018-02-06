@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
-#include <iostream>
+
 
 namespace {
 
@@ -115,23 +115,26 @@ protected:
 
 
 TEST_F(Ell, SimpleApplyIsEquivalentToRef) {
-    std::cout << "Step 0 \n";
     set_up_apply_data();
-    std::cout << "Step 1 \n";
+    
     mtx->apply(y.get(), expected.get());
-    std::cout << "Step 2 \n";
     dmtx->apply(dy.get(), dresult.get());
-    std::cout << "Step 3 \n";
+
     auto result = Vec::create(ref);
-    std::cout << "Step 4 \n";
     result->copy_from(dresult.get());
-    std::cout << "Step 5 \n";
     ASSERT_MTX_NEAR(result, expected, 1e-14);
     }
 
 
 TEST_F(Ell, AdvancedApplyIsEquivalentToRef) {
-        NOT_IMPLEMENTED;
+    set_up_apply_data();
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
     }
 
 

@@ -182,25 +182,6 @@ public:
     {
         return max_nnz_row_;
     }
-    
-    // /**
-    //  * Returns the row pointers of the matrix.
-    //  *
-    //  * @return the row pointers of the matrix.
-    //  */
-    // index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
-
-    // /**
-    //  * @copydoc Ell::get_row_ptrs()
-    //  *
-    //  * @note This is the constant version of the function, which can be
-    //  *       significantly more memory efficient than the non-constant version,
-    //  *       so always prefer this version.
-    //  */
-    // const index_type *get_const_row_ptrs() const noexcept
-    // {
-    //     return row_ptrs_.get_const_data();
-    // }
 
 protected:
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
@@ -214,7 +195,6 @@ protected:
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    // Array<index_type> row_ptrs_;
     index_type max_nnz_row_;
 
 };

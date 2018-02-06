@@ -108,88 +108,81 @@ TEST_F(Ell, AppliesToDenseMatrix)
 
 TEST_F(Ell, AppliesLinearCombinationToDenseVector)
 {
-	NOT_IMPLEMENTED;
-    // auto alpha = Vec::create(exec, {-1.0});
-    // auto beta = Vec::create(exec, {2.0});
-    // auto x = Vec::create(exec, {2.0, 1.0, 4.0});
-    // auto y = Vec::create(exec, {1.0, 2.0});
+    auto alpha = Vec::create(exec, {-1.0});
+    auto beta = Vec::create(exec, {2.0});
+    auto x = Vec::create(exec, {2.0, 1.0, 4.0});
+    auto y = Vec::create(exec, {1.0, 2.0});
 
-    // mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    // EXPECT_EQ(y->at(0), -11.0);
-    // EXPECT_EQ(y->at(1), -1.0);
+    EXPECT_EQ(y->at(0), -11.0);
+    EXPECT_EQ(y->at(1), -1.0);
 }
 
 TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
 {
-	NOT_IMPLEMENTED;
-    // auto alpha = Vec::create(exec, {-1.0});
-    // auto beta = Vec::create(exec, {2.0});
-    // auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
-    // auto y = Vec::create(exec, {{1.0, 0.5}, {2.0, -1.5}});
+    auto alpha = Vec::create(exec, {-1.0});
+    auto beta = Vec::create(exec, {2.0});
+    auto x = Vec::create(exec, {{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}});
+    auto y = Vec::create(exec, {{1.0, 0.5}, {2.0, -1.5}});
 
-    // mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    // EXPECT_EQ(y->at(0, 0), -11.0);
-    // EXPECT_EQ(y->at(1, 0), -1.0);
-    // EXPECT_EQ(y->at(0, 1), -2.5);
-    // EXPECT_EQ(y->at(1, 1), 4.5);
+    EXPECT_EQ(y->at(0, 0), -11.0);
+    EXPECT_EQ(y->at(1, 0), -1.0);
+    EXPECT_EQ(y->at(0, 1), -2.5);
+    EXPECT_EQ(y->at(1, 1), 4.5);
 }
 
 
 TEST_F(Ell, ApplyFailsOnWrongInnerDimension)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 2, 2, 2);
-    // auto y = Vec::create(exec, 2, 2, 2);
+    auto x = Vec::create(exec, 2, 2, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Ell, ApplyFailsOnWrongNumberOfRows)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 3, 2, 2);
-    // auto y = Vec::create(exec, 3, 2, 2);
+    auto x = Vec::create(exec, 3, 2, 2);
+    auto y = Vec::create(exec, 3, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Ell, ApplyFailsOnWrongNumberOfCols)
 {
-	NOT_IMPLEMENTED;
-    // auto x = Vec::create(exec, 3, 3, 2);
-    // auto y = Vec::create(exec, 2, 2, 2);
+    auto x = Vec::create(exec, 3, 3, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
 
-    // ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Ell, ConvertsToDense)
 {
-	NOT_IMPLEMENTED;
-    // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    // auto dense_other = gko::matrix::Dense<>::create(
-    //     exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
-    // mtx->convert_to(dense_mtx.get());
+    mtx->convert_to(dense_mtx.get());
 
-    // ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
 TEST_F(Ell, MovesToDense)
 {
-	NOT_IMPLEMENTED;
-    // auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    // auto dense_other = gko::matrix::Dense<>::create(
-    //     exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_other = gko::matrix::Dense<>::create(
+        exec, 4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}});
 
-    // mtx->move_to(dense_mtx.get());
+    mtx->move_to(dense_mtx.get());
 
-    // ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
