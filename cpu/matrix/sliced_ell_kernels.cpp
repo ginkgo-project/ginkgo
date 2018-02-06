@@ -31,15 +31,51 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include "core/matrix/sliced_ell_kernels.hpp"
+
+#include "core/base/exception_helpers.hpp"
+
+namespace gko {
+namespace kernels {
+namespace cpu {
+namespace sliced_ell {
+
+template <typename ValueType, typename IndexType>
+void spmv(const matrix::Sliced_ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SLICED_ELL_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(const matrix::Dense<ValueType> *alpha,
+                   const matrix::Sliced_ell<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_ADVANCED_SPMV_KERNEL);
 
 
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/sliced_ell.hpp"
-#include "core/solver/cg.hpp"
+template <typename ValueType, typename IndexType>
+void convert_to_dense(matrix::Dense<ValueType> *result,
+                      const matrix::Sliced_ell<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_CONVERT_TO_DENSE_KERNEL);
 
 
-#endif  // GKO_GINKGO_HPP_
+template <typename ValueType, typename IndexType>
+void move_to_dense(matrix::Dense<ValueType> *result,
+                   matrix::Sliced_ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SLICED_ELL_MOVE_TO_DENSE_KERNEL);
+
+
+}  // namespace sliced_ell
+}  // namespace cpu
+}  // namespace kernels
+}  // namespace gko

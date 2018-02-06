@@ -54,6 +54,8 @@ template <typename ValueType, typename IndexType>
 class Csr;
 template <typename ValueType, typename IndexType>
 class Ell;
+template <typename ValueType, typename IndexType>
+class Sliced_ell;
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -74,12 +76,16 @@ class Dense : public LinOp,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
+              public ConvertibleTo<Sliced_ell<ValueType, int32>>,
+              public ConvertibleTo<Sliced_ell<ValueType, int64>>,
               public ReadableFromMtx,
               public Transposable {
     friend class gko::matrix::Csr<ValueType, int32>;
     friend class gko::matrix::Csr<ValueType, int64>;
     friend class gko::matrix::Ell<ValueType, int32>;
     friend class gko::matrix::Ell<ValueType, int64>;
+    friend class gko::matrix::Sliced_ell<ValueType, int32>;
+    friend class gko::matrix::Sliced_ell<ValueType, int64>;
 
 public:
     using value_type = ValueType;
@@ -365,6 +371,14 @@ public:
     void convert_to(Ell<ValueType, int64> *result) const override;
 
     void move_to(Ell<ValueType, int64> *result) override;
+
+    void convert_to(Sliced_ell<ValueType, int32> *result) const override;
+
+    void move_to(Sliced_ell<ValueType, int32> *result) override;
+
+    void convert_to(Sliced_ell<ValueType, int64> *result) const override;
+
+    void move_to(Sliced_ell<ValueType, int64> *result) override;
 
     void read_from_mtx(const std::string &filename) override;
 

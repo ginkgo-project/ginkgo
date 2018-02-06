@@ -82,11 +82,22 @@ namespace kernels {
     void move_to_ell(matrix::Ell<_type, _prec> *other,     \
                      const matrix::Dense<_type> *source)
 
+#define GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL(_type, _prec) \
+    void convert_to_sliced_ell(matrix::Sliced_ell<_type, _prec> *other,     \
+                        const matrix::Dense<_type> *source)
+
+#define GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL(_type, _prec) \
+    void move_to_sliced_ell(matrix::Sliced_ell<_type, _prec> *other,     \
+                     const matrix::Dense<_type> *source)
+
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type) \
     void count_nonzeros(const matrix::Dense<_type> *source, size_type *result)
 
 #define GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL(_type) \
     void count_max_nnz_row(const matrix::Dense<_type> *source, size_type *result)
+
+#define GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL(_type) \
+    void count_total_cols(const matrix::Dense<_type> *source, size_type *result)
 
 #define GKO_DECLARE_TRANSPOSE_KERNEL(_type)     \
     void transpose(matrix::Dense<_type> *trans, \
@@ -115,15 +126,20 @@ namespace kernels {
     GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL(ValueType, IndexType);    \
     template <typename ValueType>                                  \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);            \
     template <typename ValueType>                                  \
     GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL(ValueType);         \
     template <typename ValueType>                                  \
+    GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL(ValueType);          \
+    template <typename ValueType>                                  \
     GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                       \
     template <typename ValueType>                                  \
     GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
-
 
 namespace cpu {
 namespace dense {

@@ -179,6 +179,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
+                 const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(const matrix::Dense<ValueType> *source,
                     size_type *result) NOT_IMPLEMENTED;
@@ -190,6 +206,12 @@ void count_max_nnz_row(const matrix::Dense<ValueType> *source,
                     size_type *result) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
+
+template <typename ValueType>
+void count_total_cols(const matrix::Dense<ValueType> *source,
+                    size_type *result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType>
