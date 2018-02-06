@@ -60,6 +60,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
     GKO_REGISTER_OPERATION(count_max_nnz_row, dense::count_max_nnz_row<ValueType>);
+    GKO_REGISTER_OPERATION(count_total_cols, dense::count_total_cols<ValueType>);
 };
 
 
@@ -129,12 +130,15 @@ inline void conversion_helper(Sliced_ell<ValueType, IndexType> *result,
     auto exec = source->get_executor();
 
     Array<size_type> num_stored_nonzeros(exec, 1);
-    Array<size_type> num_stored_max_nnz_row(exec, 1);
+    Array<size_type> num_stored_total_cols(exec, 1);
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
         source, num_stored_nonzeros.get_data()));
+    exec->run(TemplatedOperation<ValueType>::make_count_total_cols_operation(
+        source, num_stored_total_cols.get_data()));
     auto tmp = Sliced_ell<ValueType, IndexType>::create(
         exec, source->get_num_rows(), source->get_num_cols(),
-        *num_stored_nonzeros.get_data());
+        *num_stored_nonzeros.get_data(), default_slice_size,
+        default_padding_factor, *num_stored_total_cols.get_data());
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }

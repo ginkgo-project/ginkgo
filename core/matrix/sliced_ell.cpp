@@ -112,7 +112,7 @@ std::unique_ptr<LinOp> Sliced_ell<ValueType, IndexType>::clone_type() const
         new Sliced_ell(this->get_executor(), this->get_num_rows(),
                        this->get_num_cols(), this->get_num_stored_elements(),
                        this->get_slice_size(), this->get_padding_factor(),
-                       this->get_total_col()));
+                       this->get_total_cols()));
 }
 
 
@@ -137,7 +137,7 @@ void Sliced_ell<ValueType, IndexType>::convert_to(Sliced_ell *other) const
     other->slice_sets_ = std::move(slice_sets_);
     other->slice_size_ = std::move(slice_size_);
     other->padding_factor_ = std::move(padding_factor_);
-    other->total_col_ = std::move(total_col_);
+    other->total_cols_ = std::move(total_cols_);
 }
 
 
@@ -151,7 +151,7 @@ void Sliced_ell<ValueType, IndexType>::move_to(Sliced_ell *other)
     other->slice_sets_ = std::move(slice_sets_);
     other->slice_size_ = std::move(slice_size_);
     other->padding_factor_ = std::move(padding_factor_);
-    other->total_col_ = std::move(total_col_);
+    other->total_cols_ = std::move(total_cols_);
 }
 
 
@@ -190,7 +190,11 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
     size_type nnz = 0;
     std::vector<index_type> nnz_row(data.num_rows, 0);
     auto slice_size = this->get_slice_size();
+    // Make sure that slice_size is not zero
+    slice_size = (slice_size == 0)?default_slice_size:slice_size;
     auto padding_factor = this->get_padding_factor();
+    // Make sure that padding factor is not zero
+    padding_factor = (padding_factor == 0)?default_padding_factor:padding_factor;
     index_type slice_num = \
         static_cast<index_type>((data.num_rows+slice_size-1) / slice_size);
     std::vector<index_type> slice_cols(slice_num, 0);
@@ -208,13 +212,14 @@ void Sliced_ell<ValueType, IndexType>::read_from_mtx( \
     }
 
     // Find total column length
-    size_type total_col = 0;
+    size_type total_cols = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
-        total_col += slice_cols[slice];
+        total_cols += slice_cols[slice];
     }
+    total_cols = ceildiv(total_cols, padding_factor) * padding_factor;
 
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz, slice_size, padding_factor, total_col);
+                      data.num_cols, nnz, slice_size, padding_factor, total_cols);
 
     // Setup slice_lens and slice_sets
     index_type start_col = 0;

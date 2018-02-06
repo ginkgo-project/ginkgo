@@ -143,6 +143,12 @@ void count_max_nnz_row(const matrix::Dense<ValueType> *source,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
 
+template <typename ValueType>
+void count_total_cols(const matrix::Dense<ValueType> *source,
+                    size_type *result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
+
 }  // namespace dense
 }  // namespace cpu
 }  // namespace kernels

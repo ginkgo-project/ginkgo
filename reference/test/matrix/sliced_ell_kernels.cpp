@@ -54,7 +54,7 @@ protected:
 
     Sliced_ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, 3, 4))
+          mtx(Mtx::create(exec, 2, 3, 4, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();

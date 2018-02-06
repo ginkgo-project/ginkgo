@@ -244,6 +244,7 @@ void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
     auto num_rows = result->get_num_rows();
     auto num_cols = result->get_num_cols();
     auto num_nonzeros = result->get_num_stored_elements();
+    auto total_cols = result->get_total_cols();
     auto vals = result->get_values();
     auto col_idxs = result->get_col_idxs();
     auto slice_lens = result->get_slice_lens();
@@ -255,7 +256,8 @@ void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
             slice_sets[slice] = slice_lens[slice - 1];
         }
         slice_lens[slice] = 0;
-        for (size_type row = 0; row < default_slice_size; row++) {
+        for (size_type row = 0; row < default_slice_size &&\
+                                row+slice*default_slice_size < num_rows; row++) {
             size_type global_row = slice * default_slice_size + row;
             if (global_row >= num_rows) {
                 break;
@@ -268,7 +270,8 @@ void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
             }
             slice_lens[slice] = std::max(slice_lens[slice], max_col);
         }
-        for (size_type row = 0; row < default_slice_size; row++) {
+        for (size_type row = 0; row < default_slice_size && \
+                                row+slice*default_slice_size < num_rows; row++) {
             size_type global_row = slice * default_slice_size + row;
             size_type sliced_ell_ind = slice_sets[slice] * default_slice_size + row;
             for (size_type col = 0; col < num_cols; col++) {
@@ -338,6 +341,34 @@ void count_max_nnz_row(const matrix::Dense<ValueType> *source, size_type *result
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
+
+template <typename ValueType>
+void count_total_cols(const matrix::Dense<ValueType> *source, size_type *result)
+{
+    auto num_rows = source->get_num_rows();
+    auto num_cols = source->get_num_cols();
+    auto slice_size = default_slice_size;
+    auto padding_factor = default_padding_factor;
+    auto slice_num = ceildiv(num_rows, slice_size);
+    auto total_cols = 0;
+    auto temp = 0, slice_temp = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        slice_temp = 0;
+        for (size_type row = 0; row < slice_size && \
+                                row + slice*slice_size < num_rows; row++) {
+            temp = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                temp += (source->at(row+slice*slice_size, col) != zero<ValueType>());
+            }
+            slice_temp = (slice_temp < temp) ? temp : slice_temp;
+        }
+        total_cols += slice_temp;
+    }
+
+    *result = total_cols;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
 
 }  // namespace dense
 }  // namespace reference

@@ -95,11 +95,11 @@ public:
                                        size_type num_nonzeros,
                                        size_type slice_size,
                                        size_type padding_factor,
-                                       size_type total_col)
+                                       size_type total_cols)
     {
         return std::unique_ptr<Sliced_ell>(
             new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
-                           slice_size, padding_factor, total_col));
+                           slice_size, padding_factor, total_cols));
     }
 
     /**
@@ -114,12 +114,12 @@ public:
     static std::unique_ptr<Sliced_ell> create( \
                                        std::shared_ptr<const Executor> exec,
                                        size_type num_rows, size_type num_cols,
-                                       size_type num_nonzeros)
+                                       size_type num_nonzeros, size_type total_cols)
     {
         // TODO: write a count total column function.
         return std::unique_ptr<Sliced_ell>(
             new Sliced_ell(exec, num_rows, num_cols, num_nonzeros,
-                           default_slice_size, default_padding_factor, 100));
+                           default_slice_size, default_padding_factor, total_cols));
     }
 
     /**
@@ -132,7 +132,7 @@ public:
                                        size_type slice_size,
                                        size_type padding_factor)
     {
-        return create(exec, 0, 0, 0, slice_size, padding_factor, 100);
+        return create(exec, 0, 0, 0, slice_size, padding_factor, 0);
     }
 
     /**
@@ -264,21 +264,21 @@ public:
      *
      * @return the total column number.
      */
-    size_type get_total_col() const { return total_col_; }
+    size_type get_total_cols() const { return total_cols_; }
 
 protected:
     Sliced_ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros,
         size_type slice_size, size_type padding_factor,
-        size_type total_col)
+        size_type total_cols)
         : LinOp(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, slice_size * total_col),
-          col_idxs_(exec, slice_size * total_col),
-          slice_lens_(exec, ceildiv(num_rows, slice_size)),
-          slice_sets_(exec, ceildiv(num_rows, slice_size)),
+          values_(exec, slice_size * total_cols),
+          col_idxs_(exec, slice_size * total_cols),
+          slice_lens_(exec, (num_rows == 0)?0:ceildiv(num_rows, slice_size)),
+          slice_sets_(exec, (num_rows == 0)?0:ceildiv(num_rows, slice_size)),
           slice_size_(slice_size),
           padding_factor_(padding_factor),
-          total_col_(total_col)
+          total_cols_(total_cols)
     {}
 
     size_type linearize_index(size_type row,
@@ -313,7 +313,7 @@ private:
     Array<index_type> slice_sets_;
     size_type slice_size_;
     size_type padding_factor_;
-    size_type total_col_;
+    size_type total_cols_;
 
 };
 
