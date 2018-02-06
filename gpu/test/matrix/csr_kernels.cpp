@@ -83,12 +83,16 @@ protected:
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
+        Complexmtx = ComplexMtx::create(ref);
+        Complexmtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
+        Complexdmtx = ComplexMtx::create(gpu);
+        Complexdmtx->copy_from(Complexmtx.get());
         dresult = Vec::create(gpu);
         dresult->copy_from(expected.get());
         dy = Vec::create(gpu);
@@ -105,12 +109,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<ComplexMtx> Complexmtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<ComplexMtx> Complexdmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -147,17 +153,8 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
-    auto dense_result = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_trans = gko::matrix::Dense<>::create(mtx->get_executor());
-
-    auto result = Mtx::create(ref);
-    result->copy_from(d_trans.get());
-
-    auto trans_as_csr = static_cast<Mtx *>(trans.get());
-
-    result->convert_to(dense_result.get());
-    trans_as_csr->convert_to(dense_trans.get());
-    ASSERT_MTX_NEAR(dense_result, dense_trans, 0);
+    ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
+                    static_cast<Mtx *>(trans.get()), 0.0);
 }
 
 
@@ -165,20 +162,11 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto trans = mtx->conj_transpose();
-    auto d_trans = dmtx->conj_transpose();
+    auto trans = Complexmtx->conj_transpose();
+    auto d_trans = Complexdmtx->conj_transpose();
 
-    auto dense_result = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_trans = gko::matrix::Dense<>::create(mtx->get_executor());
-
-    auto result = Mtx::create(ref);
-    result->copy_from(d_trans.get());
-
-    auto trans_as_csr = static_cast<Mtx *>(trans.get());
-
-    result->convert_to(dense_result.get());
-    trans_as_csr->convert_to(dense_trans.get());
-    ASSERT_MTX_NEAR(dense_result, dense_trans, 0);
+    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
+                    static_cast<ComplexMtx *>(trans.get()), 0.0);
 }
 
 
