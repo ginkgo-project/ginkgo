@@ -44,7 +44,8 @@ namespace block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void find_blocks(std::shared_ptr<const CpuExecutor> exec,
+                 const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
 
@@ -53,13 +54,52 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+void generate(std::shared_ptr<const CpuExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type padding,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta,
+           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void simple_apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+                  uint32 max_block_size, size_type padding,
+                  const Array<IndexType> &block_pointers,
+                  const Array<ValueType> &blocks,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
+                      size_type num_blocks,
+                      const Array<IndexType> &block_pointers,
+                      const Array<ValueType> &blocks, size_type block_padding,
+                      ValueType *result_values,
+                      size_type result_padding) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 
 }  // namespace block_jacobi

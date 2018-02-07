@@ -46,7 +46,8 @@ namespace csr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(const matrix::Csr<ValueType, IndexType> *a,
+void spmv(std::shared_ptr<const ReferenceExecutor> exec,
+          const matrix::Csr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
@@ -72,7 +73,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(const matrix::Dense<ValueType> *alpha,
+void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType> *alpha,
                    const matrix::Csr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
@@ -104,14 +106,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(matrix::Dense<ValueType> *result,
+void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                      matrix::Dense<ValueType> *result,
                       const matrix::Csr<ValueType, IndexType> *source)
 {
-    auto exec = result->get_executor();
-    if (exec != exec->get_master()) {
-        NOT_SUPPORTED(exec);
-    }
-
     auto num_rows = source->get_num_rows();
     auto num_cols = source->get_num_cols();
     auto row_ptrs = source->get_const_row_ptrs();
@@ -134,10 +132,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_dense(matrix::Dense<ValueType> *result,
+void move_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   matrix::Dense<ValueType> *result,
                    matrix::Csr<ValueType, IndexType> *source)
 {
-    reference::csr::convert_to_dense(result, source);
+    reference::csr::convert_to_dense(exec, result, source);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -145,14 +144,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(matrix::Csr<ValueType, IndexType> *trans,
+void transpose(std::shared_ptr<const ReferenceExecutor> exec,
+               matrix::Csr<ValueType, IndexType> *trans,
                const matrix::Csr<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(matrix::Csr<ValueType, IndexType> *trans,
+void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
     NOT_IMPLEMENTED;
 

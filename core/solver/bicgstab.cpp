@@ -70,7 +70,7 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 {
     using std::abs;
     for (size_type i = 0; i < tau->get_num_rows(); ++i) {
-        if (abs(tau->at(i, 0)) >= r * abs(orig_tau->at(i, 0))) {
+        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
             return false;
         }
     }
@@ -79,24 +79,6 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 }  // namespace
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other);
-    system_matrix_ = other_bicgstab->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_bicgstab = as<Bicgstab<ValueType>>(other.get());
-    system_matrix_ = std::move(other_bicgstab->get_system_matrix());
-    this->set_dimensions(other.get());
-}
 
 
 template <typename ValueType>
@@ -109,8 +91,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto exec = this->get_executor();
 
-    auto one_op = Vector::create(exec, {one<ValueType>()});
-    auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto dense_b = as<Vector>(b);
     auto dense_x = as<Vector>(x);
@@ -164,8 +146,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
-        // TODO: replace copy with preconditioner application
-        y->copy_from(p.get());
+        preconditioner_->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
@@ -178,8 +159,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
             dense_x->add_scaled(alpha.get(), y.get());
             break;
         }
-        // TODO: replace copy with preconditioner application
-        z->copy_from(s.get());
+        preconditioner_->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
@@ -199,7 +179,6 @@ void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
-
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
@@ -208,34 +187,15 @@ void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Bicgstab<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Bicgstab>(
-        new Bicgstab(this->get_executor(), max_iters_, rel_residual_goal_,
-                     system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Bicgstab<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
     auto bicgstab =
         std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
-
+    bicgstab->set_preconditioner(precond_factory_->generate(base));
     return std::move(bicgstab);
 }
 

@@ -34,11 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_FCG_HPP_
 #define GKO_CORE_SOLVER_FCG_HPP_
 
+
 #include "core/base/array.hpp"
 #include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/matrix/identity.hpp"
 
 
 namespace gko {
@@ -67,28 +69,20 @@ class FcgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Fcg : public LinOp, public ConvertibleTo<Fcg<ValueType>> {
+class Fcg : public BasicLinOp<Fcg<ValueType>>, public PreconditionedMethod {
+    friend class BasicLinOp<Fcg>;
     friend class FcgFactory<ValueType>;
 
 public:
+    using BasicLinOp<Fcg>::convert_to;
+    using BasicLinOp<Fcg>::move_to;
+
     using value_type = ValueType;
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Fcg *result) const override;
-
-    void move_to(Fcg *result) override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -118,38 +112,36 @@ public:
     }
 
 private:
+    using BasicLinOp<Fcg>::create;
+
+    explicit Fcg(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Fcg>(exec, 0, 0, 0)
+    {}
+
     Fcg(std::shared_ptr<const Executor> exec, int max_iters,
         remove_complex<value_type> rel_residual_goal,
         std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(exec, system_matrix->get_num_cols(),
-                system_matrix->get_num_rows(),
-                system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Fcg>(
+              exec, system_matrix->get_num_cols(),
+              system_matrix->get_num_rows(),
+              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
 
-    static std::unique_ptr<Fcg> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-    {
-        return std::unique_ptr<Fcg>(new Fcg(std::move(exec), max_iters,
-                                            rel_residual_goal,
-                                            std::move(system_matrix)));
-    }
-
-    std::shared_ptr<const LinOp> system_matrix_;
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
+    std::shared_ptr<const LinOp> system_matrix_{};
+    int max_iters_{};
+    remove_complex<value_type> rel_residual_goal_{};
 };
+
 
 /**
  * The FcgFactory class is derived from the LinOpFactory class and is
  * used to generate the FCG solver.
  */
 template <typename ValueType = default_precision>
-class FcgFactory : public LinOpFactory {
+class FcgFactory : public LinOpFactory, public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
     /**
@@ -193,7 +185,9 @@ public:
 protected:
     explicit FcgFactory(std::shared_ptr<const Executor> exec, int max_iters,
                         remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(std::move(exec)),
+        : LinOpFactory(exec),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}

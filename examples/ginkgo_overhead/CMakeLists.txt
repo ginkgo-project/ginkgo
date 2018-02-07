@@ -1,0 +1,3 @@
+add_executable(ginkgo_overhead ginkgo_overhead.cpp)
+target_link_libraries(ginkgo_overhead ginkgo)
+target_include_directories(ginkgo_overhead PRIVATE ${PROJECT_SOURCE_DIR})

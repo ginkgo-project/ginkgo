@@ -75,7 +75,8 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
 
 
 template <typename ValueType>
-void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
+void initialize(std::shared_ptr<const GpuExecutor> exec,
+                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *prev_rho,
@@ -116,7 +117,8 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 
 
 template <typename ValueType>
-void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
+void step_1(std::shared_ptr<const GpuExecutor> exec,
+            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho)
 {
@@ -161,7 +163,8 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 
 
 template <typename ValueType>
-void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+void step_2(std::shared_ptr<const GpuExecutor> exec,
+            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,

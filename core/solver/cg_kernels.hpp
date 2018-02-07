@@ -44,20 +44,23 @@ namespace cg {
 
 
 #define GKO_DECLARE_CG_INITIALIZE_KERNEL(_type)                              \
-    void initialize(const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
+                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
                     matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
                     matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
                     matrix::Dense<_type> *rho)
 
 
 #define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
-    void step_1(matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
+                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
                 const matrix::Dense<_type> *rho,                        \
                 const matrix::Dense<_type> *prev_rho)
 
 
 #define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
-    void step_2(matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
+                matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
                 const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
                 const matrix::Dense<_type> *beta,                             \
                 const matrix::Dense<_type> *rho)

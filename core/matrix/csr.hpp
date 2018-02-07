@@ -47,6 +47,9 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType, typename IndexType>
+class Coo;
+
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
  * compressing each row of the matrix (compressed sparse row format).
@@ -61,60 +64,26 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public LinOp,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
+class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMtx,
             public Transposable {
-    friend class gko::matrix::Dense<ValueType>;
+    friend class BasicLinOp<Csr>;
+    friend class Coo<ValueType, IndexType>;
+    friend class Dense<ValueType>;
 
 public:
+    using BasicLinOp<Csr>::create;
+    using BasicLinOp<Csr>::convert_to;
+    using BasicLinOp<Csr>::move_to;
+
     using value_type = ValueType;
-
     using index_type = IndexType;
-
-    /**
-     * Creates an uninitialized CSR matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
-     * @param num_nonzeros  number of nonzeros
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       size_type num_rows, size_type num_cols,
-                                       size_type num_nonzeros)
-    {
-        return std::unique_ptr<Csr>(
-            new Csr(exec, num_rows, num_cols, num_nonzeros));
-    }
-
-    /**
-     * Creates an empty CSR matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec)
-    {
-        return create(exec, 0, 0, 0);
-    }
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Csr *other) const override;
-
-    void move_to(Csr *other) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -184,9 +153,29 @@ public:
     }
 
 protected:
+    /**
+     * Creates an empty CSR matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     */
+    explicit Csr(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<Csr>(exec, 0, 0, 0),
+          values_(exec),
+          col_idxs_(exec),
+          row_ptrs_(exec)
+    {}
+
+    /**
+     * Creates an uninitialized CSR matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of nonzeros
+     */
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
-        : LinOp(exec, num_rows, num_cols, num_nonzeros),
+        : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0

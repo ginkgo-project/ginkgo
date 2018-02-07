@@ -84,8 +84,8 @@ protected:
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
-        alpha = Vec::create(ref, {2.0});
-        beta = Vec::create(ref, {-1.0});
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(gpu);
@@ -124,9 +124,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -137,9 +135,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 

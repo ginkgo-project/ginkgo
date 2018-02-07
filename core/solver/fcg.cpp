@@ -68,7 +68,7 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 {
     using std::abs;
     for (int i = 0; i < tau->get_num_rows(); ++i) {
-        if (abs(tau->at(i, 0)) >= r * abs(orig_tau->at(i, 0))) {
+        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
             return false;
         }
     }
@@ -77,24 +77,6 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 }  // namespace
-
-
-template <typename ValueType>
-void Fcg<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_fcg = as<Fcg<ValueType>>(other);
-    system_matrix_ = other_fcg->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_fcg = as<Fcg<ValueType>>(other.get());
-    system_matrix_ = std::move(other_fcg->get_system_matrix());
-    this->set_dimensions(other.get());
-}
 
 
 template <typename ValueType>
@@ -111,8 +93,8 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_num_cols();
 
-    auto one_op = Vector::create(exec, {one<ValueType>()});
-    auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto r = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
@@ -147,8 +129,7 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     starting_tau->copy_from(tau.get());
 
     for (int iter = 0; iter < max_iters_; ++iter) {
-        // TODO: replace with preconditioner application.
-        z->copy_from(r.get());
+        preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         t->compute_dot(z.get(), rho_t.get());
@@ -190,52 +171,14 @@ void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Fcg<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Fcg>(new Fcg(this->get_executor(), max_iters_,
-                                        rel_residual_goal_,
-                                        system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::convert_to(Fcg *result) const
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = system_matrix_;
-}
-
-
-template <typename ValueType>
-void Fcg<ValueType>::move_to(Fcg *result)
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = std::move(system_matrix_);
-}
-
-template <typename ValueType>
 std::unique_ptr<LinOp> FcgFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
     auto fcg = std::unique_ptr<Fcg<ValueType>>(Fcg<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
-    ASSERT_EQUAL_DIMENSIONS(fcg->system_matrix_,
-                            size(fcg->system_matrix_->get_num_cols(),
-                                 fcg->system_matrix_->get_num_rows()));
+    fcg->set_preconditioner(precond_factory_->generate(base));
     return std::move(fcg);
 }
 

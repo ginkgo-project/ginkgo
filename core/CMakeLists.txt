@@ -1,10 +1,12 @@
 set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
+    matrix/coo.cpp
     matrix/ell.cpp
     matrix/csr.cpp
     matrix/dense.cpp
     matrix/sliced_ell.cpp
+    matrix/identity.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/fcg.cpp

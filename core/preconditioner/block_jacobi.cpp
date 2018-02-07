@@ -49,6 +49,10 @@ namespace {
 
 template <typename... TArgs>
 struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           block_jacobi::convert_to_dense<TArgs...>);
+    GKO_REGISTER_OPERATION(simple_apply, block_jacobi::simple_apply<TArgs...>);
+    GKO_REGISTER_OPERATION(apply, block_jacobi::apply<TArgs...>);
     GKO_REGISTER_OPERATION(find_blocks, block_jacobi::find_blocks<TArgs...>);
     GKO_REGISTER_OPERATION(generate, block_jacobi::generate<TArgs...>);
 };
@@ -58,23 +62,16 @@ struct TemplatedOperation {
 
 
 template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::copy_from(const LinOp *other)
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 {
-    // TODO
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    using dense = matrix::Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_simple_apply_operation(
+            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
+            blocks_, as<dense>(b), as<dense>(x)));
 }
 
 
@@ -83,46 +80,61 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
                                               const LinOp *b, const LinOp *beta,
                                               LinOp *x) const
 {
-    // TODO
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> BlockJacobi<ValueType, IndexType>::clone_type() const
-{
-    // TODO
-    return std::unique_ptr<LinOp>();
-}
-
-
-template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::clear()
-{
-    // TODO
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
+    using dense = matrix::Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_apply_operation(
+            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
+            blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
+            as<dense>(x)));
 }
 
 
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::convert_to(
-    BlockJacobi<ValueType, IndexType> *result) const
+    matrix::Dense<ValueType> *result) const
 {
-    // TODO
+    auto exec = this->get_executor();
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
+                                                this->get_num_cols());
+    exec->run(TemplatedOperation<ValueType, IndexType>::
+                  make_convert_to_dense_operation(
+                      num_blocks_, block_pointers_, blocks_, max_block_size_,
+                      tmp->get_values(), tmp->get_padding()));
+    tmp->move_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::move_to(
-    BlockJacobi<ValueType, IndexType> *result)
+    matrix::Dense<ValueType> *result)
 {
-    // TODO
+    this->convert_to(result);  // no special optimization possible here
 }
 
 
 template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    auto csr_mtx = as<matrix::Csr<ValueType, IndexType>>(system_matrix);
+    ASSERT_EQUAL_DIMENSIONS(system_matrix, size(system_matrix->get_num_cols(),
+                                                system_matrix->get_num_rows()));
+    using csr = matrix::Csr<ValueType, IndexType>;
+    std::unique_ptr<csr> csr_mtx_handle{};
+    const csr *csr_mtx;
     auto exec = this->get_executor();
+    if (auto ptr = dynamic_cast<const csr *>(system_matrix)) {
+        // use the matrix as is if it's already in CSR
+        csr_mtx = ptr;
+    } else {
+        // otherwise, try to convert it
+        csr_mtx_handle = csr::create(exec);
+        as<ConvertibleTo<csr>>(system_matrix)->convert_to(csr_mtx_handle.get());
+        csr_mtx = csr_mtx_handle.get();
+    }
     if (block_pointers_.get_data() == nullptr) {
         block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
         exec->run(TemplatedOperation<ValueType, IndexType>::

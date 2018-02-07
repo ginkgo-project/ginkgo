@@ -52,9 +52,18 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int &val) : value(val) {}
-    void run(const gko::CpuExecutor *) const override { value = 1; }
-    void run(const gko::GpuExecutor *) const override { value = 2; }
-    void run(const gko::ReferenceExecutor *) const override { value = 3; }
+    void run(std::shared_ptr<const gko::CpuExecutor>) const override
+    {
+        value = 1;
+    }
+    void run(std::shared_ptr<const gko::GpuExecutor>) const override
+    {
+        value = 2;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = 3;
+    }
 
     int &value;
 };

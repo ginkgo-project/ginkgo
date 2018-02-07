@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Dense<>;
+    using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::CgFactory<>;
 
     // Figure out where to run the code
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
                gko::GpuExecutor::get_num_devices() > 0) {
         exec = gko::GpuExecutor::create(0, gko::CpuExecutor::create());
     } else {
-        std::cerr << "Usage: " << argv[0] << "[executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
 
@@ -113,9 +113,9 @@ int main(int argc, char *argv[])
     std::cout << "];" << std::endl;
 
     // Calculate residual
-    auto one = vec::create(exec, {1.0});
-    auto neg_one = vec::create(exec, {-1.0});
-    auto res = vec::create(exec, {0.0});
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+    auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(one.get(), x.get(), neg_one.get(), b.get());
     b->compute_dot(b.get(), res.get());
 

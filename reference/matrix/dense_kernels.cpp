@@ -46,7 +46,8 @@ namespace dense {
 
 
 template <typename ValueType>
-void simple_apply(const matrix::Dense<ValueType> *a,
+void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Dense<ValueType> *a,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *c)
 {
@@ -69,13 +70,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(const matrix::Dense<ValueType> *alpha,
+void apply(std::shared_ptr<const ReferenceExecutor> exec,
+           const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 {
-    for (size_type row = 0; row < c->get_num_rows(); ++row) {
-        for (size_type col = 0; col < c->get_num_cols(); ++col) {
-            c->at(row, col) *= beta->at(0, 0);
+    if (beta->at(0, 0) != zero<ValueType>()) {
+        for (size_type row = 0; row < c->get_num_rows(); ++row) {
+            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+                c->at(row, col) *= beta->at(0, 0);
+            }
+        }
+    } else {
+        for (size_type row = 0; row < c->get_num_rows(); ++row) {
+            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+                c->at(row, col) *= zero<ValueType>();
+            }
         }
     }
 
@@ -93,7 +103,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
+void scale(std::shared_ptr<const ReferenceExecutor> exec,
+           const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
     if (alpha->get_num_cols() == 1) {
         for (size_type i = 0; i < x->get_num_rows(); ++i) {
@@ -114,7 +125,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
-void add_scaled(const matrix::Dense<ValueType> *alpha,
+void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
+                const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
     if (alpha->get_num_cols() == 1) {
@@ -136,7 +148,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
-void compute_dot(const matrix::Dense<ValueType> *x,
+void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
+                 const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
@@ -154,7 +167,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(matrix::Csr<ValueType, IndexType> *result,
+void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
 {
     auto num_rows = result->get_num_rows();
@@ -185,10 +199,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_csr(matrix::Csr<ValueType, IndexType> *result,
+void move_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                 matrix::Csr<ValueType, IndexType> *result,
                  const matrix::Dense<ValueType> *source)
 {
-    reference::dense::convert_to_csr(result, source);
+    reference::dense::convert_to_csr(exec, result, source);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -305,7 +320,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void count_nonzeros(const matrix::Dense<ValueType> *source, size_type *result)
+void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Dense<ValueType> *source, size_type *result)
 {
     auto num_rows = source->get_num_rows();
     auto num_cols = source->get_num_cols();
@@ -371,7 +387,8 @@ void count_total_cols(const matrix::Dense<ValueType> *source, size_type *result)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
 
 template <typename ValueType>
-void transpose(matrix::Dense<ValueType> *trans,
+void transpose(std::shared_ptr<const ReferenceExecutor> exec,
+               matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
     for (size_type i = 0; i < orig->get_num_rows(); ++i) {
@@ -385,7 +402,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
-void conj_transpose(matrix::Dense<ValueType> *trans,
+void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Dense<ValueType> *trans,
                     const matrix::Dense<ValueType> *orig)
 {
     for (size_type i = 0; i < orig->get_num_rows(); ++i) {

@@ -139,43 +139,6 @@ protected:
         d_beta->copy_from(beta.get());
         d_gamma->copy_from(gamma.get());
         d_omega->copy_from(omega.get());
-
-        x_result = Mtx::create(ref);
-        b_result = Mtx::create(ref);
-        r_result = Mtx::create(ref);
-        z_result = Mtx::create(ref);
-        p_result = Mtx::create(ref);
-        rr_result = Mtx::create(ref);
-        t_result = Mtx::create(ref);
-        s_result = Mtx::create(ref);
-        y_result = Mtx::create(ref);
-        v_result = Mtx::create(ref);
-        prev_rho_result = Mtx::create(ref);
-        rho_result = Mtx::create(ref);
-        alpha_result = Mtx::create(ref);
-        beta_result = Mtx::create(ref);
-        gamma_result = Mtx::create(ref);
-        omega_result = Mtx::create(ref);
-    }
-
-    void copy_back_data()
-    {
-        x_result->copy_from(d_x.get());
-        b_result->copy_from(d_b.get());
-        r_result->copy_from(d_r.get());
-        z_result->copy_from(d_z.get());
-        p_result->copy_from(d_p.get());
-        y_result->copy_from(d_y.get());
-        rr_result->copy_from(d_rr.get());
-        t_result->copy_from(d_t.get());
-        s_result->copy_from(d_s.get());
-        v_result->copy_from(d_v.get());
-        prev_rho_result->copy_from(d_prev_rho.get());
-        rho_result->copy_from(d_rho.get());
-        alpha_result->copy_from(d_alpha.get());
-        beta_result->copy_from(d_beta.get());
-        gamma_result->copy_from(d_gamma.get());
-        omega_result->copy_from(d_omega.get());
     }
 
     void make_diag_dominant(Mtx *mtx)
@@ -233,23 +196,6 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-
-    std::unique_ptr<Mtx> x_result;
-    std::unique_ptr<Mtx> b_result;
-    std::unique_ptr<Mtx> r_result;
-    std::unique_ptr<Mtx> z_result;
-    std::unique_ptr<Mtx> p_result;
-    std::unique_ptr<Mtx> rr_result;
-    std::unique_ptr<Mtx> t_result;
-    std::unique_ptr<Mtx> s_result;
-    std::unique_ptr<Mtx> y_result;
-    std::unique_ptr<Mtx> v_result;
-    std::unique_ptr<Mtx> prev_rho_result;
-    std::unique_ptr<Mtx> rho_result;
-    std::unique_ptr<Mtx> alpha_result;
-    std::unique_ptr<Mtx> beta_result;
-    std::unique_ptr<Mtx> gamma_result;
-    std::unique_ptr<Mtx> omega_result;
 };
 
 
@@ -258,30 +204,28 @@ TEST_F(Bicgstab, GpuBicgstabInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::initialize(
-        b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
-        p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
+        ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
+        v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::initialize(
-        d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
+        gpu, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
-    copy_back_data();
-
-    EXPECT_MTX_NEAR(r_result, r, 1e-14);
-    EXPECT_MTX_NEAR(z_result, z, 1e-14);
-    EXPECT_MTX_NEAR(p_result, p, 1e-14);
-    EXPECT_MTX_NEAR(y_result, y, 1e-14);
-    EXPECT_MTX_NEAR(t_result, t, 1e-14);
-    EXPECT_MTX_NEAR(s_result, s, 1e-14);
-    EXPECT_MTX_NEAR(rr_result, rr, 1e-14);
-    EXPECT_MTX_NEAR(v_result, v, 1e-14);
-    EXPECT_MTX_NEAR(prev_rho_result, prev_rho, 1e-14);
-    EXPECT_MTX_NEAR(rho_result, rho, 1e-14);
-    EXPECT_MTX_NEAR(alpha_result, alpha, 1e-14);
-    EXPECT_MTX_NEAR(beta_result, beta, 1e-14);
-    EXPECT_MTX_NEAR(gamma_result, gamma, 1e-14);
-    EXPECT_MTX_NEAR(omega_result, omega, 1e-14);
+    EXPECT_MTX_NEAR(d_r, r, 1e-14);
+    EXPECT_MTX_NEAR(d_z, z, 1e-14);
+    EXPECT_MTX_NEAR(d_p, p, 1e-14);
+    EXPECT_MTX_NEAR(d_y, y, 1e-14);
+    EXPECT_MTX_NEAR(d_t, t, 1e-14);
+    EXPECT_MTX_NEAR(d_s, s, 1e-14);
+    EXPECT_MTX_NEAR(d_rr, rr, 1e-14);
+    EXPECT_MTX_NEAR(d_v, v, 1e-14);
+    EXPECT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    EXPECT_MTX_NEAR(d_rho, rho, 1e-14);
+    EXPECT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
+    EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
+    EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
 }
 
 
@@ -289,16 +233,14 @@ TEST_F(Bicgstab, GpuBicgstabStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::bicgstab::step_1(r.get(), p.get(), v.get(),
+    gko::kernels::reference::bicgstab::step_1(ref, r.get(), p.get(), v.get(),
                                               rho.get(), prev_rho.get(),
                                               alpha.get(), omega.get());
-    gko::kernels::gpu::bicgstab::step_1(d_r.get(), d_p.get(), d_v.get(),
+    gko::kernels::gpu::bicgstab::step_1(gpu, d_r.get(), d_p.get(), d_v.get(),
                                         d_rho.get(), d_prev_rho.get(),
                                         d_alpha.get(), d_omega.get());
 
-    copy_back_data();
-
-    ASSERT_MTX_NEAR(p_result, p, 1e-14);
+    ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
 
@@ -307,15 +249,13 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_2(
-        r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get());
-    gko::kernels::gpu::bicgstab::step_2(d_r.get(), d_s.get(), d_v.get(),
+        ref, r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get());
+    gko::kernels::gpu::bicgstab::step_2(gpu, d_r.get(), d_s.get(), d_v.get(),
                                         d_rho.get(), d_alpha.get(),
                                         d_beta.get());
 
-    copy_back_data();
-
-    ASSERT_MTX_NEAR(alpha_result, alpha, 1e-14);
-    ASSERT_MTX_NEAR(s_result, s, 1e-14);
+    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    ASSERT_MTX_NEAR(d_s, s, 1e-14);
 }
 
 
@@ -324,17 +264,15 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_3(
-        x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+        ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
         beta.get(), gamma.get(), omega.get());
     gko::kernels::gpu::bicgstab::step_3(
-        d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
+        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get());
 
-    copy_back_data();
-
-    ASSERT_MTX_NEAR(omega_result, omega, 1e-14);
-    ASSERT_MTX_NEAR(x_result, x, 1e-14);
-    ASSERT_MTX_NEAR(r_result, r, 1e-14);
+    ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
+    ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
 
@@ -342,10 +280,8 @@ TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
-
-    auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
-
+    auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = Mtx::create(gpu);
@@ -353,16 +289,11 @@ TEST_F(Bicgstab, GpuBicgstabApplyOneRHSIsEquivalentToRef)
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
-    gpu_solver->apply(d_b.get(), d_x.get());
     ref_solver->apply(b.get(), x.get());
+    gpu_solver->apply(d_b.get(), d_x.get());
 
-    auto b_result = Mtx::create(ref);
-    auto x_result = Mtx::create(ref);
-    b_result->copy_from(d_b.get());
-    x_result->copy_from(d_x.get());
-
-    ASSERT_MTX_NEAR(b_result, b, 1e-13);
-    ASSERT_MTX_NEAR(x_result, x, 1e-13);
+    ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
@@ -370,10 +301,8 @@ TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
-
     auto gpu_solver = gpu_bicgstab_factory->generate(d_mtx);
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
-
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = Mtx::create(gpu);
@@ -381,16 +310,11 @@ TEST_F(Bicgstab, GpuBicgstabApplyMultipleRHSIsEquivalentToRef)
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
-    gpu_solver->apply(d_b.get(), d_x.get());
     ref_solver->apply(b.get(), x.get());
+    gpu_solver->apply(d_b.get(), d_x.get());
 
-    auto b_result = Mtx::create(ref);
-    auto x_result = Mtx::create(ref);
-    b_result->copy_from(d_b.get());
-    x_result->copy_from(d_x.get());
-
-    ASSERT_MTX_NEAR(b_result, b, 1e-13);
-    ASSERT_MTX_NEAR(x_result, x, 1e-13);
+    ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 

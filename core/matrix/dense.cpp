@@ -149,20 +149,6 @@ inline void conversion_helper(Sliced_ell<ValueType, IndexType> *result,
 
 
 template <typename ValueType>
-void Dense<ValueType>::copy_from(const LinOp *other)
-{
-    as<ConvertibleTo<Dense<ValueType>>>(other)->convert_to(this);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    as<ConvertibleTo<Dense<ValueType>>>(other.get())->move_to(this);
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
     ASSERT_CONFORMANT(this, b);
@@ -236,40 +222,6 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
         NOT_IMPLEMENTED;
     exec->run(TemplatedOperation<ValueType>::make_compute_dot_operation(
         this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(result)));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Dense>(new Dense(this->get_executor(), 0, 0, 0));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    values_.clear();
-    padding_ = 0;
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Dense *result) const
-{
-    result->set_dimensions(this);
-    result->values_ = values_;
-    result->padding_ = padding_;
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Dense *result)
-{
-    result->set_dimensions(this);
-    result->values_ = std::move(values_);
-    result->padding_ = padding_;
 }
 
 
