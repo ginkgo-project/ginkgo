@@ -53,6 +53,7 @@ class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr() : rand_engine(42) {}
@@ -71,9 +72,11 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine);
@@ -82,11 +85,11 @@ protected:
     void set_up_apply_data()
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
+        mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
         Complexmtx = ComplexMtx::create(ref);
-        Complexmtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        Complexmtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
+        expected = gen_mtx<Vec>(532, 1, 1);
+        y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
