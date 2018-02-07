@@ -46,168 +46,78 @@ namespace gko {
 namespace kernels {
 namespace gpu {
 namespace warp {
+namespace detail {
+
+
+template <typename ShuffleOperator, typename ValueType, typename SelectorType>
+__device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
+                                                  const ValueType &var,
+                                                  SelectorType selector,
+                                                  int32 width, int32 mask)
+{
+    static_assert(sizeof(ValueType) % sizeof(int32) == 0,
+                  "Unable to shuffle sizes which are not 4-byte multiples");
+    constexpr auto value_size = sizeof(ValueType) / sizeof(int32);
+    ValueType result;
+    auto var_array = reinterpret_cast<const int32 *>(&var);
+    auto result_array = reinterpret_cast<int32 *>(&result);
+#pragma unroll
+    for (std::size_t i = 0; i < value_size; ++i) {
+        result_array[i] = shuffle(mask, var_array[i], selector, width);
+    }
+    return result;
+}
+
+
+}  // namespace detail
 
 
 #if __CUDACC_VER_MAJOR__ < 9
 
 
-template <typename T>
-__device__ __forceinline__ T shuffle(T var, int32 src_lane,
-                                     int32 width = warp_size,
-                                     uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    assert(mask == full_lane_mask);
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl(var_array[i], src_lane, width);
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)         \
+    template <typename ValueType>                                             \
+    __device__ __forceinline__ ValueType _name(                               \
+        const ValueType &var, SelectorType selector, int32 width = warp_size, \
+        uint32 mask = full_lane_mask)                                         \
+    {                                                                         \
+        assert(mask == full_lane_mask);                                       \
+        return detail::shuffle_impl(                                          \
+            [](uint32 m, int32 v, SelectorType s, int32 w) {                  \
+                return _intrinsic(v, s, w);                                   \
+            },                                                                \
+            var, selector, width, mask);                                      \
     }
-    return result;
-}
 
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle, __shfl, int32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_up, __shfl_up, uint32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_down, __shfl_down, uint32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_xor, __shfl_xor, int32);
 
-template <typename T>
-__device__ __forceinline__ T shuffle_up(T var, uint32 delta,
-                                        int32 width = warp_size,
-                                        uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    assert(mask == full_lane_mask);
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_up(var_array[i], delta, width);
-    }
-    return result;
-}
-
-
-template <typename T>
-__device__ __forceinline__ T shuffle_down(T var, uint32 delta,
-                                          int32 width = warp_size,
-                                          uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    assert(mask == full_lane_mask);
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_down(var_array[i], delta, width);
-    }
-    return result;
-}
-
-
-template <typename T>
-__device__ __forceinline__ T shuffle_xor(T var, int32 lane_mask,
-                                         int32 width = warp_size,
-                                         uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    assert(mask == full_lane_mask);
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_xor(var_array[i], lane_mask, width);
-    }
-    return result;
-}
+#undef GKO_ENABLE_SHUFFLE_OPERATION
 
 
 #else  // __CUDACC_VER_MAJOR__ < 9
 
 
-template <typename T>
-__device__ __forceinline__ T shuffle(T var, int32 src_lane,
-                                     int32 width = warp_size,
-                                     uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_sync(mask, var_array[i], src_lane, width);
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)         \
+    template <typename ValueType>                                             \
+    __device__ __forceinline__ ValueType _name(                               \
+        const ValueType &var, SelectorType selector, int32 width = warp_size, \
+        uint32 mask = full_lane_mask)                                         \
+    {                                                                         \
+        return detail::shuffle_impl(                                          \
+            static_cast<int32 (*)(uint32, int32, SelectorType, int32)>(       \
+                _intrinsic),                                                  \
+            var, selector, width, mask);                                      \
     }
-    return result;
-}
 
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle, __shfl_sync, int32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_up, __shfl_up_sync, uint32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_down, __shfl_down_sync, uint32);
+GKO_ENABLE_SHUFFLE_OPERATION(shuffle_xor, __shfl_xor_sync, int32);
 
-template <typename T>
-__device__ __forceinline__ T shuffle_up(T var, uint32 delta,
-                                        int32 width = warp_size,
-                                        uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_up_sync(mask, var_array[i], delta, width);
-    }
-    return result;
-}
-
-
-template <typename T>
-__device__ __forceinline__ T shuffle_down(T var, uint32 delta,
-                                          int32 width = warp_size,
-                                          uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_down_sync(mask, var_array[i], delta, width);
-    }
-    return result;
-}
-
-
-template <typename T>
-__device__ __forceinline__ T shuffle_xor(T var, int32 lane_mask,
-                                         int32 width = warp_size,
-                                         uint32 mask = full_lane_mask)
-{
-    static_assert(sizeof(T) % sizeof(int32) == 0,
-                  "Unable to shuffle sizes which are not 4-byte multiples");
-    constexpr auto size = sizeof(T) / sizeof(int32);
-    T result;
-    auto var_array = reinterpret_cast<int32 *>(&var);
-    auto var_result = reinterpret_cast<int32 *>(&result);
-#pragma unroll
-    for (std::size_t i = 0; i < size; ++i) {
-        var_result[i] = __shfl_xor_sync(mask, var_array[i], lane_mask, width);
-    }
-    return result;
-}
+#undef GKO_ENABLE_SHUFFLE_OPERATION
 
 
 #endif  // __CUDACC_VER_MAJOR__ < 9

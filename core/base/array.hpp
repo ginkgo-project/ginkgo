@@ -76,7 +76,7 @@ public:
     /**
      * Creates an array on the specified Executor.
      *
-     * @param exec  the Executor where the array data is be allocated
+     * @param exec  the Executor where the array data will be allocated
      * @param num_elems  the amount of memory (expressed as the number of
      *                   `value_type` elements) allocated on the Executor
      */
@@ -95,7 +95,7 @@ public:
      * @tparam T  type of values used to initialize the array (T has to be
      *            implicitly convertible to value_type)
      *
-     * @param exec  the Executor where the array data is be allocated
+     * @param exec  the Executor where the array data will be allocated
      * @param init_list  list of values used to initialize the Array
      */
     template <typename T>
