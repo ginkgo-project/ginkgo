@@ -154,7 +154,7 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
     size_type num_nonzeros, ValueType *__restrict__ val)
 {
     const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+        static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
 
     if (tidx < num_nonzeros) {
         val[tidx] = gko::conj(val[tidx]);

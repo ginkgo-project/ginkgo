@@ -31,79 +31,27 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_BASE_MATH_HPP_
-#define GKO_GPU_BASE_MATH_HPP_
 
-
-#include "core/base/math.hpp"
-
-
-#include <thrust/complex.h>
+#include <algorithm>
+#include <numeric>
 
 
 namespace gko {
-namespace detail {
+namespace kernels {
+namespace reference {
+namespace csr {
 
-
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
-
-
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
-
-
-}  // namespace detail
-
-
-/**
- * Returns the conjugate of a number.
- *
- * @param x  the number to conjugate
- *
- * @return  conjugate of `x`
- */
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE thrust::complex<T> conj(const thrust::complex<T> &x)
+template <typename IndexType>
+inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
+                                 IndexType *ptrs, size_type length)
 {
-    return thrust::conj(x);
+    std::fill(ptrs, ptrs + length, 0);
+    std::for_each(idxs, idxs + num_nonzeros,
+                  [&](IndexType v) { ptrs[v + 1]++; });
+    std::partial_sum(ptrs, ptrs + length, ptrs);
 }
 
-
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
-{
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-
+}  // namespace csr
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_GPU_BASE_MATH_HPP_

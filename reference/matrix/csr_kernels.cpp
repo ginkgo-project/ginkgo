@@ -37,7 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/dense.hpp"
+#include "reference/components/convert_idxs.hpp"
 
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <utility>
 
 namespace gko {
 namespace kernels {
@@ -142,11 +147,28 @@ void move_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
+template <typename IndexType, typename ValueType, typename UnaryOperator>
+inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
+                               const IndexType *col_idxs,
+                               const ValueType *csr_vals, IndexType *row_idxs,
+                               IndexType *col_ptrs, ValueType *csc_vals,
+                               UnaryOperator op)
+{
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
+            const auto dest_idx = col_ptrs[col_idxs[i]]++;
+            row_idxs[dest_idx] = row;
+            csc_vals[dest_idx] = op(csr_vals[i]);
+        }
+    }
+}
 
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig)
+
+template <typename ValueType, typename IndexType, typename UnaryOperator>
+void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
+                             matrix::Csr<ValueType, IndexType> *trans,
+                             const matrix::Csr<ValueType, IndexType> *orig,
+                             UnaryOperator op)
 {
     auto trans_row_ptrs = trans->get_row_ptrs();
     auto orig_row_ptrs = orig->get_const_row_ptrs();
@@ -159,40 +181,22 @@ void transpose(std::shared_ptr<const ReferenceExecutor> exec,
     auto orig_num_rows = orig->get_num_rows();
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    std::fill(trans_row_ptrs, trans_row_ptrs + orig_num_cols, 0);
+    trans_row_ptrs[0] = 0;
+    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
+                         orig_num_cols);
 
-    for (size_type n = 0; n < orig_nnz; ++n) {
-        trans_row_ptrs[orig_col_idxs[n]]++;
-    }
-    auto cumul_sum = 0;
-    auto tmp = 0;
-    for (size_type col = 0; col < orig_num_cols; ++col) {
-        tmp = trans_row_ptrs[col];
-        trans_row_ptrs[col] = cumul_sum;
-        cumul_sum += tmp;
-    }
-    trans_row_ptrs[orig_num_cols] = orig_nnz;
+    convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
+                       trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
+}
 
-    auto col = 0;
-    auto dest = 0;
-    for (size_type row = 0; row < orig_num_rows; ++row) {
-        for (size_type jj = orig_row_ptrs[row]; jj < orig_row_ptrs[row + 1];
-             ++jj) {
-            col = orig_col_idxs[jj];
-            dest = trans_row_ptrs[col];
 
-            trans_col_idxs[dest] = row;
-            trans_vals[dest] = orig_vals[jj];
-
-            trans_row_ptrs[col]++;
-        }
-    }
-    auto last = 0;
-    for (size_type col = 0; col <= orig_num_cols; ++col) {
-        tmp = trans_row_ptrs[col];
-        trans_row_ptrs[col] = last;
-        last = tmp;
-    }
+template <typename ValueType, typename IndexType>
+void transpose(std::shared_ptr<const ReferenceExecutor> exec,
+               matrix::Csr<ValueType, IndexType> *trans,
+               const matrix::Csr<ValueType, IndexType> *orig)
+{
+    transpose_and_transform(exec, trans, orig,
+                            [](const ValueType x) { return x; });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
@@ -203,51 +207,8 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
 {
-    auto trans_row_ptrs = trans->get_row_ptrs();
-    auto orig_row_ptrs = orig->get_const_row_ptrs();
-    auto trans_col_idxs = trans->get_col_idxs();
-    auto orig_col_idxs = orig->get_const_col_idxs();
-    auto trans_vals = trans->get_values();
-    auto orig_vals = orig->get_const_values();
-
-    auto orig_num_cols = orig->get_num_cols();
-    auto orig_num_rows = orig->get_num_rows();
-    auto orig_nnz = orig_row_ptrs[orig_num_rows];
-
-    std::fill(trans_row_ptrs, trans_row_ptrs + orig_num_cols, 0);
-
-    for (size_type n = 0; n < orig_nnz; ++n) {
-        trans_row_ptrs[orig_col_idxs[n]]++;
-    }
-    auto cumul_sum = 0;
-    auto tmp = 0;
-    for (size_type col = 0; col < orig_num_cols; ++col) {
-        tmp = trans_row_ptrs[col];
-        trans_row_ptrs[col] = cumul_sum;
-        cumul_sum += tmp;
-    }
-    trans_row_ptrs[orig_num_cols] = orig_nnz;
-
-    auto col = 0;
-    auto dest = 0;
-    for (size_type row = 0; row < orig_num_rows; ++row) {
-        for (size_type jj = orig_row_ptrs[row]; jj < orig_row_ptrs[row + 1];
-             ++jj) {
-            col = orig_col_idxs[jj];
-            dest = trans_row_ptrs[col];
-
-            trans_col_idxs[dest] = row;
-            trans_vals[dest] = gko::conj(orig_vals[jj]);
-
-            trans_row_ptrs[col]++;
-        }
-    }
-    auto last = 0;
-    for (size_type col = 0; col <= orig_num_cols; ++col) {
-        tmp = trans_row_ptrs[col];
-        trans_row_ptrs[col] = last;
-        last = tmp;
-    }
+    transpose_and_transform(exec, trans, orig,
+                            [](const ValueType x) { return gko::conj(x); });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
