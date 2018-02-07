@@ -365,7 +365,7 @@ void count_total_cols(const matrix::Dense<ValueType> *source, size_type *result)
         total_cols += slice_temp;
     }
 
-    *result = total_cols;
+    *result = ceildiv(total_cols, padding_factor) * padding_factor;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);

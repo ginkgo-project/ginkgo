@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include <vector>
 
-constexpr int default_slice_size = 16;
+constexpr int default_slice_size = 64;
 constexpr int default_padding_factor = 1;
 
 

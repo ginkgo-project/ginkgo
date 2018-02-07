@@ -124,6 +124,7 @@ void Sliced_ell<ValueType, IndexType>::clear()
     col_idxs_.clear();
     slice_lens_.clear();
     slice_sets_.clear();
+    total_cols_ = 0;
 }
 
 

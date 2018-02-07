@@ -84,6 +84,9 @@ protected:
         auto c = m->get_const_col_idxs();
         auto l = m->get_const_slice_lens();
         auto s = m->get_const_slice_sets();
+        auto slice_size = m->get_slice_size();
+        auto padding_factor = m->get_padding_factor();
+        auto total_cols = m->get_total_cols();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -101,12 +104,9 @@ protected:
         EXPECT_EQ(v[default_slice_size+1], 0.0);
         EXPECT_EQ(v[2*default_slice_size], 2.0);
         EXPECT_EQ(v[2*default_slice_size+1], 0.0);
-        for (int i = 3; i < l[0]; i++) {
-            for (int j = 0; j < 2; j++) {
-                EXPECT_EQ(c[i*default_slice_size+j], c[2*default_slice_size+j]);
-                EXPECT_EQ(v[i*default_slice_size+j], 0);
-            }
-        }
+        EXPECT_EQ(slice_size, default_slice_size);
+        EXPECT_EQ(padding_factor, default_padding_factor);
+        EXPECT_EQ(total_cols, 3);
     }
 
     void assert_empty(const Mtx *m)
@@ -118,6 +118,7 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_slice_lens(), nullptr);
         ASSERT_EQ(m->get_const_slice_sets(), nullptr);
+        ASSERT_EQ(m->get_total_cols(), 0);
     }
 };
 
@@ -129,6 +130,7 @@ TEST_F(Sliced_ell_DEFAULT, KnowsItsSize)
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
     ASSERT_EQ(mtx->get_slice_size(), default_slice_size);
     ASSERT_EQ(mtx->get_padding_factor(), default_padding_factor);
+    ASSERT_EQ(mtx->get_total_cols(), 3);
 }
 
 
@@ -234,6 +236,9 @@ protected:
         auto c = m->get_const_col_idxs();
         auto l = m->get_const_slice_lens();
         auto s = m->get_const_slice_sets();
+        auto slice_size = m->get_slice_size();
+        auto padding_factor = m->get_padding_factor();
+        auto total_cols = m->get_total_cols();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -255,6 +260,9 @@ protected:
         EXPECT_EQ(v[5], 0.0);
         EXPECT_EQ(v[6], 0.0);
         EXPECT_EQ(v[7], 0.0);
+        EXPECT_EQ(slice_size, 2);
+        EXPECT_EQ(padding_factor, 2);
+        EXPECT_EQ(total_cols, 4);
     }
 
     void assert_empty(const Mtx *m)
@@ -266,6 +274,7 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_slice_lens(), nullptr);
         ASSERT_EQ(m->get_const_slice_sets(), nullptr);
+        ASSERT_EQ(m->get_total_cols(), 0);
     }
 };
 
@@ -277,6 +286,7 @@ TEST_F(Sliced_ell_SELFDEFINE, KnowsItsSize)
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
     ASSERT_EQ(mtx->get_slice_size(), 2);
     ASSERT_EQ(mtx->get_padding_factor(), 2);
+    ASSERT_EQ(mtx->get_total_cols(), 4);
 }
 
 

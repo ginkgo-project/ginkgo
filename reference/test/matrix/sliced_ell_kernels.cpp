@@ -42,7 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
-#include <core/test/utils.hpp>
 
 
 namespace {
@@ -187,69 +186,6 @@ TEST_F(Sliced_ell, MovesToDense)
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
-
-
-class Sliced_ell_LARGE : public ::testing::Test {
-protected:
-    using Mtx = gko::matrix::Sliced_ell<>;
-    using Vec = gko::matrix::Dense<>;
-
-    Sliced_ell_LARGE()
-        : exec(gko::ReferenceExecutor::create()),
-          rand_engine(42),
-          mtx(Mtx::create(exec)) {}
-
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row) {
-        return gko::test::generate_random_matrix<Vec>(
-            exec, num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine);
-    }
-
-    void set_up_apply_data() {
-        dmtx = Vec::create(exec);
-        dmtx->read_from_mtx("data/dense_real_square.mtx");
-        expected = gen_mtx(100, 1, 1);
-        y = gen_mtx(100, 1, 1);
-        alpha = Vec::create(exec, {1.0});
-        beta = Vec::create(exec, {1.0});
-        mtx = Mtx::create(exec);
-        mtx->read_from_mtx("data/dense_real_square.mtx");
-        result = Vec::create(exec);
-        result->copy_from(expected.get());
-    }
-
-    std::shared_ptr<const gko::ReferenceExecutor> exec;
-
-    std::ranlux48 rand_engine;
-
-    std::unique_ptr<Vec> dmtx;
-    std::unique_ptr<Vec> expected;
-    std::unique_ptr<Vec> y;
-    std::unique_ptr<Vec> alpha;
-    std::unique_ptr<Vec> beta;
-
-    std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Vec> result;
-};
-
-TEST_F(Sliced_ell_LARGE, SimpleApplyIsEquivalentToDense) {
-    set_up_apply_data();
-
-    dmtx->apply(y.get(), expected.get());
-    mtx->apply(y.get(), result.get());
-    
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
-    }
-
-TEST_F(Sliced_ell_LARGE, AdvancedApplyIsEquivalentToDense) {
-    set_up_apply_data();
-
-    dmtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    mtx->apply(alpha.get(), y.get(), beta.get(), result.get());
-
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
-    }
 
 
 }  // namespace
