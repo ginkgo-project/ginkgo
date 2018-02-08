@@ -1,6 +1,7 @@
 set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
+    matrix/ell.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
