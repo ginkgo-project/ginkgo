@@ -142,6 +142,8 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     // Get values and column indexes.
     size_type ind = 0;
     int n = data.nonzeros.size();
+    auto vals = tmp->get_values();
+    auto col_idxs = tmp->get_col_idxs();
     for (size_type row = 0; row < data.num_rows; row++) {
         size_type col = 0;
         for (; ind < n && col < max_nnz_row; ind++) {
@@ -149,17 +151,15 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
                 break;
             }
             auto val = std::get<2>(data.nonzeros[ind]);
-            auto ell_ind = row+col*data.num_rows;
             if (val != zero<ValueType>()) {
-                tmp->get_values()[ell_ind] = val;
-                tmp->get_col_idxs()[ell_ind] = std::get<1>(data.nonzeros[ind]);
+                tmp->val_at(row, col) = val;
+                tmp->col_at(row, col) = std::get<1>(data.nonzeros[ind]);
                 col++;
             }
         }
         for (auto i = col; i < max_nnz_row; i++) {
-            auto ell_ind = row+i*data.num_rows;
-            tmp->get_values()[ell_ind] = 0;
-            tmp->get_col_idxs()[ell_ind] = tmp->get_col_idxs()[ell_ind-data.num_rows];
+            tmp->val_at(row, i) = zero<ValueType>();
+            tmp->col_at(row, i) = tmp->col_at(row, col-1);
         }
     }
 

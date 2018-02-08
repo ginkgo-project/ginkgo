@@ -136,7 +136,7 @@ public:
     size_type get_padding() const noexcept { return padding_; }
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a value in the ELLPACK format.
      *
      * @param row  the row of the requested element
      * @param col  the column of the requested element
@@ -145,44 +145,40 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    value_type &at(size_type row, size_type col) noexcept
+    value_type &val_at(size_type row, size_type col) noexcept
     {
         return values_.get_data()[linearize_index(row, col)];
     }
 
     /**
-     * @copydoc Ell::at(size_type, size_type)
+     * @copydoc Ell::val_at(size_type, size_type)
      */
-    value_type at(size_type row, size_type col) const noexcept
+    value_type val_at(size_type row, size_type col) const noexcept
     {
         return values_.get_const_data()[linearize_index(row, col)];
     }
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a column index of the ELLPACK foramt.
      *
-     * Useful for iterating across all elements of the matrix.
-     * However, it is less efficient than the two-parameter variant of this
-     * method.
-     *
-     * @param idx  a linear index of the requested element
-     *             (ignoring the padding)
+     * @param row  the row of the requested element
+     * @param col  the column of the requested element
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    ValueType &at(size_type idx) noexcept
+    index_type &col_at(size_type row, size_type col) noexcept
     {
-        return values_.get_data()[idx];
+        return get_col_idxs()[linearize_index(row, col)];
     }
 
     /**
-     * @copydoc Ell::at(size_type)
+     * @copydoc Ell::col_at(size_type, size_type)
      */
-    ValueType at(size_type idx) const noexcept
+    index_type col_at(size_type row, size_type col) const noexcept
     {
-        return values_.get_const_data()[idx];
+        return get_const_col_idxs()[linearize_index(row, col)];
     }
 
 protected:
