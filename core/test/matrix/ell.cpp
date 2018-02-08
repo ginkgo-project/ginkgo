@@ -50,8 +50,6 @@ protected:
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type n = mtx->get_max_nnz_row();
-        n = 3;
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
@@ -74,10 +72,12 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto n = m->get_max_nnz_row();
+        auto p = m->get_padding();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(n, 3);
+        EXPECT_EQ(p, 2);
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 1);
@@ -100,6 +100,7 @@ protected:
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_max_nnz_row(), 0);
+        ASSERT_EQ(m->get_padding(), 0);
     }
 };
 
@@ -109,6 +110,8 @@ TEST_F(Ell, KnowsItsSize)
     ASSERT_EQ(mtx->get_num_rows(), 2);
     ASSERT_EQ(mtx->get_num_cols(), 3);
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx->get_max_nnz_row(), 3);
+    ASSERT_EQ(mtx->get_padding(), 2);
 }
 
 

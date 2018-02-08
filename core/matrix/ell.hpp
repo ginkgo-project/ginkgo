@@ -191,7 +191,8 @@ protected:
         : BasicLinOp<Ell>(exec, 0, 0, 0),
           values_(exec),
           col_idxs_(exec),
-          max_nnz_row_(0)
+          max_nnz_row_(0),
+          padding_(0)
     {}
 
     /**
@@ -216,6 +217,7 @@ protected:
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
+     *    (When padding is not specified.)
      *
      * @param exec  Executor associated to the matrix
      * @param num_rows      number of rows
@@ -227,6 +229,22 @@ protected:
         size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
         : Ell(std::move(exec), num_rows, num_cols, num_nonzeros,
               max_nnz_row, num_rows)
+    {}
+
+    /**
+     * Creates an uninitialized Ell matrix of the specified size.
+     *    (When padding and max_nnz_row is not specified.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of nonzeros
+     * @param max_nnz_row   maximum number of nonzeros in one row
+     */
+    Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
+        size_type num_cols, size_type num_nonzeros)
+        : Ell(std::move(exec), num_rows, num_cols, num_nonzeros,
+              num_cols)
     {}
 
     size_type linearize_index(size_type row, size_type col) const noexcept
