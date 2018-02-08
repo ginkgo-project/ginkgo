@@ -48,13 +48,14 @@ template <typename ValueType>
 class Dense;
 
 /**
- * Ell is a matrix format which stores only the nonzero coefficients by
- * compressing each row of the matrix (compressed sparse row format).
+ * Ell is a matrix format which aligned all nonzero elements to the left
+ * of the matrix (from the first column) and save the smaller matrix up
+ * to the maximum number of nonzero elements in a single element.
  *
- * The nonzero elements are stored in a 1D array row-wise, and accompanied
- * with a row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column of each
- * nonzero element.
+ * The nonzero elements are stored in a 1D array column-wise, and accompanied
+ * with a column index array index of each row.
+ * An additional value max_nnz_row is also stored to identify the size.
+ * (Column) padding is also introduced to improve the performance.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

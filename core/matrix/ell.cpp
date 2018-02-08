@@ -120,18 +120,26 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
     auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
+
+    // Count number of nonzero elements of every row.
     size_type nnz = 0;
     std::vector<index_type> nnz_row(data.num_rows, 0);
     for (const auto &elem : data.nonzeros) {
         nnz += (std::get<2>(elem) != zero<ValueType>());
         nnz_row.at(std::get<0>(elem))++;
     }
+
+    // Get number of maximum nonzeros in a single row.
     index_type max_nnz_row = 0;
     for (const auto &elem : nnz_row) {
         max_nnz_row = std::max(max_nnz_row, elem);
     }
+
+    // Create an ELLPACK format matrix based on the sizes.
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz, max_nnz_row);
+                      data.num_cols, nnz, max_nnz_row, data.num_rows);
+
+    // Get values and column indexes.
     size_type ind = 0;
     int n = data.nonzeros.size();
     for (size_type row = 0; row < data.num_rows; row++) {
@@ -154,6 +162,8 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
             tmp->get_col_idxs()[ell_ind] = tmp->get_col_idxs()[ell_ind-data.num_rows];
         }
     }
+
+    // Return the matrix
     tmp->move_to(this);
 }
 
