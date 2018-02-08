@@ -216,10 +216,11 @@ void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
            const matrix::Dense<ValueType> *b,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 {
+    using Vec = matrix::Dense<ValueType>;
     // TODO: do this efficiently
-    auto tmp = matrix::Dense<ValueType>::create_with_config_of(x);
+    auto tmp = x->clone();
     simple_apply(exec, num_blocks, max_block_size, padding, block_pointers,
-                 blocks, b, tmp.get());
+                 blocks, b, static_cast<Vec *>(tmp.get()));
     x->scale(beta);
     x->add_scaled(alpha, tmp.get());
 }
