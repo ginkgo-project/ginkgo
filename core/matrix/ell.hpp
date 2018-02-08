@@ -44,8 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
-template <typename ValueType, typename IndexType>
-class Csr;
+template <typename ValueType>
+class Dense;
 
 /**
  * Ell is a matrix format which stores only the nonzero coefficients by
@@ -62,9 +62,10 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMtx {
     friend class BasicLinOp<Ell>;
+    friend class Dense<ValueType>;
 
 public:
     using BasicLinOp<Ell>::create;
@@ -79,9 +80,9 @@ public:
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Dense<ValueType> *other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Dense<ValueType> *other) override;
 
     void read_from_mtx(const std::string &filename) override;
 
@@ -125,21 +126,62 @@ public:
 
     /**
      * Returns the maximum number of one row.
-     *
-     * @return the maximum number of one row.
      */
-    index_type get_max_nnz_row() noexcept { return max_nnz_row_; }
+    size_type get_max_nnz_row() const noexcept { return max_nnz_row_; }
 
     /**
-     * @copydoc Ell::get_max_nnz_row()
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
+     * Returns the padding of the matrix.
      */
-    const index_type get_const_max_nnz_row() const noexcept
+    size_type get_padding() const noexcept { return padding_; }
+
+    /**
+     * Returns a single element of the matrix.
+     *
+     * @param row  the row of the requested element
+     * @param col  the column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    value_type &at(size_type row, size_type col) noexcept
     {
-        return max_nnz_row_;
+        return values_.get_data()[linearize_index(row, col)];
+    }
+
+    /**
+     * @copydoc Ell::at(size_type, size_type)
+     */
+    value_type at(size_type row, size_type col) const noexcept
+    {
+        return values_.get_const_data()[linearize_index(row, col)];
+    }
+
+    /**
+     * Returns a single element of the matrix.
+     *
+     * Useful for iterating across all elements of the matrix.
+     * However, it is less efficient than the two-parameter variant of this
+     * method.
+     *
+     * @param idx  a linear index of the requested element
+     *             (ignoring the padding)
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    ValueType &at(size_type idx) noexcept
+    {
+        return values_.get_data()[idx];
+    }
+
+    /**
+     * @copydoc Ell::at(size_type)
+     */
+    ValueType at(size_type idx) const noexcept
+    {
+        return values_.get_const_data()[idx];
     }
 
 protected:
@@ -163,19 +205,43 @@ protected:
      * @param num_cols      number of columns
      * @param num_nonzeros  number of nonzeros
      * @param max_nnz_row   maximum number of nonzeros in one row
+     * @param padding       padding of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
+        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row,
+        size_type padding)
         : BasicLinOp<Ell>(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, num_rows*max_nnz_row),
           col_idxs_(exec, num_rows*max_nnz_row),
-          max_nnz_row_(max_nnz_row)
+          max_nnz_row_(max_nnz_row),
+          padding_(padding)
     {}
+
+    /**
+     * Creates an uninitialized Ell matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_rows      number of rows
+     * @param num_cols      number of columns
+     * @param num_nonzeros  number of nonzeros
+     * @param max_nnz_row   maximum number of nonzeros in one row
+     */
+    Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
+        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
+        : Ell(std::move(exec), num_rows, num_cols, num_nonzeros,
+              max_nnz_row, num_rows)
+    {}
+
+    size_type linearize_index(size_type row, size_type col) const noexcept
+    {
+        return row + padding_ * col;
+    }
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    index_type max_nnz_row_;
+    size_type max_nnz_row_;
+    size_type padding_;
 
 };
 

@@ -95,7 +95,7 @@ void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::convert_to(Csr<ValueType, IndexType> *other) const
+void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *other) const
 {
     NOT_IMPLEMENTED;
     // other->set_dimensions(this);
@@ -106,7 +106,7 @@ void Ell<ValueType, IndexType>::convert_to(Csr<ValueType, IndexType> *other) con
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *other)
+void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *other)
 {
     NOT_IMPLEMENTED;
     // other->set_dimensions(this);
