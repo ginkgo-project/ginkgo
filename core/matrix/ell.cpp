@@ -90,7 +90,7 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz, max_nonzeros_per_row, data.num_rows);
+                      data.num_cols, max_nonzeros_per_row, data.num_rows);
 
     // Get values and column indexes.
     size_type ind = 0;

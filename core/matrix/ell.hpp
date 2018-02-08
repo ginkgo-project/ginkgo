@@ -208,14 +208,13 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param num_rows               number of rows
      * @param num_cols               number of columns
-     * @param num_stored_elements    number of nonzeros
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param padding                padding of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_stored_elements,
-        size_type max_nonzeros_per_row, size_type padding)
-        : BasicLinOp<Ell>(exec, num_rows, num_cols, num_stored_elements),
+        size_type num_cols, size_type max_nonzeros_per_row, size_type padding)
+        : BasicLinOp<Ell>(exec, num_rows, num_cols,
+                          padding*max_nonzeros_per_row),
           values_(exec, padding*max_nonzeros_per_row),
           col_idxs_(exec, padding*max_nonzeros_per_row),
           max_nonzeros_per_row_(max_nonzeros_per_row),
@@ -229,13 +228,11 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param num_rows               number of rows
      * @param num_cols               number of columns
-     * @param num_stored_elements    number of nonzeros
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_stored_elements,
-        size_type max_nonzeros_per_row)
-        : Ell(std::move(exec), num_rows, num_cols, num_stored_elements,
+        size_type num_cols, size_type max_nonzeros_per_row)
+        : Ell(std::move(exec), num_rows, num_cols,
               max_nonzeros_per_row, num_rows)
     {}
 
@@ -246,13 +243,11 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param num_rows               number of rows
      * @param num_cols               number of columns
-     * @param num_stored_elements    number of nonzeros
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_stored_elements)
-        : Ell(std::move(exec), num_rows, num_cols, num_stored_elements,
-              num_cols)
+        size_type num_cols)
+        : Ell(std::move(exec), num_rows, num_cols, num_cols)
     {}
 
     size_type linearize_index(size_type row, size_type col) const noexcept

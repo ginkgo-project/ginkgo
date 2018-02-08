@@ -46,7 +46,7 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Ell<>::create(exec, 2, 3, 4, 3))
+          mtx(gko::matrix::Ell<>::create(exec, 2, 3, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
@@ -75,7 +75,7 @@ protected:
         auto p = m->get_padding();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        ASSERT_EQ(m->get_num_stored_elements(), 6);
         EXPECT_EQ(n, 3);
         EXPECT_EQ(p, 2);
         EXPECT_EQ(c[0], 0);
@@ -109,7 +109,7 @@ TEST_F(Ell, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_num_rows(), 2);
     ASSERT_EQ(mtx->get_num_cols(), 3);
-    ASSERT_EQ(mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(mtx->get_max_nonzeros_per_row(), 3);
     ASSERT_EQ(mtx->get_padding(), 2);
 }
@@ -154,7 +154,7 @@ TEST_F(Ell, CanBeCloned)
 
     assert_equal_to_original_mtx(mtx.get());
     mtx->get_values()[1] = 5.0;
-    assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    assert_equal_to_original_mtx(static_cast<Mtx *>(clone.get()));
 }
 
 
