@@ -71,7 +71,7 @@ protected:
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
-        auto n = m->get_max_nnz_row();
+        auto n = m->get_max_nonzeros_per_row();
         auto p = m->get_padding();
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
@@ -99,7 +99,7 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_max_nnz_row(), 0);
+        ASSERT_EQ(m->get_max_nonzeros_per_row(), 0);
         ASSERT_EQ(m->get_padding(), 0);
     }
 };
@@ -110,7 +110,7 @@ TEST_F(Ell, KnowsItsSize)
     ASSERT_EQ(mtx->get_num_rows(), 2);
     ASSERT_EQ(mtx->get_num_cols(), 3);
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(mtx->get_max_nnz_row(), 3);
+    ASSERT_EQ(mtx->get_max_nonzeros_per_row(), 3);
     ASSERT_EQ(mtx->get_padding(), 2);
 }
 

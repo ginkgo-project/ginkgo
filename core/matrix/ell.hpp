@@ -44,18 +44,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+
 template <typename ValueType>
 class Dense;
 
+
 /**
- * Ell is a matrix format which aligned all nonzero elements to the left
- * of the matrix (from the first column) and save the smaller matrix up
- * to the maximum number of nonzero elements in a single element.
- *
- * The nonzero elements are stored in a 1D array column-wise, and accompanied
- * with a column index array index of each row.
- * An additional value max_nnz_row is also stored to identify the size.
- * (Column) padding is also introduced to improve the performance.
+ * ELL is a matrix format where padding with explicit zeros is used such that
+ * all rows have the same number of stored elements. The number of elements
+ * stored in each row is the largest number of nonzero elements in any of the
+ * rows (obtainable through get_max_nonzeros_per_row() method). This removes
+ * the need of a row pointer like in the CSR format, and allows for SIMD
+ * processing of the distinct rows. For efficient processing, the nonzero
+ * elements and the corresponding column indices are stored in column-major
+ * fashion. The columns are padded to a multiple of 32 for efficient memory
+ * access.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -126,17 +129,21 @@ public:
     }
 
     /**
-     * Returns the maximum number of one row.
+     * Returns the maximum number of non-zeros per row.
+     *
+     * @return the maximum number of non-zeros per row.
      */
-    size_type get_max_nnz_row() const noexcept { return max_nnz_row_; }
+    size_type get_max_nonzeros_per_row() const noexcept { return max_nonzeros_per_row_; }
 
     /**
      * Returns the padding of the matrix.
+     *
+     * @return the padding of the matrix.
      */
     size_type get_padding() const noexcept { return padding_; }
 
     /**
-     * Returns a value in the ELLPACK format.
+     * Returns the `idx`-th non-zero element of the `row`-th row .
      *
      * @param row  the row of the requested element
      * @param col  the column of the requested element
@@ -159,7 +166,7 @@ public:
     }
 
     /**
-     * Returns a column index of the ELLPACK foramt.
+     * Returns the `idx`-th column index of the `row`-th row .
      *
      * @param row  the row of the requested element
      * @param col  the column of the requested element
@@ -191,7 +198,7 @@ protected:
         : BasicLinOp<Ell>(exec, 0, 0, 0),
           values_(exec),
           col_idxs_(exec),
-          max_nnz_row_(0),
+          max_nonzeros_per_row_(0),
           padding_(0)
     {}
 
@@ -199,51 +206,52 @@ protected:
      * Creates an uninitialized Ell matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
-     * @param num_nonzeros  number of nonzeros
-     * @param max_nnz_row   maximum number of nonzeros in one row
-     * @param padding       padding of the rows
+     * @param num_rows               number of rows
+     * @param num_cols               number of columns
+     * @param num_stored_elements    number of nonzeros
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param padding                padding of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row,
-        size_type padding)
-        : BasicLinOp<Ell>(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, num_rows*max_nnz_row),
-          col_idxs_(exec, num_rows*max_nnz_row),
-          max_nnz_row_(max_nnz_row),
+        size_type num_cols, size_type num_stored_elements,
+        size_type max_nonzeros_per_row, size_type padding)
+        : BasicLinOp<Ell>(exec, num_rows, num_cols, num_stored_elements),
+          values_(exec, padding*max_nonzeros_per_row),
+          col_idxs_(exec, padding*max_nonzeros_per_row),
+          max_nonzeros_per_row_(max_nonzeros_per_row),
           padding_(padding)
     {}
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (When padding is not specified.)
+     *    (The padding is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
-     * @param num_nonzeros  number of nonzeros
-     * @param max_nnz_row   maximum number of nonzeros in one row
+     * @param num_rows               number of rows
+     * @param num_cols               number of columns
+     * @param num_stored_elements    number of nonzeros
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros, size_type max_nnz_row)
-        : Ell(std::move(exec), num_rows, num_cols, num_nonzeros,
-              max_nnz_row, num_rows)
+        size_type num_cols, size_type num_stored_elements,
+        size_type max_nonzeros_per_row)
+        : Ell(std::move(exec), num_rows, num_cols, num_stored_elements,
+              max_nonzeros_per_row, num_rows)
     {}
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (When padding and max_nnz_row is not specified.)
+     *    (When padding and max_nonzeros_per_row is not specified.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
-     * @param num_nonzeros  number of nonzeros
-     * @param max_nnz_row   maximum number of nonzeros in one row
+     * @param num_rows               number of rows
+     * @param num_cols               number of columns
+     * @param num_stored_elements    number of nonzeros
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros)
-        : Ell(std::move(exec), num_rows, num_cols, num_nonzeros,
+        size_type num_cols, size_type num_stored_elements)
+        : Ell(std::move(exec), num_rows, num_cols, num_stored_elements,
               num_cols)
     {}
 
@@ -255,7 +263,7 @@ protected:
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    size_type max_nnz_row_;
+    size_type max_nonzeros_per_row_;
     size_type padding_;
 
 };
