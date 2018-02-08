@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell.hpp"
 
 
+#include <algorithm>
+
+
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
@@ -71,22 +74,17 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 {
     auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
 
-    // Count number of nonzero elements of every row.
+    // Get the maximum number of nonzero elements of every row.
     size_type nnz = 0;
     index_type current_row = 0;
     size_type max_nonzeros_per_row = 0;
-    std::vector<size_type> nnz_row(data.num_rows, 0);
     for (const auto &elem : data.nonzeros) {
-        nnz += (std::get<2>(elem) != zero<ValueType>());
-        nnz_row.at(std::get<0>(elem))++;
         if (std::get<0>(elem) != current_row) {
-            max_nonzeros_per_row = std::max(max_nonzeros_per_row,
-                                            nnz_row.at(std::get<0>(elem)));
-            current_row++;
+            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+            nnz = 0;
         }
+        nnz += (std::get<2>(elem) != zero<ValueType>());
     }
-    max_nonzeros_per_row = std::max(max_nonzeros_per_row,
-        nnz_row.at(std::get<0>(data.nonzeros[nnz-1])));
 
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
