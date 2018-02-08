@@ -106,38 +106,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void convert_to_ell(matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_ell(matrix::Ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL);
-
-
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const CpuExecutor> exec,
                     const matrix::Dense<ValueType> *source,
@@ -145,17 +113,6 @@ void count_nonzeros(std::shared_ptr<const CpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
-template <typename ValueType>
-void count_max_nnz_row(const matrix::Dense<ValueType> *source,
-                    size_type *result) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
-
-template <typename ValueType>
-void count_total_cols(const matrix::Dense<ValueType> *source,
-                    size_type *result) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const CpuExecutor> exec,
@@ -163,6 +120,7 @@ void transpose(std::shared_ptr<const CpuExecutor> exec,
                const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const CpuExecutor> exec,

@@ -52,10 +52,6 @@ namespace matrix {
 
 template <typename ValueType, typename IndexType>
 class Csr;
-template <typename ValueType, typename IndexType>
-class Ell;
-template <typename ValueType, typename IndexType>
-class Sliced_ell;
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -73,19 +69,11 @@ template <typename ValueType = default_precision>
 class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
-              public ConvertibleTo<Ell<ValueType, int32>>,
-              public ConvertibleTo<Ell<ValueType, int64>>,
-              public ConvertibleTo<Sliced_ell<ValueType, int32>>,
-              public ConvertibleTo<Sliced_ell<ValueType, int64>>,
               public ReadableFromMtx,
               public Transposable {
+    friend class BasicLinOp<Dense>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
-    friend class Ell<ValueType, int32>;
-    friend class Ell<ValueType, int64>;
-    friend class Sliced_ell<ValueType, int32>;
-    friend class Sliced_ell<ValueType, int64>;
-    friend class BasicLinOp<Dense>;
 
 public:
     using BasicLinOp<Dense>::create;
@@ -230,53 +218,6 @@ public:
      *                of columns of this)
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
-
-    void copy_from(const LinOp *other) override;
-
-    void copy_from(std::unique_ptr<LinOp> other) override;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
-    std::unique_ptr<LinOp> clone_type() const override;
-
-    void clear() override;
-
-    void convert_to(Dense *result) const override;
-
-    void move_to(Dense *result) override;
-
-    void convert_to(Csr<ValueType, int32> *result) const override;
-
-    void move_to(Csr<ValueType, int32> *result) override;
-
-    void convert_to(Csr<ValueType, int64> *result) const override;
-
-    void move_to(Csr<ValueType, int64> *result) override;
-
-    void convert_to(Ell<ValueType, int32> *result) const override;
-
-    void move_to(Ell<ValueType, int32> *result) override;
-
-    void convert_to(Ell<ValueType, int64> *result) const override;
-
-    void move_to(Ell<ValueType, int64> *result) override;
-
-    void convert_to(Sliced_ell<ValueType, int32> *result) const override;
-
-    void move_to(Sliced_ell<ValueType, int32> *result) override;
-
-    void convert_to(Sliced_ell<ValueType, int64> *result) const override;
-
-    void move_to(Sliced_ell<ValueType, int64> *result) override;
-
-    void read_from_mtx(const std::string &filename) override;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     /**

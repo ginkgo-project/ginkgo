@@ -1,6 +1,0 @@
-add_executable(simple_spmv simple_spmv.cpp)
-target_link_libraries(simple_spmv ginkgo)
-target_include_directories(simple_spmv PRIVATE ${PROJECT_SOURCE_DIR})
-configure_file(data/A.mtx data/A.mtx COPYONLY)
-configure_file(data/b.mtx data/b.mtx COPYONLY)
-configure_file(data/zero.mtx data/zero.mtx COPYONLY)

@@ -32,12 +32,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/dense_kernels.hpp"
-#include "core/base/exception_helpers.hpp"
+
 
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/sliced_ell.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -209,115 +208,6 @@ void move_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
 
-template <typename ValueType, typename IndexType>
-void convert_to_ell(matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
-{
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
-    auto num_nonzeros = result->get_num_stored_elements();
-
-    auto max_nnz_row = result->get_max_nnz_row();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-    for (size_type row = 0; row < num_rows; ++row) {
-        size_type temp = 0;
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto val = source->at(row, col);
-            if (val != zero<ValueType>()) {
-                col_idxs[row+num_rows*temp] = col;
-                values[row+num_rows*temp] = val;
-                temp++;
-            }
-        }
-        for (; temp < max_nnz_row; temp++) {
-            values[row+num_rows*temp] = 0;
-            col_idxs[row+num_rows*temp] = col_idxs[row+num_rows*(temp-1)];  
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_ell(matrix::Ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    reference::dense::convert_to_ell(result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
-{
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
-    auto num_nonzeros = result->get_num_stored_elements();
-    auto total_cols = result->get_total_cols();
-    auto vals = result->get_values();
-    auto col_idxs = result->get_col_idxs();
-    auto slice_lens = result->get_slice_lens();
-    auto slice_sets = result->get_slice_sets();
-    int slice_num = ceildiv(num_rows, default_slice_size);
-    slice_sets[0] = 0;
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        if (slice > 0) {
-            slice_sets[slice] = slice_lens[slice - 1];
-        }
-        slice_lens[slice] = 0;
-        for (size_type row = 0; row < default_slice_size &&\
-                                row+slice*default_slice_size < num_rows; row++) {
-            size_type global_row = slice * default_slice_size + row;
-            if (global_row >= num_rows) {
-                break;
-            }
-            IndexType max_col = 0;
-            for (size_type col = 0; col < num_cols; col++) {
-                if (source->at(global_row, col) != zero<ValueType>()) {
-                    max_col += 1;
-                }
-            }
-            slice_lens[slice] = std::max(slice_lens[slice], max_col);
-        }
-        for (size_type row = 0; row < default_slice_size && \
-                                row+slice*default_slice_size < num_rows; row++) {
-            size_type global_row = slice * default_slice_size + row;
-            size_type sliced_ell_ind = slice_sets[slice] * default_slice_size + row;
-            for (size_type col = 0; col < num_cols; col++) {
-                if (source->at(global_row, col) != zero<ValueType>()) {
-                    col_idxs[sliced_ell_ind] = col;
-                    vals[sliced_ell_ind] = source->at(global_row, col);
-                    sliced_ell_ind += default_slice_size;
-                }
-            }
-            for (size_type i = sliced_ell_ind; i < (slice_sets[slice]+slice_lens[slice])*default_slice_size+row; i += default_slice_size) {
-                col_idxs[i] = col_idxs[sliced_ell_ind - default_slice_size];
-                vals[i] = 0;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_SLICED_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_sliced_ell(matrix::Sliced_ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    reference::dense::convert_to_sliced_ell(result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_SLICED_ELL_KERNEL);
-
 
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
@@ -338,53 +228,6 @@ void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
-template <typename ValueType>
-void count_max_nnz_row(const matrix::Dense<ValueType> *source, size_type *result)
-{
-    auto num_rows = source->get_num_rows();
-    auto num_cols = source->get_num_cols();
-    auto max_nnz_row = 0;
-    auto temp = 0;
-    for (size_type row = 0; row < num_rows; ++row) {
-        temp = 0;
-        for (size_type col = 0; col < num_cols; ++col) {
-            temp += (source->at(row, col) != zero<ValueType>());
-        }
-        max_nnz_row = (max_nnz_row < temp) ? temp : max_nnz_row;
-    }
-
-    *result = max_nnz_row;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_MAX_NNZ_ROW_KERNEL);
-
-template <typename ValueType>
-void count_total_cols(const matrix::Dense<ValueType> *source, size_type *result)
-{
-    auto num_rows = source->get_num_rows();
-    auto num_cols = source->get_num_cols();
-    auto slice_size = default_slice_size;
-    auto padding_factor = default_padding_factor;
-    auto slice_num = ceildiv(num_rows, slice_size);
-    auto total_cols = 0;
-    auto temp = 0, slice_temp = 0;
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        slice_temp = 0;
-        for (size_type row = 0; row < slice_size && \
-                                row + slice*slice_size < num_rows; row++) {
-            temp = 0;
-            for (size_type col = 0; col < num_cols; col++) {
-                temp += (source->at(row+slice*slice_size, col) != zero<ValueType>());
-            }
-            slice_temp = (slice_temp < temp) ? temp : slice_temp;
-        }
-        total_cols += slice_temp;
-    }
-
-    *result = ceildiv(total_cols, padding_factor) * padding_factor;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_TOTAL_COLS_KERNEL);
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
