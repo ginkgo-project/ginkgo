@@ -47,7 +47,7 @@ inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
 {
     std::fill(ptrs, ptrs + length, 0);
     std::for_each(idxs, idxs + num_nonzeros,
-                  [&](IndexType v) { ptrs[v + 1]++; });
+                  [&](IndexType v) { ++ptrs[v + 1]; });
     std::partial_sum(ptrs, ptrs + length, ptrs);
 }
 

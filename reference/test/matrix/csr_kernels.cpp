@@ -70,6 +70,10 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
+        /*
+         * 1   3   2
+         * 0   5   0
+         */
     }
 
     std::complex<double> i{0, 1};
@@ -207,6 +211,11 @@ TEST_F(Csr, SquareMtxIsTransposable)
     v_orig[3] = 5.0;
     v_orig[4] = 1.5;
     v_orig[5] = 2.0;
+    /*
+     * 1   3   2
+     * 0   5   0
+     * 0  1.5  0
+     */
     auto trans = mtx2->transpose();
 
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
@@ -236,6 +245,11 @@ TEST_F(Csr, SquareMtxIsTransposable)
     EXPECT_EQ(v[3], 1.5);
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 2.0);
+    /*
+     * 1   2   0
+     * 3   5  1.5
+     * 0   0   0
+     */
 }
 
 
@@ -266,6 +280,11 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 5.0);
     EXPECT_EQ(v[3], 2.0);
+    /*
+     * 1   0
+     * 3   5
+     * 2   0
+     */
 }
 
 
@@ -293,6 +312,11 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     v_orig[3] = 5.0 - 3.5 * i;
     v_orig[4] = 1.5 * i;
     v_orig[5] = 2.0;
+    /*
+     * 1+2i   3    2
+     * 0   5-3.5i  0
+     * 0     1.5i  2
+     */
     auto trans = mtx2->conj_transpose();
 
     auto trans_as_csr =
@@ -323,6 +347,11 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     EXPECT_EQ(v[3], -1.5 * i);
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 2.0);
+    /*
+     * 1-2i   0      0
+     * 3   5+3.5i  -1.5i
+     * 2      0      2
+     */
 }
 
 
