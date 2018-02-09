@@ -48,6 +48,29 @@ namespace gko {
 namespace matrix {
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+size_type calculate_max_nonzeros_per_row(MtxData<ValueType, IndexType> data)
+{
+    size_type nnz = 0;
+    IndexType current_row = 0;
+    size_type max_nonzeros_per_row = 0;
+    for (const auto &elem : data.nonzeros) {
+        if (std::get<0>(elem) != current_row) {
+            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+            nnz = 0;
+        }
+        nnz += (std::get<2>(elem) != zero<ValueType>());
+    }
+    return max_nonzeros_per_row;
+}
+
+
+}
+
+
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
     NOT_IMPLEMENTED;
@@ -75,16 +98,7 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
 
     // Get the maximum number of nonzero elements of every row.
-    size_type nnz = 0;
-    index_type current_row = 0;
-    size_type max_nonzeros_per_row = 0;
-    for (const auto &elem : data.nonzeros) {
-        if (std::get<0>(elem) != current_row) {
-            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
-            nnz = 0;
-        }
-        nnz += (std::get<2>(elem) != zero<ValueType>());
-    }
+    auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
@@ -92,7 +106,7 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 
     // Get values and column indexes.
     size_type ind = 0;
-    int n = data.nonzeros.size();
+    size_type n = data.nonzeros.size();
     auto vals = tmp->get_values();
     auto col_idxs = tmp->get_col_idxs();
     for (size_type row = 0; row < data.num_rows; row++) {

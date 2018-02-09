@@ -95,7 +95,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type *get_values() noexcept { return this->values_.get_data(); }
 
     /**
      * @copydoc Ell::get_values()
@@ -106,7 +106,7 @@ public:
      */
     const value_type *get_const_values() const noexcept
     {
-        return values_.get_const_data();
+        return this->values_.get_const_data();
     }
 
     /**
@@ -114,7 +114,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type *get_col_idxs() noexcept { return this->col_idxs_.get_data(); }
 
     /**
      * @copydoc Ell::get_col_idxs()
@@ -125,7 +125,7 @@ public:
      */
     const index_type *get_const_col_idxs() const noexcept
     {
-        return col_idxs_.get_const_data();
+        return this->col_idxs_.get_const_data();
     }
 
     /**
@@ -133,7 +133,10 @@ public:
      *
      * @return the maximum number of non-zeros per row.
      */
-    size_type get_max_nonzeros_per_row() const noexcept { return max_nonzeros_per_row_; }
+    size_type get_max_nonzeros_per_row() const noexcept
+    {
+        return max_nonzeros_per_row_;
+    }
 
     /**
      * Returns the padding of the matrix.
@@ -146,46 +149,46 @@ public:
      * Returns the `idx`-th non-zero element of the `row`-th row .
      *
      * @param row  the row of the requested element
-     * @param col  the column of the requested element
+     * @param idx  the idx-th stored element of the row
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    value_type &val_at(size_type row, size_type col) noexcept
+    value_type &val_at(size_type row, size_type idx) noexcept
     {
-        return values_.get_data()[linearize_index(row, col)];
+        return this->values_.get_data()[this->linearize_index(row, idx)];
     }
 
     /**
      * @copydoc Ell::val_at(size_type, size_type)
      */
-    value_type val_at(size_type row, size_type col) const noexcept
+    value_type val_at(size_type row, size_type idx) const noexcept
     {
-        return values_.get_const_data()[linearize_index(row, col)];
+        return this->values_.get_const_data()[this->linearize_index(row, idx)];
     }
 
     /**
      * Returns the `idx`-th column index of the `row`-th row .
      *
      * @param row  the row of the requested element
-     * @param col  the column of the requested element
+     * @param idx  the idx-th stored element of the row
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the CPU results in a runtime error)
      */
-    index_type &col_at(size_type row, size_type col) noexcept
+    index_type &col_at(size_type row, size_type idx) noexcept
     {
-        return get_col_idxs()[linearize_index(row, col)];
+        return this->get_col_idxs()[this->linearize_index(row, idx)];
     }
 
     /**
      * @copydoc Ell::col_at(size_type, size_type)
      */
-    index_type col_at(size_type row, size_type col) const noexcept
+    index_type col_at(size_type row, size_type idx) const noexcept
     {
-        return get_const_col_idxs()[linearize_index(row, col)];
+        return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
 protected:
@@ -252,7 +255,7 @@ protected:
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
-        return row + padding_ * col;
+        return row + this->padding_ * col;
     }
 
 private:
