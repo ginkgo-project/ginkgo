@@ -98,9 +98,6 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     for (size_type row = 0; row < data.num_rows; row++) {
         size_type col = 0;
         while (ind < n && std::get<0>(data.nonzeros[ind]) == row) {
-            if (std::get<0>(data.nonzeros[ind]) > row) {
-                break;
-            }
             auto val = std::get<2>(data.nonzeros[ind]);
             if (val != zero<ValueType>()) {
                 tmp->val_at(row, col) = val;
@@ -111,7 +108,7 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         }
         for (auto i = col; i < max_nonzeros_per_row; i++) {
             tmp->val_at(row, i) = zero<ValueType>();
-            tmp->col_at(row, i) = tmp->col_at(row, col-1);
+            tmp->col_at(row, i) = (i == 0) ? 0 : tmp->col_at(row, i-1);
         }
     }
 

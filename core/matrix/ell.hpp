@@ -57,8 +57,8 @@ class Dense;
  * the need of a row pointer like in the CSR format, and allows for SIMD
  * processing of the distinct rows. For efficient processing, the nonzero
  * elements and the corresponding column indices are stored in column-major
- * fashion. The columns are padded to a multiple of 32 for efficient memory
- * access.
+ * fashion. The columns are padded to the length by user-defined padding
+ * parameter whose default value is the number of rows of the matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -238,12 +238,12 @@ protected:
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (When padding and max_nonzeros_per_row is not specified.)
+     *    (The padding is set to the number of rows of the matrix.
+     *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param num_rows               number of rows
      * @param num_cols               number of columns
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols)
