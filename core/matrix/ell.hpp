@@ -95,7 +95,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return this->values_.get_data(); }
+    value_type *get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Ell::get_values()
@@ -106,7 +106,7 @@ public:
      */
     const value_type *get_const_values() const noexcept
     {
-        return this->values_.get_const_data();
+        return values_.get_const_data();
     }
 
     /**

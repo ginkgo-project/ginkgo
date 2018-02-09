@@ -52,7 +52,7 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-size_type calculate_max_nonzeros_per_row(MtxData<ValueType, IndexType> data)
+size_type calculate_max_nonzeros_per_row(const MtxData<ValueType, IndexType> data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
