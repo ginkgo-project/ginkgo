@@ -81,7 +81,7 @@ __device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
         const ValueType &var, SelectorType selector, int32 width = warp_size, \
         uint32 mask = full_lane_mask)                                         \
     {                                                                         \
-        assert(mask == full_lane_mask);                                       \
+        GKO_DEVICE_ASSERT(mask == full_lane_mask);                            \
         return detail::shuffle_impl(                                          \
             [](uint32 m, int32 v, SelectorType s, int32 w) {                  \
                 return _intrinsic(v, s, w);                                   \
