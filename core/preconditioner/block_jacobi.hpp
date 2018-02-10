@@ -46,11 +46,11 @@ namespace preconditioner {
 
 
 template <typename, typename>
-class BlockJacobi;
+class BlockJacobiFactory;
 
 
 template <typename, typename>
-class BlockJacobiFactory;
+class AdaptiveBlockJacobiFactory;
 
 
 namespace detail {
@@ -214,6 +214,7 @@ class BlockJacobi : public BasicBlockJacobi<BlockJacobi<ValueType, IndexType>>,
                     public ConvertibleTo<matrix::Dense<ValueType>> {
     friend class BasicLinOp<BlockJacobi>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
+    friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
 
 public:
     using BasicBlockJacobi<BlockJacobi>::convert_to;
@@ -345,13 +346,62 @@ protected:
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobiFactory
     : public BasicBlockJacobiFactory<BlockJacobiFactory<ValueType, IndexType>> {
-public:
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
+    friend class BasicBlockJacobiFactory<BlockJacobiFactory>;
 
+public:
     using value_type = ValueType;
     using index_type = IndexType;
     using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+};
+
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+class AdaptiveBlockJacobiFactory
+    : public BasicBlockJacobiFactory<
+          AdaptiveBlockJacobiFactory<ValueType, IndexType>> {
+    friend class BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>;
+
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using BasicBlockJacobiFactory<
+        AdaptiveBlockJacobiFactory>::BasicBlockJacobiFactory;
+
+    enum precision { double_precision, single_precision, half_precision };
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+
+    void set_block_precisions(const Array<precision> &block_precisions)
+    {
+        block_precisions_ = block_precisions;
+    }
+
+    /**
+     * @copydoc set_block_precisions(const Array<precision> &)
+     */
+    void set_block_precisions(Array<precision> &&block_precisions)
+    {
+        block_precisions_ = std::move(block_precisions);
+    }
+
+    const Array<precision> &get_block_precisions() const noexcept
+    {
+        return block_precisions_;
+    }
+
+protected:
+    AdaptiveBlockJacobiFactory(std::shared_ptr<const Executor> exec,
+                               uint32 max_block_size)
+        : BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>(exec,
+                                                              max_block_size),
+          block_precisions_(exec)
+    {}
+
+    Array<precision> block_precisions_;
 };
 
 

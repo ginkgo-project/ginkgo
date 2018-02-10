@@ -159,14 +159,30 @@ std::unique_ptr<LinOp> BlockJacobiFactory<ValueType, IndexType>::generate(
 }
 
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp>
+AdaptiveBlockJacobiFactory<ValueType, IndexType>::generate(
+    std::shared_ptr<const LinOp> base) const
+{
+    return BlockJacobi<ValueType, IndexType>::create(
+        this->get_executor(), base.get(), this->max_block_size_,
+        this->block_pointers_);
+}
+
+
 #define GKO_DECLARE_BLOCK_JACOBI(ValueType, IndexType) \
     class BlockJacobi<ValueType, IndexType>
 #define GKO_DECLARE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
     class BlockJacobiFactory<ValueType, IndexType>
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
+    class AdaptiveBlockJacobiFactory<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI_FACTORY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY);
 #undef GKO_DECLARE_BLOCK_JACOBI
 #undef GKO_DECLARE_BLOCK_JACOBI_FACTORY
+#undef GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY
 
 
 }  // namespace preconditioner
