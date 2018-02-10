@@ -181,15 +181,12 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
     auto orig_num_rows = orig->get_num_rows();
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs,
+    trans_row_ptrs[0] = 0;
+    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
                          orig_num_cols);
 
     convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
-                       trans_col_idxs, trans_row_ptrs, trans_vals, op);
-
-    std::copy_backward(trans_row_ptrs, trans_row_ptrs + orig_num_cols,
-                       trans_row_ptrs + orig_num_cols + 1);
-    trans_row_ptrs[0] = 0;
+                       trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
 }
 
 
