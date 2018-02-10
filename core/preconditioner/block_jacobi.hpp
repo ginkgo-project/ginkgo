@@ -59,8 +59,9 @@ namespace detail {
 template <typename T>
 struct value_type;
 
-template <typename ValueType, typename IndexType>
-struct value_type<BlockJacobi<ValueType, IndexType>> {
+template <template <typename, typename> class Op, typename ValueType,
+          typename IndexType>
+struct value_type<Op<ValueType, IndexType>> {
     using type = ValueType;
 };
 
@@ -68,8 +69,9 @@ struct value_type<BlockJacobi<ValueType, IndexType>> {
 template <typename T>
 struct index_type;
 
-template <typename ValueType, typename IndexType>
-struct index_type<BlockJacobi<ValueType, IndexType>> {
+template <template <typename, typename> class Op, typename ValueType,
+          typename IndexType>
+struct index_type<Op<ValueType, IndexType>> {
     using type = IndexType;
 };
 
@@ -258,11 +260,13 @@ protected:
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class BlockJacobiFactory : public LinOpFactory {
+template <typename ConcreteBlockJacobiFactory>
+class BasicBlockJacobiFactory : public LinOpFactory {
 public:
-    using value_type = ValueType;
-    using index_type = IndexType;
+    using value_type =
+        typename detail::value_type<ConcreteBlockJacobiFactory>::type;
+    using index_type =
+        typename detail::index_type<ConcreteBlockJacobiFactory>::type;
 
     /**
      * Creates a new block-Jacobi factory.
@@ -276,15 +280,12 @@ public:
      *
      * @return a unique pointer to the newly created factory
      */
-    static std::unique_ptr<BlockJacobiFactory> create(
+    static std::unique_ptr<ConcreteBlockJacobiFactory> create(
         std::shared_ptr<const Executor> exec, uint32 max_block_size)
     {
-        return std::unique_ptr<BlockJacobiFactory>(
-            new BlockJacobiFactory(std::move(exec), max_block_size));
+        return std::unique_ptr<ConcreteBlockJacobiFactory>(
+            new ConcreteBlockJacobiFactory(std::move(exec), max_block_size));
     }
-
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
 
     /**
      * Returns the maximum allowed size of diagonal blocks.
@@ -305,15 +306,15 @@ public:
      *                         number of blocks is
      *                         `block_pointers.get_num_elems() - 1`.
      */
-    void set_block_pointers(const Array<IndexType> &block_pointers)
+    void set_block_pointers(const Array<index_type> &block_pointers)
     {
         block_pointers_ = block_pointers;
     }
 
     /**
-     * @copydoc set_block_pointers(const Array<IndexType> &)
+     * @copydoc set_block_pointers(const Array<index_type> &)
      */
-    void set_block_pointers(Array<IndexType> &&block_pointers)
+    void set_block_pointers(Array<index_type> &&block_pointers)
     {
         block_pointers_ = std::move(block_pointers);
     }
@@ -323,22 +324,34 @@ public:
      *
      * @return the array of block pointers
      */
-    const Array<IndexType> &get_block_pointers() const noexcept
+    const Array<index_type> &get_block_pointers() const noexcept
     {
         return block_pointers_;
     }
 
 protected:
-    BlockJacobiFactory(std::shared_ptr<const Executor> exec,
-                       uint32 max_block_size)
+    BasicBlockJacobiFactory(std::shared_ptr<const Executor> exec,
+                            uint32 max_block_size)
         : LinOpFactory(exec),
           max_block_size_(max_block_size),
           block_pointers_(exec)
     {}
 
-private:
     uint32 max_block_size_;
-    Array<IndexType> block_pointers_;
+    Array<index_type> block_pointers_;
+};
+
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+class BlockJacobiFactory
+    : public BasicBlockJacobiFactory<BlockJacobiFactory<ValueType, IndexType>> {
+public:
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
 };
 
 

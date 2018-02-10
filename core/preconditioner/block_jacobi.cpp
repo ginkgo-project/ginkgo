@@ -154,7 +154,8 @@ std::unique_ptr<LinOp> BlockJacobiFactory<ValueType, IndexType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
     return BlockJacobi<ValueType, IndexType>::create(
-        this->get_executor(), base.get(), max_block_size_, block_pointers_);
+        this->get_executor(), base.get(), this->max_block_size_,
+        this->block_pointers_);
 }
 
 
