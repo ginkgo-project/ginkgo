@@ -70,8 +70,8 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_simple_apply_operation(
-            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
-            blocks_, as<dense>(b), as<dense>(x)));
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(b), as<dense>(x)));
 }
 
 
@@ -88,9 +88,9 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_apply_operation(
-            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
-            blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
-            as<dense>(x)));
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(alpha),
+            as<dense>(b), as<dense>(beta), as<dense>(x)));
 }
 
 
@@ -101,10 +101,11 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
                                                 this->get_num_cols());
-    exec->run(TemplatedOperation<ValueType, IndexType>::
-                  make_convert_to_dense_operation(
-                      num_blocks_, block_pointers_, blocks_, max_block_size_,
-                      tmp->get_values(), tmp->get_padding()));
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::
+            make_convert_to_dense_operation(
+                this->num_blocks_, this->block_pointers_, this->blocks_,
+                this->max_block_size_, tmp->get_values(), tmp->get_padding()));
     tmp->move_to(result);
 }
 
@@ -135,15 +136,16 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         as<ConvertibleTo<csr>>(system_matrix)->convert_to(csr_mtx_handle.get());
         csr_mtx = csr_mtx_handle.get();
     }
-    if (block_pointers_.get_data() == nullptr) {
-        block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
+    if (this->block_pointers_.get_data() == nullptr) {
+        this->block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
         exec->run(TemplatedOperation<ValueType, IndexType>::
-                      make_find_blocks_operation(csr_mtx, max_block_size_,
-                                                 num_blocks_, block_pointers_));
+                      make_find_blocks_operation(csr_mtx, this->max_block_size_,
+                                                 this->num_blocks_,
+                                                 this->block_pointers_));
     }
     exec->run(TemplatedOperation<ValueType, IndexType>::make_generate_operation(
-        csr_mtx, num_blocks_, max_block_size_, this->get_padding(),
-        block_pointers_, blocks_));
+        csr_mtx, this->num_blocks_, this->max_block_size_, this->get_padding(),
+        this->block_pointers_, this->blocks_));
 }
 
 

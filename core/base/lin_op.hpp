@@ -343,7 +343,7 @@ public:
             new ConcreteLinOp(std::forward<TArgs>(args)...));
     }
 
-private:
+protected:
     ConcreteLinOp *self() noexcept
     {
         return static_cast<ConcreteLinOp *>(this);

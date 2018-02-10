@@ -264,17 +264,18 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
                                                                                \
         void run(std::shared_ptr<const CpuExecutor> exec) const override       \
         {                                                                      \
-            detail::call(kernels::cpu::_kernel, exec, data);                   \
+            ::gko::detail::call(::gko::kernels::cpu::_kernel, exec, data);     \
         }                                                                      \
                                                                                \
         void run(std::shared_ptr<const GpuExecutor> exec) const override       \
         {                                                                      \
-            detail::call(kernels::gpu::_kernel, exec, data);                   \
+            ::gko::detail::call(::gko::kernels::gpu::_kernel, exec, data);     \
         }                                                                      \
                                                                                \
         void run(std::shared_ptr<const ReferenceExecutor> exec) const override \
         {                                                                      \
-            detail::call(kernels::reference::_kernel, exec, data);             \
+            ::gko::detail::call(::gko::kernels::reference::_kernel, exec,      \
+                                data);                                         \
         }                                                                      \
                                                                                \
     private:                                                                   \
