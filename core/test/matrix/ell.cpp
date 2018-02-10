@@ -53,9 +53,9 @@ protected:
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
-        c[3] = 1;
+        c[3] = 0;
         c[4] = 2;
-        c[5] = 1;
+        c[5] = 0;
         v[0] = 1.0;
         v[1] = 5.0;
         v[2] = 3.0;
@@ -81,9 +81,9 @@ protected:
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(c[3], 0);
         EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], 1);
+        EXPECT_EQ(c[5], 0);
         EXPECT_EQ(v[0], 1.0);
         EXPECT_EQ(v[1], 5.0);
         EXPECT_EQ(v[2], 3.0);

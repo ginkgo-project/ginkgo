@@ -122,7 +122,7 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         }
         for (auto i = col; i < max_nonzeros_per_row; i++) {
             tmp->val_at(row, i) = zero<ValueType>();
-            tmp->col_at(row, i) = (i == 0) ? 0 : tmp->col_at(row, i-1);
+            tmp->col_at(row, i) = 0;
         }
     }
 
