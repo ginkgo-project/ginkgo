@@ -114,7 +114,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return this->col_idxs_.get_data(); }
+    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Ell::get_col_idxs()
@@ -125,7 +125,7 @@ public:
      */
     const index_type *get_const_col_idxs() const noexcept
     {
-        return this->col_idxs_.get_const_data();
+        return col_idxs_.get_const_data();
     }
 
     /**
@@ -157,7 +157,7 @@ public:
      */
     value_type &val_at(size_type row, size_type idx) noexcept
     {
-        return this->values_.get_data()[this->linearize_index(row, idx)];
+        return values_.get_data()[this->linearize_index(row, idx)];
     }
 
     /**
@@ -165,7 +165,7 @@ public:
      */
     value_type val_at(size_type row, size_type idx) const noexcept
     {
-        return this->values_.get_const_data()[this->linearize_index(row, idx)];
+        return values_.get_const_data()[this->linearize_index(row, idx)];
     }
 
     /**
@@ -255,7 +255,7 @@ protected:
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
-        return row + this->padding_ * col;
+        return row + padding_ * col;
     }
 
 private:
