@@ -249,18 +249,60 @@ protected:
 };
 
 
-/**
- * This factory is used to create a block-Jacobi preconditioner from the
- * operator A, by inverting the diagonal blocks of the operator.
- *
- * The factory generates a ConcreteBlockJacobi object witch stores the
- * preconditioner. For more details see the documentation for
- * ConcreteBlockJacobi.
- *
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  integral type used to store pointers to the start of each
- *                    block
- */
+template <typename ValueType = default_precision, typename IndexType = int32>
+class AdaptiveBlockJacobi
+    : public BasicBlockJacobi<AdaptiveBlockJacobi<ValueType, IndexType>>,
+      public ConvertibleTo<matrix::Dense<ValueType>> {
+    friend class BasicLinOp<AdaptiveBlockJacobi>;
+    friend class BlockJacobiFactory<ValueType, IndexType>;
+    friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
+
+public:
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::convert_to;
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::move_to;
+
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    enum precision {
+        double_precision,
+        single_precision,
+        half_precision,
+        best_precision
+    };
+
+    void apply(const LinOp *b, LinOp *x) const override;
+
+    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+               LinOp *x) const override;
+
+    void convert_to(matrix::Dense<value_type> *result) const override;
+
+    void move_to(matrix::Dense<value_type> *result) override;
+
+protected:
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::create;
+
+    AdaptiveBlockJacobi(std::shared_ptr<const Executor> exec)
+        : BasicBlockJacobi<AdaptiveBlockJacobi>(exec), block_precisions_(exec)
+    {}
+
+    AdaptiveBlockJacobi(std::shared_ptr<const Executor> exec,
+                        const LinOp *system_matrix, uint32 max_block_size,
+                        const Array<index_type> &block_pointers,
+                        const Array<precision> &block_precisions)
+        : BasicBlockJacobi<AdaptiveBlockJacobi>(exec, system_matrix,
+                                                max_block_size, block_pointers),
+          block_precisions_(block_precisions)
+    {
+        this->generate(system_matrix);
+    }
+
+    void generate(const LinOp *system_matrix);
+    Array<precision> block_precisions_;
+};
+
+
 template <typename ConcreteBlockJacobiFactory>
 class BasicBlockJacobiFactory : public LinOpFactory {
 public:
@@ -343,6 +385,17 @@ protected:
 };
 
 
+/**
+ * This factory is used to create a block-Jacobi preconditioner from the
+ * operator A, by inverting the diagonal blocks of the operator.
+ *
+ * The factory generates a BlockJacobi object witch stores the preconditioner.
+ * For more details see the documentation for BlockJacobi.
+ *
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  integral type used to store pointers to the start of each
+ *                    block
+ */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobiFactory
     : public BasicBlockJacobiFactory<BlockJacobiFactory<ValueType, IndexType>> {
@@ -367,15 +420,13 @@ class AdaptiveBlockJacobiFactory
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using BasicBlockJacobiFactory<
-        AdaptiveBlockJacobiFactory>::BasicBlockJacobiFactory;
-
-    enum precision { double_precision, single_precision, half_precision };
+    using result_type = AdaptiveBlockJacobi<ValueType, IndexType>;
 
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
 
-    void set_block_precisions(const Array<precision> &block_precisions)
+    void set_block_precisions(
+        const Array<typename result_type::precision> &block_precisions)
     {
         block_precisions_ = block_precisions;
     }
@@ -383,12 +434,14 @@ public:
     /**
      * @copydoc set_block_precisions(const Array<precision> &)
      */
-    void set_block_precisions(Array<precision> &&block_precisions)
+    void set_block_precisions(
+        Array<typename result_type::precision> &&block_precisions)
     {
         block_precisions_ = std::move(block_precisions);
     }
 
-    const Array<precision> &get_block_precisions() const noexcept
+    const Array<typename result_type::precision> &get_block_precisions() const
+        noexcept
     {
         return block_precisions_;
     }
@@ -401,7 +454,7 @@ protected:
           block_precisions_(exec)
     {}
 
-    Array<precision> block_precisions_;
+    Array<typename result_type::precision> block_precisions_;
 };
 
 

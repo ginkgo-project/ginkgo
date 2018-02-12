@@ -100,7 +100,7 @@ TEST_F(BlockJacobiFactory, CanMoveBlockPointers)
 class AdaptiveBlockJacobiFactory : public ::testing::Test {
 protected:
     using BjFactory = gko::preconditioner::AdaptiveBlockJacobiFactory<>;
-    using Bj = gko::preconditioner::BlockJacobi<>;
+    using Bj = gko::preconditioner::AdaptiveBlockJacobi<>;
 
     AdaptiveBlockJacobiFactory()
         : exec(gko::ReferenceExecutor::create()),
@@ -111,14 +111,14 @@ protected:
     {
         block_pointers.get_data()[0] = 2;
         block_pointers.get_data()[1] = 3;
-        block_precisions.get_data()[0] = BjFactory::single_precision;
-        block_precisions.get_data()[1] = BjFactory::double_precision;
+        block_precisions.get_data()[0] = Bj::single_precision;
+        block_precisions.get_data()[1] = Bj::double_precision;
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<BjFactory> bj_factory;
     gko::Array<gko::int32> block_pointers;
-    gko::Array<BjFactory::precision> block_precisions;
+    gko::Array<Bj::precision> block_precisions;
     std::shared_ptr<gko::matrix::Csr<>> mtx;
 };
 
@@ -160,8 +160,8 @@ TEST_F(AdaptiveBlockJacobiFactory, CanSetBlockPrecisions)
     bj_factory->set_block_precisions(block_precisions);
 
     auto prec = bj_factory->get_block_precisions();
-    EXPECT_EQ(prec.get_data()[0], BjFactory::single_precision);
-    EXPECT_EQ(prec.get_data()[1], BjFactory::double_precision);
+    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
+    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
 }
 
 
@@ -170,8 +170,8 @@ TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPrecisions)
     bj_factory->set_block_precisions(std::move(block_precisions));
 
     auto prec = bj_factory->get_block_precisions();
-    EXPECT_EQ(prec.get_data()[0], BjFactory::single_precision);
-    EXPECT_EQ(prec.get_data()[1], BjFactory::double_precision);
+    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
+    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
 }
 
 
