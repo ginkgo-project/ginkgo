@@ -59,6 +59,10 @@ protected:
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        /*
+         * 1   3   2
+         * 0   5   0
+         */
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -70,10 +74,6 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        /*
-         * 1   3   2
-         * 0   5   0
-         */
     }
 
     std::complex<double> i{0, 1};
@@ -191,10 +191,14 @@ TEST_F(Csr, MovesToDense)
 TEST_F(Csr, SquareMtxIsTransposable)
 {
     auto mtx2 = gko::matrix::Csr<>::create(mtx->get_executor(), 3, 3, 6);
-
     Mtx::value_type *v_orig = mtx2->get_values();
     Mtx::index_type *c_orig = mtx2->get_col_idxs();
     Mtx::index_type *r_orig = mtx2->get_row_ptrs();
+    /*
+     * 1   3   2
+     * 0   5   0
+     * 0  1.5  0
+     */
     r_orig[0] = 0;
     r_orig[1] = 3;
     r_orig[2] = 4;
@@ -211,24 +215,21 @@ TEST_F(Csr, SquareMtxIsTransposable)
     v_orig[3] = 5.0;
     v_orig[4] = 1.5;
     v_orig[5] = 2.0;
-    /*
-     * 1   3   2
-     * 0   5   0
-     * 0  1.5  0
-     */
-    auto trans = mtx2->transpose();
 
+    auto trans = mtx2->transpose();
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
     ASSERT_EQ(trans_as_csr->get_num_cols(), 3);
     ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 6);
-
-
     Mtx::value_type *v = trans_as_csr->get_values();
     Mtx::index_type *c = trans_as_csr->get_col_idxs();
     Mtx::index_type *r = trans_as_csr->get_row_ptrs();
-
+    /*
+     * 1   2   0
+     * 3   5  1.5
+     * 0   0   0
+     */
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 1);
     EXPECT_EQ(r[2], 4);
@@ -245,29 +246,25 @@ TEST_F(Csr, SquareMtxIsTransposable)
     EXPECT_EQ(v[3], 1.5);
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 2.0);
-    /*
-     * 1   2   0
-     * 3   5  1.5
-     * 0   0   0
-     */
 }
 
 
 TEST_F(Csr, NonSquareMtxIsTransposable)
 {
     auto trans = mtx->transpose();
-
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
     ASSERT_EQ(trans_as_csr->get_num_cols(), 2);
     ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 4);
-
-
     Mtx::value_type *v = trans_as_csr->get_values();
     Mtx::index_type *c = trans_as_csr->get_col_idxs();
     Mtx::index_type *r = trans_as_csr->get_row_ptrs();
-
+    /*
+     * 1   0
+     * 3   5
+     * 2   0
+     */
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 1);
     EXPECT_EQ(r[2], 3);
@@ -280,11 +277,6 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 5.0);
     EXPECT_EQ(v[3], 2.0);
-    /*
-     * 1   0
-     * 3   5
-     * 2   0
-     */
 }
 
 
@@ -292,10 +284,14 @@ TEST_F(Csr, MtxIsConjugateTransposable)
 {
     auto mtx2 = gko::matrix::Csr<std::complex<double>>::create(
         mtx->get_executor(), 3, 3, 6);
-
     ComplexMtx::value_type *v_orig = mtx2->get_values();
     ComplexMtx::index_type *c_orig = mtx2->get_col_idxs();
     ComplexMtx::index_type *r_orig = mtx2->get_row_ptrs();
+    /*
+     * 1+2i   3    2
+     * 0   5-3.5i  0
+     * 0     1.5i  2
+     */
     r_orig[0] = 0;
     r_orig[1] = 3;
     r_orig[2] = 4;
@@ -312,25 +308,22 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     v_orig[3] = 5.0 - 3.5 * i;
     v_orig[4] = 1.5 * i;
     v_orig[5] = 2.0;
-    /*
-     * 1+2i   3    2
-     * 0   5-3.5i  0
-     * 0     1.5i  2
-     */
-    auto trans = mtx2->conj_transpose();
 
+    auto trans = mtx2->conj_transpose();
     auto trans_as_csr =
         static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
 
     ASSERT_EQ(trans_as_csr->get_num_rows(), 3);
     ASSERT_EQ(trans_as_csr->get_num_cols(), 3);
     ASSERT_EQ(trans_as_csr->get_num_stored_elements(), 6);
-
-
     ComplexMtx::value_type *v = trans_as_csr->get_values();
     ComplexMtx::index_type *c = trans_as_csr->get_col_idxs();
     ComplexMtx::index_type *r = trans_as_csr->get_row_ptrs();
-
+    /*
+     * 1-2i   0      0
+     * 3   5+3.5i  -1.5i
+     * 2      0      2
+     */
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 1);
     EXPECT_EQ(r[2], 4);
@@ -347,11 +340,6 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     EXPECT_EQ(v[3], -1.5 * i);
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 2.0);
-    /*
-     * 1-2i   0      0
-     * 3   5+3.5i  -1.5i
-     * 2      0      2
-     */
 }
 
 

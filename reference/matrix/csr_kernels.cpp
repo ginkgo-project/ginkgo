@@ -39,10 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense.hpp"
 #include "reference/components/convert_idxs.hpp"
 
+
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 #include <utility>
+
 
 namespace gko {
 namespace kernels {
@@ -146,6 +148,7 @@ void move_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
+
 
 template <typename IndexType, typename ValueType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,

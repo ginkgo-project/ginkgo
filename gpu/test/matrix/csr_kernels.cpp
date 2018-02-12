@@ -86,16 +86,16 @@ protected:
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        Complexmtx = ComplexMtx::create(ref);
-        Complexmtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
+        complex_mtx = ComplexMtx::create(ref);
+        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
         expected = gen_mtx<Vec>(532, 1, 1);
         y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
-        Complexdmtx = ComplexMtx::create(gpu);
-        Complexdmtx->copy_from(Complexmtx.get());
+        complex_dmtx = ComplexMtx::create(gpu);
+        complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(gpu);
         dresult->copy_from(expected.get());
         dy = Vec::create(gpu);
@@ -112,14 +112,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<ComplexMtx> Complexmtx;
+    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<ComplexMtx> Complexdmtx;
+    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -165,8 +165,8 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto trans = Complexmtx->conj_transpose();
-    auto d_trans = Complexdmtx->conj_transpose();
+    auto trans = complex_mtx->conj_transpose();
+    auto d_trans = complex_dmtx->conj_transpose();
 
     ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
                     static_cast<ComplexMtx *>(trans.get()), 0.0);
