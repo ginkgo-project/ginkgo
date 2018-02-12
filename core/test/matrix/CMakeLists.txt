@@ -1,4 +1,5 @@
-create_test(dense)
 create_test(coo)
 create_test(csr)
+create_test(dense)
+create_test(ell)
 create_test(identity)

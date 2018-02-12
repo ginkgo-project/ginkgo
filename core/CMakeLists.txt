@@ -4,6 +4,7 @@ set(SOURCES
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
+    matrix/ell.cpp
     matrix/identity.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
