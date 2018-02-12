@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_XXSOLVERXX_KERNELS_HPP_
 
 
+#include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
 
 
@@ -42,39 +43,54 @@ namespace gko {
 namespace kernels {
 namespace xxsolverxx {
 
-// This is example code for the CG case - has to be modified for the new solver
-/*
+
+#define GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL(_type)                      \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
+                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
+                    matrix::Dense<_type> *rr, matrix::Dense<_type> *y,       \
+                    matrix::Dense<_type> *s, matrix::Dense<_type> *t,        \
+                    matrix::Dense<_type> *z, matrix::Dense<_type> *v,        \
+                    matrix::Dense<_type> *p, matrix::Dense<_type> *prev_rho, \
+                    matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha,  \
+                    matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma, \
+                    matrix::Dense<_type> *omega)
 
 
-#define GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL(_type) \
-    void initialize(const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho)
+#define GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL(_type)                     \
+    void step_1(                                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Dense<_type> *r, matrix::Dense<_type> *p,         \
+        const matrix::Dense<_type> *v, const matrix::Dense<_type> *rho, \
+        const matrix::Dense<_type> *prev_rho,                           \
+        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *omega)
 
 
-#define GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL(_type) \
-    void step_1(matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho,                        \
-                const matrix::Dense<_type> *prev_rho)
+#define GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL(_type)                           \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
+                const matrix::Dense<_type> *r, matrix::Dense<_type> *s,       \
+                const matrix::Dense<_type> *v,                                \
+                const matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha, \
+                const matrix::Dense<_type> *beta)
 
 
-#define GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL(_type) \
-    void step_2(matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
-                const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho)
+#define GKO_DECLARE_XXSOLVERXX_STEP_3_KERNEL(_type)                           \
+    void step_3(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *x, \
+        matrix::Dense<_type> *r, const matrix::Dense<_type> *s,               \
+        const matrix::Dense<_type> *t, const matrix::Dense<_type> *y,         \
+        const matrix::Dense<_type> *z, const matrix::Dense<_type> *alpha,     \
+        const matrix::Dense<_type> *beta, const matrix::Dense<_type> *gamma,  \
+        matrix::Dense<_type> *omega)
 
-
-#define DECLARE_ALL_AS_TEMPLATES                 \
-    template <typename ValueType>                \
+#define DECLARE_ALL_AS_TEMPLATES                         \
+    template <typename ValueType>                        \
     GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                \
+    template <typename ValueType>                        \
     GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                \
-    GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL(ValueType)
-
-*/
+    template <typename ValueType>                        \
+    GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                        \
+    GKO_DECLARE_XXSOLVERXX_STEP_3_KERNEL(ValueType)
 
 
 }  // namespace xxsolverxx
@@ -83,8 +99,7 @@ namespace xxsolverxx {
 namespace cpu {
 namespace xxsolverxx {
 
-// needs to be commented in
-// DECLARE_ALL_AS_TEMPLATES;
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace xxsolverxx
 }  // namespace cpu
@@ -93,8 +108,7 @@ namespace xxsolverxx {
 namespace gpu {
 namespace xxsolverxx {
 
-// needs to be commented in
-// DECLARE_ALL_AS_TEMPLATES;
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace xxsolverxx
 }  // namespace gpu
@@ -103,8 +117,7 @@ namespace xxsolverxx {
 namespace reference {
 namespace xxsolverxx {
 
-// needs to be commented in
-// DECLARE_ALL_AS_TEMPLATES;
+DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace xxsolverxx
 }  // namespace reference

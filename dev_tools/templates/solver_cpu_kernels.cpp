@@ -43,38 +43,53 @@ namespace cpu {
 namespace xxsolverxx {
 
 
-// This is example code for the CG case - has to be modified for the new solver
-/*
-
-
 template <typename ValueType>
-void initialize(const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho) NOT_IMPLEMENTED;
+void initialize(std::shared_ptr<const CpuExecutor> exec,
+                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
+                matrix::Dense<ValueType> *rr, matrix::Dense<ValueType> *y,
+                matrix::Dense<ValueType> *s, matrix::Dense<ValueType> *t,
+                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *v,
+                matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
+                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
+                matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
+                matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
+void step_1(std::shared_ptr<const CpuExecutor> exec,
+            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
+            const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *prev_rho,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho) NOT_IMPLEMENTED;
+void step_2(std::shared_ptr<const CpuExecutor> exec,
+            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
+            const matrix::Dense<ValueType> *v,
+            const matrix::Dense<ValueType> *rho,
+            matrix::Dense<ValueType> *alpha,
+            const matrix::Dense<ValueType> *beta) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL);
 
 
-*/
+template <typename ValueType>
+void step_3(
+    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *x,
+    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
+    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
+    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
+    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
+    matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_3_KERNEL);
 
 
 }  // namespace xxsolverxx
