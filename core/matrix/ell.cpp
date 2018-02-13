@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
+#include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
 
 
@@ -111,7 +112,7 @@ void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *other) const
+void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(
@@ -124,7 +125,7 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *other) const
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *other)
+void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(
