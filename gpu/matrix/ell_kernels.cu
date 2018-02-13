@@ -33,17 +33,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/ell_kernels.hpp"
 
+
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "gpu/base/cusparse_bindings.hpp"
+#include "gpu/base/types.hpp"
+
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace gpu {
 namespace ell {
+
 
 template <typename ValueType, typename IndexType>
 void spmv(const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+    NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
@@ -77,6 +83,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace ell
-}  // namespace cpu
+}  // namespace gpu
 }  // namespace kernels
 }  // namespace gko
