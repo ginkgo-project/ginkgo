@@ -77,7 +77,7 @@ size_type calculate_max_nonzeros_per_row(const MtxData<ValueType, IndexType> dat
 }
 
 
-}
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>

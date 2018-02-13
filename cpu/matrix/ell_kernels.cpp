@@ -33,12 +33,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/ell_kernels.hpp"
 
+
 #include "core/base/exception_helpers.hpp"
+
 
 namespace gko {
 namespace kernels {
 namespace cpu {
 namespace ell {
+
 
 template <typename ValueType, typename IndexType>
 void spmv(const matrix::Ell<ValueType, IndexType> *a,

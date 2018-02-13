@@ -58,7 +58,7 @@ protected:
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type n = mtx->get_max_nnz_row();
+        Mtx::index_type n = mtx->get_max_nonzeros_per_row();
         n = 3;
         c[0] = 0;
         c[1] = 1;

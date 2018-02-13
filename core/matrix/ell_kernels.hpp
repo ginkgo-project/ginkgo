@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense.hpp"
 #include "core/matrix/ell.hpp"
 
+
 namespace gko {
 namespace kernels {
 

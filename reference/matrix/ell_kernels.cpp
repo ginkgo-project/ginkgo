@@ -51,14 +51,14 @@ void spmv(const matrix::Ell<ValueType, IndexType> *a,
 {
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    auto max_nnz_row = a->get_const_max_nnz_row();
+    auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
     auto arows = a->get_num_rows();
 
     for (size_type row = 0; row < arows; row++) {
         for (size_type j = 0; j < c->get_num_cols(); j++) {
             c->at(row, j) = zero<ValueType>();
         }
-        for (size_type i = 0; i < max_nnz_row; i++) {
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
             auto val = vals[row + i*arows];
             auto col = col_idxs[row + i*arows];
             for (size_type j = 0; j < c->get_num_cols(); j++) {
@@ -80,7 +80,7 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
 {
 	auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    auto max_nnz_row = a->get_const_max_nnz_row();
+    auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
     auto arows = a->get_num_rows();
     auto valpha = alpha->at(0,0);
     auto vbeta = beta->at(0,0);
@@ -89,7 +89,7 @@ void advanced_spmv(const matrix::Dense<ValueType> *alpha,
         for (size_type j = 0; j < c->get_num_cols(); j++) {
             c->at(row, j) *= vbeta;
         }
-        for (size_type i = 0; i < max_nnz_row; i++) {
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
             auto val = vals[row + i*arows];
             auto col = col_idxs[row + i*arows];
             for (size_type j = 0; j < c->get_num_cols(); j++) {
@@ -117,13 +117,13 @@ void convert_to_dense(matrix::Dense<ValueType> *result,
     auto num_nonzeros = source->get_num_stored_elements();
     auto vals = source->get_const_values();
     auto col_idxs = source->get_const_col_idxs();
-    auto max_nnz_row = source->get_const_max_nnz_row();
+    auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
         }
-        for (size_type i = 0; i < max_nnz_row; i++) {
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
             result->at(row, col_idxs[row+i*num_rows]) += vals[row+i*num_rows];
         }
     }
