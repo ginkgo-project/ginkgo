@@ -44,7 +44,8 @@ namespace ell {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(const matrix::Ell<ValueType, IndexType> *a,
+void spmv(std::shared_ptr<const CpuExecutor> exec,
+          const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b,
           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
@@ -52,7 +53,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(const matrix::Dense<ValueType> *alpha,
+void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
+                   const matrix::Dense<ValueType> *alpha,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
@@ -63,7 +65,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(matrix::Dense<ValueType> *result,
+void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
+                      matrix::Dense<ValueType> *result,
                       const matrix::Ell<ValueType, IndexType> *source)
     NOT_IMPLEMENTED;
 
@@ -72,7 +75,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_dense(matrix::Dense<ValueType> *result,
+void move_to_dense(std::shared_ptr<const CpuExecutor> exec,
+                   matrix::Dense<ValueType> *result,
                    matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
