@@ -60,7 +60,7 @@ namespace warp {
  * the `key_row`-th row and `key_col`-th column of the matrix.
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, warp_size / subwarp_size, z)
+ *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
@@ -102,9 +102,9 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
  * rows of the result should be permuted with \f$P\f$, and the columns with
  * \f$ P^T \f$ (i.e.
  * \f$ A^{-1} = P X P \f$, where \f$ X \f$ is the returned matrix). These
- * permutation matrices are returned compressed as vectors `perm` and `tperm`,
- * respectively. `i`-th value of each of the vectors is returned to sub-warp
- * thread with index `i`.
+ * permutation matrices are returned compressed as vectors `perm` and
+ * `trans_perm`, respectively. `i`-th value of each of the vectors is returned
+ * to sub-warp thread with index `i`.
  *
  * @tparam max_problem_size  the maximum problem size that will be passed to the
  *                           inversion routine (a tighter bound results in
@@ -119,16 +119,17 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
  *             pass the pointer to the i-th row), has to have at least
  *             max_problem_size elements
  * @param perm  a value to hold an element of permutation matrix \f$ P \f$
- * @param tperm  a value to hold an element of permutation matrix \f$ P^T \f$
+ * @param trans_perm  a value to hold an element of permutation matrix \f$ P^T
+ * \f$
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, warp_size / subwarp_size, z)
+ *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void invert_block(uint32 problem_size,
                                              ValueType *__restrict__ row,
                                              uint32 &__restrict__ perm,
-                                             uint32 &__restrict__ tperm)
+                                             uint32 &__restrict__ trans_perm)
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
@@ -146,7 +147,7 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
             pivoted = true;
         }
         if (threadIdx.x == i) {
-            tperm = piv;
+            trans_perm = piv;
         }
         apply_gauss_jordan_transform<max_problem_size, subwarp_size>(piv, i,
                                                                      row);
@@ -181,7 +182,7 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
  * @param padding  offset between two consecutive rows of the matrix
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, warp_size / subwarp_size, z)
+ *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void copy_matrix(
@@ -230,7 +231,7 @@ __device__ __forceinline__ void copy_matrix(
  * @param mtx_increment  offset between two consecutive elements of the result
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, warp_size / subwarp_size, z)
+ *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void multiply_transposed_vec(

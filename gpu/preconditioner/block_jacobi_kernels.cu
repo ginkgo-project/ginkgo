@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/components/diagonal_block_manipulation.cuh"
+#include "gpu/components/thread_ids.cuh"
 #include "gpu/components/uninitialized_array.hpp"
 #include "gpu/components/warp_blas.cuh"
 
@@ -51,61 +52,56 @@ namespace {
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *warp_size)
+__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     generate(size_type num_rows, const IndexType *__restrict__ row_ptrs,
              const IndexType *__restrict__ col_idxs,
              const ValueType *__restrict__ values,
              ValueType *__restrict__ block_data, size_type padding,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
-    constexpr int blocks_per_warp = warp_size / subwarp_size;
-    const auto bid =
-        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
-        threadIdx.z * blocks_per_warp + threadIdx.y;
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
     ValueType row[max_block_size];
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
-
     device::csr::extract_transposed_diag_blocks<max_block_size, subwarp_size,
                                                 warps_per_block>(
         row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
-    if (bid < num_blocks) {
-        const auto block_size = block_ptrs[bid + 1] - block_ptrs[bid];
+    if (block_id < num_blocks) {
+        const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
         auto perm = threadIdx.x;
-        auto iperm = threadIdx.x;
+        auto trans_perm = threadIdx.x;
         warp::invert_block<max_block_size, subwarp_size>(block_size, row, perm,
-                                                         iperm);
+                                                         trans_perm);
         warp::copy_matrix<max_block_size, subwarp_size>(
-            block_size, row, 1, perm, iperm,
-            block_data + (block_ptrs[bid] * padding), padding);
+            block_size, row, 1, perm, trans_perm,
+            block_data + (block_ptrs[block_id] * padding), padding);
     }
 }
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *warp_size)
+__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     apply(const ValueType *__restrict__ blocks, int32 padding,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
           const ValueType *__restrict__ b, int32 b_padding,
           ValueType *__restrict__ x, int32 x_padding)
 {
-    constexpr int blocks_per_warp = warp_size / subwarp_size;
-    const auto bid =
-        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
-        threadIdx.z * blocks_per_warp + threadIdx.y;
-    if (bid >= num_blocks) {
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    if (block_id >= num_blocks) {
         return;
     }
-    const auto block_size = block_ptrs[bid + 1] - block_ptrs[bid];
+    const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
     ValueType v = zero<ValueType>();
     if (threadIdx.x < block_size) {
-        v = b[(block_ptrs[bid] + threadIdx.x) * b_padding];
+        v = b[(block_ptrs[block_id] + threadIdx.x) * b_padding];
     }
     warp::multiply_transposed_vec<max_block_size, subwarp_size>(
-        block_size, v, blocks + block_ptrs[bid] * padding + threadIdx.x,
-        padding, x + block_ptrs[bid] * x_padding, x_padding);
+        block_size, v, blocks + block_ptrs[block_id] * padding + threadIdx.x,
+        padding, x + block_ptrs[block_id] * x_padding, x_padding);
 }
 
 
@@ -130,7 +126,7 @@ void generate(syn::compile_int_list<max_block_size>,
               const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = warp_size / subwarp_size;
+    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -153,7 +149,7 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
            ValueType *x, size_type x_padding)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    const int blocks_per_warp = warp_size / subwarp_size;
+    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -192,12 +188,11 @@ void generate(std::shared_ptr<const GpuExecutor> exec,
               size_type num_blocks, uint32 max_block_size, size_type padding,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    const int warps_per_block = 4;
     select_generate(compiled_kernels(),
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
                     },
-                    syn::compile_int_list<warps_per_block>(),
+                    syn::compile_int_list<cuda_config::min_warps_per_block>(),
                     syn::compile_type_list<>(), system_matrix,
                     blocks.get_data(), padding, block_pointers.get_const_data(),
                     num_blocks);
@@ -237,14 +232,13 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *x)
 {
-    const int warps_per_block = 4;
     // TODO: write a special kernel for multiple RHS
     for (size_type col = 0; col < b->get_num_cols(); ++col) {
         select_apply(compiled_kernels(),
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;
                      },
-                     syn::compile_int_list<warps_per_block>(),
+                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
                      syn::compile_type_list<>(), num_blocks,
                      block_pointers.get_const_data(), blocks.get_const_data(),
                      padding, b->get_const_values() + col, b->get_padding(),

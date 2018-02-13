@@ -75,18 +75,19 @@ __device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
 #if __CUDACC_VER_MAJOR__ < 9
 
 
-#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)         \
-    template <typename ValueType>                                             \
-    __device__ __forceinline__ ValueType _name(                               \
-        const ValueType &var, SelectorType selector, int32 width = warp_size, \
-        uint32 mask = full_lane_mask)                                         \
-    {                                                                         \
-        GKO_DEVICE_ASSERT(mask == full_lane_mask);                            \
-        return detail::shuffle_impl(                                          \
-            [](uint32 m, int32 v, SelectorType s, int32 w) {                  \
-                return _intrinsic(v, s, w);                                   \
-            },                                                                \
-            var, selector, width, mask);                                      \
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType) \
+    template <typename ValueType>                                     \
+    __device__ __forceinline__ ValueType _name(                       \
+        const ValueType &var, SelectorType selector,                  \
+        int32 width = cuda_config::warp_size,                         \
+        uint32 mask = cuda_config::full_lane_mask)                    \
+    {                                                                 \
+        GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);       \
+        return detail::shuffle_impl(                                  \
+            [](uint32 m, int32 v, SelectorType s, int32 w) {          \
+                return _intrinsic(v, s, w);                           \
+            },                                                        \
+            var, selector, width, mask);                              \
     }
 
 GKO_ENABLE_SHUFFLE_OPERATION(shuffle, __shfl, int32);
@@ -100,16 +101,17 @@ GKO_ENABLE_SHUFFLE_OPERATION(shuffle_xor, __shfl_xor, int32);
 #else  // __CUDACC_VER_MAJOR__ < 9
 
 
-#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)         \
-    template <typename ValueType>                                             \
-    __device__ __forceinline__ ValueType _name(                               \
-        const ValueType &var, SelectorType selector, int32 width = warp_size, \
-        uint32 mask = full_lane_mask)                                         \
-    {                                                                         \
-        return detail::shuffle_impl(                                          \
-            static_cast<int32 (*)(uint32, int32, SelectorType, int32)>(       \
-                _intrinsic),                                                  \
-            var, selector, width, mask);                                      \
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)   \
+    template <typename ValueType>                                       \
+    __device__ __forceinline__ ValueType _name(                         \
+        const ValueType &var, SelectorType selector,                    \
+        int32 width = cuda_config::warp_size,                           \
+        uint32 mask = cuda_config::full_lane_mask)                      \
+    {                                                                   \
+        return detail::shuffle_impl(                                    \
+            static_cast<int32 (*)(uint32, int32, SelectorType, int32)>( \
+                _intrinsic),                                            \
+            var, selector, width, mask);                                \
     }
 
 GKO_ENABLE_SHUFFLE_OPERATION(shuffle, __shfl_sync, int32);

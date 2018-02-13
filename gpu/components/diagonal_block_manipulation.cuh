@@ -49,7 +49,7 @@ namespace csr {
  * @internal
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, warp_size / subwarp_size, z)
+ *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
@@ -61,7 +61,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     ValueType *__restrict__ block_row, int increment,
     ValueType *__restrict__ workspace)
 {
-    constexpr int blocks_per_warp = warp_size / subwarp_size;
+    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
     const int tid = threadIdx.y * subwarp_size + threadIdx.x;
     auto bid =
         static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
@@ -87,7 +87,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             const auto rstart = row_ptrs[row] + tid;
             const auto rend = row_ptrs[row + 1];
             // use the entire warp to ensure coalesced memory access
-            for (auto j = rstart; j < rend; j += warp_size) {
+            for (auto j = rstart; j < rend; j += cuda_config::warp_size) {
                 const auto col = col_idxs[j] - bstart;
                 if (col >= bsize) {
                     break;

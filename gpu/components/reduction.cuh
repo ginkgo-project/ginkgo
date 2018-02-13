@@ -49,7 +49,7 @@ namespace warp {
  *
  * Computes a reduction using the binary operation `reduce_op` on a sub-warp of
  * `subwarp_size` threads. The `subwarp_size` must be a power of 2, and not
- * larger than warp_size.
+ * larger than cuda_config::warp_size.
  * Each thread contributes with one element `local_data`. The local thread
  * element is always passed as the first parameter to the `reduce_op`.
  * The function returns the result of the reduction on all threads.
