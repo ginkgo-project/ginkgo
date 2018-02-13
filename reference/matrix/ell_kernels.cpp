@@ -50,8 +50,6 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
     auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
     auto arows = a->get_num_rows();
 
@@ -60,8 +58,8 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             c->at(row, j) = zero<ValueType>();
         }
         for (size_type i = 0; i < max_nonzeros_per_row; i++) {
-            auto val = vals[row + i*arows];
-            auto col = col_idxs[row + i*arows];
+            auto val = a->val_at(row, i);
+            auto col = a->col_at(row, i);
             for (size_type j = 0; j < c->get_num_cols(); j++) {
                 c->at(row, j) += val*b->at(col, j);
             }
@@ -80,8 +78,6 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-	auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
     auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
     auto arows = a->get_num_rows();
     auto valpha = alpha->at(0,0);
@@ -92,8 +88,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             c->at(row, j) *= vbeta;
         }
         for (size_type i = 0; i < max_nonzeros_per_row; i++) {
-            auto val = vals[row + i*arows];
-            auto col = col_idxs[row + i*arows];
+            auto val = a->val_at(row, i);
+            auto col = a->col_at(row, i);
             for (size_type j = 0; j < c->get_num_cols(); j++) {
                 c->at(row, j) += valpha*val*b->at(col, j);
             }
@@ -110,15 +106,9 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Ell<ValueType, IndexType> *source)
 {
-    if(exec != exec->get_master()) {
-        NOT_SUPPORTED(exec);
-    }
 
     auto num_rows = source->get_num_rows();
     auto num_cols = source->get_num_cols();
-    auto num_nonzeros = source->get_num_stored_elements();
-    auto vals = source->get_const_values();
-    auto col_idxs = source->get_const_col_idxs();
     auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
 
     for (size_type row = 0; row < num_rows; row++) {
@@ -126,7 +116,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             result->at(row, col) = zero<ValueType>();
         }
         for (size_type i = 0; i < max_nonzeros_per_row; i++) {
-            result->at(row, col_idxs[row+i*num_rows]) += vals[row+i*num_rows];
+            result->at(row, source->col_at(row, i)) += source->val_at(row, i);
         }
     }
 }
