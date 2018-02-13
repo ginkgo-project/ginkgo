@@ -217,9 +217,9 @@ protected:
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type max_nonzeros_per_row, size_type padding)
         : BasicLinOp<Ell>(exec, num_rows, num_cols,
-                          padding*max_nonzeros_per_row),
-          values_(exec, padding*max_nonzeros_per_row),
-          col_idxs_(exec, padding*max_nonzeros_per_row),
+                          padding * max_nonzeros_per_row),
+          values_(exec, padding * max_nonzeros_per_row),
+          col_idxs_(exec, padding * max_nonzeros_per_row),
           max_nonzeros_per_row_(max_nonzeros_per_row),
           padding_(padding)
     {}
@@ -235,8 +235,8 @@ protected:
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type max_nonzeros_per_row)
-        : Ell(std::move(exec), num_rows, num_cols,
-              max_nonzeros_per_row, num_rows)
+        : Ell(std::move(exec), num_rows, num_cols, max_nonzeros_per_row,
+              num_rows)
     {}
 
     /**
@@ -263,7 +263,6 @@ private:
     Array<index_type> col_idxs_;
     size_type max_nonzeros_per_row_;
     size_type padding_;
-
 };
 
 

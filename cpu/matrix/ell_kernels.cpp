@@ -65,10 +65,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Ell<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+void convert_to_dense(
+    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *result,
+    const matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);

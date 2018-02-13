@@ -49,8 +49,8 @@ namespace ell {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const GpuExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-    NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
@@ -68,10 +68,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const GpuExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Ell<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+void convert_to_dense(
+    std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *result,
+    const matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);

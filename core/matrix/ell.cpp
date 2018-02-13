@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
-#include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/matrix/ell_kernels.hpp"
 
 
 namespace gko {
@@ -62,7 +62,8 @@ struct TemplatedOperation {
 
 
 template <typename ValueType, typename IndexType>
-size_type calculate_max_nonzeros_per_row(const MtxData<ValueType, IndexType> data)
+size_type calculate_max_nonzeros_per_row(
+    const MtxData<ValueType, IndexType> &data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
