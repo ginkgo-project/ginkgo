@@ -54,12 +54,12 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, 3, 3, 2))
+          mtx1(Mtx::create(exec, 2, 3, 3, 2)),
+          mtx2(Mtx::create(exec, 2, 3, 3, 16))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type n = mtx->get_max_nonzeros_per_row();
-        n = 3;
+        Mtx::value_type *v = mtx1->get_values();
+        Mtx::index_type *c = mtx1->get_col_idxs();
+        Mtx::index_type n = mtx1->get_max_nonzeros_per_row();
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
@@ -72,10 +72,28 @@ protected:
         v[3] = 0.0;
         v[4] = 2.0;
         v[5] = 0.0;
+
+        v = mtx2->get_values();
+        c = mtx2->get_col_idxs();
+        n = mtx2->get_max_nonzeros_per_row();
+        gko::size_type padding = mtx2->get_padding();
+        for (gko::size_type i = 0; i < n * padding; i++) {
+            c[i] = 0;
+            v[i] = 0.0;
+        }
+        c[0] = 0;
+        c[1] = 1;
+        c[0 + 1 * padding] = 1;
+        c[0 + 2 * padding] = 2;
+        v[0] = 1.0;
+        v[1] = 5.0;
+        v[0 + 1 * padding] = 3.0;
+        v[0 + 2 * padding] = 2.0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx1;
+    std::unique_ptr<Mtx> mtx2;
 };
 
 
@@ -84,7 +102,7 @@ TEST_F(Ell, AppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = Vec::create(exec, 2, 1, 1);
 
-    mtx->apply(x.get(), y.get());
+    mtx1->apply(x.get(), y.get());
 
     EXPECT_EQ(y->at(0), 13.0);
     EXPECT_EQ(y->at(1), 5.0);
@@ -93,10 +111,15 @@ TEST_F(Ell, AppliesToDenseVector)
 
 TEST_F(Ell, AppliesToDenseMatrix)
 {
-    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    // clang-format on
     auto y = Vec::create(exec, 2, 2, 2);
 
-    mtx->apply(x.get(), y.get());
+    mtx1->apply(x.get(), y.get());
 
     EXPECT_EQ(y->at(0, 0), 13.0);
     EXPECT_EQ(y->at(1, 0), 5.0);
@@ -112,7 +135,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     EXPECT_EQ(y->at(0), -11.0);
     EXPECT_EQ(y->at(1), -1.0);
@@ -123,10 +146,16 @@ TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
-    auto y = gko::initialize<Vec>({{1.0, 0.5}, {2.0, -1.5}}, exec);
-
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>(
+        {{1.0, 0.5},
+         {2.0, -1.5}}, exec);
+    // clang-format on
+    mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     EXPECT_EQ(y->at(0, 0), -11.0);
     EXPECT_EQ(y->at(1, 0), -1.0);
@@ -140,7 +169,7 @@ TEST_F(Ell, ApplyFailsOnWrongInnerDimension)
     auto x = Vec::create(exec, 2, 2, 2);
     auto y = Vec::create(exec, 2, 2, 2);
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
@@ -149,7 +178,7 @@ TEST_F(Ell, ApplyFailsOnWrongNumberOfRows)
     auto x = Vec::create(exec, 3, 2, 2);
     auto y = Vec::create(exec, 3, 2, 2);
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
@@ -158,17 +187,19 @@ TEST_F(Ell, ApplyFailsOnWrongNumberOfCols)
     auto x = Vec::create(exec, 3, 3, 2);
     auto y = Vec::create(exec, 2, 2, 2);
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
 TEST_F(Ell, ConvertsToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx1->get_executor());
+    // clang-format off
     auto dense_other = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
-
-    mtx->convert_to(dense_mtx.get());
+        4, {{1.0, 3.0, 2.0},
+            {0.0, 5.0, 0.0}}, exec);
+    // clang-format on
+    mtx1->convert_to(dense_mtx.get());
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
@@ -176,11 +207,137 @@ TEST_F(Ell, ConvertsToDense)
 
 TEST_F(Ell, MovesToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx1->get_executor());
+    // clang-format off
     auto dense_other = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
+        4, {{1.0, 3.0, 2.0},
+            {0.0, 5.0, 0.0}}, exec);
+    // clang-format on
 
-    mtx->move_to(dense_mtx.get());
+    mtx1->move_to(dense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Ell, WithPaddingAppliesToDenseVector)
+{
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = Vec::create(exec, 2, 1, 1);
+
+    mtx2->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0), 13.0);
+    EXPECT_EQ(y->at(1), 5.0);
+}
+
+
+TEST_F(Ell, WithPaddingAppliesToDenseMatrix)
+{
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    // clang-format on
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    mtx2->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0, 0), 13.0);
+    EXPECT_EQ(y->at(1, 0), 5.0);
+    EXPECT_EQ(y->at(0, 1), 3.5);
+    EXPECT_EQ(y->at(1, 1), -7.5);
+}
+
+
+TEST_F(Ell, WithPaddingAppliesLinearCombinationToDenseVector)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+
+    mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0), -11.0);
+    EXPECT_EQ(y->at(1), -1.0);
+}
+
+
+TEST_F(Ell, WithPaddingAppliesLinearCombinationToDenseMatrix)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>(
+        {{1.0, 0.5},
+         {2.0, -1.5}}, exec);
+    // clang-format on
+    mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0, 0), -11.0);
+    EXPECT_EQ(y->at(1, 0), -1.0);
+    EXPECT_EQ(y->at(0, 1), -2.5);
+    EXPECT_EQ(y->at(1, 1), 4.5);
+}
+
+
+TEST_F(Ell, WithPaddingApplyFailsOnWrongInnerDimension)
+{
+    auto x = Vec::create(exec, 2, 2, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Ell, WithPaddingApplyFailsOnWrongNumberOfRows)
+{
+    auto x = Vec::create(exec, 3, 2, 2);
+    auto y = Vec::create(exec, 3, 2, 2);
+
+    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Ell, WithPaddingApplyFailsOnWrongNumberOfCols)
+{
+    auto x = Vec::create(exec, 3, 3, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Ell, WithPaddingConvertsToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
+    // clang-format off
+    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
+        4, {{1.0, 3.0, 2.0},
+            {0.0, 5.0, 0.0}}, exec);
+    // clang-format on
+    mtx2->convert_to(dense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Ell, WithPaddingMovesToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
+    // clang-format off
+    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
+        4, {{1.0, 3.0, 2.0},
+            {0.0, 5.0, 0.0}}, exec);
+    // clang-format on
+
+    mtx2->move_to(dense_mtx.get());
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
