@@ -33,7 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/solver/xxsolverxx.hpp>
 
-#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
 
@@ -41,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/test/utils.hpp>
 
 
 namespace {
@@ -51,10 +51,10 @@ protected:
     using Mtx = gko::matrix::Dense<>;
     Xxsolverxx()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec,
-                          {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
+          mtx(gko::initialize<Mtx>(
+              {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           xxsolverxx_factory(
-              gko::solver::XxsolverxxFactory<>::create(exec, 4, 1e-15))
+              gko::solver::XxsolverxxFactory<>::create(exec, 8, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -63,69 +63,59 @@ protected:
 };
 
 
-TEST_F(Xxsolverxx, SolvesStencilSystem)
+TEST_F(Xxsolverxx, SolvesDenseSystem)
 {
     auto solver = xxsolverxx_factory->generate(mtx);
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.0, 0.0, 0.0});
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
 }
 
 
-TEST_F(Xxsolverxx, SolvesMultipleStencilSystems)
+TEST_F(Xxsolverxx, SolvesMultipleDenseSystems)
 {
     auto solver = xxsolverxx_factory->generate(mtx);
-    auto b = Mtx::create(exec, {{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}});
-    auto x = Mtx::create(exec, {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}});
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
+    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
 
     solver->apply(b.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 3.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), 1.0, 1e-14);
+    ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
 }
 
 
-TEST_F(Xxsolverxx, SolvesStencilSystemUsingAdvancedApply)
+TEST_F(Xxsolverxx, SolvesDenseSystemUsingAdvancedApply)
 {
     auto solver = xxsolverxx_factory->generate(mtx);
-    auto alpha = Mtx::create(exec, {2.0});
-    auto beta = Mtx::create(exec, {-1.0});
-    auto b = Mtx::create(exec, {-1.0, 3.0, 1.0});
-    auto x = Mtx::create(exec, {0.5, 1.0, 2.0});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2), 2.0, 1e-14);
+
+    ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
 }
 
 
-TEST_F(Xxsolverxx, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TEST_F(Xxsolverxx, SolvesMultipleDenseSystemsUsingAdvancedApply)
 {
     auto solver = xxsolverxx_factory->generate(mtx);
-    auto alpha = Mtx::create(exec, {2.0});
-    auto beta = Mtx::create(exec, {-1.0});
-    auto b = Mtx::create(exec, {{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}});
-    auto x = Mtx::create(exec, {{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}});
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
+    auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    EXPECT_NEAR(x->at(0, 0), 1.5, 1e-14);
-    EXPECT_NEAR(x->at(1, 0), 5.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 0), 2.0, 1e-14);
-    EXPECT_NEAR(x->at(0, 1), 1.0, 1e-14);
-    EXPECT_NEAR(x->at(1, 1), 0.0, 1e-14);
-    EXPECT_NEAR(x->at(2, 1), -1.0, 1e-14);
+
+    ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
 }
 
 
