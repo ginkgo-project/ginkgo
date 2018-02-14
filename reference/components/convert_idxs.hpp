@@ -31,7 +31,6 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <algorithm>
 #include <numeric>
 
@@ -40,6 +39,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 namespace csr {
+
 
 template <typename IndexType>
 inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
@@ -53,6 +53,7 @@ inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
     });
     std::partial_sum(ptrs, ptrs + length, ptrs);
 }
+
 
 }  // namespace csr
 }  // namespace reference

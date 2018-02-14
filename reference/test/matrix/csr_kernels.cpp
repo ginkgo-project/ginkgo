@@ -190,19 +190,22 @@ TEST_F(Csr, MovesToDense)
 
 TEST_F(Csr, SquareMtxIsTransposable)
 {
+    // clang-format off
     auto mtx2 = gko::initialize<gko::matrix::Csr<>>(
-        //clang-format off
-        {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}, {0.0, 1.5, 2.0}}, exec);
-    //clang-format on
+                {{1.0, 3.0, 2.0},
+                 {0.0, 5.0, 0.0},
+                 {0.0, 1.5, 2.0}}, exec);
+    // clang-format on
 
     auto trans = mtx2->transpose();
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
+    // clang-format off
     ASSERT_MTX_NEAR(trans_as_csr,
-                    //clang-format off
-                    l({{1.0, 0.0, 0.0}, {3.0, 5.0, 1.5}, {2.0, 0.0, 2.0}}),
-                    0.0);
-    //clang-format on
+                    l({{1.0, 0.0, 0.0},
+                       {3.0, 5.0, 1.5},
+                       {2.0, 0.0, 2.0}}), 0.0);
+    // clang-format on
 }
 
 
@@ -211,34 +214,34 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     auto trans = mtx->transpose();
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
+    // clang-format off
     ASSERT_MTX_NEAR(trans_as_csr,
-                    //clang-format off
-                    l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}), 0.0);
-    //clang-format on
+                    l({{1.0, 0.0},
+                       {3.0, 5.0},
+                       {2.0, 0.0}}), 0.0);
+    // clang-format on
 }
 
 
 TEST_F(Csr, MtxIsConjugateTransposable)
 {
+    // clang-format off
     auto mtx2 = gko::initialize<gko::matrix::Csr<std::complex<double>>>(
-        //clang-format off
         {{1.0 + 2.0 * i, 3.0 + 0.0 * i, 2.0 + 0.0 * i},
          {0.0 + 0.0 * i, 5.0 - 3.5 * i, 0.0 + 0.0 * i},
-         {0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}},
-        exec);
-    //clang-format on
+         {0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}}, exec);
+    // clang-format on
 
     auto trans = mtx2->conj_transpose();
     auto trans_as_csr =
         static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
 
+    // clang-format off
     ASSERT_MTX_NEAR(trans_as_csr,
-                    //clang-format off
                     l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
                        {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
-                       {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}),
-                    0.0);
-    //clang-format on
+                       {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
+    // clang-format on
 }
 
 
