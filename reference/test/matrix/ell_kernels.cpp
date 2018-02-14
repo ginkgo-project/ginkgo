@@ -118,6 +118,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseVector)
     EXPECT_EQ(y->at(1), -1.0);
 }
 
+
 TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);

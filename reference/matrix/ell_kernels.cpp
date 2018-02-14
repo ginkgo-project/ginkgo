@@ -61,7 +61,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
             for (size_type j = 0; j < c->get_num_cols(); j++) {
-                c->at(row, j) += val*b->at(col, j);
+                c->at(row, j) += val * b->at(col, j);
             }
         }
     }
@@ -80,8 +80,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
     auto arows = a->get_num_rows();
-    auto valpha = alpha->at(0,0);
-    auto vbeta = beta->at(0,0);
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
 
     for (size_type row = 0; row < arows; row++) {
         for (size_type j = 0; j < c->get_num_cols(); j++) {
@@ -91,7 +91,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
             for (size_type j = 0; j < c->get_num_cols(); j++) {
-                c->at(row, j) += valpha*val*b->at(col, j);
+                c->at(row, j) += valpha * val * b->at(col, j);
             }
         }
     }
@@ -106,7 +106,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Ell<ValueType, IndexType> *source)
 {
-
     auto num_rows = source->get_num_rows();
     auto num_cols = source->get_num_cols();
     auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
