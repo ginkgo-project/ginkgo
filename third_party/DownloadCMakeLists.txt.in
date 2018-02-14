@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
+
 include(ExternalProject)
 ExternalProject_Add(${package_name}
     GIT_REPOSITORY    "${package_url}"
@@ -10,5 +11,5 @@ ExternalProject_Add(${package_name}
     BUILD_COMMAND     ""
     INSTALL_COMMAND   ""
     TEST_COMMAND      ""
-    UPDATE_DISCONNECTED NOT ${UPDATE_DEPENDENCIES}
+    UPDATE_DISCONNECTED ${SKIP_DEPENDENCY_UPDATE}
 )
