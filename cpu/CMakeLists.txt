@@ -12,6 +12,7 @@ add_library(ginkgo_cpu SHARED
     $<TARGET_OBJECTS:ginkgo_cpu_device>
     ${SOURCES})
 target_include_directories(ginkgo_cpu PUBLIC ${PROJECT_SOURCE_DIR})
+target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
 
 if(BUILD_TESTS)
     add_subdirectory(test)
