@@ -326,31 +326,27 @@ public:
     void move_to(matrix::Dense<value_type> *result) override;
 
     /**
-     * Sets the precision to use for storing each of the blocks.
+     * Returns the precisions of diagonal blocks.
      *
-     * @param block_recisions  an array of precisions for each block
+     * @return precisions of diagonal blocks
      */
-    void set_block_precisions(const Array<precision> &block_precisions)
+    precision *get_block_precisions() noexcept
     {
-        block_precisions_ = block_precisions;
-    }
-
-    /**
-     * @copydoc set_block_precisions(const Array<precision> &)
-     */
-    void set_block_precisions(Array<precision> &&block_precisions)
-    {
-        block_precisions_ = std::move(block_precisions);
+        return block_precisions_.get_data();
     }
 
     /**
      * Returns the precisions of diagonal blocks.
      *
      * @return precisions of diagonal blocks
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
      */
-    const Array<precision> &get_block_precisions() const noexcept
+    const precision *get_const_block_precisions() const noexcept
     {
-        return block_precisions_;
+        return block_precisions_.get_const_data();
     }
 
 protected:
@@ -487,10 +483,13 @@ class BlockJacobiFactory
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
+    using generated_type = BlockJacobi<ValueType, IndexType>;
 
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
+
+protected:
+    using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
 };
 
 
@@ -517,7 +516,7 @@ class AdaptiveBlockJacobiFactory
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using result_type = AdaptiveBlockJacobi<ValueType, IndexType>;
+    using generated_type = AdaptiveBlockJacobi<ValueType, IndexType>;
 
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> base) const override;
@@ -528,7 +527,7 @@ public:
      * @param block_recisions  an array of precisions for each block
      */
     void set_block_precisions(
-        const Array<typename result_type::precision> &block_precisions)
+        const Array<typename generated_type::precision> &block_precisions)
     {
         block_precisions_ = block_precisions;
     }
@@ -537,7 +536,7 @@ public:
      * @copydoc set_block_precisions(const Array<precision> &)
      */
     void set_block_precisions(
-        Array<typename result_type::precision> &&block_precisions)
+        Array<typename generated_type::precision> &&block_precisions)
     {
         block_precisions_ = std::move(block_precisions);
     }
@@ -547,8 +546,8 @@ public:
      *
      * @return precisions of diagonal blocks
      */
-    const Array<typename result_type::precision> &get_block_precisions() const
-        noexcept
+    const Array<typename generated_type::precision> &get_block_precisions()
+        const noexcept
     {
         return block_precisions_;
     }
@@ -561,7 +560,7 @@ protected:
           block_precisions_(exec)
     {}
 
-    Array<typename result_type::precision> block_precisions_;
+    Array<typename generated_type::precision> block_precisions_;
 };
 
 

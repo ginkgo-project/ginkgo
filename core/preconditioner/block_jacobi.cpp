@@ -248,7 +248,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
                                                  this->block_pointers_));
     }
     if (this->block_precisions_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
+        this->block_pointers_.resize_and_reset(this->num_blocks_);
         // TODO: launch a kernel to initialize block precisions
     }
     // TODO: replace with adaptive version of the kernel
@@ -269,17 +269,13 @@ AdaptiveBlockJacobiFactory<ValueType, IndexType>::generate(
 }
 
 
-#define GKO_DECLARE_BLOCK_JACOBI(ValueType, IndexType) \
-    class BlockJacobi<ValueType, IndexType>
 #define GKO_DECLARE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
     class BlockJacobiFactory<ValueType, IndexType>
 #define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
     class AdaptiveBlockJacobiFactory<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI_FACTORY);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY);
-#undef GKO_DECLARE_BLOCK_JACOBI
 #undef GKO_DECLARE_BLOCK_JACOBI_FACTORY
 #undef GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY
 

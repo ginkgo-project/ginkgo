@@ -47,13 +47,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BlockJacobi : public ::testing::Test {
+template <typename ConcreteBlockJacobiFactory>
+class BasicBlockJacobiTest : public ::testing::Test {
 protected:
-    using BjFactory = gko::preconditioner::BlockJacobiFactory<>;
-    using Bj = gko::preconditioner::BlockJacobi<>;
+    using BjFactory = ConcreteBlockJacobiFactory;
+    using Bj = typename ConcreteBlockJacobiFactory::generated_type;
     using Mtx = gko::matrix::Csr<>;
+    using Vec = gko::matrix::Dense<>;
 
-    BlockJacobi()
+    BasicBlockJacobiTest()
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 3),
@@ -75,6 +77,10 @@ protected:
                    {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
         init_array(mtx->get_values(), {4.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0,
                                        -1.0, 4.0, -2.0, -1.0, -1.0, 4.0});
+    }
+
+    void SetUp()
+    {
         bj_factory->set_block_pointers(block_pointers);
         bj_lin_op = bj_factory->generate(mtx);
         bj = static_cast<Bj *>(bj_lin_op.get());
@@ -107,16 +113,16 @@ protected:
         ASSERT_EQ(a->get_num_cols(), b->get_num_cols());
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
         ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
-        const auto bptr_a = a->get_const_block_pointers();
-        const auto bptr_b = b->get_const_block_pointers();
-        ASSERT_EQ(bptr_a[0], bptr_b[0]);
+        const auto b_ptr_a = a->get_const_block_pointers();
+        const auto b_ptr_b = b->get_const_block_pointers();
+        ASSERT_EQ(b_ptr_a[0], b_ptr_b[0]);
         for (int i = 0; i < a->get_num_blocks(); ++i) {
-            ASSERT_EQ(bptr_a[i + 1], bptr_b[i + 1]);
+            ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
             assert_same_block(
-                bptr_a[i + 1] - bptr_a[i],
-                a->get_const_blocks() + bptr_a[i] * a->get_padding(),
+                b_ptr_a[i + 1] - b_ptr_a[i],
+                a->get_const_blocks() + b_ptr_a[i] * a->get_padding(),
                 a->get_padding(),
-                b->get_const_blocks() + bptr_b[i] * b->get_padding(),
+                b->get_const_blocks() + b_ptr_b[i] * b->get_padding(),
                 b->get_padding());
         }
     }
@@ -127,6 +133,11 @@ protected:
     std::shared_ptr<gko::matrix::Csr<>> mtx;
     std::unique_ptr<gko::LinOp> bj_lin_op;
     Bj *bj;
+};
+
+
+class BlockJacobi
+    : public BasicBlockJacobiTest<gko::preconditioner::BlockJacobiFactory<>> {
 };
 
 
@@ -175,6 +186,106 @@ TEST_F(BlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_padding(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
+    ASSERT_EQ(bj->get_const_blocks(), nullptr);
+}
+
+
+class AdaptiveBlockJacobi
+    : public BasicBlockJacobiTest<
+          gko::preconditioner::AdaptiveBlockJacobiFactory<>> {
+protected:
+    AdaptiveBlockJacobi() : block_precisions(exec, 3)
+    {
+        block_precisions.get_data()[0] = Bj::single_precision;
+        block_precisions.get_data()[1] = Bj::double_precision;
+        block_precisions.get_data()[2] = Bj::single_precision;
+    }
+
+    void SetUp()
+    {
+        bj_factory->set_block_precisions(block_precisions);
+        BasicBlockJacobiTest<BjFactory>::SetUp();
+    }
+
+    gko::Array<Bj::precision> block_precisions;
+
+    void assert_same_precond(const Bj *a, const Bj *b)
+    {
+        ASSERT_EQ(a->get_num_rows(), b->get_num_rows());
+        ASSERT_EQ(a->get_num_cols(), b->get_num_cols());
+        ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
+        ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
+        const auto b_ptr_a = a->get_const_block_pointers();
+        const auto b_ptr_b = b->get_const_block_pointers();
+        const auto b_prec_a = a->get_const_block_precisions();
+        const auto b_prec_b = b->get_const_block_precisions();
+        ASSERT_EQ(b_ptr_a[0], b_ptr_b[0]);
+        for (int i = 0; i < a->get_num_blocks(); ++i) {
+            ASSERT_EQ(b_prec_a[i], b_prec_b[i]);
+            ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
+            // TODO: take into account different precisions
+            assert_same_block(
+                b_ptr_a[i + 1] - b_ptr_a[i],
+                a->get_const_blocks() + b_ptr_a[i] * a->get_padding(),
+                a->get_padding(),
+                b->get_const_blocks() + b_ptr_b[i] * b->get_padding(),
+                b->get_padding());
+        }
+    }
+};
+
+
+// TODO: take into account different precisions in the following tests
+
+
+TEST_F(AdaptiveBlockJacobi, CanBeCloned)
+{
+    auto bj_clone = bj->clone();
+    assert_same_precond(static_cast<Bj *>(bj_clone.get()), bj);
+}
+
+
+TEST_F(AdaptiveBlockJacobi, CanBeCopied)
+{
+    gko::Array<gko::int32> empty(exec, 1);
+    empty.get_data()[0] = 0;
+    bj_factory->set_block_pointers(std::move(empty));
+    bj_factory->set_block_precisions(block_precisions);
+    auto copy = bj_factory->generate(Mtx::create(exec));
+
+    copy->copy_from(bj_lin_op.get());
+
+    assert_same_precond(static_cast<Bj *>(copy.get()), bj);
+}
+
+
+TEST_F(AdaptiveBlockJacobi, CanBeMoved)
+{
+    auto tmp = bj_lin_op->clone();
+    gko::Array<gko::int32> empty(exec, 1);
+    empty.get_data()[0] = 0;
+    bj_factory->set_block_pointers(std::move(empty));
+    bj_factory->set_block_precisions(block_precisions);
+    auto copy = bj_factory->generate(Mtx::create(exec));
+
+    copy->copy_from(std::move(bj_lin_op));
+
+    assert_same_precond(static_cast<Bj *>(copy.get()),
+                        static_cast<Bj *>(tmp.get()));
+}
+
+
+TEST_F(AdaptiveBlockJacobi, CanBeCleared)
+{
+    bj->clear();
+
+    ASSERT_EQ(bj->get_num_rows(), 0);
+    ASSERT_EQ(bj->get_num_cols(), 0);
+    ASSERT_EQ(bj->get_num_stored_elements(), 0);
+    ASSERT_EQ(bj->get_max_block_size(), 0);
+    ASSERT_EQ(bj->get_padding(), 0);
+    ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
+    ASSERT_EQ(bj->get_const_block_precisions(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);
 }
 
