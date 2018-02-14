@@ -52,7 +52,8 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-size_type calculate_max_nonzeros_per_row(const MtxData<ValueType, IndexType> data)
+size_type calculate_max_nonzeros_per_row(
+    const MtxData<ValueType, IndexType> data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -68,18 +69,18 @@ size_type calculate_max_nonzeros_per_row(const MtxData<ValueType, IndexType> dat
 }
 
 
-}
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
-    NOT_IMPLEMENTED;
+void Ell<ValueType, IndexType>::apply(const LinOp *b,
+                                      LinOp *x) const NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta, LinOp *x) const
-    NOT_IMPLEMENTED;
+                                      const LinOp *beta,
+                                      LinOp *x) const NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
