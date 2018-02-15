@@ -184,8 +184,8 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *b,
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_simple_apply_operation(
                 this->num_blocks_, this->max_block_size_, this->max_block_size_,
-                this->block_pointers_, this->blocks_, as<dense>(b),
-                as<dense>(x)));
+                block_precisions_, this->block_pointers_, this->blocks_,
+                as<dense>(b), as<dense>(x)));
 }
 
 
@@ -203,10 +203,10 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
-            make_apply_operation(this->num_blocks_, this->max_block_size_,
-                                 this->max_block_size_, this->block_pointers_,
-                                 this->blocks_, as<dense>(alpha), as<dense>(b),
-                                 as<dense>(beta), as<dense>(x)));
+            make_apply_operation(
+                this->num_blocks_, this->max_block_size_, this->max_block_size_,
+                block_precisions_, this->block_pointers_, this->blocks_,
+                as<dense>(alpha), as<dense>(b), as<dense>(beta), as<dense>(x)));
 }
 
 
@@ -220,8 +220,9 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::convert_to(
     exec->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
-                this->num_blocks_, this->block_pointers_, this->blocks_,
-                this->max_block_size_, tmp->get_values(), tmp->get_padding()));
+                this->num_blocks_, block_precisions_, this->block_pointers_,
+                this->blocks_, this->max_block_size_, tmp->get_values(),
+                tmp->get_padding()));
     tmp->move_to(result);
 }
 
@@ -264,11 +265,11 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
         this->block_precisions_.resize_and_reset(this->num_blocks_);
         // TODO: launch a kernel to initialize block precisions
     }
-    exec->run(
-        AdaptiveBlockJacobiOperation<ValueType, IndexType>::
-            make_generate_operation(csr_mtx, this->num_blocks_,
-                                    this->max_block_size_, this->get_padding(),
-                                    this->block_pointers_, this->blocks_));
+    exec->run(AdaptiveBlockJacobiOperation<ValueType, IndexType>::
+                  make_generate_operation(
+                      csr_mtx, this->num_blocks_, this->max_block_size_,
+                      this->get_padding(), block_precisions_,
+                      this->block_pointers_, this->blocks_));
 }
 
 

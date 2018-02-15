@@ -112,6 +112,7 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
+              const Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
@@ -122,6 +123,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
            uint32 max_block_size, size_type padding,
+           const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -134,24 +136,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
-                  uint32 max_block_size, size_type padding,
-                  const Array<IndexType> &block_pointers,
-                  const Array<ValueType> &blocks,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+void simple_apply(
+    std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, size_type padding,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const matrix::Dense<ValueType> *b,
+    matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
-                      size_type num_blocks,
-                      const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_padding,
-                      ValueType *result_values,
-                      size_type result_padding) NOT_IMPLEMENTED;
+void convert_to_dense(
+    std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    size_type block_padding, ValueType *result_values,
+    size_type result_padding) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);

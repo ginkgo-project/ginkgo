@@ -225,37 +225,35 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
 
 
 template <typename ValueType, typename IndexType>
-inline void permute_columns(const IndexType *perm, IndexType block_size,
-                            ValueType *block, size_type padding)
+inline void copy_and_permute_block(IndexType block_size,
+                                   const IndexType *col_perm,
+                                   const ValueType *source,
+                                   size_type source_padding, ValueType *result,
+                                   size_type result_padding)
 {
-    std::vector<ValueType> tmp(block_size);
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            tmp[perm[j]] = block[i * padding + j];
-        }
-        for (IndexType j = 0; j < block_size; ++j) {
-            block[i * padding + j] = tmp[j];
+            result[i * result_padding + col_perm[j]] =
+                source[i * source_padding + j];
         }
     }
 }
 
 
 template <typename ValueType, typename IndexType>
-inline void invert_block(IndexType block_size, ValueType *block,
-                         size_type padding)
+inline void invert_block(IndexType block_size, IndexType *perm,
+                         ValueType *block, size_type padding)
 {
     using std::abs;
     using std::swap;
-    std::vector<IndexType> piv(block_size);
-    iota(begin(piv), end(piv), IndexType(0));
     for (IndexType k = 0; k < block_size; ++k) {
         const auto cp =
             choose_pivot(block_size - k, block + k * padding + k, padding) + k;
         swap_rows(k, cp, block_size, block, padding);
-        swap(piv[k], piv[cp]);
+        swap(perm[k], perm[cp]);
         apply_gauss_jordan_transform(k, k, block_size, block, padding);
     }
-    permute_columns(piv.data(), block_size, block, padding);
+    // permute_columns(perm, block_size, block, padding);
 }
 
 
@@ -270,10 +268,17 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type b = 0; b < num_blocks; ++b) {
-        const auto block = blocks.get_data() + padding * ptrs[b];
+        // const auto block = blocks.get_data() + padding * ptrs[b];
         const auto block_size = ptrs[b + 1] - ptrs[b];
-        extract_block(system_matrix, block_size, ptrs[b], block, padding);
-        invert_block(block_size, block, padding);
+        Array<ValueType> block(exec, block_size * block_size);
+        Array<IndexType> perm(exec, block_size);
+        std::iota(perm.get_data(), perm.get_data() + block_size, IndexType(0));
+        extract_block(system_matrix, block_size, ptrs[b], block.get_data(),
+                      block_size);
+        invert_block(block_size, perm.get_data(), block.get_data(), block_size);
+        copy_and_permute_block(block_size, perm.get_data(), block.get_data(),
+                               block_size,
+                               blocks.get_data() + padding * ptrs[b], padding);
     }
 }
 
@@ -426,6 +431,7 @@ namespace adaptive_block_jacobi {
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
            uint32 max_block_size, size_type padding,
+           const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -449,12 +455,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                  size_type num_blocks, uint32 max_block_size,
-                  size_type padding, const Array<IndexType> &block_pointers,
-                  const Array<ValueType> &blocks,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x)
+void simple_apply(
+    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, size_type padding,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
@@ -473,11 +479,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      size_type num_blocks,
-                      const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_padding,
-                      ValueType *result_values, size_type result_padding)
+void convert_to_dense(
+    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    size_type block_padding, ValueType *result_values, size_type result_padding)
 {
     const auto ptrs = block_pointers.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
@@ -505,15 +511,22 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
+              const Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type b = 0; b < num_blocks; ++b) {
-        const auto block = blocks.get_data() + padding * ptrs[b];
         const auto block_size = ptrs[b + 1] - ptrs[b];
-        block_jacobi::extract_block(system_matrix, block_size, ptrs[b], block,
-                                    padding);
-        block_jacobi::invert_block(block_size, block, padding);
+        Array<ValueType> block(exec, block_size * block_size);
+        Array<IndexType> perm(exec, block_size);
+        std::iota(perm.get_data(), perm.get_data() + block_size, IndexType(0));
+        block_jacobi::extract_block(system_matrix, block_size, ptrs[b],
+                                    block.get_data(), block_size);
+        block_jacobi::invert_block(block_size, perm.get_data(),
+                                   block.get_data(), block_size);
+        block_jacobi::copy_and_permute_block(
+            block_size, perm.get_data(), block.get_data(), block_size,
+            blocks.get_data() + padding * ptrs[b], padding);
     }
 }
 
