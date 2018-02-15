@@ -418,6 +418,110 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace block_jacobi
+
+
+namespace adaptive_block_jacobi {
+
+
+template <typename ValueType, typename IndexType>
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type padding,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        block_jacobi::apply_block(block_size, b->get_num_cols(), block, padding,
+                                  alpha->at(0, 0), block_b, b->get_padding(),
+                                  beta->at(0, 0), block_x, x->get_padding());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
+                  size_type num_blocks, uint32 max_block_size,
+                  size_type padding, const Array<IndexType> &block_pointers,
+                  const Array<ValueType> &blocks,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + padding * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        block_jacobi::apply_block(block_size, b->get_num_cols(), block, padding,
+                                  one<ValueType>(), block_b, b->get_padding(),
+                                  zero<ValueType>(), block_x, x->get_padding());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                      size_type num_blocks,
+                      const Array<IndexType> &block_pointers,
+                      const Array<ValueType> &blocks, size_type block_padding,
+                      ValueType *result_values, size_type result_padding)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+    size_type current_block = 0;
+    for (size_type i = 0; i < matrix_size; ++i) {
+        for (size_type j = 0; j < matrix_size; ++j) {
+            result_values[i * result_padding + j] = zero<ValueType>();
+        }
+    }
+
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + block_padding * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        block_jacobi::copy_block(
+            block_size, block, block_padding,
+            result_values + ptrs[i] * result_padding + ptrs[i], result_padding);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size, size_type padding,
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    for (size_type b = 0; b < num_blocks; ++b) {
+        const auto block = blocks.get_data() + padding * ptrs[b];
+        const auto block_size = ptrs[b + 1] - ptrs[b];
+        block_jacobi::extract_block(system_matrix, block_size, ptrs[b], block,
+                                    padding);
+        block_jacobi::invert_block(block_size, block, padding);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+}  // namespace adaptive_block_jacobi
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
