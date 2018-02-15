@@ -149,6 +149,9 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
+namespace {
+
+
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
     size_type num_nonzeros, ValueType *__restrict__ val)
@@ -160,6 +163,9 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
         val[tidx] = gko::conj(val[tidx]);
     }
 }
+
+
+}  //  namespace
 
 
 template <typename ValueType, typename IndexType>
