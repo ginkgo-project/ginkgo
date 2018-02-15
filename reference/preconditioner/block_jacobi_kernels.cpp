@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/extended_float.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
@@ -224,17 +225,27 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename S, typename R>
+struct default_converter {
+    inline R operator()(S val) { return static_cast<R>(val); }
+};
+
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
 inline void copy_and_permute_block(IndexType block_size,
                                    const IndexType *col_perm,
-                                   const ValueType *source,
-                                   size_type source_padding, ValueType *result,
-                                   size_type result_padding)
+                                   const SourceValueType *source,
+                                   size_type source_padding,
+                                   ResultValueType *result,
+                                   size_type result_padding,
+                                   ValueConverter converter = {})
 {
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
             result[i * result_padding + col_perm[j]] =
-                source[i * source_padding + j];
+                converter(source[i * source_padding + j]);
         }
     }
 }
@@ -511,10 +522,11 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
-              const Array<precision<ValueType, IndexType>> &block_precisions,
+              Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_data();
     for (size_type b = 0; b < num_blocks; ++b) {
         const auto block_size = ptrs[b + 1] - ptrs[b];
         Array<ValueType> block(exec, block_size * block_size);
@@ -524,9 +536,31 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                                     block.get_data(), block_size);
         block_jacobi::invert_block(block_size, perm.get_data(),
                                    block.get_data(), block_size);
-        block_jacobi::copy_and_permute_block(
-            block_size, perm.get_data(), block.get_data(), block_size,
-            blocks.get_data() + padding * ptrs[b], padding);
+        if (prec[b] == precision<ValueType, IndexType>::best_precision) {
+            // TODO: properly compute best precision
+            prec[b] = precision<ValueType, IndexType>::double_precision;
+        }
+        switch (prec[b]) {
+        case precision<ValueType, IndexType>::double_precision:
+            block_jacobi::copy_and_permute_block(
+                block_size, perm.get_data(), block.get_data(), block_size,
+                blocks.get_data() + padding * ptrs[b], padding);
+            break;
+        case precision<ValueType, IndexType>::single_precision:
+            block_jacobi::copy_and_permute_block(
+                block_size, perm.get_data(), block.get_data(), block_size,
+                reinterpret_cast<reduce_precision<ValueType> *>(
+                    blocks.get_data() + padding * ptrs[b]),
+                padding, [](ValueType x) { return round_down(x); });
+            break;
+        case precision<ValueType, IndexType>::half_precision:
+            block_jacobi::copy_and_permute_block(
+                block_size, perm.get_data(), block.get_data(), block_size,
+                reinterpret_cast<reduce_precision<reduce_precision<ValueType>>
+                                     *>(blocks.get_data() + padding * ptrs[b]),
+                padding, [](ValueType x) { return round_down(round_down(x)); });
+            break;
+        }
     }
 }
 

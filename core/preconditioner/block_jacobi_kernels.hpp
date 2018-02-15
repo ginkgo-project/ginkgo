@@ -129,7 +129,7 @@ DECLARE_ALL_AS_TEMPLATES;
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType> *system_matrix,         \
         size_type num_blocks, uint32 max_block_size, size_type padding, \
-        const Array<precision<ValueType, IndexType>> &block_precisions, \
+        Array<precision<ValueType, IndexType>> &block_precisions,       \
         const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 
 #define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)   \

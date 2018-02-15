@@ -367,11 +367,10 @@ class AdaptiveBlockJacobi
     : public BasicBlockJacobiTest<
           gko::preconditioner::AdaptiveBlockJacobiFactory<>> {
 protected:
-    AdaptiveBlockJacobi() : block_precisions(exec, 3)
+    AdaptiveBlockJacobi() : block_precisions(exec, 2)
     {
         block_precisions.get_data()[0] = Bj::single_precision;
         block_precisions.get_data()[1] = Bj::double_precision;
-        block_precisions.get_data()[2] = Bj::single_precision;
     }
 
     gko::Array<Bj::precision> block_precisions;
@@ -400,8 +399,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeGenerated)
     ASSERT_EQ(ptrs[2], 5);
     auto prec = bj->get_const_block_precisions();
     EXPECT_EQ(prec[0], Bj::single_precision);
-    EXPECT_EQ(prec[1], Bj::double_precision);
-    ASSERT_EQ(prec[2], Bj::single_precision);
+    ASSERT_EQ(prec[1], Bj::double_precision);
 }
 
 
@@ -414,11 +412,11 @@ TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
 
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_padding();
-    auto b1 = bj->get_blocks();
-    EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 0], 1.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 1], 4.0 / 14.0, 1e-14);
+    auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
+    EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[1 * p + 0], 1.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[1 * p + 1], 4.0 / 14.0, 1e-7);
 
     auto b2 = bj->get_blocks() + 2 * p;
     EXPECT_NEAR(b2[0 * p + 0], 14.0 / 48.0, 1e-14);
@@ -454,16 +452,16 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
 
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_padding();
-    auto b1 = bj->get_blocks();
-    EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 2], 4.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 0], 2.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 1], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 2], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 0], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 1], 1.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 2], 0.0 / 4.0, 1e-14);
+    auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
+    EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[0 * p + 2], 4.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 * p + 0], 2.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 * p + 1], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 * p + 2], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 * p + 0], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 * p + 1], 1.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 * p + 2], 0.0 / 4.0, 1e-7);
 }
 
 

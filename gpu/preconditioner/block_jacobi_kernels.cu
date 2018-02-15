@@ -272,7 +272,7 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const GpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type padding,
-              const Array<precision<ValueType, IndexType>> &block_precisions,
+              Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
