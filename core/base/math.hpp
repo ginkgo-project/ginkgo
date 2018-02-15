@@ -49,7 +49,7 @@ namespace gko {
  * @return  conjugate of `x`
  */
 template <typename T>
-inline std::complex<T> conj(const std::complex<T> &x)
+GKO_ATTRIBUTES GKO_INLINE std::complex<T> conj(const std::complex<T> &x)
 {
     return std::conj(x);
 }
@@ -60,7 +60,7 @@ inline std::complex<T> conj(const std::complex<T> &x)
  * @note This is the overload for real types, which acts as an identity.
  */
 template <typename T>
-inline T conj(T x)
+GKO_ATTRIBUTES GKO_INLINE T conj(T x)
 {
     return x;
 }

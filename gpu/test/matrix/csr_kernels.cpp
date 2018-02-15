@@ -53,6 +53,8 @@ class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr() : rand_engine(42) {}
 
@@ -70,9 +72,11 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine);
@@ -81,13 +85,17 @@ protected:
     void set_up_apply_data()
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
+        complex_mtx = ComplexMtx::create(ref);
+        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
+        expected = gen_mtx<Vec>(532, 1, 1);
+        y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
+        complex_dmtx = ComplexMtx::create(gpu);
+        complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(gpu);
         dresult->copy_from(expected.get());
         dy = Vec::create(gpu);
@@ -104,12 +112,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -136,6 +146,30 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, TransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
+                    static_cast<Mtx *>(trans.get()), 0.0);
+}
+
+
+TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = complex_mtx->conj_transpose();
+    auto d_trans = complex_dmtx->conj_transpose();
+
+    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
+                    static_cast<ComplexMtx *>(trans.get()), 0.0);
 }
 
 

@@ -49,6 +49,7 @@ namespace {
 class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
     Csr()
@@ -58,6 +59,10 @@ protected:
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        /*
+         * 1   3   2
+         * 0   5   0
+         */
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -71,6 +76,7 @@ protected:
         v[3] = 5.0;
     }
 
+    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 };
@@ -179,6 +185,63 @@ TEST_F(Csr, MovesToDense)
     mtx->move_to(dense_mtx.get());
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Csr, SquareMtxIsTransposable)
+{
+    // clang-format off
+    auto mtx2 = gko::initialize<gko::matrix::Csr<>>(
+                {{1.0, 3.0, 2.0},
+                 {0.0, 5.0, 0.0},
+                 {0.0, 1.5, 2.0}}, exec);
+    // clang-format on
+
+    auto trans = mtx2->transpose();
+    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0, 0.0, 0.0},
+                       {3.0, 5.0, 1.5},
+                       {2.0, 0.0, 2.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Csr, NonSquareMtxIsTransposable)
+{
+    auto trans = mtx->transpose();
+    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0, 0.0},
+                       {3.0, 5.0},
+                       {2.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Csr, MtxIsConjugateTransposable)
+{
+    // clang-format off
+    auto mtx2 = gko::initialize<gko::matrix::Csr<std::complex<double>>>(
+        {{1.0 + 2.0 * i, 3.0 + 0.0 * i, 2.0 + 0.0 * i},
+         {0.0 + 0.0 * i, 5.0 - 3.5 * i, 0.0 + 0.0 * i},
+         {0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}}, exec);
+    // clang-format on
+
+    auto trans = mtx2->conj_transpose();
+    auto trans_as_csr =
+        static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
+                       {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
+                       {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
+    // clang-format on
 }
 
 
