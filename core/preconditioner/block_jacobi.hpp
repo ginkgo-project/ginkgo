@@ -268,10 +268,12 @@ protected:
  * that has to be read to apply the precondidionter.
  *
  * However, there is a trade-off in terms of longer preconditioner generation
- * due to extra work required to compute the condition numbers.
+ * due to extra work required to compute the condition numbers. This step is
+ * necessary to preserve the regularity of the diagonal blocks.
  *
- * @tparam ValueType  highest precision of matrix elements and the precision of
- *                    vectors used for the apply() method
+ * @tparam ValueType  highest precision of matrix elements, the precision of
+ *                    vectors used for the apply() method and the precision in
+ *                    which all computation is performed
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
  */
@@ -502,8 +504,9 @@ protected:
  * and possibly improve the performance of preconditioner application.
  * For more details see the documentation for BlockJacobi.
  *
- * @tparam ValueType  highest precision of matrix elements and the precision of
- *                    vectors used for the LinOp::apply() method
+ * @tparam ValueType  highest precision of matrix elements, the precision of
+ *                    vectors used for the LinOp::apply() method and the
+ *                    precision in which all computation is performed
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
  */
