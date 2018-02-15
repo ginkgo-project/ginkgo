@@ -248,7 +248,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
                                                  this->block_pointers_));
     }
     if (this->block_precisions_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(this->num_blocks_);
+        this->block_precisions_.resize_and_reset(this->num_blocks_);
         // TODO: launch a kernel to initialize block precisions
     }
     // TODO: replace with adaptive version of the kernel
