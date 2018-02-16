@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/csr.hpp>
+#include <core/matrix/ell.hpp>
 
 #include <complex>
 
@@ -292,6 +293,60 @@ TEST_F(Dense, MovesToCsr)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 5.0);
+}
+
+
+TEST_F(Dense, ConvertsToEll)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(ell_mtx.get());
+
+    auto v = ell_mtx->get_const_values();
+    auto c = ell_mtx->get_const_col_idxs();
+
+    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 3);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 2);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+    EXPECT_EQ(v[2], 3.0);
+    EXPECT_EQ(v[3], 0.0);
+    EXPECT_EQ(v[4], 2.0);
+    EXPECT_EQ(v[5], 0.0);
+}
+
+
+TEST_F(Dense, MovesToEll)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+
+    mtx4->move_to(ell_mtx.get());
+
+    auto v = ell_mtx->get_const_values();
+    auto c = ell_mtx->get_const_col_idxs();
+
+    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 3);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 2);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+    EXPECT_EQ(v[2], 3.0);
+    EXPECT_EQ(v[3], 0.0);
+    EXPECT_EQ(v[4], 2.0);
+    EXPECT_EQ(v[5], 0.0);
 }
 
 

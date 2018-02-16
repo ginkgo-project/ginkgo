@@ -340,7 +340,7 @@ TEST_F(Ell, ConvertsWithPaddingToDense)
 }
 
 
-TEST_F(Ell, WithPaddingMovesToDense)
+TEST_F(Ell, MovesWithPaddingToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
 
