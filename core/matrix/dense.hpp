@@ -121,6 +121,14 @@ public:
 
     void move_to(Ell<ValueType, int64> *result) override;
 
+    void convert_to(Ell<ValueType, int32> *result, const size_type padding) const;
+
+    void move_to(Ell<ValueType, int32> *result, const size_type padding);
+
+    void convert_to(Ell<ValueType, int64> *result, const size_type padding) const;
+
+    void move_to(Ell<ValueType, int64> *result, const size_type padding);
+
     void read_from_mtx(const std::string &filename) override;
 
     std::unique_ptr<LinOp> transpose() const override;

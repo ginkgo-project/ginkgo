@@ -54,41 +54,17 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx1(Mtx::create(exec, 2, 3, 3, 2)),
-          mtx2(Mtx::create(exec, 2, 3, 3, 16))
+          mtx1(Mtx::create(exec)),
+          mtx2(Mtx::create(exec))
     {
-        Mtx::value_type *v = mtx1->get_values();
-        Mtx::index_type *c = mtx1->get_col_idxs();
-        Mtx::index_type n = mtx1->get_max_nonzeros_per_row();
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 1;
-        c[3] = 0;
-        c[4] = 2;
-        c[5] = 0;
-        v[0] = 1.0;
-        v[1] = 5.0;
-        v[2] = 3.0;
-        v[3] = 0.0;
-        v[4] = 2.0;
-        v[5] = 0.0;
-
-        v = mtx2->get_values();
-        c = mtx2->get_col_idxs();
-        n = mtx2->get_max_nonzeros_per_row();
-        gko::size_type padding = mtx2->get_padding();
-        for (gko::size_type i = 0; i < n * padding; i++) {
-            c[i] = 0;
-            v[i] = 0.0;
-        }
-        c[0] = 0;
-        c[1] = 1;
-        c[0 + 1 * padding] = 1;
-        c[0 + 2 * padding] = 2;
-        v[0] = 1.0;
-        v[1] = 5.0;
-        v[0 + 1 * padding] = 3.0;
-        v[0 + 2 * padding] = 2.0;
+        // clang-format off
+        mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
+                                     {0.0, 5.0, 0.0}}, exec);
+        std::unique_ptr<Vec> dense_mtx = gko::initialize<Vec>(
+            {{1.0, 3.0, 2.0},
+             {0.0, 5.0, 0.0}}, exec);
+        // clang-format on
+        dense_mtx->move_to(mtx2.get(), 16);
     }
 
     std::shared_ptr<const gko::Executor> exec;

@@ -350,6 +350,76 @@ TEST_F(Dense, MovesToEll)
 }
 
 
+TEST_F(Dense, ConvertsToEllWithPadding)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(ell_mtx.get(), 16);
+
+    auto max_nnz_per_row = ell_mtx->get_max_nonzeros_per_row();
+    auto padding = ell_mtx->get_padding();
+    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(max_nnz_per_row, 3);
+    ASSERT_EQ(padding, 16);
+    for (gko::size_type col_idx = 0; col_idx < max_nnz_per_row; col_idx++) {
+        for (gko::size_type row = 0; row < padding; row++) {
+            if (col_idx == 0 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 1.0);
+            } else if (col_idx == 0 && row == 1) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 5.0);
+            } else if (col_idx == 1 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 3.0);
+            } else if (col_idx == 2 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 2);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 2.0);
+            } else {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 0.0);
+            }
+        }
+    }
+}
+
+
+TEST_F(Dense, MovesToEllWithPadding)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+
+    mtx4->move_to(ell_mtx.get(), 16);
+
+    auto max_nnz_per_row = ell_mtx->get_max_nonzeros_per_row();
+    auto padding = ell_mtx->get_padding();
+    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
+    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(max_nnz_per_row, 3);
+    ASSERT_EQ(padding, 16);
+    for (gko::size_type col_idx = 0; col_idx < max_nnz_per_row; col_idx++) {
+        for (gko::size_type row = 0; row < padding; row++) {
+            if (col_idx == 0 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 1.0);
+            } else if (col_idx == 0 && row == 1) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 5.0);
+            } else if (col_idx == 1 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 3.0);
+            } else if (col_idx == 2 && row == 0) {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 2);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 2.0);
+            } else {
+                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
+                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 0.0);
+            }
+        }
+    }
+}
+
+
 TEST_F(Dense, SquareMatrixIsTransposable)
 {
     auto trans = mtx5->transpose();

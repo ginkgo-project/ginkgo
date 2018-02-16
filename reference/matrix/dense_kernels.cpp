@@ -218,6 +218,12 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = result->get_num_rows();
     auto num_cols = result->get_num_cols();
     auto max_nnz_per_row = result->get_max_nonzeros_per_row();
+    for (size_type i = 0; i < max_nnz_per_row; i++) {
+        for (size_type j = 0; j < result->get_padding(); j++) {
+            result->val_at(j, i) = zero<ValueType>();
+            result->col_at(j, i) = 0;
+        }
+    }
     size_type col_idx = 0;
     for (size_type row = 0; row < num_rows; row++) {
         col_idx = 0;
@@ -228,10 +234,6 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
                 result->col_at(row, col_idx) = col;
                 col_idx++;
             }
-        }
-        for (; col_idx < max_nnz_per_row; col_idx++) {
-            result->val_at(row, col_idx) = zero<ValueType>();
-            result->col_at(row, col_idx) = 0;
         }
     }
 }
