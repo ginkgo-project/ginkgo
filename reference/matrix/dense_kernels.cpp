@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
+#include "core/matrix/ell.hpp"
 
 
 namespace gko {
@@ -209,6 +210,41 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source)
+{
+    auto num_rows = result->get_num_rows();
+    auto num_cols = result->get_num_cols();
+    size_type col_idx = 0;
+    for (size_type row = 0; row < num_rows; row++) {
+        col_idx = 0;
+        for (size_type col = 0; col < num_cols; col++) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                result->val_at(row, col_idx) = val;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
+                 matrix::Ell<ValueType, IndexType> *result,
+                 const matrix::Dense<ValueType> *source)
+{
+    reference::dense::convert_to_ell(exec, result, source);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType> *source, size_type *result)
@@ -227,6 +263,32 @@ void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
+
+
+template <typename ValueType>
+void calculate_max_nonzeros_per_row(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Dense<ValueType> *source, size_type *result)
+{
+    auto num_rows = source->get_num_rows();
+    auto num_cols = source->get_num_cols();
+    size_type max_nonzeros_per_row = 0;
+    size_type num_nonzeros = 0;
+    for (size_type row = 0; row < num_rows; ++row) {
+        num_nonzeros = 0;
+        for (size_type col = 0; col < num_cols; ++col) {
+            num_nonzeros += (source->at(row, col) != zero<ValueType>());
+        }
+        max_nonzeros_per_row = max_nonzeros_per_row < num_nonzeros
+                                   ? num_nonzeros
+                                   : max_nonzeros_per_row;
+    }
+
+    *result = max_nonzeros_per_row;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_MAX_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType>
