@@ -87,6 +87,123 @@ struct float_traits {
         (one << significand_bits + exponent_bits - 1) - one - significand_mask;
     static constexpr bits_type sign_mask = one
                                            << significand_bits + exponent_bits;
+
+    static constexpr bool is_inf(bits_type data)
+    {
+        return (data & exponent_mask) == exponent_mask &&
+               (data & significand_mask) == zero;
+    }
+
+    static constexpr bool is_nan(bits_type data)
+    {
+        return (data & exponent_mask) == exponent_mask &&
+               (data & significand_mask) != zero;
+    }
+
+    static constexpr bool is_denom(bits_type data)
+    {
+        return (data & exponent_mask) == zero;
+    }
+};
+
+
+template <typename SourceType, typename ResultType,
+          bool = (sizeof(SourceType) <= sizeof(ResultType))>
+struct precision_converter;
+
+// upcasting implementation details
+template <typename SourceType, typename ResultType>
+struct precision_converter<SourceType, ResultType, true> {
+    using source_traits = float_traits<SourceType>;
+    using result_traits = float_traits<ResultType>;
+    using source_bits = typename source_traits::bits_type;
+    using result_bits = typename result_traits::bits_type;
+
+    static constexpr int significand_offset =
+        result_traits::significand_bits - source_traits::significand_bits;
+    static constexpr int exponent_offset = significand_offset;
+    static constexpr int sign_offset = result_traits::exponent_bits -
+                                       source_traits::exponent_bits +
+                                       exponent_offset;
+    static constexpr result_bits bias_change =
+        result_traits::bias_mask -
+        (static_cast<result_bits>(source_traits::bias_mask) << exponent_offset);
+
+    static constexpr result_bits shift_significand(source_bits data)
+    {
+        return static_cast<result_bits>(data & source_traits::significand_mask)
+               << significand_offset;
+    }
+
+    static constexpr result_bits shift_exponent(source_bits data)
+    {
+        return update_bias(
+            static_cast<result_bits>(data & source_traits::exponent_mask)
+            << exponent_offset);
+    }
+
+    static constexpr result_bits shift_sign(source_bits data)
+    {
+        return static_cast<result_bits>(data & source_traits::sign_mask)
+               << sign_offset;
+    }
+
+private:
+    static constexpr result_bits update_bias(result_bits data)
+    {
+        return data == result_traits::zero ? data : data + bias_change;
+    }
+};
+
+// downcasting implementation details
+template <typename SourceType, typename ResultType>
+struct precision_converter<SourceType, ResultType, false> {
+    using source_traits = float_traits<SourceType>;
+    using result_traits = float_traits<ResultType>;
+    using source_bits = typename source_traits::bits_type;
+    using result_bits = typename result_traits::bits_type;
+
+    static constexpr int significand_offset =
+        source_traits::significand_bits - result_traits::significand_bits;
+    static constexpr int exponent_offset = significand_offset;
+    static constexpr int sign_offset = source_traits::exponent_bits -
+                                       result_traits::exponent_bits +
+                                       exponent_offset;
+    static constexpr source_bits bias_change =
+        (source_traits::bias_mask >> exponent_offset) -
+        static_cast<source_bits>(result_traits::bias_mask);
+
+    static constexpr result_bits shift_significand(source_bits data)
+    {
+        return static_cast<result_bits>(
+            (data & source_traits::significand_mask) >> significand_offset);
+    }
+
+    static constexpr result_bits shift_exponent(source_bits data)
+    {
+        return static_cast<result_bits>(update_bias(
+            (data & source_traits::exponent_mask) >> exponent_offset));
+    }
+
+    static constexpr result_bits shift_sign(source_bits data)
+    {
+        return static_cast<result_bits>((data & source_traits::sign_mask) >>
+                                        sign_offset);
+    }
+
+private:
+    static constexpr source_bits update_bias(source_bits data)
+    {
+        return data <= bias_change ? source_traits::zero
+                                   : bound_exponent(data - bias_change);
+    }
+
+    static constexpr source_bits bound_exponent(source_bits data)
+    {
+        return data >= static_cast<source_bits>(result_traits::exponent_mask)
+                   ? static_cast<source_bits>(result_traits::exponent_mask)
+                   : data;
+    }
 };
 
 
@@ -106,160 +223,68 @@ public:
 #ifdef __CUDACC__
         data = __float2half_rn(val);
 #else   // __CUDACC__
-        data = float2half(val);
+        data = float2half(reinterpret_cast<const uint32 &>(val));
 #endif  // __CUDACC__
     }
+
+    GKO_ATTRIBUTES half(float64 val) noexcept : half(static_cast<float32>(val))
+    {}
 
     GKO_ATTRIBUTES operator float32() const noexcept
     {
 #ifdef __CUDACC__
         return __half2float(data);
 #else   // __CUDACC__
-        return half2float(data);
+        const auto bits = half2float(data);
+        return reinterpret_cast<const float32 &>(bits);
 #endif  // __CUDACC__
     }
 
-private:
-    using fp16t = detail::float_traits<float16>;
-    using fp32t = detail::float_traits<float32>;
-    static inline uint16 float2half(float32 val) noexcept
+    GKO_ATTRIBUTES operator float64() const noexcept
     {
-        const auto data = reinterpret_cast<const uint32 &>(val);
-        if (is_inf<float32>(data)) {
-            return shift_sign<float32, float16>(data) | fp16t::exponent_mask;
-        } else if (is_nan<float32>(data)) {
-            return shift_sign<float32, float16>(data) | fp16t::exponent_mask |
-                   fp16t::significand_mask;
+        return static_cast<float32>(*this);
+    }
+
+private:
+    using f16_traits = detail::float_traits<float16>;
+    using f32_traits = detail::float_traits<float32>;
+
+    static uint16 float2half(uint32 data) noexcept
+    {
+        using conv = detail::precision_converter<float32, float16>;
+        if (f32_traits::is_inf(data)) {
+            return conv::shift_sign(data) | f16_traits::exponent_mask;
+        } else if (f32_traits::is_nan(data)) {
+            return conv::shift_sign(data) | f16_traits::exponent_mask |
+                   f16_traits::significand_mask;
         } else {
-            const auto tmp = shift_sign<float32, float16>(data) |
-                             shift_exponent<float32, float16>(data);
-            if (is_inf<float16>(tmp)) {
-                return tmp;
+            const auto exp = conv::shift_exponent(data);
+            if (f16_traits::is_inf(exp)) {
+                return conv::shift_sign(data) | exp;
+            } else if (f16_traits::is_denom(exp)) {
+                // TODO: handle denormals
+                return conv::shift_sign(data);
             } else {
-                return tmp | shift_significand<float32, float16>(data);
+                return conv::shift_sign(data) | exp |
+                       conv::shift_significand(data);
             }
         }
     }
 
-    static inline float32 half2float(uint16 data) noexcept
+    static uint32 half2float(uint16 data) noexcept
     {
-        if (is_inf<float16>(data)) {
-            return shift_sign<float16, float32>(data) | fp32t::exponent_mask;
-        } else if (is_nan<float16>(data)) {
-            return shift_sign<float16, float32>(data) | fp32t::exponent_mask |
-                   fp32t::significand_mask;
+        using conv = detail::precision_converter<float16, float32>;
+        if (f16_traits::is_inf(data)) {
+            return conv::shift_sign(data) | f32_traits::exponent_mask;
+        } else if (f16_traits::is_nan(data)) {
+            return conv::shift_sign(data) | f32_traits::exponent_mask |
+                   f32_traits::significand_mask;
+        } else if (f16_traits::is_denom(data)) {
+            // TODO: handle denormals
+            return conv::shift_sign(data);
         } else {
-            return shift_sign<float16, float32>(data) |
-                   shift_exponent<float16, float32>(data) |
-                   shift_significand<float16, float32>(data);
-        }
-    }
-
-    template <typename T>
-    static constexpr inline bool is_inf(
-        typename detail::float_traits<T>::bits_type value)
-    {
-        using ft = detail::float_traits<T>;
-        return (value & ft::exponent_mask) == ft::exponent_mask &&
-               (value & ft::significand_mask) == ft::zero;
-    }
-
-    template <typename T>
-    static constexpr inline bool is_nan(
-        typename detail::float_traits<T>::bits_type value)
-    {
-        using ft = detail::float_traits<T>;
-        return (value & ft::exponent_mask) == ft::exponent_mask &&
-               (value & ft::significand_mask) != ft::zero;
-    }
-
-    template <typename FromType, typename ToType>
-    static inline typename detail::float_traits<ToType>::bits_type shift_sign(
-        typename detail::float_traits<FromType>::bits_type value)
-    {
-        using fft = detail::float_traits<FromType>;
-        using tft = detail::float_traits<ToType>;
-        using fbt = typename fft::bits_type;
-        using tbt = typename tft::bits_type;
-        constexpr int exponent_offset =
-            fft::significand_bits - tft::significand_bits;
-        constexpr int sign_offset =
-            fft::exponent_bits - tft::exponent_bits + exponent_offset;
-        if (sign_offset >= 0) {
-            return static_cast<tbt>((value & fft::sign_mask) >> sign_offset);
-        } else {
-            return static_cast<tbt>(value & fft::sign_mask) << -sign_offset;
-        }
-    }
-
-    template <typename FromType, typename ToType>
-    static inline typename std::enable_if<
-        (sizeof(FromType) > sizeof(ToType)),
-        typename detail::float_traits<ToType>::bits_type>::type
-    shift_exponent(typename detail::float_traits<FromType>::bits_type value)
-    {
-        // downcasting larger to smaller type
-        using fft = detail::float_traits<FromType>;
-        using tft = detail::float_traits<ToType>;
-        using fbt = typename fft::bits_type;
-        using tbt = typename tft::bits_type;
-        constexpr int exponent_offset =
-            fft::significand_bits - tft::significand_bits;
-        const auto shifted_exp =
-            (value & fft::exponent_mask) >> exponent_offset;
-        constexpr auto bias_change = (fft::bias_mask >> exponent_offset) -
-                                     static_cast<fbt>(tft::bias_mask);
-        if (bias_change >= shifted_exp) {
-            return tbt{};
-        } else if (shifted_exp - bias_change >=
-                   static_cast<fbt>(tft::exponent_mask)) {
-            return tft::exponent_mask;
-        } else {
-            return static_cast<tbt>(shifted_exp - bias_change);
-        }
-    }
-
-    template <typename FromType, typename ToType>
-    static inline typename std::enable_if<
-        (sizeof(FromType) <= sizeof(ToType)),
-        typename detail::float_traits<ToType>::bits_type>::type
-    shift_exponent(typename detail::float_traits<FromType>::bits_type value)
-    {
-        // upcasing smaller to larger type
-        using fft = detail::float_traits<FromType>;
-        using tft = detail::float_traits<ToType>;
-        using fbt = typename fft::bits_type;
-        using tbt = typename tft::bits_type;
-        constexpr int exponent_offset =
-            tft::significand_bits - fft::significand_bits;
-        const auto shifted_exp = static_cast<tbt>(value & fft::exponent_mask)
-                                 << exponent_offset;
-        constexpr auto bias_change =
-            tft::bias_mask -
-            (static_cast<tbt>(fft::bias_mask) << exponent_offset);
-        if (shifted_exp == tft::zero) {
-            return tbt{};
-        } else {
-            return shifted_exp + bias_change;
-        }
-    }
-
-    template <typename FromType, typename ToType>
-    static inline typename detail::float_traits<ToType>::bits_type
-    shift_significand(typename detail::float_traits<FromType>::bits_type value)
-    {
-        using fft = detail::float_traits<FromType>;
-        using tft = detail::float_traits<ToType>;
-        using fbt = typename fft::bits_type;
-        using tbt = typename tft::bits_type;
-        constexpr int significand_offset =
-            fft::significand_bits - tft::significand_bits;
-        if (significand_offset >= 0) {
-            return static_cast<tbt>((value & fft::significand_mask) >>
-                                    significand_offset);
-        } else {
-            return static_cast<tbt>(value & fft::significand_mask)
-                   << -significand_offset;
+            return conv::shift_sign(data) | conv::shift_exponent(data) |
+                   conv::shift_significand(data);
         }
     }
 
