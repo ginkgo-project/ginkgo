@@ -159,6 +159,100 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
 }
 
 
+namespace detail {
+
+
+template <typename T>
+struct reduce_precision_impl {
+    using type = T;
+};
+
+template <typename T>
+struct reduce_precision_impl<std::complex<T>> {
+    using type = std::complex<typename reduce_precision_impl<T>::type>;
+};
+
+template <>
+struct reduce_precision_impl<double> {
+    using type = float;
+};
+
+template <>
+struct reduce_precision_impl<float> {
+    using type = half;
+};
+
+
+template <typename T>
+struct increase_precision_impl {
+    using type = T;
+};
+
+template <typename T>
+struct increase_precision_impl<std::complex<T>> {
+    using type = std::complex<typename increase_precision_impl<T>::type>;
+};
+
+template <>
+struct increase_precision_impl<float> {
+    using type = double;
+};
+
+template <>
+struct increase_precision_impl<half> {
+    using type = float;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Obtains the next type in the hierarchy with lower precision than T.
+ */
+template <typename T>
+using reduce_precision = typename detail::reduce_precision_impl<T>::type;
+
+
+/**
+ * Obtains the next type in the hierarchy with higher precision than T.
+ */
+template <typename T>
+using increase_precision = typename detail::increase_precision_impl<T>::type;
+
+
+/**
+ * Reduces the precision of the input parameter.
+ *
+ * @tparam T  the original precision
+ *
+ * @param val  the value to round down
+ *
+ * @return the rounded down value
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr reduce_precision<T> round_down(T val)
+{
+    return static_cast<reduce_precision<T>>(val);
+}
+
+
+/**
+ * Increases the precision of the input parameter.
+ *
+ * @tparam T  the original precision
+ *
+ * @param val  the value to round up
+ *
+ * @return the rounded up value
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr increase_precision<T> round_up(T val)
+{
+    return static_cast<increase_precision<T>>(val);
+}
+
+
 /**
  * Returns the squared norm of the object.
  *
@@ -172,6 +266,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)
     using std::real;
     return real(gko::conj(x) * x);
 }
+
 
 }  // namespace gko
 
