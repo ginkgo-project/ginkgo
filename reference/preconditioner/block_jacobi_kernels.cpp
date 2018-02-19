@@ -230,6 +230,24 @@ struct default_converter {
     inline R operator()(S val) { return static_cast<R>(val); }
 };
 
+
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
+inline void copy_block(IndexType block_size, const SourceValueType *from,
+                       size_type from_padding, ResultValueType *to,
+                       size_type to_padding,
+                       ValueConverter converter = {}) noexcept
+{
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            to[i * to_padding + j] = converter(from[i * from_padding + j]);
+        }
+    }
+}
+
+
 template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
@@ -300,12 +318,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace {
 
 
-template <typename ValueType>
+template <
+    typename ValueType, typename BlockValueType,
+    typename ValueConverter = default_converter<BlockValueType, ValueType>>
 inline void apply_block(size_type block_size, size_type num_rhs,
-                        const ValueType *block, size_type padding,
+                        const BlockValueType *block, size_type padding,
                         ValueType alpha, const ValueType *b,
                         size_type padding_b, ValueType beta, ValueType *x,
-                        size_type padding_x)
+                        size_type padding_x, ValueConverter converter = {})
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
@@ -324,9 +344,9 @@ inline void apply_block(size_type block_size, size_type num_rhs,
     for (size_type row = 0; row < block_size; ++row) {
         for (size_type inner = 0; inner < block_size; ++inner) {
             for (size_type col = 0; col < num_rhs; ++col) {
-                x[row * padding_x + col] += alpha *
-                                            block[row * padding + inner] *
-                                            b[inner * padding_b + col];
+                x[row * padding_x + col] +=
+                    alpha * converter(block[row * padding + inner]) *
+                    b[inner * padding_b + col];
             }
         }
     }
@@ -388,19 +408,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace {
 
 
-template <typename ValueType, typename IndexType>
-inline void copy_block(IndexType block_size, const ValueType *from,
-                       size_type from_padding, ValueType *to,
-                       size_type to_padding) noexcept
-{
-    for (IndexType i = 0; i < block_size; ++i) {
-        for (IndexType j = 0; j < block_size; ++j) {
-            to[i * to_padding + j] = from[i * from_padding + j];
-        }
-    }
-}
-
-
 }  // namespace
 
 
@@ -413,7 +420,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
-    size_type current_block = 0;
     for (size_type i = 0; i < matrix_size; ++i) {
         for (size_type j = 0; j < matrix_size; ++j) {
             result_values[i * result_padding + j] = zero<ValueType>();
@@ -439,6 +445,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace adaptive_block_jacobi {
 
 
+#define RESOLVE_PRECISION(prec, call)                                       \
+    if (prec == precision<ValueType, IndexType>::double_precision) {        \
+        using resolved_precision = ValueType;                               \
+        call;                                                               \
+    } else if (prec == precision<ValueType, IndexType>::single_precision) { \
+        using resolved_precision = reduce_precision<ValueType>;             \
+        call;                                                               \
+    } else if (prec == precision<ValueType, IndexType>::half_precision) {   \
+        using resolved_precision =                                          \
+            reduce_precision<reduce_precision<ValueType>>;                  \
+        call;                                                               \
+    } else {                                                                \
+        throw NOT_SUPPORTED(                                                \
+            (precision<ValueType, IndexType>::best_precision));             \
+    }
+
+
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
            uint32 max_block_size, size_type padding,
@@ -450,14 +473,18 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto block = blocks.get_const_data() + padding * ptrs[i];
         const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
         const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        block_jacobi::apply_block(block_size, b->get_num_cols(), block, padding,
-                                  alpha->at(0, 0), block_b, b->get_padding(),
-                                  beta->at(0, 0), block_x, x->get_padding());
+        RESOLVE_PRECISION(
+            prec[i], block_jacobi::apply_block(
+                         block_size, b->get_num_cols(),
+                         reinterpret_cast<const resolved_precision *>(block),
+                         padding, alpha->at(0, 0), block_b, b->get_padding(),
+                         beta->at(0, 0), block_x, x->get_padding()));
     }
 }
 
@@ -474,14 +501,18 @@ void simple_apply(
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto block = blocks.get_const_data() + padding * ptrs[i];
         const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
         const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        block_jacobi::apply_block(block_size, b->get_num_cols(), block, padding,
-                                  one<ValueType>(), block_b, b->get_padding(),
-                                  zero<ValueType>(), block_x, x->get_padding());
+        RESOLVE_PRECISION(
+            prec[i], block_jacobi::apply_block(
+                         block_size, b->get_num_cols(),
+                         reinterpret_cast<const resolved_precision *>(block),
+                         padding, one<ValueType>(), block_b, b->get_padding(),
+                         zero<ValueType>(), block_x, x->get_padding()));
     }
 }
 
@@ -497,8 +528,8 @@ void convert_to_dense(
     size_type block_padding, ValueType *result_values, size_type result_padding)
 {
     const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
-    size_type current_block = 0;
     for (size_type i = 0; i < matrix_size; ++i) {
         for (size_type j = 0; j < matrix_size; ++j) {
             result_values[i * result_padding + j] = zero<ValueType>();
@@ -508,9 +539,13 @@ void convert_to_dense(
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto block = blocks.get_const_data() + block_padding * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        block_jacobi::copy_block(
-            block_size, block, block_padding,
-            result_values + ptrs[i] * result_padding + ptrs[i], result_padding);
+        RESOLVE_PRECISION(
+            prec[i],
+            block_jacobi::copy_block(
+                block_size, reinterpret_cast<const resolved_precision *>(block),
+                block_padding,
+                result_values + ptrs[i] * result_padding + ptrs[i],
+                result_padding));
     }
 }
 
@@ -540,27 +575,13 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
             // TODO: properly compute best precision
             prec[b] = precision<ValueType, IndexType>::double_precision;
         }
-        switch (prec[b]) {
-        case precision<ValueType, IndexType>::double_precision:
+        RESOLVE_PRECISION(
+            prec[b],
             block_jacobi::copy_and_permute_block(
                 block_size, perm.get_data(), block.get_data(), block_size,
-                blocks.get_data() + padding * ptrs[b], padding);
-            break;
-        case precision<ValueType, IndexType>::single_precision:
-            block_jacobi::copy_and_permute_block(
-                block_size, perm.get_data(), block.get_data(), block_size,
-                reinterpret_cast<reduce_precision<ValueType> *>(
-                    blocks.get_data() + padding * ptrs[b]),
-                padding, [](ValueType x) { return round_down(x); });
-            break;
-        case precision<ValueType, IndexType>::half_precision:
-            block_jacobi::copy_and_permute_block(
-                block_size, perm.get_data(), block.get_data(), block_size,
-                reinterpret_cast<reduce_precision<reduce_precision<ValueType>>
-                                     *>(blocks.get_data() + padding * ptrs[b]),
-                padding, [](ValueType x) { return round_down(round_down(x)); });
-            break;
-        }
+                reinterpret_cast<resolved_precision *>(blocks.get_data() +
+                                                       padding * ptrs[b]),
+                padding));
     }
 }
 

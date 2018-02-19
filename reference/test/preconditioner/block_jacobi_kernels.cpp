@@ -475,7 +475,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesToVector)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
 }
 
 
@@ -495,7 +495,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesToMultipleVectors)
 
     ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
-        1e-14);
+        1e-7);
 }
 
 
@@ -511,7 +511,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToVector)
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-7);
 }
 
 
@@ -533,7 +533,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToMultipleVectors)
 
     ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
-        1e-14);
+        1e-7);
 }
 
 
@@ -551,7 +551,7 @@ TEST_F(AdaptiveBlockJacobi, ConvertsToDense)
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), 1e-14);
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), 1e-7);
     // clang-format on
 }
 
