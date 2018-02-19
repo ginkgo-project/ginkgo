@@ -97,4 +97,82 @@ TEST_F(BlockJacobiFactory, CanMoveBlockPointers)
 }
 
 
+class AdaptiveBlockJacobiFactory : public ::testing::Test {
+protected:
+    using BjFactory = gko::preconditioner::AdaptiveBlockJacobiFactory<>;
+    using Bj = gko::preconditioner::AdaptiveBlockJacobi<>;
+
+    AdaptiveBlockJacobiFactory()
+        : exec(gko::ReferenceExecutor::create()),
+          bj_factory(BjFactory::create(exec, 3)),
+          block_pointers(exec, 2),
+          block_precisions(exec, 2),
+          mtx(gko::matrix::Csr<>::create(exec, 5, 5, 13))
+    {
+        block_pointers.get_data()[0] = 2;
+        block_pointers.get_data()[1] = 3;
+        block_precisions.get_data()[0] = Bj::single_precision;
+        block_precisions.get_data()[1] = Bj::double_precision;
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<BjFactory> bj_factory;
+    gko::Array<gko::int32> block_pointers;
+    gko::Array<Bj::precision> block_precisions;
+    std::shared_ptr<gko::matrix::Csr<>> mtx;
+};
+
+
+TEST_F(AdaptiveBlockJacobiFactory, KnowsItsExecutor)
+{
+    ASSERT_EQ(bj_factory->get_executor(), exec);
+}
+
+
+TEST_F(AdaptiveBlockJacobiFactory, SavesMaximumBlockSize)
+{
+    ASSERT_EQ(bj_factory->get_max_block_size(), 3);
+}
+
+
+TEST_F(AdaptiveBlockJacobiFactory, CanSetBlockPointers)
+{
+    bj_factory->set_block_pointers(block_pointers);
+
+    auto ptrs = bj_factory->get_block_pointers();
+    EXPECT_EQ(ptrs.get_data()[0], 2);
+    EXPECT_EQ(ptrs.get_data()[1], 3);
+}
+
+
+TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPointers)
+{
+    bj_factory->set_block_pointers(std::move(block_pointers));
+
+    auto ptrs = bj_factory->get_block_pointers();
+    EXPECT_EQ(ptrs.get_data()[0], 2);
+    EXPECT_EQ(ptrs.get_data()[1], 3);
+}
+
+
+TEST_F(AdaptiveBlockJacobiFactory, CanSetBlockPrecisions)
+{
+    bj_factory->set_block_precisions(block_precisions);
+
+    auto prec = bj_factory->get_block_precisions();
+    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
+    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
+}
+
+
+TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPrecisions)
+{
+    bj_factory->set_block_precisions(std::move(block_precisions));
+
+    auto prec = bj_factory->get_block_precisions();
+    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
+    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
+}
+
+
 }  // namespace

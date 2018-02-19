@@ -11,6 +11,8 @@ option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
+option(SKIP_DEPENDENCY_UPDATE
+       "Do not update dependencies each time the project is rebuilt" OFF)
 
 
 include(cmake/create_test.cmake)

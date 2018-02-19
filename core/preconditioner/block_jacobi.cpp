@@ -70,8 +70,8 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_simple_apply_operation(
-            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
-            blocks_, as<dense>(b), as<dense>(x)));
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(b), as<dense>(x)));
 }
 
 
@@ -88,9 +88,9 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_apply_operation(
-            num_blocks_, max_block_size_, max_block_size_, block_pointers_,
-            blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
-            as<dense>(x)));
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(alpha),
+            as<dense>(b), as<dense>(beta), as<dense>(x)));
 }
 
 
@@ -101,10 +101,11 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
                                                 this->get_num_cols());
-    exec->run(TemplatedOperation<ValueType, IndexType>::
-                  make_convert_to_dense_operation(
-                      num_blocks_, block_pointers_, blocks_, max_block_size_,
-                      tmp->get_values(), tmp->get_padding()));
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::
+            make_convert_to_dense_operation(
+                this->num_blocks_, this->block_pointers_, this->blocks_,
+                this->max_block_size_, tmp->get_values(), tmp->get_padding()));
     tmp->move_to(result);
 }
 
@@ -136,15 +137,16 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         csr_mtx_handle->copy_from(system_matrix);
         csr_mtx = csr_mtx_handle.get();
     }
-    if (block_pointers_.get_data() == nullptr) {
-        block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
+    if (this->block_pointers_.get_data() == nullptr) {
+        this->block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
         exec->run(TemplatedOperation<ValueType, IndexType>::
-                      make_find_blocks_operation(csr_mtx, max_block_size_,
-                                                 num_blocks_, block_pointers_));
+                      make_find_blocks_operation(csr_mtx, this->max_block_size_,
+                                                 this->num_blocks_,
+                                                 this->block_pointers_));
     }
     exec->run(TemplatedOperation<ValueType, IndexType>::make_generate_operation(
-        csr_mtx, num_blocks_, max_block_size_, this->get_padding(),
-        block_pointers_, blocks_));
+        csr_mtx, this->num_blocks_, this->max_block_size_, this->get_padding(),
+        this->block_pointers_, this->blocks_));
 }
 
 
@@ -153,18 +155,130 @@ std::unique_ptr<LinOp> BlockJacobiFactory<ValueType, IndexType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
     return BlockJacobi<ValueType, IndexType>::create(
-        this->get_executor(), base.get(), max_block_size_, block_pointers_);
+        this->get_executor(), base.get(), this->max_block_size_,
+        this->block_pointers_);
 }
 
 
-#define GKO_DECLARE_BLOCK_JACOBI(ValueType, IndexType) \
-    class BlockJacobi<ValueType, IndexType>
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *b,
+                                                      LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    using dense = matrix::Dense<ValueType>;
+    // TODO: launch adaptive version of apply
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_simple_apply_operation(
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(b), as<dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
+                                                      const LinOp *b,
+                                                      const LinOp *beta,
+                                                      LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
+    using dense = matrix::Dense<ValueType>;
+    // TODO: launch adaptive version of apply
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_apply_operation(
+            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->block_pointers_, this->blocks_, as<dense>(alpha),
+            as<dense>(b), as<dense>(beta), as<dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::convert_to(
+    matrix::Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_num_rows(),
+                                                this->get_num_cols());
+    // TODO: launch an adaptive version of the kernel
+    exec->run(
+        TemplatedOperation<ValueType, IndexType>::
+            make_convert_to_dense_operation(
+                this->num_blocks_, this->block_pointers_, this->blocks_,
+                this->max_block_size_, tmp->get_values(), tmp->get_padding()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::move_to(
+    matrix::Dense<ValueType> *result)
+{
+    this->convert_to(result);  // no special optimization possible here
+}
+
+
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
+    const LinOp *system_matrix)
+{
+    ASSERT_EQUAL_DIMENSIONS(system_matrix, size(system_matrix->get_num_cols(),
+                                                system_matrix->get_num_rows()));
+    using csr = matrix::Csr<ValueType, IndexType>;
+    std::unique_ptr<csr> csr_mtx_handle{};
+    const csr *csr_mtx;
+    auto exec = this->get_executor();
+    if (auto ptr = dynamic_cast<const csr *>(system_matrix)) {
+        // use the matrix as is if it's already in CSR
+        csr_mtx = ptr;
+    } else {
+        // otherwise, try to convert it
+        csr_mtx_handle = csr::create(exec);
+        as<ConvertibleTo<csr>>(system_matrix)->convert_to(csr_mtx_handle.get());
+        csr_mtx = csr_mtx_handle.get();
+    }
+    if (this->block_pointers_.get_data() == nullptr) {
+        this->block_pointers_.resize_and_reset(csr_mtx->get_num_rows());
+        exec->run(TemplatedOperation<ValueType, IndexType>::
+                      make_find_blocks_operation(csr_mtx, this->max_block_size_,
+                                                 this->num_blocks_,
+                                                 this->block_pointers_));
+    }
+    if (this->block_precisions_.get_data() == nullptr) {
+        this->block_precisions_.resize_and_reset(this->num_blocks_);
+        // TODO: launch a kernel to initialize block precisions
+    }
+    // TODO: replace with adaptive version of the kernel
+    exec->run(TemplatedOperation<ValueType, IndexType>::make_generate_operation(
+        csr_mtx, this->num_blocks_, this->max_block_size_, this->get_padding(),
+        this->block_pointers_, this->blocks_));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp>
+AdaptiveBlockJacobiFactory<ValueType, IndexType>::generate(
+    std::shared_ptr<const LinOp> base) const
+{
+    return AdaptiveBlockJacobi<ValueType, IndexType>::create(
+        this->get_executor(), base.get(), this->max_block_size_,
+        this->block_pointers_, this->block_precisions_);
+}
+
+
 #define GKO_DECLARE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
     class BlockJacobiFactory<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI);
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY(ValueType, IndexType) \
+    class AdaptiveBlockJacobiFactory<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_JACOBI_FACTORY);
-#undef GKO_DECLARE_BLOCK_JACOBI
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY);
 #undef GKO_DECLARE_BLOCK_JACOBI_FACTORY
+#undef GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_FACTORY
 
 
 }  // namespace preconditioner
