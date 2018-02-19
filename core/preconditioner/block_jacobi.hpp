@@ -471,11 +471,12 @@ protected:
  * operator A, by inverting the diagonal blocks of the operator.
  *
  * The factory generates a BlockJacobi object witch stores the preconditioner.
- * For more details see the documentation for BlockJacobi.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
+ *
+ * @see BlockJacobi
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobiFactory
@@ -502,13 +503,14 @@ protected:
  * This is a variant which generates AdaptiveBlockJacobi preconditioners,
  * which can use lower precision to store well-conditioned diagonal blocks,
  * and possibly improve the performance of preconditioner application.
- * For more details see the documentation for BlockJacobi.
  *
  * @tparam ValueType  highest precision of matrix elements, the precision of
  *                    vectors used for the LinOp::apply() method and the
  *                    precision in which all computation is performed
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
+ *
+ * @see AdaptiveBlockJacobi
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class AdaptiveBlockJacobiFactory
