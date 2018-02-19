@@ -282,7 +282,6 @@ inline void invert_block(IndexType block_size, IndexType *perm,
         swap(perm[k], perm[cp]);
         apply_gauss_jordan_transform(k, k, block_size, block, padding);
     }
-    // permute_columns(perm, block_size, block, padding);
 }
 
 
@@ -297,7 +296,6 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type b = 0; b < num_blocks; ++b) {
-        // const auto block = blocks.get_data() + padding * ptrs[b];
         const auto block_size = ptrs[b + 1] - ptrs[b];
         Array<ValueType> block(exec, block_size * block_size);
         Array<IndexType> perm(exec, block_size);
