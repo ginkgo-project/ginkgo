@@ -99,15 +99,26 @@ void Coo<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+std::unique_ptr<Csr<ValueType, IndexType>>
+Coo<ValueType, IndexType>::conversion_helper() const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_num_rows(), this->get_num_cols(),
         this->get_num_stored_elements());
-    exec->run(TemplatedOperation<ValueType, IndexType>::
-                  make_convert_row_idxs_to_ptrs_operation(tmp.get(), this));
+    exec->run(
+        TemplatedOperation<IndexType>::make_convert_row_idxs_to_ptrs_operation(
+            this->get_const_row_idxs(), this->get_num_stored_elements(),
+            tmp->get_row_ptrs(), this->get_num_rows() + 1));
+    return tmp;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto tmp = conversion_helper();
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     tmp->move_to(result);
@@ -117,12 +128,7 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
-    auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(),
-        this->get_num_stored_elements());
-    exec->run(TemplatedOperation<ValueType, IndexType>::
-                  make_convert_row_idxs_to_ptrs_operation(tmp.get(), this));
+    auto tmp = conversion_helper();
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);

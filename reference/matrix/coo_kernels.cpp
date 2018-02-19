@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
+#include "reference/components/convert_idxs.hpp"
 
 
 namespace gko {
@@ -72,27 +73,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-                              matrix::Csr<ValueType, IndexType> *result,
-                              const matrix::Coo<ValueType, IndexType> *source)
+                              const IndexType *idxs, size_type num_nonzeros,
+                              IndexType *ptrs, size_type length)
 {
-    size_type ind = 0;
-    size_type cur_ptr = 0;
-
-    result->get_row_ptrs()[0] = cur_ptr;
-    for (size_type row = 0; row < source->get_num_rows(); ++row) {
-        for (; ind < source->get_num_stored_elements(); ++ind) {
-            if (source->get_const_row_idxs()[ind] > (IndexType)row) {
-                break;
-            }
-            ++cur_ptr;
-        }
-        result->get_row_ptrs()[row + 1] = cur_ptr;
-    }
+    reference::csr::convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
 
 

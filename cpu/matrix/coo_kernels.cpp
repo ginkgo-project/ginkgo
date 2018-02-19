@@ -65,13 +65,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CpuExecutor> exec,
-                              matrix::Csr<ValueType, IndexType> *result,
-                              const matrix::Coo<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+                              const IndexType *idxs, size_type num_nonzeros,
+                              IndexType *ptrs,
+                              size_type length) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
 
 

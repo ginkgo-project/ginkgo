@@ -175,6 +175,13 @@ protected:
           row_idxs_(exec, num_nonzeros)
     {}
 
+    /**
+     * Simple helper function to factorise conversion code of COO matrix to CSR.
+     *
+     * @return this COO matrix in CSR format
+     */
+    std::unique_ptr<Csr<ValueType, IndexType>> conversion_helper() const;
+
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;

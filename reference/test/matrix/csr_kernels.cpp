@@ -83,6 +83,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_idxs();
+
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
         ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -100,7 +101,7 @@ protected:
         EXPECT_EQ(v[3], 5.0);
     }
 
-std::complex<double> i{0, 1};
+    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 };
@@ -212,19 +213,19 @@ TEST_F(Csr, MovesToDense)
 }
 
 
-	TEST_F(Csr, ConvertsToCoo)
-	{
-		auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
-		mtx->convert_to(coo_mtx.get());
-		assert_equal_to_mtx_in_coo_format(coo_mtx.get());
-	}
+TEST_F(Csr, ConvertsToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->convert_to(coo_mtx.get());
+    assert_equal_to_mtx_in_coo_format(coo_mtx.get());
+}
 
 
-	TEST_F(Csr, MovesToCoo)
-	{
-		auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
-		mtx->move_to(coo_mtx.get());
-		assert_equal_to_mtx_in_coo_format(coo_mtx.get());
+TEST_F(Csr, MovesToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->move_to(coo_mtx.get());
+    assert_equal_to_mtx_in_coo_format(coo_mtx.get());
 }
 
 

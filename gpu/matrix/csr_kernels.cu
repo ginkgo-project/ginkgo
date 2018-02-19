@@ -109,13 +109,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const GpuExecutor> exec,
-                              matrix::Coo<ValueType, IndexType> *result,
-                              const matrix::Csr<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+                              const IndexType *ptrs, size_type num_rows,
+                              IndexType *idxs) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
 

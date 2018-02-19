@@ -186,6 +186,13 @@ protected:
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
     {}
 
+    /**
+     * Simple helper function to factorise conversion code of CSR matrix to COO.
+     *
+     * @return this CSR matrix in COO format
+     */
+    std::unique_ptr<Coo<ValueType, IndexType>> conversion_helper() const;
+
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
