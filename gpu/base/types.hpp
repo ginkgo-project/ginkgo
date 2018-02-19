@@ -42,6 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+namespace kernels {
+namespace gpu {
+
+
 namespace detail {
 
 
@@ -120,10 +124,22 @@ struct cuda_type_impl<std::complex<double>> {
 }  // namespace detail
 
 
+/**
+ * This is an alias for CUDA's equivalent of `T`.
+ *
+ * @tparam T  a type
+ */
 template <typename T>
 using cuda_type = typename detail::cuda_type_impl<T>::type;
 
 
+/**
+ * Reinterprets the passed in value as a CUDA type.
+ *
+ * @param val  the value to reinterpret
+ *
+ * @return  `val` reinterpreted to CUDA type
+ */
 template <typename T>
 inline cuda_type<T> as_cuda_type(T val)
 {
@@ -131,10 +147,24 @@ inline cuda_type<T> as_cuda_type(T val)
 }
 
 
+/**
+ * This is an alias for equivalent of type T used in CUDA libraries (cuBLAS,
+ * cuSPARSE, etc.).
+ *
+ * @tparam T  a type
+ */
 template <typename T>
 using culibs_type = typename detail::culibs_type_impl<T>::type;
 
 
+/**
+ * Reinterprets the passed in value as an equivalent type used by the CUDA
+ * libraries.
+ *
+ * @param val  the value to reinterpret
+ *
+ * @return  `val` reinterpreted to type used by CUDA libraries
+ */
 template <typename T>
 inline culibs_type<T> as_culibs_type(T val)
 {
@@ -142,7 +172,42 @@ inline culibs_type<T> as_culibs_type(T val)
 }
 
 
+struct cuda_config {
+    /**
+     * The number of threads within a CUDA warp.
+     */
+    static constexpr uint32 warp_size = 32;
+
+    /**
+     * The bitmask of the entire warp.
+     */
+    static constexpr uint32 full_lane_mask = (1ll << warp_size) - 1;
+
+    /**
+     * The maximal number of threads allowed in a CUDA warp.
+     */
+    static constexpr uint32 max_block_size = 1024;
+
+    /**
+     * The minimal amount of warps that need to be scheduled for each block
+     * to maximize GPU occupancy.
+     */
+    static constexpr uint32 min_warps_per_block = 4;
+};
+
+
+}  // namespace gpu
+}  // namespace kernels
 }  // namespace gko
+
+
+#ifdef __APPLE__
+// Ignore device assertions on MACs, as it does not support them
+#define GKO_DEVICE_ASSERT(expression)
+#else  // __APPLE__
+// Handle assertions on other systems
+#define GKO_DEVICE_ASSERT(expression) assert(expression)
+#endif  // __APPLE__
 
 
 #endif  // GKO_GPU_BASE_TYPES_HPP_

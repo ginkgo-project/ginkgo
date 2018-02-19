@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace kernels {
+namespace gpu {
 namespace cusparse {
 namespace {
 
@@ -174,6 +176,8 @@ inline void destroy(cusparseMatDescr_t descr)
 
 }  // namespace
 }  // namespace cusparse
+}  // namespace gpu
+}  // namespace kernels
 }  // namespace gko
 
 
