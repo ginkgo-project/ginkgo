@@ -75,8 +75,8 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     cusparse::destroy(handle);
 };
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
@@ -107,6 +107,15 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename IndexType>
+void convert_row_ptrs_to_idxs(std::shared_ptr<const GpuExecutor> exec,
+                              const IndexType *ptrs, size_type num_rows,
+                              IndexType *idxs) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -145,6 +154,7 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
 
     cusparse::destroy(handle);
 };
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 

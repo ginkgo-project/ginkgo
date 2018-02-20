@@ -36,8 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "core/matrix/coo.hpp"
 #include "core/matrix/dense.hpp"
-#include "reference/components/convert_idxs.hpp"
+#include "reference/components/format_conversion.hpp"
 
 
 #include <algorithm>
@@ -110,6 +111,18 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename IndexType>
+void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
+                              const IndexType *ptrs, size_type num_rows,
+                              IndexType *idxs)
+{
+    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

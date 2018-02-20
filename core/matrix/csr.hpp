@@ -66,6 +66,7 @@ class Coo;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMtx,
             public Transposable {
     friend class BasicLinOp<Csr>;
@@ -88,6 +89,10 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void convert_to(Coo<ValueType, IndexType> *result) const override;
+
+    void move_to(Coo<ValueType, IndexType> *result) override;
 
     void read_from_mtx(const std::string &filename) override;
 
@@ -180,6 +185,13 @@ protected:
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
     {}
+
+    /**
+     * Simple helper function to factorise conversion code of CSR matrix to COO.
+     *
+     * @return this CSR matrix in COO format
+     */
+    std::unique_ptr<Coo<ValueType, IndexType>> make_coo() const;
 
 private:
     Array<value_type> values_;

@@ -65,23 +65,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CpuExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Coo<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+template <typename IndexType>
+void convert_row_idxs_to_ptrs(std::shared_ptr<const CpuExecutor> exec,
+                              const IndexType *idxs, size_type num_nonzeros,
+                              IndexType *ptrs,
+                              size_type length) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_csr(std::shared_ptr<const CpuExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *result,
-                 matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_MOVE_TO_CSR_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -100,6 +91,7 @@ void conj_transpose(std::shared_ptr<const CpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
+
 
 }  // namespace coo
 }  // namespace cpu

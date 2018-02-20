@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include <core/matrix/coo.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
 
@@ -48,6 +49,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
+    using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
@@ -74,6 +76,29 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
+    }
+
+    void assert_equal_to_mtx(const Coo *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto r = m->get_const_row_idxs();
+
+        ASSERT_EQ(m->get_num_rows(), 2);
+        ASSERT_EQ(m->get_num_cols(), 3);
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 0);
+        EXPECT_EQ(r[2], 0);
+        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
     }
 
     std::complex<double> i{0, 1};
@@ -185,6 +210,22 @@ TEST_F(Csr, MovesToDense)
     mtx->move_to(dense_mtx.get());
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Csr, ConvertsToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->convert_to(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->move_to(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
 }
 
 

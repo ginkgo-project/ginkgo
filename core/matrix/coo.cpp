@@ -58,8 +58,8 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, coo::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_csr, coo::move_to_csr<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs,
+                           coo::convert_row_idxs_to_ptrs<TplArgs...>);
     GKO_REGISTER_OPERATION(transpose, coo::transpose<TplArgs...>);
     GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose<TplArgs...>);
 };
@@ -99,16 +99,26 @@ void Coo<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
+    const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_num_rows(), this->get_num_cols(),
         this->get_num_stored_elements());
     exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_convert_to_csr_operation(
-            tmp.get(), this));
+        TemplatedOperation<IndexType>::make_convert_row_idxs_to_ptrs_operation(
+            this->get_const_row_idxs(), this->get_num_stored_elements(),
+            tmp->get_row_ptrs(), this->get_num_rows() + 1));
+    return tmp;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto tmp = this->make_csr();
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     tmp->move_to(result);
@@ -118,13 +128,7 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
-    auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(),
-        this->get_num_stored_elements());
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_move_to_csr_operation(
-            tmp.get(), this));
+    auto tmp = this->make_csr();
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);
