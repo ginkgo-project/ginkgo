@@ -119,6 +119,13 @@ struct precision_converter<SourceType, ResultType, true> {
     using source_bits = typename source_traits::bits_type;
     using result_bits = typename result_traits::bits_type;
 
+    static_assert(source_traits::exponent_bits <=
+                          result_traits::exponent_bits &&
+                      source_traits::significand_bits <=
+                          result_traits::significand_bits,
+                  "SourceType has to have both lower range and precision or "
+                  "higher range and precision than ResultType");
+
     static constexpr int significand_offset =
         result_traits::significand_bits - source_traits::significand_bits;
     static constexpr int exponent_offset = significand_offset;
@@ -129,27 +136,27 @@ struct precision_converter<SourceType, ResultType, true> {
         result_traits::bias_mask -
         (static_cast<result_bits>(source_traits::bias_mask) << exponent_offset);
 
-    static constexpr result_bits shift_significand(source_bits data)
+    static constexpr result_bits shift_significand(source_bits data) noexcept
     {
         return static_cast<result_bits>(data & source_traits::significand_mask)
                << significand_offset;
     }
 
-    static constexpr result_bits shift_exponent(source_bits data)
+    static constexpr result_bits shift_exponent(source_bits data) noexcept
     {
         return update_bias(
             static_cast<result_bits>(data & source_traits::exponent_mask)
             << exponent_offset);
     }
 
-    static constexpr result_bits shift_sign(source_bits data)
+    static constexpr result_bits shift_sign(source_bits data) noexcept
     {
         return static_cast<result_bits>(data & source_traits::sign_mask)
                << sign_offset;
     }
 
 private:
-    static constexpr result_bits update_bias(result_bits data)
+    static constexpr result_bits update_bias(result_bits data) noexcept
     {
         return data == result_traits::zero ? data : data + bias_change;
     }
@@ -163,6 +170,13 @@ struct precision_converter<SourceType, ResultType, false> {
     using source_bits = typename source_traits::bits_type;
     using result_bits = typename result_traits::bits_type;
 
+    static_assert(source_traits::exponent_bits >=
+                          result_traits::exponent_bits &&
+                      source_traits::significand_bits >=
+                          result_traits::significand_bits,
+                  "SourceType has to have both lower range and precision or "
+                  "higher range and precision than ResultType");
+
     static constexpr int significand_offset =
         source_traits::significand_bits - result_traits::significand_bits;
     static constexpr int exponent_offset = significand_offset;
@@ -173,32 +187,32 @@ struct precision_converter<SourceType, ResultType, false> {
         (source_traits::bias_mask >> exponent_offset) -
         static_cast<source_bits>(result_traits::bias_mask);
 
-    static constexpr result_bits shift_significand(source_bits data)
+    static constexpr result_bits shift_significand(source_bits data) noexcept
     {
         return static_cast<result_bits>(
             (data & source_traits::significand_mask) >> significand_offset);
     }
 
-    static constexpr result_bits shift_exponent(source_bits data)
+    static constexpr result_bits shift_exponent(source_bits data) noexcept
     {
         return static_cast<result_bits>(update_bias(
             (data & source_traits::exponent_mask) >> exponent_offset));
     }
 
-    static constexpr result_bits shift_sign(source_bits data)
+    static constexpr result_bits shift_sign(source_bits data) noexcept
     {
         return static_cast<result_bits>((data & source_traits::sign_mask) >>
                                         sign_offset);
     }
 
 private:
-    static constexpr source_bits update_bias(source_bits data)
+    static constexpr source_bits update_bias(source_bits data) noexcept
     {
         return data <= bias_change ? source_traits::zero
-                                   : bound_exponent(data - bias_change);
+                                   : limit_exponent(data - bias_change);
     }
 
-    static constexpr source_bits bound_exponent(source_bits data)
+    static constexpr source_bits limit_exponent(source_bits data) noexcept
     {
         return data >= static_cast<source_bits>(result_traits::exponent_mask)
                    ? static_cast<source_bits>(result_traits::exponent_mask)
@@ -213,7 +227,7 @@ private:
 /**
  * A class providing basic support for half precision floating point types.
  *
- * For now the only feature is reduced storage compared to single precision,
+ * For now the only features are reduced storage compared to single precision
  * and conversions from and to single precision floating point type.
  */
 class half {
@@ -242,7 +256,7 @@ public:
 
     GKO_ATTRIBUTES operator float64() const noexcept
     {
-        return static_cast<float32>(*this);
+        return static_cast<float64>(static_cast<float32>(*this));
     }
 
 private:
