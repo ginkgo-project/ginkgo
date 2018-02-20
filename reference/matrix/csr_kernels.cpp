@@ -38,8 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/dense.hpp"
-#include "reference/components/convert_idxs.hpp"
-#include "reference/components/convert_ptrs.hpp"
+#include "reference/components/format_conversion.hpp"
 
 
 #include <algorithm>
@@ -119,7 +118,7 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
                               IndexType *idxs)
 {
-    reference::csr::convert_ptrs_to_idxs(ptrs, num_rows, idxs);
+    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

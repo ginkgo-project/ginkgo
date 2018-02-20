@@ -99,8 +99,8 @@ void Coo<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Coo<ValueType, IndexType>::conversion_helper() const
+std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
+    const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
@@ -118,7 +118,7 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
-    auto tmp = conversion_helper();
+    auto tmp = this->make_csr();
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     tmp->move_to(result);
@@ -128,7 +128,7 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
-    auto tmp = conversion_helper();
+    auto tmp = this->make_csr();
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);

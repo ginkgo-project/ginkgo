@@ -180,7 +180,7 @@ protected:
      *
      * @return this COO matrix in CSR format
      */
-    std::unique_ptr<Csr<ValueType, IndexType>> conversion_helper() const;
+    std::unique_ptr<Csr<ValueType, IndexType>> make_csr() const;
 
 private:
     Array<value_type> values_;

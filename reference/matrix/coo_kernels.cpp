@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "reference/components/convert_idxs.hpp"
+#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -78,7 +78,7 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
                               IndexType *ptrs, size_type length)
 {
-    reference::csr::convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
+    convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

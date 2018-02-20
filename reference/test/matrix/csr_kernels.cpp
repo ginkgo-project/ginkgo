@@ -78,7 +78,7 @@ protected:
         v[3] = 5.0;
     }
 
-    void assert_equal_to_mtx_in_coo_format(const Coo *m)
+    void assert_equal_to_mtx(const Coo *m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -217,7 +217,7 @@ TEST_F(Csr, ConvertsToCoo)
 {
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
     mtx->convert_to(coo_mtx.get());
-    assert_equal_to_mtx_in_coo_format(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
 }
 
 
@@ -225,7 +225,7 @@ TEST_F(Csr, MovesToCoo)
 {
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
     mtx->move_to(coo_mtx.get());
-    assert_equal_to_mtx_in_coo_format(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
 }
 
 
