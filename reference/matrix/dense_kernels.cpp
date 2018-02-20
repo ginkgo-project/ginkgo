@@ -39,6 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell.hpp"
 
 
+#include <algorithm>
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -288,9 +291,7 @@ void calculate_max_nonzeros_per_row(
         for (size_type col = 0; col < num_cols; ++col) {
             num_nonzeros += (source->at(row, col) != zero<ValueType>());
         }
-        max_nonzeros_per_row = max_nonzeros_per_row < num_nonzeros
-                                   ? num_nonzeros
-                                   : max_nonzeros_per_row;
+        max_nonzeros_per_row = std::max(num_nonzeros, max_nonzeros_per_row);
     }
 
     *result = max_nonzeros_per_row;

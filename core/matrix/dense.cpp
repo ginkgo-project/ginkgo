@@ -44,6 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell.hpp"
 
 
+#include <algorithm>
+
+
 namespace gko {
 namespace matrix {
 
@@ -109,29 +112,13 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
     exec->run(TemplatedOperation<ValueType>::
                   make_calculate_max_nonzeros_per_row_operation(
                       source, max_nonzeros_per_row.get_data()));
-    auto tmp = Ell<ValueType, IndexType>::create(
-        exec, source->get_num_rows(), source->get_num_cols(),
-        *max_nonzeros_per_row.get_data());
-    exec->run(op(tmp.get(), source));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Ell<ValueType, IndexType> *result,
-                              MatrixType *source, const size_type padding,
-                              const OperationType &op)
-{
-    auto exec = source->get_executor();
-
-    Array<size_type> max_nonzeros_per_row(exec, 1);
-    exec->run(TemplatedOperation<ValueType>::
-                  make_calculate_max_nonzeros_per_row_operation(
-                      source, max_nonzeros_per_row.get_data()));
-    auto tmp = Ell<ValueType, IndexType>::create(
-        exec, source->get_num_rows(), source->get_num_cols(),
-        *max_nonzeros_per_row.get_data(), padding);
+    size_type padding, max_nnz_per_row;
+    max_nnz_per_row = std::max(result->get_max_nonzeros_per_row(),
+                               *max_nonzeros_per_row.get_data());
+    padding = std::max(result->get_padding(), source->get_num_rows());
+    auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_num_rows(),
+                                                 source->get_num_cols(),
+                                                 max_nnz_per_row, padding);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -297,54 +284,6 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
 {
     conversion_helper(
         result, this,
-        TemplatedOperationEll<ValueType, int64>::
-            template make_move_to_ell_operation<decltype(result),
-                                                Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Ell<ValueType, int32> *result,
-                                  const size_type padding) const
-{
-    conversion_helper(
-        result, this, padding,
-        TemplatedOperationEll<ValueType, int32>::
-            template make_convert_to_ell_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Ell<ValueType, int32> *result,
-                               const size_type padding)
-{
-    conversion_helper(
-        result, this, padding,
-        TemplatedOperationEll<ValueType, int32>::
-            template make_move_to_ell_operation<decltype(result),
-                                                Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Ell<ValueType, int64> *result,
-                                  const size_type padding) const
-{
-    conversion_helper(
-        result, this, padding,
-        TemplatedOperationEll<ValueType, int64>::
-            template make_convert_to_ell_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Ell<ValueType, int64> *result,
-                               const size_type padding)
-{
-    conversion_helper(
-        result, this, padding,
         TemplatedOperationEll<ValueType, int64>::
             template make_move_to_ell_operation<decltype(result),
                                                 Dense<ValueType> *&>);

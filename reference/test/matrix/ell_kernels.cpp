@@ -60,11 +60,10 @@ protected:
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
                                      {0.0, 5.0, 0.0}}, exec);
-        std::unique_ptr<Vec> dense_mtx = gko::initialize<Vec>(
+        mtx2 = gko::initialize<Mtx>(
             {{1.0, 3.0, 2.0},
-             {0.0, 5.0, 0.0}}, exec);
+             {0.0, 5.0, 0.0}}, exec, 0, 0, 0, 16);
         // clang-format on
-        dense_mtx->move_to(mtx2.get(), 16);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -185,12 +184,6 @@ TEST_F(Ell, ConvertsToDense)
 TEST_F(Ell, MovesToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx1->get_executor());
-
-    // clang-format off
-    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 3.0, 2.0},
-            {0.0, 5.0, 0.0}}, exec);
-    // clang-format on
 
     mtx1->move_to(dense_mtx.get());
 

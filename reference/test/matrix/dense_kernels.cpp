@@ -65,7 +65,8 @@ protected:
               {{1.0 + 2.0 * i, -1.0 + 2.1 * i},
                {-2.0 + 1.5 * i, 4.5 + 0.0 * i},
                {1.0 + 0.0 * i, i}},
-              exec))
+              exec)),
+          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec))
     {}
 
     std::complex<double> i{0, 1};
@@ -76,6 +77,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<>> mtx4;
     std::unique_ptr<gko::matrix::Dense<>> mtx5;
     std::unique_ptr<gko::matrix::Dense<std::complex<double>>> mtx6;
+    std::unique_ptr<gko::matrix::Dense<>> mtx7;
 };
 
 
@@ -298,125 +300,109 @@ TEST_F(Dense, MovesToCsr)
 
 TEST_F(Dense, ConvertsToEll)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor());
 
-    mtx4->convert_to(ell_mtx.get());
+    mtx7->convert_to(ell_mtx.get());
 
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_num_rows(), 2);
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 3);
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(ell_mtx->get_padding(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
     EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
 }
 
 
 TEST_F(Dense, MovesToEll)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor());
 
-    mtx4->move_to(ell_mtx.get());
+    mtx7->move_to(ell_mtx.get());
 
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_num_rows(), 2);
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 3);
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(ell_mtx->get_padding(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
     EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
 }
 
 
 TEST_F(Dense, ConvertsToEllWithPadding)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 
-    mtx4->convert_to(ell_mtx.get(), 16);
+    mtx7->convert_to(ell_mtx.get());
 
-    auto max_nnz_per_row = ell_mtx->get_max_nonzeros_per_row();
-    auto padding = ell_mtx->get_padding();
+    auto v = ell_mtx->get_const_values();
+    auto c = ell_mtx->get_const_col_idxs();
+
     ASSERT_EQ(ell_mtx->get_num_rows(), 2);
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
-    ASSERT_EQ(max_nnz_per_row, 3);
-    ASSERT_EQ(padding, 16);
-    for (gko::size_type col_idx = 0; col_idx < max_nnz_per_row; col_idx++) {
-        for (gko::size_type row = 0; row < padding; row++) {
-            if (col_idx == 0 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 1.0);
-            } else if (col_idx == 0 && row == 1) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 5.0);
-            } else if (col_idx == 1 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 3.0);
-            } else if (col_idx == 2 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 2);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 2.0);
-            } else {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 0.0);
-            }
-        }
-    }
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
+    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(c[4], 0);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 0.0);
+    EXPECT_EQ(v[3], 2.0);
+    EXPECT_EQ(v[4], 0.0);
+    EXPECT_EQ(v[5], 0.0);
 }
 
 
 TEST_F(Dense, MovesToEllWithPadding)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx4->get_executor());
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 
-    mtx4->move_to(ell_mtx.get(), 16);
+    mtx7->move_to(ell_mtx.get());
 
-    auto max_nnz_per_row = ell_mtx->get_max_nonzeros_per_row();
-    auto padding = ell_mtx->get_padding();
+    auto v = ell_mtx->get_const_values();
+    auto c = ell_mtx->get_const_col_idxs();
+
     ASSERT_EQ(ell_mtx->get_num_rows(), 2);
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
-    ASSERT_EQ(max_nnz_per_row, 3);
-    ASSERT_EQ(padding, 16);
-    for (gko::size_type col_idx = 0; col_idx < max_nnz_per_row; col_idx++) {
-        for (gko::size_type row = 0; row < padding; row++) {
-            if (col_idx == 0 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 1.0);
-            } else if (col_idx == 0 && row == 1) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 5.0);
-            } else if (col_idx == 1 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 1);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 3.0);
-            } else if (col_idx == 2 && row == 0) {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 2);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 2.0);
-            } else {
-                EXPECT_EQ(ell_mtx->col_at(row, col_idx), 0);
-                EXPECT_EQ(ell_mtx->val_at(row, col_idx), 0.0);
-            }
-        }
-    }
+    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
+    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(c[4], 0);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 0.0);
+    EXPECT_EQ(v[3], 2.0);
+    EXPECT_EQ(v[4], 0.0);
+    EXPECT_EQ(v[5], 0.0);
 }
 
 
