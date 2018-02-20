@@ -108,7 +108,7 @@ Csr<ValueType, IndexType>::conversion_helper() const
         TemplatedOperation<IndexType>::make_convert_row_ptrs_to_idxs_operation(
             this->get_const_row_ptrs(), this->get_num_rows(),
             tmp->get_row_idxs()));
-    return tmp;
+    return std::move(tmp);
 }
 
 
