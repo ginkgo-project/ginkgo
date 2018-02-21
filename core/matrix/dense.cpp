@@ -90,12 +90,12 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
 {
     auto exec = source->get_executor();
 
-    Array<size_type> num_stored_nonzeros(exec, 1);
+    size_type num_stored_nonzeros = 0;
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
-        source, num_stored_nonzeros.get_data()));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, source->get_num_rows(), source->get_num_cols(),
-        *num_stored_nonzeros.get_data());
+        source, &num_stored_nonzeros));
+    auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_num_rows(),
+                                                 source->get_num_cols(),
+                                                 num_stored_nonzeros);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -107,15 +107,14 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-
-    Array<size_type> max_nonzeros_per_row(exec, 1);
+    size_type max_nonzeros_per_row = 0;
     exec->run(TemplatedOperation<ValueType>::
                   make_calculate_max_nonzeros_per_row_operation(
-                      source, max_nonzeros_per_row.get_data()));
-    size_type padding, max_nnz_per_row;
-    max_nnz_per_row = std::max(result->get_max_nonzeros_per_row(),
-                               *max_nonzeros_per_row.get_data());
-    padding = std::max(result->get_padding(), source->get_num_rows());
+                      source, &max_nonzeros_per_row));
+    const auto max_nnz_per_row =
+        std::max(result->get_max_nonzeros_per_row(), max_nonzeros_per_row);
+    const auto padding =
+        std::max(result->get_padding(), source->get_num_rows());
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_num_rows(),
                                                  source->get_num_cols(),
                                                  max_nnz_per_row, padding);
