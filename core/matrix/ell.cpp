@@ -127,7 +127,7 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
-    Ell::convert_to(result);
+    this->convert_to(result);
 }
 
 
