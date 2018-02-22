@@ -61,20 +61,13 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Ell<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void move_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                       matrix::Dense<ValueType> *result,            \
-                       matrix::Ell<ValueType, IndexType> *source)
-
 #define DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
 namespace cpu {

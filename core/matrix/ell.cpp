@@ -57,7 +57,6 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, ell::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_dense, ell::move_to_dense<TplArgs...>);
 };
 
 
@@ -132,7 +131,7 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
     auto tmp = Dense<ValueType>::create(
         exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
     exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
+        TemplatedOperation<ValueType, IndexType>::make_convert_to_dense_operation(
             tmp.get(), this));
     tmp->move_to(result);
 }
