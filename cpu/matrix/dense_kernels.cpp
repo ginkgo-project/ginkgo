@@ -112,7 +112,7 @@ void convert_to_ell(std::shared_ptr<const CpuExecutor> exec,
                     const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
+    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
