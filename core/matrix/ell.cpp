@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/matrix/ell_kernels.hpp"
 
 
 namespace gko {
@@ -51,9 +52,17 @@ namespace matrix {
 namespace {
 
 
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, ell::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense<TplArgs...>);
+};
+
+
 template <typename ValueType, typename IndexType>
 size_type calculate_max_nonzeros_per_row(
-    const MtxData<ValueType, IndexType> data)
+    const MtxData<ValueType, IndexType> &data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -73,24 +82,53 @@ size_type calculate_max_nonzeros_per_row(
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *b,
-                                      LinOp *x) const NOT_IMPLEMENTED;
+void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, as<Dense>(b), as<Dense>(x)));
+}
 
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta,
-                                      LinOp *x) const NOT_IMPLEMENTED;
+                                      const LinOp *beta, LinOp *x) const
+{
+    ASSERT_CONFORMANT(this, b);
+    ASSERT_EQUAL_ROWS(this, x);
+    ASSERT_EQUAL_COLS(b, x);
+    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
+}
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *other) const
-    NOT_IMPLEMENTED;
+void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->move_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *other)
-    NOT_IMPLEMENTED;
+void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
