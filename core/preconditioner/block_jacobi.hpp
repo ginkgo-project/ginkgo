@@ -49,44 +49,53 @@ template <typename, typename>
 class BlockJacobiFactory;
 
 
+template <typename, typename>
+class AdaptiveBlockJacobiFactory;
+
+
+namespace detail {
+
+
+template <typename T>
+struct value_type;
+
+template <template <typename, typename> class Op, typename ValueType,
+          typename IndexType>
+struct value_type<Op<ValueType, IndexType>> {
+    using type = ValueType;
+};
+
+
+template <typename T>
+struct index_type;
+
+template <template <typename, typename> class Op, typename ValueType,
+          typename IndexType>
+struct index_type<Op<ValueType, IndexType>> {
+    using type = IndexType;
+};
+
+
+};  // namespace detail
+
+
 /**
- * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
- * by inverting the diagonal blocks of another operator.
+ * This is an intermediate class which implements common methods of block-Jacobi
+ * preconditioners.
  *
- * The BlockJacobi class implements this inversion of the diagonal blocks using
- * Gauss-Jordan elimination with column pivoting, and stores the inverse
- * explicitly in a customized format.
+ * See the documentation for children of this class for more details.
  *
- * If the diagonal blocks of the matrix are not explicitly set by the user, the
- * implementation will try to automatically detect the blocks by first finding
- * the natural blocks of the matrix, and then applying the supervariable
- * agglomeration procedure on these blocks.
- *
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  integral type used to store pointers to the start of each
- *                    block
+ * @tparam ConcreteBlockJacobi  the concrete block-Jacobi preconditioner whose
+ *                              common methods are implemented by this class
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class BlockJacobi : public BasicLinOp<BlockJacobi<ValueType, IndexType>>,
-                    public ConvertibleTo<matrix::Dense<ValueType>> {
-    friend class BasicLinOp<BlockJacobi>;
-    friend class BlockJacobiFactory<ValueType, IndexType>;
-
+template <typename ConcreteBlockJacobi>
+class BasicBlockJacobi : public BasicLinOp<ConcreteBlockJacobi> {
 public:
-    using BasicLinOp<BlockJacobi>::convert_to;
-    using BasicLinOp<BlockJacobi>::move_to;
+    using BasicLinOp<ConcreteBlockJacobi>::convert_to;
+    using BasicLinOp<ConcreteBlockJacobi>::move_to;
 
-    using value_type = ValueType;
-    using index_type = IndexType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
-    void convert_to(matrix::Dense<ValueType> *result) const override;
-
-    void move_to(matrix::Dense<ValueType> *result) override;
+    using value_type = typename detail::value_type<ConcreteBlockJacobi>::type;
+    using index_type = typename detail::index_type<ConcreteBlockJacobi>::type;
 
     /**
      * Returns the number of blocks of the operator.
@@ -107,7 +116,7 @@ public:
      *
      * @return the array of pointers to the start of diagonal blocks
      */
-    IndexType *get_block_pointers() noexcept
+    index_type *get_block_pointers() noexcept
     {
         return block_pointers_.get_data();
     }
@@ -121,7 +130,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const IndexType *get_const_block_pointers() const noexcept
+    const index_type *get_const_block_pointers() const noexcept
     {
         return block_pointers_.get_const_data();
     }
@@ -141,7 +150,7 @@ public:
      *
      * @return the pointer to the memory used for storing the block data
      */
-    ValueType *get_blocks() noexcept { return blocks_.get_data(); }
+    value_type *get_blocks() noexcept { return blocks_.get_data(); }
 
     /**
      * Returns the pointer to the memory used for storing the block data.
@@ -155,24 +164,24 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const ValueType *get_const_blocks() const noexcept
+    const value_type *get_const_blocks() const noexcept
     {
         return blocks_.get_const_data();
     }
 
 protected:
-    using BasicLinOp<BlockJacobi>::create;
+    using BasicLinOp<ConcreteBlockJacobi>::create;
 
-    explicit BlockJacobi(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<BlockJacobi>(exec, 0, 0, 0),
+    explicit BasicBlockJacobi(std::shared_ptr<const Executor> exec)
+        : BasicLinOp<ConcreteBlockJacobi>(exec, 0, 0, 0),
           block_pointers_(exec),
           blocks_(exec)
     {}
 
-    BlockJacobi(std::shared_ptr<const Executor> exec,
-                const LinOp *system_matrix, uint32 max_block_size,
-                const Array<IndexType> &block_pointers)
-        : BasicLinOp<BlockJacobi>(
+    BasicBlockJacobi(std::shared_ptr<const Executor> exec,
+                     const LinOp *system_matrix, uint32 max_block_size,
+                     const Array<index_type> &block_pointers)
+        : BasicLinOp<ConcreteBlockJacobi>(
               exec, system_matrix->get_num_rows(),
               system_matrix->get_num_cols(),
               system_matrix->get_num_cols() * max_block_size),
@@ -182,35 +191,206 @@ protected:
           blocks_(exec, this->get_num_stored_elements())
     {
         block_pointers_.set_executor(this->get_executor());
-        this->generate(system_matrix);
     }
 
-    void generate(const LinOp *system_matrix);
-
-private:
+protected:
     size_type num_blocks_{};
     uint32 max_block_size_{};
-    Array<IndexType> block_pointers_;
-    Array<ValueType> blocks_;
+    Array<index_type> block_pointers_;
+    Array<value_type> blocks_;
 };
 
 
 /**
- * This factory is used to create a block-Jacobi preconditioner from the
- * operator A, by inverting the diagonal blocks of the operator.
+ * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
+ * by inverting the diagonal blocks of another operator.
  *
- * The factory generates a BlockJacobi object witch stores the preconditioner.
- * For more details see the documentation for BlockJacobi.
+ * The BlockJacobi class implements this inversion of the diagonal blocks using
+ * Gauss-Jordan elimination with column pivoting, and stores the inverse
+ * explicitly in a customized format.
+ *
+ * If the diagonal blocks of the matrix are not explicitly set by the user, the
+ * implementation will try to automatically detect the blocks by first finding
+ * the natural blocks of the matrix, and then applying the supervariable
+ * agglomeration procedure on these blocks.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class BlockJacobiFactory : public LinOpFactory {
+class BlockJacobi : public BasicBlockJacobi<BlockJacobi<ValueType, IndexType>>,
+                    public ConvertibleTo<matrix::Dense<ValueType>> {
+    friend class BasicLinOp<BlockJacobi>;
+    friend class BlockJacobiFactory<ValueType, IndexType>;
+    friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
+
 public:
+    using BasicBlockJacobi<BlockJacobi>::convert_to;
+    using BasicBlockJacobi<BlockJacobi>::move_to;
+
     using value_type = ValueType;
     using index_type = IndexType;
+
+    void apply(const LinOp *b, LinOp *x) const override;
+
+    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+               LinOp *x) const override;
+
+    void convert_to(matrix::Dense<value_type> *result) const override;
+
+    void move_to(matrix::Dense<value_type> *result) override;
+
+protected:
+    using BasicBlockJacobi<BlockJacobi>::create;
+    using BasicBlockJacobi<BlockJacobi>::BasicBlockJacobi;
+
+    BlockJacobi(std::shared_ptr<const Executor> exec,
+                const LinOp *system_matrix, uint32 max_block_size,
+                const Array<index_type> &block_pointers)
+        : BasicBlockJacobi<BlockJacobi>(exec, system_matrix, max_block_size,
+                                        block_pointers)
+    {
+        this->generate(system_matrix);
+    }
+
+    void generate(const LinOp *system_matrix);
+};
+
+
+/**
+ * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
+ * by inverting the diagonal blocks of another operator.
+ *
+ * This is a variant of the BlockJacobi preconditioner which can use lower
+ * precision to store well-conditioned diagonal blocks, and thus improve the
+ * performance of preconditioner application by reducing the amount of memory
+ * that has to be read to apply the precondidionter.
+ *
+ * However, there is a trade-off in terms of longer preconditioner generation
+ * due to extra work required to compute the condition numbers. This step is
+ * necessary to preserve the regularity of the diagonal blocks.
+ *
+ * @tparam ValueType  highest precision of matrix elements, the precision of
+ *                    vectors used for the apply() method and the precision in
+ *                    which all computation is performed
+ * @tparam IndexType  integral type used to store pointers to the start of each
+ *                    block
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+class AdaptiveBlockJacobi
+    : public BasicBlockJacobi<AdaptiveBlockJacobi<ValueType, IndexType>>,
+      public ConvertibleTo<matrix::Dense<ValueType>> {
+    friend class BasicLinOp<AdaptiveBlockJacobi>;
+    friend class BlockJacobiFactory<ValueType, IndexType>;
+    friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
+
+public:
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::convert_to;
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::move_to;
+
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    /**
+     * This type is used to store data about precision of diagonal blocks.
+     */
+    enum precision {
+        /**
+         * Marks that double precision is used for the block.
+         */
+        double_precision,
+
+        /**
+         * Marks that single precision is used for the block.
+         */
+        single_precision,
+
+        /**
+         * Marks that half precision is used for the block.
+         */
+        half_precision,
+
+        /**
+         * The precision of the block will be determined automatically during
+         * generation phase, based on the condition number of the block.
+         */
+        best_precision
+    };
+
+    void apply(const LinOp *b, LinOp *x) const override;
+
+    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+               LinOp *x) const override;
+
+    void convert_to(matrix::Dense<value_type> *result) const override;
+
+    void move_to(matrix::Dense<value_type> *result) override;
+
+    /**
+     * Returns the precisions of diagonal blocks.
+     *
+     * @return precisions of diagonal blocks
+     */
+    precision *get_block_precisions() noexcept
+    {
+        return block_precisions_.get_data();
+    }
+
+    /**
+     * Returns the precisions of diagonal blocks.
+     *
+     * @return precisions of diagonal blocks
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const precision *get_const_block_precisions() const noexcept
+    {
+        return block_precisions_.get_const_data();
+    }
+
+protected:
+    using BasicBlockJacobi<AdaptiveBlockJacobi>::create;
+
+    AdaptiveBlockJacobi(std::shared_ptr<const Executor> exec)
+        : BasicBlockJacobi<AdaptiveBlockJacobi>(exec), block_precisions_(exec)
+    {}
+
+    AdaptiveBlockJacobi(std::shared_ptr<const Executor> exec,
+                        const LinOp *system_matrix, uint32 max_block_size,
+                        const Array<index_type> &block_pointers,
+                        const Array<precision> &block_precisions)
+        : BasicBlockJacobi<AdaptiveBlockJacobi>(exec, system_matrix,
+                                                max_block_size, block_pointers),
+          block_precisions_(block_precisions)
+    {
+        this->generate(system_matrix);
+    }
+
+    void generate(const LinOp *system_matrix);
+    Array<precision> block_precisions_;
+};
+
+
+/**
+ * This is an intermediate class which implements common methods of block-Jacobi
+ * preconditioner factories.
+ *
+ * See the documentation for children of this class for more details.
+ *
+ * @tparam ConcreteBlockJacobiFactory  the concrete block-Jacobi factory whose
+ *                                     common methods are implemented by this
+ *                                     class
+ */
+template <typename ConcreteBlockJacobiFactory>
+class BasicBlockJacobiFactory : public LinOpFactory {
+public:
+    using value_type =
+        typename detail::value_type<ConcreteBlockJacobiFactory>::type;
+    using index_type =
+        typename detail::index_type<ConcreteBlockJacobiFactory>::type;
 
     /**
      * Creates a new block-Jacobi factory.
@@ -224,15 +404,12 @@ public:
      *
      * @return a unique pointer to the newly created factory
      */
-    static std::unique_ptr<BlockJacobiFactory> create(
+    static std::unique_ptr<ConcreteBlockJacobiFactory> create(
         std::shared_ptr<const Executor> exec, uint32 max_block_size)
     {
-        return std::unique_ptr<BlockJacobiFactory>(
-            new BlockJacobiFactory(std::move(exec), max_block_size));
+        return std::unique_ptr<ConcreteBlockJacobiFactory>(
+            new ConcreteBlockJacobiFactory(std::move(exec), max_block_size));
     }
-
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
 
     /**
      * Returns the maximum allowed size of diagonal blocks.
@@ -253,40 +430,142 @@ public:
      *                         number of blocks is
      *                         `block_pointers.get_num_elems() - 1`.
      */
-    void set_block_pointers(const Array<IndexType> &block_pointers)
+    void set_block_pointers(const Array<index_type> &block_pointers)
     {
         block_pointers_ = block_pointers;
     }
 
     /**
-     * @copydoc set_block_pointers(const Array<IndexType> &)
+     * @copydoc set_block_pointers(const Array<index_type> &)
      */
-    void set_block_pointers(Array<IndexType> &&block_pointers)
+    void set_block_pointers(Array<index_type> &&block_pointers)
     {
         block_pointers_ = std::move(block_pointers);
     }
 
     /**
-     * Returns a reference to the array of block pointers
+     * Returns a reference to the array of block pointers.
      *
      * @return the array of block pointers
      */
-    const Array<IndexType> &get_block_pointers() const noexcept
+    const Array<index_type> &get_block_pointers() const noexcept
     {
         return block_pointers_;
     }
 
 protected:
-    BlockJacobiFactory(std::shared_ptr<const Executor> exec,
-                       uint32 max_block_size)
+    BasicBlockJacobiFactory(std::shared_ptr<const Executor> exec,
+                            uint32 max_block_size)
         : LinOpFactory(exec),
           max_block_size_(max_block_size),
           block_pointers_(exec)
     {}
 
-private:
     uint32 max_block_size_;
-    Array<IndexType> block_pointers_;
+    Array<index_type> block_pointers_;
+};
+
+
+/**
+ * This factory is used to create a block-Jacobi preconditioner from the
+ * operator A, by inverting the diagonal blocks of the operator.
+ *
+ * The factory generates a BlockJacobi object witch stores the preconditioner.
+ *
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  integral type used to store pointers to the start of each
+ *                    block
+ *
+ * @see BlockJacobi
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+class BlockJacobiFactory
+    : public BasicBlockJacobiFactory<BlockJacobiFactory<ValueType, IndexType>> {
+    friend class BasicBlockJacobiFactory<BlockJacobiFactory>;
+
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using generated_type = BlockJacobi<ValueType, IndexType>;
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+
+protected:
+    using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
+};
+
+
+/**
+ * This factory is used to create a block-Jacobi preconditioner from the
+ * operator A, by inverting the diagonal blocks of the operator.
+ *
+ * This is a variant which generates AdaptiveBlockJacobi preconditioners,
+ * which can use lower precision to store well-conditioned diagonal blocks,
+ * and possibly improve the performance of preconditioner application.
+ *
+ * @tparam ValueType  highest precision of matrix elements, the precision of
+ *                    vectors used for the LinOp::apply() method and the
+ *                    precision in which all computation is performed
+ * @tparam IndexType  integral type used to store pointers to the start of each
+ *                    block
+ *
+ * @see AdaptiveBlockJacobi
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+class AdaptiveBlockJacobiFactory
+    : public BasicBlockJacobiFactory<
+          AdaptiveBlockJacobiFactory<ValueType, IndexType>> {
+    friend class BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>;
+
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using generated_type = AdaptiveBlockJacobi<ValueType, IndexType>;
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> base) const override;
+
+    /**
+     * Sets the precision to use for storing each of the blocks.
+     *
+     * @param block_recisions  an array of precisions for each block
+     */
+    void set_block_precisions(
+        const Array<typename generated_type::precision> &block_precisions)
+    {
+        block_precisions_ = block_precisions;
+    }
+
+    /**
+     * @copydoc set_block_precisions(const Array<precision> &)
+     */
+    void set_block_precisions(
+        Array<typename generated_type::precision> &&block_precisions)
+    {
+        block_precisions_ = std::move(block_precisions);
+    }
+
+    /**
+     * Returns the precisions of diagonal blocks.
+     *
+     * @return precisions of diagonal blocks
+     */
+    const Array<typename generated_type::precision> &get_block_precisions()
+        const noexcept
+    {
+        return block_precisions_;
+    }
+
+protected:
+    AdaptiveBlockJacobiFactory(std::shared_ptr<const Executor> exec,
+                               uint32 max_block_size)
+        : BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>(exec,
+                                                              max_block_size),
+          block_precisions_(exec)
+    {}
+
+    Array<typename generated_type::precision> block_precisions_;
 };
 
 

@@ -60,6 +60,12 @@ using size_type = std::size_t;
 
 
 /**
+ * 16-bit signed integral type.
+ */
+using int16 = std::int16_t;
+
+
+/**
  * 32-bit signed integral type.
  */
 using int32 = std::int32_t;
@@ -72,6 +78,12 @@ using int64 = std::int64_t;
 
 
 /**
+ * 16-bit unsigned integral type.
+ */
+using uint16 = std::uint16_t;
+
+
+/**
  * 32-bit unsigned integral type.
  */
 using uint32 = std::uint32_t;
@@ -81,6 +93,27 @@ using uint32 = std::uint32_t;
  * 64-bit unsigned integral type.
  */
 using uint64 = std::uint64_t;
+
+
+class half;
+
+
+/**
+ * Half precision floating point type.
+ */
+using float16 = half;
+
+
+/**
+ * Single precision floating point type.
+ */
+using float32 = float;
+
+
+/**
+ * Double precision floating point type.
+ */
+using float64 = double;
 
 
 /**
@@ -125,6 +158,19 @@ using default_precision = double;
     template _macro(double);                        \
     template _macro(std::complex<float>);           \
     template _macro(std::complex<double>)
+
+
+/**
+ * Instantiates a template for each index type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro) \
+    template _macro(int32);                         \
+    template _macro(int64)
 
 
 /**

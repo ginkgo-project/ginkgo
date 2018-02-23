@@ -109,14 +109,6 @@ TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 }
 
 
-TEST(ExceptionClasses, NotFoundReturnsCorrectWhatMessage)
-{
-    gko::NotFound error("test_file.cpp", 195, "my_func", "my error");
-    ASSERT_EQ(std::string("test_file.cpp:195: my_func: my error"),
-              error.what());
-}
-
-
 TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 {
     gko::AllocationError error("test_file.cpp", 42, "CPU", 135);
@@ -134,6 +126,16 @@ TEST(ExceptionClasses, FileErrorReturnsCorrectWhatMessage)
     ASSERT_EQ(
         std::string("test_file.cpp:75: my_func: error accessing my_file.txt: "
                     "my message"),
+        error.what());
+}
+
+
+TEST(ExceptionClasses, KernelNotFoundReturnsCorrectWhatMessage)
+{
+    gko::KernelNotFound error("test_file.cpp", 75, "my_func");
+    ASSERT_EQ(
+        std::string(
+            "test_file.cpp:75: my_func: unable to find an eligible kernel"),
         error.what());
 }
 

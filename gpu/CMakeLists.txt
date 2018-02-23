@@ -2,8 +2,9 @@ set(SOURCES
     base/exception.cpp
     base/executor.cpp
     matrix/coo_kernels.cpp
-    matrix/csr_kernels.cpp
+    matrix/csr_kernels.cu
     matrix/dense_kernels.cpp
+    matrix/ell_kernels.cu
     preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
     solver/fcg_kernels.cu

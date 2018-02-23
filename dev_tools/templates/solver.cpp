@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/xxsolverxx.hpp"
 
-#include "core/base/convertible.hpp"
+
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
@@ -41,26 +41,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/solver/xxsolverxx_kernels.hpp"
 
+
 namespace gko {
 namespace solver {
-
-
 namespace {
+
 
 template <typename ValueType>
 struct TemplatedOperation {
-    // This is example code for the XXSOLVERXX case - has to be modified for the
-    // new solver
-    /*
-
-
-        GKO_REGISTER_OPERATION(initialize, xxsolverxx::initialize<ValueType>);
-        GKO_REGISTER_OPERATION(step_1, xxsolverxx::step_1<ValueType>);
-        GKO_REGISTER_OPERATION(step_2, xxsolverxx::step_2<ValueType>);
-
-
-    */
+    GKO_REGISTER_OPERATION(initialize, xxsolverxx::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(step_1, xxsolverxx::step_1<ValueType>);
+    GKO_REGISTER_OPERATION(step_2, xxsolverxx::step_2<ValueType>);
+    GKO_REGISTER_OPERATION(step_3, xxsolverxx::step_3<ValueType>);
 };
+
 
 /**
  * Checks whether the required residual goal has been reached or not.
@@ -75,8 +69,8 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
                    remove_complex<ValueType> r)
 {
     using std::abs;
-    for (int i = 0; i < tau->get_num_rows(); ++i) {
-        if (abs(tau->at(i, 0)) >= r * abs(orig_tau->at(i, 0))) {
+    for (size_type i = 0; i < tau->get_num_rows(); ++i) {
+        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
             return false;
         }
     }
@@ -88,100 +82,95 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
 
 
 template <typename ValueType>
-void Xxsolverxx<ValueType>::copy_from(const LinOp *other)
-{
-    auto other_xxsolverxx = as<Xxsolverxx<ValueType>>(other);
-    system_matrix_ = other_xxsolverxx->get_system_matrix()->clone();
-    this->set_dimensions(other);
-}
-
-
-template <typename ValueType>
-void Xxsolverxx<ValueType>::copy_from(std::unique_ptr<LinOp> other)
-{
-    auto other_xxsolverxx = as<Xxsolverxx<ValueType>>(other.get());
-    system_matrix_ = std::move(other_xxsolverxx->get_system_matrix());
-    this->set_dimensions(other.get());
-}
-
-
-template <typename ValueType>
 void Xxsolverxx<ValueType>::apply(const LinOp *b, LinOp *x) const
 {
-    // This is example code for the XXSOLVERXX case - has to be modified for the
-    // new solver
-    /*
+    using std::swap;
+    using Vector = matrix::Dense<ValueType>;
+    ASSERT_CONFORMANT(system_matrix_, b);
+    ASSERT_EQUAL_DIMENSIONS(b, x);
 
+    auto exec = this->get_executor();
 
-        using std::swap;
-        using Vector = matrix::Dense<ValueType>;
-        auto dense_b = as<const Vector>(b);
-        auto dense_x = as<Vector>(x);
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-        ASSERT_CONFORMANT(system_matrix_, b);
-        ASSERT_EQUAL_DIMENSIONS(b, x);
+    auto dense_b = as<Vector>(b);
+    auto dense_x = as<Vector>(x);
+    auto r = Vector::create_with_config_of(dense_b);
+    auto z = Vector::create_with_config_of(dense_b);
+    auto y = Vector::create_with_config_of(dense_b);
+    auto v = Vector::create_with_config_of(dense_b);
+    auto s = Vector::create_with_config_of(dense_b);
+    auto t = Vector::create_with_config_of(dense_b);
+    auto p = Vector::create_with_config_of(dense_b);
+    auto rr = Vector::create_with_config_of(dense_b);
 
-        auto exec = this->get_executor();
-        size_type num_vectors = dense_b->get_num_cols();
+    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto beta = Vector::create_with_config_of(alpha.get());
+    auto gamma = Vector::create_with_config_of(alpha.get());
+    auto prev_rho = Vector::create_with_config_of(alpha.get());
+    auto rho = Vector::create_with_config_of(alpha.get());
+    auto omega = Vector::create_with_config_of(alpha.get());
+    auto tau = Vector::create_with_config_of(alpha.get());
 
-        auto one_op = Vector::create(exec, {one<ValueType>()});
-        auto neg_one_op = Vector::create(exec, {-one<ValueType>()});
+    auto master_tau =
+        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
+    auto starting_tau = Vector::create_with_config_of(master_tau.get());
 
-        auto r = Vector::create_with_config_of(dense_b);
-        auto z = Vector::create_with_config_of(dense_b);
-        auto p = Vector::create_with_config_of(dense_b);
-        auto q = Vector::create_with_config_of(dense_b);
+    // TODO: replace this with automatic merged kernel generator
+    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
+        dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
+        p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
+        gamma.get(), omega.get()));
+    // r = dense_b
+    // prev_rho = rho = omega = alpha = beta = gamma = 1.0
+    // rr = v = s = t = z = y = p = 0
 
-        auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
-        auto beta = Vector::create_with_config_of(alpha.get());
-        auto prev_rho = Vector::create_with_config_of(alpha.get());
-        auto rho = Vector::create_with_config_of(alpha.get());
-        auto tau = Vector::create_with_config_of(alpha.get());
-
-        auto master_tau =
-            Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-        auto starting_tau = Vector::create_with_config_of(master_tau.get());
-
-        // TODO: replace this with automatic merged kernel generator
-        exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-            dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
-            rho.get()));
-        // r = dense_b
-        // rho = 0.0
-        // prev_rho = 1.0
-        // z = p = q = 0
-
-        system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    rr->copy_from(r.get());
+    r->compute_dot(r.get(), tau.get());
+    starting_tau->copy_from(tau.get());
+    system_matrix_->apply(r.get(), v.get());
+    for (int iter = 0; iter < max_iters_; ++iter) {
         r->compute_dot(r.get(), tau.get());
-        starting_tau->copy_from(tau.get());
-
-        for (int iter = 0; iter < max_iters_; ++iter) {
-            // TODO: replace with preconditioner application.
-            z->copy_from(r.get());
-            r->compute_dot(z.get(), rho.get());
-            r->compute_dot(r.get(), tau.get());
-            master_tau->copy_from(tau.get());
-            if (has_converged(master_tau.get(), starting_tau.get(),
-                              rel_residual_goal_)) {
-                break;
-            }
-
-            exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-                p.get(), z.get(), rho.get(), prev_rho.get()));
-            // tmp = rho / prev_rho
-            // p = z + tmp * p
-            system_matrix_->apply(p.get(), q.get());
-            p->compute_dot(q.get(), beta.get());
-            exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-                dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get()));
-            // tmp = rho / beta
-            // x = x + tmp * p
-            // r = r - tmp * q
-            swap(prev_rho, rho);
+        master_tau->copy_from(tau.get());
+        if (has_converged(master_tau.get(), starting_tau.get(),
+                          rel_residual_goal_)) {
+            break;
         }
+        rr->compute_dot(r.get(), rho.get());
 
+        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
+            r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
+            omega.get()));
+        // tmp = rho / prev_rho * alpha / omega
+        // p = r + tmp * (p - omega * v)
 
-    */
+        preconditioner_->apply(p.get(), y.get());
+        system_matrix_->apply(y.get(), v.get());
+        rr->compute_dot(v.get(), beta.get());
+        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
+            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get()));
+        // alpha = rho / beta
+        // s = r - alpha * v
+
+        // TODO: Add second convergence check
+        if (++iter == max_iters_) {
+            dense_x->add_scaled(alpha.get(), y.get());
+            break;
+        }
+        preconditioner_->apply(s.get(), z.get());
+        system_matrix_->apply(z.get(), t.get());
+        s->compute_dot(t.get(), gamma.get());
+        t->compute_dot(t.get(), beta.get());
+        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
+            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+            beta.get(), gamma.get(), omega.get()));
+        // omega = gamma / beta
+        // x = x + alpha * y + omega * z
+        // r = s - omega * t
+        swap(prev_rho, rho);
+    }
 }
 
 
@@ -190,7 +179,6 @@ void Xxsolverxx<ValueType>::apply(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
-
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
@@ -199,53 +187,15 @@ void Xxsolverxx<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Xxsolverxx<ValueType>::clone_type() const
-{
-    return std::unique_ptr<Xxsolverxx>(
-        new Xxsolverxx(this->get_executor(), max_iters_, rel_residual_goal_,
-                       system_matrix_->clone_type()));
-}
-
-
-template <typename ValueType>
-void Xxsolverxx<ValueType>::clear()
-{
-    this->set_dimensions(0, 0, 0);
-    max_iters_ = 0;
-    rel_residual_goal_ = zero<decltype(rel_residual_goal_)>();
-    system_matrix_ = system_matrix_->clone_type();
-}
-
-
-template <typename ValueType>
-void Xxsolverxx<ValueType>::convert_to(Xxsolverxx *result) const
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = system_matrix_;
-}
-
-
-template <typename ValueType>
-void Xxsolverxx<ValueType>::move_to(Xxsolverxx *result)
-{
-    result->set_dimensions(this);
-    result->max_iters_ = max_iters_;
-    result->rel_residual_goal_ = rel_residual_goal_;
-    result->system_matrix_ = std::move(system_matrix_);
-}
-
-template <typename ValueType>
 std::unique_ptr<LinOp> XxsolverxxFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
+    ASSERT_EQUAL_DIMENSIONS(base,
+                            size(base->get_num_cols(), base->get_num_rows()));
     auto xxsolverxx =
         std::unique_ptr<Xxsolverxx<ValueType>>(Xxsolverxx<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));
-    ASSERT_EQUAL_DIMENSIONS(xxsolverxx->system_matrix_,
-                            size(xxsolverxx->system_matrix_->get_num_cols(),
-                                 xxsolverxx->system_matrix_->get_num_rows()));
+    xxsolverxx->set_preconditioner(precond_factory_->generate(base));
     return std::move(xxsolverxx);
 }
 

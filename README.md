@@ -13,7 +13,7 @@ For Ginkgo core library:
 
 *   _cmake 3.1+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 4.8.1+_
+    *   _gcc 5.4.0+_
     *   _clang 3.3+_ (__TODO__: verify, works with 5.0)
 
 The Ginkgo GPU module has the following __additional__ requirements:
@@ -41,7 +41,7 @@ For Ginkgo core library:
 
 *   _cmake 3.1+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 4.8.1+_ (__TODO__: verify)
+    *   _gcc 5.4.0+_ (__TODO__: verify)
     *   _clang 3.3+_ (__TODO__: verify)
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 

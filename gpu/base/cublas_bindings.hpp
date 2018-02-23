@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace kernels {
+namespace gpu {
 namespace cublas {
 namespace {
 
@@ -157,6 +159,8 @@ inline void destroy(cublasHandle_t handle)
 
 }  // namespace
 }  // namespace cublas
+}  // namespace gpu
+}  // namespace kernels
 }  // namespace gko
 
 

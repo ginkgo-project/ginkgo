@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_CSR_KERNELS_HPP_
 
 
+#include "core/base/types.hpp"
+#include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
 
@@ -55,6 +57,11 @@ namespace kernels {
                        const matrix::Dense<ValueType> *b,           \
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
+
+#define GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType)             \
+    void convert_row_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec, \
+                                  const IndexType *ptrs, size_type num_rows,   \
+                                  IndexType *idxs)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
@@ -81,6 +88,8 @@ namespace kernels {
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType);    \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \

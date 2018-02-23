@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include <core/matrix/coo.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
 
@@ -48,7 +49,9 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
+    using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
     Csr()
@@ -58,6 +61,10 @@ protected:
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        /*
+         * 1   3   2
+         * 0   5   0
+         */
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -71,6 +78,30 @@ protected:
         v[3] = 5.0;
     }
 
+    void assert_equal_to_mtx(const Coo *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto r = m->get_const_row_idxs();
+
+        ASSERT_EQ(m->get_num_rows(), 2);
+        ASSERT_EQ(m->get_num_cols(), 3);
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 0);
+        EXPECT_EQ(r[2], 0);
+        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
+    }
+
+    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 };
@@ -179,6 +210,79 @@ TEST_F(Csr, MovesToDense)
     mtx->move_to(dense_mtx.get());
 
     ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+}
+
+
+TEST_F(Csr, ConvertsToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->convert_to(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    mtx->move_to(coo_mtx.get());
+    assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, SquareMtxIsTransposable)
+{
+    // clang-format off
+    auto mtx2 = gko::initialize<gko::matrix::Csr<>>(
+                {{1.0, 3.0, 2.0},
+                 {0.0, 5.0, 0.0},
+                 {0.0, 1.5, 2.0}}, exec);
+    // clang-format on
+
+    auto trans = mtx2->transpose();
+    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0, 0.0, 0.0},
+                       {3.0, 5.0, 1.5},
+                       {2.0, 0.0, 2.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Csr, NonSquareMtxIsTransposable)
+{
+    auto trans = mtx->transpose();
+    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0, 0.0},
+                       {3.0, 5.0},
+                       {2.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Csr, MtxIsConjugateTransposable)
+{
+    // clang-format off
+    auto mtx2 = gko::initialize<gko::matrix::Csr<std::complex<double>>>(
+        {{1.0 + 2.0 * i, 3.0 + 0.0 * i, 2.0 + 0.0 * i},
+         {0.0 + 0.0 * i, 5.0 - 3.5 * i, 0.0 + 0.0 * i},
+         {0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}}, exec);
+    // clang-format on
+
+    auto trans = mtx2->conj_transpose();
+    auto trans_as_csr =
+        static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(trans_as_csr,
+                    l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
+                       {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
+                       {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
+    // clang-format on
 }
 
 

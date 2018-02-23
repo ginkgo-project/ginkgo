@@ -51,8 +51,8 @@ protected:
 
     Xxsolverxx()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec,
-                          {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}})),
+          mtx(gko::initialize<Mtx>(
+              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           xxsolverxx_factory(
               gko::solver::XxsolverxxFactory<>::create(exec, 3, 1e-6)),
           solver(xxsolverxx_factory->generate(mtx))
@@ -99,7 +99,7 @@ TEST_F(Xxsolverxx, XxsolverxxFactoryCreatesCorrectSolver)
     ASSERT_EQ(solver->get_num_rows(), 3);
     ASSERT_EQ(solver->get_num_cols(), 3);
     ASSERT_EQ(solver->get_num_stored_elements(), 9);
-    auto xxsolverxx_solver = dynamic_cast<Solver *>(solver.get());
+    auto xxsolverxx_solver = static_cast<Solver *>(solver.get());
     ASSERT_EQ(xxsolverxx_solver->get_max_iters(), 3);
     ASSERT_EQ(xxsolverxx_solver->get_rel_residual_goal(), 1e-6);
     ASSERT_NE(xxsolverxx_solver->get_system_matrix(), nullptr);
@@ -116,9 +116,8 @@ TEST_F(Xxsolverxx, CanBeCopied)
     ASSERT_EQ(copy->get_num_rows(), 3);
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
-    auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_NE(copy_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
 
@@ -131,8 +130,8 @@ TEST_F(Xxsolverxx, CanBeMoved)
     ASSERT_EQ(copy->get_num_rows(), 3);
     ASSERT_EQ(copy->get_num_cols(), 3);
     ASSERT_EQ(copy->get_num_stored_elements(), 9);
-    auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
 
@@ -143,9 +142,8 @@ TEST_F(Xxsolverxx, CanBeCloned)
     ASSERT_EQ(clone->get_num_rows(), 3);
     ASSERT_EQ(clone->get_num_cols(), 3);
     ASSERT_EQ(clone->get_num_stored_elements(), 9);
-    auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
-    ASSERT_NE(clone_mtx.get(), mtx.get());
-    assert_same_matrices(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
 
 
@@ -156,11 +154,38 @@ TEST_F(Xxsolverxx, CanBeCleared)
     ASSERT_EQ(solver->get_num_rows(), 0);
     ASSERT_EQ(solver->get_num_cols(), 0);
     ASSERT_EQ(solver->get_num_stored_elements(), 0);
-    auto solver_mtx = dynamic_cast<Solver *>(solver.get())->get_system_matrix();
-    ASSERT_NE(solver_mtx, nullptr);
-    ASSERT_EQ(solver_mtx->get_num_rows(), 0);
-    ASSERT_EQ(solver_mtx->get_num_cols(), 0);
-    ASSERT_EQ(solver_mtx->get_num_stored_elements(), 0);
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(solver_mtx, nullptr);
+}
+
+
+TEST_F(Xxsolverxx, CanSetPreconditioner)
+{
+    std::shared_ptr<Mtx> precond =
+        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
+    auto xxsolverxx_solver =
+        static_cast<gko::solver::Xxsolverxx<> *>(solver.get());
+
+    xxsolverxx_solver->set_preconditioner(precond);
+
+    ASSERT_EQ(xxsolverxx_solver->get_preconditioner(), precond);
+}
+
+
+TEST_F(Xxsolverxx, CanSetPreconditionerGenertor)
+{
+    xxsolverxx_factory->set_preconditioner(
+        gko::solver::XxsolverxxFactory<>::create(exec, 3, 0.0));
+    auto solver = xxsolverxx_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::Xxsolverxx<> *>(
+        static_cast<gko::solver::Xxsolverxx<> *>(solver.get())
+            ->get_preconditioner()
+            .get());
+
+    ASSERT_NE(precond, nullptr);
+    ASSERT_EQ(precond->get_num_rows(), 3);
+    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 
 
