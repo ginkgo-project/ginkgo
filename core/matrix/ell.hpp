@@ -139,11 +139,11 @@ public:
     }
 
     /**
-     * Returns the padding of the matrix.
+     * Returns the stride of the matrix.
      *
-     * @return the padding of the matrix.
+     * @return the stride of the matrix.
      */
-    size_type get_padding() const noexcept { return padding_; }
+    size_type get_stride() const noexcept { return stride_; }
 
     /**
      * Returns the `idx`-th non-zero element of the `row`-th row .
@@ -202,7 +202,7 @@ protected:
           values_(exec),
           col_idxs_(exec),
           max_nonzeros_per_row_(0),
-          padding_(0)
+          stride_(0)
     {}
 
     /**
@@ -212,21 +212,21 @@ protected:
      * @param num_rows               number of rows
      * @param num_cols               number of columns
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
-     * @param padding                padding of the rows
+     * @param stride                stride of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type max_nonzeros_per_row, size_type padding)
+        size_type num_cols, size_type max_nonzeros_per_row, size_type stride)
         : BasicLinOp<Ell>(exec, num_rows, num_cols,
-                          padding * max_nonzeros_per_row),
-          values_(exec, padding * max_nonzeros_per_row),
-          col_idxs_(exec, padding * max_nonzeros_per_row),
+                          stride * max_nonzeros_per_row),
+          values_(exec, stride * max_nonzeros_per_row),
+          col_idxs_(exec, stride * max_nonzeros_per_row),
           max_nonzeros_per_row_(max_nonzeros_per_row),
-          padding_(padding)
+          stride_(stride)
     {}
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (The padding is set to the number of rows of the matrix.)
+     *    (The stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param num_rows               number of rows
@@ -241,7 +241,7 @@ protected:
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (The padding is set to the number of rows of the matrix.
+     *    (The stride is set to the number of rows of the matrix.
      *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
@@ -255,14 +255,14 @@ protected:
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
-        return row + padding_ * col;
+        return row + stride_ * col;
     }
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     size_type max_nonzeros_per_row_;
-    size_type padding_;
+    size_type stride_;
 };
 
 

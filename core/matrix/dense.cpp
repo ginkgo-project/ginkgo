@@ -114,7 +114,7 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
     const auto max_nnz_per_row =
         std::max(result->get_max_nonzeros_per_row(), max_nonzeros_per_row);
     const auto padding =
-        std::max(result->get_padding(), source->get_num_rows());
+        std::max(result->get_stride(), source->get_num_rows());
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_num_rows(),
                                                  source->get_num_cols(),
                                                  max_nnz_per_row, padding);

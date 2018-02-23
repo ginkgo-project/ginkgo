@@ -311,7 +311,7 @@ TEST_F(Dense, ConvertsToEll)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(ell_mtx->get_padding(), 2);
+    ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
@@ -336,7 +336,7 @@ TEST_F(Dense, MovesToEll)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(ell_mtx->get_padding(), 2);
+    ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
@@ -361,7 +361,7 @@ TEST_F(Dense, ConvertsToEllWithPadding)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
-    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 0);
@@ -390,7 +390,7 @@ TEST_F(Dense, MovesToEllWithPadding)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
-    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 0);
