@@ -225,12 +225,6 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
 }
 
 
-template <typename S, typename R>
-struct default_converter {
-    inline R operator()(S val) { return static_cast<R>(val); }
-};
-
-
 template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
