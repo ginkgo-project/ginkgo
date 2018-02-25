@@ -42,9 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
-#include "core/base/exception_helpers.hpp"
 #include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
+#include "core/base/exception_helpers.hpp"
 
 
 namespace {
@@ -57,32 +57,36 @@ protected:
 
     Ell() : rand_engine(42) {}
 
-    void SetUp() {
+    void SetUp()
+    {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         gpu = gko::GpuExecutor::create(0, ref);
     }
 
-    void TearDown() {
+    void TearDown()
+    {
         if (gpu != nullptr) {
             ASSERT_NO_THROW(gpu->synchronize());
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row) {
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    {
         return gko::test::generate_random_matrix<Vec>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine);
     }
 
-    void set_up_apply_data() {
+    void set_up_apply_data()
+    {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
-        alpha = Vec::create(ref, {2.0});
-        beta = Vec::create(ref, {-1.0});
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(gpu);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(gpu);
@@ -114,19 +118,21 @@ protected:
 };
 
 
-TEST_F(Ell, SimpleApplyIsEquivalentToRef) {
+TEST_F(Ell, SimpleApplyIsEquivalentToRef)
+{
     set_up_apply_data();
-    
+
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
     ASSERT_MTX_NEAR(result, expected, 1e-14);
-    }
+}
 
 
-TEST_F(Ell, AdvancedApplyIsEquivalentToRef) {
+TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
+{
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
@@ -135,7 +141,7 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef) {
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
     ASSERT_MTX_NEAR(result, expected, 1e-14);
-    }
+}
 
 
 }  // namespace
