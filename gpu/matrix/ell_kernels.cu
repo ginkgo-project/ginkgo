@@ -39,12 +39,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cusparse_bindings.hpp"
 #include "gpu/base/types.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace gpu {
 namespace ell {
 
+
 constexpr int default_block_size = 512;
+
+
+namespace {
 
 
 template <typename ValueType, typename IndexType>
@@ -66,22 +71,6 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     }
 }
 
-template <typename ValueType, typename IndexType>
-void spmv(const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
-
-    spmv_kernel<<<grid_size, block_size, 0, 0>>>(
-        a->get_num_rows(), a->get_const_max_nnz_row(),
-        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
-}
-
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
@@ -102,6 +91,24 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
         c[tidx] = beta[0] * c[tidx] + temp;
     }
 }
+} // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spmv(const matrix::Ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
+
+    spmv_kernel<<<grid_size, block_size, 0, 0>>>(
+        a->get_num_rows(), a->get_const_max_nnz_row(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(const matrix::Dense<ValueType> *alpha,
@@ -133,7 +140,7 @@ void convert_to_dense(matrix::Dense<ValueType> *result,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
 
-    
+
 }  // namespace ell
 }  // namespace gpu
 }  // namespace kernels
