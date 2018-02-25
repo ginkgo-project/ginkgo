@@ -39,43 +39,101 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cusparse_bindings.hpp"
 #include "gpu/base/types.hpp"
 
-
 namespace gko {
 namespace kernels {
 namespace gpu {
 namespace ell {
 
+constexpr int default_block_size = 512;
+
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const GpuExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+__global__ __launch_bounds__(default_block_size) void spmv_kernel(
+    size_type num_rows, IndexType max_nnz_row,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    ValueType temp = 0;
+    IndexType ind = 0;
+    if (tidx < num_rows) {
+        for (IndexType i = 0; i < max_nnz_row; i++) {
+            ind = tidx + i * num_rows;
+            temp += val[ind] * b[col[ind]];
+        }
+        c[tidx] = temp;
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void spmv(const matrix::Ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
+
+    spmv_kernel<<<grid_size, block_size, 0, 0>>>(
+        a->get_num_rows(), a->get_const_max_nnz_row(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
+__global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
+    size_type num_rows, IndexType max_nnz_row,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col, const ValueType *__restrict__ b,
+    const ValueType *__restrict__ beta, ValueType *__restrict__ c)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    ValueType temp = 0;
+    IndexType ind = 0;
+    if (tidx < num_rows) {
+        for (IndexType i = 0; i < max_nnz_row; i++) {
+            ind = tidx + i * num_rows;
+            temp += alpha[0] * val[ind] * b[col[ind]];
+        }
+        c[tidx] = beta[0] * c[tidx] + temp;
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(const matrix::Dense<ValueType> *alpha,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *c)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
+
+    advanced_spmv_kernel<<<grid_size, block_size, 0, 0>>>(
+        a->get_num_rows(), a->get_const_max_nnz_row(),
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()),
+        as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+void convert_to_dense(matrix::Dense<ValueType> *result,
+                      const matrix::Ell<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
 
-
+    
 }  // namespace ell
 }  // namespace gpu
 }  // namespace kernels
