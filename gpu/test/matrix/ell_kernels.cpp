@@ -99,6 +99,28 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+
+    void set_up_apply_data_with_stride(int stride, int max_nonzeros_per_row)
+    {
+        mtx = Mtx::create(ref, 0, 0, max_nonzeros_per_row, stride);
+        mtx->copy_from(gen_mtx(532, 231, 1));
+        expected = gen_mtx(532, 1, 1);
+        y = gen_mtx(231, 1, 1);
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
+        dmtx = Mtx::create(gpu);
+        dmtx->copy_from(mtx.get());
+        dresult = Vec::create(gpu);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(gpu);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(gpu);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(gpu);
+        dbeta->copy_from(beta.get());
+    }
+
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
 
@@ -135,6 +157,31 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
+{
+    set_up_apply_data_with_stride(600, 300);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
+{
+    set_up_apply_data_with_stride(600, 300);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
