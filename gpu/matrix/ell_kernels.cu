@@ -90,6 +90,7 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
+    
     // clang-format off
     spmv_kernel<<<grid_size, block_size, 0, 0>>>(
         a->get_num_rows(),
