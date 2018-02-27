@@ -96,12 +96,12 @@ protected:
 
     template <typename ValueType>
     void assert_same_block(gko::size_type block_size, const ValueType *ptr_a,
-                           gko::size_type padding_a, const ValueType *ptr_b,
-                           gko::size_type padding_b)
+                           gko::size_type stride_a, const ValueType *ptr_b,
+                           gko::size_type stride_b)
     {
         for (int i = 0; i < block_size; ++i) {
             for (int j = 0; j < block_size; ++j) {
-                EXPECT_EQ(ptr_a[i * padding_a + j], ptr_b[i * padding_b + j])
+                EXPECT_EQ(ptr_a[i * stride_a + j], ptr_b[i * stride_b + j])
                     << "Mismatch at position (" << i << ", " << j << ")";
             }
         }
@@ -120,10 +120,10 @@ protected:
             ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
             assert_same_block(
                 b_ptr_a[i + 1] - b_ptr_a[i],
-                a->get_const_blocks() + b_ptr_a[i] * a->get_padding(),
-                a->get_padding(),
-                b->get_const_blocks() + b_ptr_b[i] * b->get_padding(),
-                b->get_padding());
+                a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
+                a->get_stride(),
+                b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
+                b->get_stride());
         }
     }
 
@@ -184,7 +184,7 @@ TEST_F(BlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_num_cols(), 0);
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
-    ASSERT_EQ(bj->get_padding(), 0);
+    ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);
 }
@@ -226,10 +226,10 @@ protected:
             // TODO: take into account different precisions
             assert_same_block(
                 b_ptr_a[i + 1] - b_ptr_a[i],
-                a->get_const_blocks() + b_ptr_a[i] * a->get_padding(),
-                a->get_padding(),
-                b->get_const_blocks() + b_ptr_b[i] * b->get_padding(),
-                b->get_padding());
+                a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
+                a->get_stride(),
+                b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
+                b->get_stride());
         }
     }
 };
@@ -283,7 +283,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_num_cols(), 0);
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
-    ASSERT_EQ(bj->get_padding(), 0);
+    ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
     ASSERT_EQ(bj->get_const_block_precisions(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);
