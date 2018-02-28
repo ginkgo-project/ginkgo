@@ -70,7 +70,7 @@ name=${name,,}
 Name=${name^}
 NAME=${name^^}
 
-if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "solver" ]] ); then
+if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "solver" ]] ) || [[ "$source_name" == "" ]]; then
     print_help
     exit 1
 fi
