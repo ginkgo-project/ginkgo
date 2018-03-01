@@ -7,16 +7,16 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 GINKGO_ROOT_DIR="${THIS_DIR}/../.."
 
 function print_help {
-    echo -e "Usage: $0 [options] solvername sourcetype sourcename"
+    echo -e "Usage: $0 [options] NewAlgorithm ModelType ModelName"
     echo -e "\tOptions:"
     echo -e "\t--dry-run: does a dry run"
     echo -e "\t--help: prints this help"
-    echo -e "\t--list: prints the list of possible sources"
+    echo -e "\t--list: prints the list of possible models"
     echo -e ""
     echo -e "This script generates a new solver or preconditioner from an"
-    echo -e "existing one. --list can be use to list existing sources."
+    echo -e "existing model identified thanks to the --list argument."
     echo -e "After the correct execution of this script, it is expected that"
-    echo -e "solvername is integrated into Ginkgo and that you finish all todos."
+    echo -e "NewAlgorithm is integrated into Ginkgo and that you finish all todos."
     exit
 }
 
