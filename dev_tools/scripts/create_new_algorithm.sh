@@ -95,8 +95,12 @@ TEMPLATE_FILES=(
     "${name}_kernels.cu"
     "${name}.cpp"
     "${name}_kernels.cpp"
-#    "${name}_kernels.cpp"
+    # "${name}_kernels.cpp"
     "${name}_kernels.cpp"
+    # "${name}_kernels.cpp"
+    # "${name}_kernels.cpp"
+    # "${name}_kernels.cpp"
+    # "${name}_kernels.cpp"
 )
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
@@ -107,8 +111,12 @@ TEMPLATE_FILES_LOCATIONS=(
     "gpu/$source_type"
     "core/test/$source_type"
     "reference/test/$source_type"
-#    "cpu/test/$source_type"
+    # "cpu/test/$source_type"
     "gpu/test/$source_type"
+    # "core/benchmark/$source_type"
+    # "reference/benchmark/$source_type"
+    # "cpu/benchmark/$source_type"
+    # "gpu/benchmark/$source_type"
 )
 TEMPLATE_FILES_TYPES=(
     "$source_type file"
@@ -119,8 +127,12 @@ TEMPLATE_FILES_TYPES=(
     "kernel file"
     "unit tests for ${name} $type"
     "unit tests for ${name} reference kernels"
-#    "unit tests for ${name} CPU kernels"
+    # "unit tests for ${name} CPU kernels"
     "unit tests for ${name} GPU kernels"
+    # "benchmarks for ${name} $type"
+    # "benchmarks for ${name} reference kernels"
+    # "benchmarks for ${name} CPU kernels"
+    # "benchmarks for ${name} GPU kernels"
 )
 TEMPLATE_FILES_DESCRIPTIONS=(
     "This is where the ${name} algorithm needs to be implemented."
@@ -131,8 +143,12 @@ TEMPLATE_FILES_DESCRIPTIONS=(
     "GPU kernels for ${name} need to be implemented here."
     ""
     ""
-#    ""
+    # ""
     ""
+    # ""
+    # ""
+    # ""
+    # ""
 )
 
 mkdir ${TMPDIR}
