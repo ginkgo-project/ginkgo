@@ -204,6 +204,9 @@ do
     echo ""                                              | tee -a todo_${name}.txt
 done
 
+echo -e "In all of the previous files ${sourcename} was automatically replaced into ${name}. Ensure there is no inconsistency."    | tee -a todo_${name}.txt
+echo -e ""                                                                         | tee -a todo_${name}.txt
+
 echo "All tests have to be modified to the specific ${source_type} characteristics."    | tee -a todo_${name}.txt
 echo ""                                                                         | tee -a todo_${name}.txt
 echo ""                                                                         | tee -a todo_${name}.txt
