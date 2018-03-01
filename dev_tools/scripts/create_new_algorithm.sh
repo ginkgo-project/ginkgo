@@ -17,7 +17,6 @@ function print_help {
     echo -e "existing model identified thanks to the --list argument."
     echo -e "After the correct execution of this script, it is expected that"
     echo -e "NewAlgorithm is integrated into Ginkgo and that you finish all todos."
-    exit
 }
 
 function list_sources {
@@ -28,7 +27,6 @@ function list_sources {
             echo "$type "$(basename "$i" | cut -d"." -f1)
         done
     done
-    exit
 }
 
 if [ $# -lt 1 ]; then
@@ -41,6 +39,7 @@ do
     case "$1" in
         --help)
             print_help
+            exit 1
             ;;
         --dry-run)
             execute=0
