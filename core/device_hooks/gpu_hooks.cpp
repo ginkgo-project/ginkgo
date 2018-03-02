@@ -68,6 +68,13 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
 void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
 
 
+void GpuExecutor::run(const Operation &op) const
+{
+    op.run(
+        std::static_pointer_cast<const GpuExecutor>(this->shared_from_this()));
+}
+
+
 std::string CudaError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";

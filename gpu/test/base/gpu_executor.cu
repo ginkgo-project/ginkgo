@@ -49,12 +49,14 @@ namespace {
 
 class GpuExecutor : public ::testing::Test {
 protected:
-    GpuExecutor() : cpu(gko::CpuExecutor::create()), gpu(nullptr) {}
+    GpuExecutor() : cpu(gko::CpuExecutor::create()), gpu(nullptr), gpu2(nullptr)
+    {}
 
     void SetUp()
     {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
         gpu = gko::GpuExecutor::create(0, cpu);
+        gpu2 = gko::GpuExecutor::create(1, cpu);
     }
 
     void TearDown()
@@ -67,6 +69,7 @@ protected:
 
     std::shared_ptr<gko::CpuExecutor> cpu;
     std::shared_ptr<gko::GpuExecutor> gpu;
+    std::shared_ptr<gko::GpuExecutor> gpu2;
 };
 
 
@@ -142,6 +145,24 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
     gpu->free(orig);
 }
 
+TEST_F(GpuExecutor, CopiesDataFromGpuToGpu)
+{
+    int copy[2];
+    auto orig = gpu->alloc<int>(2);
+    cudaSetDevice(0);
+    init_data<<<1, 1>>>(orig);
+
+    if (gpu2->get_num_devices() > 1) {
+        auto copy_gpu2 = gpu2->alloc<int>(2);
+        gpu2->copy_from(gpu.get(), 2, orig, copy_gpu2);
+        cpu->copy_from(gpu2.get(), 2, copy_gpu2, copy);
+
+        EXPECT_EQ(5, copy[0]);
+        ASSERT_EQ(2, copy[1]);
+        gpu->free(copy_gpu2);
+    }
+    gpu->free(orig);
+}
 
 TEST_F(GpuExecutor, Synchronizes)
 {

@@ -172,12 +172,20 @@ private:
 
 
 /**
+ * Instantiates a DeviceError.
+ */
+#define DEVICE_ERROR(_device_id_) \
+    ::gko::DeviceError(__FILE__, __LINE__, __func__, _device_id_)
+
+
+/**
  * Instantiates a CudaError.
  *
  * @param errcode The error code returned from a CUDA runtime API routine.
  */
 #define CUDA_ERROR(_errcode) \
     ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
+
 
 /**
  * Instantiates a CublasError.

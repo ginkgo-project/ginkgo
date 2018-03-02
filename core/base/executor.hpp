@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_EXECUTOR_HPP_
 
 
+#include "core/base/exception_helpers.hpp"
 #include "core/base/types.hpp"
 
 
@@ -671,12 +672,17 @@ public:
     /**
      * Creates a new GpuExecutor.
      *
-     * @param device  the CUDA device id of this device
+     * @param device_id  the CUDA device id of this device
      * @param master  a CPU executor used to invoke the device kernels
+     *
+     * @throw DeviceError when the device_id is not correct
      */
     static std::shared_ptr<GpuExecutor> create(
         int device_id, std::shared_ptr<CpuExecutor> master)
     {
+        // if (device_id >= get_num_devices())
+        //     throw DEVICE_ERROR(device_id);
+        // else
         return std::shared_ptr<GpuExecutor>(
             new GpuExecutor(device_id, std::move(master)));
     }
@@ -688,6 +694,8 @@ public:
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
     void synchronize() const override;
+
+    void run(const Operation &op) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.

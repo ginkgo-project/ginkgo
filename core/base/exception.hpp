@@ -142,6 +142,20 @@ public:
 
 
 /**
+ * DeviceError is thrown when an invalid CUDA device id is used.
+ */
+class DeviceError : public Error {
+public:
+    DeviceError(const std::string &file, int line, const std::string &func,
+                int device_id)
+        : Error(file, line,
+                func + " invalid device_id " + std::to_string(device_id) +
+                    " used for GpuExecutor instantiation.")
+    {}
+};
+
+
+/**
  * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
 class CudaError : public Error {

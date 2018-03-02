@@ -46,24 +46,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
+#define SET_DEVICE_AND_CALL(__device_id__, __function__) \
+    int prev_device;                                     \
+    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&prev_device));  \
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(__device_id__)); \
+    auto errorcode = __function__;                       \
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(prev_device))
+
+
+void CpuExecutor::raw_copy_to(const GpuExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    ASSERT_NO_CUDA_ERRORS(
+    SET_DEVICE_AND_CALL(
+        dest->get_device_id(),
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    ASSERT_NO_CUDA_ERRORS(errorcode);
 }
 
 
 void GpuExecutor::free(void *ptr) const noexcept
 {
-    auto errcode = cudaFree(ptr);
-    if (errcode != cudaSuccess) {
+    SET_DEVICE_AND_CALL(this->device_id_, cudaFree(ptr));
+    if (errorcode != cudaSuccess) {
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable CUDA error in " << __func__ << ": "
-                  << cudaGetErrorName(errcode) << ": "
-                  << cudaGetErrorString(errcode) << std::endl
+        std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
+                  << " in " << __func__ << ": " << cudaGetErrorName(errorcode)
+                  << ": " << cudaGetErrorString(errorcode) << std::endl
                   << "Exiting program" << std::endl;
-        std::exit(errcode);
+        std::exit(errorcode);
     }
 }
 
@@ -71,9 +81,9 @@ void GpuExecutor::free(void *ptr) const noexcept
 void *GpuExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
-    auto errcode = cudaMalloc(&dev_ptr, num_bytes);
-    if (errcode != cudaErrorMemoryAllocation) {
-        ASSERT_NO_CUDA_ERRORS(errcode);
+    SET_DEVICE_AND_CALL(this->device_id_, cudaMalloc(&dev_ptr, num_bytes));
+    if (errorcode != cudaErrorMemoryAllocation) {
+        ASSERT_NO_CUDA_ERRORS(errorcode);
     }
     ENSURE_ALLOCATED(dev_ptr, "gpu", num_bytes);
     return dev_ptr;
@@ -83,22 +93,36 @@ void *GpuExecutor::raw_alloc(size_type num_bytes) const
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    ASSERT_NO_CUDA_ERRORS(
+    SET_DEVICE_AND_CALL(
+        this->device_id_,
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    ASSERT_NO_CUDA_ERRORS(errorcode);
 }
 
 
-void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
+void GpuExecutor::raw_copy_to(const GpuExecutor *src, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    ASSERT_NO_CUDA_ERRORS(
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToDevice));
+    ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
+                                         src->get_device_id(), num_bytes));
 }
 
 
 void GpuExecutor::synchronize() const
 {
-    ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+    SET_DEVICE_AND_CALL(this->device_id_, cudaDeviceSynchronize());
+    ASSERT_NO_CUDA_ERRORS(errorcode);
+}
+
+
+void GpuExecutor::run(const Operation &op) const
+{
+    int prev_device;
+    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&prev_device));
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(this->device_id_));
+    op.run(
+        std::static_pointer_cast<const GpuExecutor>(this->shared_from_this()));
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(prev_device));
 }
 
 
@@ -112,6 +136,9 @@ int GpuExecutor::get_num_devices()
     ASSERT_NO_CUDA_ERRORS(errcode);
     return deviceCount;
 }
+
+
+#undef SET_DEVICE_AND_CALL
 
 
 }  // namespace gko
