@@ -50,14 +50,14 @@ class Dense;
 
 
 /**
- * ELL is a matrix format where padding with explicit zeros is used such that
+ * ELL is a matrix format where stride with explicit zeros is used such that
  * all rows have the same number of stored elements. The number of elements
  * stored in each row is the largest number of nonzero elements in any of the
  * rows (obtainable through get_max_nonzeros_per_row() method). This removes
  * the need of a row pointer like in the CSR format, and allows for SIMD
  * processing of the distinct rows. For efficient processing, the nonzero
  * elements and the corresponding column indices are stored in column-major
- * fashion. The columns are padded to the length by user-defined padding
+ * fashion. The columns are padded to the length by user-defined stride
  * parameter whose default value is the number of rows of the matrix.
  *
  * @tparam ValueType  precision of matrix elements
