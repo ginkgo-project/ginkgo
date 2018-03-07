@@ -56,7 +56,7 @@ protected:
     {
         ASSERT_EQ(m->get_num_rows(), 2);
         ASSERT_EQ(m->get_num_cols(), 3);
-        ASSERT_EQ(m->get_padding(), 4);
+        ASSERT_EQ(m->get_stride(), 4);
         ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
         EXPECT_EQ(m->at(0, 0), 1.0);
         EXPECT_EQ(m->at(0, 1), 2.0);
@@ -98,18 +98,18 @@ TEST_F(Dense, CanBeConstructedWithSize)
 
     EXPECT_EQ(m->get_num_rows(), 2);
     EXPECT_EQ(m->get_num_cols(), 3);
-    EXPECT_EQ(m->get_padding(), 3);
+    EXPECT_EQ(m->get_stride(), 3);
     ASSERT_EQ(m->get_num_stored_elements(), 6);
 }
 
 
-TEST_F(Dense, CanBeConstructedWithSizeAndPadding)
+TEST_F(Dense, CanBeConstructedWithSizeAndstride)
 {
     auto m = gko::matrix::Dense<>::create(exec, 2, 3, 4);
 
     EXPECT_EQ(m->get_num_rows(), 2);
     EXPECT_EQ(m->get_num_cols(), 3);
-    EXPECT_EQ(m->get_padding(), 4);
+    EXPECT_EQ(m->get_stride(), 4);
     ASSERT_EQ(m->get_num_stored_elements(), 8);
 }
 
@@ -132,7 +132,7 @@ TEST_F(Dense, CanBeListConstructed)
 }
 
 
-TEST_F(Dense, CanBeListConstructedWithPadding)
+TEST_F(Dense, CanBeListConstructedWithstride)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>(2, {1.0, 2.0}, exec);
     EXPECT_EQ(m->get_num_rows(), 2);
@@ -159,7 +159,7 @@ TEST_F(Dense, CanBeDoubleListConstructed)
 }
 
 
-TEST_F(Dense, CanBeDoubleListConstructedWithPadding)
+TEST_F(Dense, CanBeDoubleListConstructedWithstride)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>(
         4, {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);

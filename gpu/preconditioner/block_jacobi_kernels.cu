@@ -56,7 +56,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     generate(size_type num_rows, const IndexType *__restrict__ row_ptrs,
              const IndexType *__restrict__ col_idxs,
              const ValueType *__restrict__ values,
-             ValueType *__restrict__ block_data, size_type padding,
+             ValueType *__restrict__ block_data, size_type stride,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
@@ -76,7 +76,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
                                                          trans_perm);
         warp::copy_matrix<max_block_size, subwarp_size>(
             block_size, row, 1, perm, trans_perm,
-            block_data + (block_ptrs[block_id] * padding), padding);
+            block_data + (block_ptrs[block_id] * stride), stride);
     }
 }
 
@@ -84,10 +84,10 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
-    apply(const ValueType *__restrict__ blocks, int32 padding,
+    apply(const ValueType *__restrict__ blocks, int32 stride,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-          const ValueType *__restrict__ b, int32 b_padding,
-          ValueType *__restrict__ x, int32 x_padding)
+          const ValueType *__restrict__ b, int32 b_stride,
+          ValueType *__restrict__ x, int32 x_stride)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -97,11 +97,11 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
     ValueType v = zero<ValueType>();
     if (threadIdx.x < block_size) {
-        v = b[(block_ptrs[block_id] + threadIdx.x) * b_padding];
+        v = b[(block_ptrs[block_id] + threadIdx.x) * b_stride];
     }
     warp::multiply_transposed_vec<max_block_size, subwarp_size>(
-        block_size, v, blocks + block_ptrs[block_id] * padding + threadIdx.x,
-        padding, x + block_ptrs[block_id] * x_padding, x_padding);
+        block_size, v, blocks + block_ptrs[block_id] * stride + threadIdx.x,
+        stride, x + block_ptrs[block_id] * x_stride, x_stride);
 }
 
 
@@ -122,7 +122,7 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::compile_int_list<max_block_size>,
               const matrix::Csr<ValueType, IndexType> *mtx,
-              ValueType *block_data, size_type padding,
+              ValueType *block_data, size_type stride,
               const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
@@ -135,7 +135,7 @@ void generate(syn::compile_int_list<max_block_size>,
         <<<grid_size, block_size, 0, 0>>>(
             mtx->get_num_rows(), mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
-            as_cuda_type(block_data), padding, block_ptrs, num_blocks);
+            as_cuda_type(block_data), stride, block_ptrs, num_blocks);
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
@@ -145,8 +145,8 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
            const IndexType *block_pointers, const ValueType *blocks,
-           size_type block_padding, const ValueType *b, size_type b_padding,
-           ValueType *x, size_type x_padding)
+           size_type block_stride, const ValueType *b, size_type b_stride,
+           ValueType *x, size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
@@ -156,8 +156,8 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
 
     kernel::apply<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
-            as_cuda_type(blocks), block_padding, block_pointers, num_blocks,
-            as_cuda_type(b), b_padding, as_cuda_type(x), x_padding);
+            as_cuda_type(blocks), block_stride, block_pointers, num_blocks,
+            as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
@@ -185,7 +185,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const GpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     select_generate(compiled_kernels(),
@@ -194,7 +194,7 @@ void generate(std::shared_ptr<const GpuExecutor> exec,
                     },
                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
                     syn::compile_type_list<>(), system_matrix,
-                    blocks.get_data(), padding, block_pointers.get_const_data(),
+                    blocks.get_data(), stride, block_pointers.get_const_data(),
                     num_blocks);
 }
 
@@ -204,7 +204,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -214,7 +214,7 @@ void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
     using Vec = matrix::Dense<ValueType>;
     // TODO: do this efficiently
     auto tmp = x->clone();
-    simple_apply(exec, num_blocks, max_block_size, padding, block_pointers,
+    simple_apply(exec, num_blocks, max_block_size, stride, block_pointers,
                  blocks, b, static_cast<Vec *>(tmp.get()));
     x->scale(beta);
     x->add_scaled(alpha, tmp.get());
@@ -226,7 +226,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
-                  uint32 max_block_size, size_type padding,
+                  uint32 max_block_size, size_type stride,
                   const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
@@ -241,8 +241,8 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                      syn::compile_int_list<cuda_config::min_warps_per_block>(),
                      syn::compile_type_list<>(), num_blocks,
                      block_pointers.get_const_data(), blocks.get_const_data(),
-                     padding, b->get_const_values() + col, b->get_padding(),
-                     x->get_values() + col, x->get_padding());
+                     stride, b->get_const_values() + col, b->get_stride(),
+                     x->get_values() + col, x->get_stride());
     }
 }
 
@@ -254,9 +254,9 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const GpuExecutor> exec,
                       size_type num_blocks,
                       const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_padding,
+                      const Array<ValueType> &blocks, size_type block_stride,
                       ValueType *result_values,
-                      size_type result_padding) NOT_IMPLEMENTED;
+                      size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
@@ -271,7 +271,7 @@ namespace adaptive_block_jacobi {
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const GpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
@@ -282,7 +282,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
@@ -298,7 +298,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, size_type padding,
+    uint32 max_block_size, size_type stride,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b,
@@ -313,8 +313,8 @@ void convert_to_dense(
     std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    size_type block_padding, ValueType *result_values,
-    size_type result_padding) NOT_IMPLEMENTED;
+    size_type block_stride, ValueType *result_values,
+    size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);

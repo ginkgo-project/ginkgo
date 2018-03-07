@@ -250,7 +250,7 @@ public:
      *
      * For example, for a matrix::Dense `A` it will always hold
      * ```cpp
-     * A->get_num_stored_elements() == A->get_num_rows() * A->get_padding()
+     * A->get_num_stored_elements() == A->get_num_rows() * A->get_stride()
      * ```
      *
      * @return the number of elements explicitly stored in memory

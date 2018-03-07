@@ -153,11 +153,11 @@ namespace {
 template <typename ValueType, typename IndexType>
 inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
                           IndexType block_size, IndexType block_start,
-                          ValueType *block, size_type padding)
+                          ValueType *block, size_type stride)
 {
     for (int i = 0; i < block_size; ++i) {
         for (int j = 0; j < block_size; ++j) {
-            block[i * padding + j] = zero<ValueType>();
+            block[i * stride + j] = zero<ValueType>();
         }
     }
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -169,7 +169,7 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
         for (int i = start; i < end; ++i) {
             const auto col = col_idxs[i] - block_start;
             if (0 <= col && col < block_size) {
-                block[row * padding + col] = vals[i];
+                block[row * stride + col] = vals[i];
             }
         }
     }
@@ -178,12 +178,12 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
 
 template <typename ValueType, typename IndexType>
 inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
-                              size_type padding)
+                              size_type stride)
 {
     using std::abs;
     IndexType cp = 0;
     for (IndexType i = 1; i < block_size; ++i) {
-        if (abs(block[cp * padding]) < abs(block[i * padding])) {
+        if (abs(block[cp * stride]) < abs(block[i * stride])) {
             cp = i;
         }
     }
@@ -193,11 +193,11 @@ inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
 
 template <typename ValueType, typename IndexType>
 inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
-                      ValueType *block, size_type padding)
+                      ValueType *block, size_type stride)
 {
     using std::swap;
     for (IndexType i = 0; i < block_size; ++i) {
-        swap(block[row1 * padding + i], block[row2 * padding + i]);
+        swap(block[row1 * stride + i], block[row2 * stride + i]);
     }
 }
 
@@ -205,23 +205,23 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 template <typename ValueType, typename IndexType>
 inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
                                          IndexType block_size, ValueType *block,
-                                         size_type padding)
+                                         size_type stride)
 {
-    const auto d = block[row * padding + col];
+    const auto d = block[row * stride + col];
     for (IndexType i = 0; i < block_size; ++i) {
-        block[i * padding + col] /= -d;
+        block[i * stride + col] /= -d;
     }
-    block[row * padding + col] = zero<ValueType>();
+    block[row * stride + col] = zero<ValueType>();
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            block[i * padding + j] +=
-                block[i * padding + col] * block[row * padding + j];
+            block[i * stride + j] +=
+                block[i * stride + col] * block[row * stride + j];
         }
     }
     for (IndexType j = 0; j < block_size; ++j) {
-        block[row * padding + j] /= d;
+        block[row * stride + j] /= d;
     }
-    block[row * padding + col] = one<ValueType>() / d;
+    block[row * stride + col] = one<ValueType>() / d;
 }
 
 
@@ -230,13 +230,13 @@ template <typename SourceValueType, typename ResultValueType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
 inline void copy_block(IndexType block_size, const SourceValueType *from,
-                       size_type from_padding, ResultValueType *to,
-                       size_type to_padding,
+                       size_type from_stride, ResultValueType *to,
+                       size_type to_stride,
                        ValueConverter converter = {}) noexcept
 {
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            to[i * to_padding + j] = converter(from[i * from_padding + j]);
+            to[i * to_stride + j] = converter(from[i * from_stride + j]);
         }
     }
 }
@@ -249,15 +249,15 @@ template <typename SourceValueType, typename ResultValueType,
 inline void copy_and_permute_block(IndexType block_size,
                                    const IndexType *col_perm,
                                    const SourceValueType *source,
-                                   size_type source_padding,
+                                   size_type source_stride,
                                    ResultValueType *result,
-                                   size_type result_padding,
+                                   size_type result_stride,
                                    ValueConverter converter = {})
 {
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            result[i * result_padding + col_perm[j]] =
-                converter(source[i * source_padding + j]);
+            result[i * result_stride + col_perm[j]] =
+                converter(source[i * source_stride + j]);
         }
     }
 }
@@ -265,16 +265,16 @@ inline void copy_and_permute_block(IndexType block_size,
 
 template <typename ValueType, typename IndexType>
 inline void invert_block(IndexType block_size, IndexType *perm,
-                         ValueType *block, size_type padding)
+                         ValueType *block, size_type stride)
 {
     using std::abs;
     using std::swap;
     for (IndexType k = 0; k < block_size; ++k) {
         const auto cp =
-            choose_pivot(block_size - k, block + k * padding + k, padding) + k;
-        swap_rows(k, cp, block_size, block, padding);
+            choose_pivot(block_size - k, block + k * stride + k, stride) + k;
+        swap_rows(k, cp, block_size, block, stride);
         swap(perm[k], perm[cp]);
-        apply_gauss_jordan_transform(k, k, block_size, block, padding);
+        apply_gauss_jordan_transform(k, k, block_size, block, stride);
     }
 }
 
@@ -285,7 +285,7 @@ inline void invert_block(IndexType block_size, IndexType *perm,
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -298,8 +298,8 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                       block_size);
         invert_block(block_size, perm.get_data(), block.get_data(), block_size);
         copy_and_permute_block(block_size, perm.get_data(), block.get_data(),
-                               block_size,
-                               blocks.get_data() + padding * ptrs[b], padding);
+                               block_size, blocks.get_data() + stride * ptrs[b],
+                               stride);
     }
 }
 
@@ -314,21 +314,21 @@ template <
     typename ValueType, typename BlockValueType,
     typename ValueConverter = default_converter<BlockValueType, ValueType>>
 inline void apply_block(size_type block_size, size_type num_rhs,
-                        const BlockValueType *block, size_type padding,
-                        ValueType alpha, const ValueType *b,
-                        size_type padding_b, ValueType beta, ValueType *x,
-                        size_type padding_x, ValueConverter converter = {})
+                        const BlockValueType *block, size_type stride,
+                        ValueType alpha, const ValueType *b, size_type stride_b,
+                        ValueType beta, ValueType *x, size_type stride_x,
+                        ValueConverter converter = {})
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
             for (size_type col = 0; col < num_rhs; ++col) {
-                x[row * padding_x + col] *= beta;
+                x[row * stride_x + col] *= beta;
             }
         }
     } else {
         for (size_type row = 0; row < block_size; ++row) {
             for (size_type col = 0; col < num_rhs; ++col) {
-                x[row * padding_x + col] = zero<ValueType>();
+                x[row * stride_x + col] = zero<ValueType>();
             }
         }
     }
@@ -336,9 +336,9 @@ inline void apply_block(size_type block_size, size_type num_rhs,
     for (size_type row = 0; row < block_size; ++row) {
         for (size_type inner = 0; inner < block_size; ++inner) {
             for (size_type col = 0; col < num_rhs; ++col) {
-                x[row * padding_x + col] +=
-                    alpha * converter(block[row * padding + inner]) *
-                    b[inner * padding_b + col];
+                x[row * stride_x + col] +=
+                    alpha * converter(block[row * stride + inner]) *
+                    b[inner * stride_b + col];
             }
         }
     }
@@ -350,7 +350,7 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -359,13 +359,13 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + padding * ptrs[i];
-        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        apply_block(block_size, b->get_num_cols(), block, padding,
-                    alpha->at(0, 0), block_b, b->get_padding(), beta->at(0, 0),
-                    block_x, x->get_padding());
+        apply_block(block_size, b->get_num_cols(), block, stride,
+                    alpha->at(0, 0), block_b, b->get_stride(), beta->at(0, 0),
+                    block_x, x->get_stride());
     }
 }
 
@@ -375,21 +375,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                  size_type num_blocks, uint32 max_block_size,
-                  size_type padding, const Array<IndexType> &block_pointers,
+                  size_type num_blocks, uint32 max_block_size, size_type stride,
+                  const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + padding * ptrs[i];
-        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        apply_block(block_size, b->get_num_cols(), block, padding,
-                    one<ValueType>(), block_b, b->get_padding(),
-                    zero<ValueType>(), block_x, x->get_padding());
+        apply_block(block_size, b->get_num_cols(), block, stride,
+                    one<ValueType>(), block_b, b->get_stride(),
+                    zero<ValueType>(), block_x, x->get_stride());
     }
 }
 
@@ -397,33 +397,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
-namespace {
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       size_type num_blocks,
                       const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_padding,
-                      ValueType *result_values, size_type result_padding)
+                      const Array<ValueType> &blocks, size_type block_stride,
+                      ValueType *result_values, size_type result_stride)
 {
     const auto ptrs = block_pointers.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
     for (size_type i = 0; i < matrix_size; ++i) {
         for (size_type j = 0; j < matrix_size; ++j) {
-            result_values[i * result_padding + j] = zero<ValueType>();
+            result_values[i * result_stride + j] = zero<ValueType>();
         }
     }
 
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + block_padding * ptrs[i];
+        const auto block = blocks.get_const_data() + block_stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        copy_block(block_size, block, block_padding,
-                   result_values + ptrs[i] * result_padding + ptrs[i],
-                   result_padding);
+        copy_block(block_size, block, block_stride,
+                   result_values + ptrs[i] * result_stride + ptrs[i],
+                   result_stride);
     }
 }
 
@@ -456,7 +450,7 @@ namespace adaptive_block_jacobi {
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
@@ -467,16 +461,16 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + padding * ptrs[i];
-        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i], block_jacobi::apply_block(
                          block_size, b->get_num_cols(),
                          reinterpret_cast<const resolved_precision *>(block),
-                         padding, alpha->at(0, 0), block_b, b->get_padding(),
-                         beta->at(0, 0), block_x, x->get_padding()));
+                         stride, alpha->at(0, 0), block_b, b->get_stride(),
+                         beta->at(0, 0), block_x, x->get_stride()));
     }
 }
 
@@ -487,7 +481,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, size_type padding,
+    uint32 max_block_size, size_type stride,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
@@ -495,16 +489,16 @@ void simple_apply(
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + padding * ptrs[i];
-        const auto block_b = b->get_const_values() + b->get_padding() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_padding() * ptrs[i];
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i], block_jacobi::apply_block(
                          block_size, b->get_num_cols(),
                          reinterpret_cast<const resolved_precision *>(block),
-                         padding, one<ValueType>(), block_b, b->get_padding(),
-                         zero<ValueType>(), block_x, x->get_padding()));
+                         stride, one<ValueType>(), block_b, b->get_stride(),
+                         zero<ValueType>(), block_x, x->get_stride()));
     }
 }
 
@@ -517,27 +511,26 @@ void convert_to_dense(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    size_type block_padding, ValueType *result_values, size_type result_padding)
+    size_type block_stride, ValueType *result_values, size_type result_stride)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
     for (size_type i = 0; i < matrix_size; ++i) {
         for (size_type j = 0; j < matrix_size; ++j) {
-            result_values[i * result_padding + j] = zero<ValueType>();
+            result_values[i * result_stride + j] = zero<ValueType>();
         }
     }
 
     for (size_type i = 0; i < num_blocks; ++i) {
-        const auto block = blocks.get_const_data() + block_padding * ptrs[i];
+        const auto block = blocks.get_const_data() + block_stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i],
             block_jacobi::copy_block(
                 block_size, reinterpret_cast<const resolved_precision *>(block),
-                block_padding,
-                result_values + ptrs[i] * result_padding + ptrs[i],
-                result_padding));
+                block_stride, result_values + ptrs[i] * result_stride + ptrs[i],
+                result_stride));
     }
 }
 
@@ -548,7 +541,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
@@ -572,8 +565,8 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
             block_jacobi::copy_and_permute_block(
                 block_size, perm.get_data(), block.get_data(), block_size,
                 reinterpret_cast<resolved_precision *>(blocks.get_data() +
-                                                       padding * ptrs[b]),
-                padding));
+                                                       stride * ptrs[b]),
+                stride));
     }
 }
 

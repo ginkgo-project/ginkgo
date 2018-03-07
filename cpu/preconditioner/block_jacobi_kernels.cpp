@@ -56,7 +56,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
@@ -66,7 +66,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -80,7 +80,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
-                  uint32 max_block_size, size_type padding,
+                  uint32 max_block_size, size_type stride,
                   const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
@@ -94,9 +94,9 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
                       size_type num_blocks,
                       const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_padding,
+                      const Array<ValueType> &blocks, size_type block_stride,
                       ValueType *result_values,
-                      size_type result_padding) NOT_IMPLEMENTED;
+                      size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
@@ -111,7 +111,7 @@ namespace adaptive_block_jacobi {
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CpuExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type padding,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
               Array<precision<ValueType, IndexType>> &block_precisions,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;
@@ -122,7 +122,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type padding,
+           uint32 max_block_size, size_type stride,
            const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
@@ -138,7 +138,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, size_type padding,
+    uint32 max_block_size, size_type stride,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b,
@@ -153,8 +153,8 @@ void convert_to_dense(
     std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    size_type block_padding, ValueType *result_values,
-    size_type result_padding) NOT_IMPLEMENTED;
+    size_type block_stride, ValueType *result_values,
+    size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
