@@ -179,7 +179,7 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
  *                  (thread `i` supplies the `i`-th value of the vector)
  * @param destination  pointer to memory where the result will be stored
  *                     (all threads supply the same value)
- * @param padding  offset between two consecutive rows of the matrix
+ * @param stride  offset between two consecutive rows of the matrix
  *
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
@@ -188,7 +188,7 @@ template <int max_problem_size, int subwarp_size, typename ValueType>
 __device__ __forceinline__ void copy_matrix(
     uint32 problem_size, const ValueType *__restrict__ source_row,
     uint32 increment, uint32 row_perm, uint32 col_perm,
-    ValueType *__restrict__ destination, size_type padding)
+    ValueType *__restrict__ destination, size_type stride)
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
@@ -200,7 +200,7 @@ __device__ __forceinline__ void copy_matrix(
         }
         const auto idx = warp::shuffle(col_perm, i, subwarp_size);
         if (threadIdx.x < problem_size) {
-            destination[idx * padding + row_perm] = source_row[i * increment];
+            destination[idx * stride + row_perm] = source_row[i * increment];
         }
     }
 }

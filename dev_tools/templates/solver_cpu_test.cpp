@@ -181,7 +181,7 @@ TEST_F(Xxsolverxx, CpuXxsolverxxStep1IsEquivalentToRef)
     p_result->copy_from(d_p.get());
     z_result->copy_from(d_z.get());
 
-    //     printf("GPU: (padding %d) \n", p_result->get_padding());
+    //     printf("GPU: (stride %d) \n", p_result->get_stride());
     // for (int row=0; row<m; row++) {
     //     for (int col=0; col<n; col++) {
     //         printf("%.2f  ",   p_result->at(row, col));

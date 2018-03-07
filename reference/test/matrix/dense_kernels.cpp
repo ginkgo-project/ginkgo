@@ -160,7 +160,7 @@ TEST_F(Dense, ScalesDataWithScalar)
 }
 
 
-TEST_F(Dense, ScalesDataWithPadding)
+TEST_F(Dense, ScalesDataWithStride)
 {
     auto alpha = gko::initialize<Mtx>({{-1.0, 1.0, 2.0}}, exec);
 
@@ -348,7 +348,7 @@ TEST_F(Dense, MovesToEll)
 }
 
 
-TEST_F(Dense, ConvertsToEllWithPadding)
+TEST_F(Dense, ConvertsToEllWithStride)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 
@@ -377,7 +377,7 @@ TEST_F(Dense, ConvertsToEllWithPadding)
 }
 
 
-TEST_F(Dense, MovesToEllWithPadding)
+TEST_F(Dense, MovesToEllWithStride)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 

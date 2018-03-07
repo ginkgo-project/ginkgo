@@ -57,8 +57,8 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_num_cols(),
                  c->get_num_rows(), a->get_num_cols(), &alpha,
-                 b->get_const_values(), b->get_padding(), a->get_const_values(),
-                 a->get_padding(), &beta, c->get_values(), c->get_padding());
+                 b->get_const_values(), b->get_stride(), a->get_const_values(),
+                 a->get_stride(), &beta, c->get_values(), c->get_stride());
     cublas::destroy(handle);
 }
 
@@ -75,8 +75,8 @@ void apply(std::shared_ptr<const GpuExecutor> exec,
     cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_num_cols(),
                  c->get_num_rows(), a->get_num_cols(),
                  alpha->get_const_values(), b->get_const_values(),
-                 b->get_padding(), a->get_const_values(), a->get_padding(),
-                 beta->get_const_values(), c->get_values(), c->get_padding());
+                 b->get_stride(), a->get_const_values(), a->get_stride(),
+                 beta->get_const_values(), c->get_values(), c->get_stride());
     cublas::destroy(handle);
 }
 
@@ -96,7 +96,7 @@ void scale(std::shared_ptr<const GpuExecutor> exec,
         for (size_type col = 0; col < x->get_num_cols(); ++col) {
             cublas::scal(handle, x->get_num_rows(),
                          alpha->get_const_values() + col, x->get_values() + col,
-                         x->get_padding());
+                         x->get_stride());
         }
     }
     cublas::destroy(handle);
@@ -114,18 +114,18 @@ void add_scaled(std::shared_ptr<const GpuExecutor> exec,
     // TODO: write a custom kernel which does this more efficiently
     if (alpha->get_num_cols() == 1) {
         // cannot write as single kernel call, x and y can have different
-        // paddings
+        // strides
         for (size_type col = 0; col < x->get_num_cols(); ++col) {
             cublas::axpy(handle, x->get_num_rows(), alpha->get_const_values(),
-                         x->get_const_values() + col, x->get_padding(),
-                         y->get_values() + col, y->get_padding());
+                         x->get_const_values() + col, x->get_stride(),
+                         y->get_values() + col, y->get_stride());
         }
     } else {
         for (size_type col = 0; col < x->get_num_cols(); ++col) {
             cublas::axpy(handle, x->get_num_rows(),
                          alpha->get_const_values() + col,
-                         x->get_const_values() + col, x->get_padding(),
-                         y->get_values() + col, y->get_padding());
+                         x->get_const_values() + col, x->get_stride(),
+                         y->get_values() + col, y->get_stride());
         }
     }
     cublas::destroy(handle);
@@ -144,8 +144,8 @@ void compute_dot(std::shared_ptr<const GpuExecutor> exec,
     // TODO: write a custom kernel which does this more efficiently
     for (size_type col = 0; col < x->get_num_cols(); ++col) {
         cublas::dot(handle, x->get_num_rows(), x->get_const_values() + col,
-                    x->get_padding(), y->get_const_values() + col,
-                    y->get_padding(), result->get_values() + col);
+                    x->get_stride(), y->get_const_values() + col,
+                    y->get_stride(), result->get_values() + col);
     }
     cublas::destroy(handle);
 }
@@ -219,8 +219,8 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_num_rows(),
                  orig->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
-                 trans->get_values(), trans->get_padding());
+                 orig->get_stride(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_stride());
 
     cublas::destroy(handle);
 };
@@ -242,8 +242,8 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_num_rows(),
                  orig->get_num_cols(), &alpha, orig->get_const_values(),
-                 orig->get_padding(), &beta, nullptr, trans->get_num_cols(),
-                 trans->get_values(), trans->get_padding());
+                 orig->get_stride(), &beta, nullptr, trans->get_num_cols(),
+                 trans->get_values(), trans->get_stride());
 
     cublas::destroy(handle);
 };
