@@ -116,7 +116,7 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
         BlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
                 this->num_blocks_, this->block_pointers_, this->blocks_,
-                this->max_block_size_, tmp->get_values(), tmp->get_padding()));
+                this->max_block_size_, tmp->get_values(), tmp->get_stride()));
     tmp->move_to(result);
 }
 
@@ -158,7 +158,7 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
     exec->run(
         BlockJacobiOperation<ValueType, IndexType>::make_generate_operation(
             csr_mtx, this->num_blocks_, this->max_block_size_,
-            this->get_padding(), this->block_pointers_, this->blocks_));
+            this->get_stride(), this->block_pointers_, this->blocks_));
 }
 
 
@@ -222,7 +222,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::convert_to(
             make_convert_to_dense_operation(
                 this->num_blocks_, block_precisions_, this->block_pointers_,
                 this->blocks_, this->max_block_size_, tmp->get_values(),
-                tmp->get_padding()));
+                tmp->get_stride()));
     tmp->move_to(result);
 }
 
@@ -268,7 +268,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
     exec->run(AdaptiveBlockJacobiOperation<ValueType, IndexType>::
                   make_generate_operation(
                       csr_mtx, this->num_blocks_, this->max_block_size_,
-                      this->get_padding(), block_precisions_,
+                      this->get_stride(), block_precisions_,
                       this->block_pointers_, this->blocks_));
 }
 

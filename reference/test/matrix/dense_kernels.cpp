@@ -160,7 +160,7 @@ TEST_F(Dense, ScalesDataWithScalar)
 }
 
 
-TEST_F(Dense, ScalesDataWithPadding)
+TEST_F(Dense, ScalesDataWithStride)
 {
     auto alpha = gko::initialize<Mtx>({{-1.0, 1.0, 2.0}}, exec);
 
@@ -311,7 +311,7 @@ TEST_F(Dense, ConvertsToEll)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(ell_mtx->get_padding(), 2);
+    ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
@@ -336,7 +336,7 @@ TEST_F(Dense, MovesToEll)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(ell_mtx->get_padding(), 2);
+    ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
@@ -348,7 +348,7 @@ TEST_F(Dense, MovesToEll)
 }
 
 
-TEST_F(Dense, ConvertsToEllWithPadding)
+TEST_F(Dense, ConvertsToEllWithStride)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 
@@ -361,7 +361,7 @@ TEST_F(Dense, ConvertsToEllWithPadding)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
-    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 0);
@@ -377,7 +377,7 @@ TEST_F(Dense, ConvertsToEllWithPadding)
 }
 
 
-TEST_F(Dense, MovesToEllWithPadding)
+TEST_F(Dense, MovesToEllWithStride)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor(), 0, 0, 0, 3);
 
@@ -390,7 +390,7 @@ TEST_F(Dense, MovesToEllWithPadding)
     ASSERT_EQ(ell_mtx->get_num_cols(), 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
-    ASSERT_EQ(ell_mtx->get_padding(), 3);
+    ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 0);

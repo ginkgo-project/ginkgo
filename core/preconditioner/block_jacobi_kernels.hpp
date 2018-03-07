@@ -53,13 +53,13 @@ namespace kernels {
     void generate(std::shared_ptr<const DefaultExecutor> exec,               \
                   const matrix::Csr<ValueType, IndexType> *system_matrix,    \
                   size_type num_blocks, uint32 max_block_size,               \
-                  size_type padding, const Array<IndexType> &block_pointers, \
+                  size_type stride, const Array<IndexType> &block_pointers, \
                   Array<ValueType> &blocks)
 
 #define GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)            \
     void apply(                                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size, size_type padding,                              \
+        uint32 max_block_size, size_type stride,                              \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
         const matrix::Dense<ValueType> *b,                                     \
@@ -68,7 +68,7 @@ namespace kernels {
 #define GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType) \
     void simple_apply(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size, size_type padding,                          \
+        uint32 max_block_size, size_type stride,                          \
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
@@ -77,8 +77,8 @@ namespace kernels {
     void convert_to_dense(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
         const Array<IndexType> &block_pointers,                                \
-        const Array<ValueType> &blocks, size_type block_padding,               \
-        ValueType *result_values, size_type result_padding)
+        const Array<ValueType> &blocks, size_type block_stride,               \
+        ValueType *result_values, size_type result_stride)
 
 #define DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType, typename IndexType>                   \
@@ -128,14 +128,14 @@ DECLARE_ALL_AS_TEMPLATES;
     void generate(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType> *system_matrix,         \
-        size_type num_blocks, uint32 max_block_size, size_type padding, \
+        size_type num_blocks, uint32 max_block_size, size_type stride, \
         Array<precision<ValueType, IndexType>> &block_precisions,       \
         const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 
 #define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)   \
     void apply(                                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size, size_type padding,                              \
+        uint32 max_block_size, size_type stride,                              \
         const Array<precision<ValueType, IndexType>> &block_precisions,        \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
@@ -146,7 +146,7 @@ DECLARE_ALL_AS_TEMPLATES;
                                                               IndexType)   \
     void simple_apply(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size, size_type padding,                          \
+        uint32 max_block_size, size_type stride,                          \
         const Array<precision<ValueType, IndexType>> &block_precisions,    \
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
@@ -158,8 +158,8 @@ DECLARE_ALL_AS_TEMPLATES;
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,   \
         const Array<precision<ValueType, IndexType>> &block_precisions,      \
         const Array<IndexType> &block_pointers,                              \
-        const Array<ValueType> &blocks, size_type block_padding,             \
-        ValueType *result_values, size_type result_padding)
+        const Array<ValueType> &blocks, size_type block_stride,             \
+        ValueType *result_values, size_type result_stride)
 
 #define DECLARE_ALL_AS_TEMPLATES                                             \
     template <typename ValueType, typename IndexType>                        \

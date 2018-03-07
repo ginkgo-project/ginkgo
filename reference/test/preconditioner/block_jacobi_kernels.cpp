@@ -224,7 +224,7 @@ TEST_F(BlockJacobi, InvertsDiagonalBlocks)
     bj_lin_op = bj_factory->generate(mtx);
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_padding();
+    auto p = bj->get_stride();
     auto b1 = bj->get_blocks();
     EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-14);
     EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-14);
@@ -263,7 +263,7 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
     bj_lin_op = bj_factory->generate(std::move(mtx));
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_padding();
+    auto p = bj->get_stride();
     auto b1 = bj->get_blocks();
     EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-14);
     EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-14);
@@ -411,7 +411,7 @@ TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
     bj_lin_op = bj_factory->generate(mtx);
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_padding();
+    auto p = bj->get_stride();
     auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
     EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-7);
@@ -451,7 +451,7 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
     bj_lin_op = bj_factory->generate(std::move(mtx));
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_padding();
+    auto p = bj->get_stride();
     auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
     EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-7);
     EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-7);
