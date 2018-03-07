@@ -123,6 +123,102 @@ DECLARE_ALL_AS_TEMPLATES;
 #undef DECLARE_ALL_AS_TEMPLATES
 
 
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType,    \
+                                                          IndexType)    \
+    void generate(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType> *system_matrix,         \
+        size_type num_blocks, uint32 max_block_size, size_type stride, \
+        Array<precision<ValueType, IndexType>> &block_precisions,       \
+        const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)   \
+    void apply(                                                                \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
+        uint32 max_block_size, size_type stride,                              \
+        const Array<precision<ValueType, IndexType>> &block_precisions,        \
+        const Array<IndexType> &block_pointers,                                \
+        const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
+        const matrix::Dense<ValueType> *b,                                     \
+        const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType,   \
+                                                              IndexType)   \
+    void simple_apply(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
+        uint32 max_block_size, size_type stride,                          \
+        const Array<precision<ValueType, IndexType>> &block_precisions,    \
+        const Array<IndexType> &block_pointers,                            \
+        const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
+        matrix::Dense<ValueType> *x)
+
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, \
+                                                                  IndexType) \
+    void convert_to_dense(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,   \
+        const Array<precision<ValueType, IndexType>> &block_precisions,      \
+        const Array<IndexType> &block_pointers,                              \
+        const Array<ValueType> &blocks, size_type block_stride,             \
+        ValueType *result_values, size_type result_stride)
+
+#define DECLARE_ALL_AS_TEMPLATES                                             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType,         \
+                                                          IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType,     \
+                                                              IndexType)
+
+
+namespace cpu {
+namespace adaptive_block_jacobi {
+
+template <typename ValueType, typename IndexType>
+using precision =
+    typename preconditioner::AdaptiveBlockJacobi<ValueType,
+                                                 IndexType>::precision;
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace adaptive_block_jacobi
+}  // namespace cpu
+
+
+namespace gpu {
+namespace adaptive_block_jacobi {
+
+template <typename ValueType, typename IndexType>
+using precision =
+    typename preconditioner::AdaptiveBlockJacobi<ValueType,
+                                                 IndexType>::precision;
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace adaptive_block_jacobi
+}  // namespace gpu
+
+
+namespace reference {
+namespace adaptive_block_jacobi {
+
+template <typename ValueType, typename IndexType>
+using precision =
+    typename preconditioner::AdaptiveBlockJacobi<ValueType,
+                                                 IndexType>::precision;
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace adaptive_block_jacobi
+}  // namespace reference
+
+
+#undef DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
 

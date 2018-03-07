@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/extended_float.hpp"
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
@@ -224,38 +225,57 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
 }
 
 
-template <typename ValueType, typename IndexType>
-inline void permute_columns(const IndexType *perm, IndexType block_size,
-                            ValueType *block, size_type stride)
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
+inline void copy_block(IndexType block_size, const SourceValueType *from,
+                       size_type from_stride, ResultValueType *to,
+                       size_type to_stride,
+                       ValueConverter converter = {}) noexcept
 {
-    std::vector<ValueType> tmp(block_size);
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            tmp[perm[j]] = block[i * stride + j];
+            to[i * to_stride + j] = converter(from[i * from_stride + j]);
         }
+    }
+}
+
+
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
+inline void copy_and_permute_block(IndexType block_size,
+                                   const IndexType *col_perm,
+                                   const SourceValueType *source,
+                                   size_type source_stride,
+                                   ResultValueType *result,
+                                   size_type result_stride,
+                                   ValueConverter converter = {})
+{
+    for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            block[i * stride + j] = tmp[j];
+            result[i * result_stride + col_perm[j]] =
+                converter(source[i * source_stride + j]);
         }
     }
 }
 
 
 template <typename ValueType, typename IndexType>
-inline void invert_block(IndexType block_size, ValueType *block,
-                         size_type stride)
+inline void invert_block(IndexType block_size, IndexType *perm,
+                         ValueType *block, size_type stride)
 {
     using std::abs;
     using std::swap;
-    std::vector<IndexType> piv(block_size);
-    iota(begin(piv), end(piv), IndexType(0));
     for (IndexType k = 0; k < block_size; ++k) {
         const auto cp =
             choose_pivot(block_size - k, block + k * stride + k, stride) + k;
         swap_rows(k, cp, block_size, block, stride);
-        swap(piv[k], piv[cp]);
+        swap(perm[k], perm[cp]);
         apply_gauss_jordan_transform(k, k, block_size, block, stride);
     }
-    permute_columns(piv.data(), block_size, block, stride);
 }
 
 
@@ -270,10 +290,16 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type b = 0; b < num_blocks; ++b) {
-        const auto block = blocks.get_data() + stride * ptrs[b];
         const auto block_size = ptrs[b + 1] - ptrs[b];
-        extract_block(system_matrix, block_size, ptrs[b], block, stride);
-        invert_block(block_size, block, stride);
+        Array<ValueType> block(exec, block_size * block_size);
+        Array<IndexType> perm(exec, block_size);
+        std::iota(perm.get_data(), perm.get_data() + block_size, IndexType(0));
+        extract_block(system_matrix, block_size, ptrs[b], block.get_data(),
+                      block_size);
+        invert_block(block_size, perm.get_data(), block.get_data(), block_size);
+        copy_and_permute_block(block_size, perm.get_data(), block.get_data(),
+                               block_size,
+                               blocks.get_data() + stride * ptrs[b], stride);
     }
 }
 
@@ -284,12 +310,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace {
 
 
-template <typename ValueType>
+template <
+    typename ValueType, typename BlockValueType,
+    typename ValueConverter = default_converter<BlockValueType, ValueType>>
 inline void apply_block(size_type block_size, size_type num_rhs,
-                        const ValueType *block, size_type stride,
+                        const BlockValueType *block, size_type stride,
                         ValueType alpha, const ValueType *b,
                         size_type stride_b, ValueType beta, ValueType *x,
-                        size_type stride_x)
+                        size_type stride_x, ValueConverter converter = {})
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
@@ -308,9 +336,9 @@ inline void apply_block(size_type block_size, size_type num_rhs,
     for (size_type row = 0; row < block_size; ++row) {
         for (size_type inner = 0; inner < block_size; ++inner) {
             for (size_type col = 0; col < num_rhs; ++col) {
-                x[row * stride_x + col] += alpha *
-                                            block[row * stride + inner] *
-                                            b[inner * stride_b + col];
+                x[row * stride_x + col] +=
+                    alpha * converter(block[row * stride + inner]) *
+                    b[inner * stride_b + col];
             }
         }
     }
@@ -369,25 +397,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-inline void copy_block(IndexType block_size, const ValueType *from,
-                       size_type from_stride, ValueType *to,
-                       size_type to_stride) noexcept
-{
-    for (IndexType i = 0; i < block_size; ++i) {
-        for (IndexType j = 0; j < block_size; ++j) {
-            to[i * to_stride + j] = from[i * from_stride + j];
-        }
-    }
-}
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       size_type num_blocks,
@@ -397,7 +406,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     const size_type matrix_size = ptrs[num_blocks];
-    size_type current_block = 0;
     for (size_type i = 0; i < matrix_size; ++i) {
         for (size_type j = 0; j < matrix_size; ++j) {
             result_values[i * result_stride + j] = zero<ValueType>();
@@ -418,6 +426,156 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace block_jacobi
+
+
+namespace adaptive_block_jacobi {
+
+
+#define RESOLVE_PRECISION(prec, call)                                       \
+    if (prec == precision<ValueType, IndexType>::double_precision) {        \
+        using resolved_precision = ValueType;                               \
+        call;                                                               \
+    } else if (prec == precision<ValueType, IndexType>::single_precision) { \
+        using resolved_precision = reduce_precision<ValueType>;             \
+        call;                                                               \
+    } else if (prec == precision<ValueType, IndexType>::half_precision) {   \
+        using resolved_precision =                                          \
+            reduce_precision<reduce_precision<ValueType>>;                  \
+        call;                                                               \
+    } else {                                                                \
+        throw NOT_SUPPORTED(                                                \
+            (precision<ValueType, IndexType>::best_precision));             \
+    }
+
+
+template <typename ValueType, typename IndexType>
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size, size_type stride,
+           const Array<precision<ValueType, IndexType>> &block_precisions,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        RESOLVE_PRECISION(
+            prec[i], block_jacobi::apply_block(
+                         block_size, b->get_num_cols(),
+                         reinterpret_cast<const resolved_precision *>(block),
+                         stride, alpha->at(0, 0), block_b, b->get_stride(),
+                         beta->at(0, 0), block_x, x->get_stride()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void simple_apply(
+    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, size_type stride,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + stride * ptrs[i];
+        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
+        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        RESOLVE_PRECISION(
+            prec[i], block_jacobi::apply_block(
+                         block_size, b->get_num_cols(),
+                         reinterpret_cast<const resolved_precision *>(block),
+                         stride, one<ValueType>(), block_b, b->get_stride(),
+                         zero<ValueType>(), block_x, x->get_stride()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(
+    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    size_type block_stride, ValueType *result_values, size_type result_stride)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+    for (size_type i = 0; i < matrix_size; ++i) {
+        for (size_type j = 0; j < matrix_size; ++j) {
+            result_values[i * result_stride + j] = zero<ValueType>();
+        }
+    }
+
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto block = blocks.get_const_data() + block_stride * ptrs[i];
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        RESOLVE_PRECISION(
+            prec[i],
+            block_jacobi::copy_block(
+                block_size, reinterpret_cast<const resolved_precision *>(block),
+                block_stride,
+                result_values + ptrs[i] * result_stride + ptrs[i],
+                result_stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size, size_type stride,
+              Array<precision<ValueType, IndexType>> &block_precisions,
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_data();
+    for (size_type b = 0; b < num_blocks; ++b) {
+        const auto block_size = ptrs[b + 1] - ptrs[b];
+        Array<ValueType> block(exec, block_size * block_size);
+        Array<IndexType> perm(exec, block_size);
+        std::iota(perm.get_data(), perm.get_data() + block_size, IndexType(0));
+        block_jacobi::extract_block(system_matrix, block_size, ptrs[b],
+                                    block.get_data(), block_size);
+        block_jacobi::invert_block(block_size, perm.get_data(),
+                                   block.get_data(), block_size);
+        if (prec[b] == precision<ValueType, IndexType>::best_precision) {
+            // TODO: properly compute best precision
+            prec[b] = precision<ValueType, IndexType>::double_precision;
+        }
+        RESOLVE_PRECISION(
+            prec[b],
+            block_jacobi::copy_and_permute_block(
+                block_size, perm.get_data(), block.get_data(), block_size,
+                reinterpret_cast<resolved_precision *>(blocks.get_data() +
+                                                       stride * ptrs[b]),
+                stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
+
+
+}  // namespace adaptive_block_jacobi
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

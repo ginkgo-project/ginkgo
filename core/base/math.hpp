@@ -268,6 +268,23 @@ GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)
 }
 
 
+/**
+ * Used to convert objects of type `S` to objects of type `R` using static_cast.
+ *
+ * @tparam S  source type
+ * @tparam R  result type
+ */
+template <typename S, typename R>
+struct default_converter {
+    /**
+     * Converts the object to result type.
+     *
+     * @param val  the object to convert
+     */
+    GKO_ATTRIBUTES R operator()(S val) { return static_cast<R>(val); }
+};
+
+
 }  // namespace gko
 
 
