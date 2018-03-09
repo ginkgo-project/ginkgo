@@ -55,23 +55,12 @@ protected:
 
     Coo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, 3, 4))
+          mtx(Mtx::create(exec))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_idxs();
-        r[0] = 0;
-        r[1] = 0;
-        r[2] = 0;
-        r[3] = 1;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
+        // clang-format off
+        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
+                                     {0.0, 5.0, 0.0}}, exec);
+        // clang-format on
     }
 
     void assert_equal_to_mtx_in_csr_format(const Csr *m)

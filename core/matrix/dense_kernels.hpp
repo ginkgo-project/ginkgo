@@ -71,6 +71,18 @@ namespace kernels {
                      const matrix::Dense<_type> *y,               \
                      matrix::Dense<_type> *result)
 
+
+#define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
+    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Coo<_type, _prec> *other,            \
+                        const matrix::Dense<_type> *source)
+
+#define GKO_DECLARE_DENSE_MOVE_TO_COO_KERNEL(_type, _prec)        \
+    void move_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
+                     matrix::Coo<_type, _prec> *other,            \
+                     const matrix::Dense<_type> *source)
+
+
 #define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)        \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
                         matrix::Csr<_type, _prec> *other,            \
@@ -121,6 +133,10 @@ namespace kernels {
     GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                     \
     template <typename ValueType>                                       \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_MOVE_TO_COO_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                   \
