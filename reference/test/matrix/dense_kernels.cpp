@@ -33,17 +33,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/dense.hpp>
 
-#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
+
 
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/coo.hpp>
 #include <core/matrix/csr.hpp>
 #include <core/matrix/ell.hpp>
+#include <core/test/utils/assertions.hpp>
+
 
 #include <complex>
+
 
 namespace {
 

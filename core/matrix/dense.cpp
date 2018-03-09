@@ -39,8 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/coo.hpp"
+#include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
 
@@ -93,24 +93,6 @@ struct TemplatedOperationEll {
 
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
-inline void conversion_helper(Csr<ValueType, IndexType> *result,
-                              MatrixType *source, const OperationType &op)
-{
-    auto exec = source->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
-        source, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_num_rows(),
-                                                 source->get_num_cols(),
-                                                 num_stored_nonzeros);
-    exec->run(op(tmp.get(), source));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
 inline void conversion_helper(Coo<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
@@ -120,6 +102,24 @@ inline void conversion_helper(Coo<ValueType, IndexType> *result,
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
         source, &num_stored_nonzeros));
     auto tmp = Coo<ValueType, IndexType>::create(exec, source->get_num_rows(),
+                                                 source->get_num_cols(),
+                                                 num_stored_nonzeros);
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Csr<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+
+    size_type num_stored_nonzeros = 0;
+    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
+        source, &num_stored_nonzeros));
+    auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_num_rows(),
                                                  source->get_num_cols(),
                                                  num_stored_nonzeros);
     exec->run(op(tmp.get(), source));
@@ -227,50 +227,6 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsr<ValueType, int32>::
-            template make_convert_to_csr_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsr<ValueType, int32>::
-            template make_move_to_csr_operation<decltype(result),
-                                                Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsr<ValueType, int64>::
-            template make_convert_to_csr_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsr<ValueType, int64>::
-            template make_move_to_csr_operation<decltype(result),
-                                                Dense<ValueType> *&>);
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
     conversion_helper(
@@ -310,6 +266,50 @@ void Dense<ValueType>::move_to(Coo<ValueType, int64> *result)
         result, this,
         TemplatedOperationCoo<ValueType, int64>::
             template make_move_to_coo_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int32>::
+            template make_convert_to_csr_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int32>::
+            template make_move_to_csr_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int64>::
+            template make_convert_to_csr_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationCsr<ValueType, int64>::
+            template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
 }
 

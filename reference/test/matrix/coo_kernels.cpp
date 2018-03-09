@@ -227,4 +227,5 @@ TEST_F(Coo, ApplyFailsOnWrongNumberOfCols)
     ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
+
 }  // namespace
