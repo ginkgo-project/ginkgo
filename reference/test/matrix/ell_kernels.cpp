@@ -195,7 +195,7 @@ TEST_F(Ell, MovesToDense)
 }
 
 
-TEST_F(Ell, AppliesWithPaddingToDenseVector)
+TEST_F(Ell, AppliesWithStrideToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = Vec::create(exec, 2, 1, 1);
@@ -206,7 +206,7 @@ TEST_F(Ell, AppliesWithPaddingToDenseVector)
 }
 
 
-TEST_F(Ell, AppliesWithPaddingToDenseMatrix)
+TEST_F(Ell, AppliesWithStrideToDenseMatrix)
 {
     // clang-format off
     auto x = gko::initialize<Vec>(
@@ -226,7 +226,7 @@ TEST_F(Ell, AppliesWithPaddingToDenseMatrix)
 }
 
 
-TEST_F(Ell, AppliesWithPaddingLinearCombinationToDenseVector)
+TEST_F(Ell, AppliesWithStrideLinearCombinationToDenseVector)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -239,7 +239,7 @@ TEST_F(Ell, AppliesWithPaddingLinearCombinationToDenseVector)
 }
 
 
-TEST_F(Ell, AppliesWithPaddingLinearCombinationToDenseMatrix)
+TEST_F(Ell, AppliesWithStrideLinearCombinationToDenseMatrix)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -263,7 +263,7 @@ TEST_F(Ell, AppliesWithPaddingLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Ell, ApplyWithPaddingFailsOnWrongInnerDimension)
+TEST_F(Ell, ApplyWithStrideFailsOnWrongInnerDimension)
 {
     auto x = Vec::create(exec, 2, 2, 2);
     auto y = Vec::create(exec, 2, 2, 2);
@@ -272,7 +272,7 @@ TEST_F(Ell, ApplyWithPaddingFailsOnWrongInnerDimension)
 }
 
 
-TEST_F(Ell, ApplyWithPaddingFailsOnWrongNumberOfRows)
+TEST_F(Ell, ApplyWithStrideFailsOnWrongNumberOfRows)
 {
     auto x = Vec::create(exec, 3, 2, 2);
     auto y = Vec::create(exec, 3, 2, 2);
@@ -281,7 +281,7 @@ TEST_F(Ell, ApplyWithPaddingFailsOnWrongNumberOfRows)
 }
 
 
-TEST_F(Ell, ApplyWithPaddingFailsOnWrongNumberOfCols)
+TEST_F(Ell, ApplyWithStrideFailsOnWrongNumberOfCols)
 {
     auto x = Vec::create(exec, 3, 3, 2);
     auto y = Vec::create(exec, 2, 2, 2);
@@ -290,7 +290,7 @@ TEST_F(Ell, ApplyWithPaddingFailsOnWrongNumberOfCols)
 }
 
 
-TEST_F(Ell, ConvertsWithPaddingToDense)
+TEST_F(Ell, ConvertsWithStrideToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
     // clang-format off
@@ -309,7 +309,7 @@ TEST_F(Ell, ConvertsWithPaddingToDense)
 }
 
 
-TEST_F(Ell, MovesWithPaddingToDense)
+TEST_F(Ell, MovesWithStrideToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
 

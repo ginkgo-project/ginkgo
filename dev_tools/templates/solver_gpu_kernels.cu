@@ -50,7 +50,7 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
+    size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ b, ValueType *__restrict__ r,
     ValueType *__restrict__ rr, ValueType *__restrict__ y,
     ValueType *__restrict__ s, ValueType *__restrict__ t,
@@ -72,7 +72,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         omega[tidx] = one<ValueType>();
     }
 
-    if (tidx < num_rows * padding) {
+    if (tidx < num_rows * stride) {
         r[tidx] = b[tidx];
         rr[tidx] = zero<ValueType>();
         y[tidx] = zero<ValueType>();
@@ -98,10 +98,10 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
+        ceildiv(b->get_num_rows() * b->get_stride(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_num_rows(), b->get_num_cols(), b->get_padding(),
+        b->get_num_rows(), b->get_num_cols(), b->get_stride(),
         as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
         as_cuda_type(rr->get_values()), as_cuda_type(y->get_values()),
         as_cuda_type(s->get_values()), as_cuda_type(t->get_values()),
@@ -117,7 +117,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
+    size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ r, ValueType *__restrict__ p,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     const ValueType *__restrict__ prev_rho, const ValueType *__restrict__ alpha,
@@ -125,8 +125,8 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto col = tidx % padding;
-    if (col >= num_cols || tidx >= num_rows * padding) {
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride) {
         return;
     }
     auto res = r[tidx];
@@ -149,10 +149,10 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(r->get_num_rows() * r->get_padding(), block_size.x), 1, 1);
+        ceildiv(r->get_num_rows() * r->get_stride(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        r->get_num_rows(), r->get_num_cols(), r->get_padding(),
+        r->get_num_rows(), r->get_num_cols(), r->get_stride(),
         as_cuda_type(r->get_const_values()), as_cuda_type(p->get_values()),
         as_cuda_type(v->get_const_values()),
         as_cuda_type(rho->get_const_values()),
@@ -166,15 +166,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_1_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
+    size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ r, ValueType *__restrict__ s,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     ValueType *__restrict__ alpha, const ValueType *__restrict__ beta)
 {
     const size_type tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const size_type col = tidx % padding;
-    if (col >= num_cols || tidx >= num_rows * padding) {
+    const size_type col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride) {
         return;
     }
     auto t_alpha = zero<ValueType>();
@@ -198,10 +198,10 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(r->get_num_rows() * r->get_padding(), block_size.x), 1, 1);
+        ceildiv(r->get_num_rows() * r->get_stride(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        r->get_num_rows(), r->get_num_cols(), r->get_padding(),
+        r->get_num_rows(), r->get_num_cols(), r->get_stride(),
         as_cuda_type(r->get_const_values()), as_cuda_type(s->get_values()),
         as_cuda_type(v->get_const_values()),
         as_cuda_type(rho->get_const_values()),
@@ -214,8 +214,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_XXSOLVERXX_STEP_2_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_3_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
-    size_type x_padding, ValueType *__restrict__ x, ValueType *__restrict__ r,
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
     const ValueType *__restrict__ s, const ValueType *__restrict__ t,
     const ValueType *__restrict__ y, const ValueType *__restrict__ z,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
@@ -223,12 +223,12 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto row = tidx / padding;
-    const auto col = tidx % padding;
-    if (col >= num_cols || tidx >= num_rows * padding) {
+    const auto row = tidx / stride;
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride) {
         return;
     }
-    const auto x_pos = row * x_padding + col;
+    const auto x_pos = row * x_stride + col;
     auto t_omega = zero<ValueType>();
     auto t_x = x[x_pos] + alpha[col] * y[tidx];
     auto t_r = s[tidx];
@@ -253,12 +253,12 @@ void step_3(
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(r->get_num_rows() * r->get_padding(), block_size.x), 1, 1);
+        ceildiv(r->get_num_rows() * r->get_stride(), block_size.x), 1, 1);
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
-        r->get_num_rows(), r->get_num_cols(), r->get_padding(),
-        x->get_padding(), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(s->get_const_values()),
+        r->get_num_rows(), r->get_num_cols(), r->get_stride(), x->get_stride(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(s->get_const_values()),
         as_cuda_type(t->get_const_values()),
         as_cuda_type(y->get_const_values()),
         as_cuda_type(z->get_const_values()),

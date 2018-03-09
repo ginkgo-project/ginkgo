@@ -64,7 +64,7 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto alpha = one<ValueType>();
     auto beta = zero<ValueType>();
-    if (b->get_padding() != 1 || c->get_padding() != 1) NOT_IMPLEMENTED;
+    if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
     cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
                    a->get_num_cols(), a->get_num_stored_elements(), &alpha,
@@ -93,7 +93,7 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
 
-    if (b->get_padding() != 1 || c->get_padding() != 1) NOT_IMPLEMENTED;
+    if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
     cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
                    a->get_num_cols(), a->get_num_stored_elements(),

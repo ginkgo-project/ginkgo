@@ -222,7 +222,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = result->get_num_cols();
     auto max_nnz_per_row = result->get_max_nonzeros_per_row();
     for (size_type i = 0; i < max_nnz_per_row; i++) {
-        for (size_type j = 0; j < result->get_padding(); j++) {
+        for (size_type j = 0; j < result->get_stride(); j++) {
             result->val_at(j, i) = zero<ValueType>();
             result->col_at(j, i) = 0;
         }
