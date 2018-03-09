@@ -115,6 +115,35 @@ TEST_F(Coo, MovesToCsr)
     assert_equal_to_mtx_in_csr_format(csr_mtx.get());
 }
 
+
+TEST_F(Coo, ConvertsToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->convert_to(dense_mtx.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, MovesToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->move_to(dense_mtx.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
 TEST_F(Coo, AppliesToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
