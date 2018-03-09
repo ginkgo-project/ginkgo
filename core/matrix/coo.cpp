@@ -60,6 +60,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs,
                            coo::convert_row_idxs_to_ptrs<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense<TplArgs...>);
     GKO_REGISTER_OPERATION(transpose, coo::transpose<TplArgs...>);
     GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose<TplArgs...>);
 };
@@ -132,6 +133,27 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Dense<ValueType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(
+        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
 }
 
 

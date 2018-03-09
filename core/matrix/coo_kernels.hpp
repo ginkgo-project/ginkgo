@@ -63,6 +63,11 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec, const IndexType *idxs, \
         size_type num_nonzeros, IndexType *ptrs, size_type length)
 
+#define GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Dense<ValueType> *result,            \
+                          const matrix::Coo<ValueType, IndexType> *source)
+
 #define GKO_DECLARE_COO_TRANSPOSE_KERNEL(ValueType, IndexType)  \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
                    matrix::Coo<ValueType, IndexType> *trans,    \
@@ -73,16 +78,18 @@ namespace kernels {
                         matrix::Coo<ValueType, IndexType> *trans,    \
                         const matrix::Coo<ValueType, IndexType> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename IndexType>                               \
-    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType); \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_COO_TRANSPOSE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>           \
+#define DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_TRANSPOSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
