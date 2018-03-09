@@ -61,8 +61,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     }
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
         for (size_type j = 0; j < num_cols; j++) {
-            c->at(coo_row[i], j) +=
-                coo_val[i] * b->at(coo_col[i], j);
+            c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
         }
     }
 }
@@ -90,7 +89,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
         for (size_type j = 0; j < num_cols; j++) {
             c->at(coo_row[i], j) +=
-                alpha_val*coo_val[i] * b->at(coo_col[i], j);
+                alpha_val * coo_val[i] * b->at(coo_col[i], j);
         }
     }
 }

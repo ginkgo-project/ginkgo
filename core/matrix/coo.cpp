@@ -137,8 +137,7 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::convert_to(
-    Dense<ValueType> *result) const
+void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(
