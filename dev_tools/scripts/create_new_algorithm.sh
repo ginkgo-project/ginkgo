@@ -20,7 +20,7 @@ function print_help {
 }
 
 function list_sources {
-    for type in solver preconditioner
+    for type in solver preconditioner matrix
     do
         for i in $(ls $GINKGO_ROOT_DIR/core/$type/*.cpp)
         do
@@ -69,7 +69,7 @@ name=${name,,}
 Name=${name^}
 NAME=${name^^}
 
-if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "solver" ]] ) || [[ "$source_name" == "" ]]; then
+if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "matrix" ]] && [[ "$source_type" != "solver" ]] ) || [[ "$source_name" == "" ]]; then
     print_help
     exit 1
 fi
@@ -221,6 +221,11 @@ do
 done
 
 echo -e "In all of the previous files ${sourcename} was automatically replaced into ${name}. Ensure there is no inconsistency."    | tee -a todo_${name}.txt
+if [[ "$source_type" == "matrix" ]]
+then
+    echo -e ""                                     | tee -a todo_${name}.txt
+    echo -e "Caution, due to conversions you also need to either implant all conversions in other classes similarly to ${sourcename}, or to drop the conversions alltogether."    | tee -a todo_${name}.txt
+fi
 echo -e ""                                                                         | tee -a todo_${name}.txt
 
 echo "All tests have to be modified to the specific ${source_type} characteristics."    | tee -a todo_${name}.txt
