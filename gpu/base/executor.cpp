@@ -46,34 +46,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-#define SET_DEVICE_AND_CALL(__device_id__, __function__) \
-    int prev_device;                                     \
-    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&prev_device));  \
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(__device_id__)); \
-    auto errorcode = __function__;                       \
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(prev_device))
+class device_guard {
+public:
+    device_guard(int device_id)
+    {
+        ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
+        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+    }
+
+    ~device_guard()
+    {
+        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+    }
+
+private:
+    int original_device_id{};
+};
 
 
 void CpuExecutor::raw_copy_to(const GpuExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    SET_DEVICE_AND_CALL(
-        dest->get_device_id(),
+    device_guard g(dest->get_device_id());
+    ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
-    ASSERT_NO_CUDA_ERRORS(errorcode);
 }
 
 
 void GpuExecutor::free(void *ptr) const noexcept
 {
-    SET_DEVICE_AND_CALL(this->device_id_, cudaFree(ptr));
-    if (errorcode != cudaSuccess) {
+    device_guard g(this->get_device_id());
+    auto error_code = cudaFree(ptr);
+    if (error_code != cudaSuccess) {
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
-                  << " in " << __func__ << ": " << cudaGetErrorName(errorcode)
-                  << ": " << cudaGetErrorString(errorcode) << std::endl
+                  << " in " << __func__ << ": " << cudaGetErrorName(error_code)
+                  << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
-        std::exit(errorcode);
+        std::exit(error_code);
     }
 }
 
@@ -81,9 +91,10 @@ void GpuExecutor::free(void *ptr) const noexcept
 void *GpuExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
-    SET_DEVICE_AND_CALL(this->device_id_, cudaMalloc(&dev_ptr, num_bytes));
-    if (errorcode != cudaErrorMemoryAllocation) {
-        ASSERT_NO_CUDA_ERRORS(errorcode);
+    device_guard g(this->get_device_id());
+    auto error_code = cudaMalloc(&dev_ptr, num_bytes);
+    if (error_code != cudaErrorMemoryAllocation) {
+        ASSERT_NO_CUDA_ERRORS(error_code);
     }
     ENSURE_ALLOCATED(dev_ptr, "gpu", num_bytes);
     return dev_ptr;
@@ -93,10 +104,9 @@ void *GpuExecutor::raw_alloc(size_type num_bytes) const
 void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    SET_DEVICE_AND_CALL(
-        this->device_id_,
+    device_guard g(this->get_device_id());
+    ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
-    ASSERT_NO_CUDA_ERRORS(errorcode);
 }
 
 
@@ -110,30 +120,27 @@ void GpuExecutor::raw_copy_to(const GpuExecutor *src, size_type num_bytes,
 
 void GpuExecutor::synchronize() const
 {
-    SET_DEVICE_AND_CALL(this->device_id_, cudaDeviceSynchronize());
-    ASSERT_NO_CUDA_ERRORS(errorcode);
+    device_guard g(this->get_device_id());
+    ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
 
 void GpuExecutor::run(const Operation &op) const
 {
-    int prev_device;
-    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&prev_device));
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(this->device_id_));
+    device_guard g(this->get_device_id());
     op.run(
         std::static_pointer_cast<const GpuExecutor>(this->shared_from_this()));
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(prev_device));
 }
 
 
 int GpuExecutor::get_num_devices()
 {
     int deviceCount = 0;
-    auto errcode = cudaGetDeviceCount(&deviceCount);
-    if (errcode == cudaErrorNoDevice) {
+    auto error_code = cudaGetDeviceCount(&deviceCount);
+    if (error_code == cudaErrorNoDevice) {
         return 0;
     }
-    ASSERT_NO_CUDA_ERRORS(errcode);
+    ASSERT_NO_CUDA_ERRORS(error_code);
     return deviceCount;
 }
 
