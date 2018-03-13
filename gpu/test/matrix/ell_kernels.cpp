@@ -41,10 +41,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/exception.hpp>
+#include <core/base/exception_helpers.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
-#include "core/base/exception_helpers.hpp"
 
 
 namespace {
@@ -79,30 +79,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(int stride = 0, int max_nonzeros_per_row = 0)
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
-        alpha = gko::initialize<Vec>({2.0}, ref);
-        beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(gpu);
-        dmtx->copy_from(mtx.get());
-        dresult = Vec::create(gpu);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(gpu);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(gpu);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(gpu);
-        dbeta->copy_from(beta.get());
-    }
-
-
-    void set_up_apply_data_with_stride(int stride, int max_nonzeros_per_row)
-    {
-        mtx = Mtx::create(ref, 0, 0, max_nonzeros_per_row, stride);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
@@ -147,9 +126,7 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -160,34 +137,28 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
 TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 {
-    set_up_apply_data_with_stride(600, 300);
+    set_up_apply_data(600, 300);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
 TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
 {
-    set_up_apply_data_with_stride(600, 300);
+    set_up_apply_data(600, 300);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 

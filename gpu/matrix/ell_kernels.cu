@@ -54,14 +54,11 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-// clang-format off
 __global__ __launch_bounds__(default_block_size) void spmv_kernel(
-    size_type num_rows,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type max_nonzeros_per_row,
-    const ValueType *__restrict__ b,
+    size_type num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col, size_type stride,
+    size_type max_nonzeros_per_row, const ValueType *__restrict__ b,
     ValueType *__restrict__ c)
-// clang-format on
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -81,24 +78,17 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
 
 
 template <typename ValueType, typename IndexType>
-// clang-format off
 void spmv(std::shared_ptr<const GpuExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c)
-// clang-format on
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
-    
-    // clang-format off
+
     spmv_kernel<<<grid_size, block_size, 0, 0>>>(
-        a->get_num_rows(),
-        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-        a->get_stride(), a->get_max_nonzeros_per_row(),
-        as_cuda_type(b->get_const_values()),
-        as_cuda_type(c->get_values()));
-    // clang-format on
+        a->get_num_rows(), as_cuda_type(a->get_const_values()),
+        a->get_const_col_idxs(), a->get_stride(), a->get_max_nonzeros_per_row(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
@@ -108,16 +98,12 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-// clang-format off
 __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
-    size_type num_rows,
-    const ValueType *__restrict__ alpha,
+    size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
     const size_type stride, const size_type max_nonzeros_per_row,
-    const ValueType *__restrict__ b,
-    const ValueType *__restrict__ beta,
+    const ValueType *__restrict__ b, const ValueType *__restrict__ beta,
     ValueType *__restrict__ c)
-// clang-format on
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -147,16 +133,12 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(a->get_num_rows(), block_size.x), 1, 1);
 
-    // clang-format off
     advanced_spmv_kernel<<<grid_size, block_size, 0, 0>>>(
-        a->get_num_rows(),
-        as_cuda_type(alpha->get_const_values()),
+        a->get_num_rows(), as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
         a->get_stride(), a->get_max_nonzeros_per_row(),
         as_cuda_type(b->get_const_values()),
-        as_cuda_type(beta->get_const_values()),
-        as_cuda_type(c->get_values()));
-    // clang-format on
+        as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
