@@ -256,9 +256,9 @@ void step_3(
         ceildiv(r->get_num_rows() * r->get_stride(), block_size.x), 1, 1);
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
-        r->get_num_rows(), r->get_num_cols(), r->get_stride(),
-        x->get_stride(), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(s->get_const_values()),
+        r->get_num_rows(), r->get_num_cols(), r->get_stride(), x->get_stride(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(s->get_const_values()),
         as_cuda_type(t->get_const_values()),
         as_cuda_type(y->get_const_values()),
         as_cuda_type(z->get_const_values()),

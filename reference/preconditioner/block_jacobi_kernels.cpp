@@ -298,8 +298,8 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                       block_size);
         invert_block(block_size, perm.get_data(), block.get_data(), block_size);
         copy_and_permute_block(block_size, perm.get_data(), block.get_data(),
-                               block_size,
-                               blocks.get_data() + stride * ptrs[b], stride);
+                               block_size, blocks.get_data() + stride * ptrs[b],
+                               stride);
     }
 }
 
@@ -315,9 +315,9 @@ template <
     typename ValueConverter = default_converter<BlockValueType, ValueType>>
 inline void apply_block(size_type block_size, size_type num_rhs,
                         const BlockValueType *block, size_type stride,
-                        ValueType alpha, const ValueType *b,
-                        size_type stride_b, ValueType beta, ValueType *x,
-                        size_type stride_x, ValueConverter converter = {})
+                        ValueType alpha, const ValueType *b, size_type stride_b,
+                        ValueType beta, ValueType *x, size_type stride_x,
+                        ValueConverter converter = {})
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
@@ -375,8 +375,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                  size_type num_blocks, uint32 max_block_size,
-                  size_type stride, const Array<IndexType> &block_pointers,
+                  size_type num_blocks, uint32 max_block_size, size_type stride,
+                  const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *x)
@@ -529,8 +529,7 @@ void convert_to_dense(
             prec[i],
             block_jacobi::copy_block(
                 block_size, reinterpret_cast<const resolved_precision *>(block),
-                block_stride,
-                result_values + ptrs[i] * result_stride + ptrs[i],
+                block_stride, result_values + ptrs[i] * result_stride + ptrs[i],
                 result_stride));
     }
 }

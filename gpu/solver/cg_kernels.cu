@@ -84,11 +84,10 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
         ceildiv(b->get_num_rows() * b->get_stride(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_num_rows(), b->get_stride(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()));
+        b->get_num_rows(), b->get_stride(), as_cuda_type(b->get_const_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(z->get_values()),
+        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
+        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -168,9 +167,9 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
         ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_stride(),
-        x->get_stride(), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(p->get_const_values()),
+        p->get_num_rows(), p->get_num_cols(), p->get_stride(), x->get_stride(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(p->get_const_values()),
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()));
