@@ -145,7 +145,4 @@ int GpuExecutor::get_num_devices()
 }
 
 
-#undef SET_DEVICE_AND_CALL
-
-
 }  // namespace gko
