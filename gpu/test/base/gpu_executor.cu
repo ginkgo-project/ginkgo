@@ -47,6 +47,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+class ExampleOperation : public gko::Operation {
+public:
+    explicit ExampleOperation(int &val) : value(val) {}
+    void run(std::shared_ptr<const gko::CpuExecutor>) const override
+    {
+        value = -1;
+    }
+    void run(std::shared_ptr<const gko::GpuExecutor> gpu) const override
+    {
+        cudaGetDevice(&value);
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = -2;
+    }
+
+    int &value;
+};
+
+
 class GpuExecutor : public ::testing::Test {
 protected:
     GpuExecutor() : cpu(gko::CpuExecutor::create()), gpu(nullptr), gpu2(nullptr)
@@ -147,18 +167,25 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
 }
 
 /* Properly checks if it works only when multiple GPUs exist */
-TEST_F(GpuExecutor, PreservesStreamSettings)
+TEST_F(GpuExecutor, PreservesDeviceSettings)
 {
-    auto last_device = gko::GpuExecutor::get_num_devices() - 1;
-    cudaSetDevice(last_device);
+    auto previous_device = gko::GpuExecutor::get_num_devices() - 1;
+    cudaSetDevice(previous_device);
     auto orig = gpu->alloc<int>(2);
-    int current_stream;
-    cudaGetDevice(&current_stream);
-    ASSERT_EQ(current_stream, last_device);
+    int current_device;
+    cudaGetDevice(&current_device);
+    ASSERT_EQ(current_device, previous_device);
 
     gpu->free(orig);
-    cudaGetDevice(&current_stream);
-    ASSERT_EQ(current_stream, last_device);
+    cudaGetDevice(&current_device);
+    ASSERT_EQ(current_device, previous_device);
+}
+
+TEST_F(GpuExecutor, RunsOnProperDevice)
+{
+    int value = -1;
+    gpu2->run(ExampleOperation(value));
+    ASSERT_EQ(value, gpu2->get_device_id());
 }
 
 TEST_F(GpuExecutor, CopiesDataFromGpuToGpu)
