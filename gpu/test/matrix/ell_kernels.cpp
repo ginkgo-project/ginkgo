@@ -79,9 +79,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine);
     }
 
-    void set_up_apply_data(int stride = 0, int max_nonzeros_per_row = 0)
+    void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0)
     {
-        mtx = Mtx::create(ref);
+        mtx = Mtx::create(ref, 0, 0, max_nonzeros_per_row, stride);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
@@ -143,7 +143,7 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 {
-    set_up_apply_data(600, 300);
+    set_up_apply_data(300, 600);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -154,7 +154,7 @@ TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 
 TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
 {
-    set_up_apply_data(600, 300);
+    set_up_apply_data(300, 600);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 

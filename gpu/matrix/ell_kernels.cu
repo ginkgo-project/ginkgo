@@ -101,7 +101,7 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
     size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type max_nonzeros_per_row,
+    size_type stride, size_type max_nonzeros_per_row,
     const ValueType *__restrict__ b, const ValueType *__restrict__ beta,
     ValueType *__restrict__ c)
 {
