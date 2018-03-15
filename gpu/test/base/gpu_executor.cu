@@ -149,8 +149,8 @@ TEST_F(GpuExecutor, CopiesDataToGpu)
 
 __global__ void init_data(int *data)
 {
-    data[0] = 5;
-    data[1] = 2;
+    data[0] = 3;
+    data[1] = 8;
 }
 
 TEST_F(GpuExecutor, CopiesDataFromGpu)
@@ -161,8 +161,8 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
 
     cpu->copy_from(gpu.get(), 2, orig, copy);
 
-    EXPECT_EQ(5, copy[0]);
-    ASSERT_EQ(2, copy[1]);
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
     gpu->free(orig);
 }
 
@@ -170,20 +170,21 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
 TEST_F(GpuExecutor, PreservesDeviceSettings)
 {
     auto previous_device = gko::GpuExecutor::get_num_devices() - 1;
-    cudaSetDevice(previous_device);
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
     auto orig = gpu->alloc<int>(2);
     int current_device;
-    cudaGetDevice(&current_device);
+    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 
     gpu->free(orig);
-    cudaGetDevice(&current_device);
+    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 }
 
 TEST_F(GpuExecutor, RunsOnProperDevice)
 {
     int value = -1;
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     gpu2->run(ExampleOperation(value));
     ASSERT_EQ(value, gpu2->get_device_id());
 }
@@ -192,15 +193,24 @@ TEST_F(GpuExecutor, CopiesDataFromGpuToGpu)
 {
     int copy[2];
     auto orig = gpu->alloc<int>(2);
-    cudaSetDevice(0);
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     init_data<<<1, 1>>>(orig);
 
     auto copy_gpu2 = gpu2->alloc<int>(2);
     gpu2->copy_from(gpu.get(), 2, orig, copy_gpu2);
+
+    // Check that the data is really on GPU2 and ensure we did not cheat
+    int value = -1;
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(gpu2->get_device_id()));
+    check_data<<<1, 1>>>(copy_gpu2);
+    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    gpu2->run(ExampleOperation(value));
+    ASSERT_EQ(value, gpu2->get_device_id());
+
     cpu->copy_from(gpu2.get(), 2, copy_gpu2, copy);
 
-    EXPECT_EQ(5, copy[0]);
-    ASSERT_EQ(2, copy[1]);
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
     gpu->free(copy_gpu2);
     gpu->free(orig);
 }
