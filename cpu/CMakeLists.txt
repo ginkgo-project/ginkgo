@@ -5,9 +5,10 @@ set(SOURCES
     matrix/ell_kernels.cpp
     preconditioner/block_jacobi_kernels.cpp
     solver/bicgstab_kernels.cpp
-    solver/fcg_kernels.cpp
+    solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
-    solver/cg_kernels.cpp)
+    solver/fcg_kernels.cpp)
+    
 
 add_library(ginkgo_cpu SHARED
     $<TARGET_OBJECTS:ginkgo_cpu_device>
