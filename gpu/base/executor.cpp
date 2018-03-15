@@ -54,9 +54,13 @@ public:
         ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
 
-    ~device_guard()
+    ~device_guard() noexcept(false)
     {
-        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+        /* Ignore the error during stack unwinding for this call */
+        if (std::uncaught_exception())
+            cudaSetDevice(original_device_id);
+        else
+            ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
     }
 
 private:
