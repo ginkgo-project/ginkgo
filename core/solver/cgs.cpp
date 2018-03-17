@@ -126,7 +126,8 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
-        v_hat.get(), t.get(), rho_prev.get(), rho.get()));
+        v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
+        rho_prev.get(), rho.get()));
     // r = dense_b
     // r_tld = r
     // rho = 0.0
@@ -138,7 +139,6 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     starting_tau->copy_from(tau.get());
 
     r_tld->copy_from(r.get());
-
     for (int iter = 0; iter < max_iters_; iter += 2) {
         r->compute_dot(r_tld.get(), rho.get());
         if (iter == 0) {
@@ -148,9 +148,9 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
             // p = r
         } else {
             exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-                r.get(), q.get(), u.get(), p.get(), beta.get(), rho.get(),
+                r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
                 rho_prev.get()));
-            // beta = rho / prev_rho
+            // beta = rho / rho_prev
             // u = r + beta * q;
             // p = u + beta * ( q + beta * p );
         }

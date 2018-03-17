@@ -49,8 +49,9 @@ namespace cgs {
                     matrix::Dense<_type> *r_tld, matrix::Dense<_type> *p,     \
                     matrix::Dense<_type> *q, matrix::Dense<_type> *u,         \
                     matrix::Dense<_type> *u_hat, matrix::Dense<_type> *v_hat, \
-                    matrix::Dense<_type> *t, matrix::Dense<_type> *prev_rho,  \
-                    matrix::Dense<_type> *rho)
+                    matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,     \
+                    matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma,  \
+                    matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho)
 
 
 #define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                            \

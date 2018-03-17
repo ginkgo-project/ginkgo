@@ -53,7 +53,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cgs_factory(gko::solver::CgsFactory<>::create(exec, 4, 1e-15))
+          cgs_factory(gko::solver::CgsFactory<>::create(exec, 40, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

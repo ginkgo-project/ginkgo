@@ -53,7 +53,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_rows, size_type stride, const ValueType *__restrict__ b,
     ValueType *__restrict__ r, ValueType *__restrict__ z,
     ValueType *__restrict__ p, ValueType *__restrict__ q,
-    ValueType *__restrict__ prev_rho, ValueType *__restrict__ rho)
+    ValueType *__restrict__ alpha, ValueType *__restrict__ beta,
+    ValueType *__restrict__ gamma, ValueType *__restrict__ prev_rho,
+    ValueType *__restrict__ rho)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -79,6 +81,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *u,
                 matrix::Dense<ValueType> *u_hat,
                 matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *t,
+                matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
+                matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho)
 {
