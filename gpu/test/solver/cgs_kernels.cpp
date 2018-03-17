@@ -82,30 +82,48 @@ protected:
         int n = 43;
         b = gen_mtx(m, n);
         r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
+        r_tld = gen_mtx(m, n);
+        t = gen_mtx(m, n);
         p = gen_mtx(m, n);
         q = gen_mtx(m, n);
         x = gen_mtx(m, n);
+        u = gen_mtx(m, n);
+        u_hat = gen_mtx(m, n);
+        v_hat = gen_mtx(m, n);
         beta = gen_mtx(1, n);
-        prev_rho = gen_mtx(1, n);
+        alpha = gen_mtx(1, n);
+        gamma = gen_mtx(1, n);
+        rho_prev = gen_mtx(1, n);
         rho = gen_mtx(1, n);
 
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());
         d_r = Mtx::create(gpu);
         d_r->copy_from(r.get());
-        d_z = Mtx::create(gpu);
-        d_z->copy_from(z.get());
+        d_r_tld = Mtx::create(gpu);
+        d_r_tld->copy_from(r_tld.get());
+        d_t = Mtx::create(gpu);
+        d_t->copy_from(t.get());
         d_p = Mtx::create(gpu);
         d_p->copy_from(p.get());
         d_q = Mtx::create(gpu);
         d_q->copy_from(q.get());
         d_x = Mtx::create(gpu);
         d_x->copy_from(x.get());
+        d_u = Mtx::create(gpu);
+        d_u->copy_from(u.get());
+        d_u_hat = Mtx::create(gpu);
+        d_u_hat->copy_from(u_hat.get());
+        d_v_hat = Mtx::create(gpu);
+        d_v_hat->copy_from(v_hat.get());
         d_beta = Mtx::create(gpu);
         d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(gpu);
-        d_prev_rho->copy_from(prev_rho.get());
+        d_alpha = Mtx::create(gpu);
+        d_alpha->copy_from(alpha.get());
+        d_gamma = Mtx::create(gpu);
+        d_gamma->copy_from(gamma.get());
+        d_rho_prev = Mtx::create(gpu);
+        d_rho_prev->copy_from(rho_prev.get());
         d_rho = Mtx::create(gpu);
         d_rho->copy_from(rho.get());
     }
@@ -144,22 +162,34 @@ protected:
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> z;
+    std::unique_ptr<Mtx> r_tld;
+    std::unique_ptr<Mtx> t;
     std::unique_ptr<Mtx> p;
     std::unique_ptr<Mtx> q;
+    std::unique_ptr<Mtx> u;
+    std::unique_ptr<Mtx> u_hat;
+    std::unique_ptr<Mtx> v_hat;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> prev_rho;
+    std::unique_ptr<Mtx> alpha;
+    std::unique_ptr<Mtx> gamma;
+    std::unique_ptr<Mtx> rho_prev;
     std::unique_ptr<Mtx> rho;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_z;
+    std::unique_ptr<Mtx> d_r_tld;
+    std::unique_ptr<Mtx> d_t;
     std::unique_ptr<Mtx> d_p;
     std::unique_ptr<Mtx> d_q;
+    std::unique_ptr<Mtx> d_u;
+    std::unique_ptr<Mtx> d_u_hat;
+    std::unique_ptr<Mtx> d_v_hat;
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_beta;
-    std::unique_ptr<Mtx> d_prev_rho;
+    std::unique_ptr<Mtx> d_alpha;
+    std::unique_ptr<Mtx> d_gamma;
+    std::unique_ptr<Mtx> d_rho_prev;
     std::unique_ptr<Mtx> d_rho;
 };
 
@@ -168,35 +198,82 @@ TEST_F(Cgs, GpuCgsInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cgs::initialize(ref, b.get(), r.get(), z.get(),
-                                             p.get(), q.get(), prev_rho.get(),
-                                             rho.get());
-    gko::kernels::gpu::cgs::initialize(gpu, d_b.get(), d_r.get(), d_z.get(),
-                                       d_p.get(), d_q.get(), d_prev_rho.get(),
-                                       d_rho.get());
+    gko::kernels::reference::cgs::initialize(
+        ref, b.get(), r.get(), r_tld.get(), p.get(), q.get(), u.get(),
+        u_hat.get(), v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
+        rho_prev.get(), rho.get());
+    gko::kernels::gpu::cgs::initialize(
+        gpu, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
+        d_u.get(), d_u_hat.get(), d_v_hat.get(), d_t.get(), d_alpha.get(),
+        d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
+    ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
+    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
+    ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
     ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
 }
-
 
 
 TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::cgs::step_1(ref, x.get(), r.get(), p.get(),
-                                         q.get(), beta.get(), rho.get());
-    gko::kernels::gpu::cgs::step_1(gpu, d_x.get(), d_r.get(), d_p.get(),
-                                   d_q.get(), d_beta.get(), d_rho.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get());
+    gko::kernels::gpu::cgs::step_1(gpu, d_r.get(), d_u.get(), d_p.get());
+
+    ASSERT_MTX_NEAR(d_u, u, 1e-14);
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
+}
+
+TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
+{
+    initialize_data();
+
+    gko::kernels::reference::cgs::step_2(ref, r.get(), u.get(), p.get(),
+                                         q.get(), beta.get(), rho.get(),
+                                         rho_prev.get());
+    gko::kernels::gpu::cgs::step_2(gpu, d_r.get(), d_u.get(), d_p.get(),
+                                   d_q.get(), d_beta.get(), d_rho.get(),
+                                   d_rho_prev.get());
+    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    ASSERT_MTX_NEAR(d_p, p, 1e-14);
+}
+
+
+TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
+{
+    initialize_data();
+    gko::kernels::reference::cgs::step_3(ref, u.get(), v_hat.get(), q.get(),
+                                         t.get(), alpha.get(), rho.get(),
+                                         gamma.get());
+    gko::kernels::gpu::cgs::step_3(gpu, d_u.get(), d_v_hat.get(), d_q.get(),
+                                   d_t.get(), d_alpha.get(), d_rho.get(),
+                                   d_gamma.get());
+
+    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+}
+
+TEST_F(Cgs, GpuCgsStep4IsEquivalentToRef)
+{
+    initialize_data();
+    gko::kernels::reference::cgs::step_4(ref, t.get(), u_hat.get(), r.get(),
+                                         x.get(), alpha.get());
+    gko::kernels::gpu::cgs::step_4(gpu, d_t.get(), d_u_hat.get(), d_r.get(),
+                                   d_x.get(), d_alpha.get());
+    ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
