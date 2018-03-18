@@ -9,7 +9,8 @@ set(SOURCES
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/fcg.cpp
-    solver/cg.cpp)
+    solver/cg.cpp
+    solver/tfqmr.cpp)
 
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules

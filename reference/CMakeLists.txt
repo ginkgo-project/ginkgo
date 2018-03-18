@@ -6,7 +6,8 @@ set(SOURCES
     preconditioner/block_jacobi_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/fcg_kernels.cpp
-    solver/cg_kernels.cpp)
+    solver/cg_kernels.cpp
+    solver/tfqmr_kernels.cpp)
 
 add_library(ginkgo_reference SHARED
     $<TARGET_OBJECTS:ginkgo_reference_device>
