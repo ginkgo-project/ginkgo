@@ -86,7 +86,7 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
+     * Gets the maximum number of iterations of the TFQMR solver.
      *
      * @return  The maximum number of iterations.
      */
@@ -129,14 +129,14 @@ private:
 
 
 /**
- * Creates the BiCGSTAB solver.
+ * Creates the TFQMR solver.
  *
- * @param exec The executor on which the BiCGSTAB solver is to be created.
+ * @param exec The executor on which the TFQMR solver is to be created.
  * @param max_iters  The maximum number of iterations to be pursued.
  * @param rel_residual_goal  The relative residual required for
  * convergence.
  *
- * @return The newly created BiCGSTAB solver.
+ * @return The newly created TFQMR solver.
  */
 template <typename ValueType = default_precision>
 class TfqmrFactory : public LinOpFactory, public PreconditionedMethodFactory {
@@ -155,7 +155,7 @@ public:
         std::shared_ptr<const LinOp> base) const override;
 
     /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
+     * Gets the maximum number of iterations of the TFQMR solver.
      *
      * @return  The maximum number of iterations.
      */
