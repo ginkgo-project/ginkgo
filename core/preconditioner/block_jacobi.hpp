@@ -136,17 +136,17 @@ public:
     }
 
     /**
-     * Returns the padding used for storing the blocks.
+     * Returns the stride used for storing the blocks.
      *
-     * @return the padding used for storing the blocks
+     * @return the stride used for storing the blocks
      */
-    size_type get_padding() const noexcept { return max_block_size_; }
+    size_type get_stride() const noexcept { return max_block_size_; }
 
     /**
      * Returns the pointer to the memory used for storing the block data.
      *
      * Element (`i`, `j`) of block `b` is stored in position
-     * `(get_block_pointers()[b] + i) * padding + j` of the array.
+     * `(get_block_pointers()[b] + i) * stride + j` of the array.
      *
      * @return the pointer to the memory used for storing the block data
      */
@@ -156,7 +156,7 @@ public:
      * Returns the pointer to the memory used for storing the block data.
      *
      * Element (`i`, `j`) of block `b` is stored in position
-     * `(get_block_pointers()[b] + i) * padding + j` of the array.
+     * `(get_block_pointers()[b] + i) * stride + j` of the array.
      *
      * @return the pointer to the memory used for storing the block data
      *

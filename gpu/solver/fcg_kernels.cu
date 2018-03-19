@@ -49,7 +49,7 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type num_rows, size_type padding, const ValueType *__restrict__ b,
+    size_type num_rows, size_type stride, const ValueType *__restrict__ b,
     ValueType *__restrict__ r, ValueType *__restrict__ z,
     ValueType *__restrict__ p, ValueType *__restrict__ q,
     ValueType *__restrict__ t, ValueType *__restrict__ prev_rho,
@@ -58,13 +58,13 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    if (tidx < padding) {
+    if (tidx < stride) {
         rho[tidx] = zero<ValueType>();
         prev_rho[tidx] = one<ValueType>();
         rho_t[tidx] = one<ValueType>();
     }
 
-    if (tidx < num_rows * padding) {
+    if (tidx < num_rows * stride) {
         r[tidx] = b[tidx];
         z[tidx] = zero<ValueType>();
         p[tidx] = zero<ValueType>();
@@ -84,15 +84,14 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(b->get_num_rows() * b->get_padding(), block_size.x), 1, 1);
+        ceildiv(b->get_num_rows() * b->get_stride(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_num_rows(), b->get_padding(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(t->get_values()),
-        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()),
-        as_cuda_type(rho_t->get_values()));
+        b->get_num_rows(), b->get_stride(), as_cuda_type(b->get_const_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(z->get_values()),
+        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
+        as_cuda_type(t->get_values()), as_cuda_type(prev_rho->get_values()),
+        as_cuda_type(rho->get_values()), as_cuda_type(rho_t->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -100,14 +99,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
+    size_type num_rows, size_type num_cols, size_type stride,
     ValueType *__restrict__ p, const ValueType *__restrict__ z,
     const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto col = tidx % padding;
-    if (col >= num_cols || tidx >= num_rows * padding) {
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride) {
         return;
     }
     const auto tmp = rho[col] / prev_rho[col];
@@ -124,10 +123,10 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_padding(),
+        p->get_num_rows(), p->get_num_cols(), p->get_stride(),
         as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
         as_cuda_type(rho_t->get_const_values()),
         as_cuda_type(prev_rho->get_const_values()));
@@ -138,16 +137,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type num_rows, size_type num_cols, size_type padding,
-    size_type x_padding, ValueType *__restrict__ x, ValueType *__restrict__ r,
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
     ValueType *__restrict__ t, const ValueType *__restrict__ p,
     const ValueType *__restrict__ q, const ValueType *__restrict__ beta,
     const ValueType *__restrict__ rho)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto row = tidx / padding;
-    const auto col = tidx % padding;
+    const auto row = tidx / stride;
+    const auto col = tidx % stride;
 
     if (col >= num_cols || tidx >= num_rows * num_cols) {
         return;
@@ -155,7 +154,7 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     if (beta[col] != zero<ValueType>()) {
         const auto tmp = rho[col] / beta[col];
         const auto prev_r = r[tidx];
-        x[row * x_padding + col] += tmp * p[tidx];
+        x[row * x_stride + col] += tmp * p[tidx];
         r[tidx] -= tmp * q[tidx];
         t[tidx] = r[tidx] - prev_r;
     }
@@ -172,13 +171,12 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_padding(), block_size.x), 1, 1);
+        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_padding(),
-        x->get_padding(), as_cuda_type(x->get_values()),
-        as_cuda_type(r->get_values()), as_cuda_type(t->get_values()),
-        as_cuda_type(p->get_const_values()),
+        p->get_num_rows(), p->get_num_cols(), p->get_stride(), x->get_stride(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(t->get_values()), as_cuda_type(p->get_const_values()),
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()));

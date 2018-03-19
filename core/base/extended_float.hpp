@@ -232,6 +232,8 @@ private:
  */
 class half {
 public:
+    GKO_ATTRIBUTES half() = default;
+
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
 #ifdef __CUDACC__
@@ -307,6 +309,41 @@ private:
 
 
 }  // namespace gko
+
+
+namespace std {
+
+
+template <>
+class complex<gko::half> {
+public:
+    complex(const gko::half &real = 0.f, const gko::half &imag = 0.f)
+        : real_(real), imag_(imag)
+    {}
+
+    template <typename T>
+    explicit complex(const complex<T> &other)
+        : complex(other.real(), other.imag())
+    {}
+
+    gko::half real() const noexcept { return real_; }
+
+    gko::half imag() const noexcept { return imag_; }
+
+
+    operator std::complex<gko::float32>() const noexcept
+    {
+        return std::complex<gko::float32>(static_cast<gko::float32>(real_),
+                                          static_cast<gko::float32>(imag_));
+    }
+
+private:
+    gko::half real_;
+    gko::half imag_;
+};
+
+
+}  // namespace std
 
 
 #endif  // GKO_CORE_BASE_EXTENDED_FLOAT_HPP_

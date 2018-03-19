@@ -97,7 +97,7 @@ public:
     static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
     {
         return create(other->get_executor(), other->get_num_rows(),
-                      other->get_num_cols(), other->get_padding());
+                      other->get_num_cols(), other->get_stride());
     }
 
     void apply(const LinOp *b, LinOp *x) const override;
@@ -147,9 +147,9 @@ public:
     }
 
     /**
-     * Returns the padding of the matrix.
+     * Returns the stride of the matrix.
      */
-    size_type get_padding() const noexcept { return padding_; }
+    size_type get_stride() const noexcept { return stride_; }
 
     /**
      * Returns a single element of the matrix.
@@ -182,7 +182,7 @@ public:
      * method.
      *
      * @param idx  a linear index of the requested element
-     *             (ignoring the padding)
+     *             (ignoring the stride)
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
@@ -250,15 +250,15 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param num_rows  number of rows
      * @param num_cols  number of columns
-     * @param padding  padding of the rows (i.e. offset between the first
+     * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type padding)
-        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * padding),
-          values_(exec, num_rows * padding),
-          padding_(padding)
+          size_type num_cols, size_type stride)
+        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * stride),
+          values_(exec, num_rows * stride),
+          stride_(stride)
     {}
 
     /**
@@ -275,7 +275,7 @@ protected:
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
-        return row * padding_ + col;
+        return row * stride_ + col;
     }
 
     size_type linearize_index(size_type idx) const noexcept
@@ -286,7 +286,7 @@ protected:
 
 private:
     Array<value_type> values_;
-    size_type padding_{};
+    size_type stride_{};
 };
 
 
@@ -304,7 +304,7 @@ private:
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param padding  row padding for the temporary Dense matrix
+ * @param stride  row stride for the temporary Dense matrix
  * @param vals  values used to initialize the vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -313,12 +313,12 @@ private:
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
-    size_type padding, std::initializer_list<typename Matrix::value_type> vals,
+    size_type stride, std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     int num_rows = vals.size();
-    auto tmp = dense::create(exec->get_master(), num_rows, 1, padding);
+    auto tmp = dense::create(exec->get_master(), num_rows, 1, stride);
     size_type idx = 0;
     for (const auto &elem : vals) {
         tmp->at(idx) = elem;
@@ -333,7 +333,7 @@ std::unique_ptr<Matrix> initialize(
  * Creates and initializes a column-vector.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The padding of
+ * values, and then converts the matrix to the requested type. The stride of
  * the intermediate Dense matrix is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
@@ -368,7 +368,7 @@ std::unique_ptr<Matrix> initialize(
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param padding  row padding for the temporary Dense matrix
+ * @param stride  row stride for the temporary Dense matrix
  * @param vals  values used to initialize the matrix
  * @param exec  Executor associated to the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -377,7 +377,7 @@ std::unique_ptr<Matrix> initialize(
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
-    size_type padding,
+    size_type stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
@@ -385,7 +385,7 @@ std::unique_ptr<Matrix> initialize(
     using dense = matrix::Dense<typename Matrix::value_type>;
     int num_rows = vals.size();
     int num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-    auto tmp = dense::create(exec->get_master(), num_rows, num_cols, padding);
+    auto tmp = dense::create(exec->get_master(), num_rows, num_cols, stride);
     size_type ridx = 0;
     for (const auto &row : vals) {
         size_type cidx = 0;
@@ -405,7 +405,7 @@ std::unique_ptr<Matrix> initialize(
  * Creates and initializes a matrix.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The padding of
+ * values, and then converts the matrix to the requested type. The stride of
  * the intermediate Dense matrix is set to the number of columns of the
  * initializer list.
  *
