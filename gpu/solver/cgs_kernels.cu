@@ -173,7 +173,7 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *q,
+            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev)
 {
@@ -201,7 +201,7 @@ template <typename ValueType>
 void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
-            matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *beta,
+            matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *gamma)
 {

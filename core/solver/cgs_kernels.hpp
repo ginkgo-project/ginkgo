@@ -63,7 +63,7 @@ namespace cgs {
 #define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                                 \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                 \
                 const matrix::Dense<_type> *r, matrix::Dense<_type> *u,      \
-                matrix::Dense<_type> *p, matrix::Dense<_type> *q,            \
+                matrix::Dense<_type> *p, const matrix::Dense<_type> *q,      \
                 matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho, \
                 const matrix::Dense<_type> *rho_prev)
 
@@ -71,7 +71,7 @@ namespace cgs {
     void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Dense<_type> *u,                              \
                 const matrix::Dense<_type> *v_hat, matrix::Dense<_type> *q, \
-                matrix::Dense<_type> *t, matrix::Dense<_type> *beta,        \
+                matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,       \
                 const matrix::Dense<_type> *rho,                            \
                 const matrix::Dense<_type> *gamma)
 

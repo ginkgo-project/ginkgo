@@ -96,7 +96,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *q,
+            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev)
 {
