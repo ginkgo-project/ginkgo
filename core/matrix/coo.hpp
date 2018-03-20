@@ -36,9 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/mtx_reader.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 
 
 namespace gko {
@@ -48,8 +47,10 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+
 template <typename ValueType>
 class Dense;
+
 
 /**
  * COO stores a matrix in the coordinate matrix format.
@@ -65,7 +66,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMtx,
+            public ReadableFromMatrixData<ValueType, IndexType>,
             public Transposable {
     friend class BasicLinOp<Coo>;
     friend class Csr<ValueType, IndexType>;
@@ -78,6 +79,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -92,7 +94,7 @@ public:
 
     void move_to(Dense<ValueType> *other) override;
 
-    void read_from_mtx(const std::string &filename) override;
+    void read(const mat_data &data) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

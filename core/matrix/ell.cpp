@@ -62,7 +62,7 @@ struct TemplatedOperation {
 
 template <typename ValueType, typename IndexType>
 size_type calculate_max_nonzeros_per_row(
-    const MtxData<ValueType, IndexType> &data)
+    const matrix_data<ValueType, IndexType> &data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -132,10 +132,8 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Ell<ValueType, IndexType>::read(const mat_data &data)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
-
     // Get the maximum number of nonzero elements of every row.
     auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 

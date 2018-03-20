@@ -157,9 +157,8 @@ void Coo<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Coo<ValueType, IndexType>::read(const mat_data &data)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
     size_type nnz = 0;
     for (const auto &elem : data.nonzeros) {
         nnz += (std::get<2>(elem) != zero<ValueType>());

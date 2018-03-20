@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
+#include <core/base/mtx_reader.hpp>
 
 
 namespace {
@@ -210,8 +211,8 @@ TEST_F(Dense, CanBeCleared)
 
 TEST_F(Dense, CanBeReadFromMtx)
 {
-    auto m = gko::matrix::Dense<>::create(exec);
-    m->read_from_mtx("../base/data/dense_real.mtx");
+    auto m =
+        gko::read<gko::matrix::Dense<>>("../base/data/dense_real.mtx", exec);
 
     ASSERT_EQ(m->get_num_rows(), 2);
     ASSERT_EQ(m->get_num_cols(), 3);

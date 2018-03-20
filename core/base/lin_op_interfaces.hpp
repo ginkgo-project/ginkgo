@@ -31,11 +31,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_CONVERTIBLE_HPP_
-#define GKO_CORE_BASE_CONVERTIBLE_HPP_
+#ifndef GKO_CORE_BASE_LIN_OP_INTERFACES_HPP_
+#define GKO_CORE_BASE_LIN_OP_INTERFACES_HPP_
+
+
+#include "core/base/types.hpp"
+
+
+#include <memory>
+#include <tuple>
+#include <vector>
 
 
 namespace gko {
+
+
+class LinOp;
 
 
 /**
@@ -100,7 +111,123 @@ public:
 };
 
 
+/**
+ * Linear operators which support transposition implement the Transposable
+ * interface.
+ *
+ * It provides two functionalities, the normal transpose and the
+ * conjugate transpose.
+ *
+ * The normal transpose returns the transpose of the linear operator without
+ * changing any of its elements representing the operation, \f$B = A^{T}\f$.
+ *
+ * The conjugate transpose returns the conjugate of each of the elements and
+ * additionally transposes the linear operator representing the operation, \f$B
+ * = A^{H}\f$.
+ *
+ * Example: Transposing a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Transposing an object of LinOp type.
+ * //The object you want to transpose.
+ * std::unique_ptr<LinOp> op = matrix::Csr::create(exec);
+ * //Transpose the object by first converting it to a transposable type.
+ * auto trans = as<Transposable>(op.get())->transpose();
+ * //This returns the object of type LinOp, and needs to be cast to the
+ * appropriate type for usage.
+ * ```
+ */
+class Transposable {
+public:
+    virtual ~Transposable() = default;
+
+    /**
+     * Returns a LinOp representing the transpose of the Transposable object.
+     *
+     * @return A pointer to the new transposed object.
+     */
+    virtual std::unique_ptr<LinOp> transpose() const = 0;
+
+    /**
+     * Returns a LinOp representing the conjugate transpose of the Transposable
+     * object.
+     *
+     * @return A pointer to the new conjugate transposed object.
+     */
+    virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
+};
+
+
+/**
+ * This structure is used as an intermediate data type to store the matrix
+ * read from a file in COO-like format.
+ *
+ * Note that the structure is not optimized for usual access patterns, can only
+ * exist on the CPU, and thus should only be used for reading matrices from MTX
+ * format.
+ *
+ * @tparam ValueType  type of matrix values stored in the structure
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+struct matrix_data {
+    /**
+     * Total number of rows of the matrix.
+     */
+    size_type num_rows;
+    /**
+     * Total number of columns of the matrix.
+     */
+    size_type num_cols;
+    /**
+     * A vector of tuples storing the non-zeros of the matrix.
+     *
+     * The first two elements of the tuple are the row index and the column
+     * index of a matrix element, and its third element is the value at that
+     * position.
+     */
+    std::vector<std::tuple<IndexType, IndexType, ValueType>> nonzeros;
+};
+
+
+/**
+ * A LinOp implementing this interface can read its data from a matrix_data
+ * structure.
+ */
+template <typename ValueType, typename IndexType>
+class ReadableFromMatrixData {
+public:
+    virtual ~ReadableFromMatrixData() = default;
+
+    /**
+     * Reads a matrix from a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+};
+
+
+/**
+ * A LinOp implementing this interface can write its data to a matrix_data
+ * structure.
+ */
+template <typename ValueType, typename IndexType>
+class WritableToMatrixData {
+public:
+    virtual ~WritableToMatrixData() = default;
+
+    /**
+     * Writes a matrix to a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual matrix_data<ValueType, IndexType> write() const = 0;
+};
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_CONVERTIBLE_HPP_
+#endif  // GKO_CORE_BASE_LIN_OP_INTERFACES_HPP_

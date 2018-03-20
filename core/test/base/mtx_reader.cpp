@@ -44,8 +44,7 @@ TEST(MtxReader, ReadsDenseRealMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/dense_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/dense_real.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -63,8 +62,7 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/dense_integer.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/dense_integer.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -83,8 +81,7 @@ TEST(MtxReader, ReadsDenseComplexMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data =
-        gko::read_raw_from_mtx<cpx, gko::int32>("data/dense_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>("data/dense_complex.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -102,8 +99,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/sparse_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/sparse_real.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -119,8 +115,8 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data = gko::read_raw_from_mtx<double, gko::int32>(
-        "data/sparse_real_symmetric.mtx");
+    auto data =
+        gko::read_raw<double, gko::int32>("data/sparse_real_symmetric.mtx");
 
     ASSERT_EQ(data.num_rows, 3);
     ASSERT_EQ(data.num_cols, 3);
@@ -138,7 +134,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data = gko::read_raw_from_mtx<double, gko::int32>(
+    auto data = gko::read_raw<double, gko::int32>(
         "data/sparse_real_skew_symmetric.mtx");
 
     ASSERT_EQ(data.num_rows, 3);
@@ -155,8 +151,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/sparse_pattern.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/sparse_pattern.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -173,8 +168,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data =
-        gko::read_raw_from_mtx<cpx, gko::int32>("data/sparse_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>("data/sparse_complex.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -191,8 +185,8 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data = gko::read_raw_from_mtx<cpx, gko::int32>(
-        "data/sparse_complex_hermitian.mtx");
+    auto data =
+        gko::read_raw<cpx, gko::int32>("data/sparse_complex_hermitian.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);

@@ -36,9 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 #include "core/base/mtx_reader.hpp"
 #include "core/base/types.hpp"
 
@@ -79,7 +79,8 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
-              public ReadableFromMtx,
+              public ReadableFromMatrixData<ValueType, int32>,
+              public ReadableFromMatrixData<ValueType, int64>,
               public Transposable {
     friend class BasicLinOp<Dense>;
     friend class Coo<ValueType, int32>;
@@ -95,6 +96,9 @@ public:
     using BasicLinOp<Dense>::move_to;
 
     using value_type = ValueType;
+    using index_type = int64;
+    using mat_data = gko::matrix_data<ValueType, int64>;
+    using mat_data32 = gko::matrix_data<ValueType, int32>;
 
     /**
      * Creates a Dense matrix with the configuration of another Dense matrix.
@@ -136,7 +140,9 @@ public:
 
     void move_to(Ell<ValueType, int64> *result) override;
 
-    void read_from_mtx(const std::string &filename) override;
+    void read(const mat_data &data) override;
+
+    void read(const mat_data32 &data) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

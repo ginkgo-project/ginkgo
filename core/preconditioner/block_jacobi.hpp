@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 #include "core/matrix/dense.hpp"
 
 

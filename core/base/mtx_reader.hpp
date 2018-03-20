@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MTX_READER_HPP_
 
 
-#include "core/base/array.hpp"
+#include "core/base/lin_op.hpp"
 
 
 #include <string>
@@ -46,36 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-/**
- * This structure is used as an intermediate data type to store the matrix
- * read from a file in COO-like format.
- *
- * Note that the structure is not optimized for usual access patterns, can only
- * exist on the CPU, and thus should only be used for reading matrices from MTX
- * format.
- *
- * @tparam ValueType  type of matrix values stored in the structure
- * @tparam IndexType  type of matrix indexes stored in the structure
- */
-template <typename ValueType = default_precision, typename IndexType = int32>
-struct MtxData {
-    /**
-     * Total number of rows of the matrix.
-     */
-    size_type num_rows;
-    /**
-     * Total number of columns of the matrix.
-     */
-    size_type num_cols;
-    /**
-     * A vector of tuples storing the non-zeros of the matrix.
-     *
-     * The first two elements of the tuple are the row index and the column
-     * index of a matrix element, and its third element is the value at that
-     * position.
-     */
-    std::vector<std::tuple<IndexType, IndexType, ValueType>> nonzeros;
-};
+// TODO: replace filenames with streams
 
 
 /**
@@ -86,33 +57,38 @@ struct MtxData {
  *
  * @param filename  filename from which to read the data
  *
- * @return A structure containing the matrix. The nonzero elements are sorted
- *         in lexicographic order of their (row, colum) indexes.
+ * @return A matrix_data structure containing the matrix. The nonzero elements
+ *         are sorted in lexicographic order of their (row, colum) indexes.
  *
- * @note Prefer using ReadableFromMtx::read_from_mtx interface for existing
- *       Ginkgo types, and use this function only if you want to implement this
- *       interface for your own types.
+ * @note This is an advanced routine that will return the raw matrix data
+ *       structure. Consider using gko::read instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename);
-// TODO: replace filenames with streams
+matrix_data<ValueType, IndexType> read_raw(const std::string &filename);
 
 
 /**
- * A LinOp implementing this interface can read its data from a file stored in
- * matrix market format.
+ * Reads a matrix stored in MTX (matrix market) file.
+ *
+ * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
+ *                     matrix once it's been read from disk.
+ * @tparam MatrixArgs  additional argument types passed to MatrixType
+ *                     constructor
+ *
+ * @param filename  filename from which to read the data
+ * @param args  additional arguments passed to MatrixType constructor
+ *
+ * @return  A MatrixType LinOp filled with data from filename
  */
-class ReadableFromMtx {
-public:
-    /**
-     * Reads a matrix stored in MTX (matrix market) file.
-     *
-     * @param filename  filename from which to read the matrix
-     */
-    virtual void read_from_mtx(const std::string &filename) = 0;
-
-    virtual ~ReadableFromMtx() = default;
-};
+template <typename MatrixType, typename... MatrixArgs>
+inline std::unique_ptr<MatrixType> read(const std::string &filename,
+                                        MatrixArgs &&... args)
+{
+    auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
+    mtx->read(read_raw<typename MatrixType::value_type,
+                       typename MatrixType::index_type>(filename));
+    return mtx;
+}
 
 
 }  // namespace gko

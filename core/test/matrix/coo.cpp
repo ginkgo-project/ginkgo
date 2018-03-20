@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/mtx_reader.hpp>
+
+
 namespace {
 
 
@@ -162,9 +165,7 @@ TEST_F(Coo, CanBeCleared)
 
 TEST_F(Coo, CanBeReadFromMtx)
 {
-    auto m = Mtx::create(exec);
-
-    m->read_from_mtx("../base/data/dense_real.mtx");
+    auto m = gko::read<Mtx>("../base/data/dense_real.mtx", exec);
 
     assert_equal_to_original_mtx(m.get());
 }
