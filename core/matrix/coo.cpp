@@ -180,6 +180,29 @@ void Coo<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Coo *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Coo *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {this->get_num_rows(), this->get_num_cols(), {}};
+
+    for (size_type i = 0; i < tmp->get_num_stored_elements(); ++i) {
+        const auto row = tmp->row_idxs_.get_const_data()[i];
+        const auto col = tmp->col_idxs_.get_const_data()[i];
+        const auto val = tmp->values_.get_const_data()[i];
+        data.nonzeros.emplace_back(row, col, val);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();

@@ -201,14 +201,14 @@ void Csr<ValueType, IndexType>::write(mat_data &data) const
         tmp = this;
     }
 
-    data = {this->get_num_rows(), this->get_num_cols(), {}};
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
 
-    for (size_type row = 0; row < this->get_num_rows(); ++row) {
-        const auto start = this->row_ptrs_.get_const_data()[row];
-        const auto end = this->row_ptrs_.get_const_data()[row + 1];
+    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+        const auto start = tmp->row_ptrs_.get_const_data()[row];
+        const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
         for (auto i = start; i < end; ++i) {
-            const auto col = this->col_idxs_.get_const_data()[i];
-            const auto val = this->values_.get_const_data()[i];
+            const auto col = tmp->col_idxs_.get_const_data()[i];
+            const auto val = tmp->values_.get_const_data()[i];
             data.nonzeros.emplace_back(row, col, val);
         }
     }
