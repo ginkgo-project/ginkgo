@@ -401,6 +401,50 @@ void Dense<ValueType>::read(const mat_data32 &data)
 }
 
 
+namespace {
+
+
+template <typename MatrixType, typename MatrixData>
+inline void write_impl(const MatrixType *mtx, MatrixData &data)
+{
+    std::unique_ptr<const LinOp> op{};
+    const MatrixType *tmp{};
+    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
+        op = mtx->clone_to(mtx->get_executor()->get_master());
+        tmp = static_cast<const MatrixType *>(op.get());
+    } else {
+        tmp = mtx;
+    }
+
+    data = {mtx->get_num_rows(), mtx->get_num_cols(), {}};
+
+    for (size_type row = 0; row < data.num_rows; ++row) {
+        for (size_type col = 0; col < data.num_cols; ++col) {
+            if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
+                data.nonzeros.emplace_back(row, col, tmp->at(row, col));
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Dense<ValueType>::write(mat_data &data) const
+{
+    write_impl(this, data);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::write(mat_data32 &data) const
+{
+    write_impl(this, data);
+}
+
+
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {

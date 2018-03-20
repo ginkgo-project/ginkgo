@@ -81,6 +81,8 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
+              public WritableToMatrixData<ValueType, int32>,
+              public WritableToMatrixData<ValueType, int64>,
               public Transposable {
     friend class BasicLinOp<Dense>;
     friend class Coo<ValueType, int32>;
@@ -143,6 +145,10 @@ public:
     void read(const mat_data &data) override;
 
     void read(const mat_data32 &data) override;
+
+    void write(mat_data &data) const override;
+
+    void write(mat_data32 &data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

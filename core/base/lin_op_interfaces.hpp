@@ -223,7 +223,7 @@ public:
      *
      * @param data  the matrix_data structure
      */
-    virtual matrix_data<ValueType, IndexType> write() const = 0;
+    virtual void write(matrix_data<ValueType, IndexType> &data) const = 0;
 };
 
 

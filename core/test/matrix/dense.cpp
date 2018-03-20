@@ -233,4 +233,23 @@ TEST_F(Dense, CanBeReadFromMatrixData)
 }
 
 
+TEST_F(Dense, GeneratesCorrectMatrixData)
+{
+    using tpl = std::tuple<int, int, double>;
+    gko::matrix_data<> data;
+
+    mtx->write(data);
+
+    ASSERT_EQ(data.num_rows, 2);
+    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.nonzeros.size(), 6);
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 2.0));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 3.0));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, 1.5));
+    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, 2.5));
+    EXPECT_EQ(data.nonzeros[5], tpl(1, 2, 3.5));
+}
+
+
 }  // namespace
