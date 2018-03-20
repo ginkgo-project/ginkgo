@@ -209,10 +209,17 @@ TEST_F(Dense, CanBeCleared)
 }
 
 
-TEST_F(Dense, CanBeReadFromMtx)
+TEST_F(Dense, CanBeReadFromMatrixData)
 {
-    auto m =
-        gko::read<gko::matrix::Dense<>>("../base/data/dense_real.mtx", exec);
+    auto m = gko::matrix::Dense<>::create(exec);
+    m->read(gko::matrix_data<>{2,
+                               3,
+                               {{0, 0, 1.0},
+                                {0, 1, 3.0},
+                                {0, 2, 2.0},
+                                {1, 0, 0.0},
+                                {1, 1, 5.0},
+                                {1, 2, 0.0}}});
 
     ASSERT_EQ(m->get_num_rows(), 2);
     ASSERT_EQ(m->get_num_cols(), 3);

@@ -162,9 +162,17 @@ TEST_F(Csr, CanBeCleared)
 }
 
 
-TEST_F(Csr, CanBeReadFromMtx)
+TEST_F(Csr, CanBeReadFromMatrixData)
 {
-    auto m = gko::read<Mtx>("../base/data/dense_real.mtx", exec);
+    auto m = Mtx::create(exec);
+    m->read({2,
+             3,
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
 
     assert_equal_to_original_mtx(m.get());
 }
