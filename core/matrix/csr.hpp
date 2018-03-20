@@ -70,6 +70,7 @@ class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
     friend class BasicLinOp<Csr>;
     friend class Coo<ValueType, IndexType>;
@@ -98,6 +99,8 @@ public:
     void move_to(Coo<ValueType, IndexType> *result) override;
 
     void read(const mat_data &data) override;
+
+    void write(mat_data &data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

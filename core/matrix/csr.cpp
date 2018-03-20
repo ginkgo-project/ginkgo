@@ -190,6 +190,32 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Csr *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Csr *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {this->get_num_rows(), this->get_num_cols(), {}};
+
+    for (size_type row = 0; row < this->get_num_rows(); ++row) {
+        const auto start = this->row_ptrs_.get_const_data()[row];
+        const auto end = this->row_ptrs_.get_const_data()[row + 1];
+        for (auto i = start; i < end; ++i) {
+            const auto col = this->col_idxs_.get_const_data()[i];
+            const auto val = this->values_.get_const_data()[i];
+            data.nonzeros.emplace_back(row, col, val);
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
