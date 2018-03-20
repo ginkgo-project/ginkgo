@@ -132,7 +132,7 @@ void Tfqmr<ValueType>::apply(const LinOp *b, LinOp *x) const
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), r0.get(), u_m.get(), u_mp1.get(), pu_m.get(),
         Au.get(), Ad.get(), w.get(), v.get(), d.get(), taut.get(),
-        rho_old.get(), rho.get(), alpha.get(), beta.get(), tau.get(),
+        rho_old.get(), rho.get(), alpha.get(), beta.get(), taut.get(),
         sigma.get(), rov.get(), eta.get(), nomw.get(), theta.get()));
     // r = dense_b
     // r0 = u_m = w = r

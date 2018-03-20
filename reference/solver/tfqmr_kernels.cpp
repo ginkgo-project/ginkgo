@@ -151,11 +151,11 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *taut, matrix::Dense<ValueType> *eta,
             const matrix::Dense<ValueType> *alpha)
 {
-    for (size_type j = 0; j < alpha->get_num_cols(); ++j) {
+    for (size_type j = 0; j < alpha->get_num_rows(); ++j) {
         if (taut->at(j) != zero<ValueType>()) {
             theta->at(j) = nomw->at(j) / taut->at(j);
         } else {
-            theta->at(j) = zero<ValueType>();
+            theta->at(j) = one<ValueType>();
         }
         auto tmp = one<ValueType>() / sqrt(one<ValueType>() + theta->at(j));
         taut->at(j) = taut->at(j) * sqrt(theta->at(j)) * tmp;
