@@ -67,7 +67,8 @@ class Dense;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMatrixData<ValueType, IndexType> {
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<Ell>;
     friend class Dense<ValueType>;
 
@@ -90,6 +91,8 @@ public:
     void move_to(Dense<ValueType> *other) override;
 
     void read(const mat_data &data) override;
+
+    void write(mat_data &data) const override;
 
     /**
      * Returns the values of the matrix.

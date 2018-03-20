@@ -185,4 +185,21 @@ TEST_F(Ell, CanBeReadFromMatrixData)
 }
 
 
+TEST_F(Ell, GeneratesCorrectMatrixData)
+{
+    using tpl = std::tuple<int, int, double>;
+    gko::matrix_data<> data;
+
+    mtx->write(data);
+
+    ASSERT_EQ(data.num_rows, 2);
+    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.nonzeros.size(), 4);
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
+}
+
+
 }  // namespace

@@ -168,6 +168,32 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
 }
 
 
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Ell *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Ell *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+
+    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+        for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
+            const auto val = tmp->val_at(row, i);
+            if (val != zero<ValueType>()) {
+                const auto col = tmp->col_at(row, i);
+                data.nonzeros.emplace_back(row, col, val);
+            }
+        }
+    }
+}
+
+
 #define DECLARE_ELL_MATRIX(ValueType, IndexType) class Ell<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_ELL_MATRIX);
 #undef DECLARE_ELL_MATRIX
