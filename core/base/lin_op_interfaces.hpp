@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -173,6 +174,11 @@ public:
 template <typename ValueType = default_precision, typename IndexType = int32>
 struct matrix_data {
     /**
+     * Type used to store nonzeros.
+     */
+    using nonzero_type = std::tuple<IndexType, IndexType, ValueType>;
+
+    /**
      * Total number of rows of the matrix.
      */
     size_type num_rows;
@@ -187,7 +193,19 @@ struct matrix_data {
      * index of a matrix element, and its third element is the value at that
      * position.
      */
-    std::vector<std::tuple<IndexType, IndexType, ValueType>> nonzeros;
+    std::vector<nonzero_type> nonzeros;
+
+    /**
+     * Sorts the nonzero list in row-major order.
+     */
+    void sort()
+    {
+        std::sort(begin(nonzeros), end(nonzeros),
+                  [](nonzero_type x, nonzero_type y) {
+                      return std::tie(std::get<0>(x), std::get<1>(x)) <
+                             std::tie(std::get<0>(y), std::get<1>(y));
+                  });
+    }
 };
 
 

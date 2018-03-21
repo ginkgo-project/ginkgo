@@ -71,9 +71,9 @@ protected:
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<MtxType>(
-            ref, num_rows, num_cols,
+            num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     void set_up_vector_data(int num_vecs, bool different_alpha = false)

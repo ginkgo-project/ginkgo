@@ -74,9 +74,9 @@ protected:
     std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
     {
         return gko::test::generate_random_matrix<Vec>(
-            ref, num_rows, num_cols,
+            num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0)
