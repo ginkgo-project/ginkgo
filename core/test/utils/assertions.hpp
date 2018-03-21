@@ -53,32 +53,49 @@ namespace assertions {
 namespace detail {
 
 
-template <typename Ostream, typename ValueType>
-void print_matrix(Ostream &os, const matrix::Dense<ValueType> *mtx)
+template <typename NonzeroIterator>
+auto get_next_value(NonzeroIterator &it, const NonzeroIterator &end,
+                    size_type next_row, size_type next_col) ->
+    typename std::remove_reference<decltype(std::get<2>(*it))>::type
 {
-    for (size_type row = 0; row < mtx->get_num_rows(); ++row) {
+    if (it != end && std::get<0>(*it) == next_row &&
+        std::get<1>(*it) == next_col) {
+        return std::get<2>(*(it++));
+    } else {
+        return zero<
+            typename std::remove_reference<decltype(std::get<2>(*it))>::type>();
+    }
+}
+
+
+template <typename Ostream, typename MatrixData>
+void print_matrix(Ostream &os, const MatrixData &data)
+{
+    auto it = begin(data.nonzeros);
+    for (size_type row = 0; row < data.num_rows; ++row) {
         os << "\t";
-        for (size_type col = 0; col < mtx->get_num_cols(); ++col) {
-            os << mtx->at(row, col) << "\t";
+        for (size_type col = 0; col < data.num_cols; ++col) {
+            os << get_next_value(it, end(data.nonzeros), row, col) << "\t";
         }
         os << "\n";
     }
 }
 
 
-template <typename Ostream, typename ValueType1, typename ValueType2>
-void print_componentwise_error(Ostream &os,
-                               const matrix::Dense<ValueType1> *first,
-                               const matrix::Dense<ValueType2> *second)
+template <typename Ostream, typename MatrixData1, typename MatrixData2>
+void print_componentwise_error(Ostream &os, const MatrixData1 &first,
+                               const MatrixData2 &second)
 {
-    using real_vt = remove_complex<ValueType2>;
+    using real_vt = remove_complex<typename MatrixData2::value_type>;
     using std::abs;
     using std::max;
-    for (size_type row = 0; row < first->get_num_rows(); ++row) {
+    auto first_it = begin(first.nonzeros);
+    auto second_it = begin(second.nonzeros);
+    for (size_type row = 0; row < first.num_rows; ++row) {
         os << "\t";
-        for (size_type col = 0; col < first->get_num_cols(); ++col) {
-            auto r = first->at(row, col);
-            auto e = second->at(row, col);
+        for (size_type col = 0; col < first.num_cols; ++col) {
+            auto r = get_next_value(first_it, end(first.nonzeros), row, col);
+            auto e = get_next_value(second_it, end(second.nonzeros), row, col);
             auto m = max<real_vt>(abs(r), abs(e));
             if (m == zero<real_vt>()) {
                 os << abs(r - e) << "\t";
@@ -91,21 +108,25 @@ void print_componentwise_error(Ostream &os,
 }
 
 
-template <typename ValueType1, typename ValueType2>
-double get_relative_error(const matrix::Dense<ValueType1> *first,
-                          const matrix::Dense<ValueType2> *second)
+template <typename MatrixData1, typename MatrixData2>
+double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
     using std::max;
     using std::sqrt;
     double diff = 0.0;
     double first_norm = 0.0;
     double second_norm = 0.0;
-    for (size_type row = 0; row < first->get_num_rows(); ++row) {
-        for (size_type col = 0; col < second->get_num_cols(); ++col) {
-            auto tmp = first->at(row, col) - second->at(row, col);
-            diff += squared_norm(tmp);
-            first_norm += squared_norm(first->at(row, col));
-            second_norm += squared_norm(second->at(row, col));
+    auto first_it = begin(first.nonzeros);
+    auto second_it = begin(second.nonzeros);
+    for (size_type row = 0; row < first.num_rows; ++row) {
+        for (size_type col = 0; col < first.num_cols; ++col) {
+            const auto first_val =
+                get_next_value(first_it, end(first.nonzeros), row, col);
+            const auto second_val =
+                get_next_value(second_it, end(second.nonzeros), row, col);
+            diff += squared_norm(first_val - second_val);
+            first_norm += squared_norm(first_val);
+            second_norm += squared_norm(second_val);
         }
     }
     if (first_norm == 0.0 && second_norm == 0.0) {
@@ -115,22 +136,20 @@ double get_relative_error(const matrix::Dense<ValueType1> *first,
 }
 
 
-template <typename ValueType1, typename ValueType2>
+template <typename MatrixData1, typename MatrixData2>
 ::testing::AssertionResult matrices_near_impl(
     const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression,
-    const matrix::Dense<ValueType1> *first,
-    const matrix::Dense<ValueType2> *second, double tolerance)
+    const std::string &tolerance_expression, const MatrixData1 &first,
+    const MatrixData2 &second, double tolerance)
 {
-    auto num_rows = first->get_num_rows();
-    auto num_cols = first->get_num_cols();
-    if (num_rows != second->get_num_rows() ||
-        num_cols != second->get_num_cols()) {
+    auto num_rows = first.num_rows;
+    auto num_cols = first.num_cols;
+    if (num_rows != second.num_rows || num_cols != second.num_cols) {
         return ::testing::AssertionFailure()
                << "Expected matrices of equal size\n\t" << first_expression
                << " is of size [" << num_rows << " x " << num_cols << "]\n\t"
-               << second_expression << " is of size [" << second->get_num_rows()
-               << " x " << second->get_num_cols() << "]";
+               << second_expression << " is of size [" << second.num_rows
+               << " x " << second.num_cols << "]";
     }
 
     auto err = detail::get_relative_error(first, second);
@@ -216,16 +235,21 @@ template <typename LinOp1, typename LinOp2>
     const LinOp2 *second, double tolerance)
 {
     auto exec = first->get_executor()->get_master();
-    auto first_dense = matrix::Dense<typename LinOp1::value_type>::create(exec);
-    auto second_dense =
-        matrix::Dense<typename LinOp2::value_type>::create(exec);
-    first_dense->copy_from(first->clone_to(exec));
-    second_dense->copy_from(second->clone_to(exec));
+    matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>
+        first_data;
+    matrix_data<typename LinOp2::value_type, typename LinOp2::index_type>
+        second_data;
+
+    first->write(first_data);
+    second->write(second_data);
+
+    first_data.sort();
+    second_data.sort();
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
         detail::remove_pointer_wrapper(second_expression), tolerance_expression,
-        first_dense.get(), second_dense.get(), tolerance);
+        first_data, second_data, tolerance);
 }
 
 

@@ -173,6 +173,9 @@ public:
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 struct matrix_data {
+    using value_type = ValueType;
+    using index_type = IndexType;
+
     /**
      * Type used to store nonzeros.
      */

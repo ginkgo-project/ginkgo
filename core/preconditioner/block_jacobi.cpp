@@ -145,16 +145,16 @@ void BlockJacobi<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
 
-    const auto ptrs = this->block_pointers_.get_const_data();
+    const auto ptrs = tmp->block_pointers_.get_const_data();
     for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
         const auto block_data =
-            this->blocks_.get_const_data() + this->get_stride() * ptrs[block];
+            tmp->blocks_.get_const_data() + tmp->get_stride() * ptrs[block];
         const auto block_size = ptrs[block + 1] - ptrs[block];
         for (IndexType row = 0; row < block_size; ++row) {
             for (IndexType col = 0; col < block_size; ++col) {
                 data.nonzeros.emplace_back(
                     ptrs[block] + row, ptrs[block] + col,
-                    block_data[row * this->get_stride() + col]);
+                    block_data[row * tmp->get_stride() + col]);
             }
         }
     }
@@ -303,15 +303,15 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
         RESOLVE_PRECISION(prec[block], {
             const auto block_data =
                 reinterpret_cast<const resolved_precision *>(
-                    this->blocks_.get_const_data() +
-                    this->get_stride() * ptrs[block]);
+                    tmp->blocks_.get_const_data() +
+                    tmp->get_stride() * ptrs[block]);
             const auto block_size = ptrs[block + 1] - ptrs[block];
             for (IndexType row = 0; row < block_size; ++row) {
                 for (IndexType col = 0; col < block_size; ++col) {
                     data.nonzeros.emplace_back(
                         ptrs[block] + row, ptrs[block] + col,
                         static_cast<ValueType>(
-                            block_data[row * this->get_stride() + col]));
+                            block_data[row * tmp->get_stride() + col]));
                 }
             }
         });
