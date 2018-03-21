@@ -161,12 +161,18 @@ public:
 
 
 /**
- * This structure is used as an intermediate data type to store the matrix
- * read from a file in COO-like format.
+ * This structure is used as an intermediate data type to store a sparse matrix.
  *
- * Note that the structure is not optimized for usual access patterns, can only
- * exist on the CPU, and thus should only be used for reading matrices from MTX
- * format.
+ * The matrix is stored as a sequence of nonzero elements, where each element is
+ * a triple of the form (row_index, column_index, value).
+ *
+ * @note All Ginkgo functions returning such a structure will return the
+ *       nonzeros sorted in row-major order.
+ * @note All Ginkgo functions that take this structure as input expect that the
+ *       nonzeros are sorted in row-major order.
+ * @note This structure is not optimized for usual access patterns and it can
+ *       only exist on the CPU. Thus, it should only be used for utility
+ *      functions which do not have to be optimized for performance.
  *
  * @tparam ValueType  type of matrix values stored in the structure
  * @tparam IndexType  type of matrix indexes stored in the structure
@@ -199,7 +205,7 @@ struct matrix_data {
     std::vector<nonzero_type> nonzeros;
 
     /**
-     * Sorts the nonzero list in row-major order.
+     * Sorts the nonzero vector in row-major order.
      */
     void sort()
     {
