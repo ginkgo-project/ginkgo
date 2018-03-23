@@ -35,12 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MTX_READER_HPP_
 
 
-#include "core/base/lin_op.hpp"
+#include "core/base/matrix_data.hpp"
 
 
+#include <memory>
 #include <string>
-#include <tuple>
-#include <vector>
 
 
 namespace gko {

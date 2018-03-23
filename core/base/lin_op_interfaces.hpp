@@ -35,13 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_INTERFACES_HPP_
 
 
+#include "core/base/matrix_data.hpp"
 #include "core/base/types.hpp"
 
 
-#include <algorithm>
 #include <memory>
-#include <tuple>
-#include <vector>
 
 
 namespace gko {
@@ -157,64 +155,6 @@ public:
      * @return A pointer to the new conjugate transposed object.
      */
     virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
-};
-
-
-/**
- * This structure is used as an intermediate data type to store a sparse matrix.
- *
- * The matrix is stored as a sequence of nonzero elements, where each element is
- * a triple of the form (row_index, column_index, value).
- *
- * @note All Ginkgo functions returning such a structure will return the
- *       nonzeros sorted in row-major order.
- * @note All Ginkgo functions that take this structure as input expect that the
- *       nonzeros are sorted in row-major order.
- * @note This structure is not optimized for usual access patterns and it can
- *       only exist on the CPU. Thus, it should only be used for utility
- *      functions which do not have to be optimized for performance.
- *
- * @tparam ValueType  type of matrix values stored in the structure
- * @tparam IndexType  type of matrix indexes stored in the structure
- */
-template <typename ValueType = default_precision, typename IndexType = int32>
-struct matrix_data {
-    using value_type = ValueType;
-    using index_type = IndexType;
-
-    /**
-     * Type used to store nonzeros.
-     */
-    using nonzero_type = std::tuple<IndexType, IndexType, ValueType>;
-
-    /**
-     * Total number of rows of the matrix.
-     */
-    size_type num_rows;
-    /**
-     * Total number of columns of the matrix.
-     */
-    size_type num_cols;
-    /**
-     * A vector of tuples storing the non-zeros of the matrix.
-     *
-     * The first two elements of the tuple are the row index and the column
-     * index of a matrix element, and its third element is the value at that
-     * position.
-     */
-    std::vector<nonzero_type> nonzeros;
-
-    /**
-     * Sorts the nonzero vector in row-major order.
-     */
-    void sort()
-    {
-        std::sort(begin(nonzeros), end(nonzeros),
-                  [](nonzero_type x, nonzero_type y) {
-                      return std::tie(std::get<0>(x), std::get<1>(x)) <
-                             std::tie(std::get<0>(y), std::get<1>(y));
-                  });
-    }
 };
 
 

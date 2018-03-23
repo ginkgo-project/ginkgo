@@ -121,7 +121,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
             });
     }
 
-    data.sort();
+    data.ensure_row_major_order();
 
     // convert to the correct matrix type
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);

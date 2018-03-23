@@ -243,8 +243,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.sort();
-    second_data.sort();
+    first_data.ensure_row_major_order();
+    second_data.ensure_row_major_order();
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
