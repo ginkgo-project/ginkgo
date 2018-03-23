@@ -46,6 +46,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+namespace detail {
+
+
+// internal structure used to get around explicit constructors in std::tuple
+template <typename ValueType, typename IndexType>
+struct input_triple {
+    IndexType row;
+    IndexType col;
+    ValueType val;
+};
+
+
+}  // namespace detail
+
+
 /**
  * This structure is used as an intermediate data type to store a sparse matrix.
  *
@@ -73,14 +88,38 @@ struct matrix_data {
      */
     using nonzero_type = std::tuple<IndexType, IndexType, ValueType>;
 
+
+    matrix_data() = default;
+
+    /**
+     * Initializes the structure from a list of nonzeros.
+     *
+     * @param num_rows_  number of rows of the matrix
+     * @param num_cols_  number of columns of the matrix
+     * @param nonzeros_  list of nonzero elements
+     */
+    matrix_data(
+        size_type num_rows_, size_type num_cols_,
+        std::initializer_list<detail::input_triple<ValueType, IndexType>>
+            nonzeros_ = {})
+        : num_rows(num_rows_), num_cols(num_cols_), nonzeros()
+    {
+        nonzeros.reserve(nonzeros_.size());
+        for (const auto &elem : nonzeros_) {
+            nonzeros.emplace_back(elem.row, elem.col, elem.val);
+        }
+    }
+
     /**
      * Total number of rows of the matrix.
      */
     size_type num_rows;
+
     /**
      * Total number of columns of the matrix.
      */
     size_type num_cols;
+
     /**
      * A vector of tuples storing the non-zeros of the matrix.
      *
