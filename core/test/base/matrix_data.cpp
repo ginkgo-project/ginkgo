@@ -183,4 +183,24 @@ TEST(MatrixData, InitializesDiagonalMatrixFromValueList)
 }
 
 
+TEST(MatrixData, InitializesBlockDiagonalMatrix)
+{
+    using data = gko::matrix_data<double, int>;
+    using nnz = data::nonzero_type;
+    const auto m = data::diag(2, 3, {{1.0, 2.0}, {3.0, 4.0}});
+
+    ASSERT_EQ(m.num_rows, 4);
+    ASSERT_EQ(m.num_cols, 6);
+    ASSERT_EQ(m.nonzeros.size(), 8);
+    EXPECT_EQ(m.nonzeros[0], nnz(0, 0, 1.0));
+    EXPECT_EQ(m.nonzeros[1], nnz(0, 1, 2.0));
+    EXPECT_EQ(m.nonzeros[2], nnz(1, 0, 3.0));
+    EXPECT_EQ(m.nonzeros[3], nnz(1, 1, 4.0));
+    EXPECT_EQ(m.nonzeros[4], nnz(2, 2, 1.0));
+    EXPECT_EQ(m.nonzeros[5], nnz(2, 3, 2.0));
+    EXPECT_EQ(m.nonzeros[6], nnz(3, 2, 3.0));
+    EXPECT_EQ(m.nonzeros[7], nnz(3, 3, 4.0));
+}
+
+
 }  // namespace

@@ -219,7 +219,7 @@ struct matrix_data {
     }
 
     /**
-     * Initializes a diagonal matrix.
+     * Initializes a diagonal matrix using a list of diagonal elements.
      *
      * @param num_rows_  number of rows of the matrix
      * @param num_cols_  number of columns of the matrix
@@ -234,6 +234,30 @@ struct matrix_data {
         for (auto value : nonzeros_) {
             res.nonzeros.emplace_back(pos, pos, value);
             ++pos;
+        }
+        return res;
+    }
+
+    /**
+     * Initializes a block-diagonal matrix.
+     *
+     * @param num_block_rows  number of block-rows
+     * @param num_block_cols  number of block-columns
+     * @param diag_block  matrix used to fill diagonal blocks
+     */
+    static matrix_data diag(size_type num_block_rows, size_type num_block_cols,
+                            const matrix_data &block)
+    {
+        matrix_data res(num_block_rows * block.num_rows,
+                        num_block_cols * block.num_cols);
+        const auto num_blocks = std::min(num_block_rows, num_block_cols);
+        res.nonzeros.reserve(num_blocks * block.nonzeros.size());
+        for (int b = 0; b < num_blocks; ++b) {
+            for (const auto &elem : block.nonzeros) {
+                res.nonzeros.emplace_back(
+                    b * block.num_rows + std::get<0>(elem),
+                    b * block.num_cols + std::get<1>(elem), std::get<2>(elem));
+            }
         }
         return res;
     }
