@@ -103,7 +103,34 @@ struct matrix_data {
     /**
      * Type used to store nonzeros.
      */
-    using nonzero_type = std::tuple<IndexType, IndexType, ValueType>;
+    struct nonzero_type {
+        nonzero_type() = default;
+
+        nonzero_type(index_type r, index_type c, value_type v)
+            : row(r), column(c), value(v)
+        {}
+
+#define GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(_op)                \
+    bool operator _op(const nonzero_type &other) const          \
+    {                                                           \
+        return std::tie(this->row, this->column, this->value)   \
+            _op std::tie(other.row, other.column, other.value); \
+    }
+
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(==);
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(!=)
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>=);
+
+#undef GKO_DEFINE_DEFAULT_COMPARE_OPERATOR
+
+        index_type row;
+        index_type column;
+        value_type value;
+    };
+
 
     /**
      * Initializes a 0-by-0 matrix.
@@ -254,9 +281,9 @@ struct matrix_data {
         res.nonzeros.reserve(num_blocks * block.nonzeros.size());
         for (int b = 0; b < num_blocks; ++b) {
             for (const auto &elem : block.nonzeros) {
-                res.nonzeros.emplace_back(
-                    b * block.num_rows + std::get<0>(elem),
-                    b * block.num_cols + std::get<1>(elem), std::get<2>(elem));
+                res.nonzeros.emplace_back(b * block.num_rows + elem.row,
+                                          b * block.num_cols + elem.column,
+                                          elem.value);
             }
         }
         return res;
@@ -286,11 +313,10 @@ struct matrix_data {
      */
     void ensure_row_major_order()
     {
-        std::sort(begin(nonzeros), end(nonzeros),
-                  [](nonzero_type x, nonzero_type y) {
-                      return std::tie(std::get<0>(x), std::get<1>(x)) <
-                             std::tie(std::get<0>(y), std::get<1>(y));
-                  });
+        std::sort(
+            begin(nonzeros), end(nonzeros), [](nonzero_type x, nonzero_type y) {
+                return std::tie(x.row, x.column) < std::tie(y.row, y.column);
+            });
     }
 };
 

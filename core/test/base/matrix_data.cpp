@@ -90,7 +90,7 @@ TEST(MatrixData, InitializesWithRandomValues)
     ASSERT_EQ(m.num_cols, 3);
     ASSERT_LE(m.nonzeros.size(), 6);
     for (const auto &elem : m.nonzeros) {
-        EXPECT_TRUE(-1 <= std::get<2>(elem) && std::get<2>(elem) <= 1);
+        EXPECT_TRUE(-1 <= elem.value && elem.value <= 1);
     }
 }
 

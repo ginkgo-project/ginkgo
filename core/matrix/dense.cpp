@@ -370,10 +370,9 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data)
     size_type ind = 0;
     for (size_type row = 0; row < data.num_rows; ++row) {
         for (size_type col = 0; col < data.num_cols; ++col) {
-            if (ind < data.nonzeros.size() &&
-                std::get<0>(data.nonzeros[ind]) == row &&
-                std::get<1>(data.nonzeros[ind]) == col) {
-                tmp->at(row, col) = std::get<2>(data.nonzeros[ind]);
+            if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
+                data.nonzeros[ind].column == col) {
+                tmp->at(row, col) = data.nonzeros[ind].value;
                 ++ind;
             } else {
                 tmp->at(row, col) = zero<typename MatrixType::value_type>();

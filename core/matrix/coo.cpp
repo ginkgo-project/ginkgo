@@ -161,17 +161,17 @@ void Coo<ValueType, IndexType>::read(const mat_data &data)
 {
     size_type nnz = 0;
     for (const auto &elem : data.nonzeros) {
-        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz += (elem.value != zero<ValueType>());
     }
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
                       data.num_cols, nnz);
     size_type elt = 0;
     for (const auto &elem : data.nonzeros) {
-        auto val = std::get<2>(elem);
+        auto val = elem.value;
         if (val != zero<ValueType>()) {
-            tmp->get_row_idxs()[elt] = std::get<0>(elem);
-            tmp->get_col_idxs()[elt] = std::get<1>(elem);
-            tmp->get_values()[elt] = std::get<2>(elem);
+            tmp->get_row_idxs()[elt] = elem.row;
+            tmp->get_col_idxs()[elt] = elem.column;
+            tmp->get_values()[elt] = elem.value;
             elt++;
         }
     }

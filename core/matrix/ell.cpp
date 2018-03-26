@@ -68,11 +68,11 @@ size_type calculate_max_nonzeros_per_row(
     IndexType current_row = 0;
     size_type max_nonzeros_per_row = 0;
     for (const auto &elem : data.nonzeros) {
-        if (std::get<0>(elem) != current_row) {
+        if (elem.row != current_row) {
             max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
             nnz = 0;
         }
-        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz += (elem.value != zero<ValueType>());
     }
     return max_nonzeros_per_row;
 }
@@ -148,11 +148,11 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
     auto col_idxs = tmp->get_col_idxs();
     for (size_type row = 0; row < data.num_rows; row++) {
         size_type col = 0;
-        while (ind < n && std::get<0>(data.nonzeros[ind]) == row) {
-            auto val = std::get<2>(data.nonzeros[ind]);
+        while (ind < n && data.nonzeros[ind].row == row) {
+            auto val = data.nonzeros[ind].value;
             if (val != zero<ValueType>()) {
                 tmp->val_at(row, col) = val;
-                tmp->col_at(row, col) = std::get<1>(data.nonzeros[ind]);
+                tmp->col_at(row, col) = data.nonzeros[ind].column;
                 col++;
             }
             ind++;

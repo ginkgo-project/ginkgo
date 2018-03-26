@@ -235,7 +235,7 @@ TEST_F(Dense, CanBeReadFromMatrixData)
 
 TEST_F(Dense, GeneratesCorrectMatrixData)
 {
-    using tpl = std::tuple<int, int, double>;
+    using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;
 
     mtx->write(data);

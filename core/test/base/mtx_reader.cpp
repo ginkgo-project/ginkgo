@@ -45,7 +45,7 @@ namespace {
 
 TEST(MtxReader, ReadsDenseRealMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<double, gko::int32>("data/dense_real.mtx");
 
@@ -63,7 +63,7 @@ TEST(MtxReader, ReadsDenseRealMtx)
 
 TEST(MtxReader, ReadsDenseIntegerMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<double, gko::int32>("data/dense_integer.mtx");
 
@@ -82,7 +82,7 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 TEST(MtxReader, ReadsDenseComplexMtx)
 {
     using cpx = std::complex<double>;
-    using tpl = std::tuple<gko::int32, gko::int32, cpx>;
+    using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<cpx, gko::int32>("data/dense_complex.mtx");
 
@@ -100,7 +100,7 @@ TEST(MtxReader, ReadsDenseComplexMtx)
 
 TEST(MtxReader, ReadsSparseRealMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<double, gko::int32>("data/sparse_real.mtx");
 
@@ -116,7 +116,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 
 TEST(MtxReader, ReadsSparseRealSymetricMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data =
         gko::read_raw<double, gko::int32>("data/sparse_real_symmetric.mtx");
@@ -135,7 +135,7 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 
 TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<double, gko::int32>(
         "data/sparse_real_skew_symmetric.mtx");
@@ -152,7 +152,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 
 TEST(MtxReader, ReadsSparsePatternMtx)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<double, gko::int32>("data/sparse_pattern.mtx");
 
@@ -169,7 +169,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 TEST(MtxReader, ReadsSparseComplexMtx)
 {
     using cpx = std::complex<double>;
-    using tpl = std::tuple<gko::int32, gko::int32, cpx>;
+    using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
 
     auto data = gko::read_raw<cpx, gko::int32>("data/sparse_complex.mtx");
 
@@ -186,7 +186,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
 TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 {
     using cpx = std::complex<double>;
-    using tpl = std::tuple<gko::int32, gko::int32, cpx>;
+    using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
 
     auto data =
         gko::read_raw<cpx, gko::int32>("data/sparse_complex_hermitian.mtx");
@@ -231,7 +231,7 @@ public:
 
 TEST(MtxReader, ReadsLinOpFromFile)
 {
-    using tpl = std::tuple<gko::int32, gko::int32, double>;
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
 
     auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
         "data/dense_real.mtx", gko::ReferenceExecutor::create());
