@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATRIX_DATA_HPP_
 
 
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
 
 
@@ -58,6 +59,22 @@ struct input_triple {
 };
 
 
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<!is_complex<ValueType>(), ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
+{
+    return dist(gen);
+}
+
+
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<is_complex<ValueType>(), ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
+{
+    return ValueType(dist(gen), dist(gen));
+}
+
+
 }  // namespace detail
 
 
@@ -73,7 +90,7 @@ struct input_triple {
  *       nonzeros are sorted in row-major order.
  * @note This structure is not optimized for usual access patterns and it can
  *       only exist on the CPU. Thus, it should only be used for utility
- *      functions which do not have to be optimized for performance.
+ *       functions which do not have to be optimized for performance.
  *
  * @tparam ValueType  type of matrix values stored in the structure
  * @tparam IndexType  type of matrix indexes stored in the structure
@@ -88,8 +105,78 @@ struct matrix_data {
      */
     using nonzero_type = std::tuple<IndexType, IndexType, ValueType>;
 
+    /**
+     * Initializes a 0-by-0 matrix.
+     */
+    matrix_data() : num_rows{}, num_cols{} {}
 
-    matrix_data() = default;
+    /**
+     * Initializes a matrix filled with the specified value.
+     *
+     * @param num_rows_  number of rows of the matrix
+     * @param num_cols_  number of columns of the matrix
+     * @param value  value used to fill the elements of the matrix
+     */
+    matrix_data(size_type num_rows_, size_type num_cols_,
+                ValueType value = zero<ValueType>())
+        : num_rows(num_rows_), num_cols(num_cols_)
+    {
+        if (value == zero<ValueType>()) {
+            return;
+        }
+        for (size_type row = 0; row < num_rows; ++row) {
+            for (size_type col = 0; col < num_cols; ++col) {
+                nonzeros.emplace_back(row, col, value);
+            }
+        }
+    }
+
+    /**
+     * Initializes a matrix with random values from the specified distribution.
+     *
+     * @tparam RandomDistribution  random distribution type
+     * @tparam RandomEngine  random engine type
+     *
+     * @param num_rows_  number of rows of the matrix
+     * @param num_cols_  number of columns of the matrix
+     * @param dist  random distribution of the elements of the matrix
+     * @param engine  random engine used to generate random values
+     */
+    template <typename RandomDistribution, typename RandomEngine>
+    matrix_data(size_type num_rows_, size_type num_cols_,
+                RandomDistribution &&dist, RandomEngine &&engine)
+        : num_rows(num_rows_), num_cols(num_cols_)
+    {
+        for (size_type row = 0; row < num_rows; ++row) {
+            for (size_type col = 0; col < num_cols; ++col) {
+                const auto value =
+                    detail::get_rand_value<ValueType>(dist, engine);
+                if (value != zero<ValueType>()) {
+                    nonzeros.emplace_back(row, col, value);
+                }
+            }
+        }
+    }
+
+    /**
+     * List-initializes the structure from a matrix of values.
+     *
+     * @param values  a 2D braced-init-list of matrix values.
+     */
+    matrix_data(std::initializer_list<std::initializer_list<ValueType>> values)
+        : num_rows(values.size()), num_cols{}
+    {
+        for (size_type row = 0; row < values.size(); ++row) {
+            const auto row_data = begin(values)[row];
+            num_cols = std::max(num_cols, row_data.size());
+            for (size_type col = 0; col < row_data.size(); ++col) {
+                const auto &val = begin(row_data)[col];
+                if (val != zero<ValueType>()) {
+                    nonzeros.emplace_back(row, col, val);
+                }
+            }
+        }
+    }
 
     /**
      * Initializes the structure from a list of nonzeros.
@@ -101,13 +188,54 @@ struct matrix_data {
     matrix_data(
         size_type num_rows_, size_type num_cols_,
         std::initializer_list<detail::input_triple<ValueType, IndexType>>
-            nonzeros_ = {})
+            nonzeros_)
         : num_rows(num_rows_), num_cols(num_cols_), nonzeros()
     {
         nonzeros.reserve(nonzeros_.size());
         for (const auto &elem : nonzeros_) {
             nonzeros.emplace_back(elem.row, elem.col, elem.val);
         }
+    }
+
+    /**
+     * Initializes a diagonal matrix.
+     *
+     * @param num_rows_  number of rows of the matrix
+     * @param num_cols_  number of columns of the matrix
+     * @param value  value used to fill the elements of the matrix
+     */
+    static matrix_data diag(size_type num_rows, size_type num_cols,
+                            ValueType value)
+    {
+        matrix_data res(num_rows, num_cols);
+        if (value != zero<ValueType>()) {
+            const auto num_nnz = std::min(num_rows, num_cols);
+            res.nonzeros.reserve(num_nnz);
+            for (int i = 0; i < num_nnz; ++i) {
+                res.nonzeros.emplace_back(i, i, value);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Initializes a diagonal matrix.
+     *
+     * @param num_rows_  number of rows of the matrix
+     * @param num_cols_  number of columns of the matrix
+     * @param nonzeros_  list of diagonal elements
+     */
+    static matrix_data diag(size_type num_rows, size_type num_cols,
+                            std::initializer_list<ValueType> nonzeros_)
+    {
+        matrix_data res(num_rows, num_cols);
+        res.nonzeros.reserve(nonzeros_.size());
+        int pos = 0;
+        for (auto value : nonzeros_) {
+            res.nonzeros.emplace_back(pos, pos, value);
+            ++pos;
+        }
+        return res;
     }
 
     /**
