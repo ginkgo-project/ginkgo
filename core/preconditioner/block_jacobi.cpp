@@ -297,8 +297,8 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
 
-    const auto ptrs = this->block_pointers_.get_const_data();
-    const auto prec = block_precisions_.get_const_data();
+    const auto ptrs = tmp->block_pointers_.get_const_data();
+    const auto prec = tmp->block_precisions_.get_const_data();
     for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
         RESOLVE_PRECISION(prec[block], {
             const auto block_data =
