@@ -52,7 +52,7 @@ protected:
     Cgs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+              {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           cgs_factory(gko::solver::CgsFactory<>::create(exec, 40, 1e-15))
     {}
 
@@ -62,7 +62,7 @@ protected:
 };
 
 
-TEST_F(Cgs, SolvesStencilSystem)
+TEST_F(Cgs, SolvesDenseSystem)
 {
     auto solver = cgs_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
@@ -70,23 +70,24 @@ TEST_F(Cgs, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
 }
 
 
-TEST_F(Cgs, SolvesMultipleStencilSystems)
+TEST_F(Cgs, SolvesMultipleDenseSystem)
 {
     auto solver = cgs_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
 }
 
 
-TEST_F(Cgs, SolvesStencilSystemUsingAdvancedApply)
+TEST_F(Cgs, SolvesDenseSystemUsingAdvancedApply)
 {
     auto solver = cgs_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
@@ -96,21 +97,22 @@ TEST_F(Cgs, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
 }
 
 
-TEST_F(Cgs, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TEST_F(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
 {
     auto solver = cgs_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
+    auto b =
+        gko::initialize<Mtx>({{-1.0, -5.0}, {3.0, 1.0}, {1.0, -2.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
 }
 
 
