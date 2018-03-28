@@ -48,7 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-
+/*
 class Cgs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
@@ -184,26 +184,13 @@ TEST_F(Cgs, GpuCgsInitializeIsEquivalentToRef)
 }
 
 
+
 TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
 {
     initialize_data();
-
-    gko::kernels::reference::cgs::step_1(ref, p.get(), z.get(), rho.get(),
-                                         prev_rho.get());
-    gko::kernels::gpu::cgs::step_1(gpu, d_p.get(), d_z.get(), d_rho.get(),
-                                   d_prev_rho.get());
-
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
-}
-
-
-TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
-{
-    initialize_data();
-    gko::kernels::reference::cgs::step_2(ref, x.get(), r.get(), p.get(),
+    gko::kernels::reference::cgs::step_1(ref, x.get(), r.get(), p.get(),
                                          q.get(), beta.get(), rho.get());
-    gko::kernels::gpu::cgs::step_2(gpu, d_x.get(), d_r.get(), d_p.get(),
+    gko::kernels::gpu::cgs::step_1(gpu, d_x.get(), d_r.get(), d_p.get(),
                                    d_q.get(), d_beta.get(), d_rho.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
@@ -235,6 +222,6 @@ TEST_F(Cgs, ApplyIsEquivalentToRef)
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
-
+*/
 
 }  // namespace

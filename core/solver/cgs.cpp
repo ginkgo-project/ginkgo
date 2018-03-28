@@ -56,7 +56,6 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_1, cgs::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, cgs::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, cgs::step_3<ValueType>);
-    GKO_REGISTER_OPERATION(step_4, cgs::step_4<ValueType>);
 };
 
 
@@ -141,23 +140,16 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     r_tld->copy_from(r.get());
     for (int iter = 0; iter < max_iters_; iter += 2) {
         r->compute_dot(r_tld.get(), rho.get());
-        if (iter == 0) {
-            exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-                r.get(), u.get(), p.get()));
-            // u = r
-            // p = r
-        } else {
-            exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-                r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
-                rho_prev.get()));
-            // beta = rho / rho_prev
-            // u = r + beta * q;
-            // p = u + beta * ( q + beta * p );
-        }
+        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
+            r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
+            rho_prev.get()));
+        // beta = rho / rho_prev
+        // u = r + beta * q;
+        // p = u + beta * ( q + beta * p );
         preconditioner_->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_dot(v_hat.get(), gamma.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
+        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             u.get(), v_hat.get(), q.get(), t.get(), alpha.get(), rho.get(),
             gamma.get()));
         // alpha = rho / gamma
@@ -165,7 +157,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
         // t = u + q
         preconditioner_->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_4_operation(
+        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             t.get(), u_hat.get(), r.get(), dense_x, alpha.get()));
         // r = r -alpha * t
         // x = x + alpha * u_hat

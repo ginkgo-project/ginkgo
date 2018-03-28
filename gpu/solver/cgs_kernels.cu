@@ -47,7 +47,7 @@ namespace cgs {
 
 constexpr int default_block_size = 512;
 
-
+/*
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_rows, size_type stride, const ValueType *__restrict__ b,
@@ -72,7 +72,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         q[tidx] = zero<ValueType>();
     }
 }
-
+*/
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
@@ -104,49 +104,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_1_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ p, const ValueType *__restrict__ z,
-    const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride) {
-        return;
-    }
-    const auto tmp = rho[col] / prev_rho[col];
-    p[tidx] =
-        prev_rho[col] == zero<ValueType>() ? z[tidx] : z[tidx] + tmp * p[tidx];
-}
-
-
-template <typename ValueType>
-void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *p)
-{
-    NOT_IMPLEMENTED;
-    // this is the code from the solver template
-    /*
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
-
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_stride(),
-        as_cudaValueType(p->get_values()),
-    as_cudaValueType(z->get_const_values()),
-        as_cudaValueType(rho->get_const_values()),
-        as_cudaValueType(prev_rho->get_const_values()));
-    */
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
-
-
+/*
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -168,10 +126,10 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         r[tidx] -= tmp * q[tidx];
     }
 }
-
+*/
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const DefaultExecutor> exec,
+void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
@@ -194,11 +152,11 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
     */
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const DefaultExecutor> exec,
+void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
@@ -222,11 +180,11 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
     */
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_4(std::shared_ptr<const DefaultExecutor> exec,
+void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha)
@@ -248,7 +206,7 @@ void step_4(std::shared_ptr<const DefaultExecutor> exec,
     */
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_4_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 
 
 }  // namespace cgs

@@ -54,29 +54,23 @@ namespace cgs {
                     matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho)
 
 
-#define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                            \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                const matrix::Dense<_type> *r, matrix::Dense<_type> *u, \
-                matrix::Dense<_type> *p)
-
-
-#define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                                 \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,                 \
+#define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                                 \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,                 \
                 const matrix::Dense<_type> *r, matrix::Dense<_type> *u,      \
                 matrix::Dense<_type> *p, const matrix::Dense<_type> *q,      \
                 matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho, \
                 const matrix::Dense<_type> *rho_prev)
 
-#define GKO_DECLARE_CGS_STEP_3_KERNEL(_type)                                \
-    void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
+#define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                                \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Dense<_type> *u,                              \
                 const matrix::Dense<_type> *v_hat, matrix::Dense<_type> *q, \
                 matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,       \
                 const matrix::Dense<_type> *rho,                            \
                 const matrix::Dense<_type> *gamma)
 
-#define GKO_DECLARE_CGS_STEP_4_KERNEL(_type)                                \
-    void step_4(std::shared_ptr<const DefaultExecutor> exec,                \
+#define GKO_DECLARE_CGS_STEP_3_KERNEL(_type)                                \
+    void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Dense<_type> *t,                              \
                 const matrix::Dense<_type> *u_hat, matrix::Dense<_type> *r, \
                 matrix::Dense<_type> *x, const matrix::Dense<_type> *alpha)
@@ -89,9 +83,7 @@ namespace cgs {
     template <typename ValueType>                 \
     GKO_DECLARE_CGS_STEP_2_KERNEL(ValueType);     \
     template <typename ValueType>                 \
-    GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_CGS_STEP_4_KERNEL(ValueType)
+    GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType);
 
 
 }  // namespace cgs
