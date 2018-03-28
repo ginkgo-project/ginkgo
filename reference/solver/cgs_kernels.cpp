@@ -117,6 +117,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
+   
 template <typename ValueType>
 void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *u,
@@ -140,6 +141,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 
+   
 template <typename ValueType>
 void step_4(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
