@@ -110,7 +110,6 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto v_hat = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
 
-
     auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
