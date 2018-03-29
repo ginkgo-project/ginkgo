@@ -53,7 +53,6 @@ namespace cgs {
                     matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma,  \
                     matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho)
 
-
 #define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                                 \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,                 \
                 const matrix::Dense<_type> *r, matrix::Dense<_type> *u,      \
