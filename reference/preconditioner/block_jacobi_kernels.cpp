@@ -228,14 +228,14 @@ template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
-inline void copy_block(IndexType block_size, const SourceValueType *from,
-                       size_type from_stride, ResultValueType *to,
-                       size_type to_stride,
-                       ValueConverter converter = {}) noexcept
+inline void transpose_block(IndexType block_size, const SourceValueType *from,
+                            size_type from_stride, ResultValueType *to,
+                            size_type to_stride,
+                            ValueConverter converter = {}) noexcept
 {
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            to[i * to_stride + j] = converter(from[i * from_stride + j]);
+            to[i * to_stride + j] = converter(from[i + j * from_stride]);
         }
     }
 }
@@ -245,17 +245,17 @@ template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
-inline void copy_and_permute_block(IndexType block_size,
-                                   const IndexType *col_perm,
-                                   const SourceValueType *source,
-                                   size_type source_stride,
-                                   ResultValueType *result,
-                                   size_type result_stride,
-                                   ValueConverter converter = {})
+inline void permute_and_transpose_block(IndexType block_size,
+                                        const IndexType *col_perm,
+                                        const SourceValueType *source,
+                                        size_type source_stride,
+                                        ResultValueType *result,
+                                        size_type result_stride,
+                                        ValueConverter converter = {})
 {
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
-            result[i * result_stride + col_perm[j]] =
+            result[i + col_perm[j] * result_stride] =
                 converter(source[i * source_stride + j]);
         }
     }
@@ -295,9 +295,9 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
         extract_block(system_matrix, block_size, ptrs[b], block.get_data(),
                       block_size);
         invert_block(block_size, perm.get_data(), block.get_data(), block_size);
-        copy_and_permute_block(block_size, perm.get_data(), block.get_data(),
-                               block_size, blocks.get_data() + stride * ptrs[b],
-                               stride);
+        permute_and_transpose_block(
+            block_size, perm.get_data(), block.get_data(), block_size,
+            blocks.get_data() + stride * ptrs[b], stride);
     }
 }
 
@@ -331,11 +331,11 @@ inline void apply_block(size_type block_size, size_type num_rhs,
         }
     }
 
-    for (size_type row = 0; row < block_size; ++row) {
-        for (size_type inner = 0; inner < block_size; ++inner) {
+    for (size_type inner = 0; inner < block_size; ++inner) {
+        for (size_type row = 0; row < block_size; ++row) {
             for (size_type col = 0; col < num_rhs; ++col) {
                 x[row * stride_x + col] +=
-                    alpha * converter(block[row * stride + inner]) *
+                    alpha * converter(block[row + inner * stride]) *
                     b[inner * stride_b + col];
             }
         }
@@ -413,9 +413,9 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto block = blocks.get_const_data() + block_stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        copy_block(block_size, block, block_stride,
-                   result_values + ptrs[i] * result_stride + ptrs[i],
-                   result_stride);
+        transpose_block(block_size, block, block_stride,
+                        result_values + ptrs[i] * result_stride + ptrs[i],
+                        result_stride);
     }
 }
 
@@ -525,7 +525,7 @@ void convert_to_dense(
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i],
-            block_jacobi::copy_block(
+            block_jacobi::transpose_block(
                 block_size, reinterpret_cast<const resolved_precision *>(block),
                 block_stride, result_values + ptrs[i] * result_stride + ptrs[i],
                 result_stride));
@@ -560,7 +560,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
         }
         RESOLVE_PRECISION(
             prec[b],
-            block_jacobi::copy_and_permute_block(
+            block_jacobi::permute_and_transpose_block(
                 block_size, perm.get_data(), block.get_data(), block_size,
                 reinterpret_cast<resolved_precision *>(blocks.get_data() +
                                                        stride * ptrs[b]),

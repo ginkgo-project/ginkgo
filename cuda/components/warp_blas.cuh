@@ -50,9 +50,21 @@ namespace cuda {
 /**
  * @internal
  *
+ * Defines a postprocessing transformation that should be performed on the
+ * result of a function call.
+ *
+ * @note This functionality should become useless once accessors and ranges are
+ *       in place, as they will define the storage scheme.
+ */
+enum postprocess_transformation { and_return, and_transpose };
+
+
+/**
+ * @internal
+ *
  * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
  * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using
- * usinge the thread group `group.  Each thread contributes one `row` of the
+ * using the thread group `group.  Each thread contributes one `row` of the
  * matrix, and the routine uses warp shuffles to exchange data between rows. The
  * transform is performed by using the `key_row`-th row and `key_col`-th column
  * of the matrix.
@@ -151,11 +163,39 @@ __device__ __forceinline__ void invert_block(const Group &group,
 /**
  * @internal
  *
+ * Performs the correct index calculation for the given postprocess operation.
+ */
+template <postprocess_transformation mod, typename T1, typename T2, typename T3>
+__host__ __device__ __forceinline__ auto get_row_major_index(T1 row, T2 col,
+                                                             T3 stride) ->
+    typename std::enable_if<
+        mod != and_transpose,
+        typename std::decay<decltype(row * stride + col)>::type>::type
+{
+    return row * stride + col;
+}
+
+
+template <postprocess_transformation mod, typename T1, typename T2, typename T3>
+__host__ __device__ __forceinline__ auto get_row_major_index(T1 row, T2 col,
+                                                             T3 stride) ->
+    typename std::enable_if<
+        mod == and_transpose,
+        typename std::decay<decltype(col * stride + row)>::type>::type
+{
+    return col * stride + row;
+}
+
+
+/**
+ * @internal
+ *
  * Copies a matrix stored as a collection of rows in different threads of the
  * warp in a block of memory accessible by all threads in row-major order.
  * Optionally permutes rows and columns of the matrix in the process.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
+ * @tparam mod  the transformation to perform on the return data
  * @tparam Group  type of the group of threads
  * @tparam ValueType  type of values stored in the matrix
  *
@@ -175,7 +215,8 @@ __device__ __forceinline__ void invert_block(const Group &group,
  * @param stride  offset between two consecutive rows of the matrix
  */
 template <
-    int max_problem_size, typename Group, typename ValueType,
+    int max_problem_size, postprocess_transformation mod = and_return,
+    typename Group, typename ValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void copy_matrix(
     const Group &group, uint32 problem_size,
@@ -190,7 +231,8 @@ __device__ __forceinline__ void copy_matrix(
         }
         const auto idx = group.shfl(col_perm, i);
         if (group.thread_rank() < problem_size) {
-            destination[idx * stride + row_perm] = source_row[i * increment];
+            destination[get_row_major_index<mod>(idx, row_perm, stride)] =
+                source_row[i * increment];
         }
     }
 }
@@ -243,6 +285,57 @@ __device__ __forceinline__ void multiply_transposed_vec(
         if (group.thread_rank() == 0) {
             res[i * res_increment] = out;
         }
+    }
+}
+
+
+/**
+ * @internal
+ *
+ * Multiplies a matrix and a vector stored in column-major order.
+ *
+ * In mathematical terms, performs the operation \f$ res = mtx \cdot vec\f$.
+ *
+ * @tparam max_problem_size  maximum problem size passed to the routine
+ * @tparam Group  type of the group of threads
+ * @tparam ValueType  type of values stored in matrix and vectors
+ *
+ * @param group  group of threads participating in the operation
+ * @param problem_size  actual size of the matrix
+ *                      (`problem_size <= max_problem_size`)
+ * @param vec  input vector to multiply (thread `i` supplies the `i`-th value of
+ *             the vector)
+ * @param mtx_row  pointer to memory used to store a row of the input matrix,
+ *                    `i`-th thread of the sub-warp should pass in the
+ *                    `i`-th row of the matrix
+ * @param mtx_increment  offset between two consecutive elements of the row
+ * @param res  pointer to a block of memory where the result will be written
+ *             (only thread 0 of the group has to supply a valid value)
+ * @param mtx_increment  offset between two consecutive elements of the result
+ */
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ void multiply_vec(
+    const Group &group, uint32 problem_size, const ValueType &__restrict__ vec,
+    const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
+    ValueType *__restrict__ res, uint32 res_increment)
+{
+    GKO_ASSERT(problem_size <= max_problem_size);
+    auto mtx_elem = zero<ValueType>();
+    auto out = zero<ValueType>();
+#pragma unroll
+    for (int32 i = 0; i < max_problem_size; ++i) {
+        if (i >= problem_size) {
+            break;
+        }
+        if (group.thread_rank() < problem_size) {
+            mtx_elem = mtx_row[i * mtx_increment];
+        }
+        out += mtx_elem * group.shfl(vec, i);
+    }
+    if (group.thread_rank() < problem_size) {
+        res[group.thread_rank() * res_increment] = out;
     }
 }
 
