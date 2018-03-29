@@ -202,18 +202,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                 matrix::Coo<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    reference::dense::convert_to_coo(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_COO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
