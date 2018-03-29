@@ -73,7 +73,6 @@ struct TemplatedOperation {
 template <typename... TplArgs>
 struct TemplatedOperationCoo {
     GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_coo, dense::move_to_coo<TplArgs...>);
 };
 
 
@@ -243,8 +242,8 @@ void Dense<ValueType>::move_to(Coo<ValueType, int32> *result)
     conversion_helper(
         result, this,
         TemplatedOperationCoo<ValueType, int32>::
-            template make_move_to_coo_operation<decltype(result),
-                                                Dense<ValueType> *&>);
+            template make_convert_to_coo_operation<decltype(result),
+                                                   Dense<ValueType> *&>);
 }
 
 
@@ -265,8 +264,8 @@ void Dense<ValueType>::move_to(Coo<ValueType, int64> *result)
     conversion_helper(
         result, this,
         TemplatedOperationCoo<ValueType, int64>::
-            template make_move_to_coo_operation<decltype(result),
-                                                Dense<ValueType> *&>);
+            template make_convert_to_coo_operation<decltype(result),
+                                                   Dense<ValueType> *&>);
 }
 
 
