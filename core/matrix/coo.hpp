@@ -48,6 +48,9 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType>
+class Dense;
+
 /**
  * COO stores a matrix in the coordinate matrix format.
  *
@@ -61,10 +64,12 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public BasicLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMtx,
             public Transposable {
     friend class BasicLinOp<Coo>;
     friend class Csr<ValueType, IndexType>;
+    friend class Dense<ValueType>;
 
 public:
     using BasicLinOp<Coo>::create;
@@ -82,6 +87,10 @@ public:
     void convert_to(Csr<ValueType, IndexType> *other) const override;
 
     void move_to(Csr<ValueType, IndexType> *other) override;
+
+    void convert_to(Dense<ValueType> *other) const override;
+
+    void move_to(Dense<ValueType> *other) override;
 
     void read_from_mtx(const std::string &filename) override;
 

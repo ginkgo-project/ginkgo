@@ -93,6 +93,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_dense(
+    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *result,
+    const matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+
+
 }  // namespace coo
 }  // namespace cpu
 }  // namespace kernels

@@ -33,16 +33,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/dense.hpp>
 
-#include <core/test/utils/assertions.hpp>
 
 #include <gtest/gtest.h>
 
+
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
+#include <core/matrix/coo.hpp>
 #include <core/matrix/csr.hpp>
 #include <core/matrix/ell.hpp>
+#include <core/test/utils/assertions.hpp>
+
 
 #include <complex>
+
 
 namespace {
 
@@ -241,6 +245,62 @@ TEST_F(Dense, ComputDotFailsOnWrongResultSize)
 
     ASSERT_THROW(mtx1->compute_dot(mtx3.get(), result.get()),
                  gko::DimensionMismatch);
+}
+
+
+TEST_F(Dense, ConvertsToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(coo_mtx.get());
+
+    auto v = coo_mtx->get_const_values();
+    auto c = coo_mtx->get_const_col_idxs();
+    auto r = coo_mtx->get_const_row_idxs();
+
+    ASSERT_EQ(coo_mtx->get_num_rows(), 2);
+    ASSERT_EQ(coo_mtx->get_num_cols(), 3);
+    ASSERT_EQ(coo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
+}
+
+
+TEST_F(Dense, MovesToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx4->get_executor());
+
+    mtx4->move_to(coo_mtx.get());
+
+    auto v = coo_mtx->get_const_values();
+    auto c = coo_mtx->get_const_col_idxs();
+    auto r = coo_mtx->get_const_row_idxs();
+
+    ASSERT_EQ(coo_mtx->get_num_rows(), 2);
+    ASSERT_EQ(coo_mtx->get_num_cols(), 3);
+    ASSERT_EQ(coo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 

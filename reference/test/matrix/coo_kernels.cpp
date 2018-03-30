@@ -55,23 +55,12 @@ protected:
 
     Coo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, 3, 4))
+          mtx(Mtx::create(exec))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_idxs();
-        r[0] = 0;
-        r[1] = 0;
-        r[2] = 0;
-        r[3] = 1;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
+        // clang-format off
+        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
+                                     {0.0, 5.0, 0.0}}, exec);
+        // clang-format on
     }
 
     void assert_equal_to_mtx_in_csr_format(const Csr *m)
@@ -113,6 +102,129 @@ TEST_F(Coo, MovesToCsr)
     auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
     mtx->move_to(csr_mtx.get());
     assert_equal_to_mtx_in_csr_format(csr_mtx.get());
+}
+
+
+TEST_F(Coo, ConvertsToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->convert_to(dense_mtx.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, MovesToDense)
+{
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->move_to(dense_mtx.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, AppliesToDenseVector)
+{
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = Vec::create(exec, 2, 1, 1);
+
+    mtx->apply(x.get(), y.get());
+
+    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TEST_F(Coo, AppliesToDenseMatrix)
+{
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    // clang-format on
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    mtx->apply(x.get(), y.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(y,
+                    l({{13.0,  3.5},
+                       { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, AppliesLinearCombinationToDenseVector)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TEST_F(Coo, AppliesLinearCombinationToDenseMatrix)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>(
+        {{1.0, 0.5},
+         {2.0, -1.5}}, exec);
+    // clang-format on
+
+    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(y,
+                    l({{-11.0, -2.5},
+                       { -1.0,  4.5}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, ApplyFailsOnWrongInnerDimension)
+{
+    auto x = Vec::create(exec, 2, 2, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Coo, ApplyFailsOnWrongNumberOfRows)
+{
+    auto x = Vec::create(exec, 3, 2, 2);
+    auto y = Vec::create(exec, 3, 2, 2);
+
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Coo, ApplyFailsOnWrongNumberOfCols)
+{
+    auto x = Vec::create(exec, 3, 3, 2);
+    auto y = Vec::create(exec, 2, 2, 2);
+
+    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 

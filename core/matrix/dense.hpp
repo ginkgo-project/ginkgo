@@ -51,6 +51,9 @@ namespace matrix {
 
 
 template <typename ValueType, typename IndexType>
+class Coo;
+
+template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType, typename IndexType>
@@ -70,6 +73,8 @@ class Ell;
  */
 template <typename ValueType = default_precision>
 class Dense : public BasicLinOp<Dense<ValueType>>,
+              public ConvertibleTo<Coo<ValueType, int32>>,
+              public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
@@ -77,6 +82,8 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public ReadableFromMtx,
               public Transposable {
     friend class BasicLinOp<Dense>;
+    friend class Coo<ValueType, int32>;
+    friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Ell<ValueType, int32>;
@@ -105,6 +112,14 @@ public:
     void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                LinOp *x) const override;
 
+    void convert_to(Coo<ValueType, int32> *result) const override;
+
+    void move_to(Coo<ValueType, int32> *result) override;
+
+    void convert_to(Coo<ValueType, int64> *result) const override;
+
+    void move_to(Coo<ValueType, int64> *result) override;
+    
     void convert_to(Csr<ValueType, int32> *result) const override;
 
     void move_to(Csr<ValueType, int32> *result) override;
