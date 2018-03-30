@@ -21,6 +21,7 @@
 
 
 # Known NVIDIA GPU achitectures Ginkgo can be compiled for.
+set(ginkgo_known_cuda_version "75;80;90;91")
 
 set(ginkgo_known_gpu_archs_cuda_75 "20;21;30;32;35;37;50;52;53")
 set(ginkgo_known_gpu_archs_cuda_80 "20;21;30;32;35;37;50;52;53;60;61;62")
@@ -91,7 +92,9 @@ endfunction()
 #     check_available(arch_var)
 function(check_available arch_var)
     if(arch_var MATCHES "([0-9]+)")
-        if(arch_var IN_LIST ginkgo_known_gpu_archs)
+        if(NOT(arch_var IN_LIST cuda_all_arch_list))
+            message(FATAL_ERROR "arch ${arch_var} is not invalid")
+        elseif(arch_var IN_LIST ginkgo_known_gpu_archs)
             if(arch_var IN_LIST ginkgo_unsupported_archs)
                 message(FATAL_ERROR "Ginkgo does not support ${arch_var}")
             endif()
@@ -125,6 +128,11 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
     set(ginkgo_known_gpu_archs_name
         ${ginkgo_known_gpu_archs_name_${cuda_version}})
     set(cuda_arch_bin_Volta ${cuda_arch_bin_Volta_${cuda_version}})
+    set(cuda_all_arch_list "")
+    foreach(__ver ${ginkgo_known_cuda_version})
+        list(APPEND cuda_all_arch_list ${ginkgo_known_gpu_archs_cuda_${__ver}})
+    endforeach()
+    list(REMOVE_DUPLICATES cuda_all_arch_list)
 
     # set CUDA_ARCH_OPTION strings
     set(CUDA_ARCH_OPTION "Auto" CACHE STRING
@@ -137,8 +145,12 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
     set(__cuda_arch_bin "")
     set(__cuda_arch_ptx "")
     set(__bool_max_ptx "0")
-    foreach (__option ${CUDA_ARCH_OPTION})
-        if(__option MATCHES "([0-9]+)\\(([0-9]+)\\)")
+    foreach(__option ${CUDA_ARCH_OPTION})
+        if(__option STREQUAL "Off")
+            set(${out_variable}          ""    PARENT_SCOPE)
+            set(${out_variable}_readable "Off" PARENT_SCOPE)
+            return()
+        elseif(__option MATCHES "([0-9]+)\\(([0-9]+)\\)")
             check_available(${CMAKE_MATCH_1})
             check_available(${CMAKE_MATCH_2})
             list(APPEND __cuda_arch_bin ${__option})
