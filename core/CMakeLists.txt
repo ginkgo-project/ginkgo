@@ -6,6 +6,7 @@ set(SOURCES
     matrix/dense.cpp
     matrix/ell.cpp
     matrix/identity.cpp
+    matrix/sellp.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/fcg.cpp
