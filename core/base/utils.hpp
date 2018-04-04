@@ -126,6 +126,20 @@ using shared_type = std::shared_ptr<pointee<Pointer>>;
 }  // namespace detail
 
 
+/**
+ * Creates a unique clone of the object pointed to by `p`.
+ *
+ * The pointee (i.e. `*p`) needs to have a clone method that returns a
+ * std::unique_ptr in order for this method to work.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note The difference between this function and directly calling
+ *       LinOp::clone() is that this one preserves the static type of the
+ *       object.
+ */
 template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(const Pointer &p)
 {
@@ -135,24 +149,59 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
 }
 
 
-template <typename Pointer>
-inline detail::shared_type<Pointer> share(Pointer &&p)
+/**
+ * Marks the object pointed to by `p` as shared.
+ *
+ * Effectively converts a pointer with ownership to std::shared_ptr.
+ *
+ * @tparam OwningPointer  type of pointer with ownership to the object
+ *                        (has to be a smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note The original pointer `p` becomes invalid after this call.
+ */
+template <typename OwningPointer>
+inline detail::shared_type<OwningPointer> share(OwningPointer &&p)
 {
-    static_assert(detail::have_ownership<Pointer>(),
-                  "Pointer does not have ownership of the object");
-    return detail::shared_type<Pointer>(std::move(p));
+    static_assert(detail::have_ownership<OwningPointer>(),
+                  "OwningPointer does not have ownership of the object");
+    return detail::shared_type<OwningPointer>(std::move(p));
 }
 
 
-template <typename Pointer>
-inline typename std::remove_reference<Pointer>::type &&give(Pointer &&p)
+/**
+ * Marks that the object pointed to by `p` can be given to the callee.
+ *
+ * Effectively calls `std::move(p)`.
+ *
+ * @tparam OwningPointer  type of pointer with ownership to the object
+ *                        (has to be a smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note The original pointer `p` becomes invalid after this call.
+ */
+template <typename OwningPointer>
+inline typename std::remove_reference<OwningPointer>::type &&give(
+    OwningPointer &&p)
 {
-    static_assert(detail::have_ownership<Pointer>(),
-                  "Pointer does not have ownership of the object");
+    static_assert(detail::have_ownership<OwningPointer>(),
+                  "OwningPointer does not have ownership of the object");
     return std::move(p);
 }
 
 
+/**
+ * Returns a non-owning (plain) pointer to the object pointed to by `p`.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note This is the overload for owning (smart) pointers, that behaves the
+ *       same as calling .get() on the smart pointer.
+ */
 template <typename Pointer>
 inline typename std::enable_if<detail::have_ownership<Pointer>(),
                                detail::pointee<Pointer> *>::type
@@ -161,6 +210,16 @@ lend(const Pointer &p)
     return p.get();
 }
 
+/**
+ * Returns a non-owning (plain) pointer to the object pointed to by `p`.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note This is the overload for non-owning (plain) pointers, that just
+ *       returns `p`.
+ */
 template <typename Pointer>
 inline typename std::enable_if<!detail::have_ownership<Pointer>(),
                                detail::pointee<Pointer> *>::type
