@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
 
     auto tic = std::chrono::system_clock::now();
 
-    auto solver = cg_factory->generate(std::move(A));
-    solver->apply(x.get(), b.get());
+    auto solver = cg_factory->generate(gko::give(A));
+    solver->apply(gko::lend(x), gko::lend(b));
     exec->synchronize();
 
     auto tac = std::chrono::system_clock::now();
