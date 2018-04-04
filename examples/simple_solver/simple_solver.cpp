@@ -101,8 +101,7 @@ int main(int argc, char *argv[])
     solver->apply(gko::lend(b), gko::lend(x));
 
     // Print result
-    auto h_x = vec::create(exec->get_master());
-    h_x->copy_from(gko::lend(x));
+    auto h_x = gko::clone_to(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
     for (int i = 0; i < h_x->get_num_rows(); ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
@@ -116,7 +115,6 @@ int main(int argc, char *argv[])
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_dot(gko::lend(b), gko::lend(res));
 
-    auto h_res = vec::create(exec->get_master());
-    h_res->copy_from(std::move(res));
+    auto h_res = gko::clone_to(exec->get_master(), res);
     std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
 }

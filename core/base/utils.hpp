@@ -46,6 +46,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+class Executor;
+
+
 /**
  * An implementation of C++17 `std::void_t`.
  */
@@ -92,6 +95,24 @@ template <typename T>
 constexpr bool is_clonable()
 {
     return is_clonable_impl<typename std::decay<T>::type>::value;
+}
+
+
+template <typename T, typename = void>
+struct is_clonable_to_impl : std::false_type {
+};
+
+template <typename T>
+struct is_clonable_to_impl<
+    T, void_t<decltype(std::declval<T>().clone_to(
+           std::declval<std::shared_ptr<const Executor>>()))>>
+    : std::true_type {
+};
+
+template <typename T>
+constexpr bool is_clonable_to()
+{
+    return is_clonable_to_impl<typename std::decay<T>::type>::value;
 }
 
 
@@ -148,6 +169,33 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
             p->clone().release()));
+}
+
+
+/**
+ * Creates a unique clone of the object pointed to by `p` on Executor `exec`.
+ *
+ * The pointee (i.e. `*p`) needs to have a clone_to method that takes an
+ * executor and returns a std::unique_ptr in order for this method to work.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @
+ * @param p  a pointer to the object
+ *
+ * @note The difference between this function and directly calling
+ *       LinOp::clone_to() is that this one preserves the static type of the
+ *       object.
+ */
+template <typename Pointer>
+inline detail::cloned_type<Pointer> clone_to(
+    std::shared_ptr<const Executor> exec, const Pointer &p)
+{
+    static_assert(detail::is_clonable_to<detail::pointee<Pointer>>(),
+                  "Object is not clonable");
+    return detail::cloned_type<Pointer>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
+            p->clone_to(std::move(exec)).release()));
 }
 
 
