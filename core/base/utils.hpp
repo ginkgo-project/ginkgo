@@ -39,7 +39,135 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#include <memory>
+#include <type_traits>
+
+
 namespace gko {
+namespace detail {
+
+
+template <typename T>
+struct pointee_impl {
+};
+
+template <typename T>
+struct pointee_impl<T *> {
+    using type = T;
+};
+
+template <typename T>
+struct pointee_impl<std::unique_ptr<T>> {
+    using type = T;
+};
+
+template <typename T>
+struct pointee_impl<std::shared_ptr<T>> {
+    using type = T;
+};
+
+template <typename T>
+struct pointee_impl<std::weak_ptr<T>> {
+    using type = T;
+};
+
+template <typename T>
+using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
+
+
+template <typename T, typename = void>
+struct is_clonable_impl : std::false_type {
+};
+
+template <typename T>
+struct is_clonable_impl<T, decltype(std::declval<T>().clone())>
+    : std::true_type {
+};
+
+template <typename T>
+constexpr bool is_clonable()
+{
+    return is_clonable_impl<typename std::decay<T>::type>::value;
+}
+
+
+template <typename T>
+struct have_ownership_impl : std::false_type {
+};
+
+template <typename T>
+struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {
+};
+
+template <typename T>
+struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {
+};
+
+template <typename T>
+struct have_ownership_impl<std::weak_ptr<T>> : std::true_type {
+};
+
+template <typename T>
+constexpr bool have_ownership()
+{
+    return have_ownership_impl<typename std::remove_cv<T>::type>::value;
+}
+
+
+template <typename Pointer>
+using cloned_type =
+    std::unique_ptr<typename std::remove_cv<pointee<Pointer>>::type>;
+
+
+template <typename Pointer>
+using shared_type = std::shared_ptr<pointee<Pointer>>;
+
+
+}  // namespace detail
+
+
+template <typename Pointer>
+inline detail::cloned_type<Pointer> clone(const Pointer &p)
+{
+    static_assert(detail::is_clonable<detail::pointee<Pointer>>(),
+                  "Object is not clonable");
+    return detail::cloned_type<Pointer>(p->clone().release());
+}
+
+
+template <typename Pointer>
+inline detail::shared_type<Pointer> share(Pointer &&p)
+{
+    static_assert(detail::have_ownership<Pointer>(),
+                  "Pointer does not have ownership of the object");
+    return detail::shared_type<Pointer>(std::move(p));
+}
+
+
+template <typename Pointer>
+inline typename std::remove_reference<Pointer>::type &&give(Pointer &&p)
+{
+    static_assert(detail::have_ownership<Pointer>(),
+                  "Pointer does not have ownership of the object");
+    return std::move(p);
+}
+
+
+template <typename Pointer>
+inline typename std::enable_if<detail::have_ownership<Pointer>(),
+                               detail::pointee<Pointer> *>::type
+lend(const Pointer &p)
+{
+    return p.get();
+}
+
+template <typename Pointer>
+inline typename std::enable_if<!detail::have_ownership<Pointer>(),
+                               detail::pointee<Pointer> *>::type
+lend(const Pointer &p)
+{
+    return p;
+}
 
 
 /**
@@ -54,9 +182,9 @@ namespace gko {
  *         NotSupported.
  */
 template <typename T, typename U>
-T *as(U *obj)
+inline typename std::decay<T>::type *as(U *obj)
 {
-    if (auto p = dynamic_cast<T *>(obj)) {
+    if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
         throw NOT_SUPPORTED(obj);
@@ -77,9 +205,9 @@ T *as(U *obj)
  *         NotSupported.
  */
 template <typename T, typename U>
-const T *as(const U *obj)
+inline const typename std::decay<T>::type *as(const U *obj)
 {
-    if (auto p = dynamic_cast<const T *>(obj)) {
+    if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
         throw NOT_SUPPORTED(obj);
