@@ -44,6 +44,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+/**
+ * An implementation of C++17 `std::void_t`.
+ */
+template <typename...>
+using void_t = void;
+
+
 namespace detail {
 
 
@@ -67,11 +76,6 @@ struct pointee_impl<std::shared_ptr<T>> {
 };
 
 template <typename T>
-struct pointee_impl<std::weak_ptr<T>> {
-    using type = T;
-};
-
-template <typename T>
 using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
 
 
@@ -80,7 +84,7 @@ struct is_clonable_impl : std::false_type {
 };
 
 template <typename T>
-struct is_clonable_impl<T, decltype(std::declval<T>().clone())>
+struct is_clonable_impl<T, void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {
 };
 
@@ -104,13 +108,9 @@ struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {
 };
 
 template <typename T>
-struct have_ownership_impl<std::weak_ptr<T>> : std::true_type {
-};
-
-template <typename T>
 constexpr bool have_ownership()
 {
-    return have_ownership_impl<typename std::remove_cv<T>::type>::value;
+    return have_ownership_impl<typename std::decay<T>::type>::value;
 }
 
 
@@ -145,7 +145,9 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
 {
     static_assert(detail::is_clonable<detail::pointee<Pointer>>(),
                   "Object is not clonable");
-    return detail::cloned_type<Pointer>(p->clone().release());
+    return detail::cloned_type<Pointer>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
+            p->clone().release()));
 }
 
 
