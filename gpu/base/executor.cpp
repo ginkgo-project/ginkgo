@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+namespace {
+
 class device_guard {
 public:
     device_guard(int device_id)
@@ -57,15 +59,18 @@ public:
     ~device_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception())
+        if (std::uncaught_exception()) {
             cudaSetDevice(original_device_id);
-        else
+        } else {
             ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+        }
     }
 
 private:
     int original_device_id{};
 };
+
+}  // namespace
 
 
 void CpuExecutor::raw_copy_to(const GpuExecutor *dest, size_type num_bytes,
