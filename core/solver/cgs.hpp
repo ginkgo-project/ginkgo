@@ -55,7 +55,6 @@ class CgsFactory;
  * CGS or the conjugate gradient square method is an iterative type Krylov
  * subspace method which is suitable for general systems.
  *
- *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CGS are merged
  * into 4 separate steps.
