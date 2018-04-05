@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/preconditioner/block_jacobi.hpp"
 #include "core/solver/cg.hpp"
 
 
