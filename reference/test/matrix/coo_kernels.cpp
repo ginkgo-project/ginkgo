@@ -53,9 +53,7 @@ protected:
     using Mtx = gko::matrix::Coo<>;
     using Vec = gko::matrix::Dense<>;
 
-    Coo()
-        : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec))
+    Coo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
         // clang-format off
         mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},

@@ -46,9 +46,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/solver/cgs_kernels.hpp>
 #include <core/test/utils.hpp>
 
+
 namespace {
 
-/*
+
 class Cgs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
@@ -59,6 +60,13 @@ protected:
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         gpu = gko::GpuExecutor::create(0, ref);
+
+        mtx = gen_mtx(123, 123);
+        make_diag_dominant(mtx.get());
+        d_mtx = Mtx::create(gpu);
+        d_mtx->copy_from(mtx.get());
+        gpu_cgs_factory = gko::solver::CgsFactory<>::create(gpu, 246, 1e-15);
+        ref_cgs_factory = gko::solver::CgsFactory<>::create(ref, 246, 1e-15);
     }
 
     void TearDown()
@@ -73,7 +81,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             ref, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine);
+            std::normal_distribution<>(0.0, 1.0), rand_engine);
     }
 
     void initialize_data()
@@ -83,18 +91,18 @@ protected:
         b = gen_mtx(m, n);
         r = gen_mtx(m, n);
         r_tld = gen_mtx(m, n);
-        t = gen_mtx(m, n);
         p = gen_mtx(m, n);
         q = gen_mtx(m, n);
-        x = gen_mtx(m, n);
         u = gen_mtx(m, n);
         u_hat = gen_mtx(m, n);
         v_hat = gen_mtx(m, n);
-        beta = gen_mtx(1, n);
+        t = gen_mtx(m, n);
+        x = gen_mtx(m, n);
         alpha = gen_mtx(1, n);
+        beta = gen_mtx(1, n);
         gamma = gen_mtx(1, n);
-        rho_prev = gen_mtx(1, n);
         rho = gen_mtx(1, n);
+        rho_prev = gen_mtx(1, n);
 
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());
@@ -102,39 +110,30 @@ protected:
         d_r->copy_from(r.get());
         d_r_tld = Mtx::create(gpu);
         d_r_tld->copy_from(r_tld.get());
-        d_t = Mtx::create(gpu);
-        d_t->copy_from(t.get());
         d_p = Mtx::create(gpu);
         d_p->copy_from(p.get());
         d_q = Mtx::create(gpu);
         d_q->copy_from(q.get());
-        d_x = Mtx::create(gpu);
-        d_x->copy_from(x.get());
         d_u = Mtx::create(gpu);
         d_u->copy_from(u.get());
         d_u_hat = Mtx::create(gpu);
         d_u_hat->copy_from(u_hat.get());
         d_v_hat = Mtx::create(gpu);
         d_v_hat->copy_from(v_hat.get());
-        d_beta = Mtx::create(gpu);
-        d_beta->copy_from(beta.get());
+        d_t = Mtx::create(gpu);
+        d_t->copy_from(t.get());
+        d_x = Mtx::create(gpu);
+        d_x->copy_from(x.get());
         d_alpha = Mtx::create(gpu);
         d_alpha->copy_from(alpha.get());
+        d_beta = Mtx::create(gpu);
+        d_beta->copy_from(beta.get());
         d_gamma = Mtx::create(gpu);
         d_gamma->copy_from(gamma.get());
         d_rho_prev = Mtx::create(gpu);
         d_rho_prev->copy_from(rho_prev.get());
         d_rho = Mtx::create(gpu);
         d_rho->copy_from(rho.get());
-    }
-
-    void make_symetric(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
-            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
-                mtx->at(i, j) = mtx->at(j, i);
-            }
-        }
     }
 
     void make_diag_dominant(Mtx *mtx)
@@ -149,16 +148,15 @@ protected:
         }
     }
 
-    void make_spd(Mtx *mtx)
-    {
-        make_symetric(mtx);
-        make_diag_dominant(mtx);
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::GpuExecutor> gpu;
 
     std::ranlux48 rand_engine;
+
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> d_mtx;
+    std::unique_ptr<gko::solver::CgsFactory<>> gpu_cgs_factory;
+    std::unique_ptr<gko::solver::CgsFactory<>> ref_cgs_factory;
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
@@ -170,11 +168,11 @@ protected:
     std::unique_ptr<Mtx> u_hat;
     std::unique_ptr<Mtx> v_hat;
     std::unique_ptr<Mtx> x;
-    std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> alpha;
+    std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
-    std::unique_ptr<Mtx> rho_prev;
     std::unique_ptr<Mtx> rho;
+    std::unique_ptr<Mtx> rho_prev;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -186,11 +184,11 @@ protected:
     std::unique_ptr<Mtx> d_u_hat;
     std::unique_ptr<Mtx> d_v_hat;
     std::unique_ptr<Mtx> d_x;
-    std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_alpha;
+    std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
-    std::unique_ptr<Mtx> d_rho_prev;
     std::unique_ptr<Mtx> d_rho;
+    std::unique_ptr<Mtx> d_rho_prev;
 };
 
 
@@ -212,14 +210,14 @@ TEST_F(Cgs, GpuCgsInitializeIsEquivalentToRef)
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_q, q, 1e-14);
     ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    ASSERT_MTX_NEAR(d_t, t, 1e-14);
     ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
     ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
+    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
 }
 
 
@@ -227,9 +225,14 @@ TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get());
-    gko::kernels::gpu::cgs::step_1(gpu, d_r.get(), d_u.get(), d_p.get());
+    gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
+                                         q.get(), beta.get(), rho.get(),
+                                         rho_prev.get());
+    gko::kernels::gpu::cgs::step_1(gpu, d_r.get(), d_u.get(), d_p.get(),
+                                   d_q.get(), d_beta.get(), d_rho.get(),
+                                   d_rho_prev.get());
 
+    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     ASSERT_MTX_NEAR(d_u, u, 1e-14);
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
@@ -238,67 +241,30 @@ TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cgs::step_2(ref, r.get(), u.get(), p.get(),
-                                         q.get(), beta.get(), rho.get(),
-                                         rho_prev.get());
-    gko::kernels::gpu::cgs::step_2(gpu, d_r.get(), d_u.get(), d_p.get(),
-                                   d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_rho_prev.get());
-    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
-    ASSERT_MTX_NEAR(d_u, u, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-}
-
-
-TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
-{
-    initialize_data();
-    gko::kernels::reference::cgs::step_3(ref, u.get(), v_hat.get(), q.get(),
+    gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
                                          gamma.get());
-    gko::kernels::gpu::cgs::step_3(gpu, d_u.get(), d_v_hat.get(), d_q.get(),
+    gko::kernels::gpu::cgs::step_2(gpu, d_u.get(), d_v_hat.get(), d_q.get(),
                                    d_t.get(), d_alpha.get(), d_rho.get(),
                                    d_gamma.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
     ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    ASSERT_MTX_NEAR(d_q, q, 1e-14);
 }
 
-TEST_F(Cgs, GpuCgsStep4IsEquivalentToRef)
+TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::cgs::step_4(ref, t.get(), u_hat.get(), r.get(),
+
+    gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
                                          x.get(), alpha.get());
-    gko::kernels::gpu::cgs::step_4(gpu, d_t.get(), d_u_hat.get(), d_r.get(),
+    gko::kernels::gpu::cgs::step_3(gpu, d_t.get(), d_u_hat.get(), d_r.get(),
                                    d_x.get(), d_alpha.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
-
-TEST_F(Cgs, ApplyIsEquivalentToRef)
-{
-    auto mtx = gen_mtx(50, 50);
-    make_spd(mtx.get());
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(gpu);
-    d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(gpu);
-    d_x->copy_from(x.get());
-    auto d_b = Mtx::create(gpu);
-    d_b->copy_from(b.get());
-    auto cgs_factory = gko::solver::CgsFactory<>::create(ref, 50, 1e-14);
-    auto d_cgs_factory = gko::solver::CgsFactory<>::create(gpu, 50, 1e-14);
-    auto solver = cgs_factory->generate(std::move(mtx));
-    auto d_solver = d_cgs_factory->generate(std::move(d_mtx));
-
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
-
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-}
-*/
 
 }  // namespace

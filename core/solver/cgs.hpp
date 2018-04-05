@@ -57,7 +57,7 @@ class CgsFactory;
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CGS are merged
- * into 4 separate steps.
+ * into 3 separate steps.
  *
  * @tparam ValueType precision of matrix elements
  */
@@ -137,7 +137,7 @@ template <typename ValueType = default_precision>
 class CgsFactory : public LinOpFactory, public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
-    
+
     /**
      * Creates the CGS solver.
      *

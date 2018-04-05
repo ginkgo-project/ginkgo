@@ -64,10 +64,10 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
 
     if (tidx < stride) {
         rho[tidx] = zero<ValueType>();
-        rho_prev[tidx] = one<ValueType>();
         alpha[tidx] = one<ValueType>();
         beta[tidx] = one<ValueType>();
         gamma[tidx] = one<ValueType>();
+        rho_prev[tidx] = one<ValueType>();
     }
 
     if (tidx < num_rows * stride) {
@@ -117,44 +117,9 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ r, ValueType *__restrict__ u,
-    ValueType *__restrict__ p)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride) {
-        return;
-    }
-    u[tidx] = r[tidx];
-    p[tidx] = r[tidx];
-}
-
-
-template <typename ValueType>
-void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *p)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
-
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_stride(),
-        as_cuda_type(r->get_const_values()), as_cuda_type(u->get_values()),
-        as_cuda_type(p->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ r, ValueType *__restrict__ u,
-    ValueType *__restrict__ p, ValueType *__restrict__ q,
-    ValueType *__restrict__ beta, const ValueType *__restrict__ rho_prev,
-    const ValueType *__restrict__ rho)
+    ValueType *__restrict__ p, const ValueType *__restrict__ q,
+    ValueType *__restrict__ beta, const ValueType *__restrict__ rho,
+    const ValueType *__restrict__ rho_prev)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -169,34 +134,32 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         p[tidx] = u[tidx] + beta[col] * (q[tidx] + beta[col] * p[tidx]);
     }
 }
-* /
 
-    template <typename ValueType>
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-                matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
-                matrix::Dense<ValueType> *beta,
-                const matrix::Dense<ValueType> *rho,
-                const matrix::Dense<ValueType> *rho_prev)
+
+template <typename ValueType>
+void step_1(std::shared_ptr<const DefaultExecutor> exec,
+            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
+            matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
+            const matrix::Dense<ValueType> *rho_prev)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
 
-    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
+    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
         p->get_num_rows(), p->get_num_cols(), p->get_stride(),
         as_cuda_type(r->get_const_values()), as_cuda_type(u->get_values()),
-        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
-        as_cuda_type(beta->get_values()),
-        as_cuda_type(rho_prev->get_const_values()),
-        as_cuda_type(rho->get_const_values()));
+        as_cuda_type(p->get_values()), as_cuda_type(q->get_const_values()),
+        as_cuda_type(beta->get_values()), as_cuda_type(rho->get_const_values()),
+        as_cuda_type(rho_prev->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_3_kernel(
+__global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ u, const ValueType *__restrict__ v_hat,
     ValueType *__restrict__ q, ValueType *__restrict__ t,
@@ -219,7 +182,7 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const DefaultExecutor> exec,
+void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
@@ -230,7 +193,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid_size(
         ceildiv(u->get_num_rows() * u->get_stride(), block_size.x), 1, 1);
 
-    step_3_kernel<<<grid_size, block_size, 0, 0>>>(
+    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
         u->get_num_rows(), u->get_num_cols(), u->get_stride(),
         as_cuda_type(u->get_const_values()),
         as_cuda_type(v_hat->get_const_values()), as_cuda_type(q->get_values()),
@@ -243,7 +206,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_4_kernel(
+__global__ __launch_bounds__(default_block_size) void step_3_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type x_stride, const ValueType *__restrict__ t,
     const ValueType *__restrict__ v_hat, ValueType *__restrict__ r,
@@ -265,7 +228,7 @@ __global__ __launch_bounds__(default_block_size) void step_4_kernel(
 
 
 template <typename ValueType>
-void step_4(std::shared_ptr<const DefaultExecutor> exec,
+void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha)
@@ -274,7 +237,7 @@ void step_4(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid_size(
         ceildiv(t->get_num_rows() * t->get_stride(), block_size.x), 1, 1);
 
-    step_4_kernel<<<grid_size, block_size, 0, 0>>>(
+    step_3_kernel<<<grid_size, block_size, 0, 0>>>(
         t->get_num_rows(), t->get_num_cols(), t->get_stride(), x->get_stride(),
         as_cuda_type(t->get_const_values()),
         as_cuda_type(u_hat->get_const_values()), as_cuda_type(r->get_values()),
