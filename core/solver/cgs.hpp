@@ -137,6 +137,7 @@ template <typename ValueType = default_precision>
 class CgsFactory : public LinOpFactory, public PreconditionedMethodFactory {
 public:
     using value_type = ValueType;
+    
     /**
      * Creates the CGS solver.
      *
