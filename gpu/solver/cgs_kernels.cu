@@ -47,7 +47,7 @@ namespace cgs {
 
 constexpr int default_block_size = 512;
 
-/*
+
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_rows, size_type stride, const ValueType *__restrict__ b,
@@ -81,7 +81,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         t[tidx] = zero<ValueType>();
     }
 }
-*/
+
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
