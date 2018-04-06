@@ -81,54 +81,52 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
  *
- * @param exec  executor where the matrix should be allocated
  * @param num_rows  number of rows
  * @param num_cols  number of colums
  * @param nonzero_dist  distribution of nonzeros per row
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine>
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_matrix(
-    std::shared_ptr<const Executor> exec, size_type num_rows,
-    size_type num_cols, NonzeroDistribution &&nonzero_dist,
-    ValueDistribution &&value_dist, Engine &&engine)
+    size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
+    ValueDistribution &&value_dist, Engine &&engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
 {
     using std::max;
     using std::min;
     using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
 
-    auto tmp = matrix::Dense<value_type>::create(exec->get_master(), num_rows,
-                                                 num_cols, num_cols);
+    matrix_data<value_type, index_type> data{num_rows, num_cols, {}};
+
     std::vector<size_type> col_idx(num_cols);
     iota(begin(col_idx), end(col_idx), size_type(0));
 
     for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type col = 0; col < num_cols; ++col) {
-            tmp->at(row, col) = zero<value_type>();
-        }
         // randomly generate number of nonzeros in this row
         auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
         nnz_in_row = max(size_type(0), min(nnz_in_row, num_cols));
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
         shuffle(begin(col_idx), end(col_idx), engine);
-        for_each(begin(col_idx), begin(col_idx) + nnz_in_row,
-                 [&](size_type col) {
-                     tmp->at(row, col) =
-                         detail::get_rand_value<value_type>(value_dist, engine);
-                 });
+        for_each(
+            begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
+                data.nonzeros.emplace_back(
+                    row, col,
+                    detail::get_rand_value<value_type>(value_dist, engine));
+            });
     }
 
+    data.ensure_row_major_order();
+
     // convert to the correct matrix type
-    // TODO: remove this intermediate step once inter-device copies are
-    //       supported
-    auto result = MatrixType::create(exec->get_master());
-    result->copy_from(std::move(tmp));
-    auto dev_result = MatrixType::create(exec);
-    dev_result->copy_from(std::move(result));
-    return dev_result;
+    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
+    result->read(data);
+    return result;
 }
 
 

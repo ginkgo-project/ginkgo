@@ -160,9 +160,8 @@ void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Csr<ValueType, IndexType>::read(const mat_data &data)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
     size_type nnz = 0;
     for (const auto &elem : data.nonzeros) {
         nnz += (std::get<2>(elem) != zero<ValueType>());
@@ -187,6 +186,32 @@ void Csr<ValueType, IndexType>::read_from_mtx(const std::string &filename)
         tmp->get_row_ptrs()[row + 1] = cur_ptr;
     }
     tmp->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Csr *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Csr *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+
+    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+        const auto start = tmp->row_ptrs_.get_const_data()[row];
+        const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
+        for (auto i = start; i < end; ++i) {
+            const auto col = tmp->col_idxs_.get_const_data()[i];
+            const auto val = tmp->values_.get_const_data()[i];
+            data.nonzeros.emplace_back(row, col, val);
+        }
+    }
 }
 
 

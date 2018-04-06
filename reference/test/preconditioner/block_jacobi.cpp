@@ -190,15 +190,46 @@ TEST_F(BlockJacobi, CanBeCleared)
 }
 
 
+#define EXPECT_NONZERO_NEAR(first, second, tol)         \
+    EXPECT_EQ(std::get<0>(first), std::get<0>(second)); \
+    EXPECT_EQ(std::get<1>(first), std::get<1>(second)); \
+    EXPECT_NEAR(std::get<2>(first), std::get<2>(second), tol)
+
+
+TEST_F(BlockJacobi, GeneratesCorrectMatrixData)
+{
+    using tpl = std::tuple<int, int, double>;
+    gko::matrix_data<> data;
+
+    bj->write(data);
+
+    ASSERT_EQ(data.num_rows, 5);
+    ASSERT_EQ(data.num_cols, 5);
+    ASSERT_EQ(data.nonzeros.size(), 13);
+    EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
+}
+
+
 class AdaptiveBlockJacobi
     : public BasicBlockJacobiTest<
           gko::preconditioner::AdaptiveBlockJacobiFactory<>> {
 protected:
-    AdaptiveBlockJacobi() : block_precisions(exec, 3)
+    AdaptiveBlockJacobi() : block_precisions(exec, 2)
     {
         block_precisions.get_data()[0] = Bj::single_precision;
         block_precisions.get_data()[1] = Bj::double_precision;
-        block_precisions.get_data()[2] = Bj::single_precision;
     }
 
     void SetUp()
@@ -287,6 +318,32 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
     ASSERT_EQ(bj->get_const_block_precisions(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);
+}
+
+
+TEST_F(AdaptiveBlockJacobi, GeneratesCorrectMatrixData)
+{
+    using tpl = std::tuple<int, int, double>;
+    gko::matrix_data<> data;
+
+    bj->write(data);
+
+    ASSERT_EQ(data.num_rows, 5);
+    ASSERT_EQ(data.num_cols, 5);
+    ASSERT_EQ(data.nonzeros.size(), 13);
+    EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-7);
+    EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-7);
+    EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-7);
+    EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-7);
+    EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
+    EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
 }
 
 

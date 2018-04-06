@@ -89,12 +89,9 @@ int main(int argc, char *argv[])
     }
 
     // Read data
-    std::shared_ptr<mtx> A = mtx::create(exec);
-    A->read_from_mtx("data/A.mtx");
-    auto b = vec::create(exec);
-    b->read_from_mtx("data/b.mtx");
-    auto x = vec::create(exec);
-    x->read_from_mtx("data/x0.mtx");
+    std::shared_ptr<mtx> A = gko::read<mtx>("data/A.mtx", exec);
+    auto b = gko::read<vec>("data/b.mtx", exec);
+    auto x = gko::read<vec>("data/x.mtx", exec);
 
     // Generate solver
     auto solver_gen = cg::create(exec, 20, 1e-20);

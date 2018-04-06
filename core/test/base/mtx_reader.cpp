@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/lin_op.hpp>
+
+
 namespace {
 
 
@@ -44,8 +47,7 @@ TEST(MtxReader, ReadsDenseRealMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/dense_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/dense_real.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -63,8 +65,7 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/dense_integer.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/dense_integer.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -83,8 +84,7 @@ TEST(MtxReader, ReadsDenseComplexMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data =
-        gko::read_raw_from_mtx<cpx, gko::int32>("data/dense_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>("data/dense_complex.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -102,8 +102,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/sparse_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/sparse_real.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -119,8 +118,8 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data = gko::read_raw_from_mtx<double, gko::int32>(
-        "data/sparse_real_symmetric.mtx");
+    auto data =
+        gko::read_raw<double, gko::int32>("data/sparse_real_symmetric.mtx");
 
     ASSERT_EQ(data.num_rows, 3);
     ASSERT_EQ(data.num_cols, 3);
@@ -138,7 +137,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data = gko::read_raw_from_mtx<double, gko::int32>(
+    auto data = gko::read_raw<double, gko::int32>(
         "data/sparse_real_skew_symmetric.mtx");
 
     ASSERT_EQ(data.num_rows, 3);
@@ -155,8 +154,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 {
     using tpl = std::tuple<gko::int32, gko::int32, double>;
 
-    auto data =
-        gko::read_raw_from_mtx<double, gko::int32>("data/sparse_pattern.mtx");
+    auto data = gko::read_raw<double, gko::int32>("data/sparse_pattern.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -173,8 +171,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data =
-        gko::read_raw_from_mtx<cpx, gko::int32>("data/sparse_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>("data/sparse_complex.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -191,8 +188,8 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     using cpx = std::complex<double>;
     using tpl = std::tuple<gko::int32, gko::int32, cpx>;
 
-    auto data = gko::read_raw_from_mtx<cpx, gko::int32>(
-        "data/sparse_complex_hermitian.mtx");
+    auto data =
+        gko::read_raw<cpx, gko::int32>("data/sparse_complex_hermitian.mtx");
 
     ASSERT_EQ(data.num_rows, 2);
     ASSERT_EQ(data.num_cols, 3);
@@ -203,5 +200,52 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     ASSERT_EQ(v[3], tpl(2, 0, cpx(2.0, -4.0)));
 }
 
+
+template <typename ValueType, typename IndexType>
+class DummyLinOp : public gko::BasicLinOp<DummyLinOp<ValueType, IndexType>>,
+                   public gko::ReadableFromMatrixData<ValueType, IndexType> {
+    friend class gko::BasicLinOp<DummyLinOp>;
+
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using mat_data = gko::matrix_data<ValueType, IndexType>;
+
+    void apply(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply(const gko::LinOp *alpha, const gko::LinOp *b,
+               const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+
+    void read(const mat_data &data) override { data_ = data; }
+
+protected:
+    explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
+        : gko::BasicLinOp<DummyLinOp>(exec, 0, 0, 0)
+    {}
+
+public:
+    mat_data data_;
+};
+
+
+TEST(MtxReader, ReadsLinOpFromFile)
+{
+    using tpl = std::tuple<gko::int32, gko::int32, double>;
+
+    auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
+        "data/dense_real.mtx", gko::ReferenceExecutor::create());
+
+    const auto &data = lin_op->data_;
+    ASSERT_EQ(data.num_rows, 2);
+    ASSERT_EQ(data.num_cols, 3);
+    const auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 0.0));
+    ASSERT_EQ(v[4], tpl(1, 1, 5.0));
+    ASSERT_EQ(v[5], tpl(1, 2, 0.0));
+}
 
 }  // namespace

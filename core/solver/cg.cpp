@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg.hpp"
 
 
-#include "core/base/convertible.hpp"
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
