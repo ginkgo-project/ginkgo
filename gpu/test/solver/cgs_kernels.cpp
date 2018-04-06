@@ -237,6 +237,7 @@ TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
+
 TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
 {
     initialize_data();
@@ -253,6 +254,7 @@ TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_q, q, 1e-14);
 }
 
+
 TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
 {
     initialize_data();
@@ -266,5 +268,46 @@ TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
+
+TEST_F(Cgs, GpuCgsApplyOneRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 1;
+    auto ref_solver = ref_cgs_factory->generate(mtx);
+    auto gpu_solver = gpu_cgs_factory->generate(d_mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(gpu);
+    auto d_x = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    gpu_solver->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
+
+
+TEST_F(Cgs, GpuCgsApplyMultipleRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 16;
+    auto gpu_solver = gpu_cgs_factory->generate(d_mtx);
+    auto ref_solver = ref_cgs_factory->generate(mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(gpu);
+    auto d_x = Mtx::create(gpu);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    gpu_solver->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
 
 }  // namespace
