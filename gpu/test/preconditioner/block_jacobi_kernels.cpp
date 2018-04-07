@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/matrix/csr.hpp>
+#include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -105,6 +106,80 @@ protected:
     std::unique_ptr<BjFactory> bj_factory;
     std::unique_ptr<BjFactory> d_bj_factory;
 };
+
+
+TEST_F(BlockJacobi, GpuFindNaturalBlocksEquivalentToRef)
+{
+    /* example matrix:
+        1   1
+        1   1
+        1       1
+        1       1
+     */
+    auto mtx = Mtx::create(ref);
+    mtx->read({4,
+               4,
+               {{0, 0, 1.0},
+                {0, 1, 1.0},
+                {1, 0, 1.0},
+                {1, 1, 1.0},
+                {2, 0, 1.0},
+                {2, 2, 1.0},
+                {3, 0, 1.0},
+                {3, 2, 1.0}}});
+
+    auto d_mtx = Mtx::create(gpu);
+    d_mtx->copy_from(mtx.get());
+
+    std::unique_ptr<BjFactory> bj_factory;
+    bj_factory = BjFactory::create(ref, 3);
+    auto bj_lin_op = bj_factory->generate(std::move(mtx));
+    auto bj = static_cast<Bj *>(bj_lin_op.get());
+    d_bj_factory = BjFactory::create(gpu, 3);
+    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
+    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
+    EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
+}
+
+
+TEST_F(BlockJacobi, GpuExecutesSupervariableAgglomerationEquivalentToRef)
+{
+    /* example matrix:
+        1   1
+        1   1
+                1   1
+                1   1
+                        1
+     */
+    auto mtx = Mtx::create(ref);
+    mtx->read({5,
+               5,
+               {{0, 0, 1.0},
+                {0, 1, 1.0},
+                {1, 0, 1.0},
+                {1, 1, 1.0},
+                {2, 2, 1.0},
+                {2, 3, 1.0},
+                {3, 2, 1.0},
+                {3, 3, 1.0},
+                {4, 4, 1.0}}});
+
+    auto d_mtx = Mtx::create(gpu);
+    d_mtx->copy_from(mtx.get());
+
+    std::unique_ptr<BjFactory> bj_factory;
+    bj_factory = BjFactory::create(ref, 3);
+    auto bj_lin_op = bj_factory->generate(std::move(mtx));
+    auto bj = static_cast<Bj *>(bj_lin_op.get());
+    d_bj_factory = BjFactory::create(gpu, 3);
+    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
+    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
+    EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
+}
 
 
 TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithBlockSize32)

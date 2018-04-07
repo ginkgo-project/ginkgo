@@ -166,6 +166,220 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 
+template <typename IndexType>
+__global__ void find_natural_blocks_kernel1(size_type m, IndexType *row,
+                                            bool *v)
+{
+    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (tidx >= m) {
+        return;
+    }
+    IndexType nnzthis = row[tidx + 1] - row[tidx];
+    IndexType nnzlast = (tidx > 0) ? (row[tidx] - row[tidx - 1]) : 0;
+    v[tidx] = (nnzthis == nnzlast) ? 0 : 1;
+}
+
+template <typename IndexType>
+__global__ void find_natural_blocks_kernel2(size_type m, const IndexType *row,
+                                            const IndexType *col, bool *v)
+{
+    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    size_type i = threadIdx.x;
+    int32 lastcol = -1;
+    int32 thiscol = -1;
+    int32 different = 0;
+    bool loc = 0;
+
+    if (tidx >= m) {
+        return;
+    }
+    if (v[tidx] == 0) {
+        size_type bound = row[tidx + 1] - row[tidx];
+        for (size_type j = 0; j < (bound + 32) / 32; j++) {
+            size_type ii = i + 32 * j;
+            if (ii < bound) {
+                thiscol = col[row[tidx] + ii];
+                lastcol = col[row[tidx - 1] + ii];
+                if (thiscol != lastcol) {
+                    different = 1;
+                }
+            }
+        }
+        loc = __any(different == 1);
+        if (i == 0) {
+            v[tidx] = loc;
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__ void find_natural_blocks_kernel3(size_type num_rows,
+                                            int32 max_block_size, const bool *v,
+                                            IndexType *block_ptrs,
+                                            size_type *num_blocks_arr)
+{
+    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tidx >= 1) {
+        return;
+    }
+    block_ptrs[0] = 0;
+    if (num_rows == 0) {
+        return;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = 1;
+    for (size_type i = 1; i < num_rows; ++i) {
+        if (current_block_size < max_block_size && v[i] == 0) {
+            ++current_block_size;
+        } else {
+            block_ptrs[num_blocks] =
+                block_ptrs[num_blocks - 1] + current_block_size;
+            ++num_blocks;
+            current_block_size = 1;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
+    num_blocks_arr[0] = num_blocks;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              int32 max_block_size, IndexType *block_ptrs)
+{
+    auto rows = mtx->get_num_rows();
+    auto cols = mtx->get_num_cols();
+    auto vals = mtx->get_const_values();
+    auto row_ptrs = mtx->get_const_row_ptrs();
+    auto col_idx = mtx->get_const_col_idxs();
+
+    Array<bool> d_array(exec, rows + 1);
+    auto d_v = d_array.get_data();
+
+    Array<size_type> d_nums_array(exec, 1);
+    auto d_nums = d_nums_array.get_data();
+
+    Array<size_type> nums_array(exec->get_master(), 1);
+    auto nums = nums_array.get_data();
+
+    constexpr int64 blocksize1_1 = 256;
+    constexpr int64 blocksize1_2 = 1;
+    constexpr int64 blocksize1_3 = 1;
+
+    const int64 dimgrid1_1 = ceildiv(mtx->get_num_rows(), blocksize1_1);
+    const int64 dimgrid1_2 = 1;
+    const int64 dimgrid1_3 = 1;
+
+    constexpr int64 blocksize2_1 = 32;
+    constexpr int64 blocksize2_2 = 1;
+    constexpr int64 blocksize2_3 = 1;
+
+    const int64 dimgrid2_1 = 256;
+    const int64 dimgrid2_2 = ceildiv(mtx->get_num_rows(), dimgrid2_1);
+    const int64 dimgrid2_3 = 1;
+
+    constexpr int64 blocksize3_1 = 32;
+    constexpr int64 blocksize3_2 = 1;
+    constexpr int64 blocksize3_3 = 1;
+
+    const int64 dimgrid3_1 = 1;
+    const int64 dimgrid3_2 = 1;
+    const int64 dimgrid3_3 = 1;
+
+    dim3 grid1(dimgrid1_1, dimgrid1_2, dimgrid1_3);
+    dim3 block1(blocksize1_1, blocksize1_2, blocksize1_3);
+
+    dim3 grid2(dimgrid2_1, dimgrid2_2, dimgrid2_3);
+    dim3 block2(blocksize2_1, blocksize2_2, blocksize2_3);
+
+    dim3 grid3(dimgrid3_1, dimgrid3_2, dimgrid3_3);
+    dim3 block3(blocksize3_1, blocksize3_2, blocksize3_3);
+
+    // split in two kernels
+    // first checks whether the adjacent rows have the same nnz
+    find_natural_blocks_kernel1<<<grid1, block1, 0, 0>>>(
+        mtx->get_num_rows(), mtx->get_const_row_ptrs(), d_v);
+    // second checks whether adjacent rows with same nnz have the same pattern
+    find_natural_blocks_kernel2<<<grid2, block2, 0, 0>>>(
+        mtx->get_num_rows(), mtx->get_const_row_ptrs(),
+        mtx->get_const_col_idxs(), d_v);
+    // third kernel generates the block pointer
+    find_natural_blocks_kernel3<<<grid3, block3, 0, 0>>>(
+        mtx->get_num_rows(), max_block_size, d_v, block_ptrs, d_nums);
+
+    nums_array = d_nums_array;
+    auto num_blocks = nums[0];
+
+    return num_blocks;
+}
+
+
+template <typename IndexType>
+__global__ void agglomerate_supervariables_kernel(int32 max_block_size,
+                                                  size_type num_natural_blocks,
+                                                  IndexType *block_ptrs,
+                                                  size_type *num_blocks_arr)
+{
+    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tidx >= 1) {
+        return;
+    }
+    num_blocks_arr[0] = 0;
+    if (num_natural_blocks == 0) {
+        return;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    for (size_type i = 1; i < num_natural_blocks; ++i) {
+        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        if (current_block_size + block_size <= max_block_size) {
+            current_block_size += block_size;
+        } else {
+            block_ptrs[num_blocks] = block_ptrs[i];
+            ++num_blocks;
+            current_block_size = block_size;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
+    num_blocks_arr[0] = num_blocks;
+}
+
+
+template <typename IndexType>
+inline size_type agglomerate_supervariables(
+    std::shared_ptr<const GpuExecutor> exec, int32 max_block_size,
+    size_type num_natural_blocks, IndexType *block_ptrs)
+{
+    Array<size_type> d_nums_array(exec, 1);
+    auto d_nums = d_nums_array.get_data();
+
+    Array<size_type> nums_array(exec->get_master(), 1);
+    auto nums = nums_array.get_data();
+
+    constexpr int64 blocksize1_1 = 32;
+    constexpr int64 blocksize1_2 = 1;
+    constexpr int64 blocksize1_3 = 1;
+
+    const int64 dimgrid1_1 = 1;
+    const int64 dimgrid1_2 = 1;
+    const int64 dimgrid1_3 = 1;
+
+    dim3 grid1(dimgrid1_1, dimgrid1_2, dimgrid1_3);
+    dim3 block1(blocksize1_1, blocksize1_2, blocksize1_3);
+
+    agglomerate_supervariables_kernel<<<grid1, block1, 0, 0>>>(
+        max_block_size, num_natural_blocks, block_ptrs, d_nums);
+
+    nums_array = d_nums_array;
+    auto num_blocks = nums[0];
+
+    return num_blocks;
+}
+
+
 }  // namespace
 
 
@@ -176,7 +390,13 @@ template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const GpuExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
+                 Array<IndexType> &block_pointers)
+{
+    num_blocks = find_natural_blocks(exec, system_matrix, max_block_size,
+                                     block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(exec, max_block_size, num_blocks,
+                                            block_pointers.get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
