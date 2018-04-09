@@ -41,6 +41,7 @@ set(cuda_arch_bin_Pascal "60;61;62")
 set(cuda_arch_bin_Volta_90 "70")
 set(cuda_arch_bin_Volta_91 "70;72")
 
+
 ################################################################################
 # A function for automatic detection of GPUs installed
 # (if autodetection is enabled)
@@ -81,6 +82,7 @@ function(ginkgo_detect_installed_gpus out_variable)
                        Building for all known architectures.")
         set(${out_variable} ${ginkgo_known_gpu_archs} PARENT_SCOPE)
     else()
+        message(STATUS "Detected GPU architectures: ${CUDA_gpu_detect_output}")
         set(${out_variable} ${CUDA_gpu_detect_output} PARENT_SCOPE)
     endif()
 endfunction()
@@ -89,30 +91,34 @@ endfunction()
 ################################################################################
 # A function for checking whether it is available
 # Usage:
-#     check_available(arch_var)
-function(check_available arch_var)
-    if(arch_var MATCHES "([0-9]+)")
-        if(NOT(arch_var IN_LIST cuda_all_arch_list))
-            message(FATAL_ERROR "arch ${arch_var} is not invalid")
-        elseif(arch_var IN_LIST ginkgo_known_gpu_archs)
-            if(arch_var IN_LIST ginkgo_unsupported_archs)
-                message(FATAL_ERROR "Ginkgo does not support ${arch_var}")
+#     check_available(arch_var_list)
+function(check_available arch_var_list)
+    foreach(arch_var ${arch_var_list})
+        if(arch_var MATCHES "([0-9]+)")
+            if(NOT(arch_var IN_LIST cuda_all_arch_list))
+                message(FATAL_ERROR "arch ${arch_var} is not invalid")
+            elseif(arch_var IN_LIST ginkgo_known_gpu_archs)
+                if(arch_var IN_LIST ginkgo_unsupported_archs)
+                    message(FATAL_ERROR "Ginkgo does not support ${arch_var}")
+                endif()
+            else()
+                message(FATAL_ERROR
+                    "CUDA ${CMAKE_CUDA_COMPILER_VERSION}
+                     does not know ${arch_var}")
             endif()
         else()
-            message(FATAL_ERROR
-                "CUDA ${CMAKE_CUDA_COMPILER_VERSION} does not know ${arch_var}")
-        endif()
-    else()
-        if(arch_var IN_LIST ginkgo_known_gpu_archs_name)
-            if(arch_var IN_LIST ginkgo_unsupported_archs_name)
+            if(arch_var IN_LIST ginkgo_known_gpu_archs_name)
+                if(arch_var IN_LIST ginkgo_unsupported_archs_name)
+                    message(FATAL_ERROR
+                        "Ginkgo does not support ${arch_var}")
+                endif()
+            else ()
                 message(FATAL_ERROR
-                    "Ginkgo does not support ${arch_var}")
+                    "CUDA ${CMAKE_CUDA_COMPILER_VERSION} does not know
+                     ${arch_var}")
             endif()
-        else ()
-            message(FATAL_ERROR
-                "CUDA ${CMAKE_CUDA_COMPILER_VERSION} does not know ${arch_var}")
         endif()
-    endif()
+    endforeach()
 endfunction()
 
 
@@ -123,6 +129,9 @@ endfunction()
 function(ginkgo_select_nvcc_arch_flags out_variable)
     if(CMAKE_CUDA_COMPILER_VERSION MATCHES "([0-9]+).([0-9]+).(.*)")
         set(cuda_version ${CMAKE_MATCH_1}${CMAKE_MATCH_2})
+    else()
+        message(FATAL_ERROR "Do not extract CUDA_COMPILER_VERSION:
+                             ${CMAKE_CUDA_COMPILER_VERSION}")
     endif()
     set(ginkgo_known_gpu_archs ${ginkgo_known_gpu_archs_cuda_${cuda_version}})
     set(ginkgo_known_gpu_archs_name
@@ -133,14 +142,6 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
         list(APPEND cuda_all_arch_list ${ginkgo_known_gpu_archs_cuda_${__ver}})
     endforeach()
     list(REMOVE_DUPLICATES cuda_all_arch_list)
-
-    # set CUDA_ARCH_OPTION strings
-    set(CUDA_ARCH_OPTION "Auto" CACHE STRING
-        "Select target NVIDIA GPU achitecture.
-         Use ';' to seperate list.
-         Arch name: Kepler, Maxwell, Pascal, Volta.
-         Specified BIN, BIN(PTX), (PTX).
-         MaxPTX will select the max ptx")
 
     set(__cuda_arch_bin "")
     set(__cuda_arch_ptx "")
@@ -164,7 +165,7 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
             set(__bool_max_ptx "1")
         elseif(__option STREQUAL "Auto")
             ginkgo_detect_installed_gpus(__detect_bin)
-            check_available(${__detect_bin})
+            check_available("${__detect_bin}")
             list(APPEND __cuda_arch_bin ${__detect_bin})
         elseif(__option STREQUAL "All")
             list(APPEND __cuda_arch_bin ${ginkgo_known_gpu_archs})
