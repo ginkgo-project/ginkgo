@@ -122,17 +122,13 @@ public:
                         to_string(row) + ", " + to_string(col));
             }
         }
-        data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-            row, col, combine<ValueType>(rp, ip)));
+        data.nonzeros.emplace_back(row, col, combine<ValueType>(rp, ip));
         if (mm_is_symmetric(t_) && row != col) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(rp, ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(rp, ip));
         } else if (mm_is_skew(t_)) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(-rp, -ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(-rp, -ip));
         } else if (mm_is_hermitian(t_) && row != col) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(rp, -ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(rp, -ip));
         }
     }
 
@@ -140,16 +136,6 @@ private:
     const MM_typecode &t_;
     file_data &f_;
 };
-
-
-template <typename ValueType, typename IndexType>
-bool coord_compare(const std::tuple<IndexType, IndexType, ValueType> &a,
-                   const std::tuple<IndexType, IndexType, ValueType> &b)
-{
-    using std::make_tuple;
-    return make_tuple(std::get<0>(a), std::get<1>(a)) <
-           make_tuple(std::get<0>(b), std::get<1>(b));
-}
 
 
 template <typename ValueType, typename IndexType>
@@ -176,8 +162,7 @@ matrix_data<ValueType, IndexType> read_sparse(file_data &f,
         }
         mod.read_value_for(row - 1, col - 1, data);
     }
-    sort(begin(data.nonzeros), end(data.nonzeros),
-         coord_compare<ValueType, IndexType>);
+    data.ensure_row_major_order();
     return data;
 }
 
@@ -198,8 +183,7 @@ matrix_data<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
             mod.read_value_for(row, col, data);
         }
     }
-    sort(begin(data.nonzeros), end(data.nonzeros),
-         coord_compare<ValueType, IndexType>);
+    data.ensure_row_major_order();
     return data;
 }
 

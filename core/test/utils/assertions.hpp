@@ -56,14 +56,12 @@ namespace detail {
 template <typename NonzeroIterator>
 auto get_next_value(NonzeroIterator &it, const NonzeroIterator &end,
                     size_type next_row, size_type next_col) ->
-    typename std::remove_reference<decltype(std::get<2>(*it))>::type
+    typename std::decay<decltype(it->value)>::type
 {
-    if (it != end && std::get<0>(*it) == next_row &&
-        std::get<1>(*it) == next_col) {
-        return std::get<2>(*(it++));
+    if (it != end && it->row == next_row && it->column == next_col) {
+        return (it++)->value;
     } else {
-        return zero<
-            typename std::remove_reference<decltype(std::get<2>(*it))>::type>();
+        return zero<typename std::decay<decltype(it->value)>::type>();
     }
 }
 

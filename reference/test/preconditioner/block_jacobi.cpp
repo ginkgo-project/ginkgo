@@ -190,15 +190,15 @@ TEST_F(BlockJacobi, CanBeCleared)
 }
 
 
-#define EXPECT_NONZERO_NEAR(first, second, tol)         \
-    EXPECT_EQ(std::get<0>(first), std::get<0>(second)); \
-    EXPECT_EQ(std::get<1>(first), std::get<1>(second)); \
-    EXPECT_NEAR(std::get<2>(first), std::get<2>(second), tol)
+#define EXPECT_NONZERO_NEAR(first, second, tol) \
+    EXPECT_EQ(first.row, second.row);           \
+    EXPECT_EQ(first.column, second.column);     \
+    EXPECT_NEAR(first.value, second.value, tol)
 
 
 TEST_F(BlockJacobi, GeneratesCorrectMatrixData)
 {
-    using tpl = std::tuple<int, int, double>;
+    using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;
 
     bj->write(data);
@@ -323,7 +323,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
 
 TEST_F(AdaptiveBlockJacobi, GeneratesCorrectMatrixData)
 {
-    using tpl = std::tuple<int, int, double>;
+    using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;
 
     bj->write(data);

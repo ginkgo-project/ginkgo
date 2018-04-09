@@ -180,7 +180,7 @@ TEST_F(Csr, CanBeReadFromMatrixData)
 
 TEST_F(Csr, GeneratesCorrectMatrixData)
 {
-    using tpl = std::tuple<int, int, double>;
+    using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;
 
     mtx->write(data);
