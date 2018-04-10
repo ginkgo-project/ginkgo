@@ -81,7 +81,7 @@ void BlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *b,
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         BlockJacobiOperation<ValueType, IndexType>::make_simple_apply_operation(
-            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->num_blocks_, this->max_block_size_, this->storage_scheme_,
             this->block_pointers_, this->blocks_, as<dense>(b), as<dense>(x)));
 }
 
@@ -95,7 +95,7 @@ void BlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         BlockJacobiOperation<ValueType, IndexType>::make_apply_operation(
-            this->num_blocks_, this->max_block_size_, this->max_block_size_,
+            this->num_blocks_, this->max_block_size_, this->storage_scheme_,
             this->block_pointers_, this->blocks_, as<dense>(alpha),
             as<dense>(b), as<dense>(beta), as<dense>(x)));
 }
@@ -111,7 +111,7 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
         BlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
                 this->num_blocks_, this->block_pointers_, this->blocks_,
-                this->max_block_size_, tmp->get_values(), tmp->get_stride()));
+                this->storage_scheme_, tmp->get_values(), tmp->get_stride()));
     tmp->move_to(result);
 }
 
@@ -140,14 +140,15 @@ void BlockJacobi<ValueType, IndexType>::write(mat_data &data) const
 
     const auto ptrs = tmp->block_pointers_.get_const_data();
     for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
-        const auto block_data =
-            tmp->blocks_.get_const_data() + tmp->get_stride() * ptrs[block];
+        const auto scheme = tmp->get_storage_scheme();
+        const auto block_data = tmp->blocks_.get_const_data() +
+                                scheme.get_global_block_offset(block);
         const auto block_size = ptrs[block + 1] - ptrs[block];
         for (IndexType row = 0; row < block_size; ++row) {
             for (IndexType col = 0; col < block_size; ++col) {
                 data.nonzeros.emplace_back(
                     ptrs[block] + row, ptrs[block] + col,
-                    block_data[row + col * tmp->get_stride()]);
+                    block_data[row + col * scheme.get_stride()]);
             }
         }
     }
@@ -179,11 +180,13 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,
                                                  this->block_pointers_));
+        this->blocks_.resize_and_reset(
+            this->storage_scheme_.compute_storage_space(this->num_blocks_));
     }
     exec->run(
         BlockJacobiOperation<ValueType, IndexType>::make_generate_operation(
             csr_mtx, this->num_blocks_, this->max_block_size_,
-            this->get_stride(), this->block_pointers_, this->blocks_));
+            this->storage_scheme_, this->block_pointers_, this->blocks_));
 }
 
 
@@ -205,7 +208,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *b,
     this->get_executor()->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_simple_apply_operation(
-                this->num_blocks_, this->max_block_size_, this->max_block_size_,
+                this->num_blocks_, this->max_block_size_, this->storage_scheme_,
                 block_precisions_, this->block_pointers_, this->blocks_,
                 as<dense>(b), as<dense>(x)));
 }
@@ -221,7 +224,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     this->get_executor()->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_apply_operation(
-                this->num_blocks_, this->max_block_size_, this->max_block_size_,
+                this->num_blocks_, this->max_block_size_, this->storage_scheme_,
                 block_precisions_, this->block_pointers_, this->blocks_,
                 as<dense>(alpha), as<dense>(b), as<dense>(beta), as<dense>(x)));
 }
@@ -237,7 +240,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::convert_to(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
                 this->num_blocks_, block_precisions_, this->block_pointers_,
-                this->blocks_, this->max_block_size_, tmp->get_values(),
+                this->blocks_, this->storage_scheme_, tmp->get_values(),
                 tmp->get_stride()));
     tmp->move_to(result);
 }
@@ -285,17 +288,18 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
     const auto prec = tmp->block_precisions_.get_const_data();
     for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
         RESOLVE_PRECISION(prec[block], {
+            const auto scheme = tmp->get_storage_scheme();
             const auto block_data =
                 reinterpret_cast<const resolved_precision *>(
                     tmp->blocks_.get_const_data() +
-                    tmp->get_stride() * ptrs[block]);
+                    scheme.get_global_block_offset(block));
             const auto block_size = ptrs[block + 1] - ptrs[block];
             for (IndexType row = 0; row < block_size; ++row) {
                 for (IndexType col = 0; col < block_size; ++col) {
                     data.nonzeros.emplace_back(
                         ptrs[block] + row, ptrs[block] + col,
                         static_cast<ValueType>(
-                            block_data[row + col * tmp->get_stride()]));
+                            block_data[row + col * scheme.get_stride()]));
                 }
             }
         });
@@ -328,6 +332,8 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,
                                                  this->block_pointers_));
+        this->blocks_.resize_and_reset(
+            this->storage_scheme_.compute_storage_space(this->num_blocks_));
     }
     if (this->block_precisions_.get_data() == nullptr) {
         this->block_precisions_.resize_and_reset(this->num_blocks_);
@@ -336,7 +342,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
     exec->run(AdaptiveBlockJacobiOperation<ValueType, IndexType>::
                   make_generate_operation(
                       csr_mtx, this->num_blocks_, this->max_block_size_,
-                      this->get_stride(), block_precisions_,
+                      this->storage_scheme_, block_precisions_,
                       this->block_pointers_, this->blocks_));
 }
 

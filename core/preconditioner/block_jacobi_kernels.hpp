@@ -49,35 +49,43 @@ namespace kernels {
                      uint32 max_block_size, size_type &num_blocks,           \
                      Array<IndexType> &block_pointers)
 
-#define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)      \
-    void generate(std::shared_ptr<const DefaultExecutor> exec,              \
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,   \
-                  size_type num_blocks, uint32 max_block_size,              \
-                  size_type stride, const Array<IndexType> &block_pointers, \
+#define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)    \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,            \
+                  const matrix::Csr<ValueType, IndexType> *system_matrix, \
+                  size_type num_blocks, uint32 max_block_size,            \
+                  const preconditioner::block_interleaved_storage_scheme  \
+                      &storage_scheme,                                    \
+                  const Array<IndexType> &block_pointers,                 \
                   Array<ValueType> &blocks)
 
 #define GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)            \
     void apply(                                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size, size_type stride,                               \
+        uint32 max_block_size,                                                 \
+        const preconditioner::block_interleaved_storage_scheme                 \
+            &storage_scheme,                                                   \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
         const matrix::Dense<ValueType> *b,                                     \
         const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 
-#define GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType) \
-    void simple_apply(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size, size_type stride,                           \
-        const Array<IndexType> &block_pointers,                            \
-        const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
-        matrix::Dense<ValueType> *x)
+#define GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)   \
+    void simple_apply(std::shared_ptr<const DefaultExecutor> exec,           \
+                      size_type num_blocks, uint32 max_block_size,           \
+                      const preconditioner::block_interleaved_storage_scheme \
+                          &storage_scheme,                                   \
+                      const Array<IndexType> &block_pointers,                \
+                      const Array<ValueType> &blocks,                        \
+                      const matrix::Dense<ValueType> *b,                     \
+                      matrix::Dense<ValueType> *x)
 
 #define GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
     void convert_to_dense(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
         const Array<IndexType> &block_pointers,                                \
-        const Array<ValueType> &blocks, size_type block_stride,                \
+        const Array<ValueType> &blocks,                                        \
+        const preconditioner::block_interleaved_storage_scheme                 \
+            &storage_scheme,                                                   \
         ValueType *result_values, size_type result_stride)
 
 #define DECLARE_ALL_AS_TEMPLATES                                        \
@@ -123,19 +131,23 @@ DECLARE_ALL_AS_TEMPLATES;
 #undef DECLARE_ALL_AS_TEMPLATES
 
 
-#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType,   \
-                                                          IndexType)   \
-    void generate(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,        \
-        size_type num_blocks, uint32 max_block_size, size_type stride, \
-        Array<precision<ValueType, IndexType>> &block_precisions,      \
-        const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+#define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType,        \
+                                                          IndexType)        \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,              \
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,   \
+                  size_type num_blocks, uint32 max_block_size,              \
+                  const preconditioner::block_interleaved_storage_scheme    \
+                      &storage_scheme,                                      \
+                  Array<precision<ValueType, IndexType>> &block_precisions, \
+                  const Array<IndexType> &block_pointers,                   \
+                  Array<ValueType> &blocks)
 
 #define GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)   \
     void apply(                                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size, size_type stride,                               \
+        uint32 max_block_size,                                                 \
+        const preconditioner::block_interleaved_storage_scheme                 \
+            &storage_scheme,                                                   \
         const Array<precision<ValueType, IndexType>> &block_precisions,        \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
@@ -146,7 +158,9 @@ DECLARE_ALL_AS_TEMPLATES;
                                                               IndexType)   \
     void simple_apply(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size, size_type stride,                           \
+        uint32 max_block_size,                                             \
+        const preconditioner::block_interleaved_storage_scheme             \
+            &storage_scheme,                                               \
         const Array<precision<ValueType, IndexType>> &block_precisions,    \
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
@@ -158,7 +172,9 @@ DECLARE_ALL_AS_TEMPLATES;
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,   \
         const Array<precision<ValueType, IndexType>> &block_precisions,      \
         const Array<IndexType> &block_pointers,                              \
-        const Array<ValueType> &blocks, size_type block_stride,              \
+        const Array<ValueType> &blocks,                                      \
+        const preconditioner::block_interleaved_storage_scheme               \
+            &storage_scheme,                                                 \
         ValueType *result_values, size_type result_stride)
 
 #define DECLARE_ALL_AS_TEMPLATES                                             \
