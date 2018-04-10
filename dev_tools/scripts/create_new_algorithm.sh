@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -xv
+
 # Important script variable
 execute=1
 TMPDIR="./tmp_$(date +%s)"
@@ -27,6 +29,24 @@ function list_sources {
             echo "$type "$(basename "$i" | cut -d"." -f1)
         done
     done
+}
+
+function insert_at_position {
+    insert_to="$1"
+    destination="$2"
+    text="${@:3}"
+    mytmp=`mktemp`
+
+    ## extract the lines before position
+    head -n$insert_to $destination > $mytmp
+    ## insert the list
+    for line in $text
+    do
+        echo "    $line" >> $mytmp
+    done
+    ## append the rest of the file
+    tail -n +$((insert_to+1)) $destination >> $mytmp
+    mv $mytmp $destination
 }
 
 if [ $# -lt 1 ]; then
@@ -102,6 +122,22 @@ TEMPLATE_FILES=(
     # "${name}_kernels.cpp"
     # "${name}_kernels.cpp"
 )
+CMAKE_FILES=(
+    "core/CMakeLists.txt"
+    ""
+    ""
+    "reference/CMakeLists.txt"
+    "cpu/CMakeLists.txt"
+    "gpu/CMakeLists.txt"
+    "core/test/$source_type/CMakeLists.txt"
+    "reference/test/$source_type/CMakeLists.txt"
+    # "cpu/test/$source_type/CMakeLists.txt"
+    "gpu/test/$source_type/CMakeLists.txt"
+    # "core/benchmark/$source_type/CMakeLists.txt"
+    # "reference/benchmark/$source_type/CMakeLists.txt"
+    # "cpu/benchmark/$source_type/CMakeLists.txt"
+    # "gpu/benchmark/$source_type/CMakeLists.txt"
+)
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
     "core/$source_type"
@@ -173,6 +209,12 @@ do
     perl -pi -e "s/${source_name}/$name/g" ${TMPDIR}/$destpath
     perl -pi -e "s/${source_name^}/$Name/g" ${TMPDIR}/$destpath
     perl -pi -e "s/${source_name^^}/$NAME/g" ${TMPDIR}/$destpath
+
+
+    # Comment all code
+    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "NOT_IMPLEMENTED;"; print "//" $0; print "// TODO: Change code imported from source"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
+    mv tmp  ${TMPDIR}/$destpath
+
     ls ${TMPDIR}/$destpath
 done
 
@@ -197,6 +239,39 @@ then
 
     echo -e "cleaning up temporary files."
     rm -rf ${TMPDIR}
+
+
+    ## Try to automatically add the files to CMakeLists
+    for ((i=1; i<=${#CMAKE_FILES}; i++))
+    do
+        cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i]}"
+        if [[ $cmake_file == *"test/"* ]]
+        then
+            insert=$(grep "$source_name" $cmake_file | sed "s/$source_name/$name/")
+            echo "$insert" >> $cmake_file
+            cat $cmake_file | sort > tmp
+            mv tmp $cmake_file
+        elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
+        then
+            list=( $(awk '/set\(SOURCES/,/.*)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
+            list[-1]=$(echo ${list[-1]} | tr -d ')')
+            list+=( "$source_type/${TEMPLATE_FILES[$i]}" )
+            IFS=$'\n' sorted=($(sort <<<"${list[*]}"))
+            unset IFS
+            sorted[-1]=$(echo ${sorted[-1]}")")
+
+            ## find the correct position
+            insert_to=$(grep -n "set(SOURCES" $cmake_file | sed 's/:.*//')
+
+            ## clear up the CMakeList.txt
+            awk '/set\(SOURCES/,/    .*)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
+
+            insert_at_position "${insert_to}" "tmp" "${sorted[@]}"
+
+            ## cleanup
+            mv tmp $cmake_file
+        fi
+    done
 else
     echo -e "\nNo file was copied because --dry-run was used"
     echo -e "You can inspect the generated solver files in ${TMPDIR}."
@@ -221,11 +296,8 @@ do
 done
 
 echo -e "In all of the previous files ${sourcename} was automatically replaced into ${name}. Ensure there is no inconsistency."    | tee -a todo_${name}.txt
-if [[ "$source_type" == "matrix" ]]
-then
-    echo -e ""                                     | tee -a todo_${name}.txt
-    echo -e "Caution, due to conversions you also need to either implant all conversions in other classes similarly to ${sourcename}, or to drop the conversions alltogether."    | tee -a todo_${name}.txt
-fi
+echo -e ""                                     | tee -a todo_${name}.txt
+echo -e "Caution, due to conversions you may also need to either implant all conversions in other classes similarly to ${sourcename}, or to drop the conversions alltogether."    | tee -a todo_${name}.txt
 echo -e ""                                                                         | tee -a todo_${name}.txt
 
 echo "All tests have to be modified to the specific ${source_type} characteristics."    | tee -a todo_${name}.txt
