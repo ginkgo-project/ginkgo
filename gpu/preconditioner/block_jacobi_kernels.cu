@@ -220,10 +220,6 @@ __global__ void find_natural_blocks_kernel3(size_type num_rows,
                                             IndexType *block_ptrs,
                                             size_type *num_blocks_arr)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tidx >= 1) {
-        return;
-    }
     block_ptrs[0] = 0;
     if (num_rows == 0) {
         return;
@@ -281,7 +277,7 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
     const int64 dimgrid2_2 = ceildiv(mtx->get_num_rows(), dimgrid2_1);
     const int64 dimgrid2_3 = 1;
 
-    constexpr int64 blocksize3_1 = 32;
+    constexpr int64 blocksize3_1 = 1;
     constexpr int64 blocksize3_2 = 1;
     constexpr int64 blocksize3_3 = 1;
 
@@ -323,10 +319,6 @@ __global__ void agglomerate_supervariables_kernel(int32 max_block_size,
                                                   IndexType *block_ptrs,
                                                   size_type *num_blocks_arr)
 {
-    size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tidx >= 1) {
-        return;
-    }
     num_blocks_arr[0] = 0;
     if (num_natural_blocks == 0) {
         return;
@@ -359,7 +351,7 @@ inline size_type agglomerate_supervariables(
     Array<size_type> nums_array(exec->get_master(), 1);
     auto nums = nums_array.get_data();
 
-    constexpr int64 blocksize1_1 = 32;
+    constexpr int64 blocksize1_1 = 1;
     constexpr int64 blocksize1_2 = 1;
     constexpr int64 blocksize1_3 = 1;
 
