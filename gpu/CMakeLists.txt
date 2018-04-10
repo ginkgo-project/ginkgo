@@ -28,6 +28,9 @@ target_include_directories(ginkgo_gpu
 target_link_libraries(ginkgo_gpu PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS}
   ${CUSPARSE})
 
+target_compile_options(ginkgo_gpu PRIVATE
+                       $<$<COMPILE_LANGUAGE:CUDA>:${NVCC_FLAGS_EXTRA}>)
+
 if(BUILD_TESTS)
     add_subdirectory(test)
 endif()

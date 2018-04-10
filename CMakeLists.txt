@@ -20,12 +20,23 @@ include(cmake/create_test.cmake)
 
 if(BUILD_GPU)
     project(Ginkgo LANGUAGES CXX CUDA)
+    include(cmake/detect_gpu.cmake)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
     set(CMAKE_CUDA_STANDARD 11)
     if(SET_CUDA_HOST_COMPILER)
         set(CMAKE_CUDA_FLAGS
             "--compiler-bindir ${CMAKE_CXX_COMPILER} ${CMAKE_CUDA_FLAGS}")
     endif()
+    # set CUDA_ARCH_OPTION strings
+    set(CUDA_ARCH_OPTION "Auto" CACHE STRING
+        "Select target NVIDIA GPU achitecture.
+         Use ';' to seperate list.
+         Arch name: Kepler, Maxwell, Pascal, Volta.
+         Specified BIN, BIN(PTX), (PTX).
+         MaxPTX will select the max ptx")
+    # setting nvcc arch flags
+    ginkgo_select_nvcc_arch_flags(NVCC_FLAGS_EXTRA)
+    message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
 else()
     project(Ginkgo LANGUAGES CXX)
 endif()
