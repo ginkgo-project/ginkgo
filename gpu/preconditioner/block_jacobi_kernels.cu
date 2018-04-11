@@ -167,8 +167,8 @@ using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 
 template <typename IndexType>
-__global__ void find_natural_blocks_kernel1(size_type m, IndexType *row,
-                                            bool *v)
+__global__ void compare_nzcount_adjecent_rows(size_type m, IndexType *row,
+                                              bool *v)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -181,8 +181,9 @@ __global__ void find_natural_blocks_kernel1(size_type m, IndexType *row,
 }
 
 template <typename IndexType>
-__global__ void find_natural_blocks_kernel2(size_type m, const IndexType *row,
-                                            const IndexType *col, bool *v)
+__global__ void compare_nzpattern_adjecent_rows(size_type m,
+                                                const IndexType *row,
+                                                const IndexType *col, bool *v)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
     size_type i = threadIdx.x;
@@ -215,10 +216,11 @@ __global__ void find_natural_blocks_kernel2(size_type m, const IndexType *row,
 
 
 template <typename IndexType>
-__global__ void find_natural_blocks_kernel3(size_type num_rows,
-                                            int32 max_block_size, const bool *v,
-                                            IndexType *block_ptrs,
-                                            size_type *num_blocks_arr)
+__global__ void generate_blockptr_natural_blocks(size_type num_rows,
+                                                 int32 max_block_size,
+                                                 const bool *v,
+                                                 IndexType *block_ptrs,
+                                                 size_type *num_blocks_arr)
 {
     block_ptrs[0] = 0;
     if (num_rows == 0) {
@@ -294,16 +296,12 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
     dim3 grid3(dimgrid3_1, dimgrid3_2, dimgrid3_3);
     dim3 block3(blocksize3_1, blocksize3_2, blocksize3_3);
 
-    // split in two kernels
-    // first checks whether the adjacent rows have the same nnz
-    find_natural_blocks_kernel1<<<grid1, block1, 0, 0>>>(
+    compare_nzcount_adjecent_rows<<<grid1, block1, 0, 0>>>(
         mtx->get_num_rows(), mtx->get_const_row_ptrs(), d_v);
-    // second checks whether adjacent rows with same nnz have the same pattern
-    find_natural_blocks_kernel2<<<grid2, block2, 0, 0>>>(
+    compare_nzpattern_adjecent_rows<<<grid2, block2, 0, 0>>>(
         mtx->get_num_rows(), mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), d_v);
-    // third kernel generates the block pointer
-    find_natural_blocks_kernel3<<<grid3, block3, 0, 0>>>(
+    generate_blockptr_natural_blocks<<<grid3, block3, 0, 0>>>(
         mtx->get_num_rows(), max_block_size, d_v, block_ptrs, d_nums);
 
     nums_array = d_nums_array;
