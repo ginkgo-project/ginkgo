@@ -79,14 +79,14 @@ protected:
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
-            ref, num_rows, num_cols,
+            num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
     {
-        int m = 97;
+        int m = 597;
         int n = 43;
         b = gen_mtx(m, n);
         r = gen_mtx(m, n);
