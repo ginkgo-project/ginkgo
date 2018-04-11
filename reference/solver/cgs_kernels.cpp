@@ -54,12 +54,12 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
                 matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *prev_rho,
+                matrix::Dense<ValueType> *rho_prev,
                 matrix::Dense<ValueType> *rho)
 {
     for (size_type j = 0; j < b->get_num_cols(); ++j) {
         rho->at(j) = zero<ValueType>();
-        prev_rho->at(j) = one<ValueType>();
+        rho_prev->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
         beta->at(j) = one<ValueType>();
         gamma->at(j) = one<ValueType>();

@@ -7,9 +7,9 @@ set(SOURCES
     matrix/ell_kernels.cu
     preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
-    solver/fcg_kernels.cu
+    solver/cg_kernels.cu
     solver/cgs_kernels.cu
-    solver/cg_kernels.cu)
+    solver/fcg_kernels.cu)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS cudart

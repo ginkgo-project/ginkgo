@@ -125,7 +125,7 @@ public:
     void convert_to(Coo<ValueType, int64> *result) const override;
 
     void move_to(Coo<ValueType, int64> *result) override;
-    
+
     void convert_to(Csr<ValueType, int32> *result) const override;
 
     void move_to(Csr<ValueType, int32> *result) override;
