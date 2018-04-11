@@ -167,7 +167,7 @@ using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 
 template <typename IndexType>
-__global__ void compare_nzcount_adjecent_rows(size_type m, IndexType *row,
+__global__ void compare_nzcount_adjacent_rows(size_type m, IndexType *row,
                                               bool *v)
 {
     size_type tidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -181,7 +181,7 @@ __global__ void compare_nzcount_adjecent_rows(size_type m, IndexType *row,
 }
 
 template <typename IndexType>
-__global__ void compare_nzpattern_adjecent_rows(size_type m,
+__global__ void compare_nzpattern_adjacent_rows(size_type m,
                                                 const IndexType *row,
                                                 const IndexType *col, bool *v)
 {
@@ -296,9 +296,9 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
     dim3 grid3(dimgrid3_1, dimgrid3_2, dimgrid3_3);
     dim3 block3(blocksize3_1, blocksize3_2, blocksize3_3);
 
-    compare_nzcount_adjecent_rows<<<grid1, block1, 0, 0>>>(
+    compare_nzcount_adjacent_rows<<<grid1, block1, 0, 0>>>(
         mtx->get_num_rows(), mtx->get_const_row_ptrs(), d_v);
-    compare_nzpattern_adjecent_rows<<<grid2, block2, 0, 0>>>(
+    compare_nzpattern_adjacent_rows<<<grid2, block2, 0, 0>>>(
         mtx->get_num_rows(), mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), d_v);
     generate_blockptr_natural_blocks<<<grid3, block3, 0, 0>>>(
