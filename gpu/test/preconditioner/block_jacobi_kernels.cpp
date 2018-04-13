@@ -181,6 +181,7 @@ TEST_F(BlockJacobi, GpuExecutesSupervariableAgglomerationEquivalentToRef)
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
 }
 
+
 TEST_F(BlockJacobi, GpuFindNaturalBlocksInLargeMatrixEquivalentToRef)
 {
     /* example matrix:
