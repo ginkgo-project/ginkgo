@@ -191,32 +191,25 @@ TEST_F(BlockJacobi, GpuFindNaturalBlocksInLargeMatrixEquivalentToRef)
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(3000, 3000,
-                        {{1.0, 1.0, 0.0, 0.0},
-                         {1.0, 1.0, 0.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0}});
+    auto m = data::diag(500, 500,
+                        {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                         {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
     auto mtx = Mtx::create(ref);
-    printf("check %d\n", __LINE__);
-    mtx->write(m);
-    printf("check %d\n", __LINE__);
+    mtx->read(m);
     auto d_mtx = Mtx::create(gpu);
-    printf("check %d\n", __LINE__);
     d_mtx->copy_from(mtx.get());
-    printf("check %d\n", __LINE__);
-    printf("check %d\n", __LINE__);
 
     std::unique_ptr<BjFactory> bj_factory;
-    printf("check %d\n", __LINE__);
     bj_factory = BjFactory::create(ref, 3);
-    printf("check %d\n", __LINE__);
     auto bj_lin_op = bj_factory->generate(std::move(mtx));
     auto bj = static_cast<Bj *>(bj_lin_op.get());
-    printf("check %d\n", __LINE__);
     d_bj_factory = BjFactory::create(gpu, 3);
     auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
     auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
-    printf("check %d\n", __LINE__);
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
 }
@@ -241,7 +234,7 @@ TEST_F(BlockJacobi,
                          {0.0, 0.0, 1.0, 1.0, 0.0},
                          {0.0, 0.0, 0.0, 0.0, 1.0}});
     auto mtx = Mtx::create(ref);
-    mtx->write(m);
+    mtx->read(m);
     auto d_mtx = Mtx::create(gpu);
     d_mtx->copy_from(mtx.get());
 
