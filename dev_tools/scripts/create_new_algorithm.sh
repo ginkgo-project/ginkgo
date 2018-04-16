@@ -241,18 +241,20 @@ then
                 mv tmp $cmake_file
             elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
             then
-                list=( $(awk '/set\(SOURCES/,/.*)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
-                list[-1]=$(echo ${list[-1]} | tr -d ')')
+                list=( $(awk '/set\(SOURCES/,/)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
+                last_elem=$((${#list[@]}-1))
+                list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
                 list+=( "$source_type/${TEMPLATE_FILES[$i-1]}" )
                 IFS=$'\n' sorted=($(sort <<<"${list[*]}"))
                 unset IFS
-                sorted[-1]=$(echo ${sorted[-1]}")")
+                last_elem=$((${#sorted[@]}-1))
+                sorted[$last_elem]=$(echo ${sorted[$last_elem]}")")
 
                 ## find the correct position
                 insert_to=$(grep -n "set(SOURCES" $cmake_file | sed 's/:.*//')
 
                 ## clear up the CMakeList.txt
-                awk '/set\(SOURCES/,/    .*)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
+                awk '/set\(SOURCES/,/)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
 
                 mytmp=`mktemp`
                 head -n$insert_to tmp > $mytmp
