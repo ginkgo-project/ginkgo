@@ -241,7 +241,7 @@ then
                 mv tmp $cmake_file
             elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
             then
-                list=( $(awk '/set\(SOURCES/,/)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
+                list=( $(awk '/set\(SOURCES/,/    .*\)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
                 last_elem=$((${#list[@]}-1))
                 list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
                 list+=( "$source_type/${TEMPLATE_FILES[$i-1]}" )
@@ -254,7 +254,7 @@ then
                 insert_to=$(grep -n "set(SOURCES" $cmake_file | sed 's/:.*//')
 
                 ## clear up the CMakeList.txt
-                awk '/set\(SOURCES/,/)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
+                awk '/set\(SOURCES/,/    .*\)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
 
                 mytmp=`mktemp`
                 head -n$insert_to tmp > $mytmp
@@ -280,12 +280,12 @@ then
         grep -v '#include' $common_kernels_file > tmp
 
         mytmp=`mktemp`
-        head -n$header_block_begin tmp > $mytmp
+        head -n$((header_block_begin-1)) tmp > $mytmp
         for line in "${headers_sorted[@]}"
         do
             echo "$line" >> $mytmp
         done
-        tail -n +$((header_block_begin+1)) tmp >> $mytmp
+        tail -n +$((header_block_begin)) tmp >> $mytmp
         mv $mytmp tmp
         mv tmp $common_kernels_file
 
