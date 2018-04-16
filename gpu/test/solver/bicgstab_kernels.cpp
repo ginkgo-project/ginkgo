@@ -88,7 +88,7 @@ protected:
 
     void initialize_data()
     {
-        int m = 48;
+        int m = 597;
         int n = 17;
         x = gen_mtx(m, n);
         b = gen_mtx(m, n);
