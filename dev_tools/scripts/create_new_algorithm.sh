@@ -97,7 +97,7 @@ TEMPLATE_FILES=(
     "${name}_kernels.hpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
-    "${name}_kernels.cu"
+    "${name}_kernels.c*"
     "${name}.cpp"
     "${name}_kernels.cpp"
     # "${name}_kernels.cpp"
@@ -179,8 +179,20 @@ mkdir ${TMPDIR}
 # copy files needed into temporary folder
 for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
-    sourcename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/${name}/${source_name}/")
+    sourcename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/${name}/${source_name}/" )
     sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${sourcename}
+    file=$(ls ${GINKGO_ROOT_DIR}/${sourcepath})
+    if [ -f "$file" ]
+    then
+        # We have evaluated the extension and found it
+        # Integrate it in the template list
+        filename=$(basename -- ${file})
+        source_path=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${filename}
+        TEMPLATE_FILES[$i-1]=$(echo "${filename}" | sed "s/${source_name}/${name}/")
+    else
+        echo "Warning: Source file $sourcepath was not found."
+    fi
+
     destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
     mkdir -p ${TMPDIR}/${TEMPLATE_FILES_LOCATIONS[$i-1]}
     cp ${GINKGO_ROOT_DIR}/$sourcepath ${TMPDIR}/$destpath
@@ -232,6 +244,12 @@ then
         echo -e "Modifiying CMakeLists.txt and common_kernels.inc.cpp"
         for ((i=1; i<=${#CMAKE_FILES[@]}; i++))
         do
+            destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
+            if [ ! -f ${GINKGO_ROOT_DIR}/${destpath} ];
+            then
+                continue
+            fi
+
             cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i-1]}"
             if [[ $cmake_file == *"test/"* ]]
             then
