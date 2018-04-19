@@ -35,20 +35,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_EXTENDED_FLOAT_HPP_
 
 
+#include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
 
 namespace gko {
+
+
+template <typename, size_type, size_type>
+class truncated;
+
+
 namespace detail {
 
 
+template <std::size_t, typename = void>
+struct uint_of_impl {};
+
+template <std::size_t Bits>
+struct uint_of_impl<Bits, xstd::void_t<xstd::enable_if_t<(Bits <= 16)>>> {
+    using type = uint16;
+};
+
+template <std::size_t Bits>
+struct uint_of_impl<
+    Bits, xstd::void_t<xstd::enable_if_t<(16 < Bits && Bits <= 32)>>> {
+    using type = uint32;
+};
+
+template <std::size_t Bits>
+struct uint_of_impl<Bits, xstd::void_t<xstd::enable_if_t<(32 < Bits)>>> {
+    using type = uint64;
+};
+
+template <std::size_t Bits>
+using uint_of = typename uint_of_impl<Bits>::type;
+
+
 template <typename T>
-struct basic_float_traits;
+struct basic_float_traits {};
 
 template <>
 struct basic_float_traits<float16> {
     using type = float16;
-    using bits_type = uint16;
+    static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 10;
     static constexpr int exponent_bits = 5;
 };
@@ -56,7 +86,7 @@ struct basic_float_traits<float16> {
 template <>
 struct basic_float_traits<float32> {
     using type = float32;
-    using bits_type = uint32;
+    static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 23;
     static constexpr int exponent_bits = 8;
 };
@@ -64,45 +94,66 @@ struct basic_float_traits<float32> {
 template <>
 struct basic_float_traits<float64> {
     using type = float64;
-    using bits_type = uint64;
+    static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 52;
     static constexpr int exponent_bits = 11;
 };
 
+template <typename FloatType, size_type NumComponents, size_type ComponentId>
+struct basic_float_traits<truncated<FloatType, NumComponents, ComponentId>> {
+    using type = truncated<FloatType, NumComponents, ComponentId>;
+    static constexpr int sign_bits = ComponentId == 0 ? 1 : 0;
+    static constexpr int exponent_bits =
+        ComponentId == 0 ? basic_float_traits<FloatType>::exponent_bits : 0;
+    static constexpr int significand_bits =
+        ComponentId == 0 ? sizeof(type) * byte_size - exponent_bits - 1
+                         : sizeof(type) * byte_size;
+};
+
+
+template <typename UintType>
+constexpr UintType create_ones(int n)
+{
+    return (n == sizeof(UintType) * byte_size ? static_cast<UintType>(0)
+                                              : static_cast<UintType>(1) << n) -
+           static_cast<UintType>(1);
+}
 
 template <typename T>
 struct float_traits {
     using type = typename basic_float_traits<T>::type;
-    using bits_type = typename basic_float_traits<T>::bits_type;
+    using bits_type = uint_of<sizeof(type) * byte_size>;
+    static constexpr int sign_bits = basic_float_traits<T>::sign_bits;
     static constexpr int significand_bits =
         basic_float_traits<T>::significand_bits;
     static constexpr int exponent_bits = basic_float_traits<T>::exponent_bits;
-    static constexpr bits_type zero = 0;
-    static constexpr bits_type one = 1;
     static constexpr bits_type significand_mask =
-        (one << significand_bits) - one;
+        create_ones<bits_type>(significand_bits);
     static constexpr bits_type exponent_mask =
-        (one << significand_bits + exponent_bits) - one - significand_mask;
+        create_ones<bits_type>(significand_bits + exponent_bits) -
+        significand_mask;
     static constexpr bits_type bias_mask =
-        (one << significand_bits + exponent_bits - 1) - one - significand_mask;
-    static constexpr bits_type sign_mask = one
-                                           << significand_bits + exponent_bits;
+        create_ones<bits_type>(significand_bits + exponent_bits - 1) -
+        significand_mask;
+    static constexpr bits_type sign_mask =
+        create_ones<bits_type>(sign_bits + significand_bits + exponent_bits) -
+        exponent_mask - significand_mask;
 
     static constexpr bool is_inf(bits_type data)
     {
         return (data & exponent_mask) == exponent_mask &&
-               (data & significand_mask) == zero;
+               (data & significand_mask) == bits_type{};
     }
 
     static constexpr bool is_nan(bits_type data)
     {
         return (data & exponent_mask) == exponent_mask &&
-               (data & significand_mask) != zero;
+               (data & significand_mask) != bits_type{};
     }
 
     static constexpr bool is_denom(bits_type data)
     {
-        return (data & exponent_mask) == zero;
+        return (data & exponent_mask) == bits_type{};
     }
 };
 
@@ -158,7 +209,8 @@ struct precision_converter<SourceType, ResultType, true> {
 private:
     static constexpr result_bits update_bias(result_bits data) noexcept
     {
-        return data == result_traits::zero ? data : data + bias_change;
+        return data == typename result_traits::bits_type{} ? data
+                                                           : data + bias_change;
     }
 };
 
@@ -208,7 +260,7 @@ struct precision_converter<SourceType, ResultType, false> {
 private:
     static constexpr source_bits update_bias(source_bits data) noexcept
     {
-        return data <= bias_change ? source_traits::zero
+        return data <= bias_change ? typename source_traits::bits_type{}
                                    : limit_exponent(data - bias_change);
     }
 
@@ -232,14 +284,14 @@ private:
  */
 class half {
 public:
-    GKO_ATTRIBUTES half() = default;
+    GKO_ATTRIBUTES half() noexcept = default;
 
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
 #ifdef __CUDACC__
-        data = __float2half_rn(val);
+        data_ = __float2half_rn(val);
 #else   // __CUDACC__
-        data = float2half(reinterpret_cast<const uint32 &>(val));
+        data_ = float2half(reinterpret_cast<const uint32 &>(val));
 #endif  // __CUDACC__
     }
 
@@ -249,9 +301,9 @@ public:
     GKO_ATTRIBUTES operator float32() const noexcept
     {
 #ifdef __CUDACC__
-        return __half2float(data);
+        return __half2float(data_);
 #else   // __CUDACC__
-        const auto bits = half2float(data);
+        const auto bits = half2float(data_);
         return reinterpret_cast<const float32 &>(bits);
 #endif  // __CUDACC__
     }
@@ -265,46 +317,92 @@ private:
     using f16_traits = detail::float_traits<float16>;
     using f32_traits = detail::float_traits<float32>;
 
-    static uint16 float2half(uint32 data) noexcept
+    static uint16 float2half(uint32 data_) noexcept
     {
         using conv = detail::precision_converter<float32, float16>;
-        if (f32_traits::is_inf(data)) {
-            return conv::shift_sign(data) | f16_traits::exponent_mask;
-        } else if (f32_traits::is_nan(data)) {
-            return conv::shift_sign(data) | f16_traits::exponent_mask |
+        if (f32_traits::is_inf(data_)) {
+            return conv::shift_sign(data_) | f16_traits::exponent_mask;
+        } else if (f32_traits::is_nan(data_)) {
+            return conv::shift_sign(data_) | f16_traits::exponent_mask |
                    f16_traits::significand_mask;
         } else {
-            const auto exp = conv::shift_exponent(data);
+            const auto exp = conv::shift_exponent(data_);
             if (f16_traits::is_inf(exp)) {
-                return conv::shift_sign(data) | exp;
+                return conv::shift_sign(data_) | exp;
             } else if (f16_traits::is_denom(exp)) {
                 // TODO: handle denormals
-                return conv::shift_sign(data);
+                return conv::shift_sign(data_);
             } else {
-                return conv::shift_sign(data) | exp |
-                       conv::shift_significand(data);
+                return conv::shift_sign(data_) | exp |
+                       conv::shift_significand(data_);
             }
         }
     }
 
-    static uint32 half2float(uint16 data) noexcept
+    static uint32 half2float(uint16 data_) noexcept
     {
         using conv = detail::precision_converter<float16, float32>;
-        if (f16_traits::is_inf(data)) {
-            return conv::shift_sign(data) | f32_traits::exponent_mask;
-        } else if (f16_traits::is_nan(data)) {
-            return conv::shift_sign(data) | f32_traits::exponent_mask |
+        if (f16_traits::is_inf(data_)) {
+            return conv::shift_sign(data_) | f32_traits::exponent_mask;
+        } else if (f16_traits::is_nan(data_)) {
+            return conv::shift_sign(data_) | f32_traits::exponent_mask |
                    f32_traits::significand_mask;
-        } else if (f16_traits::is_denom(data)) {
+        } else if (f16_traits::is_denom(data_)) {
             // TODO: handle denormals
-            return conv::shift_sign(data);
+            return conv::shift_sign(data_);
         } else {
-            return conv::shift_sign(data) | conv::shift_exponent(data) |
-                   conv::shift_significand(data);
+            return conv::shift_sign(data_) | conv::shift_exponent(data_) |
+                   conv::shift_significand(data_);
         }
     }
 
-    uint16 data;
+    uint16 data_;
+};
+
+
+template <typename FloatType, size_type NumComponents,
+          size_type ComponentId = 0>
+class truncated {
+public:
+    using float_type = FloatType;
+    using full_bits_type = typename detail::float_traits<float_type>::bits_type;
+
+    static constexpr auto num_components = NumComponents;
+    static constexpr auto component_id = ComponentId;
+
+    static constexpr auto component_size =
+        sizeof(float_type) * byte_size / num_components;
+    static constexpr auto component_position =
+        (num_components - component_id - 1) * component_size;
+    static constexpr auto component_mask =
+        detail::create_ones<full_bits_type>(component_size)
+        << component_position;
+
+    using bits_type = detail::uint_of<component_size>;
+
+    static_assert((sizeof(float_type) * byte_size) % component_size == 0,
+                  "Size of float is not a multiple of component size");
+    static_assert(component_id < num_components,
+                  "This type doesn't have that many components");
+
+    GKO_ATTRIBUTES truncated() noexcept = default;
+
+    GKO_ATTRIBUTES explicit truncated(const float_type &val) noexcept
+    {
+        const auto &bits = reinterpret_cast<const full_bits_type &>(val);
+        data_ = static_cast<bits_type>((bits & component_mask) >>
+                                       component_position);
+    }
+
+    GKO_ATTRIBUTES explicit operator float_type() const noexcept
+    {
+        const auto bits = static_cast<full_bits_type>(data_)
+                          << component_position;
+        return reinterpret_cast<const float_type &>(bits);
+    }
+
+private:
+    bits_type data_;
 };
 
 
