@@ -295,7 +295,7 @@ protected:
      *
      * Should be a multiple of cache line size for best performance.
      */
-    static constexpr size_type block_stride_ = 32;
+    static constexpr size_type max_block_stride_ = 32;
 
     /**
      * Returns the smallest power of 2 at least as larger as the input.
@@ -304,7 +304,7 @@ protected:
      *
      * @return a power of two at least as large as `n`
      */
-    static inline size_type get_larger_power(size_type n) noexcept
+    static size_type get_larger_power(size_type n) noexcept
     {
         size_type res = 1;
         while (res < n) res *= 2;
@@ -319,13 +319,14 @@ protected:
      *
      * @return a suitable storage scheme
      */
-    static inline block_interleaved_storage_scheme compute_storage_scheme(
+    static block_interleaved_storage_scheme compute_storage_scheme(
         uint32 max_block_size) noexcept
     {
         const auto group_size = static_cast<uint32>(
-            block_stride_ / get_larger_power(max_block_size));
-        const auto block_offset = block_stride_ / group_size;
-        const auto group_offset = max_block_size * block_stride_;
+            max_block_stride_ / get_larger_power(max_block_size));
+        const auto block_offset = max_block_size;
+        const auto block_stride = group_size * block_offset;
+        const auto group_offset = max_block_size * block_stride;
         return {block_offset, group_offset, group_size};
     }
 };
