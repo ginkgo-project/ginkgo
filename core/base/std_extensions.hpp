@@ -62,8 +62,12 @@ template <typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;
 
 
-template <bool B, class T = void>
+template <bool B, typename T = void>
 using enable_if_t = typename std::enable_if<B, T>::type;
+
+
+template <bool B, typename T, typename F>
+using conditional_t = typename std::conditional<B, T, F>::type;
 
 
 }  // namespace xstd
