@@ -360,24 +360,55 @@ private:
 };
 
 
+/**
+ * This template implements the truncated (or split) storage of a floating point
+ * type.
+ *
+ * The class splits the type FloatType into NumComponents components. `i`-th
+ * component of the class is represented by the instantiation with ComponentId
+ * equal to `i`. 0-th component is the one with most significant bits, i.e. the
+ * one that includes the sign and the exponent of the number.
+ *
+ * @tparam FloatType  a floating point type this truncates / splits
+ * @tparam NumComponents  number of equally-sized components FloatType is split
+ *                        into
+ * @tparam ComponentId  index of the component of FloatType an object of this
+ *                      template instntiation represents
+ */
 template <typename FloatType, size_type NumComponents,
           size_type ComponentId = 0>
 class truncated {
 public:
     using float_type = FloatType;
+
+    /**
+     * Unsigned type representing the bits of FloatType.
+     */
     using full_bits_type = typename detail::float_traits<float_type>::bits_type;
 
     static constexpr auto num_components = NumComponents;
     static constexpr auto component_id = ComponentId;
 
+    /**
+     * Size of the component in bits.
+     */
     static constexpr auto component_size =
         sizeof(float_type) * byte_size / num_components;
+    /**
+     * Starting bit position of the component in FloatType.
+     */
     static constexpr auto component_position =
         (num_components - component_id - 1) * component_size;
+    /**
+     * Bitmask of the component in FloatType.
+     */
     static constexpr auto component_mask =
         detail::create_ones<full_bits_type>(component_size)
         << component_position;
 
+    /**
+     * Unsigned type representing the bits of the component.
+     */
     using bits_type = detail::uint_of<component_size>;
 
     static_assert((sizeof(float_type) * byte_size) % component_size == 0,
