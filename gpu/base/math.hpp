@@ -53,7 +53,12 @@ struct remove_complex_impl<thrust::complex<T>> {
 
 template <typename T>
 struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {
+    : public std::integral_constant<bool, true> {};
+
+
+template <typename T>
+struct truncate_type_impl<thrust::complex<T>> {
+    using type = thrust::complex<typename truncate_type_impl<T>::type>;
 };
 
 

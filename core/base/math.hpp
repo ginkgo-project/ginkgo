@@ -269,6 +269,22 @@ struct truncate_type_impl<truncated<T, Components, 0>> {
     using type = truncated<T, 2 * Components, 0>;
 };
 
+template <typename T>
+struct truncate_type_impl<std::complex<T>> {
+    using type = std::complex<typename truncate_type_impl<T>::type>;
+};
+
+
+template <typename T>
+struct type_size_impl {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+template <typename T>
+struct type_size_impl<std::complex<T>> {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
 
 }  // namespace detail
 
@@ -279,7 +295,7 @@ struct truncate_type_impl<truncated<T, Components, 0>> {
  */
 template <typename T, size_type Limit = sizeof(uint16) * byte_size>
 using truncate_type =
-    xstd::conditional_t<2 * sizeof(T) * byte_size >= Limit,
+    xstd::conditional_t<detail::type_size_impl<T>::value >= 2 * Limit,
                         typename detail::truncate_type_impl<T>::type, T>;
 
 

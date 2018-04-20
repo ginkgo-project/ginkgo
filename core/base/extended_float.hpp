@@ -39,6 +39,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#ifdef __CUDA_ARCH__
+
+
+#include <cuda_fp16.h>
+
+
+#endif  // __CUDA_ARCH__
+
+
 namespace gko {
 
 
@@ -288,11 +297,12 @@ public:
 
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
-#ifdef __CUDACC__
-        data_ = __float2half_rn(val);
-#else   // __CUDACC__
+#ifdef __CUDA_ARCH__
+        const auto tmp = __float2half_rn(val);
+        data_ = reinterpret_cast<const uint16 &>(tmp);
+#else   // __CUDA_ARCH__
         data_ = float2half(reinterpret_cast<const uint32 &>(val));
-#endif  // __CUDACC__
+#endif  // __CUDA_ARCH__
     }
 
     GKO_ATTRIBUTES half(float64 val) noexcept : half(static_cast<float32>(val))
@@ -300,12 +310,12 @@ public:
 
     GKO_ATTRIBUTES operator float32() const noexcept
     {
-#ifdef __CUDACC__
-        return __half2float(data_);
-#else   // __CUDACC__
+#ifdef __CUDA_ARCH__
+        return __half2float(reinterpret_cast<const __half &>(data_));
+#else   // __CUDA_ARCH__
         const auto bits = half2float(data_);
         return reinterpret_cast<const float32 &>(bits);
-#endif  // __CUDACC__
+#endif  // __CUDA_ARCH__
     }
 
     GKO_ATTRIBUTES operator float64() const noexcept
@@ -425,7 +435,7 @@ public:
                                        component_position);
     }
 
-    GKO_ATTRIBUTES explicit operator float_type() const noexcept
+    GKO_ATTRIBUTES operator float_type() const noexcept
     {
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
@@ -446,18 +456,21 @@ namespace std {
 template <>
 class complex<gko::half> {
 public:
-    complex(const gko::half &real = 0.f, const gko::half &imag = 0.f)
+    using value_type = gko::half;
+
+    complex(const value_type &real = 0.f, const value_type &imag = 0.f)
         : real_(real), imag_(imag)
     {}
 
-    template <typename T>
-    explicit complex(const complex<T> &other)
-        : complex(other.real(), other.imag())
+    template <typename U>
+    explicit complex(const complex<U> &other)
+        : complex(static_cast<value_type>(other.real()),
+                  static_cast<value_type>(other.imag()))
     {}
 
-    gko::half real() const noexcept { return real_; }
+    value_type real() const noexcept { return real_; }
 
-    gko::half imag() const noexcept { return imag_; }
+    value_type imag() const noexcept { return imag_; }
 
 
     operator std::complex<gko::float32>() const noexcept
@@ -467,8 +480,39 @@ public:
     }
 
 private:
-    gko::half real_;
-    gko::half imag_;
+    value_type real_;
+    value_type imag_;
+};
+
+
+template <typename T, gko::size_type NumComponents>
+class complex<gko::truncated<T, NumComponents>> {
+public:
+    using value_type = gko::truncated<T, NumComponents>;
+
+    complex(const value_type &real = 0.f, const value_type &imag = 0.f)
+        : real_(real), imag_(imag)
+    {}
+
+    template <typename U>
+    explicit complex(const complex<U> &other)
+        : complex(static_cast<value_type>(other.real()),
+                  static_cast<value_type>(other.imag()))
+    {}
+
+    value_type real() const noexcept { return real_; }
+
+    value_type imag() const noexcept { return imag_; }
+
+
+    operator std::complex<T>() const noexcept
+    {
+        return std::complex<T>(static_cast<T>(real_), static_cast<T>(imag_));
+    }
+
+private:
+    value_type real_;
+    value_type imag_;
 };
 
 
