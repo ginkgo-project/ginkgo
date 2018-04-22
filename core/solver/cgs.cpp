@@ -52,6 +52,7 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, cgs::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence, cgs::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, cgs::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, cgs::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, cgs::step_3<ValueType>);
@@ -116,15 +117,16 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
+
+    std::unique_ptr<Array<bool>> converged(
+        new Array<bool>(alpha->get_executor(), dense_b->get_num_cols()));
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
         v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
-        rho_prev.get(), rho.get()));
+        rho_prev.get(), rho.get(), converged.get()));
     // r = dense_b
     // r_tld = r
     // rho = 0.0
@@ -140,7 +142,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
         r->compute_dot(r_tld.get(), rho.get());
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
-            rho_prev.get()));
+            rho_prev.get(), converged.get()));
         // beta = rho / rho_prev
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
@@ -149,20 +151,26 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
         r_tld->compute_dot(v_hat.get(), gamma.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             u.get(), v_hat.get(), q.get(), t.get(), alpha.get(), rho.get(),
-            gamma.get()));
+            gamma.get(), converged.get()));
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
         preconditioner_->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
-            t.get(), u_hat.get(), r.get(), dense_x, alpha.get()));
+            t.get(), u_hat.get(), r.get(), dense_x, alpha.get(),
+            converged.get()));
         // r = r -alpha * t
         // x = x + alpha * u_hat
         r->compute_dot(r.get(), tau.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+
+        bool all_converged = false;
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), rel_residual_goal_,
+                converged.get(), &all_converged));
+
+        if (all_converged) {
             break;
         }
         swap(rho_prev, rho);

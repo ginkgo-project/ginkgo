@@ -55,7 +55,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
                 matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *rho_prev,
-                matrix::Dense<ValueType> *rho)
+                matrix::Dense<ValueType> *rho, Array<bool> *converged)
 {
     for (size_type j = 0; j < b->get_num_cols(); ++j) {
         rho->at(j) = zero<ValueType>();
@@ -63,6 +63,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
         alpha->at(j) = one<ValueType>();
         beta->at(j) = one<ValueType>();
         gamma->at(j) = one<ValueType>();
+        converged->get_data()[j] = false;
     }
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
         for (size_type j = 0; j < b->get_num_cols(); ++j) {
@@ -76,21 +77,47 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
+template <typename ValueType>
+void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Dense<ValueType> *tau,
+                      const matrix::Dense<ValueType> *orig_tau,
+                      remove_complex<ValueType> rel_residual_goal,
+                      Array<bool> *converged, bool *all_converged)
+{
+    using std::abs;
+    *all_converged = true;
+    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
+        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
+            converged->get_data()[i] = true;
+        }
+    }
+    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
+        if (!converged->get_const_data()[i]) {
+            *all_converged = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *rho_prev)
+            const matrix::Dense<ValueType> *rho_prev,
+            const Array<bool> *converged)
 {
     for (size_type j = 0; j < p->get_num_cols(); ++j) {
+        if (converged->get_const_data()[j]) continue;
         if (rho_prev->at(j) != zero<ValueType>()) {
             beta->at(j) = rho->at(j) / rho_prev->at(j);
         }
     }
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
+            if (converged->get_const_data()[j]) continue;
             u->at(i, j) = r->at(i, j) + beta->at(j) * q->at(i, j);
             p->at(i, j) =
                 u->at(i, j) +
@@ -108,15 +135,17 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma)
+            const matrix::Dense<ValueType> *gamma, const Array<bool> *converged)
 {
     for (size_type j = 0; j < u->get_num_cols(); ++j) {
+        if (converged->get_const_data()[j]) continue;
         if (gamma->at(j) != zero<ValueType>()) {
             alpha->at(j) = rho->at(j) / gamma->at(j);
         }
     }
     for (size_type i = 0; i < u->get_num_rows(); ++i) {
         for (size_type j = 0; j < u->get_num_cols(); ++j) {
+            if (converged->get_const_data()[j]) continue;
             q->at(i, j) = u->at(i, j) - alpha->at(j) * v_hat->at(i, j);
             t->at(i, j) = u->at(i, j) + q->at(i, j);
         }
@@ -130,10 +159,12 @@ template <typename ValueType>
 void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha)
+            matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
+            const Array<bool> *converged)
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
+            if (converged->get_const_data()[j]) continue;
             x->at(i, j) += alpha->at(j) * u_hat->at(i, j);
             r->at(i, j) -= alpha->at(j) * t->at(i, j);
         }
