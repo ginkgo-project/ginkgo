@@ -167,57 +167,6 @@ using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 
 template <typename IndexType>
-__device__ __forceinline__ bool has_same_nonzero_pattern(
-    const IndexType *prev_row_ptr, const IndexType *curr_row_ptr,
-    const IndexType *next_row_ptr)
-{
-    if (next_row_ptr - curr_row_ptr != curr_row_ptr - prev_row_ptr) {
-        return false;
-    }
-    for (; curr_row_ptr < next_row_ptr; ++prev_row_ptr, ++curr_row_ptr) {
-        if (*curr_row_ptr != *prev_row_ptr) {
-            return false;
-        }
-    }
-    return true;
-}
-
-template <typename IndexType>
-__global__ void find_natural_blocks_kernel(
-    size_type num_rows, int32 max_block_size, const IndexType *row_ptrs,
-    const IndexType *col_idx, IndexType *block_ptrs, size_type *num_blocks_arr)
-{
-    block_ptrs[0] = 0;
-    if (num_rows == 0) {
-        return;
-    }
-    size_type num_blocks = 1;
-    int32 current_block_size = 1;
-    for (size_type i = 1; i < num_rows; ++i) {
-        const auto prev_row_ptr = col_idx + row_ptrs[i - 1];
-        const auto curr_row_ptr = col_idx + row_ptrs[i];
-        const auto next_row_ptr = col_idx + row_ptrs[i + 1];
-        if (current_block_size < max_block_size &&
-            has_same_nonzero_pattern(prev_row_ptr, curr_row_ptr,
-                                     next_row_ptr)) {
-            ++current_block_size;
-        } else {
-            block_ptrs[num_blocks] =
-                block_ptrs[num_blocks - 1] + current_block_size;
-            ++num_blocks;
-            current_block_size = 1;
-        }
-    }
-    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
-    num_blocks_arr[0] = num_blocks;
-}
-
-
-/// new kernel: assign one warp to each row. If the number of nonzeros is
-/// different from the previous row -> v=0. If it is the same -> v=1
-
-
-template <typename IndexType>
 __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                                       const IndexType *row_ptrs,
                                       const IndexType *col_idx, bool *d_bool)
@@ -237,12 +186,9 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
     const auto nz_this_row = next_row_start - curr_row_start;
     const auto nz_prev_row = curr_row_start - prev_row_start;
 
-    bool out = true;
-
     if (nz_this_row != nz_prev_row) {
         if (local_tid == 0) {
-            // d_bool[warp_id] = false;
-            out = false;
+            d_bool[warp_id] = false;
         }
     } else {
         size_type steps =
@@ -254,26 +200,16 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                 auto this_col = col_idx[curr_row_start + j];
                 if (any(prev_col != this_col)) {
                     if (local_tid == 0) {
-                        // d_bool[warp_id] = false;
-                        out = false;
+                        d_bool[warp_id] = false;
                     }
-                    // return;
+                    return;
                 }
             }
-            // if (local_tid == 0) {
-            //    d_bool[warp_id] = true;
-            //}
-            // return;
+            if (local_tid == 0) {
+                d_bool[warp_id] = true;
+            }
+            return;
         }
-    }
-    if (local_tid == 0) {
-        printf("warp %d = detects %d\n", warp_id, out);
-    }
-
-
-    if (local_tid == 0) {
-        d_bool[warp_id + 1] = out;
-        printf("d_bool[%d] = %d\n", warp_id + 1, d_bool[warp_id + 1]);
     }
 }
 
@@ -289,13 +225,10 @@ __global__ void generate_natural_block_pointer(size_type num_rows,
     if (num_rows == 0) {
         return;
     }
-    printf("\n\n start natural block pointer\n d_bool[%d] = %d\n", 0,
-           d_bool[0]);
     size_type num_blocks = 1;
     int32 current_block_size = 1;
     for (size_type i = 1; i < num_rows; ++i) {
-        printf("d_bool[%d] = %d\n", i, d_bool[i]);
-        if (d_bool[i] == true) {
+        if ((d_bool[i]) && (current_block_size < max_block_size)) {
             ++current_block_size;
         } else {
             block_ptrs[num_blocks] =
@@ -307,9 +240,6 @@ __global__ void generate_natural_block_pointer(size_type num_rows,
     block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
     num_blocks_arr[0] = num_blocks;
 }
-
-
-/// end new kernel
 
 
 template <typename ValueType, typename IndexType>
@@ -330,15 +260,12 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(rows * cuda_config::warp_size, block_size.x),
                          1, 1);
-    printf("launch grid: %d x %d\n", block_size.x, grid_size.x);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
         mtx->get_num_rows(), max_block_size, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), d_bool.get_data());
-    fflush(stdout);
-    printf("launch grid 2: %d x %d\n", block_size.x, grid_size.x);
-    generate_natural_block_pointer<<<1, 1>>>(mtx->get_num_rows(),
-                                             max_block_size, d_bool.get_data(),
-                                             block_ptrs, nums.get_data());
+    generate_natural_block_pointer<<<1, 1>>>(
+        mtx->get_num_rows(), max_block_size, d_bool.get_const_data(),
+        block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }
@@ -392,6 +319,7 @@ inline size_type agglomerate_supervariables(
     agglomerate_supervariables_kernel<<<grid1, block1, 0, 0>>>(
         max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
 
+    nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }
 
@@ -408,10 +336,10 @@ void find_blocks(std::shared_ptr<const GpuExecutor> exec,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
 {
-    num_blocks = find_natural_blocks(exec, system_matrix, max_block_size,
-                                     block_pointers.get_data());
-    num_blocks = agglomerate_supervariables(exec, max_block_size, num_blocks,
-                                            block_pointers.get_data());
+    auto num_natural_blocks = find_natural_blocks(
+        exec, system_matrix, max_block_size, block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(
+        exec, max_block_size, num_natural_blocks, block_pointers.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

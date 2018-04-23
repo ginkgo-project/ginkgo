@@ -189,10 +189,12 @@ TEST_F(BlockJacobi, GpuFindNaturalBlocksInLargeMatrixEquivalentToRef)
         1   1
         1       1
         1       1
+        1       1
+        1       1
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(500, 500,
+    auto m = data::diag(550, 550,
                         {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
                          {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
                          {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
@@ -228,7 +230,7 @@ TEST_F(BlockJacobi,
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(2500, 2500,
+    auto m = data::diag(550, 550,
                         {{1.0, 1.0, 0.0, 0.0, 0.0},
                          {1.0, 1.0, 0.0, 0.0, 0.0},
                          {0.0, 0.0, 1.0, 1.0, 0.0},
