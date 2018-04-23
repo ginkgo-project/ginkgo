@@ -52,32 +52,10 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, fcg::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence, fcg::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
 };
-
-
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (int i = 0; i < tau->get_num_cols(); ++i) {
-        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
-            return false;
-        }
-    }
-    return true;
-}
-
 
 }  // namespace
 
@@ -112,14 +90,15 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
     auto rho_t = Vector::create_with_config_of(alpha.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
+
+    std::unique_ptr<Array<bool>> converged(
+        new Array<bool>(exec, dense_b->get_num_cols()));
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get()));
+        rho.get(), rho_t.get(), converged.get()));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -136,21 +115,25 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         t->compute_dot(z.get(), rho_t.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+
+        bool all_converged = false;
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), rel_residual_goal_,
+                converged.get(), &all_converged));
+        if (all_converged) {
             break;
         }
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get()));
+            p.get(), z.get(), rho_t.get(), prev_rho.get(), converged.get()));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(),
-            rho.get()));
+            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
+            converged.get()));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p

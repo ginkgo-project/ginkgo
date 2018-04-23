@@ -120,7 +120,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
     std::unique_ptr<Array<bool>> converged(
-        new Array<bool>(alpha->get_executor(), dense_b->get_num_cols()));
+        new Array<bool>(exec, dense_b->get_num_cols()));
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(

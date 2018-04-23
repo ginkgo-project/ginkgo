@@ -105,6 +105,9 @@ protected:
         rho_prev = gen_mtx(1, n);
         converged =
             std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
+        for (size_t i = 0; i < converged->get_num_elems(); ++i) {
+            converged->get_data()[i] = false;
+        }
 
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());

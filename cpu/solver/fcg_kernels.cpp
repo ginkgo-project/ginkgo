@@ -49,17 +49,31 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho,
-                matrix::Dense<ValueType> *rho_t) NOT_IMPLEMENTED;
+                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t,
+                Array<bool> *converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
+
+
+template <typename ValueType>
+void test_convergence(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Dense<ValueType> *tau,
+                      const matrix::Dense<ValueType> *orig_tau,
+                      remove_complex<ValueType> rel_residual_goal,
+                      Array<bool> *converged, bool *all_converged)
+{
+    NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TEST_CONVERGENCE_KERNEL);
 
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const CpuExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
-            const matrix::Dense<ValueType> *prev_rho) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *prev_rho,
+            const Array<bool> *converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
@@ -70,7 +84,8 @@ void step_2(std::shared_ptr<const CpuExecutor> exec,
             matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *rho,
+            const Array<bool> *converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
 

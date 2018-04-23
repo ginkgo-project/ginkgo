@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_CG_KERNELS_HPP_
 
 
+#include "core/base/array.hpp"
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
 
@@ -48,14 +50,20 @@ namespace cg {
                     const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
                     matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
                     matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho)
+                    matrix::Dense<_type> *rho, Array<bool> *converged)
 
+#define GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL(_type)                  \
+    void test_convergence(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::Dense<_type> *tau,             \
+                          const matrix::Dense<_type> *orig_tau,        \
+                          remove_complex<_type> rel_residual_goal,     \
+                          Array<bool> *converged, bool *all_converged)
 
-#define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho,                        \
-                const matrix::Dense<_type> *prev_rho)
+#define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                                   \
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *p, \
+        const matrix::Dense<_type> *z, const matrix::Dense<_type> *rho,       \
+        const matrix::Dense<_type> *prev_rho, const Array<bool> *converged)
 
 
 #define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
@@ -63,15 +71,17 @@ namespace cg {
                 matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
                 const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
                 const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho)
+                const matrix::Dense<_type> *rho, const Array<bool> *converged)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                 \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                \
+#define DECLARE_ALL_AS_TEMPLATES                       \
+    template <typename ValueType>                      \
+    GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType);       \
+    template <typename ValueType>                      \
+    GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL(ValueType); \
+    template <typename ValueType>                      \
+    GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);           \
+    template <typename ValueType>                      \
     GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
 
 
