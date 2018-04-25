@@ -211,9 +211,9 @@ TEST_F(Fcg, GpuFcgStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::fcg::step_1(ref, p.get(), z.get(), rho_t.get(),
-                                         prev_rho.get(), converged.get());
+                                         prev_rho.get(), *converged.get());
     gko::kernels::gpu::fcg::step_1(gpu, d_p.get(), d_z.get(), d_rho_t.get(),
-                                   d_prev_rho.get(), d_converged.get());
+                                   d_prev_rho.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -225,10 +225,10 @@ TEST_F(Fcg, GpuFcgStep2IsEquivalentToRef)
     initialize_data();
     gko::kernels::reference::fcg::step_2(ref, x.get(), r.get(), t.get(),
                                          p.get(), q.get(), beta.get(),
-                                         rho.get(), converged.get());
+                                         rho.get(), *converged.get());
     gko::kernels::gpu::fcg::step_2(gpu, d_x.get(), d_r.get(), d_t.get(),
                                    d_p.get(), d_q.get(), d_beta.get(),
-                                   d_rho.get(), d_converged.get());
+                                   d_rho.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);

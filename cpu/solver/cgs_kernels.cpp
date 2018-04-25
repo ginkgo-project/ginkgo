@@ -92,7 +92,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
@@ -119,7 +119,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma, const Array<bool> *converged)
+            const matrix::Dense<ValueType> *gamma, const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
@@ -143,7 +143,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template

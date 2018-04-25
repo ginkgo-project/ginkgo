@@ -127,7 +127,7 @@ TEST_F(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Cgs, SolvesBigDenseSystemForDivergenceCheck1)
+TEST_F(Cgs, SolvesBigDenseSystem1)
 {
     auto solver = cgs_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
@@ -140,7 +140,7 @@ TEST_F(Cgs, SolvesBigDenseSystemForDivergenceCheck1)
 }
 
 
-TEST_F(Cgs, SolvesBigDenseSystemForDivergenceCheck2)
+TEST_F(Cgs, SolvesBigDenseSystem2)
 {
     auto solver = cgs_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
@@ -165,7 +165,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 }
 
 
-TEST_F(Cgs, SolvesMultipleDenseSystemForDivergenceCheck)
+TEST_F(Cgs, SolvesMultipleDenseSystems)
 {
     auto solver = cgs_factory_big->generate(mtx_big);
     auto b1 = gko::initialize<Mtx>(

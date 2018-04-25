@@ -120,7 +120,7 @@ TEST_F(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
     ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
 }
 
-TEST_F(Fcg, SolvesBigDenseSystemForDivergenceCheck1)
+TEST_F(Fcg, SolvesBigDenseSystem1)
 {
     auto solver = fcg_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
@@ -133,7 +133,7 @@ TEST_F(Fcg, SolvesBigDenseSystemForDivergenceCheck1)
 }
 
 
-TEST_F(Fcg, SolvesBigDenseSystemForDivergenceCheck2)
+TEST_F(Fcg, SolvesBigDenseSystem2)
 {
     auto solver = fcg_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
@@ -158,7 +158,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 }
 
 
-TEST_F(Fcg, SolvesMultipleDenseSystemForDivergenceCheck)
+TEST_F(Fcg, SolvesMultipleBigDenseSystems)
 {
     auto solver = fcg_factory_big->generate(mtx_big);
     auto b1 = gko::initialize<Mtx>(

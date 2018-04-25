@@ -240,10 +240,10 @@ TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
                                          q.get(), beta.get(), rho.get(),
-                                         rho_prev.get(), converged.get());
+                                         rho_prev.get(), *converged.get());
     gko::kernels::gpu::cgs::step_1(gpu, d_r.get(), d_u.get(), d_p.get(),
                                    d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_rho_prev.get(), d_converged.get());
+                                   d_rho_prev.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     ASSERT_MTX_NEAR(d_u, u, 1e-14);
@@ -257,10 +257,10 @@ TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
-                                         gamma.get(), converged.get());
+                                         gamma.get(), *converged.get());
     gko::kernels::gpu::cgs::step_2(gpu, d_u.get(), d_v_hat.get(), d_q.get(),
                                    d_t.get(), d_alpha.get(), d_rho.get(),
-                                   d_gamma.get(), d_converged.get());
+                                   d_gamma.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_t, t, 1e-14);
@@ -273,9 +273,11 @@ TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
-                                         x.get(), alpha.get(), converged.get());
+                                         x.get(), alpha.get(),
+                                         *converged.get());
     gko::kernels::gpu::cgs::step_3(gpu, d_t.get(), d_u_hat.get(), d_r.get(),
-                                   d_x.get(), d_alpha.get(), d_converged.get());
+                                   d_x.get(), d_alpha.get(),
+                                   *d_converged.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);

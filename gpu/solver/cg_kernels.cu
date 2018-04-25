@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
+#include "gpu/base/math.hpp"
 #include "gpu/base/types.hpp"
 
 
@@ -96,11 +97,9 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
-// TODO: Support for remove_complex on GPU needed
-//      And for abs on GPU (if not already present for all types)
-template <typename ValueType, typename NoComplexValueType>
+template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
-    size_type num_cols, NoComplexValueType rel_residual_goal,
+    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
     const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
     bool *__restrict__ converged, bool *__restrict__ all_converged)
 {
@@ -125,11 +124,12 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
                       remove_complex<ValueType> rel_residual_goal,
                       Array<bool> *converged, bool *all_converged)
 {
-    bool *d_all_converged = exec->alloc<bool>(1);
+    Array<bool> d_all_converged(exec, 1);
+    Array<bool> all_converged_array(exec->get_master());
+
     // initialize all_converged with true
     *all_converged = true;
-    exec->copy_from(exec->get_master().get(), 1, all_converged,
-                    d_all_converged);
+    all_converged_array.manage(1, all_converged);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_num_cols(), block_size.x), 1, 1);
@@ -138,12 +138,11 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
         tau->get_num_cols(), rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()),
-        as_cuda_type(converged->get_data()), d_all_converged);
+        as_cuda_type(converged->get_data()),
+        as_cuda_type(d_all_converged.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_all_converged,
-                                  all_converged);
-
-    exec->free(d_all_converged);
+    all_converged_array = d_all_converged;
+    all_converged_array.release();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL);
@@ -173,7 +172,7 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -184,7 +183,7 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(prev_rho->get_const_values()),
-        as_cuda_type(converged->get_const_data()));
+        as_cuda_type(converged.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -220,7 +219,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
             const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho, const Array<bool> *converged)
+            const matrix::Dense<ValueType> *rho, const Array<bool> &converged)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -233,7 +232,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()),
-        as_cuda_type(converged->get_const_data()));
+        as_cuda_type(converged.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

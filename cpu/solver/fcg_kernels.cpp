@@ -73,7 +73,7 @@ void step_1(std::shared_ptr<const CpuExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<bool> *converged) NOT_IMPLEMENTED;
+            const Array<bool> &converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
@@ -85,7 +85,7 @@ void step_2(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
-            const Array<bool> *converged) NOT_IMPLEMENTED;
+            const Array<bool> &converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
 

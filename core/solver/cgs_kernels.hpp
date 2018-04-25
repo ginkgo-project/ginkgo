@@ -70,7 +70,7 @@ namespace cgs {
                 matrix::Dense<_type> *p, const matrix::Dense<_type> *q,      \
                 matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho, \
                 const matrix::Dense<_type> *rho_prev,                        \
-                const Array<bool> *converged)
+                const Array<bool> &converged)
 
 #define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                              \
     void step_2(                                                          \
@@ -78,14 +78,14 @@ namespace cgs {
         const matrix::Dense<_type> *u, const matrix::Dense<_type> *v_hat, \
         matrix::Dense<_type> *q, matrix::Dense<_type> *t,                 \
         matrix::Dense<_type> *alpha, const matrix::Dense<_type> *rho,     \
-        const matrix::Dense<_type> *gamma, const Array<bool> *converged)
+        const matrix::Dense<_type> *gamma, const Array<bool> &converged)
 
 #define GKO_DECLARE_CGS_STEP_3_KERNEL(_type)                                \
     void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Dense<_type> *t,                              \
                 const matrix::Dense<_type> *u_hat, matrix::Dense<_type> *r, \
                 matrix::Dense<_type> *x, const matrix::Dense<_type> *alpha, \
-                const Array<bool> *converged)
+                const Array<bool> &converged)
 
 #define DECLARE_ALL_AS_TEMPLATES                        \
     template <typename ValueType>                       \

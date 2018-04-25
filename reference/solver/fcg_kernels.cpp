@@ -100,11 +100,11 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (converged->get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) continue;
             if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
@@ -124,11 +124,11 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho, const Array<bool> *converged)
+            const matrix::Dense<ValueType> *rho, const Array<bool> &converged)
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (converged->get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) continue;
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 auto prev_r = r->at(i, j);

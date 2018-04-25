@@ -107,17 +107,17 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     for (size_type j = 0; j < p->get_num_cols(); ++j) {
-        if (converged->get_const_data()[j]) continue;
+        if (converged.get_const_data()[j]) continue;
         if (rho_prev->at(j) != zero<ValueType>()) {
             beta->at(j) = rho->at(j) / rho_prev->at(j);
         }
     }
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (converged->get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) continue;
             u->at(i, j) = r->at(i, j) + beta->at(j) * q->at(i, j);
             p->at(i, j) =
                 u->at(i, j) +
@@ -135,17 +135,17 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma, const Array<bool> *converged)
+            const matrix::Dense<ValueType> *gamma, const Array<bool> &converged)
 {
     for (size_type j = 0; j < u->get_num_cols(); ++j) {
-        if (converged->get_const_data()[j]) continue;
+        if (converged.get_const_data()[j]) continue;
         if (gamma->at(j) != zero<ValueType>()) {
             alpha->at(j) = rho->at(j) / gamma->at(j);
         }
     }
     for (size_type i = 0; i < u->get_num_rows(); ++i) {
         for (size_type j = 0; j < u->get_num_cols(); ++j) {
-            if (converged->get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) continue;
             q->at(i, j) = u->at(i, j) - alpha->at(j) * v_hat->at(i, j);
             t->at(i, j) = u->at(i, j) + q->at(i, j);
         }
@@ -160,11 +160,11 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<bool> *converged)
+            const Array<bool> &converged)
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (converged->get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) continue;
             x->at(i, j) += alpha->at(j) * u_hat->at(i, j);
             r->at(i, j) -= alpha->at(j) * t->at(i, j);
         }

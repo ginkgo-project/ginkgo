@@ -92,13 +92,12 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    std::unique_ptr<Array<bool>> converged(
-        new Array<bool>(exec, dense_b->get_num_cols()));
+    Array<bool> converged(exec, dense_b->get_num_cols());
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get(), converged.get()));
+        rho.get(), rho_t.get(), &converged));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -119,21 +118,21 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
         bool all_converged = false;
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_,
-                converged.get(), &all_converged));
+                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
+                &all_converged));
         if (all_converged) {
             break;
         }
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get(), converged.get()));
+            p.get(), z.get(), rho_t.get(), prev_rho.get(), converged));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
-            converged.get()));
+            converged));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p

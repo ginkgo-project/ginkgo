@@ -63,7 +63,7 @@ namespace cg {
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *p, \
         const matrix::Dense<_type> *z, const matrix::Dense<_type> *rho,       \
-        const matrix::Dense<_type> *prev_rho, const Array<bool> *converged)
+        const matrix::Dense<_type> *prev_rho, const Array<bool> &converged)
 
 
 #define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
@@ -71,7 +71,7 @@ namespace cg {
                 matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
                 const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
                 const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho, const Array<bool> *converged)
+                const matrix::Dense<_type> *rho, const Array<bool> &converged)
 
 
 #define DECLARE_ALL_AS_TEMPLATES                       \
