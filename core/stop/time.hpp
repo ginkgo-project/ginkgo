@@ -31,17 +31,27 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_STOP_TIME_HPP_
+#define GKO_CORE_STOP_TIME_HPP_
+
+
 #include "core/stop/criterion.hpp"
+
+
+#include <chrono>
 
 
 namespace gko {
 namespace stop {
 
 
-class Iterations : public Criterion {
+class Time : public Criterion {
 public:
+    using clock = std::chrono::system_clock;
+
     struct Factory : public Criterion::Factory {
-        using t = size_type;
+        using t = std::chrono::seconds &;
+
         Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
@@ -52,27 +62,34 @@ public:
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const
         {
-            return std::make_unique<Iterations>(v_);
+            return std::make_unique<Time>(v_);
         }
         t v_;
     };
 
 
-    Iterations(size_type iterations) : iterations_{iterations} {}
+    Time(std::chrono::seconds limit)
+        : limit_{std::chrono::duration_cast<clock::duration>(limit)},
+          start_{clock::now()}
+    {}
 
 protected:
-    bool check(Array<bool> &, const Updater &updater) override
+    bool check(Array<bool> &, const Updater &) override
     {
         // maybe we need to set converged array to true?
         // or does return value true imply that every value in the array is
         // considered true
-        return updater.num_iterations_ >= iterations_;
+        return (clock::now() - start_) >= limit_;
     }
 
 private:
-    size_type iterations_;
+    clock::duration limit_;
+    clock::time_point start_;
 };
 
 
 }  // namespace stop
 }  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_TIME_HPP_

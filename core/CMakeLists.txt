@@ -15,8 +15,7 @@ set(SOURCES
     solver/bicgstab.cpp
     solver/cg.cpp
     solver/cgs.cpp
-    solver/fcg.cpp
-    stop/time.cpp)
+    solver/fcg.cpp)
 
 
 add_subdirectory(devices)  # basic device functionalities, always compiled

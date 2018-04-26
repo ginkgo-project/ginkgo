@@ -31,6 +31,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_STOP_ITERATIONS_HPP_
+#define GKO_CORE_STOP_ITERATIONS_HPP_
+
+
 #include "core/stop/criterion.hpp"
 
 
@@ -38,9 +42,10 @@ namespace gko {
 namespace stop {
 
 
-struct IveLostPatience : gko::stop::Criterion {
-    struct Factory : gko::stop::Criterion::Factory {
-        using t = volatile bool &;
+class Iterations : public Criterion {
+public:
+    struct Factory : public Criterion::Factory {
+        using t = size_type;
         Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
@@ -51,26 +56,30 @@ struct IveLostPatience : gko::stop::Criterion {
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const
         {
-            return std::make_unique<IveLostPatience>(v_);
+            return std::make_unique<Iterations>(v_);
         }
         t v_;
     };
 
-    IveLostPatience(volatile bool &is_user_bored)
-        : is_user_bored_{is_user_bored}
-    {
-        // assume user is not bored before even starting the solver
-        is_user_bored_ = false;
-    }
+
+    Iterations(size_type iterations) : iterations_{iterations} {}
 
 protected:
-    bool check(Array<bool> &, const Updater &) override
+    bool check(Array<bool> &, const Updater &updater) override
     {
-        return is_user_bored_;
+        // maybe we need to set converged array to true?
+        // or does return value true imply that every value in the array is
+        // considered true
+        return updater.num_iterations_ >= iterations_;
     }
-    volatile bool &is_user_bored_;
+
+private:
+    size_type iterations_;
 };
 
 
 }  // namespace stop
 }  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_ITERATIONS_HPP_

@@ -31,23 +31,20 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
+#define GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
+
+
 #include "core/stop/criterion.hpp"
-
-
-#include <chrono>
 
 
 namespace gko {
 namespace stop {
 
 
-class Time : public Criterion {
-public:
-    using clock = std::chrono::system_clock;
-
-    struct Factory : public Criterion::Factory {
-        using t = std::chrono::seconds &;
-
+struct IveLostPatience : gko::stop::Criterion {
+    struct Factory : gko::stop::Criterion::Factory {
+        using t = volatile bool &;
         Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
@@ -56,33 +53,31 @@ public:
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override
         {
-            return std::make_unique<Time>(v_);
+            return std::make_unique<IveLostPatience>(v_);
         }
         t v_;
     };
 
-
-    Time(std::chrono::seconds limit)
-        : limit_{std::chrono::duration_cast<clock::duration>(limit)},
-          start_{clock::now()}
-    {}
+    IveLostPatience(volatile bool &is_user_bored)
+        : is_user_bored_{is_user_bored}
+    {
+        // assume user is not bored before even starting the solver
+        is_user_bored_ = false;
+    }
 
 protected:
     bool check(Array<bool> &, const Updater &) override
     {
-        // maybe we need to set converged array to true?
-        // or does return value true imply that every value in the array is
-        // considered true
-        return (clock::now() - start_) >= limit_;
+        return is_user_bored_;
     }
-
-private:
-    clock::duration limit_;
-    clock::time_point start_;
+    volatile bool &is_user_bored_;
 };
 
 
 }  // namespace stop
 }  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
