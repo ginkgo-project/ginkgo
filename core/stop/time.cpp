@@ -44,9 +44,25 @@ namespace stop {
 class Time : public Criterion {
 public:
     using clock = std::chrono::system_clock;
-    class Factory : public Criterion::Factory {
-        /* generic factory implementation */
+
+    struct Factory : public Criterion::Factory {
+        using t = std::chrono::seconds &;
+
+        Factory(t v) : v_{v} {}
+
+        static std::unique_ptr<Factory> create(t v)
+        {
+            return std::make_unique<Factory>(v);
+        }
+        std::unique_ptr<Criterion> create_criterion(
+            std::shared_ptr<const LinOp> system_matrix,
+            std::shared_ptr<const LinOp> b, const LinOp *x) const
+        {
+            return std::make_unique<Time>(v_);
+        }
+        t v_;
     };
+
 
     Time(std::chrono::seconds limit)
         : limit_{std::chrono::duration_cast<clock::duration>(limit)},
