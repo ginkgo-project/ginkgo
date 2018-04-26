@@ -60,10 +60,7 @@ public:
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const
-        {
-            return std::make_unique<Time>(v_);
-        }
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
         t v_;
     };
 
@@ -74,13 +71,7 @@ public:
     {}
 
 protected:
-    bool check(Array<bool> &, const Updater &) override
-    {
-        // maybe we need to set converged array to true?
-        // or does return value true imply that every value in the array is
-        // considered true
-        return (clock::now() - start_) >= limit_;
-    }
+    bool check(Array<bool> &, const Updater &) override;
 
 private:
     clock::duration limit_;

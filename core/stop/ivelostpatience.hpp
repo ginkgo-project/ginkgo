@@ -54,10 +54,7 @@ public:
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override
-        {
-            return std::make_unique<IveLostPatience>(v_);
-        }
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
         t v_;
     };
 
@@ -69,10 +66,7 @@ public:
     }
 
 protected:
-    bool check(Array<bool> &, const Updater &) override
-    {
-        return is_user_bored_;
-    }
+    bool check(Array<bool> &, const Updater &) override;
     volatile bool &is_user_bored_;
 };
 
