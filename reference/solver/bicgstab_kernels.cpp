@@ -112,11 +112,15 @@ template <typename ValueType>
 void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Dense<ValueType> *s,
                         remove_complex<ValueType> norm_goal,
-                        Array<bool> *converged, bool *all_converged)
+                        const matrix::Dense<ValueType> *alpha,
+                        const matrix::Dense<ValueType> *y,
+                        matrix::Dense<ValueType> *x, Array<bool> *converged,
+                        bool *all_converged)
 {
-    using std::abs;
     *all_converged = true;
     for (size_type j = 0; j < s->get_num_cols(); ++j) {
+        if (converged->get_const_data()[j]) continue;
+
         remove_complex<ValueType> sum_squares =
             zero<remove_complex<ValueType>>();
         for (size_type i = 0; i < s->get_num_rows(); ++i) {
@@ -124,6 +128,11 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
         }
         if (sqrt(sum_squares) <= norm_goal) {
             converged->get_data()[j] = true;
+            // set according x-vector to final version with x = x + alpha * y
+            ValueType cur_alpha = alpha->at(j);
+            for (size_type i = 0; i < x->get_num_rows(); ++i) {
+                x->at(i, j) += cur_alpha * y->at(i, j);
+            }
         }
     }
     for (size_type i = 0; i < converged->get_num_elems(); ++i) {

@@ -66,11 +66,12 @@ namespace bicgstab {
                           Array<bool> *converged, bool *all_converged)
 
 
-#define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL(_type)            \
-    void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec, \
-                            const matrix::Dense<_type> *s,               \
-                            remove_complex<_type> norm_goal,             \
-                            Array<bool> *converged, bool *all_converged)
+#define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL(_type)             \
+    void test_convergence_2(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const matrix::Dense<_type> *s, remove_complex<_type> norm_goal,   \
+        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *y, \
+        matrix::Dense<_type> *x, Array<bool> *converged, bool *all_converged)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                             \
@@ -101,16 +102,18 @@ namespace bicgstab {
         const matrix::Dense<_type> *beta, const matrix::Dense<_type> *gamma,  \
         matrix::Dense<_type> *omega, const Array<bool> &converged)
 
-#define DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType);       \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(ValueType); \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);           \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);           \
-    template <typename ValueType>                            \
+#define DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType);         \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(ValueType);   \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL(ValueType); \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);             \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);             \
+    template <typename ValueType>                              \
     GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);
 
 }  // namespace bicgstab
