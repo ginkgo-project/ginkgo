@@ -188,27 +188,24 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
     const auto nz_prev_row = curr_row_start - prev_row_start;
 
     if (nz_this_row != nz_prev_row) {
-        if (local_tid == 0) {
-            matching_prev_row[warp_id] = false;
-        }
+        matching_prev_row[warp_id] = false;
+        return;
     }
     size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
     for (size_type i = 0; i < steps; i++) {
         auto j = local_tid + i * cuda_config::warp_size;
-        if (prev_row_start + j < curr_row_start) {
-            auto prev_col = col_idx[prev_row_start + j];
-            auto this_col = col_idx[curr_row_start + j];
-            if (warp::any(prev_col != this_col)) {
-                if (local_tid == 0) {
-                    matching_prev_row[warp_id] = false;
-                }
-                return;
-            }
+        auto prev_col = (prev_row_start + j < curr_row_start)
+                            ? col_idx[prev_row_start + j]
+                            : 0;
+        auto this_col = (prev_row_start + j < curr_row_start)
+                            ? col_idx[curr_row_start + j]
+                            : 0;
+        if (warp::any(prev_col != this_col)) {
+            matching_prev_row[warp_id] = false;
+            return;
         }
     }
-    if (local_tid == 0) {
-        matching_prev_row[warp_id] = true;
-    }
+    matching_prev_row[warp_id] = true;
 }
 
 
