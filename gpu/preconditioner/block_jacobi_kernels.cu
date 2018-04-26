@@ -168,8 +168,9 @@ using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 template <typename IndexType>
 __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
-                                      const IndexType *row_ptrs,
-                                      const IndexType *col_idx, bool *d_bool)
+                                      const IndexType *__restrict__ row_ptrs,
+                                      const IndexType *__restrict__ col_idx,
+                                      bool *matching_prev_row)
 {
     const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
     const auto local_tid = threadIdx.x % cuda_config::warp_size;
@@ -188,38 +189,34 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
 
     if (nz_this_row != nz_prev_row) {
         if (local_tid == 0) {
-            d_bool[warp_id] = false;
+            matching_prev_row[warp_id] = false;
         }
-    } else {
-        size_type steps =
-            (nz_this_row + cuda_config::warp_size - 1) / cuda_config::warp_size;
-        for (size_type i = 0; i < steps; i++) {
-            auto j = local_tid + i * cuda_config::warp_size;
-            if (prev_row_start + j < curr_row_start) {
-                auto prev_col = col_idx[prev_row_start + j];
-                auto this_col = col_idx[curr_row_start + j];
-                if (any(prev_col != this_col)) {
-                    if (local_tid == 0) {
-                        d_bool[warp_id] = false;
-                    }
-                    return;
+    }
+    size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
+    for (size_type i = 0; i < steps; i++) {
+        auto j = local_tid + i * cuda_config::warp_size;
+        if (prev_row_start + j < curr_row_start) {
+            auto prev_col = col_idx[prev_row_start + j];
+            auto this_col = col_idx[curr_row_start + j];
+            if (warp::any(prev_col != this_col)) {
+                if (local_tid == 0) {
+                    matching_prev_row[warp_id] = false;
                 }
+                return;
             }
-            if (local_tid == 0) {
-                d_bool[warp_id] = true;
-            }
-            return;
         }
+    }
+    if (local_tid == 0) {
+        matching_prev_row[warp_id] = true;
     }
 }
 
 
 template <typename IndexType>
-__global__ void generate_natural_block_pointer(size_type num_rows,
-                                               int32 max_block_size,
-                                               const bool *d_bool,
-                                               IndexType *block_ptrs,
-                                               size_type *num_blocks_arr)
+__global__ void generate_natural_block_pointer(
+    size_type num_rows, int32 max_block_size,
+    const bool *__restrict__ matching_prev_row, IndexType *block_ptrs,
+    size_type *num_blocks_arr)
 {
     block_ptrs[0] = 0;
     if (num_rows == 0) {
@@ -228,7 +225,7 @@ __global__ void generate_natural_block_pointer(size_type num_rows,
     size_type num_blocks = 1;
     int32 current_block_size = 1;
     for (size_type i = 1; i < num_rows; ++i) {
-        if ((d_bool[i]) && (current_block_size < max_block_size)) {
+        if ((matching_prev_row[i]) && (current_block_size < max_block_size)) {
             ++current_block_size;
         } else {
             block_ptrs[num_blocks] =
@@ -247,24 +244,19 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *mtx,
                               int32 max_block_size, IndexType *block_ptrs)
 {
-    auto rows = mtx->get_num_rows();
-    auto cols = mtx->get_num_cols();
-    auto vals = mtx->get_const_values();
-    auto row_ptrs = mtx->get_const_row_ptrs();
-    auto col_idx = mtx->get_const_col_idxs();
-
     Array<size_type> nums(exec, 1);
 
-    Array<bool> d_bool(exec, rows);
+    Array<bool> matching_prev_row(exec, mtx->get_num_rows());
 
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(rows * cuda_config::warp_size, block_size.x),
-                         1, 1);
+    const dim3 grid_size(
+        ceildiv(mtx->get_num_rows() * cuda_config::warp_size, block_size.x), 1,
+        1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
         mtx->get_num_rows(), max_block_size, mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), d_bool.get_data());
-    generate_natural_block_pointer<<<1, 1>>>(
-        mtx->get_num_rows(), max_block_size, d_bool.get_const_data(),
+        mtx->get_const_col_idxs(), matching_prev_row.get_data());
+    generate_natural_block_pointer<<<1, 1, 0, 0>>>(
+        mtx->get_num_rows(), max_block_size, matching_prev_row.get_const_data(),
         block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
@@ -305,18 +297,7 @@ inline size_type agglomerate_supervariables(
 {
     Array<size_type> nums(exec, 1);
 
-    constexpr int64 blocksize1_1 = 1;
-    constexpr int64 blocksize1_2 = 1;
-    constexpr int64 blocksize1_3 = 1;
-
-    const int64 dimgrid1_1 = 1;
-    const int64 dimgrid1_2 = 1;
-    const int64 dimgrid1_3 = 1;
-
-    dim3 grid1(dimgrid1_1, dimgrid1_2, dimgrid1_3);
-    dim3 block1(blocksize1_1, blocksize1_2, blocksize1_3);
-
-    agglomerate_supervariables_kernel<<<grid1, block1, 0, 0>>>(
+    agglomerate_supervariables_kernel<<<1, 1, 0, 0>>>(
         max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
 
     nums.set_executor(exec->get_master());
