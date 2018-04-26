@@ -65,7 +65,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs.hpp"
 #include "core/solver/fcg.hpp"
 
+#include "core/stop/iterations.hpp"
+#include "core/stop/ivelostpatience.hpp"
 #include "core/stop/stopping_status.hpp"
+#include "core/stop/time.hpp"
 
 
 #endif  // GKO_GINKGO_HPP_

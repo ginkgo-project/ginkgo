@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/stop/criterion.hpp"
 
 
 namespace gko {
@@ -98,6 +99,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size().num_cols);
 
+    auto stop_criterion = stop_criterion_factory_->create_criterion(
+        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
+        x);
+
+
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
@@ -113,16 +119,19 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
     system_matrix_->apply(r.get(), v.get());
-    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
+
+    int iters = 0;
+    while (true) {
         r->compute_dot(r.get(), tau.get());
-        bool all_converged{};
         bool one_changed{};
-        exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                RelativeStoppingId, true, &stop_status, &all_converged,
-                &one_changed));
-        if (all_converged) {
+
+        /* TODO: fill whatever is appropriate */
+        if (stop_criterion->update()
+                .num_iterations(iters)
+                .residual_norm(residual_norm)
+                .residual(residual)
+                .solution(solution)
+                .check(converged)) {
             break;
         }
 
@@ -143,18 +152,14 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        s->compute_dot(s.get(), tau.get());
-        exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                RelativeStoppingId, false, &stop_status, &all_converged,
-                &one_changed));
-
-        if (one_changed) {
-            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
-                dense_x, y.get(), alpha.get(), &stop_status));
-        }
-        if (all_converged) {
+        /* TODO: fill whatever is appropriate */
+        if (stop_criterion->update()
+                .num_iterations(iters)
+                .residual_norm(residual_norm)
+                .residual(residual)
+                .solution(solution)
+                .check(converged)) {
+            dense_x->add_scaled(alpha.get(), y.get());
             break;
         }
         preconditioner_->apply(s.get(), z.get());
@@ -168,6 +173,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
+        iters++;
     }
 }
 

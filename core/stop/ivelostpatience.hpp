@@ -42,8 +42,9 @@ namespace gko {
 namespace stop {
 
 
-struct IveLostPatience : gko::stop::Criterion {
-    struct Factory : gko::stop::Criterion::Factory {
+class IveLostPatience : public Criterion {
+public:
+    struct Factory : public Criterion::Factory {
         using t = volatile bool &;
         Factory(t v) : v_{v} {}
 
