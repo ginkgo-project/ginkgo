@@ -66,6 +66,13 @@ namespace bicgstab {
                           Array<bool> *converged, bool *all_converged)
 
 
+#define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL(_type)            \
+    void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec, \
+                            const matrix::Dense<_type> *s,               \
+                            remove_complex<_type> norm_goal,             \
+                            Array<bool> *converged, bool *all_converged)
+
+
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                             \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \

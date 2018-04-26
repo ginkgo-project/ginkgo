@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace gko {
 namespace kernels {
@@ -81,6 +82,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
+
 template <typename ValueType>
 void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
@@ -104,6 +106,36 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
+
+
+template <typename ValueType>
+void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
+                        const matrix::Dense<ValueType> *s,
+                        remove_complex<ValueType> norm_goal,
+                        Array<bool> *converged, bool *all_converged)
+{
+    using std::abs;
+    *all_converged = true;
+    for (size_type j = 0; j < s->get_num_cols(); ++j) {
+        remove_complex<ValueType> sum_squares =
+            zero<remove_complex<ValueType>>();
+        for (size_type i = 0; i < s->get_num_rows(); ++i) {
+            sum_squares += squared_norm(s->at(i, j));
+        }
+        if (sqrt(sum_squares) <= norm_goal) {
+            converged->get_data()[j] = true;
+        }
+    }
+    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
+        if (!converged->get_const_data()[i]) {
+            *all_converged = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL);
 
 
 template <typename ValueType>
