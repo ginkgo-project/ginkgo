@@ -1,0 +1,6 @@
+add_executable(stopping_criterion stopping_criterion.cpp)
+target_link_libraries(stopping_criterion ginkgo)
+target_include_directories(stopping_criterion PRIVATE ${PROJECT_SOURCE_DIR})
+configure_file(data/A.mtx data/A.mtx COPYONLY)
+configure_file(data/b.mtx data/b.mtx COPYONLY)
+configure_file(data/x0.mtx data/x0.mtx COPYONLY)
