@@ -203,4 +203,40 @@ TEST(MatrixData, InitializesBlockDiagonalMatrix)
 }
 
 
+TEST(MatrixData, InitializesCheckeredMatrix)
+{
+    using data = gko::matrix_data<double, int>;
+    using nnz = data::nonzero_type;
+    const auto m = data::checkered(3, 2, {{1.0, 2.0}, {3.0, 4.0}});
+
+    ASSERT_EQ(m.num_rows, 6);
+    ASSERT_EQ(m.num_cols, 4);
+    ASSERT_EQ(m.nonzeros.size(), 24);
+    EXPECT_EQ(m.nonzeros[0], nnz(0, 0, 1.0));
+    EXPECT_EQ(m.nonzeros[1], nnz(0, 1, 2.0));
+    EXPECT_EQ(m.nonzeros[2], nnz(1, 0, 3.0));
+    EXPECT_EQ(m.nonzeros[3], nnz(1, 1, 4.0));
+    EXPECT_EQ(m.nonzeros[4], nnz(0, 2, 1.0));
+    EXPECT_EQ(m.nonzeros[5], nnz(0, 3, 2.0));
+    EXPECT_EQ(m.nonzeros[6], nnz(1, 2, 3.0));
+    EXPECT_EQ(m.nonzeros[7], nnz(1, 3, 4.0));
+    EXPECT_EQ(m.nonzeros[8], nnz(2, 0, 1.0));
+    EXPECT_EQ(m.nonzeros[9], nnz(2, 1, 2.0));
+    EXPECT_EQ(m.nonzeros[10], nnz(3, 0, 3.0));
+    EXPECT_EQ(m.nonzeros[11], nnz(3, 1, 4.0));
+    EXPECT_EQ(m.nonzeros[12], nnz(2, 2, 1.0));
+    EXPECT_EQ(m.nonzeros[13], nnz(2, 3, 2.0));
+    EXPECT_EQ(m.nonzeros[14], nnz(3, 2, 3.0));
+    EXPECT_EQ(m.nonzeros[15], nnz(3, 3, 4.0));
+    EXPECT_EQ(m.nonzeros[16], nnz(4, 0, 1.0));
+    EXPECT_EQ(m.nonzeros[17], nnz(4, 1, 2.0));
+    EXPECT_EQ(m.nonzeros[18], nnz(5, 0, 3.0));
+    EXPECT_EQ(m.nonzeros[19], nnz(5, 1, 4.0));
+    EXPECT_EQ(m.nonzeros[20], nnz(4, 2, 1.0));
+    EXPECT_EQ(m.nonzeros[21], nnz(4, 3, 2.0));
+    EXPECT_EQ(m.nonzeros[22], nnz(5, 2, 3.0));
+    EXPECT_EQ(m.nonzeros[23], nnz(5, 3, 4.0));
+}
+
+
 }  // namespace
