@@ -204,7 +204,7 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
 }
 
 template <typename ValueType>
-void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
+void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Dense<ValueType> *s,
                         remove_complex<ValueType> norm_goal,
                         const matrix::Dense<ValueType> *alpha,

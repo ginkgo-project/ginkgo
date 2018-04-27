@@ -65,8 +65,11 @@ void test_convergence(std::shared_ptr<const CpuExecutor> exec,
                       Array<bool> *converged,
                       bool *all_converged) NOT_IMPLEMENTED;
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
+
 template <typename ValueType>
-void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
+void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Dense<ValueType> *s,
                         remove_complex<ValueType> norm_goal,
                         const matrix::Dense<ValueType> *alpha,
