@@ -61,7 +61,6 @@ public:
 
     explicit Iterations(size_type iterations) : iterations_{iterations} {}
 
-protected:
     bool check(Array<bool> &, const Updater &updater) override;
 
 private:

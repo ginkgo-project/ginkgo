@@ -39,7 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/stop/combined.hpp>
 #include <core/stop/iterations.hpp>
+#include <core/stop/time.hpp>
 
 
 namespace {
@@ -58,7 +60,9 @@ protected:
           // 1e-6
           bicgstab_factory(
               Solver::Factory::create()
-                  .with_criterion(gko::stop::Iterations::Factory::create(3))
+                  .with_criterion(gko::stop::Combined::Factory::create(
+                      gko::stop::Iterations::Factory::create(3),
+                      gko::stop::Time::Factory::create(1)))
                   .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
     {}

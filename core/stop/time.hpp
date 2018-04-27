@@ -50,13 +50,14 @@ public:
     using clock = std::chrono::system_clock;
 
     struct Factory : public Criterion::Factory {
-        using t = std::chrono::seconds &;
+        using t = std::chrono::seconds;
 
         explicit Factory(t v) : v_{v} {}
 
-        static std::unique_ptr<Factory> create(t v)
+        static std::unique_ptr<Factory> create(std::uint64_t v)
         {
-            return std::unique_ptr<Factory>(new Factory(v));
+            return std::unique_ptr<Factory>(
+                new Factory(std::chrono::seconds(v)));
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
@@ -70,7 +71,6 @@ public:
           start_{clock::now()}
     {}
 
-protected:
     bool check(Array<bool> &, const Updater &) override;
 
 private:

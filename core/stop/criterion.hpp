@@ -139,7 +139,7 @@ public:
 
     Updater update() { return {this}; };
 
-protected:
+public:
     /**
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.

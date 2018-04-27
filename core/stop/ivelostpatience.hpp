@@ -65,8 +65,9 @@ public:
         is_user_bored_ = false;
     }
 
-protected:
     bool check(Array<bool> &, const Updater &) override;
+
+private:
     volatile bool &is_user_bored_;
 };
 
