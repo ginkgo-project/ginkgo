@@ -31,45 +31,69 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_STOP_COMBINED_HPP_
+#define GKO_CORE_STOP_COMBINED_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
-#include "core/stop/ivelostpatience.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include "core/stop/criterion.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <vector>
+
+
+namespace gko {
+namespace stop {
+
+
+class Combined : public Criterion {
+public:
+    struct Factory : public Criterion::Factory {
+        using t = std::vector<std::unique_ptr<Criterion::Factory>>;
+
+        template <class... V>
+        Factory(V... v)
+        {
+            // v_.push_back(std::move(v)...);
+            emplace(std::move(v)...);
+        }
+
+        template <class V, class... R>
+        void emplace(V v, R... rest)
+        {
+            v_.emplace_back(std::move(v));
+            emplace(std::move(rest)...);
+        }
+
+        void emplace() {}
+
+        template <class... V>
+        static std::unique_ptr<Factory> create(V... v)
+        {
+            return std::unique_ptr<Factory>(new Factory(std::move(v)...));
+        }
+
+        std::unique_ptr<Criterion> create_criterion(
+            std::shared_ptr<const LinOp> system_matrix,
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+        t v_{};
+    };
+
+
+    Combined() {}
+
+    ~Combined() {}
+
+    void add_subcriterion(std::unique_ptr<Criterion> c);
+
+    bool check(Array<bool> &, const Updater &) override;
+
+private:
+    std::vector<std::unique_ptr<Criterion>> criterions_{};
+};
+
+
+}  // namespace stop
+}  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_COMBINED_HPP_

@@ -31,45 +31,40 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
-
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
 
 #include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
-#include "core/stop/ivelostpatience.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace stop {
+
+
+std::unique_ptr<Criterion> Combined::Factory::create_criterion(
+    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
+    const LinOp *x) const
+{
+    auto criterion = new Combined();
+    for (const std::unique_ptr<Criterion::Factory> &f : v_)
+        criterion->add_subcriterion(f->create_criterion(system_matrix, b, x));
+    return std::unique_ptr<Combined>(criterion);
+}
+
+
+void Combined::add_subcriterion(std::unique_ptr<Criterion> c)
+{
+    criterions_.emplace_back(c.get());
+}
+
+
+bool Combined::check(Array<bool> &converged, const Updater &updater)
+{
+    bool one_converged = false;
+    for (std::unique_ptr<Criterion> &c : criterions_) {
+        one_converged |= c->check(converged, updater);
+    }
+    return one_converged;
+}
+
+
+}  // namespace stop
+}  // namespace gko
