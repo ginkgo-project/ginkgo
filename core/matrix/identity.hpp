@@ -59,6 +59,7 @@ namespace matrix {
 template <typename ValueType = default_precision>
 class Identity : public BasicLinOp<Identity<ValueType>> {
     friend class BasicLinOp<Identity>;
+    friend class EnablePolymorphicObject<Identity, LinOp>;
 
 public:
     using BasicLinOp<Identity>::create;
@@ -79,7 +80,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Identity(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Identity>(exec, 0, 0, 0)
+        : BasicLinOp<Identity>(exec)
     {}
 
     /**
@@ -88,7 +89,7 @@ protected:
      * @param dimension  size of the matrix
      */
     Identity(std::shared_ptr<const Executor> exec, size_type dimension)
-        : BasicLinOp<Identity>(exec, dimension, dimension, 0)
+        : BasicLinOp<Identity>(exec, {dimension, dimension, 0})
     {}
 };
 

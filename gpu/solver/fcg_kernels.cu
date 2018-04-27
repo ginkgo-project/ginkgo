@@ -88,15 +88,17 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(b->get_num_rows() * b->get_stride(), block_size.x), 1, 1);
+        ceildiv(b->get_dimensions().num_rows * b->get_stride(), block_size.x),
+        1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_num_rows(), b->get_num_cols(), b->get_stride(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(t->get_values()),
-        as_cuda_type(prev_rho->get_values()), as_cuda_type(rho->get_values()),
-        as_cuda_type(rho_t->get_values()), as_cuda_type(converged->get_data()));
+        b->get_dimensions().num_rows, b->get_dimensions().num_cols,
+        b->get_stride(), as_cuda_type(b->get_const_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(z->get_values()),
+        as_cuda_type(p->get_values()), as_cuda_type(q->get_values()),
+        as_cuda_type(t->get_values()), as_cuda_type(prev_rho->get_values()),
+        as_cuda_type(rho->get_values()), as_cuda_type(rho_t->get_values()),
+        as_cuda_type(converged->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -137,10 +139,11 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
     all_converged_array.manage(1, all_converged);
 
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_num_cols(), block_size.x), 1, 1);
+    const dim3 grid_size(ceildiv(tau->get_dimensions().num_cols, block_size.x),
+                         1, 1);
 
     test_convergence_kernel<<<grid_size, block_size, 0, 0>>>(
-        tau->get_num_cols(), rel_residual_goal,
+        tau->get_dimensions().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()),
         as_cuda_type(converged->get_data()),
@@ -181,11 +184,13 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
+        ceildiv(p->get_dimensions().num_rows * p->get_stride(), block_size.x),
+        1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_stride(),
-        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
+        p->get_dimensions().num_rows, p->get_dimensions().num_cols,
+        p->get_stride(), as_cuda_type(p->get_values()),
+        as_cuda_type(z->get_const_values()),
         as_cuda_type(rho_t->get_const_values()),
         as_cuda_type(prev_rho->get_const_values()),
         as_cuda_type(converged.get_const_data()));
@@ -230,12 +235,14 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_num_rows() * p->get_stride(), block_size.x), 1, 1);
+        ceildiv(p->get_dimensions().num_rows * p->get_stride(), block_size.x),
+        1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_num_rows(), p->get_num_cols(), p->get_stride(), x->get_stride(),
-        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(t->get_values()), as_cuda_type(p->get_const_values()),
+        p->get_dimensions().num_rows, p->get_dimensions().num_cols,
+        p->get_stride(), x->get_stride(), as_cuda_type(x->get_values()),
+        as_cuda_type(r->get_values()), as_cuda_type(t->get_values()),
+        as_cuda_type(p->get_const_values()),
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()),

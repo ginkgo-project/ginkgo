@@ -120,8 +120,8 @@ protected:
 
     void make_symetric(Mtx *mtx)
     {
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
-            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
+        for (int i = 0; i < mtx->get_dimensions().num_rows; ++i) {
+            for (int j = i + 1; j < mtx->get_dimensions().num_cols; ++j) {
                 mtx->at(i, j) = mtx->at(j, i);
             }
         }
@@ -130,9 +130,9 @@ protected:
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+        for (int i = 0; i < mtx->get_dimensions().num_rows; ++i) {
             auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+            for (int j = 0; j < mtx->get_dimensions().num_cols; ++j) {
                 sum += abs(mtx->at(i, j));
             }
             mtx->at(i, i) = sum;

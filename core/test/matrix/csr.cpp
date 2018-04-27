@@ -75,9 +75,9 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        ASSERT_EQ(m->get_num_rows(), 2);
-        ASSERT_EQ(m->get_num_cols(), 3);
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        ASSERT_EQ(m->get_dimensions().num_rows, 2);
+        ASSERT_EQ(m->get_dimensions().num_cols, 3);
+        ASSERT_EQ(m->get_dimensions().num_stored_elements, 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
         EXPECT_EQ(r[2], 4);
@@ -93,9 +93,9 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_num_rows(), 0);
-        ASSERT_EQ(m->get_num_cols(), 0);
-        ASSERT_EQ(m->get_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_dimensions().num_rows, 0);
+        ASSERT_EQ(m->get_dimensions().num_cols, 0);
+        ASSERT_EQ(m->get_dimensions().num_stored_elements, 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_row_ptrs(), nullptr);
@@ -105,9 +105,9 @@ protected:
 
 TEST_F(Csr, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_num_rows(), 2);
-    ASSERT_EQ(mtx->get_num_cols(), 3);
-    ASSERT_EQ(mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(mtx->get_dimensions().num_cols, 3);
+    ASSERT_EQ(mtx->get_dimensions().num_stored_elements, 4);
 }
 
 

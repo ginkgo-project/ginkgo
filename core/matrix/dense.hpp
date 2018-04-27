@@ -85,6 +85,7 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public WritableToMatrixData<ValueType, int64>,
               public Transposable {
     friend class BasicLinOp<Dense>;
+    friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -109,8 +110,8 @@ public:
      */
     static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
     {
-        return create(other->get_executor(), other->get_num_rows(),
-                      other->get_num_cols(), other->get_stride());
+        return create(other->get_executor(), other->get_dimensions().num_rows,
+                      other->get_dimensions().num_cols, other->get_stride());
     }
 
     void apply(const LinOp *b, LinOp *x) const override;
@@ -268,7 +269,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Dense(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Dense>(exec, 0, 0, 0), values_(exec)
+        : BasicLinOp<Dense>(exec), values_(exec)
     {}
 
     /**
@@ -283,7 +284,7 @@ protected:
      */
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type stride)
-        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * stride),
+        : BasicLinOp<Dense>(exec, {num_rows, num_cols, num_rows * stride}),
           values_(exec, num_rows * stride),
           stride_(stride)
     {}
@@ -307,8 +308,8 @@ protected:
 
     size_type linearize_index(size_type idx) const noexcept
     {
-        return linearize_index(idx / this->get_num_cols(),
-                               idx % this->get_num_cols());
+        return linearize_index(idx / this->get_dimensions().num_cols,
+                               idx % this->get_dimensions().num_cols);
     }
 
 private:

@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
 
-#include "core/base/executor.hpp"
 #include "core/base/lin_op_interfaces.hpp"
+#include "core/base/polymorphic_object.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
 
@@ -120,32 +120,61 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  */
-class LinOp {
+class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
-    LinOp &operator=(const LinOp &other)
-    {
-        // keep the executor as it is
-        num_rows_ = other.num_rows_;
-        num_cols_ = other.num_cols_;
-        num_stored_elements_ = other.num_stored_elements_;
-        return *this;
-    }
+    struct dimension_type {
+        dimension_type(size_type nrows = {}) : dimension_type(nrows, nrows) {}
 
-    virtual ~LinOp() = default;
+        dimension_type(size_type nrows, size_type ncols)
+            : dimension_type(nrows, ncols, nrows * ncols)
+        {}
+        dimension_type(size_type nrows, size_type ncols,
+                       size_type nstored_elems)
+            : num_rows{nrows},
+              num_cols{ncols},
+              num_stored_elements{nstored_elems}
+        {}
 
-    /**
-     * Creates a copy of another LinOp.
-     *
-     * @param other  the LinOp to copy
-     */
-    virtual void copy_from(const LinOp *other) = 0;
+        /**
+         * Gets the dimension of the codomain of this LinOp.
+         *
+         * In other words, the number of rows of the coefficient matrix.
+         *
+         * @return the dimension of the codomain
+         */
+        size_type num_rows;
+        /**
+         * Gets the dimension of the domain of this LinOp.
+         *
+         * In other words, the number of columns of the coefficient matrix.
+         *
+         * @return the dimension of the domain
+         */
+        size_type num_cols;
+        /**
+         * Returns the number of elements that are explicitly stored in memory
+         * for this LinOp.
+         *
+         * For example, for a matrix::Dense `A` it will always hold
+         * ```cpp
+         * A->get_dimensions().num_stored_elements ==
+         * A->get_dimensions().num_rows * A->get_stride()
+         * ```
+         *
+         * @return the number of elements explicitly stored in memory
+         */
+        size_type num_stored_elements;
 
-    /**
-     * Moves the data from another LinOp.
-     *
-     * @param other  the LinOp from which the data will be moved
-     */
-    virtual void copy_from(std::unique_ptr<LinOp> other) = 0;
+        dimension_type transpose() const noexcept
+        {
+            return {num_cols, num_rows, num_stored_elements};
+        }
+
+        dimension_type fill() const noexcept
+        {
+            return {num_rows, num_cols, num_rows * num_cols};
+        }
+    };
 
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -168,127 +197,24 @@ public:
     virtual void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                        LinOp *x) const = 0;
 
-    /**
-     * Creates a new 0x0 LinOp of the same type as this LinOp.
-     *
-     * @param exec the executor where the clone will be created
-     *
-     * @return  a LinOp object of the same type as this
-     */
-    virtual std::unique_ptr<LinOp> create_empty_clone(
-        std::shared_ptr<const Executor> exec) const = 0;
-
-    /**
-     * Creates a new 0x0 LinOp of the same type as this LinOp.
-     *
-     * The new LinOp is created on the same executor as this.
-     *
-     * @return  a LinOp object of the same type as this
-     */
-    std::unique_ptr<LinOp> create_empty_clone() const
+    const dimension_type &get_dimensions() const noexcept
     {
-        return this->create_empty_clone(exec_);
-    }
-
-    /**
-     * Creates a clone of the LinOp.
-     *
-     * @param exec the executor where the clone will be created
-     *
-     * @return A clone of the LinOp.
-     */
-    std::unique_ptr<LinOp> clone_to(std::shared_ptr<const Executor> exec) const
-    {
-        auto new_op = this->create_empty_clone(exec);
-        new_op->copy_from(this);
-        return new_op;
-    }
-
-    /**
-     * Creates a clone of the LinOp.
-     *
-     * The clone is created on the same executor as this.
-     *
-     * @return A clone of the LinOp.
-     */
-    std::unique_ptr<LinOp> clone() const { return this->clone_to(exec_); }
-
-    /**
-     * Transforms the object into an empty LinOp.
-     */
-    virtual void clear() = 0;
-
-    /**
-     * Gets the Executor of this object.
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
-
-    /**
-     * Gets the dimension of the codomain of this LinOp.
-     *
-     * In other words, the number of rows of the coefficient matrix.
-     *
-     * @return the dimension of the codomain
-     */
-    size_type get_num_rows() const noexcept { return num_rows_; }
-
-    /**
-     * Gets the dimension of the domain of this LinOp.
-     *
-     * In other words, the number of columns of the coefficient matrix.
-     *
-     * @return the dimension of the domain
-     */
-    size_type get_num_cols() const noexcept { return num_cols_; }
-
-    /**
-     * Returns the number of elements that are explicitly stored in memory for
-     * this LinOp.
-     *
-     * For example, for a matrix::Dense `A` it will always hold
-     * ```cpp
-     * A->get_num_stored_elements() == A->get_num_rows() * A->get_stride()
-     * ```
-     *
-     * @return the number of elements explicitly stored in memory
-     */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return num_stored_elements_;
+        return dimensions_;
     }
 
 protected:
-    LinOp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type num_stored_elements)
-        : exec_(exec),
-          num_rows_(num_rows),
-          num_cols_(num_cols),
-          num_stored_elements_(num_stored_elements)
+    explicit LinOp(std::shared_ptr<const Executor> exec,
+                   const dimension_type &dimensions = {})
+        : EnableAbstractPolymorphicObject<LinOp>(exec), dimensions_{dimensions}
     {}
 
-    void set_dimensions(size_type num_rows, size_type num_cols,
-                        size_type num_stored_elements) noexcept
+    void set_dimensions(const dimension_type &dimensions) noexcept
     {
-        num_rows_ = num_rows;
-        num_cols_ = num_cols;
-        num_stored_elements_ = num_stored_elements;
-    }
-
-    void set_dimensions(const LinOp *op) noexcept
-    {
-        num_rows_ = op->num_rows_;
-        num_cols_ = op->num_cols_;
-        num_stored_elements_ = op->num_stored_elements_;
+        dimensions_ = dimensions;
     }
 
 private:
-    std::shared_ptr<const Executor> exec_;
-    size_type num_rows_;
-    size_type num_cols_;
-    size_type num_stored_elements_;
+    dimension_type dimensions_{};
 };
 
 
@@ -305,36 +231,13 @@ private:
  * adds a default implementation of `ConvertibleTo` interface for the derived
  * class.
  */
-template <typename ConcreteLinOp>
-class BasicLinOp : public LinOp, public ConvertibleTo<ConcreteLinOp> {
+template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
+class BasicLinOp
+    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
+      public EnablePolymorphicAssignment<ConcreteLinOp> {
 public:
-    using LinOp::LinOp;
-
-    BasicLinOp &operator=(const BasicLinOp &) = default;
-
-    BasicLinOp &operator=(BasicLinOp &&) = default;
-
-    void copy_from(const LinOp *other) override
-    {
-        as<ConvertibleTo<ConcreteLinOp>>(other)->convert_to(self());
-    }
-
-    void copy_from(std::unique_ptr<LinOp> other) override
-    {
-        as<ConvertibleTo<ConcreteLinOp>>(other.get())->move_to(self());
-    }
-
-    std::unique_ptr<LinOp> create_empty_clone(
-        std::shared_ptr<const Executor> exec) const override
-    {
-        return std::unique_ptr<LinOp>(new ConcreteLinOp{exec});
-    }
-
-    void clear() override { *self() = ConcreteLinOp{this->get_executor()}; }
-
-    void convert_to(ConcreteLinOp *other) const override { *other = *self(); }
-
-    void move_to(ConcreteLinOp *other) override { *other = std::move(*self()); }
+    using EnablePolymorphicObject<ConcreteLinOp,
+                                  PolymorphicBase>::EnablePolymorphicObject;
 
     template <typename... TArgs>
     static std::unique_ptr<ConcreteLinOp> create(TArgs &&... args)
@@ -344,15 +247,7 @@ public:
     }
 
 protected:
-    ConcreteLinOp *self() noexcept
-    {
-        return static_cast<ConcreteLinOp *>(this);
-    }
-
-    const ConcreteLinOp *self() const noexcept
-    {
-        return static_cast<const ConcreteLinOp *>(this);
-    }
+    GKO_ENABLE_SELF(ConcreteLinOp);
 };
 
 

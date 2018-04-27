@@ -266,49 +266,16 @@ private:
 };
 
 
-/**
- * The EnablePolymorphicObject mixin provides a default implementation of
- * PolymorphicObject for a concrete polymorphic object.
- *
- * Think of it as an extension of default constructor/destructor/assignment
- * operators. In more detail, this mixin implements all PolymorphicObject's
- * pure virtual methods by using the objects constructors and assignment
- * operators. In addition, it hides appropriate PolymorphicObject's default
- * non-virtual methods with variants that use `ConcreteObject` as return type
- * instead of the generic PolymorphicObject. This simplifies the management of
- * polymorphic objects, as calls like `object->clone()` will return an object
- * with the same static type as the source object.
- *
- * As a result, creating a new PolymorphicObject requires that the implementer
- * only inherits from `EnablePolymorphicObject` and implement an _executor
- * default constructor_ to obtain a fully functional PolymorphicObject:
- *
- * ```c++
- * struct MyObject : EnablePolymorphicObject<MyObject> {
- *     MyObject(std::shared_ptr<const Executor> exec)
- *         : EnablePolymorphicObject<MyObject>(std::move(exec))
- *     {}
- * };
- * ```
- *
- * Consequently, when implementing new polymorphic objects, users are encouraged
- * to use this class as the base implementation, and override (or hide) some of
- * its methods if necessary.
- *
- * @tparam ConcreteObject  the concrete object for which the PolymorphicObject
- *                         interface is to be implemented
- * @tparam PolymorphicBase  the direct base class of ConcreteObject (has to be
- *                          a subclass of PolymorphicObject)
- */
 template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
-class EnablePolymorphicObject : public PolymorphicBase {
+class EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
 
-    EnablePolymorphicObject &operator=(const EnablePolymorphicObject &) =
-        default;
+    EnableAbstractPolymorphicObject &operator=(
+        const EnableAbstractPolymorphicObject &) = default;
 
-    EnablePolymorphicObject &operator=(EnablePolymorphicObject &&) = default;
+    EnableAbstractPolymorphicObject &operator=(
+        EnableAbstractPolymorphicObject &&) = default;
 
     std::unique_ptr<ConcreteObject> create_foundation(
         std::shared_ptr<const Executor> exec) const
@@ -350,6 +317,54 @@ public:
     {
         return static_cast<ConcreteObject *>(this->clear_impl());
     }
+};
+
+
+/**
+ * The EnablePolymorphicObject mixin provides a default implementation of
+ * PolymorphicObject for a concrete polymorphic object.
+ *
+ * Think of it as an extension of default constructor/destructor/assignment
+ * operators. In more detail, this mixin implements all PolymorphicObject's
+ * pure virtual methods by using the objects constructors and assignment
+ * operators. In addition, it hides appropriate PolymorphicObject's default
+ * non-virtual methods with variants that use `ConcreteObject` as return type
+ * instead of the generic PolymorphicObject. This simplifies the management of
+ * polymorphic objects, as calls like `object->clone()` will return an object
+ * with the same static type as the source object.
+ *
+ * As a result, creating a new PolymorphicObject requires that the implementer
+ * only inherits from `EnablePolymorphicObject` and implement an _executor
+ * default constructor_ to obtain a fully functional PolymorphicObject:
+ *
+ * ```c++
+ * struct MyObject : EnablePolymorphicObject<MyObject> {
+ *     MyObject(std::shared_ptr<const Executor> exec)
+ *         : EnablePolymorphicObject<MyObject>(std::move(exec))
+ *     {}
+ * };
+ * ```
+ *
+ * Consequently, when implementing new polymorphic objects, users are encouraged
+ * to use this class as the base implementation, and override (or hide) some of
+ * its methods if necessary.
+ *
+ * @tparam ConcreteObject  the concrete object for which the PolymorphicObject
+ *                         interface is to be implemented
+ * @tparam PolymorphicBase  the direct base class of ConcreteObject (has to be
+ *                          a subclass of PolymorphicObject)
+ */
+template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
+class EnablePolymorphicObject
+    : public EnableAbstractPolymorphicObject<ConcreteObject, PolymorphicBase> {
+public:
+    using EnableAbstractPolymorphicObject<
+        ConcreteObject, PolymorphicBase>::EnableAbstractPolymorphicObject;
+
+    EnablePolymorphicObject &operator=(const EnablePolymorphicObject &) =
+        default;
+
+    EnablePolymorphicObject &operator=(EnablePolymorphicObject &&) = default;
 
 protected:
     GKO_ENABLE_SELF(ConcreteObject);

@@ -70,6 +70,7 @@ class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<Ell>;
+    friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
 
 public:
@@ -202,7 +203,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Ell(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Ell>(exec, 0, 0, 0),
+        : BasicLinOp<Ell>(exec),
           values_(exec),
           col_idxs_(exec),
           max_nonzeros_per_row_(0),
@@ -220,8 +221,8 @@ protected:
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type max_nonzeros_per_row, size_type stride)
-        : BasicLinOp<Ell>(exec, num_rows, num_cols,
-                          stride * max_nonzeros_per_row),
+        : BasicLinOp<Ell>(exec,
+                          {num_rows, num_cols, stride * max_nonzeros_per_row}),
           values_(exec, stride * max_nonzeros_per_row),
           col_idxs_(exec, stride * max_nonzeros_per_row),
           max_nonzeros_per_row_(max_nonzeros_per_row),

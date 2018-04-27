@@ -173,7 +173,7 @@ protected:
     using BasicLinOp<ConcreteBlockJacobi>::create;
 
     explicit BasicBlockJacobi(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<ConcreteBlockJacobi>(exec, 0, 0, 0),
+        : BasicLinOp<ConcreteBlockJacobi>(exec),
           block_pointers_(exec),
           blocks_(exec)
     {}
@@ -182,13 +182,14 @@ protected:
                      const LinOp *system_matrix, uint32 max_block_size,
                      const Array<index_type> &block_pointers)
         : BasicLinOp<ConcreteBlockJacobi>(
-              exec, system_matrix->get_num_rows(),
-              system_matrix->get_num_cols(),
-              system_matrix->get_num_cols() * max_block_size),
+              exec,
+              {system_matrix->get_dimensions().num_rows,
+               system_matrix->get_dimensions().num_cols,
+               system_matrix->get_dimensions().num_cols * max_block_size}),
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
           block_pointers_(block_pointers),
-          blocks_(exec, this->get_num_stored_elements())
+          blocks_(exec, this->get_dimensions().num_stored_elements)
     {
         block_pointers_.set_executor(this->get_executor());
     }
@@ -223,6 +224,7 @@ class BlockJacobi : public BasicBlockJacobi<BlockJacobi<ValueType, IndexType>>,
                     public ConvertibleTo<matrix::Dense<ValueType>>,
                     public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<BlockJacobi>;
+    friend class EnablePolymorphicObject<BlockJacobi, LinOp>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
 
@@ -287,6 +289,7 @@ class AdaptiveBlockJacobi
       public ConvertibleTo<matrix::Dense<ValueType>>,
       public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<AdaptiveBlockJacobi>;
+    friend class EnablePolymorphicObject<AdaptiveBlockJacobi, LinOp>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
 

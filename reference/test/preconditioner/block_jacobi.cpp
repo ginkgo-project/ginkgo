@@ -109,8 +109,8 @@ protected:
 
     void assert_same_precond(const Bj *a, const Bj *b)
     {
-        ASSERT_EQ(a->get_num_rows(), b->get_num_rows());
-        ASSERT_EQ(a->get_num_cols(), b->get_num_cols());
+        ASSERT_EQ(a->get_dimensions().num_rows, b->get_dimensions().num_rows);
+        ASSERT_EQ(a->get_dimensions().num_cols, b->get_dimensions().num_cols);
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
         ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
         const auto b_ptr_a = a->get_const_block_pointers();
@@ -137,8 +137,7 @@ protected:
 
 
 class BlockJacobi
-    : public BasicBlockJacobiTest<gko::preconditioner::BlockJacobiFactory<>> {
-};
+    : public BasicBlockJacobiTest<gko::preconditioner::BlockJacobiFactory<>> {};
 
 
 TEST_F(BlockJacobi, CanBeCloned)
@@ -180,9 +179,9 @@ TEST_F(BlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_num_rows(), 0);
-    ASSERT_EQ(bj->get_num_cols(), 0);
-    ASSERT_EQ(bj->get_num_stored_elements(), 0);
+    ASSERT_EQ(bj->get_dimensions().num_rows, 0);
+    ASSERT_EQ(bj->get_dimensions().num_cols, 0);
+    ASSERT_EQ(bj->get_dimensions().num_stored_elements, 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
@@ -242,8 +241,8 @@ protected:
 
     void assert_same_precond(const Bj *a, const Bj *b)
     {
-        ASSERT_EQ(a->get_num_rows(), b->get_num_rows());
-        ASSERT_EQ(a->get_num_cols(), b->get_num_cols());
+        ASSERT_EQ(a->get_dimensions().num_rows, b->get_dimensions().num_rows);
+        ASSERT_EQ(a->get_dimensions().num_cols, b->get_dimensions().num_cols);
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
         ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
         const auto b_ptr_a = a->get_const_block_pointers();
@@ -310,9 +309,9 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_num_rows(), 0);
-    ASSERT_EQ(bj->get_num_cols(), 0);
-    ASSERT_EQ(bj->get_num_stored_elements(), 0);
+    ASSERT_EQ(bj->get_dimensions().num_rows, 0);
+    ASSERT_EQ(bj->get_dimensions().num_cols, 0);
+    ASSERT_EQ(bj->get_dimensions().num_stored_elements, 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);

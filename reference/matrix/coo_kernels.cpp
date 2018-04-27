@@ -55,11 +55,11 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
     auto coo_row = a->get_const_row_idxs();
-    auto num_cols = b->get_num_cols();
-    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
+    auto num_cols = b->get_dimensions().num_cols;
+    for (size_type i = 0; i < c->get_dimensions().num_stored_elements; i++) {
         c->at(i) = zero<ValueType>();
     }
-    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
+    for (size_type i = 0; i < a->get_dimensions().num_stored_elements; i++) {
         for (size_type j = 0; j < num_cols; j++) {
             c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
         }
@@ -82,11 +82,11 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto coo_row = a->get_const_row_idxs();
     auto alpha_val = alpha->at(0, 0);
     auto beta_val = beta->at(0, 0);
-    auto num_cols = b->get_num_cols();
-    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
+    auto num_cols = b->get_dimensions().num_cols;
+    for (size_type i = 0; i < c->get_dimensions().num_stored_elements; i++) {
         c->at(i) *= beta_val;
     }
-    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
+    for (size_type i = 0; i < a->get_dimensions().num_stored_elements; i++) {
         for (size_type j = 0; j < num_cols; j++) {
             c->at(coo_row[i], j) +=
                 alpha_val * coo_val[i] * b->at(coo_col[i], j);
@@ -136,14 +136,15 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
     auto coo_row = source->get_const_row_idxs();
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
+    auto num_rows = result->get_dimensions().num_rows;
+    auto num_cols = result->get_dimensions().num_cols;
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
         }
     }
-    for (size_type i = 0; i < source->get_num_stored_elements(); i++) {
+    for (size_type i = 0; i < source->get_dimensions().num_stored_elements;
+         i++) {
         result->at(coo_row[i], coo_col[i]) += coo_val[i];
     }
 }

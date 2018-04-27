@@ -63,6 +63,7 @@ class CgsFactory;
 template <typename ValueType = default_precision>
 class Cgs : public BasicLinOp<Cgs<ValueType>>, public PreconditionedMethod {
     friend class BasicLinOp<Cgs>;
+    friend class EnablePolymorphicObject<Cgs, LinOp>;
     friend class CgsFactory<ValueType>;
 
 public:
@@ -106,17 +107,14 @@ public:
 private:
     using BasicLinOp<Cgs>::create;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Cgs>(exec, 0, 0, 0)
+    explicit Cgs(std::shared_ptr<const Executor> exec) : BasicLinOp<Cgs>(exec)
     {}
 
     Cgs(std::shared_ptr<const Executor> exec, int max_iters,
         remove_complex<value_type> rel_residual_goal,
         std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Cgs>(
-              exec, system_matrix->get_num_cols(),
-              system_matrix->get_num_rows(),
-              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Cgs>(exec,
+                          system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)

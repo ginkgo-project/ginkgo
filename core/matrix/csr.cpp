@@ -102,11 +102,11 @@ std::unique_ptr<Coo<ValueType, IndexType>> Csr<ValueType, IndexType>::make_coo()
 {
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(),
-        this->get_num_stored_elements());
+        exec, this->get_dimensions().num_rows, this->get_dimensions().num_cols,
+        this->get_dimensions().num_stored_elements);
     exec->run(
         TemplatedOperation<IndexType>::make_convert_row_ptrs_to_idxs_operation(
-            this->get_const_row_ptrs(), this->get_num_rows(),
+            this->get_const_row_ptrs(), this->get_dimensions().num_rows,
             tmp->get_row_idxs()));
     return tmp;
 }
@@ -137,8 +137,9 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_dimensions().num_rows,
+                                        this->get_dimensions().num_cols,
+                                        this->get_dimensions().num_cols);
     exec->run(TemplatedOperation<
               ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
                                                                      this));
@@ -150,8 +151,9 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_dimensions().num_rows,
+                                        this->get_dimensions().num_cols,
+                                        this->get_dimensions().num_cols);
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
             tmp.get(), this));
@@ -195,15 +197,15 @@ void Csr<ValueType, IndexType>::write(mat_data &data) const
     std::unique_ptr<const LinOp> op{};
     const Csr *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone_to(this->get_executor()->get_master());
+        op = this->clone(this->get_executor()->get_master());
         tmp = static_cast<const Csr *>(op.get());
     } else {
         tmp = this;
     }
 
-    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+    data = {tmp->get_dimensions().num_rows, tmp->get_dimensions().num_cols, {}};
 
-    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+    for (size_type row = 0; row < tmp->get_dimensions().num_rows; ++row) {
         const auto start = tmp->row_ptrs_.get_const_data()[row];
         const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
         for (auto i = start; i < end; ++i) {
@@ -219,8 +221,9 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
-                            this->get_num_stored_elements());
+    auto trans_cpy = create(exec, this->get_dimensions().num_cols,
+                            this->get_dimensions().num_rows,
+                            this->get_dimensions().num_stored_elements);
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
@@ -233,8 +236,9 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
-                            this->get_num_stored_elements());
+    auto trans_cpy = create(exec, this->get_dimensions().num_cols,
+                            this->get_dimensions().num_rows,
+                            this->get_dimensions().num_stored_elements);
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(

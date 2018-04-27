@@ -258,9 +258,9 @@ TEST_F(Dense, ConvertsToCoo)
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
 
-    ASSERT_EQ(coo_mtx->get_num_rows(), 2);
-    ASSERT_EQ(coo_mtx->get_num_cols(), 3);
-    ASSERT_EQ(coo_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_cols, 3);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_stored_elements, 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 0);
     EXPECT_EQ(r[2], 0);
@@ -286,9 +286,9 @@ TEST_F(Dense, MovesToCoo)
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
 
-    ASSERT_EQ(coo_mtx->get_num_rows(), 2);
-    ASSERT_EQ(coo_mtx->get_num_cols(), 3);
-    ASSERT_EQ(coo_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_cols, 3);
+    ASSERT_EQ(coo_mtx->get_dimensions().num_stored_elements, 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 0);
     EXPECT_EQ(r[2], 0);
@@ -314,9 +314,9 @@ TEST_F(Dense, ConvertsToCsr)
     auto c = csr_mtx->get_const_col_idxs();
     auto r = csr_mtx->get_const_row_ptrs();
 
-    ASSERT_EQ(csr_mtx->get_num_rows(), 2);
-    ASSERT_EQ(csr_mtx->get_num_cols(), 3);
-    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_cols, 3);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_stored_elements, 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 4);
@@ -341,9 +341,9 @@ TEST_F(Dense, MovesToCsr)
     auto c = csr_mtx->get_const_col_idxs();
     auto r = csr_mtx->get_const_row_ptrs();
 
-    ASSERT_EQ(csr_mtx->get_num_rows(), 2);
-    ASSERT_EQ(csr_mtx->get_num_cols(), 3);
-    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_cols, 3);
+    ASSERT_EQ(csr_mtx->get_dimensions().num_stored_elements, 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 4);
@@ -367,10 +367,10 @@ TEST_F(Dense, ConvertsToEll)
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
-    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
-    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_cols, 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
-    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_stored_elements, 4);
     ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
@@ -392,10 +392,10 @@ TEST_F(Dense, MovesToEll)
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
-    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
-    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_cols, 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
-    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_stored_elements, 4);
     ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
@@ -417,10 +417,10 @@ TEST_F(Dense, ConvertsToEllWithStride)
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
-    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
-    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_cols, 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
-    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_stored_elements, 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
@@ -446,10 +446,10 @@ TEST_F(Dense, MovesToEllWithStride)
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
-    ASSERT_EQ(ell_mtx->get_num_rows(), 2);
-    ASSERT_EQ(ell_mtx->get_num_cols(), 3);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_rows, 2);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_cols, 3);
     ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
-    ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
+    ASSERT_EQ(ell_mtx->get_dimensions().num_stored_elements, 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);

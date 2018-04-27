@@ -205,6 +205,7 @@ template <typename ValueType, typename IndexType>
 class DummyLinOp : public gko::BasicLinOp<DummyLinOp<ValueType, IndexType>>,
                    public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::BasicLinOp<DummyLinOp>;
+    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
 
 public:
     using value_type = ValueType;
@@ -221,7 +222,7 @@ public:
 
 protected:
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::BasicLinOp<DummyLinOp>(exec, 0, 0, 0)
+        : gko::BasicLinOp<DummyLinOp>(exec)
     {}
 
 public:

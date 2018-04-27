@@ -60,8 +60,7 @@ namespace detail {
 
 
 template <typename T>
-struct pointee_impl {
-};
+struct pointee_impl {};
 
 template <typename T>
 struct pointee_impl<T *> {
@@ -83,13 +82,11 @@ using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
 
 
 template <typename T, typename = void>
-struct is_clonable_impl : std::false_type {
-};
+struct is_clonable_impl : std::false_type {};
 
 template <typename T>
 struct is_clonable_impl<T, void_t<decltype(std::declval<T>().clone())>>
-    : std::true_type {
-};
+    : std::true_type {};
 
 template <typename T>
 constexpr bool is_clonable()
@@ -99,15 +96,13 @@ constexpr bool is_clonable()
 
 
 template <typename T, typename = void>
-struct is_clonable_to_impl : std::false_type {
-};
+struct is_clonable_to_impl : std::false_type {};
 
 template <typename T>
 struct is_clonable_to_impl<
-    T, void_t<decltype(std::declval<T>().clone_to(
+    T, void_t<decltype(std::declval<T>().clone(
            std::declval<std::shared_ptr<const Executor>>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
 template <typename T>
 constexpr bool is_clonable_to()
@@ -117,16 +112,13 @@ constexpr bool is_clonable_to()
 
 
 template <typename T>
-struct have_ownership_impl : std::false_type {
-};
+struct have_ownership_impl : std::false_type {};
 
 template <typename T>
-struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {
-};
+struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {};
 
 template <typename T>
-struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {
-};
+struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool have_ownership()
@@ -175,7 +167,7 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
 /**
  * Creates a unique clone of the object pointed to by `p` on Executor `exec`.
  *
- * The pointee (i.e. `*p`) needs to have a clone_to method that takes an
+ * The pointee (i.e. `*p`) needs to have a clone method that takes an
  * executor and returns a std::unique_ptr in order for this method to work.
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
@@ -184,18 +176,18 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
  * @param p  a pointer to the object
  *
  * @note The difference between this function and directly calling
- *       LinOp::clone_to() is that this one preserves the static type of the
+ *       LinOp::clone() is that this one preserves the static type of the
  *       object.
  */
 template <typename Pointer>
-inline detail::cloned_type<Pointer> clone_to(
-    std::shared_ptr<const Executor> exec, const Pointer &p)
+inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
+                                          const Pointer &p)
 {
     static_assert(detail::is_clonable_to<detail::pointee<Pointer>>(),
                   "Object is not clonable");
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type *>(
-            p->clone_to(std::move(exec)).release()));
+            p->clone(std::move(exec)).release()));
 }
 
 

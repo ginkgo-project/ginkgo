@@ -48,8 +48,7 @@ struct Base {
 };
 
 
-struct Derived : Base {
-};
+struct Derived : Base {};
 
 
 struct NonRelated {
@@ -67,7 +66,7 @@ struct ClonableDerived : Base {
         return std::unique_ptr<Base>(new ClonableDerived());
     }
 
-    std::unique_ptr<Base> clone_to(std::shared_ptr<const gko::Executor> exec)
+    std::unique_ptr<Base> clone(std::shared_ptr<const gko::Executor> exec)
     {
         return std::unique_ptr<Base>(new ClonableDerived{exec});
     }
@@ -117,7 +116,7 @@ TEST(CloneTo, ClonesUniquePointer)
     auto exec = gko::ReferenceExecutor::create();
     std::unique_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p);
+    auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();
@@ -131,7 +130,7 @@ TEST(CloneTo, ClonesSharedPointer)
     auto exec = gko::ReferenceExecutor::create();
     std::shared_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p);
+    auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();
@@ -145,7 +144,7 @@ TEST(CloneTo, ClonesPlainPointer)
     auto exec = gko::ReferenceExecutor::create();
     std::unique_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p.get());
+    auto clone = gko::clone(exec, p.get());
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();

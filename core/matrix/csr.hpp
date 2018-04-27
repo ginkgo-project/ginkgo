@@ -73,6 +73,7 @@ class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
     friend class BasicLinOp<Csr>;
+    friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
@@ -170,10 +171,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Csr(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Csr>(exec, 0, 0, 0),
-          values_(exec),
-          col_idxs_(exec),
-          row_ptrs_(exec)
+        : BasicLinOp<Csr>(exec), values_(exec), col_idxs_(exec), row_ptrs_(exec)
     {}
 
     /**
@@ -186,7 +184,7 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
-        : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),
+        : BasicLinOp<Csr>(exec, {num_rows, num_cols, num_nonzeros}),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0

@@ -85,7 +85,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto rr = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, 1, dense_b->get_dimensions().num_cols);
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
@@ -94,7 +94,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    Array<bool> converged(alpha->get_executor(), dense_b->get_num_cols());
+    Array<bool> converged(alpha->get_executor(),
+                          dense_b->get_dimensions().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -178,8 +179,8 @@ template <typename ValueType>
 std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
+    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
+                                       base->get_dimensions().num_rows));
     auto bicgstab =
         std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
             this->get_executor(), max_iters_, rel_residual_goal_, base));

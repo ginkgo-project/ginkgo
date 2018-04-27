@@ -70,6 +70,7 @@ class FcgFactory;
 template <typename ValueType = default_precision>
 class Fcg : public BasicLinOp<Fcg<ValueType>>, public PreconditionedMethod {
     friend class BasicLinOp<Fcg>;
+    friend class EnablePolymorphicObject<Fcg, LinOp>;
     friend class FcgFactory<ValueType>;
 
 public:
@@ -113,17 +114,14 @@ public:
 private:
     using BasicLinOp<Fcg>::create;
 
-    explicit Fcg(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Fcg>(exec, 0, 0, 0)
+    explicit Fcg(std::shared_ptr<const Executor> exec) : BasicLinOp<Fcg>(exec)
     {}
 
     Fcg(std::shared_ptr<const Executor> exec, int max_iters,
         remove_complex<value_type> rel_residual_goal,
         std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Fcg>(
-              exec, system_matrix->get_num_cols(),
-              system_matrix->get_num_rows(),
-              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
+        : BasicLinOp<Fcg>(exec,
+                          system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)

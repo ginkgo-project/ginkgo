@@ -106,9 +106,9 @@ int main(int argc, char *argv[])
     solver->apply(gko::lend(b), gko::lend(x));
 
     // Print result
-    auto h_x = gko::clone_to(exec->get_master(), x);
+    auto h_x = gko::clone(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_num_rows(); ++i) {
+    for (int i = 0; i < h_x->get_dimensions().num_rows; ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
     }
     std::cout << "];" << std::endl;
@@ -120,6 +120,6 @@ int main(int argc, char *argv[])
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_dot(gko::lend(b), gko::lend(res));
 
-    auto h_res = gko::clone_to(exec->get_master(), res);
+    auto h_res = gko::clone(exec->get_master(), res);
     std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
 }

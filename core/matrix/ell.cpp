@@ -115,8 +115,9 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_dimensions().num_rows,
+                                        this->get_dimensions().num_cols,
+                                        this->get_dimensions().num_cols);
     exec->run(TemplatedOperation<
               ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
                                                                      this));
@@ -174,15 +175,15 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
     std::unique_ptr<const LinOp> op{};
     const Ell *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone_to(this->get_executor()->get_master());
+        op = this->clone(this->get_executor()->get_master());
         tmp = static_cast<const Ell *>(op.get());
     } else {
         tmp = this;
     }
 
-    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+    data = {tmp->get_dimensions().num_rows, tmp->get_dimensions().num_cols, {}};
 
-    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+    for (size_type row = 0; row < tmp->get_dimensions().num_rows; ++row) {
         for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
             if (val != zero<ValueType>()) {

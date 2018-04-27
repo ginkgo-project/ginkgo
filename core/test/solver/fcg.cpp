@@ -85,9 +85,9 @@ TEST_F(Fcg, FcgFactoryKnowsItsRelResidualGoal)
 
 TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_num_rows(), 3);
-    ASSERT_EQ(solver->get_num_cols(), 3);
-    ASSERT_EQ(solver->get_num_stored_elements(), 9);
+    ASSERT_EQ(solver->get_dimensions().num_rows, 3);
+    ASSERT_EQ(solver->get_dimensions().num_cols, 3);
+    ASSERT_EQ(solver->get_dimensions().num_stored_elements, 9);
     auto fcg_solver = dynamic_cast<Solver *>(solver.get());
     ASSERT_EQ(fcg_solver->get_max_iters(), 3);
     ASSERT_EQ(fcg_solver->get_rel_residual_goal(), 1e-6);
@@ -102,9 +102,9 @@ TEST_F(Fcg, CanBeCopied)
 
     copy->copy_from(solver.get());
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_dimensions().num_rows, 3);
+    ASSERT_EQ(copy->get_dimensions().num_cols, 3);
+    ASSERT_EQ(copy->get_dimensions().num_stored_elements, 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
                     1e-14);
@@ -117,9 +117,9 @@ TEST_F(Fcg, CanBeMoved)
 
     copy->copy_from(std::move(solver));
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_dimensions().num_rows, 3);
+    ASSERT_EQ(copy->get_dimensions().num_cols, 3);
+    ASSERT_EQ(copy->get_dimensions().num_stored_elements, 9);
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
                     1e-14);
@@ -130,9 +130,9 @@ TEST_F(Fcg, CanBeCloned)
 {
     auto clone = solver->clone();
 
-    ASSERT_EQ(clone->get_num_rows(), 3);
-    ASSERT_EQ(clone->get_num_cols(), 3);
-    ASSERT_EQ(clone->get_num_stored_elements(), 9);
+    ASSERT_EQ(clone->get_dimensions().num_rows, 3);
+    ASSERT_EQ(clone->get_dimensions().num_cols, 3);
+    ASSERT_EQ(clone->get_dimensions().num_stored_elements, 9);
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
                     1e-14);
@@ -143,9 +143,9 @@ TEST_F(Fcg, CanBeCleared)
 {
     solver->clear();
 
-    ASSERT_EQ(solver->get_num_rows(), 0);
-    ASSERT_EQ(solver->get_num_cols(), 0);
-    ASSERT_EQ(solver->get_num_stored_elements(), 0);
+    ASSERT_EQ(solver->get_dimensions().num_rows, 0);
+    ASSERT_EQ(solver->get_dimensions().num_cols, 0);
+    ASSERT_EQ(solver->get_dimensions().num_stored_elements, 0);
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
@@ -174,8 +174,8 @@ TEST_F(Fcg, CanSetPreconditionerGenertor)
             .get());
 
     ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_num_rows(), 3);
-    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_dimensions().num_rows, 3);
+    ASSERT_EQ(precond->get_dimensions().num_cols, 3);
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 

@@ -57,6 +57,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_2, cg::step_2<ValueType>);
 };
 
+
 }  // namespace
 
 
@@ -72,7 +73,7 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
+    size_type num_vectors = dense_b->get_dimensions().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -82,14 +83,14 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, 1, dense_b->get_dimensions().num_cols);
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto starting_tau = Vector::create_with_config_of(tau.get());
-    Array<bool> converged(exec, dense_b->get_num_cols());
+    Array<bool> converged(exec, dense_b->get_dimensions().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -152,8 +153,8 @@ template <typename ValueType>
 std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
+    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
+                                       base->get_dimensions().num_rows));
     auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
     cg->set_preconditioner(precond_factory_->generate(base));

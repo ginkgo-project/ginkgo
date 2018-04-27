@@ -58,18 +58,18 @@ protected:
 TEST_F(Identity, CanBeEmpty)
 {
     auto empty = Id::create(exec);
-    ASSERT_EQ(empty->get_num_rows(), 0);
-    ASSERT_EQ(empty->get_num_cols(), 0);
-    ASSERT_EQ(empty->get_num_stored_elements(), 0);
+    ASSERT_EQ(empty->get_dimensions().num_rows, 0);
+    ASSERT_EQ(empty->get_dimensions().num_cols, 0);
+    ASSERT_EQ(empty->get_dimensions().num_stored_elements, 0);
 }
 
 
 TEST_F(Identity, CanBeConstructedWithSize)
 {
     auto identity = Id::create(exec, 5);
-    ASSERT_EQ(identity->get_num_rows(), 5);
-    ASSERT_EQ(identity->get_num_cols(), 5);
-    ASSERT_EQ(identity->get_num_stored_elements(), 0);
+    ASSERT_EQ(identity->get_dimensions().num_rows, 5);
+    ASSERT_EQ(identity->get_dimensions().num_cols, 5);
+    ASSERT_EQ(identity->get_dimensions().num_stored_elements, 0);
 }
 
 
@@ -106,9 +106,9 @@ TEST(IdentityFactory, CanGenerateIdentityMatrix)
 
     auto id = id_factory->generate(std::move(mtx));
 
-    ASSERT_EQ(id->get_num_rows(), 5);
-    ASSERT_EQ(id->get_num_cols(), 5);
-    ASSERT_EQ(id->get_num_stored_elements(), 0);
+    ASSERT_EQ(id->get_dimensions().num_rows, 5);
+    ASSERT_EQ(id->get_dimensions().num_cols, 5);
+    ASSERT_EQ(id->get_dimensions().num_stored_elements, 0);
 }
 
 

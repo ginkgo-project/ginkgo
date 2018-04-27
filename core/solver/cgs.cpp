@@ -59,28 +59,6 @@ struct TemplatedOperation {
 };
 
 
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (int i = 0; i < tau->get_num_cols(); ++i) {
-        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
-            return false;
-        }
-    }
-    return true;
-}
-
-
 }  // namespace
 
 
@@ -96,7 +74,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
+    size_type num_vectors = dense_b->get_dimensions().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -110,7 +88,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto v_hat = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, 1, dense_b->get_dimensions().num_cols);
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto rho_prev = Vector::create_with_config_of(alpha.get());
@@ -119,7 +97,7 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
 
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    Array<bool> converged(exec, dense_b->get_num_cols());
+    Array<bool> converged(exec, dense_b->get_dimensions().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -193,8 +171,8 @@ template <typename ValueType>
 std::unique_ptr<LinOp> CgsFactory<ValueType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
+    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
+                                       base->get_dimensions().num_rows));
     auto cgs = std::unique_ptr<Cgs<ValueType>>(Cgs<ValueType>::create(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
     cgs->set_preconditioner(precond_factory_->generate(base));
