@@ -46,11 +46,11 @@ class Iterations : public Criterion {
 public:
     struct Factory : public Criterion::Factory {
         using t = size_type;
-        Factory(t v) : v_{v} {}
+        explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
         {
-            return std::make_unique<Factory>(v);
+            return std::unique_ptr<Factory>(new Factory(v));
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
@@ -59,7 +59,7 @@ public:
     };
 
 
-    Iterations(size_type iterations) : iterations_{iterations} {}
+    explicit Iterations(size_type iterations) : iterations_{iterations} {}
 
 protected:
     bool check(Array<bool> &, const Updater &updater) override;

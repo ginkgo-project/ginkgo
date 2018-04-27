@@ -46,11 +46,11 @@ class IveLostPatience : public Criterion {
 public:
     struct Factory : public Criterion::Factory {
         using t = volatile bool &;
-        Factory(t v) : v_{v} {}
+        explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
         {
-            return std::make_unique<Factory>(v);
+            return std::unique_ptr<Factory>(new Factory(v));
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
@@ -58,7 +58,7 @@ public:
         t v_;
     };
 
-    IveLostPatience(volatile bool &is_user_bored)
+    explicit IveLostPatience(volatile bool &is_user_bored)
         : is_user_bored_{is_user_bored}
     {
         // assume user is not bored before even starting the solver

@@ -43,7 +43,7 @@ std::unique_ptr<Criterion> IveLostPatience::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::make_unique<IveLostPatience>(v_);
+    return std::unique_ptr<IveLostPatience>(new IveLostPatience(v_));
 }
 
 bool IveLostPatience::check(Array<bool> &, const Updater &)

@@ -52,11 +52,11 @@ public:
     struct Factory : public Criterion::Factory {
         using t = std::chrono::seconds &;
 
-        Factory(t v) : v_{v} {}
+        explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
         {
-            return std::make_unique<Factory>(v);
+            return std::unique_ptr<Factory>(new Factory(v));
         }
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
@@ -65,7 +65,7 @@ public:
     };
 
 
-    Time(std::chrono::seconds limit)
+    explicit Time(std::chrono::seconds limit)
         : limit_{std::chrono::duration_cast<clock::duration>(limit)},
           start_{clock::now()}
     {}

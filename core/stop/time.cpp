@@ -43,7 +43,7 @@ std::unique_ptr<Criterion> Time::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::make_unique<Time>(v_);
+    return std::unique_ptr<Time>(new Time(v_));
 }
 
 
