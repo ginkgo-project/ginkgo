@@ -94,7 +94,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
-    auto starting_tau = Vector::create_with_config_of(tau.get());
 
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size().num_cols);
@@ -117,20 +116,21 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
     r->compute_dot(r.get(), tau.get());
-    starting_tau->copy_from(tau.get());
     system_matrix_->apply(r.get(), v.get());
+    /* Potentially update starting tau */
+    stop_criterion->update().residual_norm(tau.get()).check(converged);
 
     int iters = 0;
     while (true) {
         r->compute_dot(r.get(), tau.get());
         bool one_changed{};
 
-        /* TODO: fill whatever is appropriate */
+        /* TODO: check this */
         if (stop_criterion->update()
                 .num_iterations(iters)
-                .residual_norm(residual_norm)
-                .residual(residual)
-                .solution(solution)
+                .residual_norm(tau.get())
+                .residual(r.get())
+                .solution(dense_x)
                 .check(converged)) {
             break;
         }
@@ -152,12 +152,12 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        /* TODO: fill whatever is appropriate */
+        /* TODO: check this */
         if (stop_criterion->update()
                 .num_iterations(iters)
-                .residual_norm(residual_norm)
-                .residual(residual)
-                .solution(solution)
+                .residual_norm(tau.get())
+                .residual(r.get())
+                .solution(dense_x)
                 .check(converged)) {
             dense_x->add_scaled(alpha.get(), y.get());
             break;
