@@ -81,8 +81,6 @@ public:
 
     Combined() {}
 
-    ~Combined() {}
-
     void add_subcriterion(std::unique_ptr<Criterion> c);
 
     bool check(Array<bool> &, const Updater &) override;
