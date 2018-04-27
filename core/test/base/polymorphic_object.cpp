@@ -37,20 +37,107 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/std_extensions.hpp>
+
+
 namespace {
 
 
-struct MyObject : gko::EnablePolymorphicObject<MyObject> {
-    MyObject(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnablePolymorphicObject<MyObject>(std::move(exec))
+struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
+                     gko::EnablePolymorphicAssignment<DummyObject> {
+    explicit DummyObject(std::shared_ptr<const gko::Executor> exec, int v = {})
+        : gko::EnablePolymorphicObject<DummyObject>(std::move(exec)), x{v}
     {}
+
+    int x;
 };
 
 
-TEST(PolymorphicObject, CanBeDefined)
+class EnablePolymorphicObject : public testing::Test {
+protected:
+    std::shared_ptr<gko::ReferenceExecutor> ref{
+        gko::ReferenceExecutor::create()};
+    std::shared_ptr<gko::CpuExecutor> cpu{gko::CpuExecutor::create()};
+    std::unique_ptr<DummyObject> obj{new DummyObject(ref, 5)};
+};
+
+
+TEST_F(EnablePolymorphicObject, CreatesConcreteClass)
 {
-    std::unique_ptr<MyObject> obj{
-        new MyObject(gko::ReferenceExecutor::create())};
+    // this test passes as soon as an instance of `DummyObject` can be created
+}
+
+
+TEST_F(EnablePolymorphicObject, CreatesFoundation)
+{
+    auto f = obj->create_foundation();
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), ref);
+    ASSERT_EQ(f->x, 0);
+}
+
+
+TEST_F(EnablePolymorphicObject, CreatesFoundationOnAnotherExecutor)
+{
+    auto f = obj->create_foundation(cpu);
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), cpu);
+    ASSERT_EQ(f->x, 0);
+}
+
+
+TEST_F(EnablePolymorphicObject, ClonesObject)
+{
+    auto f = obj->clone();
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), ref);
+    ASSERT_EQ(f->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, ClonesObjectToAnotherExecutor)
+{
+    auto f = obj->clone(cpu);
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), cpu);
+    ASSERT_EQ(f->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, CopiesObject)
+{
+    auto f = gko::xstd::make_unique<DummyObject>(cpu, 7);
+
+    f->copy_from(gko::lend(obj));
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), cpu);
+    ASSERT_EQ(f->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesObject)
+{
+    auto f = gko::xstd::make_unique<DummyObject>(ref, 7);
+
+    f->copy_from(gko::give(obj));
+
+    ASSERT_NE(f, obj);
+    ASSERT_EQ(f->get_executor(), ref);
+    ASSERT_EQ(f->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, ClearsObject)
+{
+    obj->clear();
+
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->x, 0);
 }
 
 
