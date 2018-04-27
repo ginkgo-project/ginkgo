@@ -71,7 +71,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Dense<ValueType> *s,
-                        remove_complex<ValueType> norm_goal,
+                        const matrix::Dense<ValueType> *orig_tau,
+                        remove_complex<ValueType> rel_residual_goal,
                         const matrix::Dense<ValueType> *alpha,
                         const matrix::Dense<ValueType> *y,
                         matrix::Dense<ValueType> *x, Array<bool> *converged,

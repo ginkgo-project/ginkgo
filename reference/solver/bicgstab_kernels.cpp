@@ -111,7 +111,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Dense<ValueType> *s,
-                        remove_complex<ValueType> norm_goal,
+                        const matrix::Dense<ValueType> *orig_tau,
+                        remove_complex<ValueType> rel_residual_goal,
                         const matrix::Dense<ValueType> *alpha,
                         const matrix::Dense<ValueType> *y,
                         matrix::Dense<ValueType> *x, Array<bool> *converged,
@@ -125,7 +126,7 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < s->get_num_rows(); ++i) {
             sum_squares += squared_norm(s->at(i, j));
         }
-        if (sqrt(sum_squares) <= norm_goal) {
+        if (sqrt(sum_squares) <= rel_residual_goal * abs(orig_tau->at(j))) {
             converged->get_data()[j] = true;
             // set according x-vector to final version with x = x + alpha * y
             auto cur_alpha = alpha->at(j);

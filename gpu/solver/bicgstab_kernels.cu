@@ -173,7 +173,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
-    remove_complex<ValueType> norm_goal, const ValueType *__restrict__ s,
+    remove_complex<ValueType> rel_residual_goal,
+    const ValueType *__restrict__ s, const ValueType *__restrict__ orig_tau,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ y,
     ValueType *__restrict__ x, bool *__restrict__ converged,
     bool *__restrict__ all_converged)
@@ -190,7 +191,7 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
              ++i) {
             norm_euclid += squared_norm(s[i]);
         }
-        if (norm_euclid > norm_goal) {
+        if (norm_euclid > rel_residual_goal * abs(orig_tau[tidx])) {
             *all_converged = false;
         } else {
             converged[tidx] = true;
@@ -206,7 +207,8 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
 template <typename ValueType>
 void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Dense<ValueType> *s,
-                        remove_complex<ValueType> norm_goal,
+                        const matrix::Dense<ValueType> *orig_tau,
+                        remove_complex<ValueType> rel_residual_goal,
                         const matrix::Dense<ValueType> *alpha,
                         const matrix::Dense<ValueType> *y,
                         matrix::Dense<ValueType> *x, Array<bool> *converged,
@@ -225,8 +227,9 @@ void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 grid_size(ceildiv(s->get_num_cols(), block_size.x), 1, 1);
 
     test_convergence_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        s->get_num_rows(), s->get_num_cols(), s->get_stride(), norm_goal,
-        as_cuda_type(s->get_const_values()),
+        s->get_num_rows(), s->get_num_cols(), s->get_stride(),
+        rel_residual_goal, as_cuda_type(s->get_const_values()),
+        as_cuda_type(orig_tau->get_const_values()),
         as_cuda_type(alpha->get_const_values()),
         as_cuda_type(y->get_const_values()), as_cuda_type(x->get_values()),
         as_cuda_type(converged->get_data()),

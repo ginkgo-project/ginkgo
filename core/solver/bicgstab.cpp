@@ -141,8 +141,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_2_operation(
-                s.get(), rel_residual_goal_, alpha.get(), y.get(), dense_x,
-                &converged, &all_converged));
+                s.get(), starting_tau.get(), rel_residual_goal_, alpha.get(),
+                y.get(), dense_x, &converged, &all_converged));
 
         if (all_converged) {
             break;
