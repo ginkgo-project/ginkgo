@@ -121,15 +121,14 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type j = 0; j < s->get_num_cols(); ++j) {
         if (converged->get_const_data()[j]) continue;
 
-        remove_complex<ValueType> sum_squares =
-            zero<remove_complex<ValueType>>();
+        auto sum_squares = zero<remove_complex<ValueType>>();
         for (size_type i = 0; i < s->get_num_rows(); ++i) {
             sum_squares += squared_norm(s->at(i, j));
         }
         if (sqrt(sum_squares) <= norm_goal) {
             converged->get_data()[j] = true;
             // set according x-vector to final version with x = x + alpha * y
-            ValueType cur_alpha = alpha->at(j);
+            auto cur_alpha = alpha->at(j);
             for (size_type i = 0; i < x->get_num_rows(); ++i) {
                 x->at(i, j) += cur_alpha * y->at(i, j);
             }

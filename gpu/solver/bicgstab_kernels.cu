@@ -169,24 +169,36 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
-/*
+
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
-    size_type num_cols, remove_complex<ValueType> norm_goal,
-    const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
-    bool *__restrict__ converged, bool *__restrict__ all_converged)
+    remove_complex<ValueType> norm_goal, const ValueType *__restrict__ s,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ y,
+    ValueType *__restrict__ x, bool *__restrict__ converged,
+    bool *__restrict__ all_converged)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto first_row_element = tidx * stride;
+    if (tidx >= num_cols || converged[col]) {
+        return;
+    }
     if (tidx < num_cols) {
-        if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
-            converged[tidx] = true;
+        auto norm_euclid = zero<remove_complex<ValueType>>();
+        for (size_type i = first_row_element; i < first_row_element + num_rows;
+             ++i) {
+            norm_euclid += squared_norm(s[i]);
         }
-        // because only false is written to all_converged, write conflicts
-        // should not cause any problem
-        else if (converged[tidx] == false) {
+        if (norm_euclid > norm_goal) {
             *all_converged = false;
+        } else {
+            converged[tidx] = true;
+            auto cur_alpha = alpha[tidx];
+            for (size_type i = first_row_element;
+                 i < first_row_element + num_rows; ++i) {
+                x[i] += cur_alpha * y[i];
+            }
         }
     }
 }
@@ -210,12 +222,13 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
     all_converged_array.manage(1, all_converged);
 
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_num_cols(), block_size.x), 1, 1);
+    const dim3 grid_size(ceildiv(s->get_num_cols(), block_size.x), 1, 1);
 
-    test_convergence_kernel<<<grid_size, block_size, 0, 0>>>(
-        tau->get_num_cols(), rel_residual_goal,
-        as_cuda_type(tau->get_const_values()),
-        as_cuda_type(orig_tau->get_const_values()),
+    test_convergence_2_kernel<<<grid_size, block_size, 0, 0>>>(
+        s->get_num_rows(), s->get_num_cols(), s->get_stride(), norm_goal,
+        as_cuda_type(s->get_const_values()),
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(y->get_const_values()), as_cuda_type(x->get_values()),
         as_cuda_type(converged->get_data()),
         as_cuda_type(d_all_converged.get_data()));
 
@@ -225,7 +238,7 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL);
-*/
+
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
