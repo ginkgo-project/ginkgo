@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/stop/iterations.hpp>
 
 
 namespace {
@@ -53,10 +54,12 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          bicgstab_factory(Solver::Factory::create()
-                               .with_max_iters(3)
-                               .with_rel_residual_goal(1e-6)
-                               .on_executor(exec)),
+          // TODO: Make this a Combination of iteration and residual norm goal
+          // 1e-6
+          bicgstab_factory(
+              Solver::Factory::create()
+                  .with_criterion(gko::stop::Iterations::Factory::create(3))
+                  .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
     {}
 
@@ -84,24 +87,11 @@ TEST_F(Bicgstab, BicgstabFactoryKnowsItsExecutor)
 }
 
 
-TEST_F(Bicgstab, BicgstabFactoryKnowsItsIterationLimit)
-{
-    ASSERT_EQ(bicgstab_factory->get_parameters().max_iters, 3);
-}
-
-
-TEST_F(Bicgstab, BicgstabFactoryKnowsItsRelResidualGoal)
-{
-    ASSERT_EQ(bicgstab_factory->get_parameters().rel_residual_goal, 1e-6);
-}
-
-
 TEST_F(Bicgstab, BicgstabFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto bicgstab_solver = static_cast<Solver *>(solver.get());
-    ASSERT_EQ(bicgstab_solver->get_parameters().max_iters, 3);
-    ASSERT_EQ(bicgstab_solver->get_parameters().rel_residual_goal, 1e-6);
+
     ASSERT_NE(bicgstab_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(bicgstab_solver->get_system_matrix(), mtx);
 }
@@ -155,10 +145,10 @@ TEST_F(Bicgstab, CanSetPreconditionerGenertor)
 {
     auto bicgstab_factory =
         Solver::Factory::create()
-            .with_max_iters(3)
-            .with_rel_residual_goal(1e-6)
+            .with_criterion(gko::stop::Iterations::Factory::create(3))
             .with_preconditioner(Solver::Factory::create().on_executor(exec))
             .on_executor(exec);
+
     auto solver = bicgstab_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Bicgstab<> *>(
         gko::lend(solver->get_preconditioner()));
