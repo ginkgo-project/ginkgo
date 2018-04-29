@@ -46,9 +46,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename>
-class BicgstabFactory;
-
 /**
  * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.
  *
@@ -65,7 +62,6 @@ class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
                  public PreconditionedMethod {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
-    friend class BicgstabFactory<ValueType>;
 
 public:
     using EnableLinOp<Bicgstab>::convert_to;
@@ -83,119 +79,26 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
+    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Bicgstab)
     {
-        return rel_residual_goal_;
-    }
+        /**
+         * Maximum number of iterations.
+         */
+        int64 max_iters;
+        /**
+         * Relative residual goal.
+         */
+        remove_complex<value_type> rel_residual_goal;
+    };
 
 protected:
-    explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicgstab>(exec)
-    {}
-
-    Bicgstab(std::shared_ptr<const Executor> exec, int max_iters,
-             remove_complex<value_type> rel_residual_goal,
-             std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Bicgstab>(
-              exec, system_matrix->get_dimensions().transpose().fill()),
-          system_matrix_(std::move(system_matrix)),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
-};
-
-
-/**
- * Creates the BiCGSTAB solver.
- *
- * @param exec The executor on which the BiCGSTAB solver is to be created.
- * @param max_iters  The maximum number of iterations to be pursued.
- * @param rel_residual_goal  The relative residual required for
- * convergence.
- *
- * @return The newly created BiCGSTAB solver.
- */
-template <typename ValueType = default_precision>
-class BicgstabFactory
-    : public EnablePolymorphicObject<BicgstabFactory<ValueType>, LinOpFactory>,
-      public PreconditionedMethodFactory {
-    friend class EnablePolymorphicObject<BicgstabFactory, LinOpFactory>;
-
-public:
-    using value_type = ValueType;
-
-    static std::unique_ptr<BicgstabFactory> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal)
-    {
-        return std::unique_ptr<BicgstabFactory>(
-            new BicgstabFactory(std::move(exec), max_iters, rel_residual_goal));
-    }
-
-    /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
-    {
-        return rel_residual_goal_;
-    }
-
-protected:
-    BicgstabFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<BicgstabFactory, LinOpFactory>(
-              std::move(exec)),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_{},
-          rel_residual_goal_{}
-    {}
-
-    BicgstabFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                    remove_complex<value_type> rel_residual_goal)
-        : EnablePolymorphicObject<BicgstabFactory, LinOpFactory>(exec),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
-    std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> base) const override;
-
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
 };
 
 

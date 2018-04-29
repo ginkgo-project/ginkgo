@@ -49,20 +49,23 @@ namespace {
 class Bicgstab : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Bicgstab<>;
+
     Bicgstab()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
-              gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15)),
+              gko::solver::Bicgstab<>::Factory::create(exec, 8, 1e-15)),
           bicgstab_factory_precision(
-              gko::solver::BicgstabFactory<>::create(exec, 50, 1e-15))
+              gko::solver::Bicgstab<>::Factory::create(exec, 50, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory_precision;
+    std::unique_ptr<gko::solver::Bicgstab<>::Factory> bicgstab_factory;
+    std::unique_ptr<gko::solver::Bicgstab<>::Factory>
+        bicgstab_factory_precision;
 };
 
 
