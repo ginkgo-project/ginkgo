@@ -132,7 +132,11 @@ private:
  * generate the CG solver.
  */
 template <typename ValueType = default_precision>
-class CgFactory : public LinOpFactory, public PreconditionedMethodFactory {
+class CgFactory
+    : public EnablePolymorphicObject<CgFactory<ValueType>, LinOpFactory>,
+      public PreconditionedMethodFactory {
+    friend class EnablePolymorphicObject<CgFactory, LinOpFactory>;
+
 public:
     using value_type = ValueType;
     /**
@@ -153,9 +157,6 @@ public:
             new CgFactory(std::move(exec), max_iters, rel_residual_goal));
     }
 
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
-
     /**
      * Gets the maximum number of iterations of the CG solver.
      *
@@ -174,14 +175,25 @@ public:
     }
 
 protected:
+    CgFactory(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<CgFactory, LinOpFactory>(std::move(exec)),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
+          max_iters_{},
+          rel_residual_goal_{}
+    {}
+
     explicit CgFactory(std::shared_ptr<const Executor> exec, int max_iters,
                        remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(exec),
+        : EnablePolymorphicObject<CgFactory, LinOpFactory>(exec),
           PreconditionedMethodFactory(
               matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
+
+    std::unique_ptr<LinOp> generate_impl(
+        std::shared_ptr<const LinOp> base) const override;
 
     int max_iters_{};
     remove_complex<value_type> rel_residual_goal_{};

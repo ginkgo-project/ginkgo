@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
 
+#include "core/base/abstract_factory.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/lin_op_interfaces.hpp"
 #include "core/base/polymorphic_object.hpp"
@@ -384,33 +385,37 @@ protected:
  * cg->apply(b.get(), x.get());
  * ```
  */
-class LinOpFactory {
-public:
-    /**
-     * Generates a Linear operator from the base linear operator.
-     *
-     * @param base  The base linear operator.
-     */
-    virtual std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const = 0;
-    /**
-     * Gets the exector on which the Linear operator exists.
-     *
-     * @return exec_ The executor.
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
 
-protected:
-    explicit LinOpFactory(std::shared_ptr<const Executor> exec)
-        : exec_(std::move(exec))
-    {}
+using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
 
-private:
-    std::shared_ptr<const Executor> exec_;
-};
+
+// class LinOpFactory {
+// public:
+//     /**
+//      * Generates a Linear operator from the base linear operator.
+//      *
+//      * @param base  The base linear operator.
+//      */
+//     virtual std::unique_ptr<LinOp> generate(
+//         std::shared_ptr<const LinOp> base) const = 0;
+//     /**
+//      * Gets the exector on which the Linear operator exists.
+//      *
+//      * @return exec_ The executor.
+//      */
+//     std::shared_ptr<const Executor> get_executor() const noexcept
+//     {
+//         return exec_;
+//     }
+//
+// protected:
+//     explicit LinOpFactory(std::shared_ptr<const Executor> exec)
+//         : exec_(std::move(exec))
+//     {}
+//
+// private:
+//     std::shared_ptr<const Executor> exec_;
+// };
 
 
 /**

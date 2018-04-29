@@ -392,7 +392,11 @@ protected:
  *                                     class
  */
 template <typename ConcreteBlockJacobiFactory>
-class BasicBlockJacobiFactory : public LinOpFactory {
+class BasicBlockJacobiFactory
+    : public EnablePolymorphicObject<ConcreteBlockJacobiFactory, LinOpFactory> {
+    friend class EnablePolymorphicObject<ConcreteBlockJacobiFactory,
+                                         LinOpFactory>;
+
 public:
     using value_type =
         typename detail::value_type<ConcreteBlockJacobiFactory>::type;
@@ -461,9 +465,17 @@ public:
     }
 
 protected:
+    BasicBlockJacobiFactory(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<ConcreteBlockJacobiFactory, LinOpFactory>(
+              exec),
+          max_block_size_{},
+          block_pointers_(exec)
+    {}
+
     BasicBlockJacobiFactory(std::shared_ptr<const Executor> exec,
                             uint32 max_block_size)
-        : LinOpFactory(exec),
+        : EnablePolymorphicObject<ConcreteBlockJacobiFactory, LinOpFactory>(
+              exec),
           max_block_size_(max_block_size),
           block_pointers_(exec)
     {}
@@ -489,17 +501,18 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobiFactory
     : public BasicBlockJacobiFactory<BlockJacobiFactory<ValueType, IndexType>> {
     friend class BasicBlockJacobiFactory<BlockJacobiFactory>;
+    friend class EnablePolymorphicObject<BlockJacobiFactory, LinOpFactory>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using generated_type = BlockJacobi<ValueType, IndexType>;
 
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
-
 protected:
     using BasicBlockJacobiFactory<BlockJacobiFactory>::BasicBlockJacobiFactory;
+
+    std::unique_ptr<LinOp> generate_impl(
+        std::shared_ptr<const LinOp> base) const override;
 };
 
 
@@ -524,14 +537,13 @@ class AdaptiveBlockJacobiFactory
     : public BasicBlockJacobiFactory<
           AdaptiveBlockJacobiFactory<ValueType, IndexType>> {
     friend class BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>;
+    friend class EnablePolymorphicObject<AdaptiveBlockJacobiFactory,
+                                         LinOpFactory>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using generated_type = AdaptiveBlockJacobi<ValueType, IndexType>;
-
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
 
     /**
      * Sets the precision to use for storing each of the blocks.
@@ -566,11 +578,14 @@ public:
 
 protected:
     AdaptiveBlockJacobiFactory(std::shared_ptr<const Executor> exec,
-                               uint32 max_block_size)
+                               uint32 max_block_size = {})
         : BasicBlockJacobiFactory<AdaptiveBlockJacobiFactory>(exec,
                                                               max_block_size),
           block_precisions_(exec)
     {}
+
+    std::unique_ptr<LinOp> generate_impl(
+        std::shared_ptr<const LinOp> base) const override;
 
     Array<typename generated_type::precision> block_precisions_;
 };

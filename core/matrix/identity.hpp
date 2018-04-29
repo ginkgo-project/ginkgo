@@ -104,7 +104,10 @@ protected:
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class IdentityFactory : public LinOpFactory {
+class IdentityFactory
+    : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
+    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
+
 public:
     using value_type = ValueType;
 
@@ -122,11 +125,12 @@ public:
             new IdentityFactory(std::move(exec)));
     }
 
-    std::unique_ptr<LinOp> generate(
+protected:
+    std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-protected:
-    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
+    IdentityFactory(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
     {}
 };
 

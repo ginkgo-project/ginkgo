@@ -137,7 +137,11 @@ private:
  * used to generate the FCG solver.
  */
 template <typename ValueType = default_precision>
-class FcgFactory : public LinOpFactory, public PreconditionedMethodFactory {
+class FcgFactory
+    : public EnablePolymorphicObject<FcgFactory<ValueType>, LinOpFactory>,
+      public PreconditionedMethodFactory {
+    friend class EnablePolymorphicObject<FcgFactory, LinOpFactory>;
+
 public:
     using value_type = ValueType;
     /**
@@ -158,9 +162,6 @@ public:
             new FcgFactory(std::move(exec), max_iters, rel_residual_goal));
     }
 
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
-
     /**
      * Gets the maximum number of iterations of the FCG solver.
      *
@@ -179,14 +180,25 @@ public:
     }
 
 protected:
+    FcgFactory(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<FcgFactory, LinOpFactory>(std::move(exec)),
+          PreconditionedMethodFactory(
+              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
+          max_iters_{},
+          rel_residual_goal_{}
+    {}
+
     explicit FcgFactory(std::shared_ptr<const Executor> exec, int max_iters,
                         remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(exec),
+        : EnablePolymorphicObject<FcgFactory, LinOpFactory>(std::move(exec)),
           PreconditionedMethodFactory(
               matrix::IdentityFactory<ValueType>::create(std::move(exec))),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
+
+    std::unique_ptr<LinOp> generate_impl(
+        std::shared_ptr<const LinOp> base) const override;
 
     int max_iters_;
     remove_complex<value_type> rel_residual_goal_;

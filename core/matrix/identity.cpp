@@ -61,7 +61,7 @@ void Identity<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate(
+std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
     ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
