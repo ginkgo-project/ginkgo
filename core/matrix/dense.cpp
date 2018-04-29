@@ -152,34 +152,22 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    auto exec = this->get_executor();
-    if (b->get_executor() != exec || x->get_executor() != exec) NOT_IMPLEMENTED;
-    exec->run(TemplatedOperation<ValueType>::make_simple_apply_operation(
-        this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_simple_apply_operation(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                             const LinOp *beta, LinOp *x) const
+void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                  const LinOp *beta, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
-    auto exec = this->get_executor();
-    if (alpha->get_executor() != exec || b->get_executor() != exec ||
-        beta->get_executor() != exec || x->get_executor() != exec)
-        NOT_IMPLEMENTED;
-    exec->run(TemplatedOperation<ValueType>::make_apply_operation(
-        as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-        as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_apply_operation(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
 }
 
 

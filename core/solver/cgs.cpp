@@ -63,7 +63,7 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
@@ -155,8 +155,8 @@ void Cgs<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                           const LinOp *beta, LinOp *x) const
+void Cgs<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 

@@ -66,30 +66,25 @@ class Coo;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
+class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
-    friend class BasicLinOp<Csr>;
+    friend class EnableLinOp<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
 public:
-    using BasicLinOp<Csr>::create;
-    using BasicLinOp<Csr>::convert_to;
-    using BasicLinOp<Csr>::move_to;
+    using EnableLinOp<Csr>::create;
+    using EnableLinOp<Csr>::convert_to;
+    using EnableLinOp<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -171,7 +166,10 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Csr(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Csr>(exec), values_(exec), col_idxs_(exec), row_ptrs_(exec)
+        : EnableLinOp<Csr>(exec),
+          values_(exec),
+          col_idxs_(exec),
+          row_ptrs_(exec)
     {}
 
     /**
@@ -184,11 +182,16 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type num_nonzeros)
-        : BasicLinOp<Csr>(exec, {num_rows, num_cols, num_nonzeros}),
+        : EnableLinOp<Csr>(exec, {num_rows, num_cols, num_nonzeros}),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     /**
      * Simple helper function to factorise conversion code of CSR matrix to COO.

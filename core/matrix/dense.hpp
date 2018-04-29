@@ -72,7 +72,7 @@ class Ell;
  *       is often suitable to store vectors, and sets of vectors.
  */
 template <typename ValueType = default_precision>
-class Dense : public BasicLinOp<Dense<ValueType>>,
+class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
@@ -84,7 +84,7 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
               public Transposable {
-    friend class BasicLinOp<Dense>;
+    friend class EnableLinOp<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
@@ -94,9 +94,9 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
     friend class Ell<ValueType, int64>;
 
 public:
-    using BasicLinOp<Dense>::create;
-    using BasicLinOp<Dense>::convert_to;
-    using BasicLinOp<Dense>::move_to;
+    using EnableLinOp<Dense>::create;
+    using EnableLinOp<Dense>::convert_to;
+    using EnableLinOp<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -113,11 +113,6 @@ public:
         return create(other->get_executor(), other->get_dimensions().num_rows,
                       other->get_dimensions().num_cols, other->get_stride());
     }
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Coo<ValueType, int32> *result) const override;
 
@@ -269,7 +264,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Dense(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Dense>(exec), values_(exec)
+        : EnableLinOp<Dense>(exec), values_(exec)
     {}
 
     /**
@@ -284,10 +279,15 @@ protected:
      */
     Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type stride)
-        : BasicLinOp<Dense>(exec, {num_rows, num_cols, num_rows * stride}),
+        : EnableLinOp<Dense>(exec, {num_rows, num_cols, num_rows * stride}),
           values_(exec, num_rows * stride),
           stride_(stride)
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     /**
      * Creates an uninitialized Dense matrix of the specified size.

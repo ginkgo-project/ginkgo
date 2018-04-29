@@ -82,11 +82,8 @@ size_type calculate_max_nonzeros_per_row(
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
@@ -95,14 +92,9 @@ void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta, LinOp *x) const
+void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                           const LinOp *beta, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(

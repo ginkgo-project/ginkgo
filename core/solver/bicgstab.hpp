@@ -61,22 +61,17 @@ class BicgstabFactory;
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public BasicLinOp<Bicgstab<ValueType>>,
+class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
                  public PreconditionedMethod {
-    friend class BasicLinOp<Bicgstab>;
+    friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
     friend class BicgstabFactory<ValueType>;
 
 public:
-    using BasicLinOp<Bicgstab>::convert_to;
-    using BasicLinOp<Bicgstab>::move_to;
+    using EnableLinOp<Bicgstab>::convert_to;
+    using EnableLinOp<Bicgstab>::move_to;
 
     using value_type = ValueType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -106,21 +101,27 @@ public:
     }
 
 protected:
-    using BasicLinOp<Bicgstab>::create;
+    using EnableLinOp<Bicgstab>::create;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Bicgstab>(exec)
+        : EnableLinOp<Bicgstab>(exec)
     {}
 
     Bicgstab(std::shared_ptr<const Executor> exec, int max_iters,
              remove_complex<value_type> rel_residual_goal,
              std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Bicgstab>(
+        : EnableLinOp<Bicgstab>(
               exec, system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

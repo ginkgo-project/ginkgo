@@ -89,10 +89,10 @@ struct index_type<Op<ValueType, IndexType>> {
  *                              common methods are implemented by this class
  */
 template <typename ConcreteBlockJacobi>
-class BasicBlockJacobi : public BasicLinOp<ConcreteBlockJacobi> {
+class BasicBlockJacobi : public EnableLinOp<ConcreteBlockJacobi> {
 public:
-    using BasicLinOp<ConcreteBlockJacobi>::convert_to;
-    using BasicLinOp<ConcreteBlockJacobi>::move_to;
+    using EnableLinOp<ConcreteBlockJacobi>::convert_to;
+    using EnableLinOp<ConcreteBlockJacobi>::move_to;
 
     using value_type = typename detail::value_type<ConcreteBlockJacobi>::type;
     using index_type = typename detail::index_type<ConcreteBlockJacobi>::type;
@@ -170,10 +170,10 @@ public:
     }
 
 protected:
-    using BasicLinOp<ConcreteBlockJacobi>::create;
+    using EnableLinOp<ConcreteBlockJacobi>::create;
 
     explicit BasicBlockJacobi(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<ConcreteBlockJacobi>(exec),
+        : EnableLinOp<ConcreteBlockJacobi>(exec),
           block_pointers_(exec),
           blocks_(exec)
     {}
@@ -181,7 +181,7 @@ protected:
     BasicBlockJacobi(std::shared_ptr<const Executor> exec,
                      const LinOp *system_matrix, uint32 max_block_size,
                      const Array<index_type> &block_pointers)
-        : BasicLinOp<ConcreteBlockJacobi>(
+        : EnableLinOp<ConcreteBlockJacobi>(
               exec,
               {system_matrix->get_dimensions().num_rows,
                system_matrix->get_dimensions().num_cols,
@@ -223,7 +223,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobi : public BasicBlockJacobi<BlockJacobi<ValueType, IndexType>>,
                     public ConvertibleTo<matrix::Dense<ValueType>>,
                     public WritableToMatrixData<ValueType, IndexType> {
-    friend class BasicLinOp<BlockJacobi>;
+    friend class EnableLinOp<BlockJacobi>;
     friend class EnablePolymorphicObject<BlockJacobi, LinOp>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
@@ -235,11 +235,6 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(matrix::Dense<value_type> *result) const override;
 
@@ -259,6 +254,11 @@ protected:
     {
         this->generate(system_matrix);
     }
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     void generate(const LinOp *system_matrix);
 };
@@ -288,7 +288,7 @@ class AdaptiveBlockJacobi
     : public BasicBlockJacobi<AdaptiveBlockJacobi<ValueType, IndexType>>,
       public ConvertibleTo<matrix::Dense<ValueType>>,
       public WritableToMatrixData<ValueType, IndexType> {
-    friend class BasicLinOp<AdaptiveBlockJacobi>;
+    friend class EnableLinOp<AdaptiveBlockJacobi>;
     friend class EnablePolymorphicObject<AdaptiveBlockJacobi, LinOp>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
@@ -326,11 +326,6 @@ public:
          */
         best_precision
     };
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(matrix::Dense<value_type> *result) const override;
 
@@ -381,6 +376,12 @@ protected:
     }
 
     void generate(const LinOp *system_matrix);
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
     Array<precision> block_precisions_;
 };
 

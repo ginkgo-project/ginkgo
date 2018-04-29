@@ -64,21 +64,16 @@ class CgFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public BasicLinOp<Cg<ValueType>>, public PreconditionedMethod {
-    friend class BasicLinOp<Cg>;
+class Cg : public EnableLinOp<Cg<ValueType>>, public PreconditionedMethod {
+    friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
     friend class CgFactory<ValueType>;
 
 public:
-    using BasicLinOp<Cg>::convert_to;
-    using BasicLinOp<Cg>::move_to;
+    using EnableLinOp<Cg>::convert_to;
+    using EnableLinOp<Cg>::move_to;
 
     using value_type = ValueType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -107,21 +102,27 @@ public:
         return rel_residual_goal_;
     }
 
-private:
-    using BasicLinOp<Cg>::create;
+protected:
+    void apply_impl(const LinOp *b, LinOp *x) const override;
 
-    explicit Cg(std::shared_ptr<const Executor> exec) : BasicLinOp<Cg>(exec) {}
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
+    using EnableLinOp<Cg>::create;
+
+    explicit Cg(std::shared_ptr<const Executor> exec) : EnableLinOp<Cg>(exec) {}
 
     Cg(std::shared_ptr<const Executor> exec, int max_iters,
        remove_complex<value_type> rel_residual_goal,
        std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Cg>(exec,
-                         system_matrix->get_dimensions().transpose().fill()),
+        : EnableLinOp<Cg>(exec,
+                          system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
 
+private:
     std::shared_ptr<const LinOp> system_matrix_{};
     int max_iters_{};
     remove_complex<value_type> rel_residual_goal_{};

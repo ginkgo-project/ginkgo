@@ -202,9 +202,9 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 
 
 template <typename ValueType, typename IndexType>
-class DummyLinOp : public gko::BasicLinOp<DummyLinOp<ValueType, IndexType>>,
+class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType, IndexType>>,
                    public gko::ReadableFromMatrixData<ValueType, IndexType> {
-    friend class gko::BasicLinOp<DummyLinOp>;
+    friend class gko::EnableLinOp<DummyLinOp>;
     friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
 
 public:
@@ -212,17 +212,17 @@ public:
     using index_type = IndexType;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void apply(const gko::LinOp *b, gko::LinOp *x) const override {}
-
-    void apply(const gko::LinOp *alpha, const gko::LinOp *b,
-               const gko::LinOp *beta, gko::LinOp *x) const override
-    {}
-
     void read(const mat_data &data) override { data_ = data; }
 
 protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::BasicLinOp<DummyLinOp>(exec)
+        : gko::EnableLinOp<DummyLinOp>(exec)
     {}
 
 public:

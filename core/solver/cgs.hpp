@@ -61,21 +61,16 @@ class CgsFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cgs : public BasicLinOp<Cgs<ValueType>>, public PreconditionedMethod {
-    friend class BasicLinOp<Cgs>;
+class Cgs : public EnableLinOp<Cgs<ValueType>>, public PreconditionedMethod {
+    friend class EnableLinOp<Cgs>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
     friend class CgsFactory<ValueType>;
 
 public:
-    using BasicLinOp<Cgs>::convert_to;
-    using BasicLinOp<Cgs>::move_to;
+    using EnableLinOp<Cgs>::convert_to;
+    using EnableLinOp<Cgs>::move_to;
 
     using value_type = ValueType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     /**
      * Gets the system matrix of the linear system.
@@ -104,22 +99,28 @@ public:
         return rel_residual_goal_;
     }
 
-private:
-    using BasicLinOp<Cgs>::create;
+protected:
+    using EnableLinOp<Cgs>::create;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec) : BasicLinOp<Cgs>(exec)
+    explicit Cgs(std::shared_ptr<const Executor> exec) : EnableLinOp<Cgs>(exec)
     {}
 
     Cgs(std::shared_ptr<const Executor> exec, int max_iters,
         remove_complex<value_type> rel_residual_goal,
         std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Cgs>(exec,
-                          system_matrix->get_dimensions().transpose().fill()),
+        : EnableLinOp<Cgs>(exec,
+                           system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
 
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
+private:
     std::shared_ptr<const LinOp> system_matrix_{};
     int max_iters_{};
     remove_complex<value_type> rel_residual_goal_{};

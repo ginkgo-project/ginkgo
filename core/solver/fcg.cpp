@@ -60,15 +60,12 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-
-    ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_dimensions().num_cols;
@@ -143,8 +140,8 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                           const LinOp *beta, LinOp *x) const
+void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
     auto x_clone = dense_x->clone();

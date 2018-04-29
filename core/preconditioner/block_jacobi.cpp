@@ -75,11 +75,9 @@ struct AdaptiveBlockJacobiOperation {
 
 
 template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+void BlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *b,
+                                                   LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         BlockJacobiOperation<ValueType, IndexType>::make_simple_apply_operation(
@@ -89,15 +87,11 @@ void BlockJacobi<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void BlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
-                                              const LinOp *b, const LinOp *beta,
-                                              LinOp *x) const
+void BlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                                   const LinOp *b,
+                                                   const LinOp *beta,
+                                                   LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         BlockJacobiOperation<ValueType, IndexType>::make_apply_operation(
@@ -207,12 +201,9 @@ std::unique_ptr<LinOp> BlockJacobiFactory<ValueType, IndexType>::generate(
 
 
 template <typename ValueType, typename IndexType>
-void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *b,
-                                                      LinOp *x) const
+void AdaptiveBlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *b,
+                                                           LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
@@ -224,16 +215,11 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void AdaptiveBlockJacobi<ValueType, IndexType>::apply(const LinOp *alpha,
-                                                      const LinOp *b,
-                                                      const LinOp *beta,
-                                                      LinOp *x) const
+void AdaptiveBlockJacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                                           const LinOp *b,
+                                                           const LinOp *beta,
+                                                           LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using dense = matrix::Dense<ValueType>;
     this->get_executor()->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::

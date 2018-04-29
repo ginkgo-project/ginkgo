@@ -44,24 +44,16 @@ namespace matrix {
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Identity<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_COLS(x, b);
     x->copy_from(b);
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Identity<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x) const
 {
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_COLS(x, b);
     auto dense_x = as<Dense<ValueType>>(x);
     dense_x->scale(beta);
     dense_x->add_scaled(alpha, b);

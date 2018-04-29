@@ -65,27 +65,22 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
+class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
-    friend class BasicLinOp<Ell>;
+    friend class EnableLinOp<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
 
 public:
-    using BasicLinOp<Ell>::create;
-    using BasicLinOp<Ell>::convert_to;
-    using BasicLinOp<Ell>::move_to;
+    using EnableLinOp<Ell>::create;
+    using EnableLinOp<Ell>::convert_to;
+    using EnableLinOp<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -203,7 +198,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Ell(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Ell>(exec),
+        : EnableLinOp<Ell>(exec),
           values_(exec),
           col_idxs_(exec),
           max_nonzeros_per_row_(0),
@@ -221,8 +216,8 @@ protected:
      */
     Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
         size_type num_cols, size_type max_nonzeros_per_row, size_type stride)
-        : BasicLinOp<Ell>(exec,
-                          {num_rows, num_cols, stride * max_nonzeros_per_row}),
+        : EnableLinOp<Ell>(exec,
+                           {num_rows, num_cols, stride * max_nonzeros_per_row}),
           values_(exec, stride * max_nonzeros_per_row),
           col_idxs_(exec, stride * max_nonzeros_per_row),
           max_nonzeros_per_row_(max_nonzeros_per_row),
@@ -257,6 +252,11 @@ protected:
         size_type num_cols)
         : Ell(std::move(exec), num_rows, num_cols, num_cols)
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

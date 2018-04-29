@@ -57,21 +57,16 @@ namespace matrix {
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Identity : public BasicLinOp<Identity<ValueType>> {
-    friend class BasicLinOp<Identity>;
+class Identity : public EnableLinOp<Identity<ValueType>> {
+    friend class EnableLinOp<Identity>;
     friend class EnablePolymorphicObject<Identity, LinOp>;
 
 public:
-    using BasicLinOp<Identity>::create;
-    using BasicLinOp<Identity>::convert_to;
-    using BasicLinOp<Identity>::move_to;
+    using EnableLinOp<Identity>::create;
+    using EnableLinOp<Identity>::convert_to;
+    using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
 protected:
     /**
@@ -80,7 +75,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Identity(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Identity>(exec)
+        : EnableLinOp<Identity>(exec)
     {}
 
     /**
@@ -89,8 +84,13 @@ protected:
      * @param dimension  size of the matrix
      */
     Identity(std::shared_ptr<const Executor> exec, size_type dimension)
-        : BasicLinOp<Identity>(exec, {dimension, dimension, 0})
+        : EnableLinOp<Identity>(exec, {dimension, dimension, 0})
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 };
 
 

@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
 
+#include "core/base/exception_helpers.hpp"
 #include "core/base/lin_op_interfaces.hpp"
 #include "core/base/polymorphic_object.hpp"
 #include "core/base/types.hpp"
@@ -184,7 +185,19 @@ public:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    virtual void apply(const LinOp *b, LinOp *x) const = 0;
+    const LinOp *apply(const LinOp *b, LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        this->apply_impl(b, x);
+        return this;
+    }
+
+    LinOp *apply(const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        this->apply_impl(b, x);
+        return this;
+    }
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -194,8 +207,21 @@ public:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                       LinOp *x) const = 0;
+    const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                       LinOp *x) const
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        this->apply_impl(alpha, b, beta, x);
+        return this;
+    }
+
+    LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                 LinOp *x)
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        this->apply_impl(alpha, b, beta, x);
+        return this;
+    }
 
     const dimension_type &get_dimensions() const noexcept
     {
@@ -211,6 +237,43 @@ protected:
     void set_dimensions(const dimension_type &dimensions) noexcept
     {
         dimensions_ = dimensions;
+    }
+
+    /**
+     * Applies a linear operator to a vector (or a sequence of vectors).
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    virtual void apply_impl(const LinOp *b, LinOp *x) const = 0;
+
+    /**
+     * Performs the operation x = alpha * op(b) + beta * x.
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    virtual void apply_impl(const LinOp *alpha, const LinOp *b,
+                            const LinOp *beta, LinOp *x) const = 0;
+
+    void validate_application_parameters(const LinOp *b, const LinOp *x) const
+    {
+        ASSERT_CONFORMANT(this, b);
+        ASSERT_EQUAL_ROWS(this, x);
+        ASSERT_EQUAL_COLS(b, x);
+    }
+
+    void validate_application_parameters(const LinOp *alpha, const LinOp *b,
+                                         const LinOp *beta,
+                                         const LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     }
 
 private:
@@ -232,12 +295,42 @@ private:
  * class.
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class BasicLinOp
+class EnableLinOp
     : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
       public EnablePolymorphicAssignment<ConcreteLinOp> {
 public:
     using EnablePolymorphicObject<ConcreteLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
+
+    const ConcreteLinOp *apply(const LinOp *b, LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        this->apply_impl(b, x);
+        return self();
+    }
+
+    ConcreteLinOp *apply(const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        this->apply_impl(b, x);
+        return self();
+    }
+
+    const ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x) const
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        this->apply_impl(alpha, b, beta, x);
+        return self();
+    }
+
+    ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                         LinOp *x)
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        this->apply_impl(alpha, b, beta, x);
+        return self();
+    }
 
     template <typename... TArgs>
     static std::unique_ptr<ConcreteLinOp> create(TArgs &&... args)
