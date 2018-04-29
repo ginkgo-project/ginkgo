@@ -80,10 +80,8 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Solver parameters.
-     */
-    struct parameters_type {
+    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Cg)
+    {
         /**
          * Maximum number of iterations.
          */
@@ -94,43 +92,7 @@ public:
         remove_complex<value_type> rel_residual_goal;
     };
 
-    /**
-     * Get the parameters of the solver.
-     */
-    const parameters_type &get_parameters() const { return parameters_; }
-
-    /**
-     * Factory type used to generate the solver.
-     */
-    class Factory
-        : public EnableDefaultLinOpFactory<Factory, Cg, parameters_type>,
-          public PreconditionedMethodFactory {
-        friend class EnablePolymorphicObject<Factory, LinOpFactory>;
-        friend class EnableCreateMethod<Factory>;
-
-        template <typename... Args>
-        Factory(std::shared_ptr<const Executor> exec, Args &&... args)
-            : EnableDefaultLinOpFactory<Factory, Cg, parameters_type>(
-                  exec, std::forward<Args>(args)...),
-              PreconditionedMethodFactory(
-                  matrix::IdentityFactory<ValueType>::create(std::move(exec)))
-        {}
-    };
-    friend EnableDefaultLinOpFactory<Factory, Cg, parameters_type>;
-
 protected:
-    explicit Cg(std::shared_ptr<const Executor> exec) : EnableLinOp<Cg>(exec) {}
-
-    Cg(const Factory *factory, std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cg>(factory->get_executor(),
-                          system_matrix->get_dimensions().transpose().fill()),
-          system_matrix_(std::move(system_matrix)),
-          parameters_{factory->get_parameters()}
-    {
-        this->preconditioner_ =
-            factory->get_preconditioner()->generate(system_matrix_);
-    }
-
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -138,8 +100,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-
-    parameters_type parameters_{};
 };
 
 
