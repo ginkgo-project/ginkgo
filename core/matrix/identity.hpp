@@ -57,12 +57,12 @@ namespace matrix {
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>> {
-    friend class EnableLinOp<Identity>;
+class Identity : public EnableLinOp<Identity<ValueType>>,
+                 public EnableCreateMethod<Identity<ValueType>> {
     friend class EnablePolymorphicObject<Identity, LinOp>;
+    friend class EnableCreateMethod<Identity>;
 
 public:
-    using EnableLinOp<Identity>::create;
     using EnableLinOp<Identity>::convert_to;
     using EnableLinOp<Identity>::move_to;
 

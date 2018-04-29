@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_POLYMORPHIC_OBJECT_INTERFACES_HPP_
 
 
+#include <memory>
 #include <utility>
 
 
@@ -123,6 +124,18 @@ public:
 
 protected:
     GKO_ENABLE_SELF(ConcreteType);
+};
+
+
+template <typename ConcreteType>
+class EnableCreateMethod {
+public:
+    template <typename... Args>
+    static std::unique_ptr<ConcreteType> create(Args &&... args)
+    {
+        return std::unique_ptr<ConcreteType>(
+            new ConcreteType(std::forward<Args>(args)...));
+    }
 };
 
 

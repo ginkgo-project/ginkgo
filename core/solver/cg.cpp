@@ -152,7 +152,7 @@ std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
 {
     ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
                                        base->get_dimensions().num_rows));
-    auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
+    auto cg = std::unique_ptr<Cg<ValueType>>(new Cg<ValueType>(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
     cg->set_preconditioner(precond_factory_->generate(base));
     return std::move(cg);

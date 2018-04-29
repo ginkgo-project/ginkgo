@@ -107,8 +107,6 @@ public:
     }
 
 protected:
-    using EnableLinOp<Fcg>::create;
-
     explicit Fcg(std::shared_ptr<const Executor> exec) : EnableLinOp<Fcg>(exec)
     {}
 

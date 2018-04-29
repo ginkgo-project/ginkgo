@@ -66,15 +66,15 @@ class Dense;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
+            public EnableCreateMethod<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnableLinOp<Ell>;
+    friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
 
 public:
-    using EnableLinOp<Ell>::create;
     using EnableLinOp<Ell>::convert_to;
     using EnableLinOp<Ell>::move_to;
 

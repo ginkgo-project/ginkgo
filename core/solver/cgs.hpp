@@ -100,8 +100,6 @@ public:
     }
 
 protected:
-    using EnableLinOp<Cgs>::create;
-
     explicit Cgs(std::shared_ptr<const Executor> exec) : EnableLinOp<Cgs>(exec)
     {}
 

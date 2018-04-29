@@ -64,18 +64,18 @@ class Dense;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
+            public EnableCreateMethod<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
-    friend class EnableLinOp<Coo>;
+    friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
 public:
-    using EnableLinOp<Coo>::create;
     using EnableLinOp<Coo>::convert_to;
     using EnableLinOp<Coo>::move_to;
 

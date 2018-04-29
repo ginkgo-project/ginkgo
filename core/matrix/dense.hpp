@@ -73,6 +73,7 @@ class Ell;
  */
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
+              public EnableCreateMethod<Dense<ValueType>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
@@ -84,7 +85,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
               public Transposable {
-    friend class EnableLinOp<Dense>;
+    friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
@@ -94,7 +95,6 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Ell<ValueType, int64>;
 
 public:
-    using EnableLinOp<Dense>::create;
     using EnableLinOp<Dense>::convert_to;
     using EnableLinOp<Dense>::move_to;
 
@@ -110,8 +110,9 @@ public:
      */
     static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
     {
-        return create(other->get_executor(), other->get_dimensions().num_rows,
-                      other->get_dimensions().num_cols, other->get_stride());
+        return Dense::create(
+            other->get_executor(), other->get_dimensions().num_rows,
+            other->get_dimensions().num_cols, other->get_stride());
     }
 
     void convert_to(Coo<ValueType, int32> *result) const override;

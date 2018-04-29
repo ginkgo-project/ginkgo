@@ -103,13 +103,6 @@ public:
     }
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
-
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
-
-    using EnableLinOp<Cg>::create;
-
     explicit Cg(std::shared_ptr<const Executor> exec) : EnableLinOp<Cg>(exec) {}
 
     Cg(std::shared_ptr<const Executor> exec, int max_iters,
@@ -121,6 +114,11 @@ protected:
           max_iters_(max_iters),
           rel_residual_goal_(rel_residual_goal)
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

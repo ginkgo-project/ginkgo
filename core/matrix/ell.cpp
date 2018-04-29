@@ -131,8 +131,8 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
     auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 
     // Create an ELLPACK format matrix based on the sizes.
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, max_nonzeros_per_row, data.num_rows);
+    auto tmp = Ell::create(this->get_executor()->get_master(), data.num_rows,
+                           data.num_cols, max_nonzeros_per_row, data.num_rows);
 
     // Get values and column indexes.
     size_type ind = 0;

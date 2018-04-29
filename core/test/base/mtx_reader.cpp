@@ -202,10 +202,12 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 
 
 template <typename ValueType, typename IndexType>
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType, IndexType>>,
-                   public gko::ReadableFromMatrixData<ValueType, IndexType> {
-    friend class gko::EnableLinOp<DummyLinOp>;
+class DummyLinOp
+    : public gko::EnableLinOp<DummyLinOp<ValueType, IndexType>>,
+      public gko::EnableCreateMethod<DummyLinOp<ValueType, IndexType>>,
+      public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
+    friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:
     using value_type = ValueType;

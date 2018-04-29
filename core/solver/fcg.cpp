@@ -157,7 +157,7 @@ std::unique_ptr<LinOp> FcgFactory<ValueType>::generate(
 {
     ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
                                        base->get_dimensions().num_rows));
-    auto fcg = std::unique_ptr<Fcg<ValueType>>(Fcg<ValueType>::create(
+    auto fcg = std::unique_ptr<Fcg<ValueType>>(new Fcg<ValueType>(
         this->get_executor(), max_iters_, rel_residual_goal_, base));
     fcg->set_preconditioner(precond_factory_->generate(base));
     return std::move(fcg);

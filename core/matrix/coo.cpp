@@ -157,8 +157,8 @@ void Coo<ValueType, IndexType>::read(const mat_data &data)
     for (const auto &elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz);
+    auto tmp = Coo::create(this->get_executor()->get_master(), data.num_rows,
+                           data.num_cols, nnz);
     size_type elt = 0;
     for (const auto &elem : data.nonzeros) {
         auto val = elem.value;
@@ -201,9 +201,9 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_dimensions().num_cols,
-                            this->get_dimensions().num_rows,
-                            this->get_dimensions().num_stored_elements);
+    auto trans_cpy = Coo::create(exec, this->get_dimensions().num_cols,
+                                 this->get_dimensions().num_rows,
+                                 this->get_dimensions().num_stored_elements);
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
@@ -216,9 +216,9 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_dimensions().num_cols,
-                            this->get_dimensions().num_rows,
-                            this->get_dimensions().num_stored_elements);
+    auto trans_cpy = Coo::create(exec, this->get_dimensions().num_cols,
+                                 this->get_dimensions().num_rows,
+                                 this->get_dimensions().num_stored_elements);
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(

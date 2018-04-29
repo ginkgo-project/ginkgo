@@ -67,18 +67,18 @@ class Coo;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
+            public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
-    friend class EnableLinOp<Csr>;
+    friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
 public:
-    using EnableLinOp<Csr>::create;
     using EnableLinOp<Csr>::convert_to;
     using EnableLinOp<Csr>::move_to;
 

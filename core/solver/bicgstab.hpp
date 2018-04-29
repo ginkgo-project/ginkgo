@@ -101,8 +101,6 @@ public:
     }
 
 protected:
-    using EnableLinOp<Bicgstab>::create;
-
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bicgstab>(exec)
     {}

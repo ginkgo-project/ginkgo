@@ -194,9 +194,9 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> BlockJacobiFactory<ValueType, IndexType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
-    return BlockJacobi<ValueType, IndexType>::create(
+    return std::unique_ptr<LinOp>(new BlockJacobi<ValueType, IndexType>(
         this->get_executor(), base.get(), this->max_block_size_,
-        this->block_pointers_);
+        this->block_pointers_));
 }
 
 
@@ -352,9 +352,9 @@ std::unique_ptr<LinOp>
 AdaptiveBlockJacobiFactory<ValueType, IndexType>::generate(
     std::shared_ptr<const LinOp> base) const
 {
-    return AdaptiveBlockJacobi<ValueType, IndexType>::create(
+    return std::unique_ptr<LinOp>(new AdaptiveBlockJacobi<ValueType, IndexType>(
         this->get_executor(), base.get(), this->max_block_size_,
-        this->block_pointers_, this->block_precisions_);
+        this->block_pointers_, this->block_precisions_));
 }
 
 

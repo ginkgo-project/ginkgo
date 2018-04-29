@@ -332,13 +332,6 @@ public:
         return self();
     }
 
-    template <typename... TArgs>
-    static std::unique_ptr<ConcreteLinOp> create(TArgs &&... args)
-    {
-        return std::unique_ptr<ConcreteLinOp>(
-            new ConcreteLinOp(std::forward<TArgs>(args)...));
-    }
-
 protected:
     GKO_ENABLE_SELF(ConcreteLinOp);
 };

@@ -170,8 +170,6 @@ public:
     }
 
 protected:
-    using EnableLinOp<ConcreteBlockJacobi>::create;
-
     explicit BasicBlockJacobi(std::shared_ptr<const Executor> exec)
         : EnableLinOp<ConcreteBlockJacobi>(exec),
           block_pointers_(exec),
@@ -243,7 +241,6 @@ public:
     void write(mat_data &data) const override;
 
 protected:
-    using BasicBlockJacobi<BlockJacobi>::create;
     using BasicBlockJacobi<BlockJacobi>::BasicBlockJacobi;
 
     BlockJacobi(std::shared_ptr<const Executor> exec,
@@ -358,8 +355,6 @@ public:
     }
 
 protected:
-    using BasicBlockJacobi<AdaptiveBlockJacobi>::create;
-
     AdaptiveBlockJacobi(std::shared_ptr<const Executor> exec)
         : BasicBlockJacobi<AdaptiveBlockJacobi>(exec), block_precisions_(exec)
     {}
