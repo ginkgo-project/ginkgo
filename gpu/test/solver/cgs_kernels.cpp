@@ -53,6 +53,8 @@ namespace {
 class Cgs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Cgs<>;
+
     Cgs() : rand_engine(30) {}
 
     void SetUp()
@@ -65,8 +67,8 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(gpu);
         d_mtx->copy_from(mtx.get());
-        gpu_cgs_factory = gko::solver::CgsFactory<>::create(gpu, 246, 1e-15);
-        ref_cgs_factory = gko::solver::CgsFactory<>::create(ref, 246, 1e-15);
+        gpu_cgs_factory = Solver::Factory::create(gpu, 246, 1e-15);
+        ref_cgs_factory = Solver::Factory::create(ref, 246, 1e-15);
     }
 
     void TearDown()
@@ -165,8 +167,8 @@ protected:
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<gko::solver::CgsFactory<>> gpu_cgs_factory;
-    std::unique_ptr<gko::solver::CgsFactory<>> ref_cgs_factory;
+    std::unique_ptr<Solver::Factory> gpu_cgs_factory;
+    std::unique_ptr<Solver::Factory> ref_cgs_factory;
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;

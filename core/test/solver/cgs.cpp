@@ -56,13 +56,13 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cgs_factory(gko::solver::CgsFactory<>::create(exec, 3, 1e-6)),
+          cgs_factory(Solver::Factory::create(exec, 3, 1e-6)),
           solver(cgs_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::CgsFactory<>> cgs_factory;
+    std::unique_ptr<Solver::Factory> cgs_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -86,13 +86,13 @@ TEST_F(Cgs, CgsFactoryKnowsItsExecutor)
 
 TEST_F(Cgs, CgsFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(cgs_factory->get_max_iters(), 3);
+    ASSERT_EQ(cgs_factory->get_parameters().max_iters, 3);
 }
 
 
 TEST_F(Cgs, CgsFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(cgs_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(cgs_factory->get_parameters().rel_residual_goal, 1e-6);
 }
 
 
@@ -102,8 +102,8 @@ TEST_F(Cgs, CgsFactoryCreatesCorrectSolver)
     ASSERT_EQ(solver->get_dimensions().num_cols, 3);
     ASSERT_EQ(solver->get_dimensions().num_stored_elements, 9);
     auto cgs_solver = static_cast<Solver *>(solver.get());
-    ASSERT_EQ(cgs_solver->get_max_iters(), 3);
-    ASSERT_EQ(cgs_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(cgs_solver->get_parameters().max_iters, 3);
+    ASSERT_EQ(cgs_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(cgs_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(cgs_solver->get_system_matrix(), mtx);
 }
@@ -175,8 +175,7 @@ TEST_F(Cgs, CanSetPreconditioner)
 
 TEST_F(Cgs, CanSetPreconditionerGenertor)
 {
-    cgs_factory->set_preconditioner(
-        gko::solver::CgsFactory<>::create(exec, 3, 0.0));
+    cgs_factory->set_preconditioner(Solver::Factory::create(exec, 3, 0.0));
     auto solver = cgs_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Cgs<> *>(
         static_cast<gko::solver::Cgs<> *>(solver.get())

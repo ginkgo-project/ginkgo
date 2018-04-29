@@ -115,7 +115,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     starting_tau->copy_from(tau.get());
 
     r_tld->copy_from(r.get());
-    for (int iter = 0; iter < max_iters_; iter += 2) {
+    for (int iter = 0; iter < parameters_.max_iters; iter += 2) {
         r->compute_dot(r_tld.get(), rho.get());
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
@@ -138,17 +138,17 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             t.get(), u_hat.get(), r.get(), dense_x, alpha.get(), converged));
         // r = r -alpha * t
         // x = x + alpha * u_hat
-        r->compute_dot(r.get(), tau.get());
 
+        r->compute_dot(r.get(), tau.get());
         bool all_converged = false;
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
-                &all_converged));
-
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
         if (all_converged) {
             break;
         }
+
         swap(rho_prev, rho);
     }
 }
@@ -167,25 +167,9 @@ void Cgs<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> CgsFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
-                                       base->get_dimensions().num_rows));
-    auto cgs = std::unique_ptr<Cgs<ValueType>>(new Cgs<ValueType>(
-        this->get_executor(), max_iters_, rel_residual_goal_, base));
-    cgs->set_preconditioner(precond_factory_->generate(base));
-    return std::move(cgs);
-}
-
-
 #define GKO_DECLARE_CGS(_type) class Cgs<_type>
-#define GKO_DECLARE_CGS_FACTORY(_type) class CgsFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_FACTORY);
 #undef GKO_DECLARE_CGS
-#undef GKO_DECLARE_CGS_FACTORY
 
 
 }  // namespace solver

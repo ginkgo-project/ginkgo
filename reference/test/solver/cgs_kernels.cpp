@@ -49,11 +49,13 @@ namespace {
 class Cgs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Cgs<>;
+
     Cgs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
-          cgs_factory(gko::solver::CgsFactory<>::create(exec, 40, 1e-15)),
+          cgs_factory(gko::solver::Cgs<>::Factory::create(exec, 40, 1e-15)),
           mtx_big(
               gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
                                     {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
@@ -62,14 +64,14 @@ protected:
                                     {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
                                     {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
                                    exec)),
-          cgs_factory_big(gko::solver::CgsFactory<>::create(exec, 100, 1e-15))
+          cgs_factory_big(gko::solver::Cgs<>::Factory::create(exec, 100, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::CgsFactory<>> cgs_factory;
-    std::unique_ptr<gko::solver::CgsFactory<>> cgs_factory_big;
+    std::unique_ptr<gko::solver::Cgs<>::Factory> cgs_factory;
+    std::unique_ptr<gko::solver::Cgs<>::Factory> cgs_factory_big;
 };
 
 
