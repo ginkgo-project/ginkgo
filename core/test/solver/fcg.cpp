@@ -54,13 +54,13 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          fcg_factory(gko::solver::FcgFactory<>::create(exec, 3, 1e-6)),
+          fcg_factory(Solver::Factory::create(exec, 3, 1e-6)),
           solver(fcg_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
+    std::unique_ptr<Solver::Factory> fcg_factory;
     std::unique_ptr<gko::LinOp> solver;
 };
 
@@ -73,13 +73,13 @@ TEST_F(Fcg, FcgFactoryKnowsItsExecutor)
 
 TEST_F(Fcg, FcgFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(fcg_factory->get_max_iters(), 3);
+    ASSERT_EQ(fcg_factory->get_parameters().max_iters, 3);
 }
 
 
 TEST_F(Fcg, FcgFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(fcg_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(fcg_factory->get_parameters().rel_residual_goal, 1e-6);
 }
 
 
@@ -89,8 +89,8 @@ TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
     ASSERT_EQ(solver->get_dimensions().num_cols, 3);
     ASSERT_EQ(solver->get_dimensions().num_stored_elements, 9);
     auto fcg_solver = dynamic_cast<Solver *>(solver.get());
-    ASSERT_EQ(fcg_solver->get_max_iters(), 3);
-    ASSERT_EQ(fcg_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(fcg_solver->get_parameters().max_iters, 3);
+    ASSERT_EQ(fcg_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(fcg_solver->get_system_matrix(), mtx);
 }
@@ -165,8 +165,7 @@ TEST_F(Fcg, CanSetPreconditioner)
 
 TEST_F(Fcg, CanSetPreconditionerGenertor)
 {
-    fcg_factory->set_preconditioner(
-        gko::solver::FcgFactory<>::create(exec, 3, 0.0));
+    fcg_factory->set_preconditioner(Solver::Factory::create(exec, 3, 0.0));
     auto solver = fcg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
         static_cast<gko::solver::Fcg<> *>(solver.get())

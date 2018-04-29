@@ -46,9 +46,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename>
-class FcgFactory;
-
 /**
  * FCG or the flexible conjugate gradient method is an iterative type Krylov
  * subspace method which is suitable for symmetric positive definite methods.
@@ -71,7 +68,6 @@ template <typename ValueType = default_precision>
 class Fcg : public EnableLinOp<Fcg<ValueType>>, public PreconditionedMethod {
     friend class EnableLinOp<Fcg>;
     friend class EnablePolymorphicObject<Fcg, LinOp>;
-    friend class FcgFactory<ValueType>;
 
 public:
     using EnableLinOp<Fcg>::convert_to;
@@ -89,37 +85,19 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Gets the maximum number of iterations of the FCG solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const noexcept { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const noexcept
+    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Fcg)
     {
-        return rel_residual_goal_;
-    }
+        /**
+         * Maximum number of iterations.
+         */
+        int64 max_iters;
+        /**
+         * Relative residual goal.
+         */
+        remove_complex<value_type> rel_residual_goal;
+    };
 
 protected:
-    explicit Fcg(std::shared_ptr<const Executor> exec) : EnableLinOp<Fcg>(exec)
-    {}
-
-    Fcg(std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Fcg>(exec,
-                           system_matrix->get_dimensions().transpose().fill()),
-          system_matrix_(std::move(system_matrix)),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -127,81 +105,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
-};
-
-
-/**
- * The FcgFactory class is derived from the LinOpFactory class and is
- * used to generate the FCG solver.
- */
-template <typename ValueType = default_precision>
-class FcgFactory
-    : public EnablePolymorphicObject<FcgFactory<ValueType>, LinOpFactory>,
-      public PreconditionedMethodFactory {
-    friend class EnablePolymorphicObject<FcgFactory, LinOpFactory>;
-
-public:
-    using value_type = ValueType;
-    /**
-     * Creates the FCG factory.
-     *
-     * @param exec The executor on which the FCG solver is to be created.
-     * @param max_iters  The maximum number of iterations to be pursued.
-     * @param rel_residual_goal  The relative residual required for
-     * convergence.
-     *
-     * @return The newly created FCG factory.
-     */
-    static std::unique_ptr<FcgFactory> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal)
-    {
-        return std::unique_ptr<FcgFactory>(
-            new FcgFactory(std::move(exec), max_iters, rel_residual_goal));
-    }
-
-    /**
-     * Gets the maximum number of iterations of the FCG solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const noexcept { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const noexcept
-    {
-        return rel_residual_goal_;
-    }
-
-protected:
-    FcgFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<FcgFactory, LinOpFactory>(std::move(exec)),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_{},
-          rel_residual_goal_{}
-    {}
-
-    explicit FcgFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                        remove_complex<value_type> rel_residual_goal)
-        : EnablePolymorphicObject<FcgFactory, LinOpFactory>(std::move(exec)),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
-    std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> base) const override;
-
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
 };
 
 

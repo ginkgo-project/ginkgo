@@ -52,6 +52,8 @@ namespace {
 class Fcg : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Fcg<>;
+
     Fcg() : rand_engine(30) {}
 
     void SetUp()
@@ -248,8 +250,8 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(gpu);
     d_b->copy_from(b.get());
-    auto fcg_factory = gko::solver::FcgFactory<>::create(ref, 50, 1e-14);
-    auto d_fcg_factory = gko::solver::FcgFactory<>::create(gpu, 50, 1e-14);
+    auto fcg_factory = Solver::Factory::create(ref, 50, 1e-14);
+    auto d_fcg_factory = Solver::Factory::create(gpu, 50, 1e-14);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 

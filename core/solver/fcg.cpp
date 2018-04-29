@@ -105,7 +105,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
 
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
@@ -114,8 +114,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         bool all_converged = false;
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
-                &all_converged));
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
         if (all_converged) {
             break;
         }
@@ -151,25 +151,9 @@ void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> FcgFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
-                                       base->get_dimensions().num_rows));
-    auto fcg = std::unique_ptr<Fcg<ValueType>>(new Fcg<ValueType>(
-        this->get_executor(), max_iters_, rel_residual_goal_, base));
-    fcg->set_preconditioner(precond_factory_->generate(base));
-    return std::move(fcg);
-}
-
-
 #define GKO_DECLARE_FCG(_type) class Fcg<_type>
-#define GKO_DECLARE_FCG_FACTORY(_type) class FcgFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_FACTORY);
 #undef GKO_DECLARE_FCG
-#undef GKO_DECLARE_FCG_FACTORY
 
 
 }  // namespace solver
