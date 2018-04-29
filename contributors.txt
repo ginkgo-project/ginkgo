@@ -2,7 +2,7 @@ Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology
 Boman Erik <egboman@sandia.gov> Sandia National Laboratories
 Chen Yenchen <yanjen224@gmail.com> National Taiwan University
 Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
-Drzaic Jelena <jelena.drzaic1@gmail.com>
+Drzaic Jelena <jelena.drzaic1@gmail.com> University of Zagreb
 Flegar Goran <flegar@uji.es> Universitat Jaume I
 Heroux Mike <maherou@sandia.gov> Sandia National Laboratories
 Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
