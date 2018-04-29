@@ -102,15 +102,15 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
 
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         bool all_converged = false;
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
-                &all_converged));
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
 
         if (all_converged) {
             break;
@@ -146,25 +146,12 @@ void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> CgFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base, size(base->get_dimensions().num_cols,
-                                       base->get_dimensions().num_rows));
-    auto cg = std::unique_ptr<Cg<ValueType>>(new Cg<ValueType>(
-        this->get_executor(), max_iters_, rel_residual_goal_, base));
-    cg->set_preconditioner(precond_factory_->generate(base));
-    return std::move(cg);
-}
-
-
 #define GKO_DECLARE_CG(_type) class Cg<_type>
-#define GKO_DECLARE_CG_FACTORY(_type) class CgFactory<_type>
+// #define GKO_DECLARE_CG_FACTORY(_type) class CgFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_FACTORY);
+// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_FACTORY);
 #undef GKO_DECLARE_CG
-#undef GKO_DECLARE_CG_FACTORY
+// #undef GKO_DECLARE_CG_FACTORY
 
 
 }  // namespace solver

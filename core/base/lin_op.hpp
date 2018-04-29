@@ -418,6 +418,12 @@ using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
 // };
 
 
+template <typename ConcreteFactory, typename ConcreteLinOp,
+          typename ParametersType>
+using EnableDefaultLinOpFactory =
+    EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, LinOp,
+                         std::shared_ptr<const LinOp>, ParametersType>;
+
 /**
  * PreconditionedMethod is inherited by linear operators that support
  * preconditioning.

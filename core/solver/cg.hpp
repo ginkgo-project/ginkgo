@@ -46,10 +46,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename>
-class CgFactory;
-
-
 /**
  * CG or the conjugate gradient method is an iterative type Krylov subspace
  * method which is suitable for symmetric positive definite methods.
@@ -67,7 +63,6 @@ template <typename ValueType = default_precision>
 class Cg : public EnableLinOp<Cg<ValueType>>, public PreconditionedMethod {
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
-    friend class CgFactory<ValueType>;
 
 public:
     using EnableLinOp<Cg>::convert_to;
@@ -86,34 +81,55 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the CG solver.
-     *
-     * @return  The maximum number of iterations.
+     * Solver parameters.
      */
-    int get_max_iters() const { return max_iters_; }
+    struct parameters_type {
+        /**
+         * Maximum number of iterations.
+         */
+        int64 max_iters;
+        /**
+         * Relative residual goal.
+         */
+        remove_complex<value_type> rel_residual_goal;
+    };
 
     /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
+     * Get the parameters of the solver.
      */
-    remove_complex<value_type> get_rel_residual_goal() const
-    {
-        return rel_residual_goal_;
-    }
+    const parameters_type &get_parameters() const { return parameters_; }
+
+    /**
+     * Factory type used to generate the solver.
+     */
+    class Factory
+        : public EnableDefaultLinOpFactory<Factory, Cg, parameters_type>,
+          public PreconditionedMethodFactory {
+        friend class EnablePolymorphicObject<Factory, LinOpFactory>;
+        friend class EnableCreateMethod<Factory>;
+
+        template <typename... Args>
+        Factory(std::shared_ptr<const Executor> exec, Args &&... args)
+            : EnableDefaultLinOpFactory<Factory, Cg, parameters_type>(
+                  exec, std::forward<Args>(args)...),
+              PreconditionedMethodFactory(
+                  matrix::IdentityFactory<ValueType>::create(std::move(exec)))
+        {}
+    };
+    friend EnableDefaultLinOpFactory<Factory, Cg, parameters_type>;
 
 protected:
     explicit Cg(std::shared_ptr<const Executor> exec) : EnableLinOp<Cg>(exec) {}
 
-    Cg(std::shared_ptr<const Executor> exec, int max_iters,
-       remove_complex<value_type> rel_residual_goal,
-       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cg>(exec,
+    Cg(const Factory *factory, std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Cg>(factory->get_executor(),
                           system_matrix->get_dimensions().transpose().fill()),
           system_matrix_(std::move(system_matrix)),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
+          parameters_{factory->get_parameters()}
+    {
+        this->preconditioner_ =
+            factory->get_preconditioner()->generate(system_matrix_);
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
@@ -122,81 +138,8 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
-};
 
-
-/**
- * The CgFactory class is derived from the LinOpFactory class and is used to
- * generate the CG solver.
- */
-template <typename ValueType = default_precision>
-class CgFactory
-    : public EnablePolymorphicObject<CgFactory<ValueType>, LinOpFactory>,
-      public PreconditionedMethodFactory {
-    friend class EnablePolymorphicObject<CgFactory, LinOpFactory>;
-
-public:
-    using value_type = ValueType;
-    /**
-     * Creates the CG solver.
-     *
-     * @param exec The executor on which the CG solver is to be created.
-     * @param max_iters  The maximum number of iterations to be pursued.
-     * @param rel_residual_goal  The relative residual required for
-     * convergence.
-     *
-     * @return The newly created CG solver.
-     */
-    static std::unique_ptr<CgFactory> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal)
-    {
-        return std::unique_ptr<CgFactory>(
-            new CgFactory(std::move(exec), max_iters, rel_residual_goal));
-    }
-
-    /**
-     * Gets the maximum number of iterations of the CG solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
-    {
-        return rel_residual_goal_;
-    }
-
-protected:
-    CgFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<CgFactory, LinOpFactory>(std::move(exec)),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_{},
-          rel_residual_goal_{}
-    {}
-
-    explicit CgFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                       remove_complex<value_type> rel_residual_goal)
-        : EnablePolymorphicObject<CgFactory, LinOpFactory>(exec),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
-    std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> base) const override;
-
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
+    parameters_type parameters_{};
 };
 
 

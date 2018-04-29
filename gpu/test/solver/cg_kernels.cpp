@@ -237,8 +237,8 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(gpu);
     d_b->copy_from(b.get());
-    auto cg_factory = gko::solver::CgFactory<>::create(ref, 50, 1e-14);
-    auto d_cg_factory = gko::solver::CgFactory<>::create(gpu, 50, 1e-14);
+    auto cg_factory = gko::solver::Cg<>::Factory::create(ref, 50, 1e-14);
+    auto d_cg_factory = gko::solver::Cg<>::Factory::create(gpu, 50, 1e-14);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 

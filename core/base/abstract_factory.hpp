@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/polymorphic_object.hpp"
+#include "core/base/polymorphic_object_interfaces.hpp"
 
 
 namespace gko {
@@ -65,26 +66,24 @@ protected:
 };
 
 
-template <typename ProductType, typename AbstractProductType,
-          typename ComponentsType, typename ParametersType>
-class DefaultFactory
-    : public EnablePolymorphicObject<
-          DefaultFactory<ProductType, AbstractProductType, ComponentsType,
-                         ParametersType>,
-          AbstractFactory<AbstractProductType, ComponentsType>>,
-      public EnablePolymorphicAssignment<DefaultFactory<
-          ProductType, AbstractProductType, ComponentsType, ParametersType>>,
-      public EnableCreateMethod<DefaultFactory<
-          ProductType, AbstractProductType, ComponentsType, ParametersType>> {
-    friend class EnablePolymorphicObject<
-        DefaultFactory, AbstractFactory<AbstractProductType, ComponentsType>>;
-    friend class EnableCreateMethod<DefaultFactory>;
+template <typename ConcreteFactory, typename ProductType,
+          typename AbstractProductType, typename ComponentsType,
+          typename ParametersType,
+          typename PolymorphicBase =
+              AbstractFactory<AbstractProductType, ComponentsType>>
+class EnableDefaultFactory
+    : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
+      public EnablePolymorphicAssignment<ConcreteFactory>,
+      public EnableCreateMethod<ConcreteFactory> {
+    friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
+    friend class EnableCreateMethod<ConcreteFactory>;
 
 public:
     using product_type = ProductType;
     using abstract_product_type = AbstractProductType;
     using components_type = ComponentsType;
     using parameters_type = ParametersType;
+    using polymorphic_base = PolymorphicBase;
 
     template <typename... Args>
     std::unique_ptr<ProductType> generate(Args &&... args) const
@@ -93,25 +92,28 @@ public:
             this->generate_impl({std::forward<Args>(args)...}).release()));
     }
 
+    const parameters_type &get_parameters() const { return parameters_; };
+
 protected:
     template <typename... Args>
-    explicit DefaultFactory(std::shared_ptr<const Executor> exec,
-                            Args &&... args)
-        : EnablePolymorphicObject<
-              DefaultFactory,
-              AbstractFactory<AbstractProductType, ComponentsType>>(
+    explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
+                                  Args &&... args)
+        : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
               std::move(exec)),
-          parameters{std::forward<Args>(args)...}
+          parameters_{std::forward<Args>(args)...}
     {}
 
     virtual std::unique_ptr<AbstractProductType> generate_impl(
         ComponentsType args) const
     {
-        return new ProductType(this->get_executor(), parameters, args);
+        return std::unique_ptr<AbstractProductType>(
+            new ProductType(self(), args));
     }
 
 private:
-    ParametersType parameters;
+    GKO_ENABLE_SELF(ConcreteFactory);
+
+    ParametersType parameters_;
 };
 
 

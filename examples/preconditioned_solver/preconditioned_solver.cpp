@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     // Some shortcuts
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::CgFactory<>;
+    using cg = gko::solver::Cg<>;
 
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Create solver factory
-    auto solver_gen = cg::create(exec, 20, 1e-20);
+    auto solver_gen = cg::Factory::create(exec, 20, 1e-20);
     // Add preconditioner, these 2 lines are the only difference from the
     // simple solver example
     using bj = gko::preconditioner::BlockJacobiFactory<>;

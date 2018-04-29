@@ -56,13 +56,13 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cg_factory(gko::solver::CgFactory<>::create(exec, 3, 1e-6)),
+          cg_factory(Solver::Factory::create(exec, 3, 1e-6)),
           solver(cg_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::CgFactory<>> cg_factory;
+    std::unique_ptr<Solver::Factory> cg_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -86,13 +86,13 @@ TEST_F(Cg, CgFactoryKnowsItsExecutor)
 
 TEST_F(Cg, CgFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(cg_factory->get_max_iters(), 3);
+    ASSERT_EQ(cg_factory->get_parameters().max_iters, 3);
 }
 
 
 TEST_F(Cg, CgFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(cg_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(cg_factory->get_parameters().rel_residual_goal, 1e-6);
 }
 
 
@@ -102,8 +102,8 @@ TEST_F(Cg, CgFactoryCreatesCorrectSolver)
     ASSERT_EQ(solver->get_dimensions().num_cols, 3);
     ASSERT_EQ(solver->get_dimensions().num_stored_elements, 9);
     auto cg_solver = static_cast<Solver *>(solver.get());
-    ASSERT_EQ(cg_solver->get_max_iters(), 3);
-    ASSERT_EQ(cg_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(cg_solver->get_parameters().max_iters, 3);
+    ASSERT_EQ(cg_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(cg_solver->get_system_matrix(), mtx);
 }
@@ -175,8 +175,7 @@ TEST_F(Cg, CanSetPreconditioner)
 
 TEST_F(Cg, CanSetPreconditionerGenertor)
 {
-    cg_factory->set_preconditioner(
-        gko::solver::CgFactory<>::create(exec, 3, 0.0));
+    cg_factory->set_preconditioner(Solver::Factory::create(exec, 3, 0.0));
     auto solver = cg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Cg<> *>(
         static_cast<gko::solver::Cg<> *>(solver.get())
