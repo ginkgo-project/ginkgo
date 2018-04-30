@@ -53,7 +53,6 @@ public:
         template <class... V>
         Factory(V... v)
         {
-            // v_.push_back(std::move(v)...);
             emplace(std::move(v)...);
         }
 

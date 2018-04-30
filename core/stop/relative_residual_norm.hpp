@@ -31,46 +31,62 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_
+#define GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
-#include "core/stop/ivelostpatience.hpp"
-#include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include "core/stop/criterion.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace stop {
+
+
+template <typename ValueType>
+class RelResidualNorm : public Criterion {
+public:
+    using Vector = matrix::Dense<ValueType>;
+    struct Factory : public Criterion::Factory {
+        explicit Factory(ValueType v, std::shared_ptr<gko::Executor> exec)
+            : v_{v}, exec_{exec}
+        {}
+
+        static std::unique_ptr<Factory> create(
+            ValueType v, std::shared_ptr<gko::Executor> exec)
+        {
+            /* TODO: try to not keep possesion of this here */
+            return std::unique_ptr<Factory>(new Factory(v, exec));
+        }
+        std::unique_ptr<Criterion> create_criterion(
+            std::shared_ptr<const LinOp> system_matrix,
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
+        ValueType v_;
+        std::shared_ptr<gko::Executor> exec_;
+    };
+
+
+    explicit RelResidualNorm(ValueType goal,
+                             std::shared_ptr<gko::Executor> exec,
+                             size_type num_cols)
+        : rel_residual_goal_{goal}, exec_{exec}, initialized_tau_{false}
+    {
+        Vector::create(exec->get_master(), 1, num_cols);
+    }
+
+    bool check(Array<bool> &, const Updater &) override;
+
+private:
+    ValueType rel_residual_goal_;
+    std::shared_ptr<gko::Executor> exec_;
+    std::unique_ptr<Vector> starting_tau_;
+    bool initialized_tau_;
+};
+
+
+}  // namespace stop
+}  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_

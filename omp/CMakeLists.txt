@@ -8,7 +8,8 @@ set(SOURCES
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
-    solver/fcg_kernels.cpp)
+    solver/fcg_kernels.cpp
+    stop/relative_residual_norm_kernels.cpp)
 
 add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>

@@ -31,46 +31,55 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
 
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
-#include "core/stop/ivelostpatience.hpp"
 #include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include "core/stop/relative_residual_norm_kernels.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace stop {
+namespace {
+
+
+template <typename ValueType>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(
+        relative_residual_norm,
+        relative_residual_norm::relative_residual_norm<ValueType>);
+};
+
+
+}  // namespace
+
+
+template <typename ValueType>
+std::unique_ptr<Criterion>
+RelResidualNorm<ValueType>::Factory::create_criterion(
+    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
+    const LinOp *x) const
+{
+    return std::unique_ptr<RelResidualNorm>(new RelResidualNorm<ValueType>(
+        v_, std::move(exec_), b->get_num_cols()));
+}
+
+
+template <typename ValueType>
+bool RelResidualNorm<ValueType>::check(Array<bool> &converged,
+                                       const Updater &updater)
+{
+    if (!initialized_tau_) {
+        starting_tau_->copy_from(updater.residual_norm_);
+        return false;
+    }
+
+    bool all_converged = false;
+    exec_->run(
+        TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
+            updater.residual_norm_, starting_tau_.get(), rel_residual_goal_,
+            &converged, &all_converged));
+    return all_converged;
+}
+
+
+}  // namespace stop
+}  // namespace gko

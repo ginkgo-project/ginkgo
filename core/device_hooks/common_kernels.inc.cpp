@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+#include "core/stop/relative_residual_norm_kernels.hpp"
 
 
 #ifndef GKO_HOOK_MODULE
@@ -461,6 +462,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace adaptive_block_jacobi
+
+
+namespace relative_residual_norm {
+
+
+template <typename ValueType>
+GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
+
+
+}  // namespace relative_residual_norm
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

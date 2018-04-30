@@ -31,46 +31,66 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_
+#define GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
 #include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
 #include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
-#include "core/stop/ivelostpatience.hpp"
-#include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace kernels {
+namespace relative_residual_norm {
+
+#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(_type)                     \
+    void relative_residual_norm(std::shared_ptr<const DefaultExecutor> exec, \
+                                const matrix::Dense<_type> *tau,             \
+                                const matrix::Dense<_type> *orig_tau,        \
+                                remove_complex<_type> rel_residual_goal,     \
+                                Array<bool> *converged, bool *all_converged)
+
+
+#define DECLARE_ALL_AS_TEMPLATES  \
+    template <typename ValueType> \
+    GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(ValueType)
+
+
+}  // namespace relative_residual_norm
+
+
+namespace cpu {
+namespace relative_residual_norm {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace relative_residual_norm
+}  // namespace cpu
+
+
+namespace gpu {
+namespace relative_residual_norm {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace relative_residual_norm
+}  // namespace gpu
+
+
+namespace reference {
+namespace relative_residual_norm {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace relative_residual_norm
+}  // namespace reference
+
+
+#undef DECLARE_ALL_AS_TEMPLATES
+
+}  // namespace kernels
+}  // namespace gko
+
+#endif  // GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_

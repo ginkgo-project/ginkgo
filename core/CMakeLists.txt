@@ -19,6 +19,7 @@ set(SOURCES
     stop/combined.cpp
     stop/iterations.cpp
     stop/ivelostpatience.cpp
+    stop/relative_residual_norm.cpp
     stop/time.cpp)
 
 
