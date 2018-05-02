@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/bicgstab_kernels.hpp"
+#include "core/stop/relative_residual_norm_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -87,7 +87,7 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
 
-    test_convergence_kernel<<<grid_size, block_size, 0, 0>>>(
+    relative_residual_norm_kernel<<<grid_size, block_size, 0, 0>>>(
         tau->get_size().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()),

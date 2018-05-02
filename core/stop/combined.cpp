@@ -45,14 +45,15 @@ std::unique_ptr<Criterion> Combined::Factory::create_criterion(
 {
     auto criterion = new Combined();
     for (const std::unique_ptr<Criterion::Factory> &f : v_)
-        criterion->add_subcriterion(f->create_criterion(system_matrix, b, x));
+        criterion->add_subcriterion(
+            std::move(f->create_criterion(system_matrix, b, x)));
     return std::unique_ptr<Combined>(criterion);
 }
 
 
 void Combined::add_subcriterion(std::unique_ptr<Criterion> c)
 {
-    criterions_.emplace_back(c.get());
+    criterions_.emplace_back(std::move(c));
 }
 
 
