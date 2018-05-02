@@ -313,6 +313,7 @@ struct matrix_data {
                 }
             }
         }
+        res.ensure_row_major_order();
         return res;
     }
 
