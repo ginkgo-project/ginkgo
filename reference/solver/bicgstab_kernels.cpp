@@ -110,7 +110,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
-                        const matrix::Dense<ValueType> *s,
+                        const matrix::Dense<ValueType> *tau,
                         const matrix::Dense<ValueType> *orig_tau,
                         remove_complex<ValueType> rel_residual_goal,
                         const matrix::Dense<ValueType> *alpha,
@@ -119,16 +119,13 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         bool *all_converged)
 {
     *all_converged = true;
-    for (size_type j = 0; j < s->get_num_cols(); ++j) {
+    for (size_type j = 0; j < tau->get_num_cols(); ++j) {
         if (converged->get_const_data()[j]) continue;
-
-        auto sum_squares = zero<remove_complex<ValueType>>();
-        for (size_type i = 0; i < s->get_num_rows(); ++i) {
-            sum_squares += squared_norm(s->at(i, j));
-        }
-        if (sqrt(sum_squares) <= rel_residual_goal * abs(orig_tau->at(j))) {
+        if (abs(tau->at(j)) <= rel_residual_goal * abs(orig_tau->at(j))) {
             converged->get_data()[j] = true;
+
             // set according x-vector to final version with x = x + alpha * y
+            // TODO move this from step_3 to step_2
             auto cur_alpha = alpha->at(j);
             for (size_type i = 0; i < x->get_num_rows(); ++i) {
                 x->at(i, j) += cur_alpha * y->at(i, j);
