@@ -54,18 +54,19 @@ struct TemplatedOperation {
 
 template <typename ValueType>
 std::unique_ptr<Criterion>
-RelResidualNorm<ValueType>::Factory::create_criterion(
+RelativeResidualNorm<ValueType>::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::unique_ptr<RelResidualNorm>(new RelResidualNorm<ValueType>(
-        v_, std::move(exec_), b->get_num_cols()));
+    return std::unique_ptr<RelativeResidualNorm>(
+        new RelativeResidualNorm<ValueType>(v_, std::move(exec_),
+                                            b->get_size().num_cols));
 }
 
 
 template <typename ValueType>
-bool RelResidualNorm<ValueType>::check(Array<bool> &converged,
-                                       const Updater &updater)
+bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
+                                            const Updater &updater)
 {
     if (!initialized_tau_) {
         starting_tau_->copy_from(updater.residual_norm_);
@@ -73,12 +74,20 @@ bool RelResidualNorm<ValueType>::check(Array<bool> &converged,
     }
 
     bool all_converged = false;
+    /* TODO: from residual_norm get "Vector" templated type */
     exec_->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
-            updater.residual_norm_, starting_tau_.get(), rel_residual_goal_,
-            &converged, &all_converged));
+            as<matrix::Dense<ValueType>>(updater.residual_norm_),
+            starting_tau_.get(), rel_residual_goal_, &converged,
+            &all_converged));
     return all_converged;
 }
+
+
+#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM(_type) \
+    class RelativeResidualNorm<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM);
+#undef GKO_DECLARE_RELATIVE_RESIDUAL_NORM
 
 
 }  // namespace stop

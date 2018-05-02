@@ -40,7 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/stop/combined.hpp>
 #include <core/stop/iterations.hpp>
+#include <core/stop/relative_residual_norm.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -56,14 +58,19 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
-          // TODO: Combined stopping criterion, with residual norm goal 1e-15
           bicgstab_factory(
               Solver::Factory::create()
-                  .with_criterion(gko::stop::Iterations::Factory::create(8))
+                  .with_criterion(gko::stop::Combined::Factory::create(
+                      gko::stop::Iterations::Factory::create(8),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
+                                                                         exec)))
                   .on_executor(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
-                  .with_criterion(gko::stop::Iterations::Factory::create(50))
+                  .with_criterion(gko::stop::Combined::Factory::create(
+                      gko::stop::Iterations::Factory::create(50),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
+                                                                         exec)))
                   .on_executor(exec))
     {}
 

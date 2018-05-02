@@ -51,8 +51,6 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(test_convergence,
-                           bicgstab::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
@@ -153,6 +151,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // s = r - alpha * v
 
         /* TODO: check this */
+        iters++;
         if (stop_criterion->update()
                 .num_iterations(iters)
                 .residual_norm(tau.get())

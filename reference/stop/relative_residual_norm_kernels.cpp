@@ -53,7 +53,7 @@ void relative_residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using std::abs;
     *all_converged = true;
-    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
             converged->get_data()[i] = true;
         }

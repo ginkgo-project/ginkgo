@@ -39,21 +39,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/criterion.hpp"
 
 
+#include <type_traits>
+
+
 namespace gko {
 namespace stop {
 
 
-template <typename ValueType>
-class RelResidualNorm : public Criterion {
+template <typename ValueType = default_precision>
+class RelativeResidualNorm : public Criterion {
 public:
     using Vector = matrix::Dense<ValueType>;
     struct Factory : public Criterion::Factory {
-        explicit Factory(ValueType v, std::shared_ptr<gko::Executor> exec)
+        explicit Factory(remove_complex<ValueType> v,
+                         std::shared_ptr<const gko::Executor> exec)
             : v_{v}, exec_{exec}
         {}
 
         static std::unique_ptr<Factory> create(
-            ValueType v, std::shared_ptr<gko::Executor> exec)
+            remove_complex<ValueType> v,
+            std::shared_ptr<const gko::Executor> exec)
         {
             /* TODO: try to not keep possesion of this here */
             return std::unique_ptr<Factory>(new Factory(v, exec));
@@ -62,24 +67,24 @@ public:
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
 
-        ValueType v_;
-        std::shared_ptr<gko::Executor> exec_;
+        remove_complex<ValueType> v_;
+        std::shared_ptr<const gko::Executor> exec_;
     };
 
 
-    explicit RelResidualNorm(ValueType goal,
-                             std::shared_ptr<gko::Executor> exec,
-                             size_type num_cols)
+    explicit RelativeResidualNorm(remove_complex<ValueType> goal,
+                                  std::shared_ptr<const gko::Executor> exec,
+                                  size_type num_cols)
         : rel_residual_goal_{goal}, exec_{exec}, initialized_tau_{false}
     {
-        Vector::create(exec->get_master(), 1, num_cols);
+        Vector::create(exec->get_master(), dim{1, num_cols});
     }
 
     bool check(Array<bool> &, const Updater &) override;
 
 private:
-    ValueType rel_residual_goal_;
-    std::shared_ptr<gko::Executor> exec_;
+    remove_complex<ValueType> rel_residual_goal_;
+    std::shared_ptr<const gko::Executor> exec_;
     std::unique_ptr<Vector> starting_tau_;
     bool initialized_tau_;
 };

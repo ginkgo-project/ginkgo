@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/dense.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iterations.hpp>
+#include <core/stop/relative_residual_norm.hpp>
 #include <core/stop/time.hpp>
 
 
@@ -56,13 +57,12 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          // TODO: Make this a Combination of iteration and residual norm goal
-          // 1e-6
           bicgstab_factory(
               Solver::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
                       gko::stop::Iterations::Factory::create(3),
-                      gko::stop::Time::Factory::create(1)))
+                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-6,
+                                                                         exec)))
                   .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
     {}
