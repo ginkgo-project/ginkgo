@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::Cg<>;
+    using bj = gko::preconditioner::BlockJacobiFactory<>;
 
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
@@ -94,11 +95,13 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Create solver factory
-    auto solver_gen = cg::Factory::create(exec, 20, 1e-20);
-    // Add preconditioner, these 2 lines are the only difference from the
-    // simple solver example
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
-    solver_gen->set_preconditioner(bj::create(exec, 8));
+    auto solver_gen = cg::Factory::create()
+                          .with_max_iters(20)
+                          .with_rel_residual_goal(1e-20)
+                          // Add preconditioner, these 2 lines are the only
+                          // difference from the simple solver example
+                          .with_preconditioner(bj::create(exec, 8))
+                          .on_executor(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
 

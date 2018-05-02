@@ -97,7 +97,8 @@ int main(int argc, char *argv[])
 
     auto exec = gko::ReferenceExecutor::create();
 
-    auto cg_factory = cg::Factory::create(exec, num_iters, 0.0);
+    auto cg_factory =
+        cg::Factory::create().with_max_iters(num_iters).on_executor(exec);
     auto A = gko::initialize<mtx>({1.0}, exec);
     auto b = gko::initialize<vec>({std::nan("")}, exec);
     auto x = gko::initialize<vec>({0.0}, exec);

@@ -65,14 +65,11 @@ namespace solver {
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Fcg : public EnableLinOp<Fcg<ValueType>>, public PreconditionedMethod {
+class Fcg : public EnableLinOp<Fcg<ValueType>> {
     friend class EnableLinOp<Fcg>;
     friend class EnablePolymorphicObject<Fcg, LinOp>;
 
 public:
-    using EnableLinOp<Fcg>::convert_to;
-    using EnableLinOp<Fcg>::move_to;
-
     using value_type = ValueType;
 
     /**
@@ -85,16 +82,28 @@ public:
         return system_matrix_;
     }
 
-    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Fcg)
+    std::shared_ptr<const LinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    GKO_ENABLE_LIN_OP_FACTORY(Fcg, parameters, Factory)
     {
         /**
          * Maximum number of iterations.
          */
-        int64 max_iters;
+        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+
         /**
          * Relative residual goal.
          */
-        remove_complex<value_type> rel_residual_goal;
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                         0.0);
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+            preconditioner, nullptr);
     };
 
 protected:
@@ -103,8 +112,29 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    explicit Fcg(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Fcg>(std::move(exec))
+    {}
+
+    explicit Fcg(const Factory *factory,
+                 std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Fcg>(factory->get_executor(),
+                           system_matrix->get_dimensions().transpose().fill()),
+          parameters_{factory->get_parameters()},
+          system_matrix_{std::move(system_matrix)}
+    {
+        if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        } else {
+            preconditioner_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_dimensions().num_rows);
+        }
+    }
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

@@ -385,7 +385,6 @@ protected:
  * cg->apply(b.get(), x.get());
  * ```
  */
-
 using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
 
 
@@ -395,132 +394,46 @@ using EnableDefaultLinOpFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, LinOp,
                          std::shared_ptr<const LinOp>, ParametersType>;
 
-#define GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(_solver)                      \
-public:                                                                       \
-    struct parameters_type;                                                   \
-                                                                              \
-    const parameters_type &get_parameters() const { return parameters_; }     \
-                                                                              \
-    class Factory : public gko::EnableDefaultLinOpFactory<Factory, _solver,   \
-                                                          parameters_type>,   \
-                    public gko::PreconditionedMethodFactory {                 \
-        friend class gko::EnablePolymorphicObject<Factory, LinOpFactory>;     \
-        friend class gko::EnableCreateMethod<Factory>;                        \
-                                                                              \
-        template <typename... Args>                                           \
-        Factory(std::shared_ptr<const Executor> exec, Args &&... args)        \
-            : gko::EnableDefaultLinOpFactory<Factory, _solver,                \
-                                             parameters_type>(                \
-                  exec, std::forward<Args>(args)...),                         \
-              gko::PreconditionedMethodFactory(                               \
-                  gko::matrix::IdentityFactory<ValueType>::create(            \
-                      std::move(exec)))                                       \
-        {}                                                                    \
-    };                                                                        \
-    friend gko::EnableDefaultLinOpFactory<Factory, _solver, parameters_type>; \
-                                                                              \
-protected:                                                                    \
-    explicit _solver(std::shared_ptr<const Executor> exec)                    \
-        : EnableLinOp<_solver>(exec)                                          \
-    {}                                                                        \
-                                                                              \
-    _solver(const Factory *factory,                                           \
-            std::shared_ptr<const LinOp> system_matrix)                       \
-        : EnableLinOp<_solver>(                                               \
-              factory->get_executor(),                                        \
-              system_matrix->get_dimensions().transpose().fill()),            \
-          system_matrix_(std::move(system_matrix)),                           \
-          parameters_{factory->get_parameters()}                              \
-    {                                                                         \
-        this->preconditioner_ =                                               \
-            factory->get_preconditioner()->generate(system_matrix_);          \
-    }                                                                         \
-                                                                              \
-private:                                                                      \
-    parameters_type parameters_;                                              \
-                                                                              \
-public:                                                                       \
-    struct parameters_type
 
-/**
- * PreconditionedMethod is inherited by linear operators that support
- * preconditioning.
- *
- * The class adds utilities for setting and getting the preconditioner operator.
- */
-class PreconditionedMethod {
-public:
-    /**
-     * Sets the preconditioner operator used by PreconditionedMethod.
-     *
-     * @param preconditioner  the precondtioner operator
-     */
-    void set_preconditioner(
-        std::shared_ptr<const LinOp> preconditioner) noexcept
-    {
-        preconditioner_ = preconditioner;
+#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name) \
+public:                                                                     \
+    struct parameters_type;                                                 \
+                                                                            \
+    const parameters_type &get_##_parameters_name() const                   \
+    {                                                                       \
+        return _parameters_name##_;                                         \
+    }                                                                       \
+                                                                            \
+    class _factory_name                                                     \
+        : public gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,     \
+                                                parameters_type> {          \
+        friend class gko::EnablePolymorphicObject<_factory_name,            \
+                                                  LinOpFactory>;            \
+        friend class gko::parameters_type_base<parameters_type,             \
+                                               _factory_name>;              \
+        using gko::EnableDefaultLinOpFactory<                               \
+            _factory_name, _lin_op,                                         \
+            parameters_type>::EnableDefaultLinOpFactory;                    \
+    };                                                                      \
+    friend gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,           \
+                                          parameters_type>;                 \
+                                                                            \
+private:                                                                    \
+    parameters_type _parameters_name##_;                                    \
+                                                                            \
+public:                                                                     \
+    struct parameters_type                                                  \
+        : gko::parameters_type_base<parameters_type, _factory_name>
+
+
+#define GKO_FACTORY_PARAMETER(_name, _default)                              \
+    mutable _name{_default};                                                \
+                                                                            \
+    const parameters_type &with_##_name(const decltype(_name) &value) const \
+    {                                                                       \
+        _name = value;                                                      \
+        return *this;                                                       \
     }
-
-    /**
-     * Returns the preconditioner operator used by PreconditionedMethod.
-     *
-     * @return the preconditioner operator
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const noexcept
-    {
-        return preconditioner_;
-    }
-
-protected:
-    PreconditionedMethod() = default;
-
-    explicit PreconditionedMethod(std::shared_ptr<const LinOp> preconditioner)
-        : preconditioner_(preconditioner)
-    {}
-
-    std::shared_ptr<const LinOp> preconditioner_{};
-};
-
-
-/**
- * PreconditionedMethodFactory is inherited by operator factories which
- * generate PreconditionedMethod operators.
- *
- * The class adds utilities for setting and getting the LinOpFactory
- * used to generate the preconditioner.
- */
-class PreconditionedMethodFactory {
-public:
-    /**
-     * Sets the LinOpFactory which will be used by the
-     * PreconditionedMethodFactory to generate the preconditioner.
-     *
-     * @param precond_factory  LinOp factory used to generate the preconditioner
-     */
-    void set_preconditioner(std::shared_ptr<const LinOpFactory> precond_factory)
-    {
-        precond_factory_ = precond_factory;
-    }
-
-    /**
-     * Returns the LinOpFactory used by the PreconditionedMethodFactory to
-     * generate the preconditioner.
-     *
-     * @return the LinOpFactory used to generate the preconditioner
-     */
-    std::shared_ptr<const LinOpFactory> get_preconditioner() const
-    {
-        return precond_factory_;
-    }
-
-protected:
-    explicit PreconditionedMethodFactory(
-        std::shared_ptr<const LinOpFactory> precond_factory_)
-        : precond_factory_(precond_factory_)
-    {}
-
-    std::shared_ptr<const LinOpFactory> precond_factory_{};
-};
 
 
 }  // namespace gko

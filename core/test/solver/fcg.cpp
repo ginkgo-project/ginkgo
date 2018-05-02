@@ -54,7 +54,10 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          fcg_factory(Solver::Factory::create(exec, 3, 1e-6)),
+          fcg_factory(Solver::Factory::create()
+                          .with_max_iters(3)
+                          .with_rel_residual_goal(1e-6)
+                          .on_executor(exec)),
           solver(fcg_factory->generate(mtx))
     {}
 
@@ -151,21 +154,14 @@ TEST_F(Fcg, CanBeCleared)
 }
 
 
-TEST_F(Fcg, CanSetPreconditioner)
-{
-    std::shared_ptr<Mtx> precond =
-        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
-    auto fcg_solver = static_cast<gko::solver::Fcg<> *>(solver.get());
-
-    fcg_solver->set_preconditioner(precond);
-
-    ASSERT_EQ(fcg_solver->get_preconditioner(), precond);
-}
-
-
 TEST_F(Fcg, CanSetPreconditionerGenertor)
 {
-    fcg_factory->set_preconditioner(Solver::Factory::create(exec, 3, 0.0));
+    auto fcg_factory =
+        Solver::Factory::create()
+            .with_max_iters(3)
+            .with_rel_residual_goal(1e-6)
+            .with_preconditioner(Solver::Factory::create().on_executor(exec))
+            .on_executor(exec);
     auto solver = fcg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
         static_cast<gko::solver::Fcg<> *>(solver.get())

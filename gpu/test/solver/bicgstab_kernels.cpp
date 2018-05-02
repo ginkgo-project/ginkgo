@@ -68,8 +68,14 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(gpu);
         d_mtx->copy_from(mtx.get());
-        gpu_bicgstab_factory = Solver::Factory::create(gpu, 246, 1e-15);
-        ref_bicgstab_factory = Solver::Factory::create(ref, 246, 1e-15);
+        gpu_bicgstab_factory = Solver::Factory::create()
+                                   .with_max_iters(246)
+                                   .with_rel_residual_goal(1e-15)
+                                   .on_executor(gpu);
+        ref_bicgstab_factory = Solver::Factory::create()
+                                   .with_max_iters(246)
+                                   .with_rel_residual_goal(1e-15)
+                                   .on_executor(ref);
     }
 
     void TearDown()

@@ -250,8 +250,14 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(gpu);
     d_b->copy_from(b.get());
-    auto fcg_factory = Solver::Factory::create(ref, 50, 1e-14);
-    auto d_fcg_factory = Solver::Factory::create(gpu, 50, 1e-14);
+    auto fcg_factory = Solver::Factory::create()
+                           .with_max_iters(50)
+                           .with_rel_residual_goal(1e-14)
+                           .on_executor(ref);
+    auto d_fcg_factory = Solver::Factory::create()
+                             .with_max_iters(50)
+                             .with_rel_residual_goal(1e-14)
+                             .on_executor(gpu);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 

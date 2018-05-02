@@ -58,15 +58,11 @@ namespace solver {
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
-                 public PreconditionedMethod {
+class Bicgstab : public EnableLinOp<Bicgstab<ValueType>> {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 
 public:
-    using EnableLinOp<Bicgstab>::convert_to;
-    using EnableLinOp<Bicgstab>::move_to;
-
     using value_type = ValueType;
 
     /**
@@ -79,16 +75,28 @@ public:
         return system_matrix_;
     }
 
-    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Bicgstab)
+    std::shared_ptr<const LinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    GKO_ENABLE_LIN_OP_FACTORY(Bicgstab, parameters, Factory)
     {
         /**
          * Maximum number of iterations.
          */
-        int64 max_iters;
+        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+
         /**
          * Relative residual goal.
          */
-        remove_complex<value_type> rel_residual_goal;
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                         0.0);
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+            preconditioner, nullptr);
     };
 
 protected:
@@ -97,8 +105,30 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    explicit Bicgstab(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Bicgstab>(std::move(exec))
+    {}
+
+    explicit Bicgstab(const Factory *factory,
+                      std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Bicgstab>(
+              factory->get_executor(),
+              system_matrix->get_dimensions().transpose().fill()),
+          parameters_{factory->get_parameters()},
+          system_matrix_{std::move(system_matrix)}
+    {
+        if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        } else {
+            preconditioner_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_dimensions().num_rows);
+        }
+    }
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

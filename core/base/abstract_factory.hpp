@@ -73,10 +73,8 @@ template <typename ConcreteFactory, typename ProductType,
               AbstractFactory<AbstractProductType, ComponentsType>>
 class EnableDefaultFactory
     : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteFactory>,
-      public EnableCreateMethod<ConcreteFactory> {
+      public EnablePolymorphicAssignment<ConcreteFactory> {
     friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
-    friend class EnableCreateMethod<ConcreteFactory>;
 
 public:
     using product_type = ProductType;
@@ -94,17 +92,18 @@ public:
 
     const parameters_type &get_parameters() const { return parameters_; };
 
+    static parameters_type create() { return {}; }
+
 protected:
-    template <typename... Args>
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
-                                  Args &&... args)
+                                  const parameters_type &parameters = {})
         : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
               std::move(exec)),
-          parameters_{std::forward<Args>(args)...}
+          parameters_{parameters}
     {}
 
-    virtual std::unique_ptr<AbstractProductType> generate_impl(
-        ComponentsType args) const
+    std::unique_ptr<AbstractProductType> generate_impl(
+        ComponentsType args) const override
     {
         return std::unique_ptr<AbstractProductType>(
             new ProductType(self(), args));
@@ -114,6 +113,19 @@ private:
     GKO_ENABLE_SELF(ConcreteFactory);
 
     ParametersType parameters_;
+};
+
+
+template <typename ConcreteParametersType, typename Factory>
+struct parameters_type_base {
+    std::unique_ptr<Factory> on_executor(
+        std::shared_ptr<const Executor> exec) const
+    {
+        return std::unique_ptr<Factory>(new Factory(exec, *self()));
+    }
+
+protected:
+    GKO_ENABLE_SELF(ConcreteParametersType);
 };
 
 

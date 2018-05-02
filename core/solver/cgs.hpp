@@ -46,25 +46,12 @@ namespace gko {
 namespace solver {
 
 
-/**
- * CGS or the conjugate gradient square method is an iterative type Krylov
- * subspace method which is suitable for general systems.
- *
- * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of CGS are merged
- * into 3 separate steps.
- *
- * @tparam ValueType precision of matrix elements
- */
 template <typename ValueType = default_precision>
-class Cgs : public EnableLinOp<Cgs<ValueType>>, public PreconditionedMethod {
+class Cgs : public EnableLinOp<Cgs<ValueType>> {
     friend class EnableLinOp<Cgs>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
 
 public:
-    using EnableLinOp<Cgs>::convert_to;
-    using EnableLinOp<Cgs>::move_to;
-
     using value_type = ValueType;
 
     /**
@@ -77,16 +64,28 @@ public:
         return system_matrix_;
     }
 
-    GKO_ENABLE_PRECONDITONED_SOLVER_FACTORY(Cgs)
+    std::shared_ptr<const LinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    GKO_ENABLE_LIN_OP_FACTORY(Cgs, parameters, Factory)
     {
         /**
          * Maximum number of iterations.
          */
-        int64 max_iters;
+        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+
         /**
          * Relative residual goal.
          */
-        remove_complex<value_type> rel_residual_goal;
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                         0.0);
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+            preconditioner, nullptr);
     };
 
 protected:
@@ -95,8 +94,29 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    explicit Cgs(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Cgs>(std::move(exec))
+    {}
+
+    explicit Cgs(const Factory *factory,
+                 std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Cgs>(factory->get_executor(),
+                           system_matrix->get_dimensions().transpose().fill()),
+          parameters_{factory->get_parameters()},
+          system_matrix_{std::move(system_matrix)}
+    {
+        if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        } else {
+            preconditioner_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_dimensions().num_rows);
+        }
+    }
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

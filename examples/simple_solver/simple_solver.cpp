@@ -94,7 +94,10 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Generate solver
-    auto solver_gen = cg::Factory::create(exec, 20, 1e-20);
+    auto solver_gen = cg::Factory::create()
+                          .with_max_iters(20)
+                          .with_rel_residual_goal(1e-20)
+                          .on_executor(exec);
     auto solver = solver_gen->generate(A);
 
     // Solve system
