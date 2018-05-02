@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 
 #include <algorithm>
-#include <cmath>
+
 
 namespace gko {
 namespace kernels {
@@ -118,10 +118,11 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         matrix::Dense<ValueType> *x, Array<bool> *converged,
                         bool *all_converged)
 {
-    *all_converged = true;
+    // *all_converged = true;
+    using std::abs;
     for (size_type j = 0; j < tau->get_num_cols(); ++j) {
-        if (converged->get_const_data()[j]) continue;
-        if (abs(tau->at(j)) <= rel_residual_goal * abs(orig_tau->at(j))) {
+        if (converged->get_const_data()[j] == false &&
+            abs(tau->at(j)) < rel_residual_goal * abs(orig_tau->at(j))) {
             converged->get_data()[j] = true;
 
             // set according x-vector to final version with x = x + alpha * y

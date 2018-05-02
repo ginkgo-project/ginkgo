@@ -139,18 +139,17 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        // s->compute_dot(s.get(), tau.get());
+        s->compute_dot(s.get(), tau.get());
 
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_2_operation(
+                tau.get(), starting_tau.get(), rel_residual_goal_, alpha.get(),
+                y.get(), dense_x, &converged, &all_converged));
+
+        if (all_converged) {
+            break;
+        }
         if (++iter == parameters_.max_iters) {
-        // exec->run(
-        //    TemplatedOperation<ValueType>::make_test_convergence_2_operation(
-        //        tau.get(), starting_tau.get(), rel_residual_goal_,
-        //        alpha.get(),
-        //       y.get(), dense_x, &converged, &all_converged));
-
-        // if (all_converged) {
-        //    break;
-        //}
             dense_x->add_scaled(alpha.get(), y.get());
             break;
         }
