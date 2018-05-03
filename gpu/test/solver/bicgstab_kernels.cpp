@@ -268,15 +268,16 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
-                                              rho.get(), alpha.get(),
-                                              beta.get(), *converged.get());
-    gko::kernels::gpu::bicgstab::step_2(gpu, d_r.get(), d_s.get(), d_v.get(),
-                                        d_rho.get(), d_alpha.get(),
-                                        d_beta.get(), *d_converged.get());
+    gko::kernels::reference::bicgstab::step_2(
+        ref, r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
+        y.get(), x.get(), *converged.get());
+    gko::kernels::gpu::bicgstab::step_2(
+        gpu, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
+        d_beta.get(), d_y.get(), d_x.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_s, s, 1e-14);
+    ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
@@ -285,12 +286,11 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_3(
-        ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-        beta.get(), gamma.get(), omega.get(), *converged.get());
+        ref, x.get(), r.get(), s.get(), t.get(), z.get(), beta.get(),
+        gamma.get(), omega.get(), *converged.get());
     gko::kernels::gpu::bicgstab::step_3(
-        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
-        d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
-        *d_converged.get());
+        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_z.get(),
+        d_beta.get(), d_gamma.get(), d_omega.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
     ASSERT_MTX_NEAR(d_x, x, 1e-14);

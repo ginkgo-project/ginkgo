@@ -172,31 +172,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void test_convergence_2_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    remove_complex<ValueType> rel_residual_goal,
+    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
     const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ y,
-    ValueType *__restrict__ x, bool *__restrict__ converged,
-    bool *__restrict__ all_converged)
+    bool *__restrict__ converged, bool *__restrict__ all_converged)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto first_row_element = tidx * stride;
-    if (tidx >= num_cols || converged[col]) {
+
+    if (tidx >= num_cols || converged[tidx]) {
         return;
     }
-    if (tidx < num_cols) {
-        if (abs(tau[tidx]) > rel_residual_goal * abs(orig_tau[tidx])) {
-            *all_converged = false;
-        } else {
-            converged[tidx] = true;
-            // TODO move this from step_3 to step_2
-            auto cur_alpha = alpha[tidx];
-            for (size_type i = first_row_element;
-                 i < first_row_element + num_rows; ++i) {
-                x[i] += cur_alpha * y[i];
-            }
-        }
+
+    if (abs(tau[tidx]) > rel_residual_goal * abs(orig_tau[tidx])) {
+        *all_converged = false;
+    } else {
+        converged[tidx] = true;
     }
 }
 
@@ -205,29 +195,24 @@ void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Dense<ValueType> *tau,
                         const matrix::Dense<ValueType> *orig_tau,
                         remove_complex<ValueType> rel_residual_goal,
-                        const matrix::Dense<ValueType> *alpha,
-                        const matrix::Dense<ValueType> *y,
-                        matrix::Dense<ValueType> *x, Array<bool> *converged,
-                        bool *all_converged)
+                        Array<bool> *converged, bool *all_converged)
 {
     Array<bool> d_all_converged(exec, 1);
     Array<bool> all_converged_array(exec->get_master());
 
-    Array<remove_complex<ValueType>> norms(exec, s->get_num_cols());
+    Array<remove_complex<ValueType>> norms(exec, tau->get_num_cols());
 
     // initialize all_converged with true
     *all_converged = true;
     all_converged_array.manage(1, all_converged);
 
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(s->get_num_cols(), block_size.x), 1, 1);
+    const dim3 grid_size(ceildiv(tau->get_num_cols(), block_size.x), 1, 1);
 
     test_convergence_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        x->get_num_rows(), x->get_num_cols(), x->get_stride(),
-        rel_residual_goal, as_cuda_type(tau->get_const_values()),
+        tau->get_num_cols(), rel_residual_goal,
+        as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()),
-        as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(y->get_const_values()), as_cuda_type(x->get_values()),
         as_cuda_type(converged->get_data()),
         as_cuda_type(d_all_converged.get_data()));
 
@@ -295,6 +280,7 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const ValueType *__restrict__ r, ValueType *__restrict__ s,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
+    const ValueType *__restrict__ y, ValueType *__restrict__ x,
     const bool *__restrict__ converged)
 {
     const size_type tidx =
@@ -309,8 +295,10 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         t_alpha = rho[col] / beta[col];
         t_s -= t_alpha * v[tidx];
     }
+    auto t_x = x[tidx] + t_alpha * y[tidx];
     alpha[col] = t_alpha;
     s[tidx] = t_s;
+    x[tidx] = t_x;
 }
 
 
@@ -320,7 +308,9 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+            const Array<bool> &converged)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -333,6 +323,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_const_values()),
+        as_cuda_type(y->get_const_values()), as_cuda_type(x->get_values()),
         as_cuda_type(converged.get_const_data()));
 }
 
@@ -344,8 +335,7 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
     const ValueType *__restrict__ s, const ValueType *__restrict__ t,
-    const ValueType *__restrict__ y, const ValueType *__restrict__ z,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
+    const ValueType *__restrict__ z, const ValueType *__restrict__ beta,
     const ValueType *__restrict__ gamma, ValueType *__restrict__ omega,
     const bool *__restrict__ converged)
 {
@@ -358,7 +348,7 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     }
     const auto x_pos = row * x_stride + col;
     auto t_omega = zero<ValueType>();
-    auto t_x = x[x_pos] + alpha[col] * y[tidx];
+    auto t_x = x[x_pos];
     auto t_r = s[tidx];
     if (beta[col] != zero<ValueType>()) {
         t_omega = gamma[col] / beta[col];
@@ -372,13 +362,14 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
 
 
 template <typename ValueType>
-void step_3(
-    std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *x,
-    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
-    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
-    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
-    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<bool> &converged)
+void step_3(std::shared_ptr<const GpuExecutor> exec,
+            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+            const matrix::Dense<ValueType> *s,
+            const matrix::Dense<ValueType> *t,
+            const matrix::Dense<ValueType> *z,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *gamma,
+            matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -389,9 +380,7 @@ void step_3(
         x->get_stride(), as_cuda_type(x->get_values()),
         as_cuda_type(r->get_values()), as_cuda_type(s->get_const_values()),
         as_cuda_type(t->get_const_values()),
-        as_cuda_type(y->get_const_values()),
         as_cuda_type(z->get_const_values()),
-        as_cuda_type(alpha->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(gamma->get_const_values()),
         as_cuda_type(omega->get_values()),

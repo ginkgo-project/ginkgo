@@ -113,13 +113,10 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Dense<ValueType> *tau,
                         const matrix::Dense<ValueType> *orig_tau,
                         remove_complex<ValueType> rel_residual_goal,
-                        const matrix::Dense<ValueType> *alpha,
-                        const matrix::Dense<ValueType> *y,
-                        matrix::Dense<ValueType> *x, Array<bool> *converged,
-                        bool *all_converged)
+                        Array<bool> *converged, bool *all_converged)
 {
-    *all_converged = true;
     using std::abs;
+    *all_converged = true;
     for (size_type j = 0; j < tau->get_num_cols(); ++j) {
         if (converged->get_const_data()[j] == false &&
             abs(tau->at(j)) < rel_residual_goal * abs(orig_tau->at(j))) {
