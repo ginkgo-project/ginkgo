@@ -109,33 +109,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
-                        const matrix::Dense<ValueType> *tau,
-                        const matrix::Dense<ValueType> *orig_tau,
-                        remove_complex<ValueType> rel_residual_goal,
-                        Array<bool> *converged, bool *all_converged)
-{
-    using std::abs;
-    *all_converged = true;
-    for (size_type j = 0; j < tau->get_num_cols(); ++j) {
-        if (converged->get_const_data()[j] == false &&
-            abs(tau->at(j)) < rel_residual_goal * abs(orig_tau->at(j))) {
-            converged->get_data()[j] = true;
-        }
-    }
-    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
-        if (!converged->get_const_data()[i]) {
-            *all_converged = false;
-            break;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL);
-
-
-template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *v,

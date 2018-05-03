@@ -57,6 +57,7 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
+
 template <typename ValueType>
 void test_convergence(std::shared_ptr<const CpuExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
@@ -68,16 +69,6 @@ void test_convergence(std::shared_ptr<const CpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
-template <typename ValueType>
-void test_convergence_2(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Dense<ValueType> *s,
-                        const matrix::Dense<ValueType> *orig_tau,
-                        remove_complex<ValueType> rel_residual_goal,
-                        Array<bool> *converged,
-                        bool *all_converged) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_2_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const CpuExecutor> exec,

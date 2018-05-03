@@ -52,8 +52,6 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
     GKO_REGISTER_OPERATION(test_convergence,
                            bicgstab::test_convergence<ValueType>);
-    GKO_REGISTER_OPERATION(test_convergence_2,
-                           bicgstab::test_convergence_2<ValueType>);
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
@@ -143,7 +141,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         s->compute_dot(s.get(), tau.get());
 
         exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_2_operation(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
                 tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
                 &all_converged));
 
