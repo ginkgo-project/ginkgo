@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/polymorphic_object.hpp"
-#include "core/base/polymorphic_object_interfaces.hpp"
 
 
 namespace gko {

@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/executor.hpp"
-#include "core/base/polymorphic_object_interfaces.hpp"
 #include "core/base/utils.hpp"
 
 
@@ -47,17 +46,23 @@ namespace gko {
  * A PolymorphicObject is the abstract base for all "heavy" objects in Ginkgo
  * that behave polymorphically.
  *
- * It defines the basic utilities for all such objects such as copying, moving,
- * cloning and clearing the object. It takes into account that such objects are
- * most likely dynamically allocated, being managed by smart pointers, and use
- * polymorphically. It also takes into account that their data can be allocated
- * on different executors, and that they can be copied between those executors.
+ * It defines the basic utilities (copying moving, cloning, clearing the
+ * objects) for all such objects. It takes into account that these objects are
+ * dynamically allocated, managed by smart pointers, and used polymorphically.
+ * Additionally, it assumes their data can be allocated on different executors,
+ * and that they can be copied between those executors.
  *
- * Users that wish to add new implementations of polymorphic objects should look
- * into the EnablePolymorphicObject mixin, which provides sensible default
- * implementation of all methods of the PolymorphicObject.
+ * @note Most of the public methods of this class should not be overridden
+ *       directly, and are thus not virtual. Instead, there are equivalent
+ *       protected methods (ending in <method_name>_impl) that should be
+ *       overriden instead. This allows polymorphic objects to implement default
+ *       behavior around virtual methods (parameter checking, type casting).
  *
- * @see EnablePolymorphicObject
+ * @see EnablePolymorphicObject if you wish to implement a concrete polymorphic
+ *      object and have sensible defaults generated automatically.
+ *      EnableAbstractPolymorphicObject if you wish to implement a new abstract
+ *      polymorphic object, and have the return types of the methods updated to
+ *      your type (instead of having them return PolymorphicObject).
  */
 class PolymorphicObject {
 public:
@@ -70,33 +75,32 @@ public:
     }
 
     /**
-     * Creates a new object of the same dynamic type as this object.
+     * Creates a new "default" object of the same dynamic type as this object.
      *
      * This is the polymorphic equivalent of the _executor default constructor_
      * `decltype(*this)(exec);`.
      *
-     * @param exec the executor where the foundation object will be created
+     * @param exec the executor where the object will be created
      *
      * @return  a polymorphic object of the same type as this
      */
-    std::unique_ptr<PolymorphicObject> create_foundation(
+    std::unique_ptr<PolymorphicObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<PolymorphicObject>(
-            this->create_foundation_impl(std::move(exec)));
+        return this->create_default_impl(std::move(exec));
     }
 
     /**
-     * Creates a new object of the same dynamic type as this object.
+     * Creates a new "default" object of the same dynamic type as this object.
      *
-     * This is a shorthand of create_foundation(std::shared_ptr<const Executor>)
+     * This is a shorthand for create_default(std::shared_ptr<const Executor>)
      * that uses the executor of this object to construct the new object.
      *
      * @return  a polymorphic object of the same type as this
      */
-    std::unique_ptr<PolymorphicObject> create_foundation() const
+    std::unique_ptr<PolymorphicObject> create_default() const
     {
-        return this->create_foundation(exec_);
+        return this->create_default(exec_);
     }
 
     /**
@@ -112,7 +116,7 @@ public:
     std::unique_ptr<PolymorphicObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->create_foundation(exec);
+        auto new_op = this->create_default(exec);
         new_op->copy_from(this);
         return new_op;
     }
@@ -120,7 +124,7 @@ public:
     /**
      * Creates a clone of the object.
      *
-     * This is a shorthand of clone(std::shared_ptr<const Executor>) that uses
+     * This is a shorthand for clone(std::shared_ptr<const Executor>) that uses
      * the executor of this object to construct the new object.
      *
      * @return A clone of the LinOp.
@@ -131,7 +135,7 @@ public:
     }
 
     /**
-     * Copies another object to this object.
+     * Copies another object into this object.
      *
      * This is the polymorphic equivalent of the copy assignment operator.
      *
@@ -147,7 +151,7 @@ public:
     }
 
     /**
-     * Moves another object to this object.
+     * Moves another object into this object.
      *
      * This is the polymorphic equivalent of the move assignment operator.
      *
@@ -163,11 +167,11 @@ public:
     }
 
     /**
-     * Transforms the object back to its foundation state.
+     * Transforms the object into its default state.
      *
-     * Equivalent to `this->copy_from(this->create_foundation())`.
+     * Equivalent to `this->copy_from(this->create_default())`.
      *
-     * @see clear_impl()
+     * @see clear_impl() when implementing this method
      *
      * @return this
      */
@@ -184,45 +188,33 @@ public:
     }
 
 protected:
+    // This method is defined as protected since a polymorphic object should not
+    // be created using their constructor directly, but by creating an
+    // std::unique_ptr to it. Defining the constructor as protected keeps these
+    // access rights when inheriting the constructor.
     /**
      * Creates a new polymorphic object on the requested executor.
      *
      * @param exec  executor where the object will be create.
-     *
-     * @note This method is defined as protected since a polymorphic object
-     *       should not be created using their constructor directly, but by
-     *       creating an std::unique_ptr to it. Defining the constructor as
-     *       protected keeps these access rights when inheriting the constructor
-     *       (`using PolymorphicObject::PolymorphicObject;`).
      */
     explicit PolymorphicObject(std::shared_ptr<const Executor> exec)
-        : exec_{exec}
+        : exec_{std::move(exec)}
     {}
 
     /**
-     * Implementers of PolymorphicObject should implement this function instead
-     * of `create_foundation()`.
+     * Implementers of PolymorphicObject should override this function instead
+     * of `create_default()`.
      *
-     * This allows implementations of `create_foundation()` which preserve the
-     * the static type of the returned object.
+     * @param exec the executor where the object will be created
      *
-     * @see EnablePolymorphicObject
-     *
-     * @param exec the executor where the foundation will be created
-     *
-     * @return  a polymorphic object of the same type as this
+     * @return a polymorphic object of the same type as this
      */
-    virtual PolymorphicObject *create_foundation_impl(
+    virtual std::unique_ptr<PolymorphicObject> create_default_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
      * of `copy_from(const PolymorphicObject *)`.
-     *
-     * This allows implementations of `copy_from(const PolymorphicObject *)`
-     * which preserve the static type of the returned object.
-     *
-     * @see EnablePolymorphicObject
      *
      * @param other  the object to copy
      *
@@ -235,12 +227,6 @@ protected:
      * Implementers of PolymorphicObject should implement this function instead
      * of `copy_from(std::unique_ptr<PolymorphicObject>)`.
      *
-     * This allows implementations of
-     * `copy_from(std::unique_ptr<PolymorphicObject>)` which preserve the static
-     * type of the returned object.
-     *
-     * @see EnablePolymorphicObject
-     *
      * @param other  the object to move from
      *
      * @return this
@@ -252,11 +238,6 @@ protected:
      * Implementers of PolymorphicObject should implement this function instead
      * of `clear()`.
      *
-     * This allows implementations of `clear()` which preserve the static type
-     * of the returned object.
-     *
-     * @see EnablePolymorphicObject
-     *
      * @return this
      */
     virtual PolymorphicObject *clear_impl() = 0;
@@ -266,76 +247,161 @@ private:
 };
 
 
-template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
+/**
+ * This mixin inherits from (a subclass of) PolymorphicObject and provides a
+ * base implementation of a new abstract object.
+ *
+ * It uses method hiding to update the parameter and return types from
+ * `PolymorphicObject to `AbstractObject` wherever it makes sense.
+ * As opposed to EnablePolymorphicObject, it does not implement
+ * PolymorphicObject's virtual methods.
+ *
+ * @tparam AbstractObject  the abstract class which is being implemented
+ *                         [CRTP parameter]
+ * @tparam PolymorphicBase  parent of AbstractObject in the polymorphic
+ *                          hierarchy, has to be a subclass of polymorphic
+ *                          object
+ *
+ * @see EnablePolymorphicObject for creating a concrete subclass of
+ *      PolymorphicObject.
+ */
+template <typename AbstactObject, typename PolymorphicBase = PolymorphicObject>
 class EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
 
-    EnableAbstractPolymorphicObject &operator=(
-        const EnableAbstractPolymorphicObject &) = default;
-
-    EnableAbstractPolymorphicObject &operator=(
-        EnableAbstractPolymorphicObject &&) = default;
-
-    std::unique_ptr<ConcreteObject> create_foundation(
+    std::unique_ptr<AbstactObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<ConcreteObject>{static_cast<ConcreteObject *>(
-            this->create_foundation_impl(std::move(exec)))};
+        return std::unique_ptr<AbstactObject>{static_cast<AbstactObject *>(
+            this->create_default_impl(std::move(exec)).release())};
     }
 
-    std::unique_ptr<ConcreteObject> create_foundation() const
+    std::unique_ptr<AbstactObject> create_default() const
     {
-        return this->create_foundation(this->get_executor());
+        return this->create_default(this->get_executor());
     }
 
-    std::unique_ptr<ConcreteObject> clone(
+    std::unique_ptr<AbstactObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->create_foundation(exec);
+        auto new_op = this->create_default(exec);
         new_op->copy_from(this);
         return new_op;
     }
 
-    std::unique_ptr<ConcreteObject> clone() const
+    std::unique_ptr<AbstactObject> clone() const
     {
         return this->clone(this->get_executor());
     }
 
-    ConcreteObject *copy_from(const PolymorphicObject *other)
+    AbstactObject *copy_from(const PolymorphicObject *other)
     {
-        return static_cast<ConcreteObject *>(this->copy_from_impl(other));
+        return static_cast<AbstactObject *>(this->copy_from_impl(other));
     }
 
-    ConcreteObject *copy_from(std::unique_ptr<PolymorphicObject> other)
+    AbstactObject *copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        return static_cast<ConcreteObject *>(
+        return static_cast<AbstactObject *>(
             this->copy_from_impl(std::move(other)));
     }
 
-    ConcreteObject *clear()
+    AbstactObject *clear()
     {
-        return static_cast<ConcreteObject *>(this->clear_impl());
+        return static_cast<AbstactObject *>(this->clear_impl());
     }
 };
 
 
 /**
- * The EnablePolymorphicObject mixin provides a default implementation of
- * PolymorphicObject for a concrete polymorphic object.
+ * This macro implements the `self()` method, which is a shortcut for
+ * `static_cast<_type *>(this)`.
  *
- * Think of it as an extension of default constructor/destructor/assignment
- * operators. In more detail, this mixin implements all PolymorphicObject's
- * pure virtual methods by using the objects constructors and assignment
- * operators. In addition, it hides appropriate PolymorphicObject's default
- * non-virtual methods with variants that use `ConcreteObject` as return type
- * instead of the generic PolymorphicObject. This simplifies the management of
- * polymorphic objects, as calls like `object->clone()` will return an object
- * with the same static type as the source object.
+ * It also provides a constant version overload. It is often useful when
+ * implementing mixins which depend on the type of the affected object, in which
+ * case the type is set to the affected object (i.e. the CRTP parameter).
+ */
+#define GKO_ENABLE_SELF(_type)                                    \
+    _type *self() noexcept { return static_cast<_type *>(this); } \
+                                                                  \
+    const _type *self() const noexcept                            \
+    {                                                             \
+        return static_cast<const _type *>(this);                  \
+    }
+
+
+/**
+ * ConvertibleTo interface is used to mark that the implementer can be converted
+ * to the object of ResultType.
  *
- * As a result, creating a new PolymorphicObject requires that the implementer
- * only inherits from `EnablePolymorphicObject` and implement an _executor
- * default constructor_ to obtain a fully functional PolymorphicObject:
+ * This interface is used to enable conversions between polymorphic objects.
+ * To mark that an object of type `U` can be converted to an object of type `V`,
+ * `U` should implement ConvertibleTo<V>.
+ * Then, the implementation of `PolymorphicObject::copy_from` automatically
+ * generated by `EnablePolymorphicObject` mixin will use RTTI to figure out that
+ * `U` implements the interface and convert it using the convert_to / move_to
+ * methods of the interface.
+ *
+ * As an example, the following function:
+ *
+ * ```c++
+ * void my_function(const U *u, V *v) {
+ *     v->copy_from(u);
+ * }
+ * ```
+ *
+ * will convert object `u` to object `v` by checking that `u` can be dynamically
+ * casted to `ConvertibleTo\<V\>`, and calling
+ * ConvertibleTo\<V\>::convert_to(V*)` to do the actual conversion.
+ *
+ * In case `u` is passed as a unique_ptr, call to `convert_to` will be replaced
+ * by a call to `move_to` and trigger move semantics.
+ *
+ * @tparam ResultType  the type to which the implementer can be converted to,
+ *                     has to be a subclass of PolymorphicObject
+ */
+template <typename ResultType>
+class ConvertibleTo {
+public:
+    using result_type = ResultType;
+
+    virtual ~ConvertibleTo() = default;
+
+    /**
+     * Converts the implementer to an object of type result_type.
+     *
+     * @param result  the object used to store the result of the conversion
+     */
+    virtual void convert_to(result_type *result) const = 0;
+
+    /**
+     * Converts the implementer to an object of type result_type by moving data
+     * from this object.
+     *
+     * This method is used when the implementer is a temporary object, and move
+     * semantics can be used.
+     *
+     * @param result  the object used to emplace the result of the conversion
+     *
+     * @note ConvertibleTo::move_to can be implemented by simply
+     *       ConvertibleTo::convert_to. However, this operation can often be
+     *       optimized by exploiting the fact that implementer's data can be
+     *       moved to the result.
+     */
+    virtual void move_to(result_type *result) = 0;
+};
+
+
+/**
+ * This mixin inherits from (a subclass of) PolymorphicObject and provides a
+ * base implementation of a new concrete polymorphic object.
+ *
+ * The mixin changes parameter and return types of appropriate public methods of
+ * PolymorphicObject in the same way EnableAbstractPolymorphicObject does.
+ * In addition, it also provides default implementations of PolymorphicObject's
+ * vritual methods by using the _executor default constructor_ and the
+ * assignment operator of ConcreteObject. Consequently, the following is a
+ * minimal example of PolymorphicObject:
  *
  * ```c++
  * struct MyObject : EnablePolymorphicObject<MyObject> {
@@ -345,34 +411,32 @@ public:
  * };
  * ```
  *
- * Consequently, when implementing new polymorphic objects, users are encouraged
- * to use this class as the base implementation, and override (or hide) some of
- * its methods if necessary.
+ * In a way, this mixin can be viewed as an extension of default
+ * constructor/destructor/assignment operators.
  *
- * @tparam ConcreteObject  the concrete object for which the PolymorphicObject
- *                         interface is to be implemented
- * @tparam PolymorphicBase  the direct base class of ConcreteObject (has to be
- *                          a subclass of PolymorphicObject)
+ * @note  This mixin does not enable copying the polymorphic object to the
+ *        object of the same type (i.e. it does not implement the
+ *        ConvertibleTo<ConcreteObject> interface). To enable a default
+ *        implementation of this interface see the EnablePolymorphicAssignment
+ *        mixin.
+ *
+ * @tparam ConcreteObject  the concrete type which is being implemented
+ *                         [CRTP parameter]
+ * @tparam PolymorphicBase  parent of ConcreteObject in the polymorphic
+ *                          hierarchy, has to be a subclass of polymorphic
+ *                          object
  */
 template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
 class EnablePolymorphicObject
     : public EnableAbstractPolymorphicObject<ConcreteObject, PolymorphicBase> {
-public:
+protected:
     using EnableAbstractPolymorphicObject<
         ConcreteObject, PolymorphicBase>::EnableAbstractPolymorphicObject;
 
-    EnablePolymorphicObject &operator=(const EnablePolymorphicObject &) =
-        default;
-
-    EnablePolymorphicObject &operator=(EnablePolymorphicObject &&) = default;
-
-protected:
-    GKO_ENABLE_SELF(ConcreteObject);
-
-    PolymorphicObject *create_foundation_impl(
+    std::unique_ptr<PolymorphicObject> create_default_impl(
         std::shared_ptr<const Executor> exec) const override
     {
-        return new ConcreteObject(exec);
+        return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
     }
 
     PolymorphicObject *copy_from_impl(const PolymorphicObject *other) override
@@ -392,6 +456,61 @@ protected:
     {
         *self() = ConcreteObject{this->get_executor()};
         return this;
+    }
+
+private:
+    GKO_ENABLE_SELF(ConcreteObject);
+};
+
+
+/**
+ * This mixin is used to enable a default PolymorphicObject::copy_from()
+ * implementation for objects that have implemented conversions between them.
+ *
+ * The requirement is that there is either a conversion constructor from
+ * `ConcreteType` in `ResultType`, or a conversion operator to `ResultType` in
+ * `ConcreteType`.
+ *
+ * @tparam ConcreteType  the concrete type from which the copy_from is being
+ *                       enabled [CRTP parameter]
+ * @tparam ResultType  the type to which copy_from is being enabled
+ */
+template <typename ConcreteType, typename ResultType = ConcreteType>
+class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
+public:
+    using result_type = ResultType;
+
+    void convert_to(result_type *result) const override
+    {
+        *result = static_cast<result_type>(*self());
+    }
+
+    void move_to(result_type *result) override
+    {
+        *result = static_cast<result_type>(std::move(*self()));
+    }
+
+private:
+    GKO_ENABLE_SELF(ConcreteType);
+};
+
+
+/**
+ * This mixin implements a static `create()` method on `ConcreteType` that
+ * dynamically allocates the memory, uses the passed-in arguments to construct
+ * the object, and returns an std::unique_ptr to such an object.
+ *
+ * @tparam ConcreteObject  the concrete type for which `create()` is being
+ *                         implemented [CRTP parameter]
+ */
+template <typename ConcreteType>
+class EnableCreateMethod {
+public:
+    template <typename... Args>
+    static std::unique_ptr<ConcreteType> create(Args &&... args)
+    {
+        return std::unique_ptr<ConcreteType>(
+            new ConcreteType(std::forward<Args>(args)...));
     }
 };
 

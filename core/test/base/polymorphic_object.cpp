@@ -70,7 +70,7 @@ TEST_F(EnablePolymorphicObject, CreatesConcreteClass)
 
 TEST_F(EnablePolymorphicObject, CreatesFoundation)
 {
-    auto f = obj->create_foundation();
+    auto f = obj->create_default();
 
     ASSERT_NE(f, obj);
     ASSERT_EQ(f->get_executor(), ref);
@@ -80,7 +80,7 @@ TEST_F(EnablePolymorphicObject, CreatesFoundation)
 
 TEST_F(EnablePolymorphicObject, CreatesFoundationOnAnotherExecutor)
 {
-    auto f = obj->create_foundation(cpu);
+    auto f = obj->create_default(cpu);
 
     ASSERT_NE(f, obj);
     ASSERT_EQ(f->get_executor(), cpu);
