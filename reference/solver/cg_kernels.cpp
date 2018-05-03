@@ -102,7 +102,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (converged.get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
             if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
@@ -126,7 +128,9 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (converged.get_const_data()[j]) continue;
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
