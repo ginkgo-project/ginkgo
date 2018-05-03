@@ -60,7 +60,6 @@ public:
             remove_complex<ValueType> v,
             std::shared_ptr<const gko::Executor> exec)
         {
-            /* TODO: try to not keep possesion of this here */
             return std::unique_ptr<Factory>(new Factory(v, exec));
         }
         std::unique_ptr<Criterion> create_criterion(
@@ -77,7 +76,8 @@ public:
                                   size_type num_cols)
         : rel_residual_goal_{goal}, exec_{exec}, initialized_tau_{false}
     {
-        Vector::create(exec->get_master(), dim{1, num_cols});
+		    Vector::create(exec->get_master(), dim{1, num_cols});
+        starting_tau_ = Vector::create(exec_);
     }
 
     bool check(Array<bool> &, const Updater &) override;

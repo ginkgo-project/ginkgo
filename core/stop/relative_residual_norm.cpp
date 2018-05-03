@@ -74,12 +74,10 @@ bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
     }
 
     bool all_converged = false;
-    /* TODO: from residual_norm get "Vector" templated type */
     exec_->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
-            as<matrix::Dense<ValueType>>(updater.residual_norm_),
-            starting_tau_.get(), rel_residual_goal_, &converged,
-            &all_converged));
+            as<Vector>(updater.residual_norm_), starting_tau_.get(),
+            rel_residual_goal_, &converged, &all_converged));
     return all_converged;
 }
 

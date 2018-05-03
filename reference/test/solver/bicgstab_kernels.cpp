@@ -63,15 +63,18 @@ protected:
               Solver::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
                       gko::stop::Iterations::Factory::create(8),
-                      gko::stop::Time::Factory::create(6)))
+                      gko::stop::Time::Factory::create(6),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
+                                                                         exec)))
                   .on_executor(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
                       gko::stop::Iterations::Factory::create(50),
-                      gko::stop::Time::Factory::create(6)))
+                      gko::stop::Time::Factory::create(6),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
+                                                                         exec)))
                   .on_executor(exec))
-    // gko::stop::RelativeResidualNorm<>::Factory::create(1e-15, exec)
     {}
 
     std::shared_ptr<const gko::Executor> exec;
