@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#include <functional>
 #include <memory>
 #include <type_traits>
 
@@ -313,6 +314,73 @@ inline const typename std::decay<T>::type *as(const U *obj)
     } else {
         throw NOT_SUPPORTED(obj);
     }
+}
+
+
+template <typename T>
+class copy_back_deleter {
+public:
+    using pointer = T *;
+    copy_back_deleter(pointer original) : original_{original} {}
+
+    void operator()(pointer ptr) const
+    {
+        original_->copy_from(ptr);
+        delete ptr;
+    }
+
+private:
+    pointer original_;
+};
+
+
+// specialization for constant objects, no need to copy back something that
+// cannot change
+template <typename T>
+class copy_back_deleter<const T> {
+public:
+    using pointer = const T *;
+    copy_back_deleter(pointer original) : original_{original} {}
+
+    void operator()(pointer ptr) const { delete ptr; }
+
+private:
+    pointer original_;
+};
+
+
+template <typename T>
+class temporary_clone {
+public:
+    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
+    using value_type = T;
+    using pointer = T *;
+
+    explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr)
+    {
+        if (ptr->get_executor() == exec) {
+            // just use the object we already have
+            handle = handle_type(ptr, [](pointer) {});
+        } else {
+            // clone the object to the new executor and make sure it's copied
+            // back before we delete it
+            handle = handle_type(gko::clone(std::move(exec), ptr).release(),
+                                 copy_back_deleter<T>(ptr));
+        }
+    }
+
+    T *get() const { return handle.get(); }
+
+private:
+    handle_type handle;
+};
+
+
+template <typename T>
+temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
+                                        T *ptr)
+{
+    return temporary_clone<T>(std::move(exec), ptr);
 }
 
 

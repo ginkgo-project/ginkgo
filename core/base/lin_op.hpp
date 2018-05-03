@@ -189,14 +189,18 @@ public:
     const LinOp *apply(const LinOp *b, LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        this->apply_impl(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         return this;
     }
 
     LinOp *apply(const LinOp *b, LinOp *x)
     {
         this->validate_application_parameters(b, x);
-        this->apply_impl(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -212,7 +216,11 @@ public:
                        LinOp *x) const
     {
         this->validate_application_parameters(alpha, b, beta, x);
-        this->apply_impl(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -220,7 +228,11 @@ public:
                  LinOp *x)
     {
         this->validate_application_parameters(alpha, b, beta, x);
-        this->apply_impl(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         return this;
     }
 
@@ -306,14 +318,18 @@ public:
     const ConcreteLinOp *apply(const LinOp *b, LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        this->apply_impl(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         return self();
     }
 
     ConcreteLinOp *apply(const LinOp *b, LinOp *x)
     {
         this->validate_application_parameters(b, x);
-        this->apply_impl(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
         return self();
     }
 
@@ -321,7 +337,11 @@ public:
                                const LinOp *beta, LinOp *x) const
     {
         this->validate_application_parameters(alpha, b, beta, x);
-        this->apply_impl(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         return self();
     }
 
@@ -329,7 +349,11 @@ public:
                          LinOp *x)
     {
         this->validate_application_parameters(alpha, b, beta, x);
-        this->apply_impl(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
         return self();
     }
 
