@@ -56,7 +56,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void test_convergence(std::shared_ptr<const DefaultExecutor> exec,
+void test_convergence(std::shared_ptr<const CpuExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
