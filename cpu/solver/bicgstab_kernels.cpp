@@ -101,20 +101,22 @@ void step_2(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
             const Array<bool> &converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(
-    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *x,
-    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
-    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
-    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
-    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega,
-    const Array<bool> &converged) NOT_IMPLEMENTED;
+void step_3(std::shared_ptr<const CpuExecutor> exec,
+            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+            const matrix::Dense<ValueType> *s,
+            const matrix::Dense<ValueType> *t,
+            const matrix::Dense<ValueType> *z,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *gamma,
+            matrix::Dense<ValueType> *omega,
+            const Array<bool> &converged) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 

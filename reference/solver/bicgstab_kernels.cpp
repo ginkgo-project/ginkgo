@@ -118,19 +118,12 @@ void test_convergence_2(std::shared_ptr<const ReferenceExecutor> exec,
                         matrix::Dense<ValueType> *x, Array<bool> *converged,
                         bool *all_converged)
 {
-    // *all_converged = true;
+    *all_converged = true;
     using std::abs;
     for (size_type j = 0; j < tau->get_num_cols(); ++j) {
         if (converged->get_const_data()[j] == false &&
             abs(tau->at(j)) < rel_residual_goal * abs(orig_tau->at(j))) {
             converged->get_data()[j] = true;
-
-            // set according x-vector to final version with x = x + alpha * y
-            // TODO move this from step_3 to step_2
-            auto cur_alpha = alpha->at(j);
-            for (size_type i = 0; i < x->get_num_rows(); ++i) {
-                x->at(i, j) += cur_alpha * y->at(i, j);
-            }
         }
     }
     for (size_type i = 0; i < converged->get_num_elems(); ++i) {
@@ -181,7 +174,9 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+            const Array<bool> &converged)
 {
     for (size_type i = 0; i < s->get_size().num_rows; ++i) {
         for (size_type j = 0; j < s->get_size().num_cols; ++j) {
@@ -195,6 +190,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
                 alpha->at(j) = zero<ValueType>();
                 s->at(i, j) = r->at(i, j);
             }
+            x->at(i, j) += alpha->at(j) * y->at(i, j);
         }
     }
 }
@@ -203,13 +199,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(
-    std::shared_ptr<const ReferenceExecutor> exec, matrix::Dense<ValueType> *x,
-    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
-    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
-    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
-    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<bool> &converged)
+void step_3(std::shared_ptr<const ReferenceExecutor> exec,
+            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+            const matrix::Dense<ValueType> *s,
+            const matrix::Dense<ValueType> *t,
+            const matrix::Dense<ValueType> *z,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Dense<ValueType> *gamma,
+            matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 {
     for (size_type j = 0; j < x->get_size().num_cols; ++j) {
         if (converged.get_const_data()[j]) {
@@ -226,8 +223,7 @@ void step_3(
             if (converged.get_const_data()[j]) {
                 continue;
             }
-            x->at(i, j) +=
-                alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
+            x->at(i, j) += omega->at(j) * z->at(i, j);
             r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
         }
     }

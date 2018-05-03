@@ -91,6 +91,7 @@ namespace bicgstab {
                 const matrix::Dense<_type> *v,                                \
                 const matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha, \
                 const matrix::Dense<_type> *beta,                             \
+                const matrix::Dense<_type> *y, matrix::Dense<_type> *x,       \
                 const Array<bool> &converged)
 
 
@@ -98,8 +99,7 @@ namespace bicgstab {
     void step_3(                                                              \
         std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *x, \
         matrix::Dense<_type> *r, const matrix::Dense<_type> *s,               \
-        const matrix::Dense<_type> *t, const matrix::Dense<_type> *y,         \
-        const matrix::Dense<_type> *z, const matrix::Dense<_type> *alpha,     \
+        const matrix::Dense<_type> *t, const matrix::Dense<_type> *z,         \
         const matrix::Dense<_type> *beta, const matrix::Dense<_type> *gamma,  \
         matrix::Dense<_type> *omega, const Array<bool> &converged)
 

@@ -135,9 +135,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-            converged));
+            y.get(), dense_x, converged));
         // alpha = rho / beta
         // s = r - alpha * v
+        // x = x + alpha * y
 
         s->compute_dot(s.get(), tau.get());
 
@@ -146,22 +147,19 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 tau.get(), starting_tau.get(), rel_residual_goal_, alpha.get(),
                 y.get(), dense_x, &converged, &all_converged));
 
-        if (all_converged) {
+        if (++iter == parameters_.max_iters || all_converged) {
             break;
         }
-        if (++iter == parameters_.max_iters) {
-            dense_x->add_scaled(alpha.get(), y.get());
-            break;
-        }
+
         preconditioner_->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
-            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), converged));
+            dense_x, r.get(), s.get(), t.get(), z.get(), beta.get(),
+            gamma.get(), omega.get(), converged));
         // omega = gamma / beta
-        // x = x + alpha * y + omega * z
+        // x = x + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
     }
