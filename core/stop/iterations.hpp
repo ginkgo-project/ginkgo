@@ -41,23 +41,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
-
+/**
+ * The Iterations class is a stopping criterion which considers convergence
+ * happened once a certain amount of iterations has been reached.
+ */
 class Iterations : public Criterion {
 public:
     struct Factory : public Criterion::Factory {
         using t = size_type;
+
+        /**
+         * Instantiates a Iterations::Factory object
+         * @param v the number of iterations
+         */
         explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
         {
             return std::unique_ptr<Factory>(new Factory(v));
         }
+
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
         t v_;
     };
-
 
     explicit Iterations(size_type iterations) : iterations_{iterations} {}
 

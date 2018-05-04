@@ -46,10 +46,10 @@ namespace stop {
 /**
  * The Criterion class is a base class for all stopping criterion tests. It
  * contains a factory to instantiate tests. It is up to each specific stopping
- criterion test to decide what to do with the data that is passed to it.
-
+ * criterion test to decide what to do with the data that is passed to it.
+ *
  * Note that depending on the tests, convergence may not have happened after
- stopping.
+ * stopping.
  */
 class Criterion {
 public:
@@ -102,16 +102,15 @@ public:
         /**
          * Calls the parent Criterion object's check method
          * @copydoc Criterion::check(Array<bool>)
-
          */
         bool check(Array<bool> &converged) const
         {
             return parent_->check(converged, *this);
         }
 
-        /**
-         * Helper macro to add parameters and setters to updater
-         */
+            /**
+             * Helper macro to add parameters and setters to updater
+             */
 #define GKO_UPDATER_REGISTER_PARAMETER(_type, _name) \
     const Updater &_name(_type const &value) const   \
     {                                                \

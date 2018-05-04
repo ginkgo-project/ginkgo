@@ -44,29 +44,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
-
+/**
+ * The Time class is a stopping criterion which considers convergence happened
+ * once a certain amout of time has passed.
+ */
 class Time : public Criterion {
 public:
     using clock = std::chrono::system_clock;
 
     struct Factory : public Criterion::Factory {
-        using t = std::chrono::seconds;
+        using t = std::chrono::duration<double>;
 
         explicit Factory(t v) : v_{v} {}
 
-        static std::unique_ptr<Factory> create(std::uint64_t v)
+        /**
+         * Instantiates a Iterations::Factory object
+         * @param v the amount of seconds to wait
+         */
+        static std::unique_ptr<Factory> create(double v)
         {
             return std::unique_ptr<Factory>(
-                new Factory(std::chrono::seconds(v)));
+                new Factory(std::chrono::duration<double>(v)));
         }
+
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
         t v_;
     };
 
-
-    explicit Time(std::chrono::seconds limit)
+    explicit Time(std::chrono::duration<double> limit)
         : limit_{std::chrono::duration_cast<clock::duration>(limit)},
           start_{clock::now()}
     {}

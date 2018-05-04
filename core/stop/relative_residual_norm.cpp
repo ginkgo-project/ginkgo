@@ -59,8 +59,7 @@ RelativeResidualNorm<ValueType>::Factory::create_criterion(
     const LinOp *x) const
 {
     return std::unique_ptr<RelativeResidualNorm>(
-        new RelativeResidualNorm<ValueType>(v_, std::move(exec_),
-                                            b->get_size().num_cols));
+        new RelativeResidualNorm<ValueType>(v_, exec_));
 }
 
 

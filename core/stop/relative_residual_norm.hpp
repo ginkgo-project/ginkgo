@@ -45,12 +45,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
-
+/**
+ * The RelativeResidualNorm class is a stopping criterion which considers
+ * convergence happened once the relative residual norm is below a certain
+ * threshold. For better performance, the checks are run thanks to kernels on
+ * the executor where the algorithm is executed.
+ */
 template <typename ValueType = default_precision>
 class RelativeResidualNorm : public Criterion {
 public:
     using Vector = matrix::Dense<ValueType>;
+
     struct Factory : public Criterion::Factory {
+        /**
+         * Instantiates a RelativeResidualNorm::Factory object
+         * @param v the number of iterations
+         * @param exec the executor to run the check on.
+         */
         explicit Factory(remove_complex<ValueType> v,
                          std::shared_ptr<const gko::Executor> exec)
             : v_{v}, exec_{exec}
@@ -62,6 +73,7 @@ public:
         {
             return std::unique_ptr<Factory>(new Factory(v, exec));
         }
+
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
@@ -70,13 +82,15 @@ public:
         std::shared_ptr<const gko::Executor> exec_;
     };
 
-
+    /**
+     * Instantiates a RelativeResidualNorm object
+     * @param v the number of iterations
+     * @param exec the executor to run the kernels on
+     */
     explicit RelativeResidualNorm(remove_complex<ValueType> goal,
-                                  std::shared_ptr<const gko::Executor> exec,
-                                  size_type num_cols)
+                                  std::shared_ptr<const gko::Executor> exec)
         : rel_residual_goal_{goal}, exec_{exec}, initialized_tau_{false}
     {
-		    Vector::create(exec->get_master(), dim{1, num_cols});
         starting_tau_ = Vector::create(exec_);
     }
 

@@ -44,18 +44,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
-
+/**
+ * The Combined class is used to combine multiple criterions together through a
+ * OR operation. The typical use case is to consider convergence has happened
+ * when any one of multiple criterions are satisfied, e.g. a number of
+ * iterations, the relative residual norm has reached a threshold, etc.
+ */
 class Combined : public Criterion {
 public:
     struct Factory : public Criterion::Factory {
         using t = std::vector<std::unique_ptr<Criterion::Factory>>;
 
+        /**
+         * Instantiates a Combined::Factory object by using any number of
+         * unique_ptrs to Criterion::Factory.
+         * @param v any number of unique_ptr to criterion factories
+         *
+         * @internal In order to allow any number of arguments to be passed, the
+         * combined class relies on C++ Variadic Templates, or parameter packs.
+         * see: http://en.cppreference.com/w/cpp/language/parameter_pack
+         */
         template <class... V>
         Factory(V... v)
         {
             emplace(std::move(v)...);
         }
 
+        /**
+         * @internal Recursive Variadic Templated helper function to push
+         * to the vector of unique_ptr to Criterion::Factory, v_ the element `V
+         * v` of the pack, one by one. A recursion is called on the rest of the
+         * templates, through the pack `R`.
+         *
+         * @tparam V the first element of the variadic template (pack)
+         * @tparam R the rest of the pack
+         * @param v the first element which will be pushed back
+         * @param rest the rest of the pack which we recurse upon
+         */
         template <class V, class... R>
         void emplace(V v, R... rest)
         {
@@ -63,6 +88,10 @@ public:
             emplace(std::move(rest)...);
         }
 
+        /**
+         * @internal the stopping condition for the recursion: when no arguments
+         * are found in the pack "R", stop the recursion.
+         */
         void emplace() {}
 
         template <class... V>
@@ -80,6 +109,12 @@ public:
 
     Combined() {}
 
+    /**
+     * Helper function which allows to add subcriterions in order to properly
+     * build the Combined class with pointers to all subcriterions.
+     *
+     * @param c the subcriterion to add to the Combined class
+     */
     void add_subcriterion(std::unique_ptr<Criterion> c);
 
     bool check(Array<bool> &, const Updater &) override;

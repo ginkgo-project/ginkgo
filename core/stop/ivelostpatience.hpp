@@ -41,20 +41,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
+/**
+ * The IveLostPatience class is a criterion which asks for user input to stop
+ * convergence. Using this criterion is slightly more complex than the other
+ * ones, because it is asynchronous therefore requires the use of threads. The
+ * following shows an usage example:
+ *
+ * ```C++
+ * void run_solver(volatile bool &is_user_bored)
+ * {
+ *   using mtx = gko::matrix::Dense<>;
+ *   auto exec = gko::GpuExecutor::create(gko::CpuExecutor::create(), 0);
+ *   auto A = gko::read<mtx>(exec, "A.mtx");
+ *   auto b = gko::read<mtx>(exec, "b.mtx");
+ *   auto x = gko::read<mtx>(exec, "x0.mtx");
+ *   gko::solver::CgFactory::create(exec,
+ *   IveLostPatience::Factory::create(is_user_bored))
+ *     ->generate(gko::give(A))
+ *     ->apply(gko::lend(b), gko::lend(x));
+ *   std::cout << "Solver stopped" << std::endl;
+ * }
 
+ * int main()
+ * {
+ *   volatile bool is_user_bored;
+ *   std::thread t(run_solver, std::ref(is_user_bored));
+ *   std::string command;
+ *   while (std::cin >> command) {
+ *     if (command == "stop") {
+ *       break;
+ *     } else {
+ *       std::cout << "Unknown command" << std::endl;
+ *     }
+ *   }
+ *   std::cout << "I see you've had enough - I'm stopping the solver!" <<
+ std::endl;
+ *   is_user_bored = true;
+ *   t.join();
+ * }
+ * ```
+ */
 class IveLostPatience : public Criterion {
 public:
     struct Factory : public Criterion::Factory {
         using t = volatile bool &;
+
         explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
         {
             return std::unique_ptr<Factory>(new Factory(v));
         }
+
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
         t v_;
     };
 
