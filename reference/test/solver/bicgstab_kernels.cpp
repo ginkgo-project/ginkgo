@@ -54,12 +54,15 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
-              gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15))
+              gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15)),
+          bicgstab_factory_precision(
+              gko::solver::BicgstabFactory<>::create(exec, 50, 1e-15))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory;
+    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory_precision;
 };
 
 
@@ -116,6 +119,134 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
 
 
     ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
+}
+
+// The following test-data was generated and validated with MATLAB
+
+TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
+{
+    std::shared_ptr<Mtx> locmtx =
+        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                             exec);
+    auto solver = bicgstab_factory_precision->generate(locmtx);
+    auto b = gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x,
+        l({0.13853406350816114, -0.08147485210505287, -0.0450299311807042,
+           -0.0051264177562865719, 0.11609654300797841, 0.1018688746740561}),
+        1e-9);
+}
+
+TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
+{
+    std::shared_ptr<Mtx> locmtx =
+        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                             exec);
+    auto solver = bicgstab_factory_precision->generate(locmtx);
+    auto b = gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x,
+        l({0.13517641417299162, 0.75117689075221139, 0.47572853185155239,
+           -0.50927993095367852, 0.13463333820848167, 0.23126768306576015}),
+        1e-9);
+}
+
+
+double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
+{
+    using std::abs;
+    double norm = 0.0;
+    for (size_t i = 0; i < mat->get_num_rows(); ++i) {
+        double absEntry = abs(mat->at(i, col));
+        if (norm < absEntry) norm = absEntry;
+    }
+    return norm;
+}
+
+
+TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
+{
+    std::shared_ptr<Mtx> locmtx =
+        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                             exec);
+    auto solver = bicgstab_factory_precision->generate(locmtx);
+    auto b1 = gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, exec);
+    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+    auto b2 = gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, exec);
+    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+    auto bc = gko::initialize<Mtx>(
+        {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
+    auto xc = gko::initialize<Mtx>(
+        {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
+    for (size_t i = 0; i < xc->get_num_rows(); ++i) {
+        bc->at(i, 0) = b1->at(i);
+        bc->at(i, 1) = b2->at(i);
+        xc->at(i, 0) = x1->at(i);
+        xc->at(i, 1) = x2->at(i);
+    }
+
+    solver->apply(b1.get(), x1.get());
+    solver->apply(b2.get(), x2.get());
+    solver->apply(bc.get(), xc.get());
+    auto testMtx = gko::initialize<Mtx>(
+        {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
+
+    for (size_t i = 0; i < testMtx->get_num_rows(); ++i) {
+        testMtx->at(i, 0) = x1->at(i);
+        testMtx->at(i, 1) = x2->at(i);
+    }
+
+    auto alpha = gko::initialize<Mtx>({1.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto residual1 = gko::initialize<Mtx>({0.}, exec);
+    residual1->copy_from(b1->clone());
+    auto residual2 = gko::initialize<Mtx>({0.}, exec);
+    residual2->copy_from(b2->clone());
+    auto residualC = gko::initialize<Mtx>({0.}, exec);
+    residualC->copy_from(bc->clone());
+
+    locmtx->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
+    locmtx->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
+    locmtx->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
+
+    double normS1 = infNorm(residual1.get());
+    double normS2 = infNorm(residual2.get());
+    double normC1 = infNorm(residualC.get(), 0);
+    double normC2 = infNorm(residualC.get(), 1);
+    double normB1 = infNorm(bc.get(), 0);
+    double normB2 = infNorm(bc.get(), 1);
+
+    // make sure that all combined solutions are as good or better than the
+    // single solutions
+    ASSERT_LE(normC1 / normB1, normS1 / normB1 + 1e-12);
+    ASSERT_LE(normC2 / normB2, normS2 / normB2 + 1e-12);
+
+    // Not sure if this is necessary, the assertions above should cover what is
+    // needed.
+    ASSERT_MTX_NEAR(xc, testMtx, 1e-14);
 }
 
 

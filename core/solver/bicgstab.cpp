@@ -50,32 +50,12 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence,
+                           bicgstab::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
 };
-
-
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
-        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
-            return false;
-        }
-    }
-    return true;
-}
 
 
 }  // namespace
@@ -112,19 +92,19 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    Array<bool> converged(alpha->get_executor(), dense_b->get_num_cols());
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        gamma.get(), omega.get()));
+        gamma.get(), omega.get(), &converged));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
+    // converged = false
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
@@ -133,16 +113,23 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     system_matrix_->apply(r.get(), v.get());
     for (int iter = 0; iter < max_iters_; ++iter) {
         r->compute_dot(r.get(), tau.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+
+        bool all_converged;
+
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
+                &all_converged));
+
+        if (all_converged) {
             break;
         }
+
         rr->compute_dot(r.get(), rho.get());
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get()));
+            omega.get(), converged));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
@@ -150,7 +137,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get()));
+            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
+            converged));
         // alpha = rho / beta
         // s = r - alpha * v
 
@@ -165,7 +153,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get()));
+            beta.get(), gamma.get(), omega.get(), converged));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
