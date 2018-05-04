@@ -4,6 +4,7 @@ Chen Yenchen <yanjen224@gmail.com> National Taiwan University
 Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
 Drzaic Jelena <jelena.drzaic1@gmail.com> University of Zagreb
 Flegar Goran <flegar@uji.es> Universitat Jaume I
+Grützmacher Thomas <thogru.kit@gmx.de> Karlsruhe Institute of Technology
 Heroux Mike <maherou@sandia.gov> Sandia National Laboratories
 Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
