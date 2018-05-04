@@ -48,7 +48,7 @@ namespace csr {
 /**
  * @internal
  *
- * @note assumes that block dimensions are in "standard format":
+ * @note assumes that block dim are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_block_size, int subwarp_size, int warps_per_block,

@@ -56,8 +56,8 @@ protected:
           values_sample(0)
     {
         // collect samples of nnz/row and values from the matrix
-        for (int row = 0; row < mtx->get_dimensions().num_rows; ++row) {
-            for (int col = 0; col < mtx->get_dimensions().num_cols; ++col) {
+        for (int row = 0; row < mtx->get_size().num_rows; ++row) {
+            for (int col = 0; col < mtx->get_size().num_cols; ++col) {
                 auto val = mtx->at(row, col);
                 if (val != 0.0) {
                     ++nnz_per_row_sample[row];
@@ -91,8 +91,8 @@ protected:
 
 TEST_F(MatrixGenerator, OutputHasCorrectSize)
 {
-    EXPECT_EQ(mtx->get_dimensions().num_rows, 500);
-    ASSERT_EQ(mtx->get_dimensions().num_cols, 100);
+    EXPECT_EQ(mtx->get_size().num_rows, 500);
+    ASSERT_EQ(mtx->get_size().num_cols, 100);
 }
 
 

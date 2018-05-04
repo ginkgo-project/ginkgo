@@ -58,25 +58,23 @@ protected:
 TEST_F(Identity, CanBeEmpty)
 {
     auto empty = Id::create(exec);
-    ASSERT_EQ(empty->get_dimensions().num_rows, 0);
-    ASSERT_EQ(empty->get_dimensions().num_cols, 0);
-    ASSERT_EQ(empty->get_dimensions().num_stored_elements, 0);
+    ASSERT_EQ(empty->get_size().num_rows, 0);
+    ASSERT_EQ(empty->get_size().num_cols, 0);
 }
 
 
 TEST_F(Identity, CanBeConstructedWithSize)
 {
     auto identity = Id::create(exec, 5);
-    ASSERT_EQ(identity->get_dimensions().num_rows, 5);
-    ASSERT_EQ(identity->get_dimensions().num_cols, 5);
-    ASSERT_EQ(identity->get_dimensions().num_stored_elements, 0);
+    ASSERT_EQ(identity->get_size().num_rows, 5);
+    ASSERT_EQ(identity->get_size().num_cols, 5);
 }
 
 
 TEST_F(Identity, AppliesToVector)
 {
     auto identity = Id::create(exec, 3);
-    auto x = Vec::create(exec, 3, 1);
+    auto x = Vec::create(exec, gko::dim{3, 1});
     auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, exec);
 
     identity->apply(b.get(), x.get());
@@ -88,7 +86,7 @@ TEST_F(Identity, AppliesToVector)
 TEST_F(Identity, AppliesToMultipleVectors)
 {
     auto identity = Id::create(exec, 3);
-    auto x = Vec::create(exec, 3, 2, 3);
+    auto x = Vec::create(exec, gko::dim{3, 2}, 3);
     auto b =
         gko::initialize<Vec>(3, {{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}, exec);
 
@@ -102,13 +100,12 @@ TEST(IdentityFactory, CanGenerateIdentityMatrix)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto id_factory = gko::matrix::IdentityFactory<>::create(exec);
-    auto mtx = gko::matrix::Dense<>::create(exec, 5, 5);
+    auto mtx = gko::matrix::Dense<>::create(exec, gko::dim{5, 5});
 
     auto id = id_factory->generate(std::move(mtx));
 
-    ASSERT_EQ(id->get_dimensions().num_rows, 5);
-    ASSERT_EQ(id->get_dimensions().num_cols, 5);
-    ASSERT_EQ(id->get_dimensions().num_stored_elements, 0);
+    ASSERT_EQ(id->get_size().num_rows, 5);
+    ASSERT_EQ(id->get_size().num_cols, 5);
 }
 
 

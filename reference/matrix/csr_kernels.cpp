@@ -62,15 +62,15 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
 
-    for (size_type row = 0; row < a->get_dimensions().num_rows; ++row) {
-        for (size_type j = 0; j < c->get_dimensions().num_cols; ++j) {
+    for (size_type row = 0; row < a->get_size().num_rows; ++row) {
+        for (size_type j = 0; j < c->get_size().num_cols; ++j) {
             c->at(row, j) = zero<ValueType>();
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_dimensions().num_cols; ++j) {
+            for (size_type j = 0; j < c->get_size().num_cols; ++j) {
                 c->at(row, j) += val * b->at(col, j);
             }
         }
@@ -94,15 +94,15 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
 
-    for (size_type row = 0; row < a->get_dimensions().num_rows; ++row) {
-        for (size_type j = 0; j < c->get_dimensions().num_cols; ++j) {
+    for (size_type row = 0; row < a->get_size().num_rows; ++row) {
+        for (size_type j = 0; j < c->get_size().num_cols; ++j) {
             c->at(row, j) *= vbeta;
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_dimensions().num_cols; ++j) {
+            for (size_type j = 0; j < c->get_size().num_cols; ++j) {
                 c->at(row, j) += valpha * val * b->at(col, j);
             }
         }
@@ -130,8 +130,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Csr<ValueType, IndexType> *source)
 {
-    auto num_rows = source->get_dimensions().num_rows;
-    auto num_cols = source->get_dimensions().num_cols;
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
     auto vals = source->get_const_values();
@@ -193,8 +193,8 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
     auto trans_vals = trans->get_values();
     auto orig_vals = orig->get_const_values();
 
-    auto orig_num_cols = orig->get_dimensions().num_cols;
-    auto orig_num_rows = orig->get_dimensions().num_rows;
+    auto orig_num_cols = orig->get_size().num_cols;
+    auto orig_num_rows = orig->get_size().num_rows;
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
     trans_row_ptrs[0] = 0;

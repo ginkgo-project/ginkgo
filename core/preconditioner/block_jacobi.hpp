@@ -169,6 +169,16 @@ public:
         return blocks_.get_const_data();
     }
 
+    /**
+     * Returns the number of elements explicitly stored in the matrix.
+     *
+     * @return the number of elements explicitly stored in the matrix
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return blocks_.get_num_elems();
+    }
+
 protected:
     explicit BasicBlockJacobi(std::shared_ptr<const Executor> exec)
         : EnableLinOp<ConcreteBlockJacobi>(exec),
@@ -180,14 +190,11 @@ protected:
                      const LinOp *system_matrix, uint32 max_block_size,
                      const Array<index_type> &block_pointers)
         : EnableLinOp<ConcreteBlockJacobi>(
-              exec,
-              {system_matrix->get_dimensions().num_rows,
-               system_matrix->get_dimensions().num_cols,
-               system_matrix->get_dimensions().num_cols * max_block_size}),
+              exec, transpose(system_matrix->get_size())),
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
           block_pointers_(block_pointers),
-          blocks_(exec, this->get_dimensions().num_stored_elements)
+          blocks_(exec, this->get_size().num_cols * max_block_size)
     {
         block_pointers_.set_executor(this->get_executor());
     }

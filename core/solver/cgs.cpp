@@ -74,7 +74,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_dimensions().num_cols;
+    size_type num_vectors = dense_b->get_size().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -88,7 +88,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto v_hat = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_dimensions().num_cols);
+    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto rho_prev = Vector::create_with_config_of(alpha.get());
@@ -96,8 +96,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto starting_tau = Vector::create_with_config_of(tau.get());
-
-    Array<bool> converged(exec, dense_b->get_dimensions().num_cols);
+    Array<bool> converged(exec, dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(

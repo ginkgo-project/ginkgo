@@ -67,8 +67,8 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
     cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                   a->get_dimensions().num_rows, a->get_dimensions().num_cols,
-                   a->get_dimensions().num_stored_elements, &alpha, descr,
+                   a->get_size().num_rows, a->get_size().num_cols,
+                   a->get_num_stored_elements(), &alpha, descr,
                    a->get_const_values(), row_ptrs, col_idxs,
                    b->get_const_values(), &beta, c->get_values());
 
@@ -97,11 +97,11 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
     if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
     cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                   a->get_dimensions().num_rows, a->get_dimensions().num_cols,
-                   a->get_dimensions().num_stored_elements,
-                   alpha->get_const_values(), descr, a->get_const_values(),
-                   row_ptrs, col_idxs, b->get_const_values(),
-                   beta->get_const_values(), c->get_values());
+                   a->get_size().num_rows, a->get_size().num_cols,
+                   a->get_num_stored_elements(), alpha->get_const_values(),
+                   descr, a->get_const_values(), row_ptrs, col_idxs,
+                   b->get_const_values(), beta->get_const_values(),
+                   c->get_values());
 
     cusparse::destroy(descr);
     cusparse::destroy(handle);
@@ -147,13 +147,12 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
     cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
     cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_dimensions().num_rows,
-                        orig->get_dimensions().num_cols,
-                        orig->get_dimensions().num_stored_elements,
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+    cusparse::transpose(
+        handle, orig->get_size().num_rows, orig->get_size().num_cols,
+        orig->get_num_stored_elements(), orig->get_const_values(),
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+        copyValues, idxBase);
 
     cusparse::destroy(handle);
 }
@@ -188,26 +187,23 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(trans->get_dimensions().num_stored_elements, block_size.x), 1,
-        1);
+        ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
 
     auto handle = cusparse::init();
     cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
     cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_dimensions().num_rows,
-                        orig->get_dimensions().num_cols,
-                        orig->get_dimensions().num_stored_elements,
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+    cusparse::transpose(
+        handle, orig->get_size().num_rows, orig->get_size().num_cols,
+        orig->get_num_stored_elements(), orig->get_const_values(),
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+        copyValues, idxBase);
 
     cusparse::destroy(handle);
 
     conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
-        trans->get_dimensions().num_stored_elements,
-        as_cuda_type(trans->get_values()));
+        trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

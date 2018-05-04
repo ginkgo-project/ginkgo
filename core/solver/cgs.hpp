@@ -101,7 +101,7 @@ protected:
     explicit Cgs(const Factory *factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Cgs>(factory->get_executor(),
-                           system_matrix->get_dimensions().transpose().fill()),
+                           transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
@@ -110,7 +110,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_);
         } else {
             preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_dimensions().num_rows);
+                this->get_executor(), this->get_size().num_rows);
         }
     }
 

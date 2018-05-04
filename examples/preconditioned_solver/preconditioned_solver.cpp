@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     // Print result
     auto h_x = gko::clone(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_dimensions().num_rows; ++i) {
+    for (int i = 0; i < h_x->get_size().num_rows; ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
     }
     std::cout << "];" << std::endl;

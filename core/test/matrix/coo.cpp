@@ -49,7 +49,7 @@ protected:
 
     Coo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Coo<>::create(exec, 2, 3, 4))
+          mtx(gko::matrix::Coo<>::create(exec, gko::dim{2, 3}, 4))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
@@ -76,9 +76,9 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_idxs();
-        ASSERT_EQ(m->get_dimensions().num_rows, 2);
-        ASSERT_EQ(m->get_dimensions().num_cols, 3);
-        ASSERT_EQ(m->get_dimensions().num_stored_elements, 4);
+        ASSERT_EQ(m->get_size().num_rows, 2);
+        ASSERT_EQ(m->get_size().num_cols, 3);
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 0);
         EXPECT_EQ(r[2], 0);
@@ -95,9 +95,9 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_dimensions().num_rows, 0);
-        ASSERT_EQ(m->get_dimensions().num_cols, 0);
-        ASSERT_EQ(m->get_dimensions().num_stored_elements, 0);
+        ASSERT_EQ(m->get_size().num_rows, 0);
+        ASSERT_EQ(m->get_size().num_cols, 0);
+        ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_row_idxs(), nullptr);
@@ -107,9 +107,9 @@ protected:
 
 TEST_F(Coo, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_dimensions().num_rows, 2);
-    ASSERT_EQ(mtx->get_dimensions().num_cols, 3);
-    ASSERT_EQ(mtx->get_dimensions().num_stored_elements, 4);
+    ASSERT_EQ(mtx->get_size().num_rows, 2);
+    ASSERT_EQ(mtx->get_size().num_cols, 3);
+    ASSERT_EQ(mtx->get_num_stored_elements(), 4);
 }
 
 
@@ -166,8 +166,7 @@ TEST_F(Coo, CanBeCleared)
 TEST_F(Coo, CanBeReadFromMatrixData)
 {
     auto m = Mtx::create(exec);
-    m->read({2,
-             3,
+    m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
               {0, 2, 2.0},
@@ -186,8 +185,7 @@ TEST_F(Coo, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

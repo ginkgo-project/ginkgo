@@ -59,7 +59,7 @@ namespace warp {
  * shuffles to exchange data between rows. The transform is performed by using
  * the `key_row`-th row and `key_col`-th column of the matrix.
  *
- * @note assumes that block dimensions are in "standard format":
+ * @note assumes that block dim are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
@@ -122,7 +122,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
  * @param trans_perm  a value to hold an element of permutation matrix \f$ P^T
  * \f$
  *
- * @note assumes that block dimensions are in "standard format":
+ * @note assumes that block dim are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
@@ -181,7 +181,7 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
  *                     (all threads supply the same value)
  * @param stride  offset between two consecutive rows of the matrix
  *
- * @note assumes that block dimensions are in "standard format":
+ * @note assumes that block dim are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>
@@ -230,7 +230,7 @@ __device__ __forceinline__ void copy_matrix(
  *             (only thread 0 of the subwarp has to supply a valid value)
  * @param mtx_increment  offset between two consecutive elements of the result
  *
- * @note assumes that block dimensions are in "standard format":
+ * @note assumes that block dim are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <int max_problem_size, int subwarp_size, typename ValueType>

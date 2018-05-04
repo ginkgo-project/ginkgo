@@ -124,60 +124,6 @@ namespace gko {
  */
 class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
-    struct dimension_type {
-        dimension_type(size_type nrows = {}) : dimension_type(nrows, nrows) {}
-
-        dimension_type(size_type nrows, size_type ncols)
-            : dimension_type(nrows, ncols, nrows * ncols)
-        {}
-        dimension_type(size_type nrows, size_type ncols,
-                       size_type nstored_elems)
-            : num_rows{nrows},
-              num_cols{ncols},
-              num_stored_elements{nstored_elems}
-        {}
-
-        /**
-         * Gets the dimension of the codomain of this LinOp.
-         *
-         * In other words, the number of rows of the coefficient matrix.
-         *
-         * @return the dimension of the codomain
-         */
-        size_type num_rows;
-        /**
-         * Gets the dimension of the domain of this LinOp.
-         *
-         * In other words, the number of columns of the coefficient matrix.
-         *
-         * @return the dimension of the domain
-         */
-        size_type num_cols;
-        /**
-         * Returns the number of elements that are explicitly stored in memory
-         * for this LinOp.
-         *
-         * For example, for a matrix::Dense `A` it will always hold
-         * ```cpp
-         * A->get_dimensions().num_stored_elements ==
-         * A->get_dimensions().num_rows * A->get_stride()
-         * ```
-         *
-         * @return the number of elements explicitly stored in memory
-         */
-        size_type num_stored_elements;
-
-        dimension_type transpose() const noexcept
-        {
-            return {num_cols, num_rows, num_stored_elements};
-        }
-
-        dimension_type fill() const noexcept
-        {
-            return {num_rows, num_cols, num_rows * num_cols};
-        }
-    };
-
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
      *
@@ -186,7 +132,7 @@ public:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    const LinOp *apply(const LinOp *b, LinOp *x) const
+    LinOp *apply(const LinOp *b, LinOp *x)
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -195,7 +141,10 @@ public:
         return this;
     }
 
-    LinOp *apply(const LinOp *b, LinOp *x)
+    /**
+     * @copydoc apply(cost LinOp *, LinOp *)
+     */
+    const LinOp *apply(const LinOp *b, LinOp *x) const
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -212,18 +161,6 @@ public:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                       LinOp *x) const
-    {
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        return this;
-    }
-
     LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                  LinOp *x)
     {
@@ -236,21 +173,35 @@ public:
         return this;
     }
 
-    const dimension_type &get_dimensions() const noexcept
+    /**
+     * @copydoc apply(const LinOp *, cost LinOp *, const LinOp *, LinOp *)
+     */
+    const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                       LinOp *x) const
     {
-        return dimensions_;
+        this->validate_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
     }
+
+    /**
+     * Return the dim of the operator.
+     *
+     * @return dim of the operator
+     */
+    const dim &get_size() const noexcept { return size_; }
 
 protected:
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dimension_type &dimensions = {})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), dimensions_{dimensions}
+                   const dim &size = dim{})
+        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
     {}
 
-    void set_dimensions(const dimension_type &dimensions) noexcept
-    {
-        dimensions_ = dimensions;
-    }
+    void set_size(const dim &value) noexcept { size_ = value; }
 
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -290,7 +241,7 @@ protected:
     }
 
 private:
-    dimension_type dimensions_{};
+    dim size_{};
 };
 
 

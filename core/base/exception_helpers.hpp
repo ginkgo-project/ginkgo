@@ -90,27 +90,19 @@ namespace {
  * This is a utility class which can be used together with `ASSERT_*` macros
  * which check the sizes of linear operators.
  *
- * Size acts as a LinOp pointer, and provides get_dimensions().num_rows and
- * get_dimensions().num_cols routines with the same semantics as LinOp.
+ * Size acts as a LinOp pointer, and provides get_size().num_rows and
+ * get_size().num_cols routines with the same semantics as LinOp.
  */
 class size {
 public:
-    struct dimension_type {
-        size_type num_rows;
-        size_type num_cols;
-        size_type num_nonzeros;
-    };
+    size(size_type num_rows, size_type num_cols) : size_{num_rows, num_cols} {}
 
-    size(size_type num_rows, size_type num_cols, size_type num_nonzeros = {})
-        : dimensions_{num_rows, num_cols, num_nonzeros}
-    {}
-
-    const dimension_type &get_dimensions() const { return dimensions_; }
+    const dim &get_size() const { return size_; }
 
     const size *operator->() const { return this; }
 
 private:
-    dimension_type dimensions_;
+    dim size_;
 };
 
 
@@ -123,15 +115,11 @@ private:
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
  */
 #define ASSERT_CONFORMANT(_op1, _op2)                                         \
-    if ((_op1)->get_dimensions().num_cols !=                                  \
-        (_op2)->get_dimensions().num_rows) {                                  \
-        throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1,   \
-                                       (_op1)->get_dimensions().num_rows,     \
-                                       (_op1)->get_dimensions().num_cols,     \
-                                       #_op2,                                 \
-                                       (_op2)->get_dimensions().num_rows,     \
-                                       (_op2)->get_dimensions().num_cols,     \
-                                       "expected matching inner dimensions"); \
+    if ((_op1)->get_size().num_cols != (_op2)->get_size().num_rows) {         \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1, (_op1)->get_size().num_rows, \
+            (_op1)->get_size().num_cols, #_op2, (_op2)->get_size().num_rows,  \
+            (_op2)->get_size().num_cols, "expected matching inner dim");      \
     }
 
 
@@ -140,16 +128,12 @@ private:
  *
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of rows
  */
-#define ASSERT_EQUAL_ROWS(_op1, _op2)                                       \
-    if ((_op1)->get_dimensions().num_rows !=                                \
-        (_op2)->get_dimensions().num_rows) {                                \
-        throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1, \
-                                       (_op1)->get_dimensions().num_rows,   \
-                                       (_op1)->get_dimensions().num_cols,   \
-                                       #_op2,                               \
-                                       (_op2)->get_dimensions().num_rows,   \
-                                       (_op2)->get_dimensions().num_cols,   \
-                                       "expected matching row length");     \
+#define ASSERT_EQUAL_ROWS(_op1, _op2)                                         \
+    if ((_op1)->get_size().num_rows != (_op2)->get_size().num_rows) {         \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1, (_op1)->get_size().num_rows, \
+            (_op1)->get_size().num_cols, #_op2, (_op2)->get_size().num_rows,  \
+            (_op2)->get_size().num_cols, "expected matching row length");     \
     }
 
 
@@ -159,16 +143,12 @@ private:
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
  *                           columns
  */
-#define ASSERT_EQUAL_COLS(_op1, _op2)                                       \
-    if ((_op1)->get_dimensions().num_cols !=                                \
-        (_op2)->get_dimensions().num_cols) {                                \
-        throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1, \
-                                       (_op1)->get_dimensions().num_rows,   \
-                                       (_op1)->get_dimensions().num_cols,   \
-                                       #_op2,                               \
-                                       (_op2)->get_dimensions().num_rows,   \
-                                       (_op2)->get_dimensions().num_cols,   \
-                                       "expected matching column length");  \
+#define ASSERT_EQUAL_COLS(_op1, _op2)                                         \
+    if ((_op1)->get_size().num_cols != (_op2)->get_size().num_cols) {         \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1, (_op1)->get_size().num_rows, \
+            (_op1)->get_size().num_cols, #_op2, (_op2)->get_size().num_rows,  \
+            (_op2)->get_size().num_cols, "expected matching column length");  \
     }
 
 
@@ -178,17 +158,13 @@ private:
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
  *                           columns
  */
-#define ASSERT_EQUAL_DIMENSIONS(_op1, _op2)                                  \
-    if ((_op1)->get_dimensions().num_rows !=                                 \
-            (_op2)->get_dimensions().num_rows ||                             \
-        (_op1)->get_dimensions().num_cols !=                                 \
-            (_op2)->get_dimensions().num_cols) {                             \
-        throw ::gko::DimensionMismatch(                                      \
-            __FILE__, __LINE__, __func__, #_op1,                             \
-            (_op1)->get_dimensions().num_rows,                               \
-            (_op1)->get_dimensions().num_cols, #_op2,                        \
-            (_op2)->get_dimensions().num_rows,                               \
-            (_op2)->get_dimensions().num_cols, "expected equal dimensions"); \
+#define ASSERT_EQUAL_DIMENSIONS(_op1, _op2)                                   \
+    if ((_op1)->get_size().num_rows != (_op2)->get_size().num_rows ||         \
+        (_op1)->get_size().num_cols != (_op2)->get_size().num_cols) {         \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1, (_op1)->get_size().num_rows, \
+            (_op1)->get_size().num_cols, #_op2, (_op2)->get_size().num_rows,  \
+            (_op2)->get_size().num_cols, "expected equal dim");               \
     }
 
 

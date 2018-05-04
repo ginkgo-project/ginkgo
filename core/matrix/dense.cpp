@@ -100,9 +100,8 @@ inline void conversion_helper(Coo<ValueType, IndexType> *result,
     size_type num_stored_nonzeros = 0;
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
         source, &num_stored_nonzeros));
-    auto tmp = Coo<ValueType, IndexType>::create(
-        exec, source->get_dimensions().num_rows,
-        source->get_dimensions().num_cols, num_stored_nonzeros);
+    auto tmp = Coo<ValueType, IndexType>::create(exec, source->get_size(),
+                                                 num_stored_nonzeros);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -118,9 +117,8 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
     size_type num_stored_nonzeros = 0;
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
         source, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, source->get_dimensions().num_rows,
-        source->get_dimensions().num_cols, num_stored_nonzeros);
+    auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_size(),
+                                                 num_stored_nonzeros);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -139,10 +137,9 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
     const auto max_nnz_per_row =
         std::max(result->get_max_nonzeros_per_row(), max_nonzeros_per_row);
     const auto stride =
-        std::max(result->get_stride(), source->get_dimensions().num_rows);
-    auto tmp = Ell<ValueType, IndexType>::create(
-        exec, source->get_dimensions().num_rows,
-        source->get_dimensions().num_cols, max_nnz_per_row, stride);
+        std::max(result->get_stride(), source->get_size().num_rows);
+    auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
+                                                 max_nnz_per_row, stride);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -175,7 +172,7 @@ template <typename ValueType>
 void Dense<ValueType>::scale(const LinOp *alpha)
 {
     ASSERT_EQUAL_ROWS(alpha, size(1, 1));
-    if (alpha->get_dimensions().num_cols != 1) {
+    if (alpha->get_size().num_cols != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -190,7 +187,7 @@ template <typename ValueType>
 void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
 {
     ASSERT_EQUAL_ROWS(alpha, size(1, 1));
-    if (alpha->get_dimensions().num_cols != 1) {
+    if (alpha->get_size().num_cols != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -207,7 +204,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     ASSERT_EQUAL_DIMENSIONS(this, b);
-    ASSERT_EQUAL_DIMENSIONS(result, size(1, this->get_dimensions().num_cols));
+    ASSERT_EQUAL_DIMENSIONS(result, size(1, this->get_size().num_cols));
     auto exec = this->get_executor();
     if (b->get_executor() != exec || result->get_executor() != exec)
         NOT_IMPLEMENTED;
@@ -354,11 +351,10 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
-    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
-                                  data.num_rows, data.num_cols, data.num_cols);
+    auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
     size_type ind = 0;
-    for (size_type row = 0; row < data.num_rows; ++row) {
-        for (size_type col = 0; col < data.num_cols; ++col) {
+    for (size_type row = 0; row < data.size.num_rows; ++row) {
+        for (size_type col = 0; col < data.size.num_cols; ++col) {
             if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
                 data.nonzeros[ind].column == col) {
                 tmp->at(row, col) = data.nonzeros[ind].value;
@@ -404,10 +400,10 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
         tmp = mtx;
     }
 
-    data = {mtx->get_dimensions().num_rows, mtx->get_dimensions().num_cols, {}};
+    data = {mtx->get_size(), {}};
 
-    for (size_type row = 0; row < data.num_rows; ++row) {
-        for (size_type col = 0; col < data.num_cols; ++col) {
+    for (size_type row = 0; row < data.size.num_rows; ++row) {
+        for (size_type col = 0; col < data.size.num_cols; ++col) {
             if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
                 data.nonzeros.emplace_back(row, col, tmp->at(row, col));
             }
@@ -437,8 +433,7 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = Dense::create(exec, this->get_dimensions().num_cols,
-                                   this->get_dimensions().num_rows);
+    auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
 
     exec->run(TemplatedOperation<ValueType>::make_transpose_operation(
         trans_cpy.get(), this));
@@ -451,8 +446,7 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = Dense::create(exec, this->get_dimensions().num_cols,
-                                   this->get_dimensions().num_rows);
+    auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
 
     exec->run(TemplatedOperation<ValueType>::make_conj_transpose_operation(
         trans_cpy.get(), this));

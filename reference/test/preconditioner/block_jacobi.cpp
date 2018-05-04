@@ -59,7 +59,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 3),
-          mtx(gko::matrix::Csr<>::create(exec, 5, 5, 13))
+          mtx(gko::matrix::Csr<>::create(exec, gko::dim{5}, 13))
     {
         block_pointers.get_data()[0] = 0;
         block_pointers.get_data()[1] = 2;
@@ -109,8 +109,8 @@ protected:
 
     void assert_same_precond(const Bj *a, const Bj *b)
     {
-        ASSERT_EQ(a->get_dimensions().num_rows, b->get_dimensions().num_rows);
-        ASSERT_EQ(a->get_dimensions().num_cols, b->get_dimensions().num_cols);
+        ASSERT_EQ(a->get_size().num_rows, b->get_size().num_rows);
+        ASSERT_EQ(a->get_size().num_cols, b->get_size().num_cols);
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
         ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
         const auto b_ptr_a = a->get_const_block_pointers();
@@ -179,9 +179,9 @@ TEST_F(BlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_dimensions().num_rows, 0);
-    ASSERT_EQ(bj->get_dimensions().num_cols, 0);
-    ASSERT_EQ(bj->get_dimensions().num_stored_elements, 0);
+    ASSERT_EQ(bj->get_size().num_rows, 0);
+    ASSERT_EQ(bj->get_size().num_cols, 0);
+    ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
@@ -202,8 +202,7 @@ TEST_F(BlockJacobi, GeneratesCorrectMatrixData)
 
     bj->write(data);
 
-    ASSERT_EQ(data.num_rows, 5);
-    ASSERT_EQ(data.num_cols, 5);
+    ASSERT_EQ(data.size, gko::dim{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
     EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-14);
     EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-14);
@@ -241,8 +240,8 @@ protected:
 
     void assert_same_precond(const Bj *a, const Bj *b)
     {
-        ASSERT_EQ(a->get_dimensions().num_rows, b->get_dimensions().num_rows);
-        ASSERT_EQ(a->get_dimensions().num_cols, b->get_dimensions().num_cols);
+        ASSERT_EQ(a->get_size().num_rows, b->get_size().num_rows);
+        ASSERT_EQ(a->get_size().num_cols, b->get_size().num_cols);
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
         ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
         const auto b_ptr_a = a->get_const_block_pointers();
@@ -309,9 +308,9 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_dimensions().num_rows, 0);
-    ASSERT_EQ(bj->get_dimensions().num_cols, 0);
-    ASSERT_EQ(bj->get_dimensions().num_stored_elements, 0);
+    ASSERT_EQ(bj->get_size().num_rows, 0);
+    ASSERT_EQ(bj->get_size().num_cols, 0);
+    ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
@@ -327,8 +326,7 @@ TEST_F(AdaptiveBlockJacobi, GeneratesCorrectMatrixData)
 
     bj->write(data);
 
-    ASSERT_EQ(data.num_rows, 5);
-    ASSERT_EQ(data.num_cols, 5);
+    ASSERT_EQ(data.size, gko::dim{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
     EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-7);
     EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-7);

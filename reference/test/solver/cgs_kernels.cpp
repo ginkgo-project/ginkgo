@@ -165,7 +165,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_dimensions().num_rows; ++i) {
+    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -184,9 +184,9 @@ TEST_F(Cgs, SolvesMultipleDenseSystems)
     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
     auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
-    auto bc = Mtx::create(exec, mtx_big->get_dimensions().num_rows, 2);
-    auto xc = Mtx::create(exec, mtx_big->get_dimensions().num_cols, 2);
-    for (size_t i = 0; i < bc->get_dimensions().num_rows; ++i) {
+    auto bc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_rows, 2});
+    auto xc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_cols, 2});
+    for (size_t i = 0; i < bc->get_size().num_rows; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
 
@@ -197,8 +197,8 @@ TEST_F(Cgs, SolvesMultipleDenseSystems)
     solver->apply(b1.get(), x1.get());
     solver->apply(b2.get(), x2.get());
     solver->apply(bc.get(), xc.get());
-    auto mergedRes = Mtx::create(exec, b1->get_dimensions().num_rows, 2);
-    for (size_t i = 0; i < mergedRes->get_dimensions().num_rows; ++i) {
+    auto mergedRes = Mtx::create(exec, gko::dim{b1->get_size().num_rows, 2});
+    for (size_t i = 0; i < mergedRes->get_size().num_rows; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }
@@ -206,14 +206,11 @@ TEST_F(Cgs, SolvesMultipleDenseSystems)
     auto alpha = gko::initialize<Mtx>({1.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
 
-    auto residual1 = Mtx::create(exec, b1->get_dimensions().num_rows,
-                                 b1->get_dimensions().num_cols);
+    auto residual1 = Mtx::create(exec, b1->get_size());
     residual1->copy_from(b1.get());
-    auto residual2 = Mtx::create(exec, b2->get_dimensions().num_rows,
-                                 b2->get_dimensions().num_cols);
+    auto residual2 = Mtx::create(exec, b2->get_size());
     residual2->copy_from(b2.get());
-    auto residualC = Mtx::create(exec, bc->get_dimensions().num_rows,
-                                 bc->get_dimensions().num_cols);
+    auto residualC = Mtx::create(exec, bc->get_size());
     residualC->copy_from(bc.get());
 
     mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());

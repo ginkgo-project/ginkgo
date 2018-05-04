@@ -107,9 +107,7 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_dimensions().num_rows,
-                                        this->get_dimensions().num_cols,
-                                        this->get_dimensions().num_cols);
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(TemplatedOperation<
               ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
                                                                      this));
@@ -131,15 +129,15 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
     auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 
     // Create an ELLPACK format matrix based on the sizes.
-    auto tmp = Ell::create(this->get_executor()->get_master(), data.num_rows,
-                           data.num_cols, max_nonzeros_per_row, data.num_rows);
+    auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
+                           max_nonzeros_per_row, data.size.num_rows);
 
     // Get values and column indexes.
     size_type ind = 0;
     size_type n = data.nonzeros.size();
     auto vals = tmp->get_values();
     auto col_idxs = tmp->get_col_idxs();
-    for (size_type row = 0; row < data.num_rows; row++) {
+    for (size_type row = 0; row < data.size.num_rows; row++) {
         size_type col = 0;
         while (ind < n && data.nonzeros[ind].row == row) {
             auto val = data.nonzeros[ind].value;
@@ -173,9 +171,9 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
         tmp = this;
     }
 
-    data = {tmp->get_dimensions().num_rows, tmp->get_dimensions().num_cols, {}};
+    data = {tmp->get_size(), {}};
 
-    for (size_type row = 0; row < tmp->get_dimensions().num_rows; ++row) {
+    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
         for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
             if (val != zero<ValueType>()) {

@@ -56,7 +56,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *omega, Array<bool> *converged)
 {
-    for (size_type j = 0; j < b->get_dimensions().num_cols; ++j) {
+    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = one<ValueType>();
         prev_rho->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
@@ -65,8 +65,8 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         omega->at(j) = one<ValueType>();
         converged->get_data()[j] = false;
     }
-    for (size_type i = 0; i < b->get_dimensions().num_rows; ++i) {
-        for (size_type j = 0; j < b->get_dimensions().num_cols; ++j) {
+    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
             rr->at(i, j) = zero<ValueType>();
             z->at(i, j) = zero<ValueType>();
@@ -90,7 +90,7 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using std::abs;
     *all_converged = true;
-    for (size_type i = 0; i < tau->get_dimensions().num_cols; ++i) {
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
             converged->get_data()[i] = true;
         }
@@ -117,8 +117,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 
 {
-    for (size_type i = 0; i < p->get_dimensions().num_rows; ++i) {
-        for (size_type j = 0; j < p->get_dimensions().num_cols; ++j) {
+    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
             if (converged.get_const_data()[j]) {
                 continue;
             }
@@ -145,8 +145,8 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta, const Array<bool> &converged)
 {
-    for (size_type i = 0; i < s->get_dimensions().num_rows; ++i) {
-        for (size_type j = 0; j < s->get_dimensions().num_cols; ++j) {
+    for (size_type i = 0; i < s->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < s->get_size().num_cols; ++j) {
             if (converged.get_const_data()[j]) {
                 continue;
             }
@@ -173,7 +173,7 @@ void step_3(
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
     matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 {
-    for (size_type j = 0; j < x->get_dimensions().num_cols; ++j) {
+    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
         if (converged.get_const_data()[j]) {
             continue;
         }
@@ -183,8 +183,8 @@ void step_3(
             omega->at(j) = zero<ValueType>();
         }
     }
-    for (size_type i = 0; i < x->get_dimensions().num_rows; ++i) {
-        for (size_type j = 0; j < x->get_dimensions().num_cols; ++j) {
+    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
             if (converged.get_const_data()[j]) {
                 continue;
             }

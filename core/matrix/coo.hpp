@@ -156,19 +156,17 @@ public:
         return row_idxs_.get_const_data();
     }
 
-protected:
     /**
-     * Creates an empty COO matrix.
+     * Returns the number of elements explicitly stored in the matrix.
      *
-     * @param exec  Executor associated to the matrix
+     * @return the number of elements explicitly stored in the matrix
      */
-    explicit Coo(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Coo>(exec),
-          values_(exec),
-          col_idxs_(exec),
-          row_idxs_(exec)
-    {}
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
 
+protected:
     /**
      * Creates an uninitialized COO matrix of the specified size.
      *
@@ -177,9 +175,9 @@ protected:
      * @param num_cols      number of columns
      * @param num_nonzeros  number of nonzeros
      */
-    Coo(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros)
-        : EnableLinOp<Coo>(exec, {num_rows, num_cols, num_nonzeros}),
+    Coo(std::shared_ptr<const Executor> exec, const dim &size = dim{},
+        size_type num_nonzeros = {})
+        : EnableLinOp<Coo>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_idxs_(exec, num_nonzeros)
@@ -191,7 +189,7 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Simple helper function to factorise conversion code of COO matrix to CSR.
+     * Simple helper function to factorize conversion code of COO matrix to CSR.
      *
      * @return this COO matrix in CSR format
      */

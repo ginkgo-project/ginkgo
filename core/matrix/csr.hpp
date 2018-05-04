@@ -159,19 +159,17 @@ public:
         return row_ptrs_.get_const_data();
     }
 
-protected:
     /**
-     * Creates an empty CSR matrix.
+     * Returns the number of elements explicitly stored in the matrix.
      *
-     * @param exec  Executor associated to the matrix
+     * @return the number of elements explicitly stored in the matrix
      */
-    explicit Csr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Csr>(exec),
-          values_(exec),
-          col_idxs_(exec),
-          row_ptrs_(exec)
-    {}
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
 
+protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
      *
@@ -180,12 +178,13 @@ protected:
      * @param num_cols      number of columns
      * @param num_nonzeros  number of nonzeros
      */
-    Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros)
-        : EnableLinOp<Csr>(exec, {num_rows, num_cols, num_nonzeros}),
+    Csr(std::shared_ptr<const Executor> exec, const dim &size = dim{},
+        size_type num_nonzeros = {})
+        : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
+          // avoid allocation for empty matrix
+          row_ptrs_(exec, size.num_rows + (size.num_rows > 0))
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -194,7 +193,7 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Simple helper function to factorise conversion code of CSR matrix to COO.
+     * Simple helper function to factorize conversion code of CSR matrix to COO.
      *
      * @return this CSR matrix in COO format
      */

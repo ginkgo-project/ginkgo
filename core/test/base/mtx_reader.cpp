@@ -49,8 +49,7 @@ TEST(MtxReader, ReadsDenseRealMtx)
 
     auto data = gko::read_raw<double, gko::int32>("data/dense_real.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -67,8 +66,7 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 
     auto data = gko::read_raw<double, gko::int32>("data/dense_integer.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -86,8 +84,7 @@ TEST(MtxReader, ReadsDenseComplexMtx)
 
     auto data = gko::read_raw<cpx, gko::int32>("data/dense_complex.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
@@ -104,8 +101,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
 
     auto data = gko::read_raw<double, gko::int32>("data/sparse_real.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -121,8 +117,7 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
     auto data =
         gko::read_raw<double, gko::int32>("data/sparse_real_symmetric.mtx");
 
-    ASSERT_EQ(data.num_rows, 3);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(3, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 2.0));
@@ -140,8 +135,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
     auto data = gko::read_raw<double, gko::int32>(
         "data/sparse_real_skew_symmetric.mtx");
 
-    ASSERT_EQ(data.num_rows, 3);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(3, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, -2.0));
     ASSERT_EQ(v[1], tpl(0, 2, -3.0));
@@ -156,8 +150,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 
     auto data = gko::read_raw<double, gko::int32>("data/sparse_pattern.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 0.0));
     ASSERT_EQ(v[1], tpl(0, 1, 0.0));
@@ -173,8 +166,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
 
     auto data = gko::read_raw<cpx, gko::int32>("data/sparse_complex.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
@@ -191,8 +183,7 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     auto data =
         gko::read_raw<cpx, gko::int32>("data/sparse_complex_hermitian.mtx");
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[1], tpl(0, 2, cpx(2.0, 4.0)));
@@ -240,8 +231,7 @@ TEST(MtxReader, ReadsLinOpFromFile)
         "data/dense_real.mtx", gko::ReferenceExecutor::create());
 
     const auto &data = lin_op->data_;
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     const auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));

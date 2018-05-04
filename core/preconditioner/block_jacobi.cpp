@@ -106,8 +106,7 @@ void BlockJacobi<ValueType, IndexType>::convert_to(
     matrix::Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = matrix::Dense<ValueType>::create(
-        exec, this->get_dimensions().num_rows, this->get_dimensions().num_cols);
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     exec->run(
         BlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
@@ -137,7 +136,7 @@ void BlockJacobi<ValueType, IndexType>::write(mat_data &data) const
         tmp = this;
     }
 
-    data = {tmp->get_dimensions().num_rows, tmp->get_dimensions().num_cols, {}};
+    data = {tmp->get_size(), {}};
 
     const auto ptrs = tmp->block_pointers_.get_const_data();
     for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
@@ -159,8 +158,8 @@ template <typename ValueType, typename IndexType>
 void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
     ASSERT_EQUAL_DIMENSIONS(system_matrix,
-                            size(system_matrix->get_dimensions().num_cols,
-                                 system_matrix->get_dimensions().num_rows));
+                            size(system_matrix->get_size().num_cols,
+                                 system_matrix->get_size().num_rows));
     using csr = matrix::Csr<ValueType, IndexType>;
     std::unique_ptr<csr> csr_mtx_handle{};
     const csr *csr_mtx;
@@ -176,8 +175,7 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         csr_mtx = csr_mtx_handle.get();
     }
     if (this->block_pointers_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(
-            csr_mtx->get_dimensions().num_rows);
+        this->block_pointers_.resize_and_reset(csr_mtx->get_size().num_rows);
         exec->run(BlockJacobiOperation<ValueType, IndexType>::
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,
@@ -235,8 +233,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::convert_to(
     matrix::Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = matrix::Dense<ValueType>::create(
-        exec, this->get_dimensions().num_rows, this->get_dimensions().num_cols);
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     exec->run(
         AdaptiveBlockJacobiOperation<ValueType, IndexType>::
             make_convert_to_dense_operation(
@@ -283,7 +280,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
         tmp = this;
     }
 
-    data = {tmp->get_dimensions().num_rows, tmp->get_dimensions().num_cols, {}};
+    data = {tmp->get_size(), {}};
 
     const auto ptrs = tmp->block_pointers_.get_const_data();
     const auto prec = tmp->block_precisions_.get_const_data();
@@ -312,8 +309,8 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
     const LinOp *system_matrix)
 {
     ASSERT_EQUAL_DIMENSIONS(system_matrix,
-                            size(system_matrix->get_dimensions().num_cols,
-                                 system_matrix->get_dimensions().num_rows));
+                            size(system_matrix->get_size().num_cols,
+                                 system_matrix->get_size().num_rows));
     using csr = matrix::Csr<ValueType, IndexType>;
     std::unique_ptr<csr> csr_mtx_handle{};
     const csr *csr_mtx;
@@ -328,8 +325,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
         csr_mtx = csr_mtx_handle.get();
     }
     if (this->block_pointers_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(
-            csr_mtx->get_dimensions().num_rows);
+        this->block_pointers_.resize_and_reset(csr_mtx->get_size().num_rows);
         exec->run(BlockJacobiOperation<ValueType, IndexType>::
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,
