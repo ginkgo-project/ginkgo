@@ -93,52 +93,52 @@ TEST(CudaError, ReturnsCusparseError)
 
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
-    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::size(3, 5), gko::size(5, 6)));
+    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::dim(3, 5), gko::dim(5, 6)));
 }
 
 
 TEST(AssertConformant, ThrowsWhenNotConformant)
 {
-    ASSERT_THROW(ASSERT_CONFORMANT(gko::size(3, 5), gko::size(7, 3)),
+    ASSERT_THROW(ASSERT_CONFORMANT(gko::dim(3, 5), gko::dim(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualRows, DoesNotThrowWhenEqualRowSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::size(5, 3), gko::size(5, 6)));
+    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::dim(5, 3), gko::dim(5, 6)));
 }
 
 
 TEST(AssertEqualRows, ThrowsWhenDifferentRowSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::size(3, 5), gko::size(7, 3)),
+    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::dim(3, 5), gko::dim(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualCols, DoesNotThrowWhenEqualColSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::size(3, 6), gko::size(5, 6)));
+    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::dim(3, 6), gko::dim(5, 6)));
 }
 
 
 TEST(AssertEqualCols, ThrowsWhenDifferentColSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::size(3, 5), gko::size(7, 3)),
+    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::dim(3, 5), gko::dim(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualDimensions, DoesNotThrowWhenEqualDimensions)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_DIMENSIONS(gko::size(5, 6), gko::size(5, 6)));
+    ASSERT_NO_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim(5, 6), gko::dim(5, 6)));
 }
 
 
 TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
 {
-    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::size(3, 5), gko::size(7, 5)),
+    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim(3, 5), gko::dim(7, 5)),
                  gko::DimensionMismatch);
 }
 

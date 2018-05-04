@@ -64,8 +64,7 @@ template <typename ValueType>
 std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(
-        base, size(base->get_size().num_cols, base->get_size().num_rows));
+    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
                                        base->get_size().num_rows);
 }

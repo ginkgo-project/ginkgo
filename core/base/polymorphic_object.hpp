@@ -203,7 +203,7 @@ protected:
 
     /**
      * Implementers of PolymorphicObject should override this function instead
-     * of `create_default()`.
+     * of create_default().
      *
      * @param exec the executor where the object will be created
      *
@@ -214,7 +214,7 @@ protected:
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
-     * of `copy_from(const PolymorphicObject *)`.
+     * of copy_from(const PolymorphicObject *).
      *
      * @param other  the object to copy
      *
@@ -225,7 +225,7 @@ protected:
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
-     * of `copy_from(std::unique_ptr<PolymorphicObject>)`.
+     * of copy_from(std::unique_ptr<PolymorphicObject>).
      *
      * @param other  the object to move from
      *
@@ -236,7 +236,7 @@ protected:
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
-     * of `clear()`.
+     * of clear().
      *
      * @return this
      */

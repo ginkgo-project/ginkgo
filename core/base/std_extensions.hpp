@@ -71,6 +71,10 @@ template <bool B, typename T, typename F>
 using conditional_t = typename std::conditional<B, T, F>::type;
 
 
+template <typename T>
+using decay_t = typename std::decay<T>::type;
+
+
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args &&... args)
 {

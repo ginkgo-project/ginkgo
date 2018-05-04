@@ -171,7 +171,7 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 template <typename ValueType>
 void Dense<ValueType>::scale(const LinOp *alpha)
 {
-    ASSERT_EQUAL_ROWS(alpha, size(1, 1));
+    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
     if (alpha->get_size().num_cols != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
@@ -186,7 +186,7 @@ void Dense<ValueType>::scale(const LinOp *alpha)
 template <typename ValueType>
 void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
 {
-    ASSERT_EQUAL_ROWS(alpha, size(1, 1));
+    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
     if (alpha->get_size().num_cols != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
@@ -204,7 +204,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     ASSERT_EQUAL_DIMENSIONS(this, b);
-    ASSERT_EQUAL_DIMENSIONS(result, size(1, this->get_size().num_cols));
+    ASSERT_EQUAL_DIMENSIONS(result, dim(1, this->get_size().num_cols));
     auto exec = this->get_executor();
     if (b->get_executor() != exec || result->get_executor() != exec)
         NOT_IMPLEMENTED;
