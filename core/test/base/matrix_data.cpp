@@ -208,9 +208,8 @@ TEST(MatrixData, InitializesCheckeredMatrix)
     using data = gko::matrix_data<double, int>;
     gko::matrix_data<double, int> m{{1., 2.}, {3., 4.}};
     using nnz = data::nonzero_type;
-    // gko::matrix_data<double, int> m(5, 7, {{0, 0, 2}, {1, 1, 0}, {2, 3, 5}});
     gko::matrix_data<double, int> mm{3, 2, m};
-    // const auto mm = data::matrix_data(3, 2, m);
+
     ASSERT_EQ(m.num_rows, 2);
     ASSERT_EQ(m.num_cols, 2);
     ASSERT_EQ(mm.num_rows, 6);
