@@ -225,6 +225,32 @@ struct matrix_data {
     }
 
     /**
+     * Initializes a matrix out of a matrix block via duplication.
+     *
+     * @param num_block_rows  number of block-rows
+     * @param num_block_cols  number of block-columns
+     * @param diag_block  matrix block used to fill the complete matrix
+     */
+    matrix_data(size_type num_block_rows, size_type num_block_cols,
+                const matrix_data &block)
+    {
+        const auto num_blocks = num_block_rows * num_block_cols;
+        nonzeros.reserve(num_blocks * block.nonzeros.size());
+        num_rows = num_block_rows * block.num_rows;
+        num_cols = num_block_cols * block.num_cols;
+        for (int row = 0; row < num_block_rows; ++row) {
+            for (int col = 0; col < num_block_cols; ++col) {
+                for (const auto &elem : block.nonzeros) {
+                    nonzeros.emplace_back(row * block.num_rows + elem.row,
+                                          col * block.num_cols + elem.column,
+                                          elem.value);
+                }
+            }
+        }
+        this->ensure_row_major_order();
+    }
+
+    /**
      * Initializes a diagonal matrix.
      *
      * @param num_rows_  number of rows of the matrix
@@ -286,34 +312,6 @@ struct matrix_data {
                                           elem.value);
             }
         }
-        return res;
-    }
-
-    /**
-     * Initializes a checkered matrix.
-     *
-     * @param num_block_rows  number of block-rows
-     * @param num_block_cols  number of block-columns
-     * @param diag_block  matrix used to fill diagonal blocks
-     */
-    static matrix_data checkered(size_type num_block_rows,
-                                 size_type num_block_cols,
-                                 const matrix_data &block)
-    {
-        matrix_data res(num_block_rows * block.num_rows,
-                        num_block_cols * block.num_cols);
-        const auto num_blocks = num_block_rows * num_block_cols;
-        res.nonzeros.reserve(num_blocks * block.nonzeros.size());
-        for (int row = 0; row < num_block_rows; ++row) {
-            for (int col = 0; col < num_block_cols; ++col) {
-                for (const auto &elem : block.nonzeros) {
-                    res.nonzeros.emplace_back(
-                        row * block.num_rows + elem.row,
-                        col * block.num_cols + elem.column, elem.value);
-                }
-            }
-        }
-        res.ensure_row_major_order();
         return res;
     }
 
