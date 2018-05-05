@@ -173,8 +173,7 @@ protected:
      * Creates an uninitialized CSR matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
+     * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
     Csr(std::shared_ptr<const Executor> exec, const dim &size = dim{},

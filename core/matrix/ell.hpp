@@ -207,8 +207,7 @@ protected:
      *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
+     * @param size  size of the matrix
      */
     Ell(std::shared_ptr<const Executor> exec, const dim &size = dim{})
         : Ell(std::move(exec), size, size.num_cols)
@@ -219,8 +218,7 @@ protected:
      *    (The stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
+     * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
     Ell(std::shared_ptr<const Executor> exec, const dim &size,
@@ -232,8 +230,7 @@ protected:
      * Creates an uninitialized Ell matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
+     * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param stride                stride of the rows
      */

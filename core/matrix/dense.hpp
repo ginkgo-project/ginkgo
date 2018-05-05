@@ -273,8 +273,7 @@ protected:
      * Creates an uninitialized Dense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
+     * @param size  size of the matrix
      */
     Dense(std::shared_ptr<const Executor> exec, const dim &size = dim{})
         : Dense(std::move(exec), size, size.num_cols)
@@ -284,8 +283,7 @@ protected:
      * Creates an uninitialized Dense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
+     * @param size  size of the matrix
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
