@@ -510,14 +510,16 @@ protected:
  *                        needs to have a constructor which takes a
  *                        const ConcreteFactory *, and an
  *                        std::shared_ptr<const LiOp> as parameters.
- * @tparam ParametersType  a subclass of parameters_type_base template which
+ * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
+ * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
+ *                          hierarchy, has to be a subclass of LinOpFactory
  */
 template <typename ConcreteFactory, typename ConcreteLinOp,
-          typename ParametersType>
+          typename ParametersType, typename PolymorphicBase = LinOpFactory>
 using EnableDefaultLinOpFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, LinOp,
-                         std::shared_ptr<const LinOp>, ParametersType>;
+    EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, ParametersType,
+                         PolymorphicBase>;
 
 
 /**
@@ -595,8 +597,8 @@ public:                                                                     \
                                                 _parameters_name##_type> {  \
         friend class gko::EnablePolymorphicObject<_factory_name,            \
                                                   LinOpFactory>;            \
-        friend class gko::parameters_type_base<_parameters_name##_type,     \
-                                               _factory_name>;              \
+        friend class gko::enable_parameters_type<_parameters_name##_type,   \
+                                                 _factory_name>;            \
         using gko::EnableDefaultLinOpFactory<                               \
             _factory_name, _lin_op,                                         \
             _parameters_name##_type>::EnableDefaultLinOpFactory;            \
@@ -609,7 +611,7 @@ private:                                                                    \
                                                                             \
 public:                                                                     \
     struct _parameters_name##_type                                          \
-        : gko::parameters_type_base<_parameters_name##_type, _factory_name>
+        : gko::enable_parameters_type<_parameters_name##_type, _factory_name>
 
 
 /**
