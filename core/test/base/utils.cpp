@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
+#include <core/base/polymorphic_object.hpp>
 
 
 namespace {
@@ -268,6 +268,60 @@ TEST(As, FailsToConvertConstantIfNotRelated)
     const Base *b = &d;
 
     ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+}
+
+
+struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
+                     gko::EnablePolymorphicAssignment<DummyObject>,
+                     gko::EnableCreateMethod<DummyObject> {
+    DummyObject(std::shared_ptr<const gko::Executor> exec, int value = {})
+        : gko::EnablePolymorphicObject<DummyObject>(exec), data{value}
+    {}
+
+    int data;
+};
+
+
+class TemporaryClone : public ::testing::Test {
+protected:
+    TemporaryClone()
+        : ref{gko::ReferenceExecutor::create()},
+          cpu{gko::CpuExecutor::create()},
+          obj{DummyObject::create(ref)}
+    {}
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CpuExecutor> cpu;
+    std::unique_ptr<DummyObject> obj;
+};
+
+
+TEST_F(TemporaryClone, CopiesToAnotherExecutor)
+{
+    auto clone = make_temporary_clone(cpu, gko::lend(obj));
+
+    ASSERT_EQ(clone.get()->get_executor(), cpu);
+    ASSERT_EQ(obj->get_executor(), ref);
+}
+
+
+TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
+{
+    {
+        auto clone = make_temporary_clone(cpu, gko::lend(obj));
+        clone.get()->data = 7;
+    }
+
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
+TEST_F(TemporaryClone, AvoidsCopyOnSameExecutor)
+{
+    auto clone = make_temporary_clone(ref, gko::lend(obj));
+
+    ASSERT_EQ(clone.get(), obj.get());
 }
 
 
