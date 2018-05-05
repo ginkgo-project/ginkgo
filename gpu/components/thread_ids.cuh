@@ -48,7 +48,7 @@ namespace thread {
  *
  * @return the ID of the block group this thread belongs to
  *
- * @note Assumes that grid dim are in standard format:
+ * @note Assumes that grid dimensions are in standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
 __device__ __forceinline__ size_type get_block_group_id()
@@ -63,7 +63,7 @@ __device__ __forceinline__ size_type get_block_group_id()
  *
  * @return the ID of the block this thread belongs to
  *
- * @note Assumes that grid dim are in standard format:
+ * @note Assumes that grid dimensions are in standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
 __device__ __forceinline__ size_type get_block_id()
@@ -81,7 +81,7 @@ __device__ __forceinline__ size_type get_block_id()
  * @return the local ID of the warp (relative to the block) this thread belongs
  *         to
  *
- * @note Assumes that block dim are in standard format:
+ * @note Assumes that block dimensions are in standard format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)`
  */
@@ -102,7 +102,7 @@ __device__ __forceinline__ size_type get_local_warp_id()
  * @return the local ID of the sub-warp (relative to the block) this thread
  *         belongs to
  *
- * @note Assumes that block dim are in standard format:
+ * @note Assumes that block dimensions are in standard format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)`
  */
@@ -124,7 +124,7 @@ __device__ __forceinline__ size_type get_local_subwarp_id()
  *
  * @return the local ID of the thread (relative to the block)
  *
- * @note Assumes that block dim are in standard format:
+ * @note Assumes that block dimensions are in standard format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)`
  */
@@ -144,7 +144,7 @@ __device__ __forceinline__ size_type get_local_thread_id()
  *
  * @return the global ID of the warp this thread belongs to.
  *
- * @note Assumes that block dim and grid dim are in standard
+ * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)` and
@@ -167,7 +167,7 @@ __device__ __forceinline__ size_type get_warp_id()
  *
  * @return the global ID of the sub-warp this thread belongs to.
  *
- * @note Assumes that block dim and grid dim are in standard
+ * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)` and
@@ -191,7 +191,7 @@ __device__ __forceinline__ size_type get_subwarp_id()
  *
  * @tparam subwarp_size  size of the subwarp
  *
- * @note Assumes that block dim and grid dim are in standard
+ * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
  *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
  *         cuda_config::warp_size)` and
