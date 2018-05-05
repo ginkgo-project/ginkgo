@@ -317,12 +317,38 @@ inline const typename std::decay<T>::type *as(const U *obj)
 }
 
 
+/**
+ * A copy_back_deleter is a type of deleter that copies the data to an
+ * internally referenced object before performing the deletion.
+ *
+ * The deleter will use the `copy_from` method to perform the copy, and then
+ * delete the passed object using the `delete` keyword. This kind of deleter is
+ * useful when temporarily copying an object with the intent of copying it back
+ * once it goes out of scope.
+ *
+ * There is also a specialization for constant objects that does not perform the
+ * copy, since a constant object couldn't have been changed.
+ *
+ * @tparam T  the type of object being deleted
+ */
 template <typename T>
 class copy_back_deleter {
 public:
     using pointer = T *;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @parm original  the origin object where the data will be copied before
+     *                 deletion
+     */
     copy_back_deleter(pointer original) : original_{original} {}
 
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
     void operator()(pointer ptr) const
     {
         original_->copy_from(ptr);
@@ -349,6 +375,17 @@ private:
 };
 
 
+/**
+ * A temporary_clone is a special smart pointer-like object that is designed to
+ * hold an object temporarily copied to another executor.
+ *
+ * After the temporary_clone goes out of scope, the stored object will be copied
+ * back to its original location. This class is optimized to avoid copies if the
+ * object is already on the correct executor, in which case it will just hold a
+ * reference to that object, without performing the copy.
+ *
+ * @tparam T  the type of object held in the temporary_clone
+ */
 template <typename T>
 class temporary_clone {
 public:
@@ -356,26 +393,47 @@ public:
     using value_type = T;
     using pointer = T *;
 
+    /**
+     * Creates a temporary_clone.
+     *
+     * @param exec  the executor where the clone will be created
+     * @param ptr  a pointer to the object of which the clone will be created
+     */
     explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr)
     {
         if (ptr->get_executor() == exec) {
             // just use the object we already have
-            handle = handle_type(ptr, [](pointer) {});
+            handle_ = handle_type(ptr, [](pointer) {});
         } else {
             // clone the object to the new executor and make sure it's copied
             // back before we delete it
-            handle = handle_type(gko::clone(std::move(exec), ptr).release(),
-                                 copy_back_deleter<T>(ptr));
+            handle_ = handle_type(gko::clone(std::move(exec), ptr).release(),
+                                  copy_back_deleter<T>(ptr));
         }
     }
 
-    T *get() const { return handle.get(); }
+    /**
+     * Returns the object held by temporary_clone.
+     *
+     * @return  the object held by temporary_clone
+     */
+    T *get() const { return handle_.get(); }
 
 private:
-    handle_type handle;
+    handle_type handle_;
 };
 
 
+/**
+ * Creates a temporary_clone.
+ *
+ * This is a halper function which avoids the need to explicitly specify the
+ * type of the object, as would be the case if using the constructor of
+ * temporary_clone.
+ *
+ * @param exec  the executor where the clone will be created
+ * @param ptr  a pointer to the object of which the clone will be created
+ */
 template <typename T>
 temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
                                         T *ptr)
