@@ -574,6 +574,10 @@ using EnableDefaultLinOpFactory =
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
  * ```
  *
+ * @note This macro only works with class __templates__ (not with regular
+ *       classes). See <https://stackoverflow.com/q/50202718/9385966> for more
+ *       details.
+ *
  * @param _lin_op  concrete operator for which the factory is to be created
  *                 [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
@@ -583,35 +587,36 @@ using EnableDefaultLinOpFactory =
  *                          `get_<_parameters_name>()`)
  * @param _facory_name  name of the generated factory type
  */
-#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name) \
-public:                                                                     \
-    struct _parameters_name##_type;                                         \
-                                                                            \
-    const _parameters_name##_type &get_##_parameters_name() const           \
-    {                                                                       \
-        return _parameters_name##_;                                         \
-    }                                                                       \
-                                                                            \
-    class _factory_name                                                     \
-        : public gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,     \
-                                                _parameters_name##_type> {  \
-        friend class gko::EnablePolymorphicObject<_factory_name,            \
-                                                  LinOpFactory>;            \
-        friend class gko::enable_parameters_type<_parameters_name##_type,   \
-                                                 _factory_name>;            \
-        using gko::EnableDefaultLinOpFactory<                               \
-            _factory_name, _lin_op,                                         \
-            _parameters_name##_type>::EnableDefaultLinOpFactory;            \
-    };                                                                      \
-    friend gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,           \
-                                          _parameters_name##_type>;         \
-                                                                            \
-private:                                                                    \
-    _parameters_name##_type _parameters_name##_;                            \
-                                                                            \
-public:                                                                     \
-    struct _parameters_name##_type                                          \
-        : gko::enable_parameters_type<_parameters_name##_type, _factory_name>
+#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
+public:                                                                      \
+    struct _parameters_name##_type;                                          \
+                                                                             \
+    const _parameters_name##_type &get_##_parameters_name() const            \
+    {                                                                        \
+        return _parameters_name##_;                                          \
+    }                                                                        \
+                                                                             \
+    class _factory_name                                                      \
+        : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
+                                                  _parameters_name##_type> { \
+        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
+                                                    ::gko::LinOpFactory>;    \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
+                                                   _factory_name>;           \
+        using ::gko::EnableDefaultLinOpFactory<                              \
+            _factory_name, _lin_op,                                          \
+            _parameters_name##_type>::EnableDefaultLinOpFactory;             \
+    };                                                                       \
+    friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
+                                            _parameters_name##_type>;        \
+                                                                             \
+private:                                                                     \
+    _parameters_name##_type _parameters_name##_;                             \
+                                                                             \
+public:                                                                      \
+    struct _parameters_name##_type                                           \
+        : ::gko::enable_parameters_type<_parameters_name##_type,             \
+                                        _factory_name>
 
 
 /**
@@ -622,14 +627,14 @@ public:                                                                     \
  *
  * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
  */
-#define GKO_FACTORY_PARAMETER(_name, ...)             \
-    mutable _name{__VA_ARGS__};                       \
-                                                      \
-    auto with_##_name(const decltype(_name) &value)   \
-        const->const xstd::decay_t<decltype(*this)> & \
-    {                                                 \
-        _name = value;                                \
-        return *this;                                 \
+#define GKO_FACTORY_PARAMETER(_name, ...)                    \
+    mutable _name{__VA_ARGS__};                              \
+                                                             \
+    auto with_##_name(const decltype(_name) &value)          \
+        const->const ::gko::xstd::decay_t<decltype(*this)> & \
+    {                                                        \
+        this->_name = value;                                 \
+        return *this;                                        \
     }
 
 
