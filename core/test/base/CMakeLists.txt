@@ -1,5 +1,6 @@
 add_subdirectory(data)
 
+create_test(abstract_factory)
 create_test(array)
 create_test(exception)
 create_test(exception_helpers)
