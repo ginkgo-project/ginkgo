@@ -89,6 +89,11 @@ protected:
         beta = gen_mtx(1, n);
         prev_rho = gen_mtx(1, n);
         rho = gen_mtx(1, n);
+        converged =
+            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
+        for (size_t i = 0; i < converged->get_num_elems(); ++i) {
+            converged->get_data()[i] = false;
+        }
 
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());
@@ -108,6 +113,9 @@ protected:
         d_prev_rho->copy_from(prev_rho.get());
         d_rho = Mtx::create(gpu);
         d_rho->copy_from(rho.get());
+        d_converged =
+            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(gpu, n));
+        *d_converged = *converged;
     }
 
     void make_symetric(Mtx *mtx)
@@ -151,6 +159,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
+    std::unique_ptr<gko::Array<bool>> converged;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -161,6 +170,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
+    std::unique_ptr<gko::Array<bool>> d_converged;
 };
 
 
@@ -170,10 +180,10 @@ TEST_F(Cg, GpuCgInitializeIsEquivalentToRef)
 
     gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
                                             p.get(), q.get(), prev_rho.get(),
-                                            rho.get());
+                                            rho.get(), converged.get());
     gko::kernels::gpu::cg::initialize(gpu, d_b.get(), d_r.get(), d_z.get(),
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
-                                      d_rho.get());
+                                      d_rho.get(), d_converged.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -189,9 +199,9 @@ TEST_F(Cg, GpuCgStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
-                                        prev_rho.get());
+                                        prev_rho.get(), *converged.get());
     gko::kernels::gpu::cg::step_1(gpu, d_p.get(), d_z.get(), d_rho.get(),
-                                  d_prev_rho.get());
+                                  d_prev_rho.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -202,9 +212,11 @@ TEST_F(Cg, GpuCgStep2IsEquivalentToRef)
 {
     initialize_data();
     gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
-                                        beta.get(), rho.get());
+                                        beta.get(), rho.get(),
+                                        *converged.get());
     gko::kernels::gpu::cg::step_2(gpu, d_x.get(), d_r.get(), d_p.get(),
-                                  d_q.get(), d_beta.get(), d_rho.get());
+                                  d_q.get(), d_beta.get(), d_rho.get(),
+                                  *d_converged.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
