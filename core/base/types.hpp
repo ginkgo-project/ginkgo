@@ -194,7 +194,7 @@ struct dim {
  * @return true if and only if both the number of rows and the number of columns
  *         of both objects match.
  */
-inline bool operator==(const dim &x, const dim &y)
+GKO_ATTRIBUTES GKO_INLINE bool operator==(const dim &x, const dim &y)
 {
     return x.num_rows == y.num_rows && x.num_cols == y.num_cols;
 }
@@ -208,7 +208,10 @@ inline bool operator==(const dim &x, const dim &y)
  *
  * @return `!(x == y)`
  */
-inline bool operator!=(const dim &x, const dim &y) { return !(x == y); }
+GKO_ATTRIBUTES GKO_INLINE bool operator!=(const dim &x, const dim &y)
+{
+    return !(x == y);
+}
 
 
 /**
@@ -219,7 +222,7 @@ inline bool operator!=(const dim &x, const dim &y) { return !(x == y); }
  *
  * @return  a dim object representing the size of the tensor product `x * y`
  */
-inline dim operator*(const dim &x, const dim &y)
+GKO_ATTRIBUTES GKO_INLINE dim operator*(const dim &x, const dim &y)
 {
     return dim{x.num_rows * y.num_rows, x.num_cols * y.num_cols};
 }
