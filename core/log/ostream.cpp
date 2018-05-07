@@ -87,7 +87,7 @@ void Ostream::on_apply() const
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
 void Ostream::on_converged(size_type at_iteration) const
 {
-    os_ << prefix << "converged at iteration" << at_iteration << std::endl;
+    os_ << prefix << "converged at iteration " << at_iteration << std::endl;
 }
 
 
