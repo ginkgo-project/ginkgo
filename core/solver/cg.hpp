@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
 
 
@@ -60,7 +61,7 @@ namespace solver {
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>> {
+class Cg : public EnableLinOp<Cg<ValueType>>, public gko::log::EnableLogging {
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
 

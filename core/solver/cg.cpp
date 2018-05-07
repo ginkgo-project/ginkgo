@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
+#include "core/log/logger.hpp"
 #include "core/solver/cg_kernels.hpp"
 
 
@@ -64,6 +65,7 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    this->log<gko::log::Logger::apply>();
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
@@ -113,6 +115,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 &converged, &all_converged));
 
         if (all_converged) {
+            this->log<gko::log::Logger::converged>(iter + 1);
             break;
         }
 
@@ -129,6 +132,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + tmp * p
         // r = r - tmp * q
         swap(prev_rho, rho);
+        this->log<gko::log::Logger::iteration_complete>(iter + 1);
     }
 }
 
