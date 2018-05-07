@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <bitset>
 #include <memory>
+#include <vector>
 
 
 namespace gko {
@@ -53,7 +54,7 @@ public:
 
     using mask_type = std::bitset<event_count>;
 
-    static constexpr mask_type all_events_mask{0};
+    static constexpr mask_type all_events_mask{0b0};
 
     Logger(const mask_type &enabled_events = all_events_mask)
         : enabled_events_{enabled_events}
@@ -76,11 +77,11 @@ public:                                                              \
     static constexpr size_type _event_name{_id};                     \
     static constexpr mask_type _event_name##_mask                    \
     {                                                                \
-        mask_type { 1 << _id }                                       \
+        mask_type { 0b1 << _id }                                     \
     }
 
-    GKO_LOGGER_REGISTER_EVENT(0, apply);
-    GKO_LOGGER_REGISTER_EVENT(1, iteration_complete, size_type num_iterations);
+    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, size_type num_iterations);
+    GKO_LOGGER_REGISTER_EVENT(1, apply);
     GKO_LOGGER_REGISTER_EVENT(2, converged, size_type at_iteration);
     // register other events
 

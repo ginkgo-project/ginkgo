@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
-#include "core/log/logger.hpp"
 #include "core/solver/cg_kernels.hpp"
 
 

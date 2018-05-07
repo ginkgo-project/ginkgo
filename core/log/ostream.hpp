@@ -31,40 +31,47 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_LOG_OSTREAM_HPP_
+#define GKO_CORE_LOG_OSTREAM_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/ostream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
+#include "core/log/logger.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <fstream>
+#include <iostream>
+
+
+namespace gko {
+namespace log {
+
+
+class Ostream : public Logger {
+public:
+    static std::shared_ptr<Ostream> create(const mask_type &enabled_events,
+                                           std::ostream &os)
+    {
+        return std::shared_ptr<Ostream>(new Ostream(enabled_events, os));
+    }
+
+    void on_iteration_complete(size_type num_iterations) const override;
+    void on_apply() const override;
+    void on_converged(size_type at_iteration) const override;
+
+protected:
+    explicit Ostream(const mask_type &enabled_events, std::ostream &os)
+        : Logger(enabled_events), os_(os)
+    {}
+
+
+    std::ostream &os_;
+
+    const std::string prefix = "[LOG] >>> ";
+};
+
+
+}  // namespace log
+}  // namespace gko
+
+
+#endif  // GKO_CORE_LOG_OSTREAM_HPP_

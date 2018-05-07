@@ -99,6 +99,13 @@ int main(int argc, char *argv[])
                           .with_rel_residual_goal(1e-20)
                           .on_executor(exec);
     auto solver = solver_gen->generate(A);
+    // example: print to a file
+    std::ofstream filestream("my_file.txt");
+    static_cast<gko::solver::Cg<> *>(solver.get())
+        ->add_logger(gko::log::Ostream::create(
+            gko::log::Logger::iteration_complete_mask, filestream));
+    // solver->add_logger(gko::log::Ostream::create(gko::log::Ostream::iteration_complete_mask,
+    // std::cout));
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));

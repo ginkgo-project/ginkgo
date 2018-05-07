@@ -31,40 +31,65 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
-
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
 
 #include "core/log/ostream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <iomanip>
+
+
+namespace gko {
+namespace log {
+
+
+namespace {
+
+
+/* This could be useful later on */
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const matrix::Dense<T> *mtx)
+{
+    auto exec = mtx->get_executor();
+    auto tmp = gko::matrix::Dense<T>::create(exec->get_master());
+    if (exec != exec->get_master()) {
+        tmp->copy_from(mtx);
+        mtx = tmp.get();
+    }
+    os << std::scientific << std::setprecision(4);
+    os << "[" << std::endl;
+    for (int i = 0; i < mtx->get_num_rows(); ++i) {
+        for (int j = 0; j < mtx->get_num_cols(); ++j) {
+            os << '\t' << mtx->at(i, j);
+        }
+        os << std::endl;
+    }
+    return os << "]" << std::endl;
+}
+
+
+}  // namespace
+
+
+void Ostream::on_iteration_complete(size_type num_iterations) const
+{
+    os_ << prefix << "iteration " << num_iterations << std::endl;
+}
+
+
+/* TODO: pass arguments, at least location/type */
+void Ostream::on_apply() const
+{
+    os_ << prefix << "starting apply function" << std::endl;
+}
+
+
+/* TODO: improve this whenever the criterion class hierarchy MR is merged */
+void Ostream::on_converged(size_type at_iteration) const
+{
+    os_ << prefix << "converged at iteration" << at_iteration << std::endl;
+}
+
+
+}  // namespace log
+}  // namespace gko
