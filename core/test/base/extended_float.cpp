@@ -57,17 +57,22 @@ struct floating_impl<32> {
     using type = float;
 };
 
+template <>
+struct floating_impl<64> {
+    using type = double;
+};
 
 template <std::size_t N>
 using floating = typename floating_impl<N>::type;
 
 
-class HalfTestBase : public ::testing::Test {
+class ExtendedFloatTestBase : public ::testing::Test {
 protected:
     using half = gko::half;
+    template <typename T, std::size_t NumComponents, std::size_t ComponentId>
+    using truncated = gko::truncated<T, NumComponents, ComponentId>;
 
-    static constexpr std::size_t byte_size = 8;
-
+    static constexpr auto byte_size = gko::byte_size;
 
     template <std::size_t N>
     static floating<N - 1> create_from_bits(const char (&s)[N])
@@ -80,7 +85,7 @@ protected:
     static std::bitset<sizeof(T) * byte_size> get_bits(T val)
     {
         auto bits = reinterpret_cast<
-            typename gko::detail::basic_float_traits<T>::bits_type &>(val);
+            typename gko::detail::float_traits<T>::bits_type &>(val);
         return std::bitset<sizeof(T) * byte_size>(bits);
     }
 
@@ -92,8 +97,7 @@ protected:
 };
 
 
-class FloatToHalf : public HalfTestBase {
-};
+class FloatToHalf : public ExtendedFloatTestBase {};
 
 
 // clang-format does terrible formatting of string literal concatenation
@@ -200,8 +204,7 @@ TEST_F(FloatToHalf, TruncatesLargeNumber)
 // clang-format on
 
 
-class HalfToFloat : public HalfTestBase {
-};
+class HalfToFloat : public ExtendedFloatTestBase {};
 
 
 // clang-format off
@@ -268,6 +271,131 @@ TEST_F(HalfToFloat, ExtendsLargeNumber)
     float x = create_from_bits("1" "11110" "1001001111");
 
     ASSERT_EQ(get_bits(x), get_bits("1" "10001110" "10010011110000000000000"));
+}
+
+
+// clang-format on
+
+
+class TruncatedDouble : public ExtendedFloatTestBase {};
+
+
+// clang-format off
+
+
+TEST_F(TruncatedDouble, SplitsDoubleToHalves)
+{
+    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+                                "1100101011010101" "1001011101110111");
+
+    auto p1 = static_cast<truncated<double, 2, 0>>(x);
+    auto p2 = static_cast<truncated<double, 2, 1>>(x);
+
+    EXPECT_EQ(
+        get_bits(p1), get_bits("1" "11110100100" "1111" "1000110110110101"));
+    ASSERT_EQ(get_bits(p2), get_bits("1100101011010101" "1001011101110111"));
+}
+
+
+TEST_F(TruncatedDouble, AssemblesDoubleFromHalves)
+{
+    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+                                "1100101011010101" "1001011101110111");
+    auto p1 = static_cast<truncated<double, 2, 0>>(x);
+    auto p2 = static_cast<truncated<double, 2, 1>>(x);
+
+    auto d1 = static_cast<double>(p1);
+    auto d2 = static_cast<double>(p2);
+
+    EXPECT_EQ(get_bits(d1),
+              get_bits("1" "11110100100" "1111" "1000110110110101"
+                       "0000000000000000" "0000000000000000"));
+    ASSERT_EQ(get_bits(d2),
+              get_bits("0" "00000000000" "0000" "0000000000000000"
+                       "1100101011010101" "1001011101110111"));
+}
+
+
+TEST_F(TruncatedDouble, SplitsDoubleToQuarters)
+{
+    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+                                "1100101011010101" "1001011101110111");
+
+    auto p1 = static_cast<truncated<double, 4, 0>>(x);
+    auto p2 = static_cast<truncated<double, 4, 1>>(x);
+    auto p3 = static_cast<truncated<double, 4, 2>>(x);
+    auto p4 = static_cast<truncated<double, 4, 3>>(x);
+
+    EXPECT_EQ(get_bits(p1), get_bits("1" "11110100100" "1111"));
+    EXPECT_EQ(get_bits(p2), get_bits("1000110110110101"));
+    EXPECT_EQ(get_bits(p3), get_bits("1100101011010101"));
+    ASSERT_EQ(get_bits(p4), get_bits("1001011101110111"));
+}
+
+
+TEST_F(TruncatedDouble, AssemblesDoubleFromQuarters)
+{
+    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+                                "1100101011010101" "1001011101110111");
+    auto p1 = static_cast<truncated<double, 4, 0>>(x);
+    auto p2 = static_cast<truncated<double, 4, 1>>(x);
+    auto p3 = static_cast<truncated<double, 4, 2>>(x);
+    auto p4 = static_cast<truncated<double, 4, 3>>(x);
+
+    auto d1 = static_cast<double>(p1);
+    auto d2 = static_cast<double>(p2);
+    auto d3 = static_cast<double>(p3);
+    auto d4 = static_cast<double>(p4);
+
+    ASSERT_EQ(get_bits(d1),
+              get_bits("1" "11110100100" "1111" "0000000000000000"
+                       "0000000000000000" "0000000000000000"));
+    ASSERT_EQ(get_bits(d2),
+              get_bits("0" "00000000000" "0000" "1000110110110101"
+                       "0000000000000000" "0000000000000000"));
+    ASSERT_EQ(get_bits(d3),
+              get_bits("0" "00000000000" "0000" "0000000000000000"
+                       "1100101011010101" "0000000000000000"));
+    ASSERT_EQ(get_bits(d4),
+              get_bits("0" "00000000000" "0000" "0000000000000000"
+                       "0000000000000000" "1001011101110111"));
+}
+
+
+// clang-format on
+
+
+class TruncatedFloat : public ExtendedFloatTestBase {};
+
+
+// clang-format off
+
+
+TEST_F(TruncatedFloat, SplitsFloatToHalves)
+{
+    float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
+
+    auto p1 = static_cast<truncated<float, 2, 0>>(x);
+    auto p2 = static_cast<truncated<float, 2, 1>>(x);
+
+    EXPECT_EQ(get_bits(p1), get_bits("1" "11110100" "1001111"));
+    ASSERT_EQ(get_bits(p2), get_bits("1000110110110101"));
+}
+
+
+TEST_F(TruncatedFloat, AssemblesFloatFromHalves)
+{
+    float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
+    auto p1 = static_cast<truncated<float, 2, 0>>(x);
+    auto p2 = static_cast<truncated<float, 2, 1>>(x);
+
+    auto d1 = static_cast<float>(p1);
+    auto d2 = static_cast<float>(p2);
+
+    EXPECT_EQ(
+        get_bits(d1), get_bits("1" "11110100" "1001111" "0000000000000000"));
+    ASSERT_EQ(
+        get_bits(d2), get_bits("0" "00000000" "0000000" "1000110110110101"));
 }
 
 

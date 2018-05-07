@@ -75,23 +75,21 @@ protected:
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
         mtx = gko::test::generate_random_matrix<Mtx>(
-            ref, dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
-            std::normal_distribution<>(0.0, 1.0), engine);
+            dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
+            std::normal_distribution<>(0.0, 1.0), engine, ref);
         gko::Array<gko::int32> block_ptrs(ref, block_pointers);
         bj_factory = BjFactory::create(ref, max_block_size);
         bj_factory->set_block_pointers(block_ptrs);
         d_bj_factory = BjFactory::create(gpu, max_block_size);
         d_bj_factory->set_block_pointers(block_ptrs);
         b = gko::test::generate_random_matrix<Vec>(
-            ref, dim, num_rhs,
-            std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine);
+            dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
+            std::normal_distribution<>(0.0, 1.0), engine, ref);
         d_b = Vec::create(gpu);
         d_b->copy_from(b.get());
         x = gko::test::generate_random_matrix<Vec>(
-            ref, dim, num_rhs,
-            std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine);
+            dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
+            std::normal_distribution<>(0.0, 1.0), engine, ref);
         d_x = Vec::create(gpu);
         d_x->copy_from(x.get());
     }

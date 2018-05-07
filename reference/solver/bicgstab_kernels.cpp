@@ -33,9 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicgstab_kernels.hpp"
 
+#include "core/base/array.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 
+#include <algorithm>
 
 namespace gko {
 namespace kernels {
@@ -52,7 +54,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *omega)
+                matrix::Dense<ValueType> *omega, Array<bool> *converged)
 {
     for (size_type j = 0; j < b->get_num_cols(); ++j) {
         rho->at(j) = one<ValueType>();
@@ -61,6 +63,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         beta->at(j) = one<ValueType>();
         gamma->at(j) = one<ValueType>();
         omega->at(j) = one<ValueType>();
+        converged->get_data()[j] = false;
     }
     for (size_type i = 0; i < b->get_num_rows(); ++i) {
         for (size_type j = 0; j < b->get_num_cols(); ++j) {
@@ -78,6 +81,31 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
+template <typename ValueType>
+void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Dense<ValueType> *tau,
+                      const matrix::Dense<ValueType> *orig_tau,
+                      remove_complex<ValueType> rel_residual_goal,
+                      Array<bool> *converged, bool *all_converged)
+{
+    using std::abs;
+    *all_converged = true;
+    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
+        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
+            converged->get_data()[i] = true;
+        }
+    }
+    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
+        if (!converged->get_const_data()[i]) {
+            *all_converged = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
+
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
@@ -86,11 +114,14 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega)
+            const matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 
 {
     for (size_type i = 0; i < p->get_num_rows(); ++i) {
         for (size_type j = 0; j < p->get_num_cols(); ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
             if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
                 const auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
@@ -112,10 +143,13 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta)
+            const matrix::Dense<ValueType> *beta, const Array<bool> &converged)
 {
     for (size_type i = 0; i < s->get_num_rows(); ++i) {
         for (size_type j = 0; j < s->get_num_cols(); ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
             if (beta->at(j) != zero<ValueType>()) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
@@ -137,9 +171,12 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega)
+    matrix::Dense<ValueType> *omega, const Array<bool> &converged)
 {
     for (size_type j = 0; j < x->get_num_cols(); ++j) {
+        if (converged.get_const_data()[j]) {
+            continue;
+        }
         if (beta->at(j) != zero<ValueType>()) {
             omega->at(j) = gamma->at(j) / beta->at(j);
         } else {
@@ -148,6 +185,9 @@ void step_3(
     }
     for (size_type i = 0; i < x->get_num_rows(); ++i) {
         for (size_type j = 0; j < x->get_num_cols(); ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
             x->at(i, j) +=
                 alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
             r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);

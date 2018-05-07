@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 #include "core/matrix/dense.hpp"
 
 
@@ -220,7 +220,8 @@ protected:
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BlockJacobi : public BasicBlockJacobi<BlockJacobi<ValueType, IndexType>>,
-                    public ConvertibleTo<matrix::Dense<ValueType>> {
+                    public ConvertibleTo<matrix::Dense<ValueType>>,
+                    public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<BlockJacobi>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
@@ -231,6 +232,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -240,6 +242,8 @@ public:
     void convert_to(matrix::Dense<value_type> *result) const override;
 
     void move_to(matrix::Dense<value_type> *result) override;
+
+    void write(mat_data &data) const override;
 
 protected:
     using BasicBlockJacobi<BlockJacobi>::create;
@@ -280,7 +284,8 @@ protected:
 template <typename ValueType = default_precision, typename IndexType = int32>
 class AdaptiveBlockJacobi
     : public BasicBlockJacobi<AdaptiveBlockJacobi<ValueType, IndexType>>,
-      public ConvertibleTo<matrix::Dense<ValueType>> {
+      public ConvertibleTo<matrix::Dense<ValueType>>,
+      public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<AdaptiveBlockJacobi>;
     friend class BlockJacobiFactory<ValueType, IndexType>;
     friend class AdaptiveBlockJacobiFactory<ValueType, IndexType>;
@@ -291,6 +296,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     /**
      * This type is used to store data about precision of diagonal blocks.
@@ -326,6 +332,8 @@ public:
     void convert_to(matrix::Dense<value_type> *result) const override;
 
     void move_to(matrix::Dense<value_type> *result) override;
+
+    void write(mat_data &data) const override;
 
     /**
      * Returns the precisions of diagonal blocks.

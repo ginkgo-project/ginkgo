@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/mtx_reader.hpp>
+
+
 namespace {
 
 
@@ -160,13 +163,36 @@ TEST_F(Coo, CanBeCleared)
 }
 
 
-TEST_F(Coo, CanBeReadFromMtx)
+TEST_F(Coo, CanBeReadFromMatrixData)
 {
     auto m = Mtx::create(exec);
-
-    m->read_from_mtx("../base/data/dense_real.mtx");
+    m->read({2,
+             3,
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
 
     assert_equal_to_original_mtx(m.get());
+}
+
+
+TEST_F(Coo, GeneratesCorrectMatrixData)
+{
+    using tpl = gko::matrix_data<>::nonzero_type;
+    gko::matrix_data<> data;
+
+    mtx->write(data);
+
+    ASSERT_EQ(data.num_rows, 2);
+    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.nonzeros.size(), 4);
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
 }
 
 

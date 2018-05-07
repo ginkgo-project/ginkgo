@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATH_HPP_
 
 
+#include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
 
@@ -125,13 +126,11 @@ struct remove_complex_impl<std::complex<T>> {
 
 
 template <typename T>
-struct is_complex_impl : public std::integral_constant<bool, false> {
-};
+struct is_complex_impl : public std::integral_constant<bool, false> {};
 
 template <typename T>
 struct is_complex_impl<std::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
+    : public std::integral_constant<bool, true> {};
 
 
 }  // namespace detail
@@ -251,6 +250,53 @@ GKO_INLINE GKO_ATTRIBUTES constexpr increase_precision<T> round_up(T val)
 {
     return static_cast<increase_precision<T>>(val);
 }
+
+
+template <typename FloatType, size_type NumComponents, size_type ComponentId>
+class truncated;
+
+
+namespace detail {
+
+
+template <typename T>
+struct truncate_type_impl {
+    using type = truncated<T, 2, 0>;
+};
+
+template <typename T, size_type Components>
+struct truncate_type_impl<truncated<T, Components, 0>> {
+    using type = truncated<T, 2 * Components, 0>;
+};
+
+template <typename T>
+struct truncate_type_impl<std::complex<T>> {
+    using type = std::complex<typename truncate_type_impl<T>::type>;
+};
+
+
+template <typename T>
+struct type_size_impl {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+template <typename T>
+struct type_size_impl<std::complex<T>> {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Truncates the type by half (by dropping bits), but ensures that it is at
+ * least `Limit` bits wide.
+ */
+template <typename T, size_type Limit = sizeof(uint16) * byte_size>
+using truncate_type =
+    xstd::conditional_t<detail::type_size_impl<T>::value >= 2 * Limit,
+                        typename detail::truncate_type_impl<T>::type, T>;
 
 
 /**

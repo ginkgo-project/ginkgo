@@ -157,26 +157,48 @@ void Coo<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Coo<ValueType, IndexType>::read(const mat_data &data)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
     size_type nnz = 0;
     for (const auto &elem : data.nonzeros) {
-        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz += (elem.value != zero<ValueType>());
     }
     auto tmp = create(this->get_executor()->get_master(), data.num_rows,
                       data.num_cols, nnz);
     size_type elt = 0;
     for (const auto &elem : data.nonzeros) {
-        auto val = std::get<2>(elem);
+        auto val = elem.value;
         if (val != zero<ValueType>()) {
-            tmp->get_row_idxs()[elt] = std::get<0>(elem);
-            tmp->get_col_idxs()[elt] = std::get<1>(elem);
-            tmp->get_values()[elt] = std::get<2>(elem);
+            tmp->get_row_idxs()[elt] = elem.row;
+            tmp->get_col_idxs()[elt] = elem.column;
+            tmp->get_values()[elt] = elem.value;
             elt++;
         }
     }
     this->copy_from(std::move(tmp));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Coo *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Coo *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {this->get_num_rows(), this->get_num_cols(), {}};
+
+    for (size_type i = 0; i < tmp->get_num_stored_elements(); ++i) {
+        const auto row = tmp->row_idxs_.get_const_data()[i];
+        const auto col = tmp->col_idxs_.get_const_data()[i];
+        const auto val = tmp->values_.get_const_data()[i];
+        data.nonzeros.emplace_back(row, col, val);
+    }
 }
 
 

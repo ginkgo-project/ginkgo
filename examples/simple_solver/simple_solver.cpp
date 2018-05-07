@@ -89,23 +89,19 @@ int main(int argc, char *argv[])
     }
 
     // Read data
-    std::shared_ptr<mtx> A = mtx::create(exec);
-    A->read_from_mtx("data/A.mtx");
-    auto b = vec::create(exec);
-    b->read_from_mtx("data/b.mtx");
-    auto x = vec::create(exec);
-    x->read_from_mtx("data/x0.mtx");
+    auto A = gko::share(gko::read<mtx>("data/A.mtx", exec));
+    auto b = gko::read<vec>("data/b.mtx", exec);
+    auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Generate solver
     auto solver_gen = cg::create(exec, 20, 1e-20);
     auto solver = solver_gen->generate(A);
 
     // Solve system
-    solver->apply(b.get(), x.get());
+    solver->apply(gko::lend(b), gko::lend(x));
 
     // Print result
-    auto h_x = vec::create(exec->get_master());
-    h_x->copy_from(x.get());
+    auto h_x = gko::clone_to(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
     for (int i = 0; i < h_x->get_num_rows(); ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
@@ -116,10 +112,9 @@ int main(int argc, char *argv[])
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(one.get(), x.get(), neg_one.get(), b.get());
-    b->compute_dot(b.get(), res.get());
+    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
+    b->compute_dot(gko::lend(b), gko::lend(res));
 
-    auto h_res = vec::create(exec->get_master());
-    h_res->copy_from(std::move(res));
+    auto h_res = gko::clone_to(exec->get_master(), res);
     std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
 }

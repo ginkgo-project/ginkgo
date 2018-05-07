@@ -37,28 +37,210 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/executor.hpp>
+
+
 namespace {
 
 
-class Base {
-public:
+struct Base {
     virtual ~Base() = default;
 };
 
 
-class Derived : public Base {
+struct Derived : Base {
 };
 
 
-class NonRelated {
+struct NonRelated {
     virtual ~NonRelated() = default;
 };
+
+
+struct ClonableDerived : Base {
+    ClonableDerived(std::shared_ptr<const gko::Executor> exec = nullptr)
+        : executor(exec)
+    {}
+
+    std::unique_ptr<Base> clone()
+    {
+        return std::unique_ptr<Base>(new ClonableDerived());
+    }
+
+    std::unique_ptr<Base> clone_to(std::shared_ptr<const gko::Executor> exec)
+    {
+        return std::unique_ptr<Base>(new ClonableDerived{exec});
+    }
+
+    std::shared_ptr<const gko::Executor> executor;
+};
+
+
+TEST(Clone, ClonesUniquePointer)
+{
+    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone(p);
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
+
+
+TEST(Clone, ClonesSharedPointer)
+{
+    std::shared_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone(p);
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
+
+
+TEST(Clone, ClonesPlainPointer)
+{
+    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone(p.get());
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
+
+
+TEST(CloneTo, ClonesUniquePointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone_to(exec, p);
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
+
+
+TEST(CloneTo, ClonesSharedPointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::shared_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone_to(exec, p);
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
+
+
+TEST(CloneTo, ClonesPlainPointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+
+    auto clone = gko::clone_to(exec, p.get());
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<ClonableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
+
+
+TEST(Share, SharesSharedPointer)
+{
+    std::shared_ptr<Derived> p(new Derived());
+    auto plain = p.get();
+
+    auto shared = gko::share(p);
+
+    ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
+    ASSERT_EQ(plain, shared.get());
+}
+
+
+TEST(Share, SharesUniquePointer)
+{
+    std::unique_ptr<Derived> p(new Derived());
+    auto plain = p.get();
+
+    auto shared = gko::share(p);
+
+    ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
+    ASSERT_EQ(plain, shared.get());
+}
+
+
+TEST(Give, GivesSharedPointer)
+{
+    std::shared_ptr<Derived> p(new Derived());
+    auto plain = p.get();
+
+    auto given = gko::give(p);
+
+    ::testing::StaticAssertTypeEq<decltype(given), std::shared_ptr<Derived>>();
+    ASSERT_EQ(plain, given.get());
+}
+
+
+TEST(Give, GivesUniquePointer)
+{
+    std::unique_ptr<Derived> p(new Derived());
+    auto plain = p.get();
+
+    auto given = gko::give(p);
+
+    ::testing::StaticAssertTypeEq<decltype(given), std::unique_ptr<Derived>>();
+    ASSERT_EQ(plain, given.get());
+}
+
+
+TEST(Lend, LendsUniquePointer)
+{
+    std::unique_ptr<Derived> p(new Derived());
+
+    auto lent = gko::lend(p);
+
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ASSERT_EQ(p.get(), lent);
+}
+
+
+TEST(Lend, LendsSharedPointer)
+{
+    std::shared_ptr<Derived> p(new Derived());
+
+    auto lent = gko::lend(p);
+
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ASSERT_EQ(p.get(), lent);
+}
+
+
+TEST(Lend, LendsPlainPointer)
+{
+    std::unique_ptr<Derived> p(new Derived());
+
+    auto lent = gko::lend(p.get());
+
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ASSERT_EQ(p.get(), lent);
+}
 
 
 TEST(As, ConvertsPolymorphicType)
 {
     Derived d;
+
     Base *b = &d;
+
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
 
@@ -67,6 +249,7 @@ TEST(As, FailsToConvertIfNotRelated)
 {
     Derived d;
     Base *b = &d;
+
     ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
 }
 
@@ -75,6 +258,7 @@ TEST(As, ConvertsConstantPolymorphicType)
 {
     Derived d;
     const Base *b = &d;
+
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
 
@@ -83,6 +267,7 @@ TEST(As, FailsToConvertConstantIfNotRelated)
 {
     Derived d;
     const Base *b = &d;
+
     ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
 }
 

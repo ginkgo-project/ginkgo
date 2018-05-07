@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
+#include "core/base/extended_float.hpp"
+#include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
@@ -126,6 +128,36 @@ void BlockJacobi<ValueType, IndexType>::move_to(
     matrix::Dense<ValueType> *result)
 {
     this->convert_to(result);  // no special optimization possible here
+}
+
+
+template <typename ValueType, typename IndexType>
+void BlockJacobi<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const BlockJacobi *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const BlockJacobi *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+
+    const auto ptrs = tmp->block_pointers_.get_const_data();
+    for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
+        const auto block_data =
+            tmp->blocks_.get_const_data() + tmp->get_stride() * ptrs[block];
+        const auto block_size = ptrs[block + 1] - ptrs[block];
+        for (IndexType row = 0; row < block_size; ++row) {
+            for (IndexType col = 0; col < block_size; ++col) {
+                data.nonzeros.emplace_back(
+                    ptrs[block] + row, ptrs[block] + col,
+                    block_data[row * tmp->get_stride() + col]);
+            }
+        }
+    }
 }
 
 
@@ -232,6 +264,58 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::move_to(
     matrix::Dense<ValueType> *result)
 {
     this->convert_to(result);  // no special optimization possible here
+}
+
+
+#define RESOLVE_PRECISION(prec, ...)                            \
+    if (prec == double_precision) {                             \
+        using resolved_precision = ValueType;                   \
+        __VA_ARGS__;                                            \
+    } else if (prec == single_precision) {                      \
+        using resolved_precision = reduce_precision<ValueType>; \
+        __VA_ARGS__;                                            \
+    } else if (prec == half_precision) {                        \
+        using resolved_precision =                              \
+            reduce_precision<reduce_precision<ValueType>>;      \
+        __VA_ARGS__;                                            \
+    } else {                                                    \
+        throw NOT_SUPPORTED(best_precision);                    \
+    }
+
+
+template <typename ValueType, typename IndexType>
+void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const AdaptiveBlockJacobi *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const AdaptiveBlockJacobi *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+
+    const auto ptrs = tmp->block_pointers_.get_const_data();
+    const auto prec = tmp->block_precisions_.get_const_data();
+    for (size_type block = 0; block < tmp->get_num_blocks(); ++block) {
+        RESOLVE_PRECISION(prec[block], {
+            const auto block_data =
+                reinterpret_cast<const resolved_precision *>(
+                    tmp->blocks_.get_const_data() +
+                    tmp->get_stride() * ptrs[block]);
+            const auto block_size = ptrs[block + 1] - ptrs[block];
+            for (IndexType row = 0; row < block_size; ++row) {
+                for (IndexType col = 0; col < block_size; ++col) {
+                    data.nonzeros.emplace_back(
+                        ptrs[block] + row, ptrs[block] + col,
+                        static_cast<ValueType>(
+                            block_data[row * tmp->get_stride() + col]));
+                }
+            }
+        });
+    }
 }
 
 

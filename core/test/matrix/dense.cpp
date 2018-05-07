@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
+#include <core/base/mtx_reader.hpp>
 
 
 namespace {
@@ -208,10 +209,17 @@ TEST_F(Dense, CanBeCleared)
 }
 
 
-TEST_F(Dense, CanBeReadFromMtx)
+TEST_F(Dense, CanBeReadFromMatrixData)
 {
     auto m = gko::matrix::Dense<>::create(exec);
-    m->read_from_mtx("../base/data/dense_real.mtx");
+    m->read(gko::matrix_data<>{2,
+                               3,
+                               {{0, 0, 1.0},
+                                {0, 1, 3.0},
+                                {0, 2, 2.0},
+                                {1, 0, 0.0},
+                                {1, 1, 5.0},
+                                {1, 2, 0.0}}});
 
     ASSERT_EQ(m->get_num_rows(), 2);
     ASSERT_EQ(m->get_num_cols(), 3);
@@ -222,6 +230,25 @@ TEST_F(Dense, CanBeReadFromMtx)
     EXPECT_EQ(m->at(1, 1), 5.0);
     EXPECT_EQ(m->at(0, 2), 2.0);
     ASSERT_EQ(m->at(1, 2), 0.0);
+}
+
+
+TEST_F(Dense, GeneratesCorrectMatrixData)
+{
+    using tpl = gko::matrix_data<>::nonzero_type;
+    gko::matrix_data<> data;
+
+    mtx->write(data);
+
+    ASSERT_EQ(data.num_rows, 2);
+    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.nonzeros.size(), 6);
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 2.0));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 3.0));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, 1.5));
+    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, 2.5));
+    EXPECT_EQ(data.nonzeros[5], tpl(1, 2, 3.5));
 }
 
 

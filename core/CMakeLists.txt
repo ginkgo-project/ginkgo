@@ -8,9 +8,11 @@ set(SOURCES
     matrix/identity.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
-    solver/fcg.cpp
-    solver/cg.cpp)
+    solver/cg.cpp
+    solver/cgs.cpp
+    solver/fcg.cpp)
 
+    
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 

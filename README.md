@@ -1,5 +1,4 @@
-Ginkgo
-=======
+![Ginkgo](/assets/logo.png)
 
 Ginkgo is a numerical linear algebra library targeting manycore architectures.
 

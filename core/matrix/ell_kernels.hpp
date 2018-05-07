@@ -61,12 +61,12 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Ell<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                                   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
+#define DECLARE_ALL_AS_TEMPLATES                                \
+    template <typename ValueType, typename IndexType>           \
+    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>           \
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>           \
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 

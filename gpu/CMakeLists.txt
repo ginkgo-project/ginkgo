@@ -7,8 +7,9 @@ set(SOURCES
     matrix/ell_kernels.cu
     preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
-    solver/fcg_kernels.cu
-    solver/cg_kernels.cu)
+    solver/cg_kernels.cu
+    solver/cgs_kernels.cu
+    solver/fcg_kernels.cu)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS cudart
@@ -26,6 +27,9 @@ target_include_directories(ginkgo_gpu
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_gpu PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS}
   ${CUSPARSE})
+
+target_compile_options(ginkgo_gpu PRIVATE
+                       $<$<COMPILE_LANGUAGE:CUDA>:${NVCC_FLAGS_EXTRA}>)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

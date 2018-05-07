@@ -671,7 +671,7 @@ public:
     /**
      * Creates a new GpuExecutor.
      *
-     * @param device  the CUDA device id of this device
+     * @param device_id  the CUDA device id of this device
      * @param master  a CPU executor used to invoke the device kernels
      */
     static std::shared_ptr<GpuExecutor> create(
@@ -688,6 +688,8 @@ public:
     std::shared_ptr<const CpuExecutor> get_master() const noexcept override;
 
     void synchronize() const override;
+
+    void run(const Operation &op) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.

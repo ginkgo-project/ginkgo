@@ -35,9 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TYPES_HPP_
 
 
-#include <complex>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
+
+
+#include <complex>
 #include <type_traits>
 
 
@@ -126,6 +129,12 @@ using full_precision = double;
  * Precision used if no precision is explicitly specified.
  */
 using default_precision = double;
+
+
+/**
+ * Number of bits in a byte
+ */
+constexpr size_type byte_size = CHAR_BIT;
 
 
 /**

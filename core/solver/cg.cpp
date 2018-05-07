@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg.hpp"
 
 
-#include "core/base/convertible.hpp"
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
@@ -53,32 +52,10 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, cg::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence, cg::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, cg::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, cg::step_2<ValueType>);
 };
-
-
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (int i = 0; i < tau->get_num_rows(); ++i) {
-        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
-            return false;
-        }
-    }
-    return true;
-}
-
 
 }  // namespace
 
@@ -111,14 +88,13 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
+    Array<bool> converged(exec, dense_b->get_num_cols());
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-        dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
-        rho.get()));
+        dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
+        &converged));
     // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
@@ -132,20 +108,25 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+        bool all_converged = false;
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
+                &all_converged));
+
+        if (all_converged) {
             break;
         }
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho.get(), prev_rho.get()));
+            p.get(), z.get(), rho.get(), prev_rho.get(), converged));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get()));
+            dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get(),
+            converged));
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
