@@ -54,7 +54,7 @@ public:
 
     using mask_type = std::bitset<event_count>;
 
-    static constexpr mask_type all_events_mask{0b0};
+    static const mask_type all_events_mask;
 
     Logger(const mask_type &enabled_events = all_events_mask)
         : enabled_events_{enabled_events}

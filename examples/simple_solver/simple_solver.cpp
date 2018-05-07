@@ -100,12 +100,16 @@ int main(int argc, char *argv[])
                           .on_executor(exec);
     auto solver = solver_gen->generate(A);
     // example: print to a file
+    // only iterations mask : gko::log::Logger::iteration_complete_mask
     std::ofstream filestream("my_file.txt");
     static_cast<gko::solver::Cg<> *>(solver.get())
         ->add_logger(gko::log::Ostream::create(
-            gko::log::Logger::iteration_complete_mask, filestream));
-    // solver->add_logger(gko::log::Ostream::create(gko::log::Ostream::iteration_complete_mask,
-    // std::cout));
+            gko::log::Logger::all_events_mask, filestream));
+
+    // same thing but print to std::cout
+    // static_cast<gko::solver::Cg<> *>(solver.get())
+    // ->add_logger(gko::log::Ostream::create(
+    //                gko::log::Logger::all_events_mask, std::cout));
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
