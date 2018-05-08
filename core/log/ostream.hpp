@@ -56,7 +56,8 @@ public:
 
     void on_iteration_complete(size_type num_iterations) const override;
     void on_apply() const override;
-    void on_converged(size_type at_iteration) const override;
+
+    void on_converged(size_type at_iteration, LinOp *residual) const override;
 
 protected:
     explicit Ostream(const mask_type &enabled_events, std::ostream &os)

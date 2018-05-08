@@ -114,7 +114,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 &converged, &all_converged));
 
         if (all_converged) {
-            this->log<gko::log::Logger::converged>(iter + 1);
+            this->log<gko::log::Logger::converged>(iter + 1, r.get());
             break;
         }
 

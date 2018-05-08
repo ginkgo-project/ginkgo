@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_LOGGER_HPP_
 
 
+#include "core/base/lin_op.hpp"
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
@@ -82,7 +83,8 @@ public:                                                              \
 
     GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, size_type num_iterations);
     GKO_LOGGER_REGISTER_EVENT(1, apply);
-    GKO_LOGGER_REGISTER_EVENT(2, converged, size_type at_iteration);
+    GKO_LOGGER_REGISTER_EVENT(2, converged, size_type at_iteration,
+                              LinOp *residual);
     // register other events
 
 #undef GKO_LOGGER_REGISTER_EVENT
