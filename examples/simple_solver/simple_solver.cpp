@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
     // Get the data from `returnobject_logger` and print an element
     auto loggeddata = returnobject_logger->get_return_object();
-    std::cout << loggeddata->residual->at(1, 1) << std::endl;
+    std::cout << "Residual(1) : " << loggeddata->residual->at(1) << std::endl;
 
     // Print result
     auto h_x = gko::clone(exec->get_master(), x);
