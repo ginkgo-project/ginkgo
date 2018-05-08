@@ -81,10 +81,11 @@ public:                                                              \
         mask_type { 0b1 << _id }                                     \
     }
 
-    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, size_type num_iterations);
+    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete,
+                              const size_type num_iterations);
     GKO_LOGGER_REGISTER_EVENT(1, apply);
-    GKO_LOGGER_REGISTER_EVENT(2, converged, size_type at_iteration,
-                              LinOp *residual);
+    GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type at_iteration,
+                              const LinOp *residual);
     // register other events
 
 #undef GKO_LOGGER_REGISTER_EVENT

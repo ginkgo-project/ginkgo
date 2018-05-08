@@ -71,7 +71,7 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<T> *mtx)
 }  // namespace
 
 
-void Ostream::on_iteration_complete(size_type num_iterations) const
+void Ostream::on_iteration_complete(const size_type num_iterations) const
 {
     os_ << prefix << "iteration " << num_iterations << std::endl;
 }
@@ -85,10 +85,11 @@ void Ostream::on_apply() const
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
-void Ostream::on_converged(size_type at_iteration, LinOp *residual) const
+void Ostream::on_converged(const size_type at_iteration,
+                           const LinOp *residual) const
 {
     os_ << prefix << "converged at iteration " << at_iteration << " residual:\n"
-        << as<gko::matrix::Dense<>>(residual);
+        << as<const gko::matrix::Dense<>>(residual);
 }
 
 

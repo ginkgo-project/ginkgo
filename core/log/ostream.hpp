@@ -54,10 +54,11 @@ public:
         return std::shared_ptr<Ostream>(new Ostream(enabled_events, os));
     }
 
-    void on_iteration_complete(size_type num_iterations) const override;
+    void on_iteration_complete(const size_type num_iterations) const override;
     void on_apply() const override;
 
-    void on_converged(size_type at_iteration, LinOp *residual) const override;
+    void on_converged(const size_type at_iteration,
+                      const LinOp *residual) const override;
 
 protected:
     explicit Ostream(const mask_type &enabled_events, std::ostream &os)
