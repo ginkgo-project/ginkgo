@@ -49,20 +49,62 @@ namespace gko {
 namespace log {
 
 
+/**
+ * The Logger class represents a simple Logger object. It comprises all masks
+ * and events internally. Every new logging event addition should be done here.
+ * The Logger class also provides a default implementation for most events which
+ * do nothing, therefore it is not an obligation to change all classes which
+ * derive from Logger, although it is good practice.
+ * The logger class is built using event masks to control which events should be
+ * logged, and which should not.
+ *
+ * @internal The class uses bitset to facilitate picking a combination of events
+ * to logs. In addition, the class design allows to not propagate empty messages
+ * for events which are not tracked.
+ * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
+ */
 class Logger {
 public:
+    /**
+     * The amount of events (bits) contained in the bitset. Increase for every
+     * new event
+     */
     static constexpr size_type event_count = 3;
 
+    /* @internal std::bitset allows to store any number of bits */
     using mask_type = std::bitset<event_count>;
 
+    /* Bitset Mask which activates all events */
     static const mask_type all_events_mask;
 
+    /**
+     * Constructor for a Logger object. Parameters are event mask which can be
+     * of the form:
+     * 1. `all_event_mask` which logs every event
+     * 2. an OR combination of masks, e.g. `iteration_complete_mask|apply_mask`
+     * which activates both of these events.
+     * 3. all events with exclusion through XOR, e.g.
+     * `all_event_mask^apply_mask` which logs every event except the apply event
+     *
+     * @param enabled_events the events enabled for this Logger
+     */
     Logger(const mask_type &enabled_events = all_events_mask)
         : enabled_events_{enabled_events}
     {}
 
     virtual ~Logger() = default;
 
+    /**
+     * Helper macro to define functions and masks for each event.
+     * A mask named _event_name##_mask is created for each event. `_id` is the
+     * number assigned to this event and should be unique.
+     *
+     * @internal the templated function `on(Params)` will trigged the event call
+     * only if the user activates this event through the mask. If the event is
+     * activated, we rely on polymorphism and the virtual method
+     * `on_##_event_name` to either call the Logger class's function, which does
+     * nothing, or the overriden version in the derived class if any.
+     */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
     virtual void on_##_event_name(__VA_ARGS__) const {}              \
@@ -95,14 +137,25 @@ private:
 };
 
 
+/**
+ * Loggable class is an interface used as base class to EnableLogging.
+ */
 class Loggable {
 public:
     virtual ~Loggable() = default;
 
+    /**
+     * Adds a Logger object to log events to.
+     * @param logger a shared_ptr to the logger object
+     */
     virtual void add_logger(std::shared_ptr<const Logger> logger) = 0;
 };
 
 
+/**
+ * EnableLogging should be inherited by any class which wants to enable logging.
+ * All the received events are passed to the loggers this class contains.
+ */
 class EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
