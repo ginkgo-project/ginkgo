@@ -46,7 +46,6 @@ namespace log {
 namespace {
 
 
-/* This could be useful later on */
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const matrix::Dense<T> *mtx)
 {

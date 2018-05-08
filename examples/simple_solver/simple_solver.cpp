@@ -111,8 +111,19 @@ int main(int argc, char *argv[])
     // ->add_logger(gko::log::Ostream::create(
     //                gko::log::Logger::all_events_mask, std::cout));
 
+    // Also add a logger which allows to get an object representing all the
+    // logged data
+    auto returnobject_logger =
+        gko::log::ReturnObject::create(gko::log::Logger::all_events_mask);
+    static_cast<gko::solver::Cg<> *>(solver.get())
+        ->add_logger(returnobject_logger);
+
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
+
+    // Get the data from `returnobject_logger` and print an element
+    auto loggeddata = returnobject_logger->get_return_object();
+    std::cout << loggeddata->residual->at(1, 1) << std::endl;
 
     // Print result
     auto h_x = gko::clone(exec->get_master(), x);

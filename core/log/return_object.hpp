@@ -31,41 +31,68 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_LOG_RETURN_OBJECT_HPP_
+#define GKO_CORE_LOG_RETURN_OBJECT_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/ostream.hpp"
-#include "core/log/return_object.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
+#include "core/log/logger.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <memory>
+
+
+namespace gko {
+namespace log {
+
+
+struct LoggedData {
+    size_type num_iterations;
+    size_type converged_at_iteration;
+    std::unique_ptr<const gko::matrix::Dense<>> residual;
+};
+
+
+/**
+ * ReturnObject is a Logger which logs every event to an object. The object can
+ * then be accessed at any time by asking the logger to return it.
+ */
+class ReturnObject : public Logger {
+public:
+    /**
+     * creates a ReturnObject Logger used to directly access logged data
+     * @param enabled_events the events enabled for this Logger
+     */
+    static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events)
+    {
+        return std::shared_ptr<ReturnObject>(new ReturnObject(enabled_events));
+    }
+
+    void on_iteration_complete(const size_type num_iterations) const override;
+    void on_apply() const override;
+
+    void on_converged(const size_type at_iteration,
+                      const LinOp *residual) const override;
+
+    /**
+     * Returns a shared pointer to the logged data
+     * @returns a shared pointer to the logged data
+     */
+    std::shared_ptr<const LoggedData> get_return_object() { return rod_; }
+
+protected:
+    explicit ReturnObject(const mask_type &enabled_events)
+        : Logger(enabled_events)
+    {
+        rod_ = std::shared_ptr<LoggedData>(new LoggedData());
+    }
+
+    std::shared_ptr<LoggedData> rod_;
+};
+
+
+}  // namespace log
+}  // namespace gko
+
+
+#endif  // GKO_CORE_LOG_RETURN_OBJECT_HPP_

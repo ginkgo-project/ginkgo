@@ -2,7 +2,8 @@ set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
     log/ostream.cpp
-    log/logger.cpp # WTF C++
+    log/logger.cpp
+    log/return_object.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp

@@ -31,41 +31,33 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
 
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/ostream.hpp"
 #include "core/log/return_object.hpp"
 
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
 
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
+namespace gko {
+namespace log {
 
 
-#endif  // GKO_GINKGO_HPP_
+void ReturnObject::on_iteration_complete(const size_type num_iterations) const
+{
+    rod_->num_iterations = num_iterations;
+}
+
+
+/* TODO: pass arguments, at least location/type. Still not very useful here? */
+void ReturnObject::on_apply() const {}
+
+
+/* TODO: improve this whenever the criterion class hierarchy MR is merged */
+void ReturnObject::on_converged(const size_type at_iteration,
+                                const LinOp *residual) const
+{
+    rod_->converged_at_iteration = at_iteration;
+    rod_->residual = std::unique_ptr<const gko::matrix::Dense<>>(
+        as<const gko::matrix::Dense<>>(residual->clone().release()));
+}
+
+
+}  // namespace log
+}  // namespace gko
