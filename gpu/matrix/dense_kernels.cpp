@@ -229,9 +229,9 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size().num_rows,
                  orig->get_size().num_cols, &alpha, orig->get_const_values(),
-                 orig->get_stride(), &beta, nullptr, trans->get_size().num_cols,
-                 trans->get_values(), trans->get_stride());
-
+                 orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                 trans->get_size().num_cols, trans->get_values(),
+                 trans->get_stride());
     cublas::destroy(handle);
 };
 
@@ -252,9 +252,9 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size().num_rows,
                  orig->get_size().num_cols, &alpha, orig->get_const_values(),
-                 orig->get_stride(), &beta, nullptr, trans->get_size().num_cols,
-                 trans->get_values(), trans->get_stride());
-
+                 orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                 trans->get_size().num_cols, trans->get_values(),
+                 trans->get_stride());
     cublas::destroy(handle);
 };
 

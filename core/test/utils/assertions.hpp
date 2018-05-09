@@ -92,7 +92,8 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
         for (size_type col = 0; col < first.size.num_cols; ++col) {
             auto r = get_next_value(first_it, end(first.nonzeros), row, col);
             auto e = get_next_value(second_it, end(second.nonzeros), row, col);
-            auto m = max<real_vt>(abs(r), abs(e));
+            auto m =
+                max(static_cast<real_vt>(abs(r)), static_cast<real_vt>(abs(e)));
             if (m == zero<real_vt>()) {
                 os << abs(r - e) << "\t";
             } else {

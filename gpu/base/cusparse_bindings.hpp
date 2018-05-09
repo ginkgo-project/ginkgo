@@ -46,7 +46,23 @@ namespace gko {
 namespace kernels {
 namespace gpu {
 namespace cusparse {
+namespace detail {
 namespace {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args...)
+{
+    return static_cast<int64>(CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
+}
+
+
+}  // namespace
+}  // namespace detail
+
+
+namespace {
+
 
 #define BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                         \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
@@ -78,6 +94,11 @@ BIND_CUSPARSE64_SPMV(float, cusparseScsrmv);
 BIND_CUSPARSE64_SPMV(double, cusparseDcsrmv);
 BIND_CUSPARSE64_SPMV(std::complex<float>, cusparseCcsrmv);
 BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
+template <typename ValueType>
+BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
+template <typename ValueType>
+BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
+
 
 #undef BIND_CUSPARSE32_SPMV
 #undef BIND_CUSPARSE64_SPMV
@@ -113,6 +134,10 @@ BIND_CUSPARSE_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
 BIND_CUSPARSE_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
 BIND_CUSPARSE_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
 BIND_CUSPARSE_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+template <typename ValueType>
+BIND_CUSPARSE_TRANSPOSE32(ValueType, detail::not_implemented);
+template <typename ValueType>
+BIND_CUSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
 
 #undef BIND_CUSPARSE_TRANSPOSE
 
@@ -140,6 +165,10 @@ BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
 BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
 BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
 BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+template <typename ValueType>
+BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, detail::not_implemented);
+template <typename ValueType>
+BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, detail::not_implemented);
 
 #undef BIND_CUSPARSE_CONJ_TRANSPOSE
 
