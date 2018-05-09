@@ -179,8 +179,7 @@ TEST_F(BlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_size().num_rows, 0);
-    ASSERT_EQ(bj->get_size().num_cols, 0);
+    ASSERT_EQ(bj->get_size(), gko::dim(0, 0));
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);
@@ -308,8 +307,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
 {
     bj->clear();
 
-    ASSERT_EQ(bj->get_size().num_rows, 0);
-    ASSERT_EQ(bj->get_size().num_cols, 0);
+    ASSERT_EQ(bj->get_size(), gko::dim(0, 0));
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
     ASSERT_EQ(bj->get_stride(), 0);

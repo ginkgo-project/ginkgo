@@ -58,16 +58,14 @@ protected:
 TEST_F(Identity, CanBeEmpty)
 {
     auto empty = Id::create(exec);
-    ASSERT_EQ(empty->get_size().num_rows, 0);
-    ASSERT_EQ(empty->get_size().num_cols, 0);
+    ASSERT_EQ(empty->get_size(), gko::dim(0, 0));
 }
 
 
 TEST_F(Identity, CanBeConstructedWithSize)
 {
     auto identity = Id::create(exec, 5);
-    ASSERT_EQ(identity->get_size().num_rows, 5);
-    ASSERT_EQ(identity->get_size().num_cols, 5);
+    ASSERT_EQ(identity->get_size(), gko::dim(5, 5));
 }
 
 
@@ -104,8 +102,7 @@ TEST(IdentityFactory, CanGenerateIdentityMatrix)
 
     auto id = id_factory->generate(std::move(mtx));
 
-    ASSERT_EQ(id->get_size().num_rows, 5);
-    ASSERT_EQ(id->get_size().num_cols, 5);
+    ASSERT_EQ(id->get_size(), gko::dim(5, 5));
 }
 
 

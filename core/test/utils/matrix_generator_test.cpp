@@ -91,8 +91,7 @@ protected:
 
 TEST_F(MatrixGenerator, OutputHasCorrectSize)
 {
-    EXPECT_EQ(mtx->get_size().num_rows, 500);
-    ASSERT_EQ(mtx->get_size().num_cols, 100);
+    ASSERT_EQ(mtx->get_size(), gko::dim(500, 100));
 }
 
 

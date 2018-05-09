@@ -110,8 +110,7 @@ TEST_F(BlockJacobi, CanBeGenerated)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    EXPECT_EQ(bj->get_size().num_rows, 5);
-    EXPECT_EQ(bj->get_size().num_cols, 5);
+    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
@@ -206,8 +205,7 @@ TEST_F(BlockJacobi, CanBeGeneratedWithUnknownBlockSizes)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    EXPECT_EQ(bj->get_size().num_rows, 5);
-    EXPECT_EQ(bj->get_size().num_cols, 5);
+    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
@@ -389,8 +387,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeGenerated)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    EXPECT_EQ(bj->get_size().num_rows, 5);
-    EXPECT_EQ(bj->get_size().num_cols, 5);
+    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);

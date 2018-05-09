@@ -147,11 +147,8 @@ void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 #define GKO_DECLARE_CG(_type) class Cg<_type>
-// #define GKO_DECLARE_CG_FACTORY(_type) class CgFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
-// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_FACTORY);
 #undef GKO_DECLARE_CG
-// #undef GKO_DECLARE_CG_FACTORY
 
 
 }  // namespace solver

@@ -101,8 +101,7 @@ TEST_F(Cgs, CgsFactoryKnowsItsRelResidualGoal)
 
 TEST_F(Cgs, CgsFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_size().num_rows, 3);
-    ASSERT_EQ(solver->get_size().num_cols, 3);
+    ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto cgs_solver = static_cast<Solver *>(solver.get());
     ASSERT_EQ(cgs_solver->get_parameters().max_iters, 3);
     ASSERT_EQ(cgs_solver->get_parameters().rel_residual_goal, 1e-6);
@@ -117,8 +116,7 @@ TEST_F(Cgs, CanBeCopied)
 
     copy->copy_from(solver.get());
 
-    ASSERT_EQ(copy->get_size().num_rows, 3);
-    ASSERT_EQ(copy->get_size().num_cols, 3);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -130,8 +128,7 @@ TEST_F(Cgs, CanBeMoved)
 
     copy->copy_from(std::move(solver));
 
-    ASSERT_EQ(copy->get_size().num_rows, 3);
-    ASSERT_EQ(copy->get_size().num_cols, 3);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -141,8 +138,7 @@ TEST_F(Cgs, CanBeCloned)
 {
     auto clone = solver->clone();
 
-    ASSERT_EQ(clone->get_size().num_rows, 3);
-    ASSERT_EQ(clone->get_size().num_cols, 3);
+    ASSERT_EQ(clone->get_size(), gko::dim(3, 3));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
@@ -152,8 +148,7 @@ TEST_F(Cgs, CanBeCleared)
 {
     solver->clear();
 
-    ASSERT_EQ(solver->get_size().num_rows, 0);
-    ASSERT_EQ(solver->get_size().num_cols, 0);
+    ASSERT_EQ(solver->get_size(), gko::dim(0, 0));
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
@@ -174,8 +169,7 @@ TEST_F(Cgs, CanSetPreconditionerGenertor)
             .get());
 
     ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_size().num_rows, 3);
-    ASSERT_EQ(precond->get_size().num_cols, 3);
+    ASSERT_EQ(precond->get_size(), gko::dim(3, 3));
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 

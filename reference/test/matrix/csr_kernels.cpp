@@ -84,8 +84,7 @@ protected:
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_idxs();
 
-        ASSERT_EQ(m->get_size().num_rows, 2);
-        ASSERT_EQ(m->get_size().num_cols, 3);
+        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 0);
