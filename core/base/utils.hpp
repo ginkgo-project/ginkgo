@@ -389,7 +389,6 @@ private:
 template <typename T>
 class temporary_clone {
 public:
-    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
     using value_type = T;
     using pointer = T *;
 
@@ -420,6 +419,9 @@ public:
     T *get() const { return handle_.get(); }
 
 private:
+    // std::function deleter allows to decide the (type of) deleter at runtime
+    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
+
     handle_type handle_;
 };
 
@@ -427,7 +429,7 @@ private:
 /**
  * Creates a temporary_clone.
  *
- * This is a halper function which avoids the need to explicitly specify the
+ * This is a helper function which avoids the need to explicitly specify the
  * type of the object, as would be the case if using the constructor of
  * temporary_clone.
  *

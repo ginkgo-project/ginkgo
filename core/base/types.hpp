@@ -138,7 +138,7 @@ constexpr size_type byte_size = CHAR_BIT;
 
 
 /**
- * A type representing the dim of a linear operator.
+ * A type representing the dimensions of a linear operator.
  */
 struct dim {
     /**

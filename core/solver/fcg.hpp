@@ -73,15 +73,20 @@ public:
     using value_type = ValueType;
 
     /**
-     * Gets the system matrix of the linear system.
+     * Gets the system operator (matrix) of the linear system.
      *
-     * @return  The system matrix.
+     * @return the system operator (matrix)
      */
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
 
+    /**
+     * Returns the preconditioner operator used by the solver.
+     *
+     * @return the preconditioner operator used by the solver
+     */
     std::shared_ptr<const LinOp> get_preconditioner() const
     {
         return preconditioner_;

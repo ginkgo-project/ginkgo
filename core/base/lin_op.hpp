@@ -581,7 +581,7 @@ using EnableDefaultLinOpFactory =
  * @param _lin_op  concrete operator for which the factory is to be created
  *                 [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
- *                          (it's type is `<_parameters_name>_type`, the
+ *                          (its type is `<_parameters_name>_type`, the
  *                          protected member's name is `<_parameters_name>_`,
  *                          and the public getter's name is
  *                          `get_<_parameters_name>()`)
