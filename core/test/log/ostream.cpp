@@ -47,6 +47,8 @@ namespace {
 
 
 const int NUM_ITERS = 10;
+const std::string apply_str = "DummyLoggedClass::apply";
+
 
 struct DummyLoggedClass : public gko::log::EnableLogging {
     void apply()
@@ -55,7 +57,7 @@ struct DummyLoggedClass : public gko::log::EnableLogging {
         auto mtx =
             gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
 
-        this->log<gko::log::Logger::apply>();
+        this->log<gko::log::Logger::apply>(apply_str);
         this->log<gko::log::Logger::iteration_complete>(NUM_ITERS);
 
         this->log<gko::log::Logger::converged>(NUM_ITERS, mtx.get());
@@ -73,7 +75,8 @@ TEST(ReturnObject, CatchesApply)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_TRUE(out.str().find("starting apply function") != std::string::npos);
+    ASSERT_TRUE(out.str().find("starting apply function: " + apply_str) !=
+                std::string::npos);
 }
 
 

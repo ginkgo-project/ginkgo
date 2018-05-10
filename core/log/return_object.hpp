@@ -47,6 +47,7 @@ namespace log {
 
 
 struct LoggedData {
+    std::string last_apply;
     size_type num_iterations;
     size_type converged_at_iteration;
     std::unique_ptr<const gko::matrix::Dense<>> residual;
@@ -60,7 +61,7 @@ struct LoggedData {
 class ReturnObject : public Logger {
 public:
     /**
-     * creates a ReturnObject Logger used to directly access logged data
+     * Creates a ReturnObject Logger used to directly access logged data
      * @param enabled_events the events enabled for this Logger
      */
     static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events)
@@ -69,6 +70,8 @@ public:
     }
 
     void on_iteration_complete(const size_type num_iterations) const override;
+
+    void on_apply(const std::string name) const override;
 
     void on_converged(const size_type at_iteration,
                       const LinOp *residual) const override;

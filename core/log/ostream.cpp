@@ -76,10 +76,9 @@ void Ostream::on_iteration_complete(const size_type num_iterations) const
 }
 
 
-/* TODO: pass arguments, at least location/type */
-void Ostream::on_apply() const
+void Ostream::on_apply(const std::string name) const
 {
-    os_ << prefix << "starting apply function" << std::endl;
+    os_ << prefix << "starting apply function: " << name << std::endl;
 }
 
 

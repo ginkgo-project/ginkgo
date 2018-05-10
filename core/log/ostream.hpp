@@ -64,7 +64,7 @@ public:
     }
 
     void on_iteration_complete(const size_type num_iterations) const override;
-    void on_apply() const override;
+    void on_apply(const std::string name) const override;
 
     void on_converged(const size_type at_iteration,
                       const LinOp *residual) const override;

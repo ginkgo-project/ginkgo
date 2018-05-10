@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <bitset>
 #include <memory>
+#include <string>
 #include <vector>
 
 
@@ -125,7 +126,7 @@ public:                                                              \
 
     GKO_LOGGER_REGISTER_EVENT(0, iteration_complete,
                               const size_type num_iterations);
-    GKO_LOGGER_REGISTER_EVENT(1, apply);
+    GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string name);
     GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type at_iteration,
                               const LinOp *residual);
     // register other events

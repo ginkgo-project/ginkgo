@@ -45,6 +45,7 @@ namespace {
 
 
 const int NUM_ITERS = 10;
+const std::string apply_str = "DummyLoggedClass::apply";
 
 
 struct DummyLoggedClass : public gko::log::EnableLogging {
@@ -52,6 +53,7 @@ struct DummyLoggedClass : public gko::log::EnableLogging {
     {
         this->log<gko::log::Logger::iteration_complete>(NUM_ITERS);
         this->log<gko::log::Logger::converged>(NUM_ITERS, nullptr);
+        this->log<gko::log::Logger::apply>(apply_str);
     }
 
     void apply_with_data()
@@ -84,6 +86,18 @@ TEST(ReturnObject, CatchesIterations)
     c.apply();
 
     ASSERT_EQ(NUM_ITERS, logger->get_return_object()->num_iterations);
+}
+
+
+TEST(ReturnObject, CatchesApply)
+{
+    DummyLoggedClass c;
+    auto logger = gko::log::ReturnObject::create(gko::log::Logger::apply_mask);
+
+    c.add_logger(logger);
+    c.apply();
+
+    ASSERT_EQ(apply_str, logger->get_return_object()->last_apply);
 }
 
 

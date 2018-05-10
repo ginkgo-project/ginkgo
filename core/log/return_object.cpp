@@ -45,6 +45,12 @@ void ReturnObject::on_iteration_complete(const size_type num_iterations) const
 }
 
 
+void ReturnObject::on_apply(const std::string name) const
+{
+    logged_data_->last_apply = name;
+}
+
+
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
 void ReturnObject::on_converged(const size_type at_iteration,
                                 const LinOp *residual) const

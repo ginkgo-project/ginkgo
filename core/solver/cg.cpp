@@ -64,7 +64,7 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->log<gko::log::Logger::apply>();
+    this->log<gko::log::Logger::apply>(typeid(*this).name());
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
