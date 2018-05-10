@@ -64,6 +64,22 @@ inline int64 not_implemented(Args &&...)
 namespace {
 
 
+template <typename ValueType>
+struct is_supported : std::false_type {};
+
+template <>
+struct is_supported<float> : std::true_type {};
+
+template <>
+struct is_supported<double> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<float>> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<double>> : std::true_type {};
+
+
 #define BIND_CUBLAS_GEMM(ValueType, CublasName)                                \
     inline void gemm(cublasHandle_t handle, cublasOperation_t transa,          \
                      cublasOperation_t transb, int m, int n, int k,            \

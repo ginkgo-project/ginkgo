@@ -64,6 +64,22 @@ inline int64 not_implemented(Args...)
 namespace {
 
 
+template <typename ValueType, typename IndexType>
+struct is_supported : std::false_type {};
+
+template <>
+struct is_supported<float, int32> : std::true_type {};
+
+template <>
+struct is_supported<double, int32> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<float>, int32> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<double>, int32> : std::true_type {};
+
+
 #define BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                         \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
                      size_type m, size_type n, size_type nnz,                 \

@@ -26,7 +26,7 @@ if(BUILD_GPU)
     set(CMAKE_CUDA_STANDARD 11)
     if(SET_CUDA_HOST_COMPILER)
         set(CMAKE_CUDA_FLAGS
-            "--compiler-bindir ${CMAKE_CXX_COMPILER} ${CMAKE_CUDA_FLAGS}")
+            "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
     endif()
     # set CUDA_ARCH_OPTION strings
     set(CUDA_ARCH_OPTION "Auto" CACHE STRING
@@ -38,6 +38,9 @@ if(BUILD_GPU)
     # setting nvcc arch flags
     ginkgo_select_nvcc_arch_flags(NVCC_FLAGS_EXTRA)
     message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
+    # remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 else()
     project(Ginkgo LANGUAGES CXX)
 endif()
