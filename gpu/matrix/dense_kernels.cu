@@ -46,6 +46,9 @@ namespace gpu {
 namespace dense {
 
 
+constexpr auto default_block_size = 512;
+
+
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const GpuExecutor> exec,
                   const matrix::Dense<ValueType> *a,
@@ -95,30 +98,82 @@ void apply(std::shared_ptr<const GpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
+namespace kernel {
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void scale(
+    size_type num_rows, size_type num_cols, size_type num_alpha_cols,
+    const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
+    size_type stride_x)
+{
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
+    if (row_id < num_rows) {
+        x[row_id * stride_x + col_id] =
+            alpha[alpha_id] == zero<ValueType>()
+                ? zero<ValueType>()
+                : x[row_id * stride_x + col_id] * alpha[alpha_id];
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType>
 void scale(std::shared_ptr<const GpuExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (cublas::is_supported<ValueType>::value) {
+    if (cublas::is_supported<ValueType>::value && x->get_size().num_cols == 1) {
         auto handle = cublas::init();
-        if (alpha->get_size().num_cols == 1) {
-            cublas::scal(handle, x->get_num_stored_elements(),
-                         alpha->get_const_values(), x->get_values(), 1);
-        } else {
-            // TODO: write a custom kernel which does this more efficiently
-            for (size_type col = 0; col < x->get_size().num_cols; ++col) {
-                cublas::scal(handle, x->get_size().num_rows,
-                             alpha->get_const_values() + col,
-                             x->get_values() + col, x->get_stride());
-            }
-        }
+        cublas::scal(handle, x->get_size().num_rows, alpha->get_const_values(),
+                     x->get_values(), x->get_stride());
         cublas::destroy(handle);
     } else {
-        NOT_IMPLEMENTED;
+        // TODO: tune this parameter
+        constexpr auto block_size = default_block_size;
+        const dim3 grid_dim = ceildiv(
+            x->get_size().num_rows * x->get_size().num_cols, block_size);
+        const dim3 block_dim{cuda_config::warp_size, 1,
+                             block_size / cuda_config::warp_size};
+        kernel::scale<block_size><<<grid_dim, block_dim>>>(
+            x->get_size().num_rows, x->get_size().num_cols,
+            alpha->get_size().num_cols, as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(x->get_values()), x->get_stride());
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
+
+
+namespace kernel {
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void add_scaled(
+    size_type num_rows, size_type num_cols, size_type num_alpha_cols,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ x,
+    size_type stride_x, ValueType *__restrict__ y, size_type stride_y)
+{
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
+    if (row_id < num_rows && alpha[alpha_id] != zero<ValueType>()) {
+        y[row_id * stride_y + col_id] +=
+            x[row_id * stride_x + col_id] * alpha[alpha_id];
+    }
+}
+
+
+}  // namespace kernel
 
 
 template <typename ValueType>
@@ -126,29 +181,24 @@ void add_scaled(std::shared_ptr<const GpuExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (cublas::is_supported<ValueType>::value) {
+    if (cublas::is_supported<ValueType>::value && x->get_size().num_cols == 1) {
         auto handle = cublas::init();
-        // TODO: write a custom kernel which does this more efficiently
-        if (alpha->get_size().num_cols == 1) {
-            // cannot write as single kernel call, x and y can have different
-            // strides
-            for (size_type col = 0; col < x->get_size().num_cols; ++col) {
-                cublas::axpy(handle, x->get_size().num_rows,
-                             alpha->get_const_values(),
-                             x->get_const_values() + col, x->get_stride(),
-                             y->get_values() + col, y->get_stride());
-            }
-        } else {
-            for (size_type col = 0; col < x->get_size().num_cols; ++col) {
-                cublas::axpy(handle, x->get_size().num_rows,
-                             alpha->get_const_values() + col,
-                             x->get_const_values() + col, x->get_stride(),
-                             y->get_values() + col, y->get_stride());
-            }
-        }
+        cublas::axpy(handle, x->get_size().num_rows, alpha->get_const_values(),
+                     x->get_const_values(), x->get_stride(), y->get_values(),
+                     y->get_stride());
         cublas::destroy(handle);
     } else {
-        NOT_IMPLEMENTED;
+        // TODO: tune this parameter
+        constexpr auto block_size = default_block_size;
+        const dim3 grid_dim = ceildiv(
+            x->get_size().num_rows * x->get_size().num_cols, block_size);
+        const dim3 block_dim{cuda_config::warp_size, 1,
+                             block_size / cuda_config::warp_size};
+        kernel::add_scaled<block_size><<<grid_dim, block_dim>>>(
+            x->get_size().num_rows, x->get_size().num_cols,
+            alpha->get_size().num_cols, as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(x->get_const_values()), x->get_stride(),
+            as_cuda_type(y->get_values()), y->get_stride());
     }
 }
 
@@ -164,11 +214,12 @@ __global__ __launch_bounds__(block_size) void compute_partial_dot(
     const ValueType *__restrict__ y, size_type stride_y,
     ValueType *__restrict__ work)
 {
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+
     const auto num_blocks = gridDim.x;
     const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
     const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size,
-                              block_size / cuda_config::warp_size>();
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
 
     auto tmp = zero<ValueType>();
     for (auto i = global_id; i < num_rows; i += block_size * num_blocks) {
@@ -237,17 +288,19 @@ void compute_dot(std::shared_ptr<const GpuExecutor> exec,
         constexpr auto block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
-        const auto grid_size = ceildiv(x->get_size().num_rows, work_per_block);
-        Array<ValueType> work(exec, grid_size);
+        const dim3 grid_dim = ceildiv(x->get_size().num_rows, work_per_block);
+        const dim3 block_dim{cuda_config::warp_size, 1,
+                             block_size / cuda_config::warp_size};
+        Array<ValueType> work(exec, grid_dim.x);
         // TODO: write a kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size().num_cols; ++col) {
-            kernel::compute_partial_dot<block_size><<<grid_size, block_size>>>(
+            kernel::compute_partial_dot<block_size><<<grid_dim, block_dim>>>(
                 x->get_size().num_rows,
                 as_cuda_type(x->get_const_values() + col), x->get_stride(),
                 as_cuda_type(y->get_const_values() + col), y->get_stride(),
                 as_cuda_type(work.get_data()));
-            kernel::finalize_dot_computation<block_size><<<1, block_size>>>(
-                grid_size, as_cuda_type(work.get_const_data()),
+            kernel::finalize_dot_computation<block_size><<<1, block_dim>>>(
+                grid_dim.x, as_cuda_type(work.get_const_data()),
                 as_cuda_type(result->get_values() + col));
         }
     }
