@@ -31,70 +31,86 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_RETURN_OBJECT_HPP_
-#define GKO_CORE_LOG_RETURN_OBJECT_HPP_
+#include <core/log/logger.hpp>
+#include <core/log/ostream.hpp>
+#include <core/log/return_object.hpp>
 
 
-#include "core/log/logger.hpp"
-#include "core/matrix/dense.hpp"
-
-
+#include <gtest/gtest.h>
+#include <iostream>
 #include <memory>
 
 
-namespace gko {
-namespace log {
+namespace {
 
 
-struct LoggedData {
-    size_type num_iterations;
-    size_type converged_at_iteration;
-    std::unique_ptr<const gko::matrix::Dense<>> residual;
+const int NUM_ITERS = 10;
+
+
+struct DummyLoggedClass : public gko::log::EnableLogging {
+    int get_loggers_size() { return loggers_.size(); }
+
+    void apply() { this->log<gko::log::Logger::iteration_complete>(NUM_ITERS); }
 };
 
 
-/**
- * ReturnObject is a Logger which logs every event to an object. The object can
- * then be accessed at any time by asking the logger to return it.
- */
-class ReturnObject : public Logger {
-public:
-    /**
-     * creates a ReturnObject Logger used to directly access logged data
-     * @param enabled_events the events enabled for this Logger
-     */
-    static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events)
+TEST(DummyLogged, CanAddLoggers)
+{
+    DummyLoggedClass c;
+
+    c.add_logger(
+        gko::log::ReturnObject::create(gko::log::Logger::all_events_mask));
+    ASSERT_EQ(c.get_loggers_size(), 1);
+
+    c.add_logger(gko::log::Ostream::create(gko::log::Logger::all_events_mask,
+                                           std::cout));
+    ASSERT_EQ(c.get_loggers_size(), 2);
+}
+
+
+struct DummyData {
+    gko::size_type num_iterations;
+};
+
+
+struct DummyLogger : public gko::log::Logger {
+    static std::shared_ptr<DummyLogger> create(const mask_type &enabled_events)
     {
-        return std::shared_ptr<ReturnObject>(new ReturnObject(enabled_events));
+        return std::shared_ptr<DummyLogger>(new DummyLogger(enabled_events));
     }
 
-    void on_iteration_complete(const size_type num_iterations) const override;
 
-    void on_converged(const size_type at_iteration,
-                      const LinOp *residual) const override;
-
-    /**
-     * Returns a shared pointer to the logged data
-     * @return a shared pointer to the logged data
-     */
-    std::shared_ptr<const LoggedData> get_return_object()
-    {
-        return logged_data_;
-    }
-
-protected:
-    explicit ReturnObject(const mask_type &enabled_events)
+    explicit DummyLogger(const mask_type &enabled_events)
         : Logger(enabled_events)
     {
-        logged_data_ = std::make_shared<LoggedData>();
+        data_ = std::make_shared<DummyData>();
     }
 
-    std::shared_ptr<LoggedData> logged_data_;
+
+    void on_iteration_complete(
+        const gko::size_type num_iterations) const override;
+    std::shared_ptr<DummyData> data_;
 };
 
 
-}  // namespace log
-}  // namespace gko
+void DummyLogger::on_iteration_complete(
+    const gko::size_type num_iterations) const
+{
+    data_->num_iterations = num_iterations;
+}
 
 
-#endif  // GKO_CORE_LOG_RETURN_OBJECT_HPP_
+TEST(DummyLogged, CanLogEvents)
+{
+    DummyLoggedClass c;
+    auto logger =
+        DummyLogger::create(gko::log::Logger::iteration_complete_mask);
+
+    c.add_logger(logger);
+    c.apply();
+
+    ASSERT_EQ(NUM_ITERS, logger->data_->num_iterations);
+}
+
+
+}  // namespace

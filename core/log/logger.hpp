@@ -160,19 +160,19 @@ class EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
-        loggers.push_back(std::move(logger));
+        loggers_.push_back(std::move(logger));
     }
 
 protected:
     template <size_type Event, typename... Params>
     void log(Params &&... params) const
     {
-        for (auto &logger : loggers) {
+        for (auto &logger : loggers_) {
             logger->on<Event>(std::forward<Params>(params)...);
         }
     }
 
-    std::vector<std::shared_ptr<const Logger>> loggers;
+    std::vector<std::shared_ptr<const Logger>> loggers_;
 };
 
 

@@ -41,21 +41,18 @@ namespace log {
 
 void ReturnObject::on_iteration_complete(const size_type num_iterations) const
 {
-    rod_->num_iterations = num_iterations;
+    logged_data_->num_iterations = num_iterations;
 }
-
-
-/* TODO: pass arguments, at least location/type. Still not very useful here? */
-void ReturnObject::on_apply() const {}
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
 void ReturnObject::on_converged(const size_type at_iteration,
                                 const LinOp *residual) const
 {
-    rod_->converged_at_iteration = at_iteration;
-    rod_->residual = std::unique_ptr<const gko::matrix::Dense<>>(
-        as<const gko::matrix::Dense<>>(residual->clone().release()));
+    logged_data_->converged_at_iteration = at_iteration;
+    if (residual != nullptr)
+        logged_data_->residual = std::unique_ptr<const gko::matrix::Dense<>>(
+            as<const gko::matrix::Dense<>>(residual->clone().release()));
 }
 
 
