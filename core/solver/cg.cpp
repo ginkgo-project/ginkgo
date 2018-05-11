@@ -64,7 +64,12 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->log<gko::log::Logger::apply>(typeid(*this).name());
+    int status;
+    char *tmp = abi::__cxa_demangle(typeid(*this).name(), NULL, NULL, &status);
+    this->log<gko::log::Logger::apply>(std::string() + tmp +
+                                       "::" + __FUNCTION__);
+    free(tmp);
+
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
