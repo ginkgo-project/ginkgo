@@ -253,6 +253,43 @@ TEST_F(BlockJacobi,
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
 }
 
+TEST_F(BlockJacobi,
+       GpuExecutesSupervarAgglomerationEquivalentToRefFor150NonzerowsPerRow)
+{
+    /* example matrix duplicated 50 times:
+        1   1       1
+        1   1       1
+        1       1   1
+        1       1   1
+                1        1
+     */
+
+    using data = gko::matrix_data<double, int>;
+    gko::matrix_data<double, int> m{{1.0, 1.0, 0.0, 1.0, 0.0},
+                                    {1.0, 1.0, 0.0, 1.0, 0.0},
+                                    {1.0, 0.0, 1.0, 1.0, 0.0},
+                                    {1.0, 0.0, 1.0, 1.0, 0.0},
+                                    {0.0, 0.0, 1.0, 0.0, 1.0}};
+    using nnz = data::nonzero_type;
+    gko::matrix_data<double, int> mm{50, 50, m};
+
+    auto mtx = Mtx::create(ref);
+    mtx->read(mm);
+    auto d_mtx = Mtx::create(gpu);
+    d_mtx->copy_from(mtx.get());
+
+    std::unique_ptr<BjFactory> bj_factory;
+    bj_factory = BjFactory::create(ref, 13);
+    auto bj_lin_op = bj_factory->generate(std::move(mtx));
+    auto bj = static_cast<Bj *>(bj_lin_op.get());
+    d_bj_factory = BjFactory::create(gpu, 13);
+    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
+    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
+    EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
+}
+
 
 TEST_F(BlockJacobi, GpuPreconditionerEquivalentToRefWithBlockSize32)
 {
