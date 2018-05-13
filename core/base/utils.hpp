@@ -339,8 +339,8 @@ public:
     /**
      * Creates a new deleter object.
      *
-     * @parm original  the origin object where the data will be copied before
-     *                 deletion
+     * @param original  the origin object where the data will be copied before
+     *                  deletion
      */
     copy_back_deleter(pointer original) : original_{original} {}
 

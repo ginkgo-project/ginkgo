@@ -422,7 +422,7 @@ public:
  * of the majority of the LinOp and PolymorphicObject interface.
  *
  * The goal of the mixin is to facilitate the development of new LinOp, by
- * enabling the implementers to focus on the importan parts of their operator,
+ * enabling the implementers to focus on the important parts of their operator,
  * while the library takes care of generating the trivial utility functions.
  * The mixin will provide default implementations for the entire
  * PolymorphicObject interface, including a default implementation of
@@ -437,7 +437,7 @@ public:
  *     EnableCreateMethod mixin (used mostly for matrix formats),
  *     or GKO_ENABLE_LIN_OP_FACTORY macro (used for operators created from other
  *     operators, like preconditioners and solvers).
- * 2.  Appllication of the LinOp: Implementers have to override the two
+ * 2.  Application of the LinOp: Implementers have to override the two
  *     overloads of the LinOp::apply_impl() virtual methods.
  *
  * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
@@ -509,7 +509,7 @@ protected:
  * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
  *                        needs to have a constructor which takes a
  *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LiOp> as parameters.
+ *                        std::shared_ptr<const LinOp> as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
@@ -585,7 +585,7 @@ using EnableDefaultLinOpFactory =
  *                          protected member's name is `<_parameters_name>_`,
  *                          and the public getter's name is
  *                          `get_<_parameters_name>()`)
- * @param _facory_name  name of the generated factory type
+ * @param _factory_name  name of the generated factory type
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \

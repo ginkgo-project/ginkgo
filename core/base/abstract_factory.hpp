@@ -210,8 +210,8 @@ private:
  * The enable_parameters_type mixin is used to create a base implementation of
  * the factory parameters structure.
  *
- * It provide only the on_executor() method which can be used to instantiate the
- * factory give the parameters stored in the structure.
+ * It provides only the on_executor() method which can be used to instantiate
+ * the factory give the parameters stored in the structure.
  *
  * @tparam ConcreteParametersType  the concrete parameters type which is being
  *                                 implemented [CRTP parameter]
