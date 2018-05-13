@@ -30,9 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 #include "core/base/mtx_reader.hpp"
 
 
@@ -62,7 +61,7 @@ class Dense;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public BasicLinOp<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
-              public ReadableFromMtx {
+              public ReadableFromMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<Sellp>;
     friend class Dense<ValueType>;
 
@@ -73,6 +72,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -83,7 +83,7 @@ public:
 
     void move_to(Dense<ValueType> *other) override;
 
-    void read_from_mtx(const std::string &filename) override;
+    void read(const mat_data &data) override;
 
     /**
      * Returns the values of the matrix.
@@ -202,7 +202,7 @@ protected:
     Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
           size_type num_cols, size_type num_nonzeros, size_type slice_size,
           size_type padding_factor, size_type total_cols)
-        : BasicLinOp(exec, num_rows, num_cols, num_nonzeros),
+        : BasicLinOp<Sellp>(exec, num_rows, num_cols, num_nonzeros),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
           slice_lens_(exec,

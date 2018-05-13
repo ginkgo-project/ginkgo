@@ -69,87 +69,90 @@ void Sellp<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Sellp<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Sellp<ValueType, IndexType>::read(const mat_data &data)
 {
-    // Define variables
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
-    size_type nnz = 0;
-    std::vector<index_type> nnz_row(data.num_rows, 0);
-    auto slice_size = this->get_slice_size();
-    // Make sure that slice_size is not zero
-    slice_size = (slice_size == 0) ? default_slice_size : slice_size;
-    auto padding_factor = this->get_padding_factor();
-    // Make sure that padding factor is not zero
-    padding_factor =
-        (padding_factor == 0) ? default_padding_factor : padding_factor;
-    index_type slice_num =
-        static_cast<index_type>((data.num_rows + slice_size - 1) / slice_size);
-    std::vector<index_type> slice_cols(slice_num, 0);
+    NOT_IMPLEMENTED;
+    // // Define variables
+    // auto data = read<ValueType, IndexType>(filename);
+    // size_type nnz = 0;
+    // std::vector<index_type> nnz_row(data.num_rows, 0);
+    // auto slice_size = this->get_slice_size();
+    // // Make sure that slice_size is not zero
+    // slice_size = (slice_size == 0) ? default_slice_size : slice_size;
+    // auto padding_factor = this->get_padding_factor();
+    // // Make sure that padding factor is not zero
+    // padding_factor =
+    //     (padding_factor == 0) ? default_padding_factor : padding_factor;
+    // index_type slice_num =
+    //     static_cast<index_type>((data.num_rows + slice_size - 1) /
+    //     slice_size);
+    // std::vector<index_type> slice_cols(slice_num, 0);
 
-    // Count number of nonzeros in every row
-    for (const auto &elem : data.nonzeros) {
-        nnz += (std::get<2>(elem) != zero<ValueType>());
-        nnz_row.at(std::get<0>(elem))++;
-    }
+    // // Count number of nonzeros in every row
+    // for (const auto &elem : data.nonzeros) {
+    //     nnz += (std::get<2>(elem) != zero<ValueType>());
+    //     nnz_row.at(std::get<0>(elem))++;
+    // }
 
-    // Find longest column for each slice
-    for (size_type row = 0; row < data.num_rows; row++) {
-        index_type slice_id = static_cast<index_type>(row / slice_size);
-        slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
-    }
+    // // Find longest column for each slice
+    // for (size_type row = 0; row < data.num_rows; row++) {
+    //     index_type slice_id = static_cast<index_type>(row / slice_size);
+    //     slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
+    // }
 
-    // Find total column length
-    size_type total_cols = 0;
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        total_cols += slice_cols[slice];
-    }
-    total_cols = ceildiv(total_cols, padding_factor) * padding_factor;
+    // // Find total column length
+    // size_type total_cols = 0;
+    // for (size_type slice = 0; slice < slice_num; slice++) {
+    //     total_cols += slice_cols[slice];
+    // }
+    // total_cols = ceildiv(total_cols, padding_factor) * padding_factor;
 
-    auto tmp =
-        create(this->get_executor()->get_master(), data.num_rows, data.num_cols,
-               nnz, slice_size, padding_factor, total_cols);
+    // auto tmp =
+    //     create(this->get_executor()->get_master(), data.num_rows,
+    //     data.num_cols,
+    //            nnz, slice_size, padding_factor, total_cols);
 
-    // Setup slice_lens and slice_sets
-    index_type start_col = 0;
-    for (index_type slice = 0; slice < slice_num; slice++) {
-        tmp->get_slice_lens()[slice] =
-            padding_factor * ceildiv(slice_cols[slice], padding_factor);
-        tmp->get_slice_sets()[slice] = start_col;
-        start_col += tmp->get_slice_lens()[slice];
-    }
+    // // Setup slice_lens and slice_sets
+    // index_type start_col = 0;
+    // for (index_type slice = 0; slice < slice_num; slice++) {
+    //     tmp->get_slice_lens()[slice] =
+    //         padding_factor * ceildiv(slice_cols[slice], padding_factor);
+    //     tmp->get_slice_sets()[slice] = start_col;
+    //     start_col += tmp->get_slice_lens()[slice];
+    // }
 
-    // Get values and column idxs
-    size_type ind = 0;
-    int n = data.nonzeros.size();
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        for (size_type row = 0; row < slice_size; row++) {
-            size_type col = 0;
-            for (; ind < n; ind++) {
-                if (std::get<0>(data.nonzeros[ind]) >
-                    slice * slice_size + row) {
-                    break;
-                }
-                auto val = std::get<2>(data.nonzeros[ind]);
-                auto sliced_ell_ind =
-                    row + (tmp->get_slice_sets()[slice] + col) * slice_size;
-                if (val != zero<ValueType>()) {
-                    tmp->get_values()[sliced_ell_ind] = val;
-                    tmp->get_col_idxs()[sliced_ell_ind] =
-                        std::get<1>(data.nonzeros[ind]);
-                    col++;
-                }
-            }
-            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
-                auto sliced_ell_ind =
-                    row + (tmp->get_slice_sets()[slice] + i) * slice_size;
-                tmp->get_values()[sliced_ell_ind] = 0;
-                tmp->get_col_idxs()[sliced_ell_ind] =
-                    tmp->get_col_idxs()[sliced_ell_ind - slice_size];
-            }
-        }
-    }
+    // // Get values and column idxs
+    // size_type ind = 0;
+    // int n = data.nonzeros.size();
+    // for (size_type slice = 0; slice < slice_num; slice++) {
+    //     for (size_type row = 0; row < slice_size; row++) {
+    //         size_type col = 0;
+    //         for (; ind < n; ind++) {
+    //             if (std::get<0>(data.nonzeros[ind]) >
+    //                 slice * slice_size + row) {
+    //                 break;
+    //             }
+    //             auto val = std::get<2>(data.nonzeros[ind]);
+    //             auto sliced_ell_ind =
+    //                 row + (tmp->get_slice_sets()[slice] + col) * slice_size;
+    //             if (val != zero<ValueType>()) {
+    //                 tmp->get_values()[sliced_ell_ind] = val;
+    //                 tmp->get_col_idxs()[sliced_ell_ind] =
+    //                     std::get<1>(data.nonzeros[ind]);
+    //                 col++;
+    //             }
+    //         }
+    //         for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
+    //             auto sliced_ell_ind =
+    //                 row + (tmp->get_slice_sets()[slice] + i) * slice_size;
+    //             tmp->get_values()[sliced_ell_ind] = 0;
+    //             tmp->get_col_idxs()[sliced_ell_ind] =
+    //                 tmp->get_col_idxs()[sliced_ell_ind - slice_size];
+    //         }
+    //     }
+    // }
 
-    tmp->move_to(this);
+    // tmp->move_to(this);
 }
 
 
