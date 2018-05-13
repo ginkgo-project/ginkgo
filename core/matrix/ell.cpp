@@ -62,17 +62,17 @@ struct TemplatedOperation {
 
 template <typename ValueType, typename IndexType>
 size_type calculate_max_nonzeros_per_row(
-    const MtxData<ValueType, IndexType> &data)
+    const matrix_data<ValueType, IndexType> &data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
     size_type max_nonzeros_per_row = 0;
     for (const auto &elem : data.nonzeros) {
-        if (std::get<0>(elem) != current_row) {
+        if (elem.row != current_row) {
             max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
             nnz = 0;
         }
-        nnz += (std::get<2>(elem) != zero<ValueType>());
+        nnz += (elem.value != zero<ValueType>());
     }
     return max_nonzeros_per_row;
 }
@@ -132,10 +132,8 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
+void Ell<ValueType, IndexType>::read(const mat_data &data)
 {
-    auto data = read_raw_from_mtx<ValueType, IndexType>(filename);
-
     // Get the maximum number of nonzero elements of every row.
     auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 
@@ -150,11 +148,11 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
     auto col_idxs = tmp->get_col_idxs();
     for (size_type row = 0; row < data.num_rows; row++) {
         size_type col = 0;
-        while (ind < n && std::get<0>(data.nonzeros[ind]) == row) {
-            auto val = std::get<2>(data.nonzeros[ind]);
+        while (ind < n && data.nonzeros[ind].row == row) {
+            auto val = data.nonzeros[ind].value;
             if (val != zero<ValueType>()) {
                 tmp->val_at(row, col) = val;
-                tmp->col_at(row, col) = std::get<1>(data.nonzeros[ind]);
+                tmp->col_at(row, col) = data.nonzeros[ind].column;
                 col++;
             }
             ind++;
@@ -167,6 +165,32 @@ void Ell<ValueType, IndexType>::read_from_mtx(const std::string &filename)
 
     // Return the matrix
     tmp->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Ell *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone_to(this->get_executor()->get_master());
+        tmp = static_cast<const Ell *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+
+    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+        for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
+            const auto val = tmp->val_at(row, i);
+            if (val != zero<ValueType>()) {
+                const auto col = tmp->col_at(row, i);
+                data.nonzeros.emplace_back(row, col, val);
+            }
+        }
+    }
 }
 
 

@@ -36,19 +36,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/mtx_reader.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 
 
 namespace gko {
 namespace matrix {
 
+
 template <typename ValueType>
 class Dense;
 
+
 template <typename ValueType, typename IndexType>
 class Coo;
+
 
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
@@ -67,7 +69,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
-            public ReadableFromMtx,
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
     friend class BasicLinOp<Csr>;
     friend class Coo<ValueType, IndexType>;
@@ -80,6 +83,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -94,7 +98,9 @@ public:
 
     void move_to(Coo<ValueType, IndexType> *result) override;
 
-    void read_from_mtx(const std::string &filename) override;
+    void read(const mat_data &data) override;
+
+    void write(mat_data &data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/array.hpp"
-#include "core/base/convertible.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/lin_op_interfaces.hpp"
 #include "core/base/mtx_reader.hpp"
 
 
@@ -67,7 +67,8 @@ class Dense;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMtx {
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType> {
     friend class BasicLinOp<Ell>;
     friend class Dense<ValueType>;
 
@@ -78,6 +79,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = matrix_data<ValueType, IndexType>;
 
     void apply(const LinOp *b, LinOp *x) const override;
 
@@ -88,7 +90,9 @@ public:
 
     void move_to(Dense<ValueType> *other) override;
 
-    void read_from_mtx(const std::string &filename) override;
+    void read(const mat_data &data) override;
+
+    void write(mat_data &data) const override;
 
     /**
      * Returns the values of the matrix.

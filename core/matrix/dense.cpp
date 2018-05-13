@@ -145,6 +145,8 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
+
+
 }  // namespace
 
 
@@ -357,26 +359,88 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
 }
 
 
-template <typename ValueType>
-void Dense<ValueType>::read_from_mtx(const std::string &filename)
+namespace {
+
+
+template <typename MatrixType, typename MatrixData>
+inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
-    auto data = read_raw_from_mtx<ValueType, int64>(filename);
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, data.num_cols);
+    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
+                                  data.num_rows, data.num_cols, data.num_cols);
     size_type ind = 0;
     for (size_type row = 0; row < data.num_rows; ++row) {
         for (size_type col = 0; col < data.num_cols; ++col) {
-            if (ind < data.nonzeros.size() &&
-                std::get<0>(data.nonzeros[ind]) == row &&
-                std::get<1>(data.nonzeros[ind]) == col) {
-                tmp->at(row, col) = std::get<2>(data.nonzeros[ind]);
+            if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
+                data.nonzeros[ind].column == col) {
+                tmp->at(row, col) = data.nonzeros[ind].value;
                 ++ind;
             } else {
-                tmp->at(row, col) = zero<ValueType>();
+                tmp->at(row, col) = zero<typename MatrixType::value_type>();
             }
         }
     }
-    tmp->move_to(this);
+    tmp->move_to(mtx);
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Dense<ValueType>::read(const mat_data &data)
+{
+    read_impl(this, data);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::read(const mat_data32 &data)
+{
+    read_impl(this, data);
+}
+
+
+namespace {
+
+
+template <typename MatrixType, typename MatrixData>
+inline void write_impl(const MatrixType *mtx, MatrixData &data)
+{
+    std::unique_ptr<const LinOp> op{};
+    const MatrixType *tmp{};
+    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
+        op = mtx->clone_to(mtx->get_executor()->get_master());
+        tmp = static_cast<const MatrixType *>(op.get());
+    } else {
+        tmp = mtx;
+    }
+
+    data = {mtx->get_num_rows(), mtx->get_num_cols(), {}};
+
+    for (size_type row = 0; row < data.num_rows; ++row) {
+        for (size_type col = 0; col < data.num_cols; ++col) {
+            if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
+                data.nonzeros.emplace_back(row, col, tmp->at(row, col));
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Dense<ValueType>::write(mat_data &data) const
+{
+    write_impl(this, data);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::write(mat_data32 &data) const
+{
+    write_impl(this, data);
 }
 
 

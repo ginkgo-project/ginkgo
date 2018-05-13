@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/fcg.hpp"
 
-#include "core/base/convertible.hpp"
+
 #include "core/base/exception.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
@@ -41,11 +41,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/solver/fcg_kernels.hpp"
 
+
 namespace gko {
 namespace solver {
 
 
 namespace {
+
 
 template <typename ValueType>
 struct TemplatedOperation {
@@ -53,6 +55,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
 };
+
 
 /**
  * Checks whether the required residual goal has been reached or not.
@@ -67,8 +70,8 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
                    remove_complex<ValueType> r)
 {
     using std::abs;
-    for (int i = 0; i < tau->get_num_rows(); ++i) {
-        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
+    for (int i = 0; i < tau->get_num_cols(); ++i) {
+        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
             return false;
         }
     }

@@ -69,8 +69,8 @@ bool has_converged(const matrix::Dense<ValueType> *tau,
                    remove_complex<ValueType> r)
 {
     using std::abs;
-    for (size_type i = 0; i < tau->get_num_rows(); ++i) {
-        if (!(abs(tau->at(i, 0)) < r * abs(orig_tau->at(i, 0)))) {
+    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
+        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
             return false;
         }
     }

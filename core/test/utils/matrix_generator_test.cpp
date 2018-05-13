@@ -49,8 +49,9 @@ protected:
     MatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix(
-              exec, 500, 100, std::normal_distribution<double>(50, 5),
-              std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42))),
+              500, 100, std::normal_distribution<double>(50, 5),
+              std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
+              exec)),
           nnz_per_row_sample(500, 0),
           values_sample(0)
     {

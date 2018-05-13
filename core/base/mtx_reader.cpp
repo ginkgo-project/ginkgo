@@ -101,7 +101,8 @@ public:
         }
     }
 
-    void read_value_for(int row, int col, MtxData<ValueType, IndexType> &data)
+    void read_value_for(int row, int col,
+                        matrix_data<ValueType, IndexType> &data)
     {
         using std::to_string;
         double rp = 0.0;
@@ -121,17 +122,13 @@ public:
                         to_string(row) + ", " + to_string(col));
             }
         }
-        data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-            row, col, combine<ValueType>(rp, ip)));
+        data.nonzeros.emplace_back(row, col, combine<ValueType>(rp, ip));
         if (mm_is_symmetric(t_) && row != col) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(rp, ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(rp, ip));
         } else if (mm_is_skew(t_)) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(-rp, -ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(-rp, -ip));
         } else if (mm_is_hermitian(t_) && row != col) {
-            data.nonzeros.push_back(std::tuple<IndexType, IndexType, ValueType>(
-                col, row, combine<ValueType>(rp, -ip)));
+            data.nonzeros.emplace_back(col, row, combine<ValueType>(rp, -ip));
         }
     }
 
@@ -142,17 +139,8 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-bool coord_compare(const std::tuple<IndexType, IndexType, ValueType> &a,
-                   const std::tuple<IndexType, IndexType, ValueType> &b)
-{
-    using std::make_tuple;
-    return make_tuple(std::get<0>(a), std::get<1>(a)) <
-           make_tuple(std::get<0>(b), std::get<1>(b));
-}
-
-
-template <typename ValueType, typename IndexType>
-MtxData<ValueType, IndexType> read_sparse(file_data &f, const MM_typecode &t)
+matrix_data<ValueType, IndexType> read_sparse(file_data &f,
+                                              const MM_typecode &t)
 {
     using std::to_string;
     int m = 0;
@@ -160,7 +148,7 @@ MtxData<ValueType, IndexType> read_sparse(file_data &f, const MM_typecode &t)
     int k = 0;
     // TODO: this doesn't work for large matrices
     MMIO_CHECK(mm_read_mtx_crd_size(f.f, &m, &n, &k), f.filename);
-    MtxData<ValueType, IndexType> data;
+    matrix_data<ValueType, IndexType> data;
     data.num_rows = m;
     data.num_cols = n;
     read_modifier<ValueType, IndexType> mod(t, f);
@@ -174,20 +162,19 @@ MtxData<ValueType, IndexType> read_sparse(file_data &f, const MM_typecode &t)
         }
         mod.read_value_for(row - 1, col - 1, data);
     }
-    sort(begin(data.nonzeros), end(data.nonzeros),
-         coord_compare<ValueType, IndexType>);
+    data.ensure_row_major_order();
     return data;
 }
 
 
 template <typename ValueType, typename IndexType>
-MtxData<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
+matrix_data<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
 {
     int m = 0;
     int n = 0;
     // TODO: this doesn't work for large matrices
     MMIO_CHECK(mm_read_mtx_array_size(f.f, &m, &n), f.filename);
-    MtxData<ValueType, IndexType> data;
+    matrix_data<ValueType, IndexType> data;
     data.num_rows = m;
     data.num_cols = n;
     read_modifier<ValueType, IndexType> mod(t, f);
@@ -196,8 +183,7 @@ MtxData<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
             mod.read_value_for(row, col, data);
         }
     }
-    sort(begin(data.nonzeros), end(data.nonzeros),
-         coord_compare<ValueType, IndexType>);
+    data.ensure_row_major_order();
     return data;
 }
 
@@ -206,7 +192,7 @@ MtxData<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
 
 
 template <typename ValueType, typename IndexType>
-MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename)
+matrix_data<ValueType, IndexType> read_raw(const std::string &filename)
 {
     std::unique_ptr<std::FILE, int (*)(std::FILE *)> f(
         std::fopen(filename.c_str(), "r"), std::fclose);
@@ -229,9 +215,9 @@ MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename)
 }
 
 
-#define DECLARE_READ_FROM_MTX_FUNCTION(ValueType, IndexType) \
-    MtxData<ValueType, IndexType> read_raw_from_mtx(const std::string &filename)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_FROM_MTX_FUNCTION);
+#define DECLARE_READ_RAW(ValueType, IndexType) \
+    matrix_data<ValueType, IndexType> read_raw(const std::string &filename)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_RAW);
 
 
 }  // namespace gko
