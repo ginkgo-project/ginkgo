@@ -54,8 +54,8 @@ class Ostream : public Logger {
 public:
     /**
      * creates an Ostream Logger with output to `os`
-     * @param enabled_events the events enabled for this Logger
-     * @param os the stream to output logged events to
+     * @param  enabled_events the events enabled for this Logger
+     * @param  os the stream to output logged events to
      */
     static std::shared_ptr<Ostream> create(const mask_type &enabled_events,
                                            std::ostream &os)

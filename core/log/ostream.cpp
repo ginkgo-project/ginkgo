@@ -46,11 +46,11 @@ namespace log {
 namespace {
 
 
-template <typename T>
-std::ostream &operator<<(std::ostream &os, const matrix::Dense<T> *mtx)
+template <typename ValueType>
+std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 {
     auto exec = mtx->get_executor();
-    auto tmp = gko::matrix::Dense<T>::create(exec->get_master());
+    auto tmp = gko::matrix::Dense<ValueType>::create(exec->get_master());
     if (exec != exec->get_master()) {
         tmp->copy_from(mtx);
         mtx = tmp.get();

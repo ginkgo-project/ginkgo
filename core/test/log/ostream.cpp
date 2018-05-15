@@ -31,7 +31,6 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/logger.hpp>
 #include <core/log/ostream.hpp>
 
 
@@ -46,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-const int NUM_ITERS = 10;
+constexpr int num_iters = 10;
 const std::string apply_str = "DummyLoggedClass::apply";
 
 
@@ -58,9 +57,9 @@ struct DummyLoggedClass : public gko::log::EnableLogging {
             gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
 
         this->log<gko::log::Logger::apply>(apply_str);
-        this->log<gko::log::Logger::iteration_complete>(NUM_ITERS);
+        this->log<gko::log::Logger::iteration_complete>(num_iters);
 
-        this->log<gko::log::Logger::converged>(NUM_ITERS, mtx.get());
+        this->log<gko::log::Logger::converged>(num_iters, mtx.get());
     }
 };
 
@@ -91,7 +90,7 @@ TEST(ReturnObject, CatchesIterations)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_TRUE(out.str().find("iteration " + NUM_ITERS) != std::string::npos);
+    ASSERT_TRUE(out.str().find("iteration " + num_iters) != std::string::npos);
 }
 
 
@@ -106,7 +105,7 @@ TEST(ReturnObject, CatchesConvergence)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_TRUE(out.str().find("converged at iteration " + NUM_ITERS) !=
+    ASSERT_TRUE(out.str().find("converged at iteration " + num_iters) !=
                 std::string::npos);
     ASSERT_TRUE(out.str().find("1.0") != std::string::npos);
     ASSERT_TRUE(out.str().find("2.0") != std::string::npos);

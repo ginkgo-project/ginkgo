@@ -44,13 +44,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-const int NUM_ITERS = 10;
+constexpr int num_iters = 10;
 
 
 struct DummyLoggedClass : public gko::log::EnableLogging {
-    int get_loggers_size() { return loggers_.size(); }
+    int get_num_loggers() { return loggers_.size(); }
 
-    void apply() { this->log<gko::log::Logger::iteration_complete>(NUM_ITERS); }
+    void apply() { this->log<gko::log::Logger::iteration_complete>(num_iters); }
 };
 
 
@@ -60,11 +60,11 @@ TEST(DummyLogged, CanAddLoggers)
 
     c.add_logger(
         gko::log::ReturnObject::create(gko::log::Logger::all_events_mask));
-    ASSERT_EQ(c.get_loggers_size(), 1);
+    ASSERT_EQ(c.get_num_loggers(), 1);
 
     c.add_logger(gko::log::Ostream::create(gko::log::Logger::all_events_mask,
                                            std::cout));
-    ASSERT_EQ(c.get_loggers_size(), 2);
+    ASSERT_EQ(c.get_num_loggers(), 2);
 }
 
 
@@ -88,16 +88,12 @@ struct DummyLogger : public gko::log::Logger {
 
 
     void on_iteration_complete(
-        const gko::size_type num_iterations) const override;
+        const gko::size_type num_iterations) const override
+    {
+        data_->num_iterations = num_iterations;
+    }
     std::shared_ptr<DummyData> data_;
 };
-
-
-void DummyLogger::on_iteration_complete(
-    const gko::size_type num_iterations) const
-{
-    data_->num_iterations = num_iterations;
-}
 
 
 TEST(DummyLogged, CanLogEvents)
@@ -109,7 +105,7 @@ TEST(DummyLogged, CanLogEvents)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_EQ(NUM_ITERS, logger->data_->num_iterations);
+    ASSERT_EQ(num_iters, logger->data_->num_iterations);
 }
 
 

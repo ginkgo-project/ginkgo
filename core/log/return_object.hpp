@@ -62,7 +62,7 @@ class ReturnObject : public Logger {
 public:
     /**
      * Creates a ReturnObject Logger used to directly access logged data
-     * @param enabled_events the events enabled for this Logger
+     * @param  enabled_events the events enabled for this Logger
      */
     static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events)
     {
@@ -78,7 +78,7 @@ public:
 
     /**
      * Returns a shared pointer to the logged data
-     * @return a shared pointer to the logged data
+     * @return  a shared pointer to the logged data
      */
     std::shared_ptr<const LoggedData> get_return_object()
     {

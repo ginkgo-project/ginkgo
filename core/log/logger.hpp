@@ -61,7 +61,7 @@ namespace log {
  * logged, and which should not.
  *
  * @internal The class uses bitset to facilitate picking a combination of events
- * to logs. In addition, the class design allows to not propagate empty messages
+ * to log. In addition, the class design allows to not propagate empty messages
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
  */
@@ -79,15 +79,15 @@ public:
     static constexpr mask_type all_events_mask = ~0ull;
 
     /**
-     * Constructor for a Logger object. Parameters are event mask which can be
-     * of the form:
+     * Constructor for a Logger object.
+     *
+     * @param  enabled_events the events enabled for this Logger. These can be
+     * of the following form:
      * 1. `all_event_mask` which logs every event
      * 2. an OR combination of masks, e.g. `iteration_complete_mask|apply_mask`
      * which activates both of these events.
      * 3. all events with exclusion through XOR, e.g.
      * `all_event_mask^apply_mask` which logs every event except the apply event
-     *
-     * @param enabled_events the events enabled for this Logger
      */
     Logger(const mask_type &enabled_events = all_events_mask)
         : enabled_events_{enabled_events}
@@ -100,11 +100,14 @@ public:
      * A mask named _event_name##_mask is created for each event. `_id` is the
      * number assigned to this event and should be unique.
      *
-     * @internal the templated function `on(Params)` will trigged the event call
-     * only if the user activates this event through the mask. If the event is
-     * activated, we rely on polymorphism and the virtual method
-     * `on_##_event_name` to either call the Logger class's function, which does
-     * nothing, or the overriden version in the derived class if any.
+     * @internal  the templated function `on(Params)` will trigged the event
+     * call only if the user activates this event through the mask. If the event
+     * is activated, we rely on polymorphism and the virtual method
+     * `on_##_event_name()` to either call the Logger class's function, which
+     * does nothing, or the overriden version in the derived class if any.
+     * Therefore, to support a new event in any Logger (i.e. class which derive
+     * from this class), the function `on_##_event_name()` should be overriden
+     * and implemented.
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
@@ -143,7 +146,7 @@ public:
 
     /**
      * Adds a Logger object to log events to.
-     * @param logger a shared_ptr to the logger object
+     * @param  logger a shared_ptr to the logger object
      */
     virtual void add_logger(std::shared_ptr<const Logger> logger) = 0;
 };

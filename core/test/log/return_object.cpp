@@ -31,7 +31,6 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/logger.hpp>
 #include <core/log/return_object.hpp>
 
 
@@ -44,15 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-const int NUM_ITERS = 10;
+constexpr int num_iters = 10;
 const std::string apply_str = "DummyLoggedClass::apply";
 
 
 struct DummyLoggedClass : public gko::log::EnableLogging {
     void apply()
     {
-        this->log<gko::log::Logger::iteration_complete>(NUM_ITERS);
-        this->log<gko::log::Logger::converged>(NUM_ITERS, nullptr);
+        this->log<gko::log::Logger::iteration_complete>(num_iters);
+        this->log<gko::log::Logger::converged>(num_iters, nullptr);
         this->log<gko::log::Logger::apply>(apply_str);
     }
 
@@ -61,7 +60,7 @@ struct DummyLoggedClass : public gko::log::EnableLogging {
         auto exec = gko::ReferenceExecutor::create();
         auto mtx =
             gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
-        this->log<gko::log::Logger::converged>(NUM_ITERS, mtx.get());
+        this->log<gko::log::Logger::converged>(num_iters, mtx.get());
     }
 };
 
@@ -85,7 +84,7 @@ TEST(ReturnObject, CatchesIterations)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_EQ(NUM_ITERS, logger->get_return_object()->num_iterations);
+    ASSERT_EQ(num_iters, logger->get_return_object()->num_iterations);
 }
 
 
@@ -110,11 +109,11 @@ TEST(ReturnObject, CatchesConvergence)
     c.add_logger(logger);
     c.apply();
 
-    ASSERT_EQ(NUM_ITERS, logger->get_return_object()->converged_at_iteration);
+    ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
     ASSERT_TRUE(logger->get_return_object()->residual == nullptr);
 
     c.apply_with_data();
-    ASSERT_EQ(NUM_ITERS, logger->get_return_object()->converged_at_iteration);
+    ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
     auto residual = logger->get_return_object()->residual.get();
     ASSERT_EQ(residual->at(0), 1.0);
     ASSERT_EQ(residual->at(1), 2.0);
