@@ -66,8 +66,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     int status;
     char *tmp = abi::__cxa_demangle(typeid(*this).name(), NULL, NULL, &status);
-    this->log<gko::log::Logger::apply>(std::string() + tmp +
-                                       "::" + __FUNCTION__);
+    this->template log<log::Logger::apply>(std::string() + tmp +
+                                           "::" + __FUNCTION__);
     free(tmp);
 
     using std::swap;
@@ -118,7 +118,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 &converged, &all_converged));
 
         if (all_converged) {
-            this->log<gko::log::Logger::converged>(iter + 1, r.get());
+            this->template log<log::Logger::converged>(iter + 1, r.get());
             break;
         }
 
@@ -135,7 +135,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + tmp * p
         // r = r - tmp * q
         swap(prev_rho, rho);
-        this->log<gko::log::Logger::iteration_complete>(iter + 1);
+        this->template log<log::Logger::iteration_complete>(iter + 1);
     }
 }
 

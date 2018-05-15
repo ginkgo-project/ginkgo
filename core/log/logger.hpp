@@ -118,7 +118,7 @@ public:                                                              \
     xstd::enable_if_t<Event == _id && (_id < event_count_max)> on(   \
         Params &&... params) const                                   \
     {                                                                \
-        if (enabled_events_ & (1 << _id)) {                          \
+        if (enabled_events_ & (1ull << _id)) {                       \
             this->on_##_event_name(std::forward<Params>(params)...); \
         }                                                            \
     }                                                                \
