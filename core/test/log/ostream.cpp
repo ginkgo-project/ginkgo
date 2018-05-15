@@ -49,30 +49,12 @@ constexpr int num_iters = 10;
 const std::string apply_str = "DummyLoggedClass::apply";
 
 
-struct DummyLoggedClass : public gko::log::EnableLogging {
-    void apply()
-    {
-        auto exec = gko::ReferenceExecutor::create();
-        auto mtx =
-            gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
-
-        this->log<gko::log::Logger::apply>(apply_str);
-        this->log<gko::log::Logger::iteration_complete>(num_iters);
-
-        this->log<gko::log::Logger::converged>(num_iters, mtx.get());
-    }
-};
-
-
 TEST(ReturnObject, CatchesApply)
 {
-    DummyLoggedClass c;
     std::stringstream out;
-
     auto logger = gko::log::Ostream::create(gko::log::Logger::apply_mask, out);
 
-    c.add_logger(logger);
-    c.apply();
+    logger->on<gko::log::Logger::apply>(apply_str);
 
     ASSERT_TRUE(out.str().find("starting apply function: " + apply_str) !=
                 std::string::npos);
@@ -81,14 +63,11 @@ TEST(ReturnObject, CatchesApply)
 
 TEST(ReturnObject, CatchesIterations)
 {
-    DummyLoggedClass c;
     std::stringstream out;
-
     auto logger = gko::log::Ostream::create(
         gko::log::Logger::iteration_complete_mask, out);
 
-    c.add_logger(logger);
-    c.apply();
+    logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
     ASSERT_TRUE(out.str().find("iteration " + num_iters) != std::string::npos);
 }
@@ -96,14 +75,14 @@ TEST(ReturnObject, CatchesIterations)
 
 TEST(ReturnObject, CatchesConvergence)
 {
-    DummyLoggedClass c;
     std::stringstream out;
-
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx =
+        gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
     auto logger =
         gko::log::Ostream::create(gko::log::Logger::converged_mask, out);
 
-    c.add_logger(logger);
-    c.apply();
+    logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
     ASSERT_TRUE(out.str().find("converged at iteration " + num_iters) !=
                 std::string::npos);
