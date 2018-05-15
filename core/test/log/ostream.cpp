@@ -56,7 +56,9 @@ TEST(ReturnObject, CatchesApply)
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
-    ASSERT_TRUE(out.str().find("starting apply function: " + apply_str) !=
+    auto os = out.str();
+    ASSERT_FALSE(os.empty());
+    ASSERT_TRUE(os.find("starting apply function: " + apply_str) !=
                 std::string::npos);
 }
 
@@ -69,7 +71,9 @@ TEST(ReturnObject, CatchesIterations)
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
-    ASSERT_TRUE(out.str().find("iteration " + num_iters) != std::string::npos);
+    auto os = out.str();
+    ASSERT_FALSE(os.empty());
+    ASSERT_TRUE(os.find("iteration " + num_iters) != std::string::npos);
 }
 
 
@@ -84,11 +88,13 @@ TEST(ReturnObject, CatchesConvergence)
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
-    ASSERT_TRUE(out.str().find("converged at iteration " + num_iters) !=
+    auto os = out.str();
+    ASSERT_FALSE(os.empty());
+    ASSERT_TRUE(os.find("converged at iteration " + num_iters) !=
                 std::string::npos);
-    ASSERT_TRUE(out.str().find("1.0") != std::string::npos);
-    ASSERT_TRUE(out.str().find("2.0") != std::string::npos);
-    ASSERT_TRUE(out.str().find("3.0") != std::string::npos);
+    ASSERT_TRUE(os.find("1.0") != std::string::npos);
+    ASSERT_TRUE(os.find("2.0") != std::string::npos);
+    ASSERT_TRUE(os.find("3.0") != std::string::npos);
 }
 
 
