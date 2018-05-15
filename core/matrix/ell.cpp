@@ -69,6 +69,7 @@ size_type calculate_max_nonzeros_per_row(
     size_type max_nonzeros_per_row = 0;
     for (const auto &elem : data.nonzeros) {
         if (elem.row != current_row) {
+            current_row = elem.row;
             max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
             nnz = 0;
         }

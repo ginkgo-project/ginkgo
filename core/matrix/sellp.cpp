@@ -39,6 +39,40 @@ namespace gko {
 namespace matrix {
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+size_type calculate_max_total_cols(
+    const matrix_data<ValueType, IndexType> &data)
+{
+    size_type nnz = 0;
+    IndexType current_row = 0;
+    size_type max_nonzeros_per_row = 0;
+    IndexType current_slice = 0;
+    size_type max_total_cols = 0;
+    for (const auto &elem : data.nonzeros) {
+        if (elem.row / data.slice_size != current_slice) {
+            current_slice = elem.row / data.slice_size;
+            max_total_cols += max_nonzeros_per_row;
+            max_nonzeros_per_row = 0;
+        }
+        if (elem.row != current_row) {
+            current_row = elem.row;
+            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+            nnz = 0;
+        }
+        nnz += (elem.value != zero<ValueType>());
+    }
+    max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+    max_total_cols += max_nonzeros_per_row;
+    return max_total_cols;
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 {

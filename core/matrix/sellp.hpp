@@ -180,7 +180,7 @@ public:
      *
      * @return the total column number.
      */
-    size_type get_total_cols() const noexcept { return total_cols_; }
+    size_type get_max_total_cols() const noexcept { return max_total_cols_; }
 
 protected:
     /**
@@ -196,22 +196,35 @@ protected:
           slice_sets_(exec),
           slice_size_(0),
           padding_factor_(0),
-          total_cols_(0)
+          max_total_cols_(0)
     {}
 
     Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type num_nonzeros, size_type slice_size,
-          size_type padding_factor, size_type total_cols)
-        : BasicLinOp<Sellp>(exec, num_rows, num_cols, num_nonzeros),
-          values_(exec, slice_size * total_cols),
-          col_idxs_(exec, slice_size * total_cols),
+          size_type num_cols, size_type slice_size, size_type padding_factor,
+          size_type max_total_cols)
+        : BasicLinOp<Sellp>(exec, num_rows, num_cols,
+                            ceildiv(num_rows, slice_size) * num_cols),
+          values_(exec, slice_size * max_total_cols),
+          col_idxs_(exec, slice_size * max_total_cols),
           slice_lens_(exec,
                       (num_rows == 0) ? 0 : ceildiv(num_rows, slice_size)),
           slice_sets_(exec,
                       (num_rows == 0) ? 0 : ceildiv(num_rows, slice_size)),
           slice_size_(slice_size),
           padding_factor_(padding_factor),
-          total_cols_(total_cols)
+          max_total_cols_(max_total_cols)
+    {}
+
+    Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
+          size_type num_cols, size_type max_total_cols)
+        : Sellp(std::move(exec), num_rows, num_cols, default_slice_size,
+                default_padding_factor, max_total_cols)
+    {}
+
+    Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
+          size_type num_cols)
+        : Sellp(std::move(exec), num_rows, num_cols,
+                ceildiv(num_rows, default_slice_size) * num_cols)
     {}
 
     size_type linearize_index(size_type row, size_type slice_set,
@@ -244,7 +257,7 @@ private:
     Array<index_type> slice_sets_;
     size_type slice_size_;
     size_type padding_factor_;
-    size_type total_cols_;
+    size_type max_total_cols_;
 };
 
 
