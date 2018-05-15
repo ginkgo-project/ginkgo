@@ -76,7 +76,6 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_size().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
