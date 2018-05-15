@@ -111,7 +111,7 @@ TEST_F(EnablePolymorphicObject, ClonesObjectToAnotherExecutor)
 
 TEST_F(EnablePolymorphicObject, CopiesObject)
 {
-    auto copy = gko::xstd::make_unique<DummyObject>(cpu, 7);
+    auto copy = DummyObject::create(cpu, 7);
 
     copy->copy_from(gko::lend(obj));
 
@@ -123,7 +123,7 @@ TEST_F(EnablePolymorphicObject, CopiesObject)
 
 TEST_F(EnablePolymorphicObject, MovesObject)
 {
-    auto copy = gko::xstd::make_unique<DummyObject>(ref, 7);
+    auto copy = DummyObject::create(ref, 7);
 
     copy->copy_from(gko::give(obj));
 

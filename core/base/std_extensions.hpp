@@ -75,13 +75,6 @@ template <typename T>
 using decay_t = typename std::decay<T>::type;
 
 
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args &&... args)
-{
-    return std::unique_ptr<T>{new T(std::forward<Args>(args)...)};
-}
-
-
 }  // namespace xstd
 }  // namespace gko
 
