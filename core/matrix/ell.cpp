@@ -75,7 +75,7 @@ size_type calculate_max_nonzeros_per_row(
         }
         nnz += (elem.value != zero<ValueType>());
     }
-    return max_nonzeros_per_row;
+    return std::max(max_nonzeros_per_row, nnz);
 }
 
 
