@@ -39,7 +39,7 @@ namespace gko {
 namespace log {
 
 
-const Logger::mask_type Logger::all_events_mask = ~Logger::mask_type{};
+constexpr Logger::mask_type Logger::all_events_mask;
 constexpr Logger::mask_type Logger::iteration_complete_mask;
 constexpr Logger::mask_type Logger::apply_mask;
 constexpr Logger::mask_type Logger::converged_mask;

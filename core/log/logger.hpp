@@ -68,16 +68,15 @@ namespace log {
 class Logger {
 public:
     /**
-     * The amount of events (bits) contained in the bitset. Increase for every
-     * new event
+     * Maximum amount of events (bits) with the current implementation
      */
-    static constexpr size_type event_count = 3;
+    static constexpr size_type event_count_max = 64;
 
     /* @internal std::bitset allows to store any number of bits */
-    using mask_type = std::bitset<event_count>;
+    using mask_type = gko::uint64;
 
     /* Bitset Mask which activates all events */
-    static const mask_type all_events_mask;
+    static constexpr mask_type all_events_mask = ~0ull;
 
     /**
      * Constructor for a Logger object. Parameters are event mask which can be
@@ -113,17 +112,15 @@ protected:                                                           \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
-    xstd::enable_if_t<Event == _id> on(Params &&... params) const    \
+    xstd::enable_if_t<Event == _id && (_id < event_count_max)> on(   \
+        Params &&... params) const                                   \
     {                                                                \
-        if (enabled_events_[_id]) {                                  \
+        if (enabled_events_ & (1 << _id)) {                          \
             this->on_##_event_name(std::forward<Params>(params)...); \
         }                                                            \
     }                                                                \
     static constexpr size_type _event_name{_id};                     \
-    static constexpr mask_type _event_name##_mask                    \
-    {                                                                \
-        mask_type { 0b1 << _id }                                     \
-    }
+    static constexpr mask_type _event_name##_mask{1ull << _id};
 
     GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type);
     GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string);
