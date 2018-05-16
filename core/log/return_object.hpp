@@ -46,20 +46,24 @@ namespace gko {
 namespace log {
 
 
-struct LoggedData {
-    std::string last_apply;
-    size_type num_iterations;
-    size_type converged_at_iteration;
-    std::unique_ptr<const gko::matrix::Dense<>> residual;
-};
-
-
 /**
  * ReturnObject is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
  */
 class ReturnObject : public Logger {
 public:
+    /**
+     * Struct storing the actually logged data
+     */
+    struct LoggedData {
+        std::string last_apply;
+        size_type num_iterations;
+        size_type converged_at_iteration;
+        std::unique_ptr<const gko::matrix::Dense<>> residual;
+
+        LoggedData() = default;
+    };
+
     /**
      * Creates a ReturnObject Logger used to directly access logged data
      * @param  enabled_events the events enabled for this Logger

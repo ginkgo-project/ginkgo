@@ -76,7 +76,7 @@ public:
     using mask_type = gko::uint64;
 
     /* Bitset Mask which activates all events */
-    static constexpr mask_type all_events_mask = ~0ull;
+    static constexpr mask_type all_events_mask = ~mask_type{0};
 
     /**
      * Constructor for a Logger object.
@@ -118,12 +118,12 @@ public:                                                              \
     xstd::enable_if_t<Event == _id && (_id < event_count_max)> on(   \
         Params &&... params) const                                   \
     {                                                                \
-        if (enabled_events_ & (1ull << _id)) {                       \
+        if (enabled_events_ & (mask_type{1} << _id)) {               \
             this->on_##_event_name(std::forward<Params>(params)...); \
         }                                                            \
     }                                                                \
     static constexpr size_type _event_name{_id};                     \
-    static constexpr mask_type _event_name##_mask{1ull << _id};
+    static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
 
     GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type);
     GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string);

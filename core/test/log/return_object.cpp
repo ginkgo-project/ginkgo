@@ -52,8 +52,8 @@ TEST(ReturnObject, CanGetData)
     auto logger = gko::log::ReturnObject::create(
         gko::log::Logger::iteration_complete_mask);
 
-    ASSERT_TRUE(logger->get_return_object() != nullptr);
-    ASSERT_TRUE(logger->get_return_object()->num_iterations == 0);
+    ASSERT_NE(logger->get_return_object(), nullptr);
+    ASSERT_EQ(logger->get_return_object()->num_iterations, 0);
 }
 
 
@@ -86,7 +86,7 @@ TEST(ReturnObject, CatchesConvergenceWithoutData)
     logger->on<gko::log::Logger::converged>(num_iters, nullptr);
 
     ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
-    ASSERT_TRUE(logger->get_return_object()->residual == nullptr);
+    ASSERT_EQ(logger->get_return_object()->residual, nullptr);
 }
 
 
