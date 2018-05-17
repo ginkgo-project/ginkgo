@@ -64,11 +64,8 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    int status;
-    char *tmp = abi::__cxa_demangle(typeid(*this).name(), NULL, NULL, &status);
-    this->template log<log::Logger::apply>(std::string() + tmp +
-                                           "::" + __FUNCTION__);
-    free(tmp);
+    this->template log<log::Logger::apply>(
+        name_demangling::get_full_function_name(typeid(*this), __func__));
 
     using std::swap;
     using Vector = matrix::Dense<ValueType>;

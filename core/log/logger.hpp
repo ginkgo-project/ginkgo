@@ -36,11 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/lin_op.hpp"
+#include "core/base/name_demangling.hpp"
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
 
-#include <cxxabi.h>
 #include <bitset>
 #include <memory>
 #include <string>

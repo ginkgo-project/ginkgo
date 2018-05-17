@@ -1,6 +1,7 @@
 set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
+    base/name_demangling.cpp
     log/ostream.cpp
     log/logger.cpp
     log/return_object.cpp

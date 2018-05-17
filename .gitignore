@@ -12,6 +12,9 @@ compile_commands.json
 CTestTestfile.cmake
 build
 
+### Generated header file
+include/config.hpp
+
 ###C++
 # Prerequisites
 *.d

@@ -5,7 +5,7 @@ shopt -s extglob
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 GINKGO_ROOT_DIR="${THIS_DIR}/../.."
 LICENSE_FILE="${GINKGO_ROOT_DIR}/LICENSE"
-PATTERNS="cpp|hpp|cuh|cu"
+PATTERNS="cpp|hpp|cuh|cu|hpp.in"
 EXCLUDED_DIRECTORIES="build|third_party"
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
