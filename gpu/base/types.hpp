@@ -201,13 +201,4 @@ struct cuda_config {
 }  // namespace gko
 
 
-#ifdef __APPLE__
-// Ignore device assertions on MACs, as it does not support them
-#define GKO_DEVICE_ASSERT(expression)
-#else  // __APPLE__
-// Handle assertions on other systems
-#define GKO_DEVICE_ASSERT(expression) assert(expression)
-#endif  // __APPLE__
-
-
 #endif  // GKO_GPU_BASE_TYPES_HPP_

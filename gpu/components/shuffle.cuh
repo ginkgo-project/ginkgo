@@ -82,7 +82,7 @@ __device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
         int32 width = cuda_config::warp_size,                         \
         uint32 mask = cuda_config::full_lane_mask)                    \
     {                                                                 \
-        GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);       \
+        GKO_ASSERT(mask == cuda_config::full_lane_mask);              \
         return detail::shuffle_impl(                                  \
             [](uint32 m, int32 v, SelectorType s, int32 w) {          \
                 return _intrinsic(v, s, w);                           \

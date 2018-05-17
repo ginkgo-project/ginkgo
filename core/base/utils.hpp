@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -442,6 +443,15 @@ temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
 {
     return temporary_clone<T>(std::move(exec), ptr);
 }
+
+
+#if defined(__CUDA_ARCH__) && defined(__APPLE__)
+// Ignore device assertions on MACs, as it does not support them
+#define GKO_ASSERT(expression)
+#else  // __APPLE__
+// Handle assertions on other systems
+#define GKO_ASSERT(expression) assert(expression)
+#endif  // __APPLE__
 
 
 }  // namespace gko

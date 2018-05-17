@@ -172,7 +172,7 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
         static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
 
     if (tidx < num_nonzeros) {
-        val[tidx] = gko::conj(val[tidx]);
+        val[tidx] = conj(val[tidx]);
     }
 }
 

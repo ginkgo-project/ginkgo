@@ -224,7 +224,7 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *orig)
 {
     transpose_and_transform(exec, trans, orig,
-                            [](const ValueType x) { return gko::conj(x); });
+                            [](const ValueType x) { return conj(x); });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
