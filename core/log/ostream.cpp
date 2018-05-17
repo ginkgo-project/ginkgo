@@ -46,7 +46,7 @@ namespace log {
 namespace {
 
 
-template <typename ValueType>
+template <typename ValueType = default_precision>
 std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 {
     auto exec = mtx->get_executor();
@@ -55,7 +55,6 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
         tmp->copy_from(mtx);
         mtx = tmp.get();
     }
-    os << std::scientific << std::setprecision(4);
     os << "[" << std::endl;
     for (int i = 0; i < mtx->get_num_rows(); ++i) {
         for (int j = 0; j < mtx->get_num_cols(); ++j) {
@@ -66,29 +65,42 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
     return os << "]" << std::endl;
 }
 
+#define GKO_DECLARE_OP(_type) \
+    std::ostream &operator<<(std::ostream &os, const matrix::Dense<_type> *mtx)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OP);
+#undef GKO_DECLARE_OP
 
 }  // namespace
 
 
-void Ostream::on_iteration_complete(const size_type num_iterations) const
+template <typename ValueType>
+void Ostream<ValueType>::on_iteration_complete(
+    const size_type num_iterations) const
 {
     os_ << prefix << "iteration " << num_iterations << std::endl;
 }
 
 
-void Ostream::on_apply(const std::string name) const
+template <typename ValueType>
+void Ostream<ValueType>::on_apply(const std::string name) const
 {
     os_ << prefix << "starting apply function: " << name << std::endl;
 }
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
-void Ostream::on_converged(const size_type at_iteration,
-                           const LinOp *residual) const
+template <typename ValueType>
+void Ostream<ValueType>::on_converged(const size_type at_iteration,
+                                      const LinOp *residual) const
 {
     os_ << prefix << "converged at iteration " << at_iteration << " residual:\n"
-        << as<const gko::matrix::Dense<>>(residual);
+        << as<const gko::matrix::Dense<ValueType>>(residual);
 }
+
+
+#define GKO_DECLARE_OSTREAM(_type) class Ostream<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OSTREAM);
+#undef GKO_DECLARE_OSTREAM
 
 
 }  // namespace log

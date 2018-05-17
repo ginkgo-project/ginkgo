@@ -64,6 +64,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
+#include <iomanip>
 #include <iostream>
 #include <string>
 
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
     // only iterations mask : gko::log::Logger::iteration_complete_mask
     std::ofstream filestream("my_file.txt");
     static_cast<gko::solver::Cg<> *>(solver.get())
-        ->add_logger(gko::log::Ostream::create(
+        ->add_logger(gko::log::Ostream<>::create(
             gko::log::Logger::all_events_mask, filestream));
 
     // same thing but print to std::cout
@@ -120,7 +121,10 @@ int main(int argc, char *argv[])
 
     // Get the data from `returnobject_logger` and print an element
     auto loggeddata = returnobject_logger->get_return_object();
-    std::cout << "Residual(1) : " << loggeddata->residual->at(1) << std::endl;
+    auto residual = loggeddata->residuals.back().get();
+    auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
+    std::cout << std::scientific << std::setprecision(4);
+    std::cout << "Residual(1) : " << residual_d->at(1) << std::endl;
 
     // Print result
     auto h_x = gko::clone_to(exec->get_master(), x);

@@ -44,7 +44,7 @@ namespace {
 
 
 constexpr int num_iters = 10;
-const std::string apply_str = "DummyLoggedClass::apply";
+const std::string apply_str = "Dummy::apply";
 
 
 TEST(ReturnObject, CanGetData)
@@ -74,7 +74,7 @@ TEST(ReturnObject, CatchesApply)
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
-    ASSERT_EQ(apply_str, logger->get_return_object()->last_apply);
+    ASSERT_EQ(apply_str, logger->get_return_object()->applies.back());
 }
 
 
@@ -86,7 +86,7 @@ TEST(ReturnObject, CatchesConvergenceWithoutData)
     logger->on<gko::log::Logger::converged>(num_iters, nullptr);
 
     ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
-    ASSERT_EQ(logger->get_return_object()->residual, nullptr);
+    ASSERT_EQ(logger->get_return_object()->residuals.size(), 0);
 }
 
 
@@ -101,10 +101,11 @@ TEST(ReturnObject, CatchesConvergenceWithData)
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
     ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
-    auto residual = logger->get_return_object()->residual.get();
-    ASSERT_EQ(residual->at(0), 1.0);
-    ASSERT_EQ(residual->at(1), 2.0);
-    ASSERT_EQ(residual->at(2), 3.0);
+    auto residual = logger->get_return_object()->residuals.back().get();
+    auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
+    ASSERT_EQ(residual_d->at(0), 1.0);
+    ASSERT_EQ(residual_d->at(1), 2.0);
+    ASSERT_EQ(residual_d->at(2), 3.0);
 }
 
 

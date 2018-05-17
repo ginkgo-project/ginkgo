@@ -49,7 +49,10 @@ namespace log {
 /**
  * Ostream is a Logger which logs every event to a stream. This can typically be
  * used to log to a file or to the console.
+ *
+ * @tparam ValueType  the type of values stored in the class (e.g. residuals)
  */
+template <typename ValueType = default_precision>
 class Ostream : public Logger {
 public:
     /**

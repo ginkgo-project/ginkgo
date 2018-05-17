@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <iomanip>
 #include <sstream>
 
 
@@ -52,7 +53,8 @@ const std::string apply_str = "DummyLoggedClass::apply";
 TEST(ReturnObject, CatchesApply)
 {
     std::stringstream out;
-    auto logger = gko::log::Ostream::create(gko::log::Logger::apply_mask, out);
+    auto logger =
+        gko::log::Ostream<>::create(gko::log::Logger::apply_mask, out);
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
@@ -66,7 +68,7 @@ TEST(ReturnObject, CatchesApply)
 TEST(ReturnObject, CatchesIterations)
 {
     std::stringstream out;
-    auto logger = gko::log::Ostream::create(
+    auto logger = gko::log::Ostream<>::create(
         gko::log::Logger::iteration_complete_mask, out);
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
@@ -84,7 +86,8 @@ TEST(ReturnObject, CatchesConvergence)
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
     auto logger =
-        gko::log::Ostream::create(gko::log::Logger::converged_mask, out);
+        gko::log::Ostream<>::create(gko::log::Logger::converged_mask, out);
+    out << std::scientific << std::setprecision(4);
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 

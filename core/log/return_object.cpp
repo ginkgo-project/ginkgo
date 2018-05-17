@@ -47,7 +47,10 @@ void ReturnObject::on_iteration_complete(const size_type num_iterations) const
 
 void ReturnObject::on_apply(const std::string name) const
 {
-    logged_data_->last_apply = name;
+    if (max_storage_ && logged_data_->applies.size() == max_storage_) {
+        logged_data_->applies.pop_front();
+    }
+    logged_data_->applies.push_back(name);
 }
 
 
@@ -56,9 +59,12 @@ void ReturnObject::on_converged(const size_type at_iteration,
                                 const LinOp *residual) const
 {
     logged_data_->converged_at_iteration = at_iteration;
-    if (residual != nullptr)
-        logged_data_->residual = std::unique_ptr<const gko::matrix::Dense<>>(
-            as<const gko::matrix::Dense<>>(residual->clone().release()));
+    if (residual != nullptr) {
+        if (max_storage_ && logged_data_->residuals.size() == max_storage_) {
+            logged_data_->residuals.pop_front();
+        }
+        logged_data_->residuals.push_back(clone(residual));
+    }
 }
 
 

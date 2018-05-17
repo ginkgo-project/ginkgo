@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense.hpp"
 
 
+#include <deque>
 #include <memory>
 
 
@@ -56,21 +57,24 @@ public:
      * Struct storing the actually logged data
      */
     struct LoggedData {
-        std::string last_apply;
+        std::deque<std::string> applies;
         size_type num_iterations;
         size_type converged_at_iteration;
-        std::unique_ptr<const gko::matrix::Dense<>> residual;
+        std::deque<std::unique_ptr<const LinOp>> residuals;
 
         LoggedData() = default;
     };
 
     /**
      * Creates a ReturnObject Logger used to directly access logged data
-     * @param  enabled_events the events enabled for this Logger
+     * @param enabled_events  the events enabled for this Logger
+     * @param max_storage  the maximum storage allowed in `std::deque`
      */
-    static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events)
+    static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events,
+                                                size_type max_storage = 0)
     {
-        return std::shared_ptr<ReturnObject>(new ReturnObject(enabled_events));
+        return std::shared_ptr<ReturnObject>(
+            new ReturnObject(enabled_events, max_storage));
     }
 
     void on_iteration_complete(const size_type num_iterations) const override;
@@ -90,8 +94,9 @@ public:
     }
 
 protected:
-    explicit ReturnObject(const mask_type &enabled_events)
-        : Logger(enabled_events)
+    explicit ReturnObject(const mask_type &enabled_events,
+                          size_type max_storage)
+        : Logger(enabled_events), max_storage_{max_storage}
     {
         /* NOTE: there is a bug with some MacOS compiler not initializing
          * variables to `0` therefore `make_shared` should not be used here. */
@@ -99,6 +104,7 @@ protected:
     }
 
     std::shared_ptr<LoggedData> logged_data_;
+    size_type max_storage_;
 };
 
 

@@ -70,8 +70,8 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 
     c.add_logger(
         gko::log::ReturnObject::create(gko::log::Logger::all_events_mask));
-    c.add_logger(gko::log::Ostream::create(gko::log::Logger::all_events_mask,
-                                           std::cout));
+    c.add_logger(gko::log::Ostream<>::create(gko::log::Logger::all_events_mask,
+                                             std::cout));
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
 
