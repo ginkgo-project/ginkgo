@@ -657,8 +657,8 @@ public:
         return data[row * stride + col];
     }
 
-    GKO_ATTRIBUTES range<row_major> &operator()(const span &rows,
-                                                const span &cols) const
+    GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
+                                               const span &cols) const
     {
         GKO_ASSERT(rows.begin <= rows.end);
         GKO_ASSERT(cols.begin <= cols.end);
