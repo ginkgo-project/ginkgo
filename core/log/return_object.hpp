@@ -93,7 +93,9 @@ protected:
     explicit ReturnObject(const mask_type &enabled_events)
         : Logger(enabled_events)
     {
-        logged_data_ = std::make_shared<LoggedData>();
+        /* NOTE: there is a bug with some MacOS compiler not initializing
+         * variables to `0` therefore `make_shared` should not be used here. */
+        logged_data_ = std::shared_ptr<LoggedData>(new LoggedData());
     }
 
     std::shared_ptr<LoggedData> logged_data_;

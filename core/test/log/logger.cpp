@@ -91,7 +91,7 @@ struct DummyLogger : public gko::log::Logger {
     explicit DummyLogger(const mask_type &enabled_events)
         : Logger(enabled_events)
     {
-        data_ = std::make_shared<DummyData>();
+        data_ = std::unique_ptr<DummyData>(new DummyData());
     }
 
 
