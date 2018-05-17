@@ -50,6 +50,18 @@ namespace gko {
 namespace name_demangling {
 
 
+/**
+ * This is a function which uses `std::type_info and demangling functionalities
+ * when available to return as a string the proper location at which this
+ * function is called.
+ *
+ * @param type  the `std::type_info` of the object calling this function
+ * @param func_name  the name of the function calling this (__func___ is
+ * standard here)
+ * @return  properly formatted string representing the location of the call
+ *
+ * @see  https://en.cppreference.com/w/cpp/types/type_info
+ */
 std::string get_full_function_name(const std::type_info &type,
                                    const char *func_name);
 
