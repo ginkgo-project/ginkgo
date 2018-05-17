@@ -58,7 +58,7 @@ namespace solver {
  * use of data locality. The inner operations in one iteration of CG are merged
  * into 2 separate steps.
  *
- * @tparam  ValueType precision of matrix elements
+ * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
 class Cg : public EnableLinOp<Cg<ValueType>>, public log::EnableLogging {
