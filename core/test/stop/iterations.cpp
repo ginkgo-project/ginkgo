@@ -31,62 +31,58 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/relative_residual_norm_kernels.hpp"
+#include <core/stop/iterations.hpp>
 
 
-namespace gko {
-namespace stop {
+#include <gtest/gtest.h>
+
+
 namespace {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        relative_residual_norm,
-        relative_residual_norm::relative_residual_norm<ValueType>);
+constexpr unsigned int test_iterations = 10;
+
+
+class Iterations : public ::testing::Test {
+protected:
+    Iterations()
+        : factory_{gko::stop::Iterations::Factory::create(test_iterations)},
+          exec_{gko::ReferenceExecutor::create()}
+    {}
+
+    std::unique_ptr<gko::stop::Iterations::Factory> factory_;
+    std::shared_ptr<const gko::Executor> exec_;
 };
 
 
+TEST_F(Iterations, CanCreateFactory)
+{
+    ASSERT_NE(factory_, nullptr);
+    ASSERT_EQ(factory_->v_, test_iterations);
+}
+
+
+TEST_F(Iterations, CanCreateCriterion)
+{
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    ASSERT_NE(criterion, nullptr);
+}
+
+
+TEST_F(Iterations, WaitsTillIteration)
+{
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    gko::Array<bool> converged(exec_, 1);
+
+    ASSERT_FALSE(criterion->update()
+                     .num_iterations(test_iterations - 1)
+                     .check(converged));
+    ASSERT_TRUE(
+        criterion->update().num_iterations(test_iterations).check(converged));
+    ASSERT_TRUE(criterion->update()
+                    .num_iterations(test_iterations + 1)
+                    .check(converged));
+}
+
+
 }  // namespace
-
-
-template <typename ValueType>
-std::unique_ptr<Criterion>
-RelativeResidualNorm<ValueType>::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<RelativeResidualNorm>(
-        new RelativeResidualNorm<ValueType>(v_, exec_));
-}
-
-
-template <typename ValueType>
-bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
-                                            const Updater &updater)
-{
-    if (!initialized_tau_) {
-        starting_tau_->copy_from(updater.residual_norm_);
-        initialized_tau_ = true;
-        return false;
-    }
-
-    bool all_converged = false;
-    exec_->run(
-        TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
-            as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            rel_residual_goal_, &converged, &all_converged));
-    return all_converged;
-}
-
-
-#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM(_type) \
-    class RelativeResidualNorm<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM);
-#undef GKO_DECLARE_RELATIVE_RESIDUAL_NORM
-
-
-}  // namespace stop
-}  // namespace gko

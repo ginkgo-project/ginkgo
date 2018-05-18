@@ -31,62 +31,67 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/relative_residual_norm_kernels.hpp"
+#include <core/stop/time.hpp>
 
 
-namespace gko {
-namespace stop {
+#include <gtest/gtest.h>
+#include <chrono>
+
+
 namespace {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        relative_residual_norm,
-        relative_residual_norm::relative_residual_norm<ValueType>);
+constexpr double test_seconds = 0.5;
+constexpr double eps = 1.0e-4;
+using double_seconds = std::chrono::duration<double>;
+
+
+class Time : public ::testing::Test {
+protected:
+    Time()
+        : factory_{gko::stop::Time::Factory::create(test_seconds)},
+          exec_{gko::ReferenceExecutor::create()}
+    {}
+
+    std::unique_ptr<gko::stop::Time::Factory> factory_;
+    std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-}  // namespace
-
-
-template <typename ValueType>
-std::unique_ptr<Criterion>
-RelativeResidualNorm<ValueType>::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
+TEST_F(Time, CanCreateFactory)
 {
-    return std::unique_ptr<RelativeResidualNorm>(
-        new RelativeResidualNorm<ValueType>(v_, exec_));
+    ASSERT_NE(factory_, nullptr);
+    ASSERT_EQ(std::chrono::duration_cast<double_seconds>(factory_->v_),
+              double_seconds(test_seconds));
 }
 
 
-template <typename ValueType>
-bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
-                                            const Updater &updater)
+TEST_F(Time, CanCreateCriterion)
 {
-    if (!initialized_tau_) {
-        starting_tau_->copy_from(updater.residual_norm_);
-        initialized_tau_ = true;
-        return false;
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    ASSERT_NE(criterion, nullptr);
+}
+
+
+TEST_F(Time, WaitsTillTime)
+{
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    unsigned int iters = 0;
+    gko::Array<bool> converged(exec_, 1);
+    auto start = std::chrono::system_clock::now();
+
+    while (1) {
+        if (criterion->update().num_iterations(iters).check(converged)) break;
+        iters++;
     }
+    auto time = std::chrono::system_clock::now() - start;
+    double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
-    bool all_converged = false;
-    exec_->run(
-        TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
-            as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            rel_residual_goal_, &converged, &all_converged));
-    return all_converged;
+    /** Somehow this can be very imprecise, maybe due to the duration cast
+     * therefore I add an epsilon (here of 0.1ms)
+     */
+    ASSERT_GE(time_d + eps, test_seconds);
 }
 
 
-#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM(_type) \
-    class RelativeResidualNorm<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM);
-#undef GKO_DECLARE_RELATIVE_RESIDUAL_NORM
-
-
-}  // namespace stop
-}  // namespace gko
+}  // namespace

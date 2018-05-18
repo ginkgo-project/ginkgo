@@ -33,16 +33,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/stop/relative_residual_norm_kernels.hpp"
 
+
 #include "core/base/array.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 
+
 #include <algorithm>
+#include <iostream>
+
 
 namespace gko {
 namespace kernels {
 namespace reference {
 namespace relative_residual_norm {
+
 
 template <typename ValueType>
 void relative_residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
