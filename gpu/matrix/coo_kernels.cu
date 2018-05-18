@@ -36,12 +36,90 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 
+#include "gpu/base/cusparse_bindings.hpp"
+#include "gpu/base/types.hpp"
+
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include "core/base/math.hpp"
+
 
 namespace gko {
 namespace kernels {
 namespace gpu {
 namespace coo {
 
+namespace {
+
+__forceinline__ __device__ static float atomic_add(float *addr, float val)
+{
+    return atomicAdd(addr, val);
+}
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
+    (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
+__forceinline__ __device__ static double atomic_add(double *addr, double val)
+{
+    double old = *addr, assumed;
+    do {
+        assumed = old;
+        old = __longlong_as_double(atomicCAS(
+            (unsigned long long int *)addr, __double_as_longlong(assumed),
+            __double_as_longlong(val + assumed)));
+    } while (assumed != old);
+
+    return old;
+}
+#else
+__forceinline__ __device__ static double atomic_add(double *addr, double val)
+{
+    return atomicAdd(addr, val);
+}
+#endif
+
+
+__forceinline__ __device__ static cuDoubleComplex atomic_add(cuDoubleComplex *address,
+                                                     cuDoubleComplex val)
+{
+    // Seperate to real part and imag part
+    // real part
+    atomic_add(&(address->x), val.x);
+    // imag part
+    atomic_add(&(address->y), val.y);
+    return *address;
+}
+
+__forceinline__ __device__ static cuComplex atomic_add(cuComplex *address,
+                                               cuComplex val)
+{
+    // Seperate to real part and imag part
+    // real part
+    atomic_add(&(address->x), val.x);
+    // imag part
+    atomic_add(&(address->y), val.y);
+    return *address;
+}
+
+__forceinline__ __device__ static thrust::complex<float> atomic_add(thrust::complex<float> *address,
+                                            thrust::complex<float> val)
+{
+    cuComplex *cuaddr = reinterpret_cast<cuComplex *>(address);
+    cuComplex *cuval = reinterpret_cast<cuComplex *>(&val);
+    atomic_add(cuaddr, *cuval);
+    return *address;
+}
+
+__forceinline__ __device__ static thrust::complex<double> atomic_add(thrust::complex<double> *address,
+                                             thrust::complex<double> val)
+{
+    cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
+    cuDoubleComplex *cuval = reinterpret_cast<cuDoubleComplex *>(&val);
+    atomic_add(cuaddr, *cuval);
+    return *address;
+}
+
+
+}  // namespace
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const GpuExecutor> exec,
