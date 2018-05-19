@@ -129,4 +129,14 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
 }  // namespace
