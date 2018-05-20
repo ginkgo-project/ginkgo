@@ -168,11 +168,11 @@ __global__ __launch_bounds__(128) void spmv_kernel(
     const IndexType ind_end = ind_start + (num - 1) * 32;
     IndexType ind = ind_start;
     bool atomichead = true;
-    IndexType temp_row = (num > 0) ? row[ind] : 0;
+    IndexType temp_row = (ind < nnz) ? row[ind] : 0;
     IndexType next_row;
     for (; ind < ind_end; ind += 32) {
-        temp_val += (ind > nnz) ? zero<ValueType>() : val[ind] * b[col[ind]];
-        next_row = (ind + 32 > nnz) ? row[nnz - 1] : row[ind + 32];
+        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
+        next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
         // segmented scan
         const bool is_scan = temp_row != next_row;
         if (warp::any(is_scan)) {
@@ -187,7 +187,7 @@ __global__ __launch_bounds__(128) void spmv_kernel(
     }
     if (num > 0) {
         ind = ind_start + (num - 1) * 32;
-        temp_val += (ind > nnz) ? zero<ValueType>() : val[ind] * b[col[ind]];
+        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
         // segmented scan
         atomichead = true;
         segment_scan(&temp_row, &temp_val, &atomichead);
@@ -270,12 +270,12 @@ __global__ __launch_bounds__(128) void advanced_spmv_kernel(
     const IndexType ind_end = ind_start + (num - 1) * 32;
     IndexType ind = ind_start;
     bool atomichead = true;
-    IndexType temp_row = (num > 0) ? row[ind] : 0;
+    IndexType temp_row = (ind < nnz) ? row[ind] : 0;
     IndexType next_row;
     const auto alpha_val = alpha[0];
     for (; ind < ind_end; ind += 32) {
-        temp_val += (ind > nnz) ? zero<ValueType>() : val[ind] * b[col[ind]];
-        next_row = (ind + 32 > nnz) ? row[nnz - 1] : row[ind + 32];
+        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
+        next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
         // segmented scan
         const bool is_scan = temp_row != next_row;
         if (warp::any(is_scan)) {
@@ -290,7 +290,7 @@ __global__ __launch_bounds__(128) void advanced_spmv_kernel(
     }
     if (num > 0) {
         ind = ind_start + (num - 1) * 32;
-        temp_val += (ind > nnz) ? zero<ValueType>() : val[ind] * b[col[ind]];
+        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
         // segmented scan
         atomichead = true;
         segment_scan(&temp_row, &temp_val, &atomichead);
