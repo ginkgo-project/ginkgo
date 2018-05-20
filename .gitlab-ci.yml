@@ -5,50 +5,59 @@ stages:
   - build
   - test
 
-before_script:
-  - pacman-db-upgrade
-  - pacman --noconfirm -Syu cmake git clang
-
-build/gcc/reference/debug:
-  stage: build
-  variables:
+.job_templates:
+  .variables_template: &default_variables
     C_COMPILER: gcc
     CXX_COMPILER: g++
     BUILD_TYPE: Debug
-    MODULES: -DBUILD_REFERENCE=ON -DBUILD_CPU=OFF -DBUILD_GPU=OFF
-  script: &build_script
-    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
-    - cmake ${CI_PROJECT_DIR}
-        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DDEVEL_TOOLS=OFF
-        ${MODULES}
-        -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
-    - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
-  artifacts: &build_dir
-    paths:
-      - build/
+    BUILD_REFERENCE: "ON"
+    BUILD_CPU: "OFF"
+    BUILD_GPU: "OFF"
+    EXTRA_PACKAGES: ""
+
+  .build_template: &default_build
+    stage: build
+    variables: *default_variables
+    before_script:
+      - pacman-db-upgrade
+      - pacman --noconfirm -Syu cmake git ${EXTRA_PACKAGES}
+    script:
+      - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+      - cmake ${CI_PROJECT_DIR}
+          -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+          -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DDEVEL_TOOLS=OFF
+          -DBUILD_REFERENCE=${BUILD_REFERENCE} -DBUILD_CPU=${BUILD_CPU}
+          -DBUILD_GPU=${BUILD_GPU}
+          -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
+      - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+    artifacts:
+      paths:
+        - build/
+
+  .test_template: &default_test
+    stage: test
+    script:
+      - cd ${CI_JOB_NAME/test/build}
+      - make test
+
+build/gcc/reference/debug:
+  <<: *default_build
 
 build/clang/reference/debug:
-  stage: build
+  <<: *default_build
   variables:
+    <<: *default_variables
     C_COMPILER: clang
     CXX_COMPILER: clang++
-    BUILD_TYPE: Debug
-    MODULES: -DBUILD_REFERENCE=ON -DBUILD_CPU=OFF -DBUILD_GPU=OFF
-  script: *build_script
-  artifacts: *build_dir
+    EXTRA_PACKAGES: clang
 
 
 test/gcc/reference/debug:
-  stage: test
+  <<: *default_test
   dependencies:
     - build/gcc/reference/debug
-  script: &test_script
-    - cd ${CI_JOB_NAME/test/build}
-    - make test
 
 test/clang/reference/debug:
-  stage: test
+  <<: *default_test
   dependencies:
     - build/clang/reference/debug
-  script: *test_script
