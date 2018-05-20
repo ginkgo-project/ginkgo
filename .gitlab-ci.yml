@@ -38,12 +38,17 @@ build/clang/reference/debug:
   script: *build_script
   artifacts: *build_dir
 
+
 test/gcc/reference/debug:
   stage: test
+  dependencies:
+    - build/gcc/reference/debug
   script: &test_script
     - cd ${CI_JOB_NAME/test/build}
     - make test
 
 test/clang/reference/debug:
   stage: test
+  dependencies:
+    - build/clang/reference/debug
   script: *test_script
