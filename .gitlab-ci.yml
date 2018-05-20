@@ -1,0 +1,28 @@
+image: base/devel
+
+stages:
+  - sync
+  - build
+  - test
+
+before_script:
+  - pacman-db-upgrade
+  - pacman --noconfirm -Syu cmake git
+
+build:
+  stage: build
+  script:
+    - mkdir build && cd build/
+    - cmake .. -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+               -DCMAKE_BUILD_TYPE=Debug -DDEVEL_TOOLS=OFF
+               -DBUILD_REFERENCE=ON -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
+    - "make -j$(grep \"core id\" /proc/cpuinfo | sort -u | wc -l)"
+  artifacts:
+    paths:
+      - build/
+
+test:
+  stage: test
+  script:
+    - cd build/
+    - make test
