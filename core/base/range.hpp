@@ -201,40 +201,7 @@ private:
 namespace detail {
 
 
-template <typename T>
-struct accessor_of_impl {
-    using type = T;
-};
-
-template <typename Accessor>
-struct accessor_of_impl<range<Accessor>> {
-    using type = Accessor;
-};
-
-template <typename T>
-using accessor_of = typename accessor_of_impl<T>::type;
-
-
 enum class operation_kind { range_by_range, scalar_by_range, range_by_scalar };
-
-
-template <typename FirstOperator, typename SecondOperator>
-struct operation_kind_of {};
-
-template <typename FirstAccessor, typename SecondAccessor>
-struct operation_kind_of<range<FirstAccessor>, range<SecondAccessor>> {
-    static constexpr auto value = operation_kind::range_by_range;
-};
-
-template <typename FirstOperator, typename SecondAccessor>
-struct operation_kind_of<FirstOperator, range<SecondAccessor>> {
-    static constexpr auto value = operation_kind::scalar_by_range;
-};
-
-template <typename FirstAccessor, typename SecondOperator>
-struct operation_kind_of<range<FirstAccessor>, SecondOperator> {
-    static constexpr auto value = operation_kind::range_by_scalar;
-};
 
 
 template <typename Accessor, typename Operation>
@@ -289,11 +256,11 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
-        -> decltype(
-            Operation::evaluate(std::declval<first_accessor>()(dimensions...),
-                                std::declval<second_accessor>()(dimensions...)))
+        -> decltype(Operation::evaluate_range_by_range(
+            std::declval<first_accessor>(), std::declval<second_accessor>(),
+            dimensions...))
     {
-        return Operation::evaluate(first(dimensions...), second(dimensions...));
+        return Operation::evaluate_range_by_range(first, second, dimensions...);
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -321,11 +288,12 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
-        -> decltype(
-            Operation::evaluate(std::declval<FirstOperand>(),
-                                std::declval<second_accessor>()(dimensions...)))
+        -> decltype(Operation::evaluate_scalar_by_range(
+            std::declval<FirstOperand>(), std::declval<second_accessor>(),
+            dimensions...))
     {
-        return Operation::evaluate(first, second(dimensions...));
+        return Operation::evaluate_scalar_by_range(first, second,
+                                                   dimensions...);
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -353,11 +321,12 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
-        -> decltype(
-            Operation::evaluate(std::declval<first_accessor>()(dimensions...),
-                                std::declval<SecondOperand>()))
+        -> decltype(Operation::evaluate_range_by_scalar(
+            std::declval<first_accessor>(), std::declval<SecondOperand>(),
+            dimensions...))
     {
-        return Operation::evaluate(first(dimensions...), second);
+        return Operation::evaluate_range_by_scalar(first, second,
+                                                   dimensions...);
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -477,13 +446,19 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(bitwise_not, operator~,
                                  accessor::detail::bitwise_not);
 
 // common unary functions
-GKO_ENABLE_UNARY_RANGE_OPERATION(zero, zero, accessor::detail::zero_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(one, one, accessor::detail::one_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(abs, abs, accessor::detail::abs_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(real, real, accessor::detail::real_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(imag, imag, accessor::detail::imag_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(conj, conj, accessor::detail::conj_operation);
-GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm, squared_norm,
+GKO_ENABLE_UNARY_RANGE_OPERATION(zero_operation, zero,
+                                 accessor::detail::zero_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(one_operaton, one,
+                                 accessor::detail::one_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(abs_operaton, abs,
+                                 accessor::detail::abs_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(real_operaton, real,
+                                 accessor::detail::real_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(imag_operaton, imag,
+                                 accessor::detail::imag_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(conj_operaton, conj,
+                                 accessor::detail::conj_operation);
+GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm_operaton, squared_norm,
                                  accessor::detail::squared_norm_operation);
 
 // special range functions
@@ -494,7 +469,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm, squared_norm,
  * Thus, the following equality holds for any range:
  *     transpose(range)(i, j, ...) == range(j, i, ....).
  */
-GKO_ENABLE_UNARY_RANGE_OPERATION(transpose, transpose,
+GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
                                  accessor::detail::transpose_operation);
 
 
@@ -564,15 +539,47 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose, transpose,
     }
 
 
-#define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                   \
-    struct _name {                                                       \
-        template <typename FirstOperand, typename SecondOperand>         \
-        GKO_ATTRIBUTES static auto evaluate(const FirstOperand &first,   \
-                                            const SecondOperand &second) \
-            -> decltype(__VA_ARGS__)                                     \
-        {                                                                \
-            return __VA_ARGS__;                                          \
-        }                                                                \
+#define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                         \
+    struct _name {                                                             \
+    private:                                                                   \
+        template <typename FirstOperand, typename SecondOperand>               \
+        GKO_ATTRIBUTES static auto simple_evaluate_impl(                       \
+            const FirstOperand &first, const SecondOperand &second)            \
+            -> decltype(__VA_ARGS__)                                           \
+        {                                                                      \
+            return __VA_ARGS__;                                                \
+        }                                                                      \
+                                                                               \
+    public:                                                                    \
+        template <typename FirstAccessor, typename SecondAccessor,             \
+                  typename... DimensionTypes>                                  \
+        GKO_ATTRIBUTES static auto evaluate_range_by_range(                    \
+            const FirstAccessor &first, const SecondAccessor &second,          \
+            const DimensionTypes &... dims)                                    \
+            -> decltype(simple_evaluate_impl(first(dims...), second(dims...))) \
+        {                                                                      \
+            return simple_evaluate_impl(first(dims...), second(dims...));      \
+        }                                                                      \
+                                                                               \
+        template <typename FirstOperand, typename SecondAccessor,              \
+                  typename... DimensionTypes>                                  \
+        GKO_ATTRIBUTES static auto evaluate_scalar_by_range(                   \
+            const FirstOperand &first, const SecondAccessor &second,           \
+            const DimensionTypes &... dims)                                    \
+            -> decltype(simple_evaluate_impl(first, second(dims...)))          \
+        {                                                                      \
+            return simple_evaluate_impl(first, second(dims...));               \
+        }                                                                      \
+                                                                               \
+        template <typename FirstAccessor, typename SecondOperand,              \
+                  typename... DimensionTypes>                                  \
+        GKO_ATTRIBUTES static auto evaluate_range_by_scalar(                   \
+            const FirstAccessor &first, const SecondOperand &second,           \
+            const DimensionTypes &... dims)                                    \
+            -> decltype(simple_evaluate_impl(first(dims...), second))          \
+        {                                                                      \
+            return simple_evaluate_impl(first(dims...), second);               \
+        }                                                                      \
     };
 
 
@@ -606,10 +613,39 @@ GKO_DEFINE_SIMPLE_BINARY_OPERATION(bitwise_xor, first ^ second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(left_shift, first << second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(right_shift, first >> second);
 
-
 // common binary functions
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(max_operation, max(first, second));
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(min_operation, min(first, second));
+
+// range binary functions
+// TODO: change the way ranges are handled to allow an efficient, rank-K
+// update-based implementation of matrix matrix multiply
+struct mmul_operation {
+    template <typename FirstAccessor, typename SecondAccessor,
+              typename FirstDimension, typename SecondDimension,
+              typename... Dimensions>
+    GKO_ATTRIBUTES static auto evaluate_range_by_range(
+        const FirstAccessor &first, const SecondAccessor &second,
+        const FirstDimension &row, const SecondDimension &col,
+        const Dimensions... rest)
+        // use the type of a linear combination between
+        // the elements of the first and the second operands
+        -> decltype(first(row, 0, rest...) * second(0, col, rest...) +
+                    first(row, 1, rest...) * second(1, col, rest...))
+    {
+        using result_type =
+            decltype(first(row, 0, rest...) * second(0, col, rest...) +
+                     first(row, 1, rest...) * second(1, col, rest...));
+        GKO_ASSERT(first.length(1) == second.length(0));
+        auto result = zero<result_type>();
+        const auto size = first.length(1);
+        for (auto i = zero(size); i < size; ++i) {
+            result += first(row, i, rest...) * second(i, col, rest...);
+        }
+        return result;
+    }
+};
+
 
 }  // namespace detail
 }  // namespace accessor
@@ -652,10 +688,16 @@ GKO_ENABLE_BINARY_RANGE_OPERATION(left_shift, operator<<,
 GKO_ENABLE_BINARY_RANGE_OPERATION(right_shift, operator>>,
                                   accessor::detail::right_shift);
 
-
 // common binary functions
-GKO_ENABLE_BINARY_RANGE_OPERATION(max, max, accessor::detail::max_operation);
-GKO_ENABLE_BINARY_RANGE_OPERATION(min, min, accessor::detail::min_operation);
+GKO_ENABLE_BINARY_RANGE_OPERATION(max_operaton, max,
+                                  accessor::detail::max_operation);
+GKO_ENABLE_BINARY_RANGE_OPERATION(min_operaton, min,
+                                  accessor::detail::min_operation);
+
+
+// special binary range functions
+GKO_ENABLE_BINARY_RANGE_OPERATION(mmul_operaton, mmul,
+                                  accessor::detail::mmul_operation);
 
 
 #undef GKO_DEFINE_SIMPLE_BINARY_OPERATION

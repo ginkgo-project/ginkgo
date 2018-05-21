@@ -324,6 +324,17 @@ TEST(Range, AppliesSquaredNorm)
 }
 
 
+TEST(Range, TransposesRange)
+{
+    dummy_range r{5u, 1, 2};
+
+    auto res = transpose(r);
+
+    EXPECT_EQ(res(1, 2, 3), r(2, 1, 3));
+    EXPECT_EQ(res(4, 2, 5), r(2, 4, 5));
+}
+
+
 TEST(Range, AddsRanges)
 {
     dummy_range r1{5u, 1, 2};
@@ -564,6 +575,20 @@ TEST(Range, ComputesMinimumOfRanges)
 }
 
 
+TEST(Range, MultipliesMatrices)
+{
+    dummy_range r1{2u, 1, 2};
+    dummy_range r2{2u, 2, 3};
+
+    auto res = mmul(r1, r2);
+
+    EXPECT_EQ(res(0, 1, 0),
+              r1(0, 0, 0) * r2(0, 1, 0) + r1(0, 1, 0) * r2(1, 1, 0));
+    ASSERT_EQ(res(1, 1, 1),
+              r1(1, 0, 1) * r2(0, 1, 1) + r1(1, 1, 1) * r2(1, 1, 1));
+}
+
+
 TEST(Range, AddsScalarAndRange)
 {
     dummy_range r{5u, 2, 3};
@@ -649,17 +674,6 @@ TEST(Range, DividesRangeAndSclar)
 
     EXPECT_EQ(res(1, 2, 3), (1 + 4 + 3) / 2);
     ASSERT_EQ(res(4, 2, 5), (4 + 4 + 5) / 2);
-}
-
-
-TEST(Range, TransposesRange)
-{
-    dummy_range r{5u, 1, 2};
-
-    auto res = transpose(r);
-
-    EXPECT_EQ(res(1, 2, 3), r(2, 1, 3));
-    EXPECT_EQ(res(4, 2, 5), r(2, 4, 5));
 }
 
 
