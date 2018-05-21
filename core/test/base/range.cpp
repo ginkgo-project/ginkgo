@@ -144,6 +144,15 @@ TEST(Span, NotEqualEvaluatesToFalse)
 struct dummy_accessor {
     static constexpr gko::size_type dimensionality = 3;
 
+    dummy_accessor(gko::size_type size, int x, int y)
+        : sizes{size, size, size}, x{x}, y{y}
+    {}
+
+    dummy_accessor(gko::size_type size_x, gko::size_type size_y,
+                   gko::size_type size_z, int x, int y)
+        : sizes{size_x, size_y, size_z}, x{x}, y{y}
+    {}
+
     int operator()(int a, int b, int c) const { return x * a + y * b + c; }
 
     void copy_from(const dummy_accessor &other) const
@@ -152,9 +161,9 @@ struct dummy_accessor {
         y = other.y;
     }
 
-    gko::size_type length(gko::size_type) const { return size; }
+    gko::size_type length(gko::size_type dim) const { return sizes[dim]; }
 
-    const gko::size_type size;
+    std::array<gko::size_type, 3> sizes;
     mutable int x;
     mutable int y;
 };
@@ -167,7 +176,6 @@ TEST(Range, CreatesRange)
 {
     dummy_range r{5u, 2, 3};
 
-    EXPECT_EQ(r->size, 5);
     EXPECT_EQ(r->x, 2);
     ASSERT_EQ(r->y, 3);
 }
@@ -187,7 +195,6 @@ TEST(Range, ForwardsCopyToAccessor)
     dummy_range r{5u, 2, 3};
     r = dummy_range{5u, 2, 5};
 
-    EXPECT_EQ(r->size, 5);
     EXPECT_EQ(r->x, 2);
     ASSERT_EQ(r->y, 5);
 }
@@ -589,6 +596,18 @@ TEST(Range, MultipliesMatrices)
 }
 
 
+TEST(Range, MultipliesMatricesOfDifferentSizes)
+{
+    dummy_range r1{2u, 1u, 1u, 1, 2};
+    dummy_range r2{1u, 3u, 1u, 2, 3};
+
+    auto res = mmul(r1, r2);
+
+    EXPECT_EQ(res(0, 1, 0), r1(0, 0, 0) * r2(0, 1, 0));
+    ASSERT_EQ(res(1, 2, 1), r1(1, 0, 1) * r2(0, 2, 1));
+}
+
+
 TEST(Range, AddsScalarAndRange)
 {
     dummy_range r{5u, 2, 3};
@@ -686,88 +705,6 @@ TEST(Range, CanAssembleComplexOperation)
 
     EXPECT_EQ(res(1, 2, 3), gko::abs(8 - 11) / gko::max(8, 11));
     ASSERT_EQ(res(4, 2, 5), gko::abs(13 - 19) / gko::max(13, 19));
-}
-
-
-class RowMajorAccessor : public ::testing::Test {
-protected:
-    using span = gko::span;
-
-    using row_major_int_range = gko::range<gko::accessor::row_major<int, 2>>;
-
-    // clang-format off
-    int data[9]{
-        1, 2, -1,
-        3, 4, -2,
-        5, 6, -3
-    };
-    //clang-format on
-    row_major_int_range r{data, 3u, 2u, 3u};
-};
-
-
-TEST_F(RowMajorAccessor, CanAccessData)
-{
-    EXPECT_EQ(r(0, 0), 1);
-    EXPECT_EQ(r(0, 1), 2);
-    EXPECT_EQ(r(1, 0), 3);
-    EXPECT_EQ(r(1, 1), 4);
-    EXPECT_EQ(r(2, 0), 5);
-    EXPECT_EQ(r(2, 1), 6);
-}
-
-
-TEST_F(RowMajorAccessor, CanCreateSubrange)
-{
-    auto subr = r(span{1, 3}, span{0, 2});
-
-    EXPECT_EQ(subr(0, 0), 3);
-    EXPECT_EQ(subr(0, 1), 4);
-    EXPECT_EQ(subr(1, 0), 5);
-    EXPECT_EQ(subr(1, 1), 6);
-}
-
-
-TEST_F(RowMajorAccessor, CanCreateRowVector)
-{
-    auto subr = r(2, span{0, 2});
-
-    EXPECT_EQ(subr(0, 0), 5);
-    EXPECT_EQ(subr(0, 1), 6);
-}
-
-
-TEST_F(RowMajorAccessor, CanCreateColumnVector)
-{
-    auto subr = r(span{0, 3}, 0);
-
-    EXPECT_EQ(subr(0, 0), 1);
-    EXPECT_EQ(subr(1, 0), 3);
-    EXPECT_EQ(subr(2, 0), 5);
-}
-
-
-TEST_F(RowMajorAccessor, CanAssignValues)
-{
-    r(1, 1) = r(0, 0);
-
-    EXPECT_EQ(data[4], 1);
-}
-
-
-TEST_F(RowMajorAccessor, CanAssignSubranges)
-{
-    r(0, span{0, 2}) = r(1, span{0, 2});
-
-    EXPECT_EQ(data[0], 3);
-    EXPECT_EQ(data[1], 4);
-    EXPECT_EQ(data[2], -1);
-    EXPECT_EQ(data[3], 3);
-    EXPECT_EQ(data[4], 4);
-    EXPECT_EQ(data[5], -2);
-    EXPECT_EQ(data[6], 5);
-    EXPECT_EQ(data[7], 6);
-    EXPECT_EQ(data[8], -3);
 }
 
 

@@ -477,65 +477,68 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
 #undef GKO_ENABLE_UNARY_RANGE_OPERATION
 
 
-#define GKO_ENABLE_BINARY_RANGE_OPERATION(_operation_name, _operator_name,  \
-                                          _operator)                        \
-    namespace accessor {                                                    \
-    template <::gko::detail::operation_kind Kind, typename FirstOperand,    \
-              typename SecondOperand>                                       \
-    struct _operation_name                                                  \
-        : ::gko::detail::implement_binary_operation<                        \
-              Kind, FirstOperand, SecondOperand, ::gko::_operator> {        \
-        using ::gko::detail::implement_binary_operation<                    \
-            Kind, FirstOperand, SecondOperand,                              \
-            ::gko::_operator>::implement_binary_operation;                  \
-    };                                                                      \
-    }                                                                       \
-                                                                            \
-    template <typename Accessor>                                            \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<              \
-        ::gko::detail::operation_kind::range_by_range, Accessor, Accessor>> \
-    _operator_name(const range<Accessor> &first,                            \
-                   const range<Accessor> &second)                           \
-    {                                                                       \
-        return range<accessor::_operation_name<                             \
-            ::gko::detail::operation_kind::range_by_range, Accessor,        \
-            Accessor>>(first.get_accessor(), second.get_accessor());        \
-    }                                                                       \
-                                                                            \
-    template <typename FirstAccessor, typename SecondAccessor>              \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<              \
-        ::gko::detail::operation_kind::range_by_range, FirstAccessor,       \
-        SecondAccessor>>                                                    \
-    _operator_name(const range<FirstAccessor> &first,                       \
-                   const range<SecondAccessor> &second)                     \
-    {                                                                       \
-        return range<accessor::_operation_name<                             \
-            ::gko::detail::operation_kind::range_by_range, FirstAccessor,   \
-            SecondAccessor>>(first.get_accessor(), second.get_accessor());  \
-    }                                                                       \
-                                                                            \
-    template <typename FirstAccessor, typename SecondOperand>               \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<              \
-        ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,      \
-        SecondOperand>>                                                     \
-    _operator_name(const range<FirstAccessor> &first,                       \
-                   const SecondOperand &second)                             \
-    {                                                                       \
-        return range<accessor::_operation_name<                             \
-            ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,  \
-            SecondOperand>>(first.get_accessor(), second);                  \
-    }                                                                       \
-                                                                            \
-    template <typename FirstOperand, typename SecondAccessor>               \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<              \
-        ::gko::detail::operation_kind::scalar_by_range, FirstOperand,       \
-        SecondAccessor>>                                                    \
-    _operator_name(const FirstOperand &first,                               \
-                   const range<SecondAccessor> &second)                     \
-    {                                                                       \
-        return range<accessor::_operation_name<                             \
-            ::gko::detail::operation_kind::scalar_by_range, FirstOperand,   \
-            SecondAccessor>>(first, second.get_accessor());                 \
+#define GKO_ENABLE_BINARY_RANGE_OPERATION(_operation_name, _operator_name, \
+                                          _operator)                       \
+    namespace accessor {                                                   \
+    template <::gko::detail::operation_kind Kind, typename FirstOperand,   \
+              typename SecondOperand>                                      \
+    struct _operation_name                                                 \
+        : ::gko::detail::implement_binary_operation<                       \
+              Kind, FirstOperand, SecondOperand, ::gko::_operator> {       \
+        using ::gko::detail::implement_binary_operation<                   \
+            Kind, FirstOperand, SecondOperand,                             \
+            ::gko::_operator>::implement_binary_operation;                 \
+    };                                                                     \
+    }                                                                      \
+    GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name)
+
+
+#define GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name) \
+    template <typename Accessor>                                              \
+    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+        ::gko::detail::operation_kind::range_by_range, Accessor, Accessor>>   \
+    _operator_name(const range<Accessor> &first,                              \
+                   const range<Accessor> &second)                             \
+    {                                                                         \
+        return range<accessor::_operation_name<                               \
+            ::gko::detail::operation_kind::range_by_range, Accessor,          \
+            Accessor>>(first.get_accessor(), second.get_accessor());          \
+    }                                                                         \
+                                                                              \
+    template <typename FirstAccessor, typename SecondAccessor>                \
+    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+        ::gko::detail::operation_kind::range_by_range, FirstAccessor,         \
+        SecondAccessor>>                                                      \
+    _operator_name(const range<FirstAccessor> &first,                         \
+                   const range<SecondAccessor> &second)                       \
+    {                                                                         \
+        return range<accessor::_operation_name<                               \
+            ::gko::detail::operation_kind::range_by_range, FirstAccessor,     \
+            SecondAccessor>>(first.get_accessor(), second.get_accessor());    \
+    }                                                                         \
+                                                                              \
+    template <typename FirstAccessor, typename SecondOperand>                 \
+    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+        ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,        \
+        SecondOperand>>                                                       \
+    _operator_name(const range<FirstAccessor> &first,                         \
+                   const SecondOperand &second)                               \
+    {                                                                         \
+        return range<accessor::_operation_name<                               \
+            ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,    \
+            SecondOperand>>(first.get_accessor(), second);                    \
+    }                                                                         \
+                                                                              \
+    template <typename FirstOperand, typename SecondAccessor>                 \
+    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+        ::gko::detail::operation_kind::scalar_by_range, FirstOperand,         \
+        SecondAccessor>>                                                      \
+    _operator_name(const FirstOperand &first,                                 \
+                   const range<SecondAccessor> &second)                       \
+    {                                                                         \
+        return range<accessor::_operation_name<                               \
+            ::gko::detail::operation_kind::scalar_by_range, FirstOperand,     \
+            SecondAccessor>>(first, second.get_accessor());                   \
     }
 
 
@@ -617,36 +620,6 @@ GKO_DEFINE_SIMPLE_BINARY_OPERATION(right_shift, first >> second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(max_operation, max(first, second));
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(min_operation, min(first, second));
 
-// range binary functions
-// TODO: change the way ranges are handled to allow an efficient, rank-K
-// update-based implementation of matrix matrix multiply
-struct mmul_operation {
-    template <typename FirstAccessor, typename SecondAccessor,
-              typename FirstDimension, typename SecondDimension,
-              typename... Dimensions>
-    GKO_ATTRIBUTES static auto evaluate_range_by_range(
-        const FirstAccessor &first, const SecondAccessor &second,
-        const FirstDimension &row, const SecondDimension &col,
-        const Dimensions... rest)
-        // use the type of a linear combination between
-        // the elements of the first and the second operands
-        -> decltype(first(row, 0, rest...) * second(0, col, rest...) +
-                    first(row, 1, rest...) * second(1, col, rest...))
-    {
-        using result_type =
-            decltype(first(row, 0, rest...) * second(0, col, rest...) +
-                     first(row, 1, rest...) * second(1, col, rest...));
-        GKO_ASSERT(first.length(1) == second.length(0));
-        auto result = zero<result_type>();
-        const auto size = first.length(1);
-        for (auto i = zero(size); i < size; ++i) {
-            result += first(row, i, rest...) * second(i, col, rest...);
-        }
-        return result;
-    }
-};
-
-
 }  // namespace detail
 }  // namespace accessor
 
@@ -696,76 +669,73 @@ GKO_ENABLE_BINARY_RANGE_OPERATION(min_operaton, min,
 
 
 // special binary range functions
-GKO_ENABLE_BINARY_RANGE_OPERATION(mmul_operaton, mmul,
-                                  accessor::detail::mmul_operation);
-
-
-#undef GKO_DEFINE_SIMPLE_BINARY_OPERATION
-#undef GKO_ENABLE_BINARY_RANGE_OPERATION
-
-
-// implementations of accessors
-
-
 namespace accessor {
 
 
-template <typename ValueType, size_type Dimensionality>
-class row_major {};  // TODO: implement accessor for other dimensionalities
+template <gko::detail::operation_kind Kind, typename FirstAccessor,
+          typename SecondAccessor>
+struct mmul_operation {
+    static_assert(Kind == gko::detail::operation_kind::range_by_range,
+                  "Matrix multiplication expects both operands to be ranges");
+    using first_accessor = FirstAccessor;
+    using second_accessor = SecondAccessor;
+    static_assert(first_accessor::dimensionality ==
+                      second_accessor::dimensionality,
+                  "Both ranges need to have the same number of dimensions");
+    static constexpr size_type dimensionality = first_accessor::dimensionality;
 
-template <typename ValueType>
-class row_major<ValueType, 2> {
-public:
-    using value_type = ValueType;
-    static constexpr size_type dimensionality = 2;
-    using data_type = value_type *;
-
-    GKO_ATTRIBUTES explicit row_major(data_type data, size_type num_rows,
-                                      size_type num_cols, size_type stride)
-        : data{data}, lengths{num_rows, num_cols}, stride{stride}
-    {}
-
-    GKO_ATTRIBUTES value_type &operator()(size_type row, size_type col) const
+    GKO_ATTRIBUTES explicit mmul_operation(const FirstAccessor &first,
+                                           const SecondAccessor &second)
+        : first{first}, second{second}
     {
-        GKO_ASSERT(row < lengths[0]);
-        GKO_ASSERT(col < lengths[1]);
-        return data[row * stride + col];
+        GKO_ASSERT(first.length(1) == second.length(0));
+        GKO_ASSERT((gko::detail::equal_dimensions_impl<
+                    2, FirstAccessor::dimensionality>(first, second)));
     }
 
-    GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
-                                               const span &cols) const
+    template <typename FirstDimension, typename SecondDimension,
+              typename... DimensionTypes>
+    GKO_ATTRIBUTES auto operator()(const FirstDimension &row,
+                                   const SecondDimension &col,
+                                   const DimensionTypes &... rest) const
+        -> decltype(std::declval<FirstAccessor>()(row, 0, rest...) *
+                        std::declval<SecondAccessor>()(0, col, rest...) +
+                    std::declval<FirstAccessor>()(row, 1, rest...) *
+                        std::declval<SecondAccessor>()(1, col, rest...))
     {
-        GKO_ASSERT(rows.begin <= rows.end);
-        GKO_ASSERT(cols.begin <= cols.end);
-        GKO_ASSERT(rows <= span::empty(lengths[0]));
-        GKO_ASSERT(cols <= span::empty(lengths[1]));
-        return range<row_major>(data + rows.begin * stride + cols.begin,
-                                rows.end - rows.begin, cols.end - cols.begin,
-                                stride);
+        using result_type =
+            decltype(first(row, 0, rest...) * second(0, col, rest...) +
+                     first(row, 1, rest...) * second(1, col, rest...));
+        GKO_ASSERT(first.length(1) == second.length(0));
+        auto result = zero<result_type>();
+        const auto size = first.length(1);
+        for (auto i = zero(size); i < size; ++i) {
+            result += first(row, i, rest...) * second(i, col, rest...);
+        }
+        return result;
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
     {
-        return dimension < 2 ? lengths[dimension] : 1;
+        return dimension == 1 ? second.length(1) : first.length(dimension);
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
-    {
-        for (size_type i = 0; i < lengths[0]; ++i) {
-            for (size_type j = 0; j < lengths[1]; ++j) {
-                (*this)(i, j) = other(i, j);
-            }
-        }
-    };
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
 
-    const data_type data;
-    const std::array<const size_type, dimensionality> lengths;
-    const size_type stride;
+    const first_accessor first;
+    const second_accessor second;
 };
 
 
 }  // namespace accessor
+
+
+GKO_BIND_RANGE_OPERATION_TO_OPERATOR(mmul_operation, mmul);
+
+
+#undef GKO_DEFINE_SIMPLE_BINARY_OPERATION
+#undef GKO_ENABLE_BINARY_RANGE_OPERATION
 
 
 }  // namespace gko
