@@ -42,21 +42,67 @@ namespace gko {
 namespace accessor {
 
 
+/**
+ * A row_major accessor is a bridge between a range and the row-major memory
+ * layout.
+ *
+ * You should never try explicitly create an instance of this accessor. Instead,
+ * supply it as a template parameter to a range, and pass the constructor
+ * parameters for this class to the range (it will forward it to this class).
+ *
+ * @note The current implementation is incomplete, and only allows for
+ *       2-dimensional ranges.
+ *
+ * @tparam ValueType  type of values this accessor returns
+ * @tparam Dimensionality  number of dimensions of this accessor (has to be 2)
+ */
 template <typename ValueType, size_type Dimensionality>
-class row_major {};  // TODO: implement accessor for other dimensionalities
-
-template <typename ValueType>
-class row_major<ValueType, 2> {
+class row_major {
 public:
+    friend class range<row_major>;
+    static_assert(Dimensionality == 2,
+                  "This accessor is only implemented for matrices");
+
+    /**
+     * Type of values returned by the accessor.
+     */
     using value_type = ValueType;
-    static constexpr size_type dimensionality = 2;
+
+    /**
+     * Type of underlying data storage.
+     */
     using data_type = value_type *;
 
+    /**
+     * Number of dimensions of the accessor.
+     */
+    static constexpr size_type dimensionality = 2;
+
+protected:
+    /**
+     * Creates a row_major accessor.
+     *
+     * @param data  pointer to the block of memory containing the data
+     * @param num_row  number of rows of the accessor
+     * @param num_cols  number of columns of the accessor
+     * @param stride  distance (in elements) between starting positions of
+     *                consecutive rows (i.e. `data + i * stride` points to the
+     *                `i`-th row)
+     */
     GKO_ATTRIBUTES explicit row_major(data_type data, size_type num_rows,
                                       size_type num_cols, size_type stride)
         : data{data}, lengths{num_rows, num_cols}, stride{stride}
     {}
 
+public:
+    /**
+     * Returns the data element at position (row, col)
+     *
+     * @param row  row index
+     * @param col  column index
+     *
+     * @return data element at (row, col)
+     */
     GKO_ATTRIBUTES value_type &operator()(size_type row, size_type col) const
     {
         GKO_ASSERT(row < lengths[0]);
@@ -64,6 +110,14 @@ public:
         return data[row * stride + col];
     }
 
+    /**
+     * Returns the sub-range spanning the range (rows, cols)
+     *
+     * @param rows  row span
+     * @param cols  column span
+     *
+     * @return sub-range spanning the range (rows, cols)
+     */
     GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
                                                const span &cols) const
     {
@@ -76,11 +130,25 @@ public:
                                 stride);
     }
 
+    /**
+     * Returns the length in dimension `dimension`.
+     *
+     * @param dimension  a dimension index
+     *
+     * @return length in dimension `dimension`
+     */
     GKO_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < 2 ? lengths[dimension] : 1;
     }
 
+    /**
+     * Copies data from another accessor
+     *
+     * @tparam OtherAccessor  type of the other accessor
+     *
+     * @param other  other accessor
+     */
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
@@ -91,8 +159,19 @@ public:
         }
     };
 
+    /**
+     * Reference to the underlying data.
+     */
     const data_type data;
+
+    /**
+     * An array of dimension sizes.
+     */
     const std::array<const size_type, dimensionality> lengths;
+
+    /**
+     * Distance between consecutive rows.
+     */
     const size_type stride;
 };
 
