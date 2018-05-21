@@ -247,12 +247,11 @@ struct implement_unary_operation {
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
-        -> decltype(
-            Operation::evaluate(std::declval<accessor>()(dimensions...)))
+    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
+        -> decltype(Operation::evaluate(std::declval<accessor>(),
+                                        dimensions...))
     {
-        return Operation::evaluate(
-            operand(std::forward<DimensionTypes>(dimensions)...));
+        return Operation::evaluate(operand, dimensions...);
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -289,7 +288,7 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
     }
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
+    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
         -> decltype(
             Operation::evaluate(std::declval<first_accessor>()(dimensions...),
                                 std::declval<second_accessor>()(dimensions...)))
@@ -321,13 +320,12 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
+    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
         -> decltype(
             Operation::evaluate(std::declval<FirstOperand>(),
                                 std::declval<second_accessor>()(dimensions...)))
     {
-        return Operation::evaluate(
-            first, second(std::forward<DimensionTypes>(dimensions)...));
+        return Operation::evaluate(first, second(dimensions...));
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -354,13 +352,12 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
+    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
         -> decltype(
             Operation::evaluate(std::declval<first_accessor>()(dimensions...),
                                 std::declval<SecondOperand>()))
     {
-        return Operation::evaluate(
-            first(std::forward<DimensionTypes>(dimensions)...), second);
+        return Operation::evaluate(first(dimensions...), second);
     }
 
     GKO_ATTRIBUTES size_type length(size_type dimension) const
@@ -400,14 +397,25 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     }
 
 
-#define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)               \
-    struct _name {                                                  \
-        template <typename Operand>                                 \
-        GKO_ATTRIBUTES static auto evaluate(const Operand &operand) \
-            -> decltype(__VA_ARGS__)                                \
-        {                                                           \
-            return __VA_ARGS__;                                     \
-        }                                                           \
+#define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)                  \
+    struct _name {                                                     \
+    private:                                                           \
+        template <typename Operand>                                    \
+        GKO_ATTRIBUTES static auto simple_evaluate_impl(               \
+            const Operand &operand) -> decltype(__VA_ARGS__)           \
+        {                                                              \
+            return __VA_ARGS__;                                        \
+        }                                                              \
+                                                                       \
+    public:                                                            \
+        template <typename AccessorType, typename... DimensionTypes>   \
+        GKO_ATTRIBUTES static auto evaluate(                           \
+            const AccessorType &accessor,                              \
+            const DimensionTypes &... dimensions)                      \
+            -> decltype(simple_evaluate_impl(accessor(dimensions...))) \
+        {                                                              \
+            return simple_evaluate_impl(accessor(dimensions...));      \
+        }                                                              \
     };
 
 
@@ -434,6 +442,20 @@ GKO_DEFINE_SIMPLE_UNARY_OPERATION(imag_operation, imag(operand));
 GKO_DEFINE_SIMPLE_UNARY_OPERATION(conj_operation, conj(operand));
 GKO_DEFINE_SIMPLE_UNARY_OPERATION(squared_norm_operation,
                                   squared_norm(operand));
+
+// special range functions
+struct transpose_operation {
+    template <typename AccessorType, typename FirstDimensionType,
+              typename SecondDimensionType, typename... DimensionTypes>
+    GKO_ATTRIBUTES static auto evaluate(const AccessorType &accessor,
+                                        const FirstDimensionType &first_dim,
+                                        const SecondDimensionType &second_dim,
+                                        const DimensionTypes &... dims)
+        -> decltype(accessor(second_dim, first_dim, dims...))
+    {
+        return accessor(second_dim, first_dim, dims...);
+    }
+};
 
 
 }  // namespace detail
@@ -463,6 +485,17 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(imag, imag, accessor::detail::imag_operation);
 GKO_ENABLE_UNARY_RANGE_OPERATION(conj, conj, accessor::detail::conj_operation);
 GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm, squared_norm,
                                  accessor::detail::squared_norm_operation);
+
+// special range functions
+
+/**
+ * Transposes the first two dimensions of the input range.
+ *
+ * Thus, the following equality holds for any range:
+ *     transpose(range)(i, j, ...) == range(j, i, ....).
+ */
+GKO_ENABLE_UNARY_RANGE_OPERATION(transpose, transpose,
+                                 accessor::detail::transpose_operation);
 
 
 #undef GKO_DEFINE_SIMPLE_UNARY_OPERATION

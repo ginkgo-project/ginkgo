@@ -652,6 +652,17 @@ TEST(Range, DividesRangeAndSclar)
 }
 
 
+TEST(Range, TransposesRange)
+{
+    dummy_range r{5u, 1, 2};
+
+    auto res = transpose(r);
+
+    EXPECT_EQ(res(1, 2, 3), r(2, 1, 3));
+    EXPECT_EQ(res(4, 2, 5), r(2, 4, 5));
+}
+
+
 TEST(Range, CanAssembleComplexOperation)
 {
     dummy_range r1{5u, 1, 2};
