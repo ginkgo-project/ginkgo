@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 
 namespace {
@@ -61,16 +62,21 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     gko::Array<bool> converged(exec_, 1);
+    converged.get_data()[0] = false;
     auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
 
     ASSERT_FALSE(
         criterion->update().residual_norm(scalar.get()).check(converged));
-    scalar->at(0) = 1.0e-10;
+
+    scalar->at(0) = residual_goal * 1.0e+2;
     ASSERT_FALSE(
         criterion->update().residual_norm(scalar.get()).check(converged));
+    ASSERT_EQ(converged.get_data()[0], false);
+
     scalar->at(0) = residual_goal * 1.0e-2;
     ASSERT_TRUE(
         criterion->update().residual_norm(scalar.get()).check(converged));
+    ASSERT_EQ(converged.get_data()[0], true);
 }
 
 
@@ -78,6 +84,8 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     gko::Array<bool> converged(exec_, 2);
+    converged.get_data()[0] = false;
+    converged.get_data()[1] = false;
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}, {1.0, 1.0}}, exec_);
 

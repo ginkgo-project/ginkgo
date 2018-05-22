@@ -62,15 +62,17 @@ protected:
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(gpu_, 1);
+    gko::Array<bool> converged(ref_, 1);
+    converged.get_data()[0] = false;
     auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, ref_);
     auto d_scalar = gko::matrix::Dense<>::create(gpu_);
     d_scalar->copy_from(scalar.get());
+    converged.set_executor(gpu_);
 
     ASSERT_FALSE(
         criterion->update().residual_norm(d_scalar.get()).check(converged));
 
-    scalar->at(0) = 1.0e-10;
+    scalar->at(0) = residual_goal * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update().residual_norm(d_scalar.get()).check(converged));
@@ -79,17 +81,22 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update().residual_norm(d_scalar.get()).check(converged));
+    converged.set_executor(ref_);
+    ASSERT_EQ(converged.get_data()[0], true);
 }
 
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(gpu_, 2);
+    gko::Array<bool> converged(ref_, 2);
+    converged.get_data()[0] = false;
+    converged.get_data()[1] = false;
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}, {1.0, 1.0}}, ref_);
     auto d_mtx = gko::matrix::Dense<>::create(gpu_);
     d_mtx->copy_from(mtx.get());
+    converged.set_executor(gpu_);
 
     criterion->update().residual_norm(d_mtx.get()).check(converged);
 
