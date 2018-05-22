@@ -8,9 +8,8 @@ set(SOURCES
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp)
-    
 
-add_library(ginkgo_cpu SHARED
+add_library(ginkgo_cpu
     $<TARGET_OBJECTS:ginkgo_cpu_device>
     ${SOURCES})
 target_include_directories(ginkgo_cpu PUBLIC ${PROJECT_SOURCE_DIR})
