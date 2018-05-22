@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/name_demangling.hpp"
 
 
+#include <cstdlib>
 #include <memory>
 
 
