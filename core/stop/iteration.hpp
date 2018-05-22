@@ -31,30 +31,54 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_STOP_ITERATION_HPP_
+#define GKO_CORE_STOP_ITERATION_HPP_
 
-#include "core/stop/iterations.hpp"
+
+#include "core/stop/criterion.hpp"
 
 
 namespace gko {
 namespace stop {
 
+/**
+ * The Iteration class is a stopping criterion which considers convergence
+ * happened once a certain amount of iterations has been reached.
+ */
+class Iteration : public Criterion {
+public:
+    struct Factory : public Criterion::Factory {
+        using t = size_type;
 
-std::unique_ptr<Criterion> Iterations::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<Iterations>(new Iterations(v_));
-}
+        /**
+         * Instantiates a Iteration::Factory object
+         * @param v the number of iterations
+         */
+        explicit Factory(t v) : v_{v} {}
 
+        static std::unique_ptr<Factory> create(t v)
+        {
+            return std::unique_ptr<Factory>(new Factory(v));
+        }
 
-bool Iterations::check(Array<bool> &, const Updater &updater)
-{
-    // maybe we need to set converged array to true?
-    // or does return value true imply that every value in the array is
-    // considered true
-    return updater.num_iterations_ >= iterations_;
-}
+        std::unique_ptr<Criterion> create_criterion(
+            std::shared_ptr<const LinOp> system_matrix,
+            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
+        t v_;
+    };
+
+    explicit Iteration(size_type iterations) : iterations_{iterations} {}
+
+    bool check(Array<bool> &, const Updater &updater) override;
+
+private:
+    size_type iterations_;
+};
 
 
 }  // namespace stop
 }  // namespace gko
+
+
+#endif  // GKO_CORE_STOP_ITERATION_HPP_

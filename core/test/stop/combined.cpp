@@ -31,7 +31,11 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/iterations.hpp>
+#include <core/stop/combined.hpp>
+
+
+#include <core/stop/iteration.hpp>
+#include <core/stop/time.hpp>
 
 
 #include <gtest/gtest.h>
@@ -41,35 +45,41 @@ namespace {
 
 
 constexpr unsigned int test_iterations = 10;
+constexpr double test_seconds = 999;  // we will never converge through seconds
+constexpr double eps = 1.0e-4;
+using double_seconds = std::chrono::duration<double>;
 
 
-class Iterations : public ::testing::Test {
+class Combined : public ::testing::Test {
 protected:
-    Iterations()
-        : factory_{gko::stop::Iterations::Factory::create(test_iterations)},
+    Combined()
+        : factory_{gko::stop::Combined::Factory::create(
+              gko::stop::Iteration::Factory::create(test_iterations),
+              gko::stop::Time::Factory::create(test_seconds))},
           exec_{gko::ReferenceExecutor::create()}
     {}
 
-    std::unique_ptr<gko::stop::Iterations::Factory> factory_;
+    std::unique_ptr<gko::stop::Combined::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-TEST_F(Iterations, CanCreateFactory)
+TEST_F(Combined, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->v_, test_iterations);
+    ASSERT_EQ(factory_->v_.size(), 2);
 }
 
 
-TEST_F(Iterations, CanCreateCriterion)
+TEST_F(Combined, CanCreateCriterion)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
 
-TEST_F(Iterations, WaitsTillIteration)
+/* We know iteration will converge and not time due to huge time picked */
+TEST_F(Combined, WaitsTillIteration)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     gko::Array<bool> converged(exec_, 1);
@@ -82,6 +92,29 @@ TEST_F(Iterations, WaitsTillIteration)
     ASSERT_TRUE(criterion->update()
                     .num_iterations(test_iterations + 1)
                     .check(converged));
+}
+
+
+/* Here we know time will converge */
+TEST_F(Combined, WaitsTillTime)
+{
+    factory_ = gko::stop::Combined::Factory::create(
+        gko::stop::Iteration::Factory::create(9999),
+        gko::stop::Time::Factory::create(1.0e-9));
+    unsigned int iters = 0;
+    gko::Array<bool> converged(exec_, 1);
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto start = std::chrono::system_clock::now();
+
+    while (1) {
+        if (criterion->update().num_iterations(iters).check(converged)) break;
+        iters++;
+    }
+    auto time = std::chrono::system_clock::now() - start;
+    double time_d = std::chrono::duration_cast<double_seconds>(time).count();
+
+
+    ASSERT_GE(time_d + eps, 1.0e-9);
 }
 
 

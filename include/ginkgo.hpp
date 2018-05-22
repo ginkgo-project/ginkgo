@@ -66,7 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/fcg.hpp"
 
 #include "core/stop/combined.hpp"
-#include "core/stop/iterations.hpp"
+#include "core/stop/iteration.hpp"
 #include "core/stop/ivelostpatience.hpp"
 #include "core/stop/relative_residual_norm.hpp"
 #include "core/stop/stopping_status.hpp"

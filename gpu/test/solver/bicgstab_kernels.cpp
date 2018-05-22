@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/dense.hpp>
 #include <core/solver/bicgstab_kernels.hpp>
 #include <core/stop/combined.hpp>
-#include <core/stop/iterations.hpp>
+#include <core/stop/iteration.hpp>
 #include <core/stop/relative_residual_norm.hpp>
 #include <core/test/utils.hpp>
 
@@ -75,14 +75,14 @@ protected:
         gpu_bicgstab_factory =
             Solver::Factory::create()
                 .with_criterion(gko::stop::Combined::Factory::create(
-                    gko::stop::Iterations::Factory::create(246),
+                    gko::stop::Iteration::Factory::create(246),
                     gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
                                                                        gpu)))
                 .on_executor(gpu);
         ref_bicgstab_factory =
             Solver::Factory::create()
                 .with_criterion(gko::stop::Combined::Factory::create(
-                    gko::stop::Iterations::Factory::create(246),
+                    gko::stop::Iteration::Factory::create(246),
                     gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
                                                                        ref)))
                 .on_executor(ref);

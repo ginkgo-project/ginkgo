@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/stop/combined.hpp>
-#include <core/stop/iterations.hpp>
+#include <core/stop/iteration.hpp>
 #include <core/stop/relative_residual_norm.hpp>
 #include <core/stop/time.hpp>
 #include <core/test/utils.hpp>
@@ -62,7 +62,7 @@ protected:
           bicgstab_factory(
               Solver::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
-                      gko::stop::Iterations::Factory::create(8),
+                      gko::stop::Iteration::Factory::create(8),
                       gko::stop::Time::Factory::create(6),
                       gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
                                                                          exec)))
@@ -70,7 +70,7 @@ protected:
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
-                      gko::stop::Iterations::Factory::create(50),
+                      gko::stop::Iteration::Factory::create(50),
                       gko::stop::Time::Factory::create(6),
                       gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
                                                                          exec)))

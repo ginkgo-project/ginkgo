@@ -87,8 +87,8 @@ TEST_F(Time, WaitsTillTime)
     auto time = std::chrono::system_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
-    /** Somehow this can be very imprecise, maybe due to the duration cast
-     * therefore I add an epsilon (here of 0.1ms)
+    /**
+     * Somehow this can be imprecise therefore I add an epsilon (here of 0.1ms)
      */
     ASSERT_GE(time_d + eps, test_seconds);
 }

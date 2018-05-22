@@ -31,64 +31,58 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_TIME_HPP_
-#define GKO_CORE_STOP_TIME_HPP_
+#include <core/stop/iteration.hpp>
 
 
-#include "core/stop/criterion.hpp"
+#include <gtest/gtest.h>
 
 
-#include <chrono>
+namespace {
 
 
-namespace gko {
-namespace stop {
+constexpr unsigned int test_iterations = 10;
 
-/**
- * The Time class is a stopping criterion which considers convergence happened
- * once a certain amout of time has passed.
- */
-class Time : public Criterion {
-public:
-    using clock = std::chrono::system_clock;
 
-    struct Factory : public Criterion::Factory {
-        using t = std::chrono::duration<double>;
-
-        explicit Factory(t v) : v_{v} {}
-
-        /**
-         * Instantiates a Iteration::Factory object
-         * @param v the amount of seconds to wait
-         */
-        static std::unique_ptr<Factory> create(double v)
-        {
-            return std::unique_ptr<Factory>(
-                new Factory(std::chrono::duration<double>(v)));
-        }
-
-        std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
-
-        t v_;
-    };
-
-    explicit Time(std::chrono::duration<double> limit)
-        : limit_{std::chrono::duration_cast<clock::duration>(limit)},
-          start_{clock::now()}
+class Iteration : public ::testing::Test {
+protected:
+    Iteration()
+        : factory_{gko::stop::Iteration::Factory::create(test_iterations)},
+          exec_{gko::ReferenceExecutor::create()}
     {}
 
-    bool check(Array<bool> &, const Updater &) override;
-
-private:
-    clock::duration limit_;
-    clock::time_point start_;
+    std::unique_ptr<gko::stop::Iteration::Factory> factory_;
+    std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-}  // namespace stop
-}  // namespace gko
+TEST_F(Iteration, CanCreateFactory)
+{
+    ASSERT_NE(factory_, nullptr);
+    ASSERT_EQ(factory_->v_, test_iterations);
+}
 
 
-#endif  // GKO_CORE_STOP_TIME_HPP_
+TEST_F(Iteration, CanCreateCriterion)
+{
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    ASSERT_NE(criterion, nullptr);
+}
+
+
+TEST_F(Iteration, WaitsTillIteration)
+{
+    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    gko::Array<bool> converged(exec_, 1);
+
+    ASSERT_FALSE(criterion->update()
+                     .num_iterations(test_iterations - 1)
+                     .check(converged));
+    ASSERT_TRUE(
+        criterion->update().num_iterations(test_iterations).check(converged));
+    ASSERT_TRUE(criterion->update()
+                    .num_iterations(test_iterations + 1)
+                    .check(converged));
+}
+
+
+}  // namespace
