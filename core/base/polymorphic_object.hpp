@@ -80,9 +80,9 @@ public:
      * This is the polymorphic equivalent of the _executor default constructor_
      * `decltype(*this)(exec);`.
      *
-     * @param exec the executor where the object will be created
+     * @param exec  the executor where the object will be created
      *
-     * @return  a polymorphic object of the same type as this
+     * @return a polymorphic object of the same type as this
      */
     std::unique_ptr<PolymorphicObject> create_default(
         std::shared_ptr<const Executor> exec) const
@@ -96,7 +96,7 @@ public:
      * This is a shorthand for create_default(std::shared_ptr<const Executor>)
      * that uses the executor of this object to construct the new object.
      *
-     * @return  a polymorphic object of the same type as this
+     * @return a polymorphic object of the same type as this
      */
     std::unique_ptr<PolymorphicObject> create_default() const
     {
@@ -109,7 +109,7 @@ public:
      * This is the polymorphic equivalent of the _executor copy constructor_
      * `decltype(*this)(exec, this)`.
      *
-     * @param exec the executor where the clone will be created
+     * @param exec  the executor where the clone will be created
      *
      * @return A clone of the LinOp.
      */
@@ -195,7 +195,7 @@ protected:
     /**
      * Creates a new polymorphic object on the requested executor.
      *
-     * @param exec  executor where the object will be create.
+     * @param exec  executor where the object will be created
      */
     explicit PolymorphicObject(std::shared_ptr<const Executor> exec)
         : exec_{std::move(exec)}
@@ -205,7 +205,7 @@ protected:
      * Implementers of PolymorphicObject should override this function instead
      * of create_default().
      *
-     * @param exec the executor where the object will be created
+     * @param exec  the executor where the object will be created
      *
      * @return a polymorphic object of the same type as this
      */
@@ -383,7 +383,7 @@ public:
      *
      * @param result  the object used to emplace the result of the conversion
      *
-     * @note ConvertibleTo::move_to can be implemented by simply
+     * @note ConvertibleTo::move_to can be implemented by simply calling
      *       ConvertibleTo::convert_to. However, this operation can often be
      *       optimized by exploiting the fact that implementer's data can be
      *       moved to the result.

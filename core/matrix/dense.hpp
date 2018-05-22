@@ -152,7 +152,7 @@ public:
     /**
      * Returns a pointer to the array of values of the matrix.
      *
-     * @return  the pointer to the array of values
+     * @return the pointer to the array of values
      */
     value_type *get_values() noexcept { return values_.get_data(); }
 

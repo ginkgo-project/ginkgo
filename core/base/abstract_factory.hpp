@@ -122,6 +122,9 @@ protected:
  * constructor. The factory also supports parameters by using the
  * `ParametersType` structure, which is defined by the user.
  *
+ * For a simple example, see IntFactory in
+ * `core/test/base/abstract_factory.cpp`.
+ *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parameter]
  * @tparam ProductType  the concrete type of products which this factory
@@ -157,7 +160,7 @@ public:
     /**
      * Returns the parameters of the factory.
      *
-     * @return  the parameters of the factory
+     * @return the parameters of the factory
      */
     const parameters_type &get_parameters() const noexcept
     {

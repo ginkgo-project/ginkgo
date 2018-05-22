@@ -70,7 +70,7 @@ struct truncate_type_impl<thrust::complex<T>> {
  *
  * @param x  the number to conjugate
  *
- * @return  conjugate of `x`
+ * @return conjugate of `x`
  */
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE thrust::complex<T> conj(const thrust::complex<T> &x)

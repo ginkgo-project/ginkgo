@@ -220,7 +220,7 @@ GKO_ATTRIBUTES GKO_INLINE bool operator!=(const dim &x, const dim &y)
  * @param x  first object
  * @param y  second object
  *
- * @return  a dim object representing the size of the tensor product `x * y`
+ * @return a dim object representing the size of the tensor product `x * y`
  */
 GKO_ATTRIBUTES GKO_INLINE dim operator*(const dim &x, const dim &y)
 {

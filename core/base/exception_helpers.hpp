@@ -174,7 +174,7 @@ inline dim get_size(const dim &size) { return size; }
 /**
  * Instantiates a CudaError.
  *
- * @param errcode The error code returned from a CUDA runtime API routine.
+ * @param errcode  The error code returned from a CUDA runtime API routine.
  */
 #define CUDA_ERROR(_errcode) \
     ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
@@ -182,7 +182,7 @@ inline dim get_size(const dim &size) { return size; }
 /**
  * Instantiates a CublasError.
  *
- * @param errcode The error code returned from the cuBLAS routine.
+ * @param errcode  The error code returned from the cuBLAS routine.
  */
 #define CUBLAS_ERROR(_errcode) \
     ::gko::CublasError(__FILE__, __LINE__, __func__, _errcode)
@@ -190,7 +190,7 @@ inline dim get_size(const dim &size) { return size; }
 /**
  * Instantiates a CusparseError.
  *
- * @param errcode The error code returned from the cuSPARSE routine.
+ * @param errcode  The error code returned from the cuSPARSE routine.
  */
 #define CUSPARSE_ERROR(_errcode) \
     ::gko::CusparseError(__FILE__, __LINE__, __func__, _errcode)

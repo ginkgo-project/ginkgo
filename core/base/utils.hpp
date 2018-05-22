@@ -414,7 +414,7 @@ public:
     /**
      * Returns the object held by temporary_clone.
      *
-     * @return  the object held by temporary_clone
+     * @return the object held by temporary_clone
      */
     T *get() const { return handle_.get(); }
 
