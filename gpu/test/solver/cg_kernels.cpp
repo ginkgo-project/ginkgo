@@ -120,8 +120,8 @@ protected:
 
     void make_symetric(Mtx *mtx)
     {
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
-            for (int j = i + 1; j < mtx->get_num_cols(); ++j) {
+        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
+            for (int j = i + 1; j < mtx->get_size().num_cols; ++j) {
                 mtx->at(i, j) = mtx->at(j, i);
             }
         }
@@ -130,9 +130,9 @@ protected:
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
             auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+            for (int j = 0; j < mtx->get_size().num_cols; ++j) {
                 sum += abs(mtx->at(i, j));
             }
             mtx->at(i, i) = sum;
@@ -237,8 +237,14 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(gpu);
     d_b->copy_from(b.get());
-    auto cg_factory = gko::solver::CgFactory<>::create(ref, 50, 1e-14);
-    auto d_cg_factory = gko::solver::CgFactory<>::create(gpu, 50, 1e-14);
+    auto cg_factory = gko::solver::Cg<>::Factory::create()
+                          .with_max_iters(50)
+                          .with_rel_residual_goal(1e-14)
+                          .on_executor(ref);
+    auto d_cg_factory = gko::solver::Cg<>::Factory::create()
+                            .with_max_iters(50)
+                            .with_rel_residual_goal(1e-14)
+                            .on_executor(gpu);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 

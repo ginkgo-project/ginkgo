@@ -133,7 +133,7 @@ void generate(syn::compile_int_list<max_block_size>,
 
     kernel::generate<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
-            mtx->get_num_rows(), mtx->get_const_row_ptrs(),
+            mtx->get_size().num_rows, mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
             as_cuda_type(block_data), stride, block_ptrs, num_blocks);
 }
@@ -233,7 +233,7 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                   matrix::Dense<ValueType> *x)
 {
     // TODO: write a special kernel for multiple RHS
-    for (size_type col = 0; col < b->get_num_cols(); ++col) {
+    for (size_type col = 0; col < b->get_size().num_cols; ++col) {
         select_apply(compiled_kernels(),
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;

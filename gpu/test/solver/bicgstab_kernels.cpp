@@ -54,6 +54,8 @@ namespace {
 class Bicgstab : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Bicgstab<>;
+
     Bicgstab() : rand_engine(30) {}
 
     void SetUp()
@@ -66,10 +68,14 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(gpu);
         d_mtx->copy_from(mtx.get());
-        gpu_bicgstab_factory =
-            gko::solver::BicgstabFactory<>::create(gpu, 246, 1e-15);
-        ref_bicgstab_factory =
-            gko::solver::BicgstabFactory<>::create(ref, 246, 1e-15);
+        gpu_bicgstab_factory = Solver::Factory::create()
+                                   .with_max_iters(246)
+                                   .with_rel_residual_goal(1e-15)
+                                   .on_executor(gpu);
+        ref_bicgstab_factory = Solver::Factory::create()
+                                   .with_max_iters(246)
+                                   .with_rel_residual_goal(1e-15)
+                                   .on_executor(ref);
     }
 
     void TearDown()
@@ -155,9 +161,9 @@ protected:
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
             auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+            for (int j = 0; j < mtx->get_size().num_cols; ++j) {
                 sum += abs(mtx->at(i, j));
             }
             mtx->at(i, i) = sum;
@@ -171,8 +177,8 @@ protected:
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> gpu_bicgstab_factory;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> ref_bicgstab_factory;
+    std::unique_ptr<Solver::Factory> gpu_bicgstab_factory;
+    std::unique_ptr<Solver::Factory> ref_bicgstab_factory;
 
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;

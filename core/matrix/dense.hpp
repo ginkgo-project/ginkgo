@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/lin_op_interfaces.hpp"
 #include "core/base/mtx_reader.hpp"
 #include "core/base/types.hpp"
 
@@ -72,7 +71,8 @@ class Ell;
  *       is often suitable to store vectors, and sets of vectors.
  */
 template <typename ValueType = default_precision>
-class Dense : public BasicLinOp<Dense<ValueType>>,
+class Dense : public EnableLinOp<Dense<ValueType>>,
+              public EnableCreateMethod<Dense<ValueType>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
@@ -84,7 +84,8 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
               public Transposable {
-    friend class BasicLinOp<Dense>;
+    friend class EnableCreateMethod<Dense>;
+    friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -93,9 +94,8 @@ class Dense : public BasicLinOp<Dense<ValueType>>,
     friend class Ell<ValueType, int64>;
 
 public:
-    using BasicLinOp<Dense>::create;
-    using BasicLinOp<Dense>::convert_to;
-    using BasicLinOp<Dense>::move_to;
+    using EnableLinOp<Dense>::convert_to;
+    using EnableLinOp<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -109,14 +109,9 @@ public:
      */
     static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
     {
-        return create(other->get_executor(), other->get_num_rows(),
-                      other->get_num_cols(), other->get_stride());
+        return Dense::create(other->get_executor(), other->get_size(),
+                             other->get_stride());
     }
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Coo<ValueType, int32> *result) const override;
 
@@ -157,7 +152,7 @@ public:
     /**
      * Returns a pointer to the array of values of the matrix.
      *
-     * @return  the pointer to the array of values
+     * @return the pointer to the array of values
      */
     value_type *get_values() noexcept { return values_.get_data(); }
 
@@ -175,8 +170,20 @@ public:
 
     /**
      * Returns the stride of the matrix.
+     *
+     * @return the stride of the matrix.
      */
     size_type get_stride() const noexcept { return stride_; }
+
+    /**
+     * Returns the number of elements explicitly stored in the matrix.
+     *
+     * @return the number of elements explicitly stored in the matrix
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
 
     /**
      * Returns a single element of the matrix.
@@ -254,7 +261,7 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dimensions as this
+     * @param b  a Dense matrix of same dim as this
      * @param result  a Dense row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
@@ -263,42 +270,35 @@ public:
 
 protected:
     /**
-     * Creates an empty Dense matrix.
+     * Creates an uninitialized Dense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
      */
-    explicit Dense(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Dense>(exec, 0, 0, 0), values_(exec)
+    Dense(std::shared_ptr<const Executor> exec, const dim &size = dim{})
+        : Dense(std::move(exec), size, size.num_cols)
     {}
 
     /**
      * Creates an uninitialized Dense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
+     * @param size  size of the matrix
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type stride)
-        : BasicLinOp<Dense>(exec, num_rows, num_cols, num_rows * stride),
-          values_(exec, num_rows * stride),
+    Dense(std::shared_ptr<const Executor> exec, const dim &size,
+          size_type stride)
+        : EnableLinOp<Dense>(exec, size),
+          values_(exec, size.num_rows * stride),
           stride_(stride)
     {}
 
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param num_rows  number of rows
-     * @param num_cols  number of columns
-     */
-    Dense(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols)
-        : Dense(std::move(exec), num_rows, num_cols, num_cols)
-    {}
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
@@ -307,13 +307,13 @@ protected:
 
     size_type linearize_index(size_type idx) const noexcept
     {
-        return linearize_index(idx / this->get_num_cols(),
-                               idx % this->get_num_cols());
+        return linearize_index(idx / this->get_size().num_cols,
+                               idx % this->get_size().num_cols);
     }
 
 private:
     Array<value_type> values_;
-    size_type stride_{};
+    size_type stride_;
 };
 
 
@@ -344,8 +344,8 @@ std::unique_ptr<Matrix> initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
-    int num_rows = vals.size();
-    auto tmp = dense::create(exec->get_master(), num_rows, 1, stride);
+    size_type num_rows = vals.size();
+    auto tmp = dense::create(exec->get_master(), dim{num_rows, 1}, stride);
     size_type idx = 0;
     for (const auto &elem : vals) {
         tmp->at(idx) = elem;
@@ -410,9 +410,10 @@ std::unique_ptr<Matrix> initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
-    int num_rows = vals.size();
-    int num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-    auto tmp = dense::create(exec->get_master(), num_rows, num_cols, stride);
+    size_type num_rows = vals.size();
+    size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
+    auto tmp =
+        dense::create(exec->get_master(), dim{num_rows, num_cols}, stride);
     size_type ridx = 0;
     for (const auto &row : vals) {
         size_type cidx = 0;

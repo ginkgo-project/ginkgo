@@ -66,9 +66,10 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     auto beta = zero<ValueType>();
     if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
-    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
-                   a->get_num_cols(), a->get_num_stored_elements(), &alpha,
-                   descr, a->get_const_values(), row_ptrs, col_idxs,
+    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                   a->get_size().num_rows, a->get_size().num_cols,
+                   a->get_num_stored_elements(), &alpha, descr,
+                   a->get_const_values(), row_ptrs, col_idxs,
                    b->get_const_values(), &beta, c->get_values());
 
     cusparse::destroy(descr);
@@ -95,11 +96,12 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
 
     if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
-    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
-                   a->get_num_cols(), a->get_num_stored_elements(),
-                   alpha->get_const_values(), descr, a->get_const_values(),
-                   row_ptrs, col_idxs, b->get_const_values(),
-                   beta->get_const_values(), c->get_values());
+    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                   a->get_size().num_rows, a->get_size().num_cols,
+                   a->get_num_stored_elements(), alpha->get_const_values(),
+                   descr, a->get_const_values(), row_ptrs, col_idxs,
+                   b->get_const_values(), beta->get_const_values(),
+                   c->get_values());
 
     cusparse::destroy(descr);
     cusparse::destroy(handle);
@@ -145,12 +147,12 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
     cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
     cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
-                        orig->get_num_stored_elements(),
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+    cusparse::transpose(
+        handle, orig->get_size().num_rows, orig->get_size().num_cols,
+        orig->get_num_stored_elements(), orig->get_const_values(),
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+        copyValues, idxBase);
 
     cusparse::destroy(handle);
 }
@@ -191,12 +193,12 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
     cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
     cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
-                        orig->get_num_stored_elements(),
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+    cusparse::transpose(
+        handle, orig->get_size().num_rows, orig->get_size().num_cols,
+        orig->get_num_stored_elements(), orig->get_const_values(),
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+        copyValues, idxBase);
 
     cusparse::destroy(handle);
 

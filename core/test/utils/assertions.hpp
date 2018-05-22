@@ -70,9 +70,9 @@ template <typename Ostream, typename MatrixData>
 void print_matrix(Ostream &os, const MatrixData &data)
 {
     auto it = begin(data.nonzeros);
-    for (size_type row = 0; row < data.num_rows; ++row) {
+    for (size_type row = 0; row < data.size.num_rows; ++row) {
         os << "\t";
-        for (size_type col = 0; col < data.num_cols; ++col) {
+        for (size_type col = 0; col < data.size.num_cols; ++col) {
             os << get_next_value(it, end(data.nonzeros), row, col) << "\t";
         }
         os << "\n";
@@ -89,9 +89,9 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
     using std::max;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
-    for (size_type row = 0; row < first.num_rows; ++row) {
+    for (size_type row = 0; row < first.size.num_rows; ++row) {
         os << "\t";
-        for (size_type col = 0; col < first.num_cols; ++col) {
+        for (size_type col = 0; col < first.size.num_cols; ++col) {
             auto r = get_next_value(first_it, end(first.nonzeros), row, col);
             auto e = get_next_value(second_it, end(second.nonzeros), row, col);
             auto m = max<real_vt>(abs(r), abs(e));
@@ -116,8 +116,8 @@ double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
     double second_norm = 0.0;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
-    for (size_type row = 0; row < first.num_rows; ++row) {
-        for (size_type col = 0; col < first.num_cols; ++col) {
+    for (size_type row = 0; row < first.size.num_rows; ++row) {
+        for (size_type col = 0; col < first.size.num_cols; ++col) {
             const auto first_val =
                 get_next_value(first_it, end(first.nonzeros), row, col);
             const auto second_val =
@@ -140,14 +140,14 @@ template <typename MatrixData1, typename MatrixData2>
     const std::string &tolerance_expression, const MatrixData1 &first,
     const MatrixData2 &second, double tolerance)
 {
-    auto num_rows = first.num_rows;
-    auto num_cols = first.num_cols;
-    if (num_rows != second.num_rows || num_cols != second.num_cols) {
+    auto num_rows = first.size.num_rows;
+    auto num_cols = first.size.num_cols;
+    if (num_rows != second.size.num_rows || num_cols != second.size.num_cols) {
         return ::testing::AssertionFailure()
                << "Expected matrices of equal size\n\t" << first_expression
                << " is of size [" << num_rows << " x " << num_cols << "]\n\t"
-               << second_expression << " is of size [" << second.num_rows
-               << " x " << second.num_cols << "]";
+               << second_expression << " is of size [" << second.size.num_rows
+               << " x " << second.size.num_cols << "]";
     }
 
     auto err = detail::get_relative_error(first, second);

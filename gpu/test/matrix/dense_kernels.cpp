@@ -76,7 +76,8 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_vector_data(int num_vecs, bool different_alpha = false)
+    void set_up_vector_data(gko::size_type num_vecs,
+                            bool different_alpha = false)
     {
         x = gen_mtx<Mtx>(1000, num_vecs);
         y = gen_mtx<Mtx>(1000, num_vecs);
@@ -91,8 +92,8 @@ protected:
         dy->copy_from(y.get());
         dalpha = Mtx::create(gpu);
         dalpha->copy_from(alpha.get());
-        expected = Mtx::create(ref, 1, num_vecs);
-        dresult = Mtx::create(gpu, 1, num_vecs);
+        expected = Mtx::create(ref, gko::dim{1, num_vecs});
+        dresult = Mtx::create(gpu, gko::dim{1, num_vecs});
     }
 
     void set_up_apply_data()
