@@ -243,18 +243,19 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
 {
     Array<size_type> nums(exec, 1);
 
-    Array<bool> matching_prev_row(exec, mtx->get_num_rows());
+    Array<bool> matching_prev_row(exec, mtx->get_size().num_rows);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(mtx->get_num_rows() * cuda_config::warp_size, block_size.x), 1,
-        1);
+        ceildiv(mtx->get_size().num_rows * cuda_config::warp_size,
+                block_size.x),
+        1, 1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
-        mtx->get_num_rows(), max_block_size, mtx->get_const_row_ptrs(),
+        mtx->get_size().num_rows, max_block_size, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), matching_prev_row.get_data());
     generate_natural_block_pointer<<<1, 1, 0, 0>>>(
-        mtx->get_num_rows(), max_block_size, matching_prev_row.get_const_data(),
-        block_ptrs, nums.get_data());
+        mtx->get_size().num_rows, max_block_size,
+        matching_prev_row.get_const_data(), block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }

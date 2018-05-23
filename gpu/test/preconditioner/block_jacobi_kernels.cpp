@@ -117,8 +117,7 @@ TEST_F(BlockJacobi, GpuFindNaturalBlocksEquivalentToRef)
         1       1
      */
     auto mtx = Mtx::create(ref);
-    mtx->read({4,
-               4,
+    mtx->read({{4, 4},
                {{0, 0, 1.0},
                 {0, 1, 1.0},
                 {1, 0, 1.0},
@@ -154,8 +153,7 @@ TEST_F(BlockJacobi, GpuExecutesSupervariableAgglomerationEquivalentToRef)
                         1
      */
     auto mtx = Mtx::create(ref);
-    mtx->read({5,
-               5,
+    mtx->read({{5, 5},
                {{0, 0, 1.0},
                 {0, 1, 1.0},
                 {1, 0, 1.0},
@@ -194,13 +192,12 @@ TEST_F(BlockJacobi, GpuFindNaturalBlocksInLargeMatrixEquivalentToRef)
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(550, 550,
-                        {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                         {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                         {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
+    auto m = data::diag(gko::dim{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                             {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
     auto mtx = Mtx::create(ref);
     mtx->read(m);
     auto d_mtx = Mtx::create(gpu);
@@ -230,12 +227,11 @@ TEST_F(BlockJacobi,
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(550, 550,
-                        {{1.0, 1.0, 0.0, 0.0, 0.0},
-                         {1.0, 1.0, 0.0, 0.0, 0.0},
-                         {0.0, 0.0, 1.0, 1.0, 0.0},
-                         {0.0, 0.0, 1.0, 1.0, 0.0},
-                         {0.0, 0.0, 0.0, 0.0, 1.0}});
+    auto m = data::diag(gko::dim{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
+                                             {1.0, 1.0, 0.0, 0.0, 0.0},
+                                             {0.0, 0.0, 1.0, 1.0, 0.0},
+                                             {0.0, 0.0, 1.0, 1.0, 0.0},
+                                             {0.0, 0.0, 0.0, 0.0, 1.0}});
     auto mtx = Mtx::create(ref);
     mtx->read(m);
     auto d_mtx = Mtx::create(gpu);
@@ -271,7 +267,7 @@ TEST_F(BlockJacobi,
                                     {1.0, 0.0, 1.0, 1.0, 0.0},
                                     {0.0, 0.0, 1.0, 0.0, 1.0}};
     using nnz = data::nonzero_type;
-    gko::matrix_data<double, int> mm{50, 50, m};
+    gko::matrix_data<double, int> mm{{50, 50}, m};
 
     auto mtx = Mtx::create(ref);
     mtx->read(mm);
