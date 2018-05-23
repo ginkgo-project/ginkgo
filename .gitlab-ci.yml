@@ -11,7 +11,7 @@ stages:
   CXX_COMPILER: g++
   BUILD_TYPE: Debug
   BUILD_REFERENCE: "ON"
-  BUILD_CPU: "SOFF"
+  BUILD_CPU: "OFF"
   BUILD_GPU: "OFF"
   EXTRA_CMAKE_FLAGS: ""
   EXTRA_PACKAGES: ""
@@ -59,7 +59,7 @@ sync:
     - chmod 700 ~/.ssh
     - ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
     - git config --global user.name "${BOT_USER}"
-    - git config --global user.emal "${BOT_EMAIL}"
+    - git config --global user.email "${BOT_EMAIL}"
   script:
     - git clone ${PRIVATE_REPO} -b ${CI_COMMIT_REF_NAME} repo_sync
     - cd repo_sync
