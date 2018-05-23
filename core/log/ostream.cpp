@@ -56,8 +56,8 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
         mtx = tmp.get();
     }
     os << "[" << std::endl;
-    for (int i = 0; i < mtx->get_num_rows(); ++i) {
-        for (int j = 0; j < mtx->get_num_cols(); ++j) {
+    for (int i = 0; i < mtx->get_size().num_rows; ++i) {
+        for (int j = 0; j < mtx->get_size().num_cols; ++j) {
             os << '\t' << mtx->at(i, j);
         }
         os << std::endl;
