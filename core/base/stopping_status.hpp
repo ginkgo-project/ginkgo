@@ -42,9 +42,9 @@ namespace gko {
 /**
  * This structure is used to keep track of the stopping status of one vector.
  */
-struct stopping_status {
+class StoppingStatus {
 public:
-    stopping_status() = default;
+    StoppingStatus() = default;
 
     /**
      * Check if any stopping criteria was fulfilled.

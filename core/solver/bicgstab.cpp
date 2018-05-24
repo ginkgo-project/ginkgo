@@ -92,8 +92,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    Array<stopping_status> stopStatus(alpha->get_executor(),
-                                      dense_b->get_size().num_cols);
+    Array<StoppingStatus> stopStatus(alpha->get_executor(),
+                                     dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(

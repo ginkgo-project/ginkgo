@@ -56,7 +56,7 @@ namespace bicgstab {
                     matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha,  \
                     matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma, \
                     matrix::Dense<_type> *omega,                             \
-                    Array<stopping_status> *stopStatus)
+                    Array<StoppingStatus> *stopStatus)
 
 
 #define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(_type)            \
@@ -64,7 +64,7 @@ namespace bicgstab {
                           const matrix::Dense<_type> *tau,             \
                           const matrix::Dense<_type> *orig_tau,        \
                           remove_complex<_type> rel_residual_goal,     \
-                          Array<stopping_status> *stopStatus,          \
+                          Array<StoppingStatus> *stopStatus,           \
                           bool *all_converged, bool setFinalized)
 
 
@@ -75,7 +75,7 @@ namespace bicgstab {
         const matrix::Dense<_type> *v, const matrix::Dense<_type> *rho,       \
         const matrix::Dense<_type> *prev_rho,                                 \
         const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *omega, \
-        const Array<stopping_status> &stopStatus)
+        const Array<StoppingStatus> &stopStatus)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(_type)                             \
@@ -84,7 +84,7 @@ namespace bicgstab {
                 const matrix::Dense<_type> *v,                                \
                 const matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha, \
                 const matrix::Dense<_type> *beta,                             \
-                const Array<stopping_status> &stopStatus)
+                const Array<StoppingStatus> &stopStatus)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)                             \
@@ -94,7 +94,7 @@ namespace bicgstab {
         const matrix::Dense<_type> *t, const matrix::Dense<_type> *y,         \
         const matrix::Dense<_type> *z, const matrix::Dense<_type> *alpha,     \
         const matrix::Dense<_type> *beta, const matrix::Dense<_type> *gamma,  \
-        matrix::Dense<_type> *omega, const Array<stopping_status> &stopStatus)
+        matrix::Dense<_type> *omega, const Array<StoppingStatus> &stopStatus)
 
 #define DECLARE_ALL_AS_TEMPLATES                             \
     template <typename ValueType>                            \
