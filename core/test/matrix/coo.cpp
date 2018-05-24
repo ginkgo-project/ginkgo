@@ -49,7 +49,7 @@ protected:
 
     Coo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Coo<>::create(exec, gko::dim{2, 3}, 4))
+          mtx(gko::matrix::Coo<>::create(exec, gko::dim<2>{2, 3}, 4))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
@@ -76,7 +76,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_idxs();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 0);
@@ -94,7 +94,7 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
@@ -105,7 +105,7 @@ protected:
 
 TEST_F(Coo, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
 }
 
@@ -128,7 +128,7 @@ TEST_F(Coo, CanBeCreatedFromExistingData)
     gko::int32 row_idxs[] = {0, 0, 1, 2};
 
     auto mtx = gko::matrix::Coo<>::create(
-        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 4, values),
+        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 4, values),
         gko::Array<gko::int32>::view(exec, 4, col_idxs),
         gko::Array<gko::int32>::view(exec, 4, row_idxs));
 
@@ -199,7 +199,7 @@ TEST_F(Coo, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

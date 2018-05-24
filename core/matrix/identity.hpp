@@ -84,7 +84,7 @@ protected:
      * @param size  size of the matrix
      */
     Identity(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Identity>(exec, dim{size})
+        : EnableLinOp<Identity>(exec, dim<2>{size})
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -97,8 +97,8 @@ protected:
 /**
  * This factory is a utility which can be used to generate Identity operators.
  *
- * The factory will generate the Identity matrix with the same dim as
- * the passed in operator. It will throw an exception if the operator is  not
+ * The factory will generate the Identity matrix with the same dimension as
+ * the passed in operator. It will throw an exception if the operator is not
  * square.
  *
  * @tparam ValueType  precision of matrix elements

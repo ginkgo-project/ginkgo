@@ -102,7 +102,7 @@ protected:
         auto dense_r = as<Vector>(args.initial_residual);
         starting_tau_ =
             Vector::create(factory->get_executor(),
-                           dim{1, args.initial_residual->get_size().num_cols});
+                           dim<2>{1, args.initial_residual->get_size()[1]});
         dense_r->compute_dot(dense_r, starting_tau_.get());
     }
 

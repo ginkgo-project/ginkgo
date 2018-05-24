@@ -184,7 +184,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
+    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -203,9 +203,9 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
     auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
-    auto bc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_rows, 2});
-    auto xc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_cols, 2});
-    for (size_t i = 0; i < bc->get_size().num_rows; ++i) {
+    auto bc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[0], 2});
+    auto xc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[1], 2});
+    for (size_t i = 0; i < bc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
 
@@ -216,8 +216,8 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     solver->apply(b1.get(), x1.get());
     solver->apply(b2.get(), x2.get());
     solver->apply(bc.get(), xc.get());
-    auto mergedRes = Mtx::create(exec, gko::dim{b1->get_size().num_rows, 2});
-    for (size_t i = 0; i < mergedRes->get_size().num_rows; ++i) {
+    auto mergedRes = Mtx::create(exec, gko::dim<2>{b1->get_size()[0], 2});
+    for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }

@@ -110,7 +110,7 @@ sparse linear system as a component.
 // points.
 void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 {
-    const auto discretization_points = matrix->get_size().num_rows;
+    const auto discretization_points = matrix->get_size()[0];
     auto row_ptrs = matrix->get_row_ptrs();
     auto col_idxs = matrix->get_col_idxs();
     auto values = matrix->get_values();
@@ -134,7 +134,7 @@ void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 template <typename Closure>
 void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 {
-    const auto discretization_points = rhs->get_size().num_rows;
+    const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
     const auto h = 1.0 / (discretization_points + 1);
     for (int i = 0; i < discretization_points; ++i) {
@@ -150,7 +150,7 @@ void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 void print_solution(double u0, double u1, const gko::matrix::Dense<> *u)
 {
     std::cout << u0 << '\n';
-    for (int i = 0; i < u->get_size().num_rows; ++i) {
+    for (int i = 0; i < u->get_size()[0]; ++i) {
         std::cout << u->get_const_values()[i] << '\n';
     }
     std::cout << u1 << std::endl;
@@ -213,13 +213,13 @@ int main(int argc, char *argv[])
     auto u1 = correct_u(1);
 
     // initialize matrix and vectors
-    auto matrix = mtx::create(app_exec, gko::dim(discretization_points),
+    auto matrix = mtx::create(app_exec, gko::dim<2>(discretization_points),
                               3 * discretization_points - 2);
     generate_stencil_matrix(lend(matrix));
-    auto rhs = vec::create(app_exec, gko::dim(discretization_points, 1));
+    auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
     generate_rhs(f, u0, u1, lend(rhs));
-    auto u = vec::create(app_exec, gko::dim(discretization_points, 1));
-    for (int i = 0; i < u->get_size().num_rows; ++i) {
+    auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    for (int i = 0; i < u->get_size()[0]; ++i) {
         u->get_values()[i] = 0.0;
     }
 

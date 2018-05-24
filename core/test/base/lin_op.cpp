@@ -44,7 +44,7 @@ class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
-               gko::dim size = gko::dim{})
+               gko::dim<2> size = gko::dim<2>{})
         : EnableLinOp<DummyLinOp>(exec, size)
     {}
 
@@ -87,11 +87,11 @@ protected:
     EnableLinOp()
         : ref{gko::ReferenceExecutor::create()},
           omp{gko::OmpExecutor::create()},
-          op{DummyLinOp::create(omp, gko::dim{3, 5})},
-          alpha{DummyLinOp::create(ref, gko::dim{1})},
-          beta{DummyLinOp::create(ref, gko::dim{1})},
-          b{DummyLinOp::create(ref, gko::dim{5, 4})},
-          x{DummyLinOp::create(ref, gko::dim{3, 4})}
+          op{DummyLinOp::create(omp, gko::dim<2>{3, 5})},
+          alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
+          beta{DummyLinOp::create(ref, gko::dim<2>{1})},
+          b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
+          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})}
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
@@ -122,7 +122,7 @@ TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 
 TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{3, 4});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
     ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(x)),
                  gko::DimensionMismatch);
@@ -131,7 +131,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
 
 TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{5, 4});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
     ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
                  gko::DimensionMismatch);
@@ -140,7 +140,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
 
 TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{3, 5});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
     ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
                  gko::DimensionMismatch);
@@ -149,7 +149,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
 
 TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{3, 4});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(wrong), gko::lend(beta),
                            gko::lend(x)),
@@ -159,7 +159,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
 
 TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{5, 4});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
                            gko::lend(wrong)),
@@ -169,7 +169,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 
 TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{3, 5});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
                            gko::lend(wrong)),
@@ -179,7 +179,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 
 TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{2, 5});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
     ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(b), gko::lend(beta),
                            gko::lend(x)),
@@ -189,7 +189,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 
 TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim{2, 5});
+    auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(wrong),
                            gko::lend(x)),
@@ -299,7 +299,7 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 
 TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 {
-    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim{3, 5}));
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
     auto factory =
         DummyLinOpWithFactory<>::Factory::create().with_value(6).on_executor(
             ref);

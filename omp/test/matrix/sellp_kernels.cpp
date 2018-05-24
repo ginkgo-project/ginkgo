@@ -82,8 +82,8 @@ protected:
         int stride_factor = gko::matrix::default_stride_factor,
         int total_cols = 0)
     {
-        mtx =
-            Mtx::create(ref, gko::dim{}, slice_size, stride_factor, total_cols);
+        mtx = Mtx::create(ref, gko::dim<2>{}, slice_size, stride_factor,
+                          total_cols);
         mtx->copy_from(gen_mtx(532, 231));
         expected = gen_mtx(532, 1);
         y = gen_mtx(231, 1);

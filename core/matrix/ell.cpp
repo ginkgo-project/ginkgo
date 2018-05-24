@@ -70,7 +70,8 @@ size_type calculate_max_nnz_per_row(
     for (const auto &elem : data.nonzeros) {
         if (elem.row != current_row) {
             current_row = elem.row;
-            num_stored_elements_per_row = std::max(num_stored_elements_per_row, nnz);
+            num_stored_elements_per_row =
+                std::max(num_stored_elements_per_row, nnz);
             nnz = 0;
         }
         nnz += (elem.value != zero<ValueType>());
@@ -131,14 +132,14 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
 
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
-                           num_stored_elements_per_row, data.size.num_rows);
+                           num_stored_elements_per_row, data.size[0]);
 
     // Get values and column indexes.
     size_type ind = 0;
     size_type n = data.nonzeros.size();
     auto vals = tmp->get_values();
     auto col_idxs = tmp->get_col_idxs();
-    for (size_type row = 0; row < data.size.num_rows; row++) {
+    for (size_type row = 0; row < data.size[0]; row++) {
         size_type col = 0;
         while (ind < n && data.nonzeros[ind].row == row) {
             auto val = data.nonzeros[ind].value;
@@ -174,7 +175,7 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_size(), {}};
 
-    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
+    for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
         for (size_type i = 0; i < tmp->num_stored_elements_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
             if (val != zero<ValueType>()) {
