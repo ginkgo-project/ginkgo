@@ -50,31 +50,43 @@ public:
      * Check if any stopping criteria was fulfilled.
      * @return Returns true if any stopping criteria was fulfilled.
      */
-    bool has_stopped() const noexcept { return get_id(); }
+    GKO_ATTRIBUTES GKO_INLINE bool has_stopped() const noexcept
+    {
+        return get_id();
+    }
 
     /**
      * Check if convergence was reached.
      * @return Returns true if convergence was reached.
      */
-    bool has_converged() const noexcept { return data & converged_mask; }
+    GKO_ATTRIBUTES GKO_INLINE bool has_converged() const noexcept
+    {
+        return data & converged_mask;
+    }
 
     /**
      * Check if the corresponding vector stores the finalized result.
      * @return Returns true if the corresponding vector stores the finalized
      * result.
      */
-    bool is_finalized() const noexcept { return data & finalized_mask; }
+    GKO_ATTRIBUTES GKO_INLINE bool is_finalized() const noexcept
+    {
+        return data & finalized_mask;
+    }
 
     /**
      * Get the id of the stopping criterion which caused the stop.
      * @return Returns the id of the stopping criterion which caused the stop.
      */
-    uint8 get_id() const noexcept { return data & id_mask; }
+    GKO_ATTRIBUTES GKO_INLINE uint8 get_id() const noexcept
+    {
+        return data & id_mask;
+    }
 
     /**
      * Clear all flags.
      */
-    void reset() noexcept { data = uint8{0}; }
+    GKO_ATTRIBUTES GKO_INLINE void reset() noexcept { data = uint8{0}; }
 
     /**
      * Call if a stop occured due to a hard limit (and convergence was not
@@ -83,7 +95,8 @@ public:
      * @param setFinalized  Controls if the current version should count as
      * finalized (set to true) or not (set to false).
      */
-    void stop(uint8 id, bool setFinalized = true) noexcept
+    GKO_ATTRIBUTES GKO_INLINE void stop(uint8 id,
+                                        bool setFinalized = true) noexcept
     {
         if (!this->has_stopped()) {
             data |= (id & id_mask);
@@ -99,7 +112,8 @@ public:
      * @param setFinalized  Controls if the current version should count as
      * finalized (set to true) or not (set to false).
      */
-    void converge(uint8 id, bool setFinalized = true) noexcept
+    GKO_ATTRIBUTES GKO_INLINE void converge(uint8 id,
+                                            bool setFinalized = true) noexcept
     {
         if (!this->has_stopped()) {
             data |= converged_mask | (id & id_mask);
@@ -113,19 +127,18 @@ public:
      * Set the result to be finalized (it needs to be stopped or converged
      * first).
      */
-    void finalize() noexcept
+    GKO_ATTRIBUTES GKO_INLINE void finalize() noexcept
     {
         if (this->has_stopped()) {
             data |= finalized_mask;
         }
     }
 
-
+private:
     static constexpr uint8 converged_mask = uint8{1} << 7;
     static constexpr uint8 finalized_mask = uint8{1} << 6;
     static constexpr uint8 id_mask = (uint8{1} << 6) - uint8{1};
 
-private:
     uint8 data;
 };
 

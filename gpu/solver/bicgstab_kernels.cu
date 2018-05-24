@@ -59,7 +59,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     ValueType *__restrict__ p, ValueType *__restrict__ prev_rho,
     ValueType *__restrict__ rho, ValueType *__restrict__ alpha,
     ValueType *__restrict__ beta, ValueType *__restrict__ gamma,
-    ValueType *__restrict__ omega, bool *__restrict__ stopStatus)
+    ValueType *__restrict__ omega, stopping_status *__restrict__ stopStatus)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -71,7 +71,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         beta[tidx] = one<ValueType>();
         gamma[tidx] = one<ValueType>();
         omega[tidx] = one<ValueType>();
-        stopStatus[tidx] = false;
+        stopStatus[tidx].reset();
     }
 
     if (tidx < num_rows * stride) {
@@ -113,7 +113,7 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(rho->get_values()), as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_values()), as_cuda_type(gamma->get_values()),
         as_cuda_type(omega->get_values()),
-        as_cuda_type(reinterpret_cast<bool *>(stopStatus->get_data())));
+        as_cuda_type(stopStatus->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -123,17 +123,18 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
     size_type num_cols, remove_complex<ValueType> rel_residual_goal,
     const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
-    bool *__restrict__ stopStatus, bool *__restrict__ all_converged)
+    stopping_status *__restrict__ stopStatus, bool *__restrict__ all_converged,
+    uint8 stoppingId, bool setFinalized)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     if (tidx < num_cols) {
         if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
-            stopStatus[tidx] = true;
+            stopStatus[tidx].converge(stoppingId, setFinalized);
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
-        else if (stopStatus[tidx] == false) {
+        else if (stopStatus[tidx].has_converged()) {
             *all_converged = false;
         }
     }
@@ -162,8 +163,8 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
         tau->get_size().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()),
-        as_cuda_type(reinterpret_cast<bool *>(stopStatus->get_data())),
-        as_cuda_type(d_all_converged.get_data()));
+        as_cuda_type(stopStatus->get_data()),
+        as_cuda_type(d_all_converged.get_data()), uint8{1}, setFinalized);
 
     all_converged_array = d_all_converged;
     all_converged_array.release();
@@ -179,12 +180,14 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     const ValueType *__restrict__ r, ValueType *__restrict__ p,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     const ValueType *__restrict__ prev_rho, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ omega, const bool *__restrict__ stopStatus)
+    const ValueType *__restrict__ omega,
+    const stopping_status *__restrict__ stopStatus)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride || stopStatus[col]) {
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stopStatus[col].has_stopped()) {
         return;
     }
     auto res = r[tidx];
@@ -218,8 +221,7 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(prev_rho->get_const_values()),
         as_cuda_type(alpha->get_const_values()),
         as_cuda_type(omega->get_const_values()),
-        as_cuda_type(
-            reinterpret_cast<const bool *>(stopStatus.get_const_data())));
+        as_cuda_type(stopStatus.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -231,12 +233,13 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const ValueType *__restrict__ r, ValueType *__restrict__ s,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
-    const bool *__restrict__ stopStatus)
+    const stopping_status *__restrict__ stopStatus)
 {
     const size_type tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const size_type col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride || stopStatus[col]) {
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stopStatus[col].has_stopped()) {
         return;
     }
     auto t_alpha = zero<ValueType>();
@@ -270,8 +273,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_const_values()),
-        as_cuda_type(
-            reinterpret_cast<const bool *>(stopStatus.get_const_data())));
+        as_cuda_type(stopStatus.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
@@ -285,13 +287,14 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     const ValueType *__restrict__ y, const ValueType *__restrict__ z,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
     const ValueType *__restrict__ gamma, ValueType *__restrict__ omega,
-    const bool *__restrict__ stopStatus)
+    const stopping_status *__restrict__ stopStatus)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = tidx / stride;
     const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride || stopStatus[col]) {
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stopStatus[col].has_stopped()) {
         return;
     }
     const auto x_pos = row * x_stride + col;
@@ -333,8 +336,7 @@ void step_3(
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(gamma->get_const_values()),
         as_cuda_type(omega->get_values()),
-        as_cuda_type(
-            reinterpret_cast<const bool *>(stopStatus.get_const_data())));
+        as_cuda_type(stopStatus.get_const_data()));
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
