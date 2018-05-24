@@ -113,10 +113,10 @@ protected:
         beta = gen_mtx(1, n);
         gamma = gen_mtx(1, n);
         omega = gen_mtx(1, n);
-        converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
+        converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < n; ++i) {
-            converged->get_data()[i] = false;
+            converged->get_data()[i].reset();
         }
 
         d_x = Mtx::create(gpu);
@@ -135,8 +135,8 @@ protected:
         d_beta = Mtx::create(gpu);
         d_gamma = Mtx::create(gpu);
         d_omega = Mtx::create(gpu);
-        d_converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(gpu));
+        d_converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(gpu));
 
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
@@ -196,7 +196,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
-    std::unique_ptr<gko::Array<bool>> converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> converged;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -214,7 +214,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-    std::unique_ptr<gko::Array<bool>> d_converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> d_converged;
 };
 
 
@@ -268,16 +268,15 @@ TEST_F(Bicgstab, GpuBicgstabStep2IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::bicgstab::step_2(
-        ref, r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-        y.get(), x.get(), *converged.get());
-    gko::kernels::gpu::bicgstab::step_2(
-        gpu, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
-        d_beta.get(), d_y.get(), d_x.get(), *d_converged.get());
+    gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
+                                              rho.get(), alpha.get(),
+                                              beta.get(), *converged.get());
+    gko::kernels::gpu::bicgstab::step_2(gpu, d_r.get(), d_s.get(), d_v.get(),
+                                        d_rho.get(), d_alpha.get(),
+                                        d_beta.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_s, s, 1e-14);
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
@@ -286,11 +285,12 @@ TEST_F(Bicgstab, GpuBicgstabStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_3(
-        ref, x.get(), r.get(), s.get(), t.get(), z.get(), beta.get(),
-        gamma.get(), omega.get(), *converged.get());
+        ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+        beta.get(), gamma.get(), omega.get(), *converged.get());
     gko::kernels::gpu::bicgstab::step_3(
-        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_z.get(),
-        d_beta.get(), d_gamma.get(), d_omega.get(), *d_converged.get());
+        gpu, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
+        d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
+        *d_converged.get());
 
     ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
