@@ -46,12 +46,13 @@ namespace accessor {
  * A row_major accessor is a bridge between a range and the row-major memory
  * layout.
  *
- * You should never try explicitly create an instance of this accessor. Instead,
- * supply it as a template parameter to a range, and pass the constructor
- * parameters for this class to the range (it will forward it to this class).
+ * You should never try to explicitly create an instance of this accessor.
+ * Instead, supply it as a template parameter to a range, and pass the
+ * constructor parameters for this class to the range (it will forward it to
+ * this class).
  *
- * @note The current implementation is incomplete, and only allows for
- *       2-dimensional ranges.
+ * @warning The current implementation is incomplete, and only allows for
+ *          2-dimensional ranges.
  *
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor (has to be 2)
@@ -60,6 +61,7 @@ template <typename ValueType, size_type Dimensionality>
 class row_major {
 public:
     friend class range<row_major>;
+
     static_assert(Dimensionality == 2,
                   "This accessor is only implemented for matrices");
 
@@ -89,8 +91,10 @@ protected:
      *                consecutive rows (i.e. `data + i * stride` points to the
      *                `i`-th row)
      */
-    GKO_ATTRIBUTES explicit row_major(data_type data, size_type num_rows,
-                                      size_type num_cols, size_type stride)
+    GKO_ATTRIBUTES constexpr explicit row_major(data_type data,
+                                                size_type num_rows,
+                                                size_type num_cols,
+                                                size_type stride)
         : data{data}, lengths{num_rows, num_cols}, stride{stride}
     {}
 
@@ -103,11 +107,11 @@ public:
      *
      * @return data element at (row, col)
      */
-    GKO_ATTRIBUTES value_type &operator()(size_type row, size_type col) const
+    GKO_ATTRIBUTES constexpr value_type &operator()(size_type row,
+                                                    size_type col) const
     {
-        GKO_ASSERT(row < lengths[0]);
-        GKO_ASSERT(col < lengths[1]);
-        return data[row * stride + col];
+        return GKO_ASSERT(row < lengths[0]), GKO_ASSERT(col < lengths[1]),
+               data[row * stride + col];
     }
 
     /**
@@ -118,14 +122,13 @@ public:
      *
      * @return sub-range spanning the range (rows, cols)
      */
-    GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
-                                               const span &cols) const
+    GKO_ATTRIBUTES constexpr range<row_major> operator()(const span &rows,
+                                                         const span &cols) const
     {
-        GKO_ASSERT(rows.begin <= rows.end);
-        GKO_ASSERT(cols.begin <= cols.end);
-        GKO_ASSERT(rows <= span::empty(lengths[0]));
-        GKO_ASSERT(cols <= span::empty(lengths[1]));
-        return range<row_major>(data + rows.begin * stride + cols.begin,
+        return GKO_ASSERT(rows.is_valid()), GKO_ASSERT(cols.is_valid()),
+               GKO_ASSERT(rows <= span{lengths[0]}),
+               GKO_ASSERT(cols <= span{lengths[1]}),
+               range<row_major>(data + rows.begin * stride + cols.begin,
                                 rows.end - rows.begin, cols.end - cols.begin,
                                 stride);
     }
@@ -137,7 +140,7 @@ public:
      *
      * @return length in dimension `dimension`
      */
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return dimension < 2 ? lengths[dimension] : 1;
     }
@@ -178,5 +181,6 @@ public:
 
 }  // namespace accessor
 }  // namespace gko
+
 
 #endif  // GKO_CORE_BASE_RANGE_ACCESSORS_HPP_

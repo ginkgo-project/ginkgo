@@ -58,15 +58,6 @@ TEST(Span, CreatesPoint)
 }
 
 
-TEST(Span, CreatesEmptySpan)
-{
-    auto s = gko::span::empty(5);
-
-    ASSERT_EQ(s.begin, 5);
-    ASSERT_EQ(s.end, 5);
-}
-
-
 TEST(Span, LessThanEvaluatesToTrue)
 {
     ASSERT_TRUE(gko::span(2, 3) < gko::span(4, 7));

@@ -50,24 +50,24 @@ namespace gko {
  *
  * A `span s` represents a contiguous set of indexes in one dimension of the
  * range, starting on index `s.begin` (inclusive) and ending at index `s.end`
- * (exclusive). A span is only valid if its starting index is not greater than
- * its ending index. If `s.begin == s.end`, span `s` represents an empty set of
- * indexes.
+ * (exclusive). A span is only valid if its starting index is smaller than its
+ * ending index.
  *
  * Spans can be compared using the `==` and `!=` operators. Two spans are
- * identical if both their `begin` and `end` values are identical. Note that
- * this implies there are "empty" spans which are not considered identical.
+ * identical if both their `begin` and `end` values are identical.
  *
- * Spans also have two distinct partial orderings defined on them:
+ * Spans also have two distinct partial orders defined on them:
  * 1.  `x < y` (`y > x`) if and only if `x.end < y.begin`
  * 2.  `x <= y` (`y >= x`) if and only if `x.end <= y.begin`
  *
- * Note that the ordering is in fact partial - there are spans `x` and `y` for
+ * Note that the orders are in fact partial - there are spans `x` and `y` for
  * which none of the following inequalities holds:
  *     `x < y`, `x > y`, `x == y`, `x <= y`, `x >= y`.
+ * An example are spans `span{0, 2}` and `span{1, 3}`.
  *
- * In addition, `<=` is a distinct ordering from `<`, and not just its
- * extension with equality. Thus, `x <= y` does not imply `x < y || x == y`.
+ * In addition, `<=` is a distinct order from `<`, and not just an extension
+ * of the strict order to its weak equivalent. Thus, `x <= y` is not equivalent
+ * to `x < y || x == y`.
  */
 struct span {
     /**
@@ -92,18 +92,11 @@ struct span {
     {}
 
     /**
-     * Creates an empty span.
+     * Checks if a span is valid.
      *
-     * Both the `begin` and the `end` of the span are set to `point`.
-     *
-     * @param point  the position of the empty span, used in span comparisons
-     *
-     * @return an empty span at position `point`
+     * @return true if and only if `this->begin < this->end`
      */
-    GKO_ATTRIBUTES static constexpr span empty(size_type point) noexcept
-    {
-        return {point, point};
-    }
+    constexpr bool is_valid() const { return begin < end; }
 
     /**
      * Beginning of the span.
@@ -162,32 +155,27 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span &first,
 namespace detail {
 
 
-template <size_type CurrentDimension, size_type Dimensionality,
-          typename FirstRange, typename SecondRange>
-GKO_ATTRIBUTES GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension >= Dimensionality), bool>
-    equal_dimensions_impl(const FirstRange &, const SecondRange &)
+template <size_type CurrentDimension = 0, typename FirstRange,
+          typename SecondRange>
+GKO_ATTRIBUTES constexpr GKO_INLINE
+    xstd::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
+                                               SecondRange::dimensionality)),
+                      bool>
+    equal_dimensions(const FirstRange &, const SecondRange &)
 {
     return true;
 }
 
-template <size_type CurrentDimension, size_type Dimensionality,
-          typename FirstRange, typename SecondRange>
-GKO_ATTRIBUTES GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension < Dimensionality), bool>
-    equal_dimensions_impl(const FirstRange &first, const SecondRange &second)
+template <size_type CurrentDimension = 0, typename FirstRange,
+          typename SecondRange>
+GKO_ATTRIBUTES constexpr GKO_INLINE
+    xstd::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
+                                              SecondRange::dimensionality)),
+                      bool>
+    equal_dimensions(const FirstRange &first, const SecondRange &second)
 {
     return first.length(CurrentDimension) == second.length(CurrentDimension) &&
-           equal_dimensions_impl<CurrentDimension + 1, Dimensionality>(first,
-                                                                       second);
-}
-
-template <typename FirstRange, typename SecondRange>
-GKO_ATTRIBUTES GKO_INLINE bool equal_dimensions(const FirstRange &first,
-                                                const SecondRange &second)
-{
-    return FirstRange::dimensionality == SecondRange::dimensionality &&
-           equal_dimensions_impl<0, FirstRange::dimensionality>(first, second);
+           equal_dimensions<CurrentDimension + 1>(first, second);
 }
 
 
@@ -204,7 +192,7 @@ GKO_ATTRIBUTES GKO_INLINE bool equal_dimensions(const FirstRange &first,
  * There are several advantages of using ranges instead of plain memory
  * pointers:
  *
- * 1.  Code using ranges is easier to read an write, as there is no need for
+ * 1.  Code using ranges is easier to read and write, as there is no need for
  *     index linearizations.
  * 2.  Code using ranges is safer, as it is impossible to accidentally
  *     miscalculate an index or step out of bounds, since range accessors
@@ -292,11 +280,11 @@ GKO_ATTRIBUTES GKO_INLINE bool equal_dimensions(const FirstRange &first,
  * Examples
  * --------
  *
- * The range unit tests in `core/test/base/range.cpp` contain lots of simple
+ * The range unit tests in core/test/base/range.cpp contain lots of simple
  * 1-line examples of range operations. The accessor unit tests in
- * `core/test/base/range.cpp` show how to use ranges with concrete accessors,
+ * core/test/base/range.cpp show how to use ranges with concrete accessors,
  * and how to use range slices using `span`s as arguments to range function call
- * operator. Finally, `examples/range` contains a complete example where ranges
+ * operator. Finally, examples/range contains a complete example where ranges
  * are used to implement a simple version of the right-looking LU factorization.
  *
  * @tparam Accessor  underlying accessor of the range
@@ -317,13 +305,13 @@ public:
     /**
      * Creates a new range.
      *
-     * @tparam AccessorPAram  types of parameters forwarded to the accessor
+     * @tparam AccessorParam  types of parameters forwarded to the accessor
      *                        constructor
      *
-     * @param  params  parameters forwarded to Accessor constructor.
+     * @param params  parameters forwarded to Accessor constructor.
      */
     template <typename... AccessorParams>
-    GKO_ATTRIBUTES explicit range(AccessorParams &&... params)
+    GKO_ATTRIBUTES constexpr explicit range(AccessorParams &&... params)
         : accessor_{std::forward<AccessorParams>(params)...}
     {}
 
@@ -340,8 +328,8 @@ public:
      * @return a value on position `(dimensions...)`.
      */
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
-        -> decltype(std::declval<accessor>()(
+    GKO_ATTRIBUTES constexpr auto operator()(DimensionTypes &&... dimensions)
+        const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
         static_assert(sizeof...(dimensions) <= dimensionality,
@@ -393,7 +381,7 @@ public:
      *
      * @return  the length of the `dimension`-th dimension of the range
      */
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return accessor_.length(dimension);
     }
@@ -405,14 +393,17 @@ public:
      *
      * @return pointer to the accessor
      */
-    const accessor *operator->() const noexcept { return &accessor_; }
+    GKO_ATTRIBUTES constexpr const accessor *operator->() const noexcept
+    {
+        return &accessor_;
+    }
 
     /**
      * `Returns a reference to the accessor.
      *
      * @return reference to the accessor
      */
-    GKO_ATTRIBUTES const accessor &get_accessor() const noexcept
+    GKO_ATTRIBUTES constexpr const accessor &get_accessor() const noexcept
     {
         return accessor_;
     }
@@ -438,19 +429,21 @@ struct implement_unary_operation {
     using accessor = Accessor;
     static constexpr size_type dimensionality = accessor::dimensionality;
 
-    GKO_ATTRIBUTES explicit implement_unary_operation(const Accessor &operand)
+    GKO_ATTRIBUTES constexpr explicit implement_unary_operation(
+        const Accessor &operand)
         : operand{operand}
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
+    GKO_ATTRIBUTES constexpr auto operator()(
+        const DimensionTypes &... dimensions) const
         -> decltype(Operation::evaluate(std::declval<accessor>(),
                                         dimensions...))
     {
         return Operation::evaluate(operand, dimensions...);
     }
 
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return operand.length(dimension);
     }
@@ -484,7 +477,8 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
     }
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
+    GKO_ATTRIBUTES constexpr auto operator()(
+        const DimensionTypes &... dimensions) const
         -> decltype(Operation::evaluate_range_by_range(
             std::declval<first_accessor>(), std::declval<second_accessor>(),
             dimensions...))
@@ -492,7 +486,7 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
         return Operation::evaluate_range_by_range(first, second, dimensions...);
     }
 
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return first.length(dimension);
     }
@@ -510,13 +504,14 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
     using second_accessor = SecondAccessor;
     static constexpr size_type dimensionality = second_accessor::dimensionality;
 
-    GKO_ATTRIBUTES explicit implement_binary_operation(
+    GKO_ATTRIBUTES constexpr explicit implement_binary_operation(
         const FirstOperand &first, const SecondAccessor &second)
         : first{first}, second{second}
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
+    GKO_ATTRIBUTES constexpr auto operator()(
+        const DimensionTypes &... dimensions) const
         -> decltype(Operation::evaluate_scalar_by_range(
             std::declval<FirstOperand>(), std::declval<second_accessor>(),
             dimensions...))
@@ -525,7 +520,7 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
                                                    dimensions...);
     }
 
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return second.length(dimension);
     }
@@ -543,13 +538,14 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     using first_accessor = FirstAccessor;
     static constexpr size_type dimensionality = first_accessor::dimensionality;
 
-    GKO_ATTRIBUTES explicit implement_binary_operation(
+    GKO_ATTRIBUTES constexpr explicit implement_binary_operation(
         const FirstAccessor &first, const SecondOperand &second)
         : first{first}, second{second}
     {}
 
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(const DimensionTypes &... dimensions) const
+    GKO_ATTRIBUTES constexpr auto operator()(
+        const DimensionTypes &... dimensions) const
         -> decltype(Operation::evaluate_range_by_scalar(
             std::declval<first_accessor>(), std::declval<SecondOperand>(),
             dimensions...))
@@ -558,7 +554,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
                                                    dimensions...);
     }
 
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return first.length(dimension);
     }
@@ -587,8 +583,9 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     }                                                                     \
                                                                           \
     template <typename Accessor>                                          \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<Accessor>>  \
-    _operator_name(const range<Accessor> &operand)                        \
+    GKO_ATTRIBUTES constexpr GKO_INLINE                                   \
+        range<accessor::_operation_name<Accessor>>                        \
+        _operator_name(const range<Accessor> &operand)                    \
     {                                                                     \
         return range<accessor::_operation_name<Accessor>>(                \
             operand.get_accessor());                                      \
@@ -599,7 +596,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     struct _name {                                                     \
     private:                                                           \
         template <typename Operand>                                    \
-        GKO_ATTRIBUTES static auto simple_evaluate_impl(               \
+        GKO_ATTRIBUTES static constexpr auto simple_evaluate_impl(     \
             const Operand &operand) -> decltype(__VA_ARGS__)           \
         {                                                              \
             return __VA_ARGS__;                                        \
@@ -607,7 +604,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
                                                                        \
     public:                                                            \
         template <typename AccessorType, typename... DimensionTypes>   \
-        GKO_ATTRIBUTES static auto evaluate(                           \
+        GKO_ATTRIBUTES static constexpr auto evaluate(                 \
             const AccessorType &accessor,                              \
             const DimensionTypes &... dimensions)                      \
             -> decltype(simple_evaluate_impl(accessor(dimensions...))) \
@@ -645,10 +642,9 @@ GKO_DEFINE_SIMPLE_UNARY_OPERATION(squared_norm_operation,
 struct transpose_operation {
     template <typename AccessorType, typename FirstDimensionType,
               typename SecondDimensionType, typename... DimensionTypes>
-    GKO_ATTRIBUTES static auto evaluate(const AccessorType &accessor,
-                                        const FirstDimensionType &first_dim,
-                                        const SecondDimensionType &second_dim,
-                                        const DimensionTypes &... dims)
+    GKO_ATTRIBUTES static constexpr auto evaluate(
+        const AccessorType &accessor, const FirstDimensionType &first_dim,
+        const SecondDimensionType &second_dim, const DimensionTypes &... dims)
         -> decltype(accessor(second_dim, first_dim, dims...))
     {
         return accessor(second_dim, first_dim, dims...);
@@ -717,7 +713,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
 
 #define GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name) \
     template <typename Accessor>                                              \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+    GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_range, Accessor, Accessor>>   \
     _operator_name(const range<Accessor> &first,                              \
                    const range<Accessor> &second)                             \
@@ -728,7 +724,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
     }                                                                         \
                                                                               \
     template <typename FirstAccessor, typename SecondAccessor>                \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+    GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_range, FirstAccessor,         \
         SecondAccessor>>                                                      \
     _operator_name(const range<FirstAccessor> &first,                         \
@@ -740,7 +736,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
     }                                                                         \
                                                                               \
     template <typename FirstAccessor, typename SecondOperand>                 \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+    GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,        \
         SecondOperand>>                                                       \
     _operator_name(const range<FirstAccessor> &first,                         \
@@ -752,7 +748,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
     }                                                                         \
                                                                               \
     template <typename FirstOperand, typename SecondAccessor>                 \
-    GKO_ATTRIBUTES GKO_INLINE range<accessor::_operation_name<                \
+    GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::scalar_by_range, FirstOperand,         \
         SecondAccessor>>                                                      \
     _operator_name(const FirstOperand &first,                                 \
@@ -768,7 +764,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
     struct _name {                                                             \
     private:                                                                   \
         template <typename FirstOperand, typename SecondOperand>               \
-        GKO_ATTRIBUTES static auto simple_evaluate_impl(                       \
+        GKO_ATTRIBUTES constexpr static auto simple_evaluate_impl(             \
             const FirstOperand &first, const SecondOperand &second)            \
             -> decltype(__VA_ARGS__)                                           \
         {                                                                      \
@@ -778,7 +774,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
     public:                                                                    \
         template <typename FirstAccessor, typename SecondAccessor,             \
                   typename... DimensionTypes>                                  \
-        GKO_ATTRIBUTES static auto evaluate_range_by_range(                    \
+        GKO_ATTRIBUTES static constexpr auto evaluate_range_by_range(          \
             const FirstAccessor &first, const SecondAccessor &second,          \
             const DimensionTypes &... dims)                                    \
             -> decltype(simple_evaluate_impl(first(dims...), second(dims...))) \
@@ -788,7 +784,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
                                                                                \
         template <typename FirstOperand, typename SecondAccessor,              \
                   typename... DimensionTypes>                                  \
-        GKO_ATTRIBUTES static auto evaluate_scalar_by_range(                   \
+        GKO_ATTRIBUTES static constexpr auto evaluate_scalar_by_range(         \
             const FirstOperand &first, const SecondAccessor &second,           \
             const DimensionTypes &... dims)                                    \
             -> decltype(simple_evaluate_impl(first, second(dims...)))          \
@@ -798,7 +794,7 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
                                                                                \
         template <typename FirstAccessor, typename SecondOperand,              \
                   typename... DimensionTypes>                                  \
-        GKO_ATTRIBUTES static auto evaluate_range_by_scalar(                   \
+        GKO_ATTRIBUTES static constexpr auto evaluate_range_by_scalar(         \
             const FirstAccessor &first, const SecondOperand &second,           \
             const DimensionTypes &... dims)                                    \
             -> decltype(simple_evaluate_impl(first(dims...), second))          \
@@ -911,8 +907,7 @@ struct mmul_operation {
         : first{first}, second{second}
     {
         GKO_ASSERT(first.length(1) == second.length(0));
-        GKO_ASSERT((gko::detail::equal_dimensions_impl<
-                    2, FirstAccessor::dimensionality>(first, second)));
+        GKO_ASSERT(gko::detail::equal_dimensions<2>(first, second));
     }
 
     template <typename FirstDimension, typename SecondDimension,
@@ -937,7 +932,7 @@ struct mmul_operation {
         return result;
     }
 
-    GKO_ATTRIBUTES size_type length(size_type dimension) const
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return dimension == 1 ? second.length(1) : first.length(dimension);
     }
