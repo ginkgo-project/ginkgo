@@ -170,9 +170,11 @@ int main(int argc, char *argv[])
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
 
+#ifdef HAVE_PAPI_SDE
     static_cast<gko::solver::Cg<> *>(solver.get())
         ->add_logger(
             gko::log::Papi<>::create(gko::log::Logger::all_events_mask));
+#endif
 
     // Solve system
     solver->apply(lend(b), lend(x));
