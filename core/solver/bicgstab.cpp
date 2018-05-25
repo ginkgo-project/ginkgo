@@ -55,6 +55,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
+    GKO_REGISTER_OPERATION(finalize, bicgstab::finalize<ValueType>);
 };
 
 
@@ -66,6 +67,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
+
+    constexpr uint8 RelativeStoppingId{1};
+    constexpr uint8 IterationStoppingId{2};
 
     auto exec = this->get_executor();
 
@@ -116,9 +120,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                &stopStatus, &all_converged, true));
+                RelativeStoppingId, true, &stopStatus, &all_converged));
         if (all_converged) {
-            // TODO: call special kernel to finalize vectors
             break;
         }
 
@@ -139,14 +142,13 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
+        s->compute_dot(s.get(), tau.get());
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                &stopStatus, &all_converged, false));
+                RelativeStoppingId, false, &stopStatus, &all_converged));
 
         if (all_converged || ++iter == parameters_.max_iters) {
-            // TODO: call special kernel to finalize vectors
-            dense_x->add_scaled(alpha.get(), y.get());
             break;
         }
         preconditioner_->apply(s.get(), z.get());
@@ -161,6 +163,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = s - omega * t
         swap(prev_rho, rho);
     }
+    // Finalize all vectors that are not Finalized yet and set Iteration as the
+    // stopping criteria
+    exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
+        dense_x, y.get(), alpha.get(), IterationStoppingId, &stopStatus));
 }
 
 

@@ -39,6 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
+// TODO: remove
+#include <iostream>
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -87,13 +90,13 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
-                      Array<StoppingStatus> *stopStatus, bool *all_converged,
-                      bool setFinalized)
+                      uint8 stoppingId, bool setFinalized,
+                      Array<StoppingStatus> *stopStatus, bool *all_converged)
 {
     *all_converged = true;
     for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
-            stopStatus->get_data()[i].converge(1, setFinalized);
+            stopStatus->get_data()[i].converge(stoppingId, setFinalized);
         }
     }
     for (size_type i = 0; i < stopStatus->get_num_elems(); ++i) {
@@ -199,6 +202,33 @@ void step_3(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
+
+
+template <typename ValueType>
+void finalize(std::shared_ptr<const ReferenceExecutor> exec,
+              matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
+              const matrix::Dense<ValueType> *alpha, uint8 stoppingId,
+              Array<StoppingStatus> *stopStatus)
+{
+    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+        if (stopStatus->get_const_data()[j].has_stopped() &&
+            !stopStatus->get_const_data()[j].is_finalized()) {
+            for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+                std::cerr << "Starting finalize...\n";
+                x->at(i, j) += alpha->at(j) * y->at(i, j);
+                if (!stopStatus->get_const_data()[j].has_stopped()) {
+                    stopStatus->get_data()[j].stop(stoppingId, true);
+                } else {
+                    std::cerr << "It was already stopped!\n";
+                    stopStatus->get_data()[j].finalize();
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
+
 
 }  // namespace bicgstab
 }  // namespace reference
