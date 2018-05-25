@@ -148,7 +148,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
                 RelativeStoppingId, false, &stopStatus, &all_converged));
 
-        if (all_converged || ++iter == parameters_.max_iters) {
+        if (all_converged || iter + 1 == parameters_.max_iters) {
             break;
         }
         preconditioner_->apply(s.get(), z.get());
