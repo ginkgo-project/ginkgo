@@ -37,9 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/math.hpp"
-#include "core/base/stopping_status.hpp"
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/stop/stopping_status.hpp"
 
 namespace gko {
 namespace kernels {

@@ -39,8 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
-// TODO: remove
-#include <iostream>
 
 namespace gko {
 namespace kernels {
@@ -100,7 +98,7 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
     for (size_type i = 0; i < stopStatus->get_num_elems(); ++i) {
-        if (!stopStatus->get_const_data()[i].has_converged()) {
+        if (!stopStatus->get_const_data()[i].has_stopped()) {
             *all_converged = false;
             break;
         }
@@ -214,12 +212,10 @@ void finalize(std::shared_ptr<const ReferenceExecutor> exec,
         if (stopStatus->get_const_data()[j].has_stopped() &&
             !stopStatus->get_const_data()[j].is_finalized()) {
             for (size_type i = 0; i < x->get_size().num_rows; ++i) {
-                std::cerr << "Starting finalize...\n";
                 x->at(i, j) += alpha->at(j) * y->at(i, j);
                 if (!stopStatus->get_const_data()[j].has_stopped()) {
                     stopStatus->get_data()[j].stop(stoppingId, true);
                 } else {
-                    std::cerr << "It was already stopped!\n";
                     stopStatus->get_data()[j].finalize();
                 }
             }

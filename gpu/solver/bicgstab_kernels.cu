@@ -134,7 +134,7 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
-        else if (stopStatus[tidx].has_converged()) {
+        else if (stopStatus[tidx].has_stopped()) {
             *all_converged = false;
         }
     }
