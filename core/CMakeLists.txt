@@ -28,6 +28,10 @@ set(SOURCES
     stop/time.cpp)
 
 
+if(PAPI_SDE_FOUND)
+  set(SOURCES ${SOURCES} log/papi.cpp)
+endif()
+
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
