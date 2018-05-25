@@ -170,7 +170,7 @@ template <typename IndexType>
 __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                                       const IndexType *__restrict__ row_ptrs,
                                       const IndexType *__restrict__ col_idx,
-                                      bool *matching_prev_row)
+                                      bool *__restrict__ matching_next_row)
 {
     const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
     const auto local_tid = threadIdx.x % cuda_config::warp_size;
@@ -180,40 +180,40 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
         return;
     }
 
-    const auto prev_row_start = row_ptrs[warp_id];
-    const auto curr_row_start = row_ptrs[warp_id + 1];
-    const auto next_row_start = row_ptrs[warp_id + 2];
+    const auto curr_row_start = row_ptrs[warp_id];
+    const auto next_row_start = row_ptrs[warp_id + 1];
+    const auto next_row_end = row_ptrs[warp_id + 2];
 
-    const auto nz_this_row = next_row_start - curr_row_start;
-    const auto nz_prev_row = curr_row_start - prev_row_start;
+    const auto nz_this_row = next_row_end - next_row_start;
+    const auto nz_prev_row = next_row_start - curr_row_start;
 
     if (nz_this_row != nz_prev_row) {
-        matching_prev_row[warp_id] = false;
+        matching_next_row[warp_id] = false;
         return;
     }
     size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
     for (size_type i = 0; i < steps; i++) {
         auto j = local_tid + i * cuda_config::warp_size;
-        auto prev_col = (prev_row_start + j < curr_row_start)
-                            ? col_idx[prev_row_start + j]
-                            : 0;
-        auto this_col = (prev_row_start + j < curr_row_start)
+        auto prev_col = (curr_row_start + j < next_row_start)
                             ? col_idx[curr_row_start + j]
                             : 0;
+        auto this_col = (curr_row_start + j < next_row_start)
+                            ? col_idx[next_row_start + j]
+                            : 0;
         if (warp::any(prev_col != this_col)) {
-            matching_prev_row[warp_id] = false;
+            matching_next_row[warp_id] = false;
             return;
         }
     }
-    matching_prev_row[warp_id] = true;
+    matching_next_row[warp_id] = true;
 }
 
 
 template <typename IndexType>
 __global__ void generate_natural_block_pointer(
     size_type num_rows, int32 max_block_size,
-    const bool *__restrict__ matching_prev_row, IndexType *block_ptrs,
-    size_type *num_blocks_arr)
+    const bool *__restrict__ matching_next_row,
+    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
 {
     block_ptrs[0] = 0;
     if (num_rows == 0) {
@@ -222,7 +222,7 @@ __global__ void generate_natural_block_pointer(
     size_type num_blocks = 1;
     int32 current_block_size = 1;
     for (size_type i = 1; i < num_rows; ++i) {
-        if ((matching_prev_row[i]) && (current_block_size < max_block_size)) {
+        if ((matching_next_row[i]) && (current_block_size < max_block_size)) {
             ++current_block_size;
         } else {
             block_ptrs[num_blocks] =
@@ -239,11 +239,12 @@ __global__ void generate_natural_block_pointer(
 template <typename ValueType, typename IndexType>
 size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *mtx,
-                              int32 max_block_size, IndexType *block_ptrs)
+                              int32 max_block_size,
+                              IndexType *__restrict__ block_ptrs)
 {
     Array<size_type> nums(exec, 1);
 
-    Array<bool> matching_prev_row(exec, mtx->get_size().num_rows);
+    Array<bool> matching_next_row(exec, mtx->get_size().num_rows);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -252,20 +253,19 @@ size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
         1, 1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
         mtx->get_size().num_rows, max_block_size, mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), matching_prev_row.get_data());
+        mtx->get_const_col_idxs(), matching_next_row.get_data());
     generate_natural_block_pointer<<<1, 1, 0, 0>>>(
         mtx->get_size().num_rows, max_block_size,
-        matching_prev_row.get_const_data(), block_ptrs, nums.get_data());
+        matching_next_row.get_const_data(), block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }
 
 
 template <typename IndexType>
-__global__ void agglomerate_supervariables_kernel(int32 max_block_size,
-                                                  size_type num_natural_blocks,
-                                                  IndexType *block_ptrs,
-                                                  size_type *num_blocks_arr)
+__global__ void agglomerate_supervariables_kernel(
+    int32 max_block_size, size_type num_natural_blocks,
+    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
 {
     num_blocks_arr[0] = 0;
     if (num_natural_blocks == 0) {
