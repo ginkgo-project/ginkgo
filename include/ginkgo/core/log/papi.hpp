@@ -45,6 +45,9 @@ namespace gko {
 namespace log {
 
 
+extern const papi_handle_t papi_handle;
+
+
 /**
  * Papi is a Logger which logs every event to the PAPI software. Thanks to this
  * logger, applications which interface with PAPI can access Ginkgo internal
@@ -60,10 +63,9 @@ public:
      * @param enabled_events  the events enabled for this Logger
      * @param handle  the papi handle
      */
-    static std::shared_ptr<Papi> create(const mask_type &enabled_events,
-                                        papi_handle_t handle)
+    static std::shared_ptr<Papi> create(const mask_type &enabled_events)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events, handle));
+        return std::shared_ptr<Papi>(new Papi(enabled_events));
     }
 
     void on_iteration_complete(const size_type num_iterations) const override;
@@ -73,12 +75,7 @@ public:
                       const LinOp *residual) const override;
 
 protected:
-    explicit Papi(const mask_type &enabled_events, papi_handle_t handle)
-        : Logger(enabled_events), handle_{handle}
-    {}
-
-private:
-    papi_handle_t handle_;
+    explicit Papi(const mask_type &enabled_events) : Logger(enabled_events) {}
 };
 
 

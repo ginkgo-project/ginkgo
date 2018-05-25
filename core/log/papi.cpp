@@ -39,6 +39,9 @@ namespace gko {
 namespace log {
 
 
+const papi_handle_t papi_handle = papi_sde_init("ginkgo");
+
+
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
     const size_type num_iterations) const

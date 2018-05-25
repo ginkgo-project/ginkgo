@@ -78,8 +78,12 @@ if (PAPI_LIB)
   include (CheckSymbolExists)
 
   SET(CMAKE_REQUIRED_LIBRARIES ${PAPI_LIB})
-  check_symbol_exists(papi_sde_init papi_sde_interface.h PAPI_SDE_FOUND)
+  check_symbol_exists(papi_sde_init papi_sde_interface.h HAVE_PAPI_SDE)
   unset(CMAKE_REQUIRED_LIBRARIES)
+
+  if (HAVE_PAPI_SDE)
+    set(PAPI_SDE_LIB ${PAPI_LIB})
+  endif(HAVE_PAPI_SDE)
 endif(PAPI_LIB)
 
 
