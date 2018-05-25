@@ -61,6 +61,28 @@ install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
   FILES_MATCHING PATTERN "*.hpp"
   )
 
+# Automatically find PAPI and search for required 'sde' component
+# CURRENT REQUIREMENTS:
+#     1. Have access to papi-sde private repo
+#     2. Install PAPI and activate sde component:
+#         + cd <path-to-papi>/src
+#         + ./configure --with-components=sde
+#         + make -j$(nproc)
+#         + (sudo) make install
+#     3. Edit <path-to-papi>/src/components/sde/interface/papi_sde_interface.h
+#           and add: `extern "C" {}` around the whole function definitions
+#           to disable C++ name mangling
+#     4. Copy the previous header to an include path in your system
+find_library(PAPI_LIB papi)
+if (PAPI_LIB)
+  include (CheckSymbolExists)
+
+  SET(CMAKE_REQUIRED_LIBRARIES ${PAPI_LIB})
+  check_symbol_exists(papi_sde_init papi_sde_interface.h PAPI_SDE_FOUND)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+endif(PAPI_LIB)
+
+
 add_subdirectory(third_party)    # Third-party tools and libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (BUILD_REFERENCE)
