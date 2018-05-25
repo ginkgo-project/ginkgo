@@ -237,8 +237,7 @@ TEST_F(BlockJacobi,
     auto d_mtx = Mtx::create(gpu);
     d_mtx->copy_from(mtx.get());
 
-    std::unique_ptr<BjFactory> bj_factory;
-    bj_factory = BjFactory::create(ref, 3);
+    auto bj_factory = BjFactory::create(ref, 3);
     auto bj_lin_op = bj_factory->generate(std::move(mtx));
     auto bj = static_cast<Bj *>(bj_lin_op.get());
     d_bj_factory = BjFactory::create(gpu, 3);
