@@ -69,7 +69,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     using Vector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
-    constexpr uint8 IterationStoppingId{2};
 
     auto exec = this->get_executor();
 
@@ -148,6 +147,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
                 RelativeStoppingId, false, &stopStatus, &all_converged));
 
+        exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
+            dense_x, y.get(), alpha.get(), &stopStatus));
         if (all_converged || iter + 1 == parameters_.max_iters) {
             break;
         }
@@ -163,10 +164,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = s - omega * t
         swap(prev_rho, rho);
     }
-    // Finalize all vectors that are not Finalized yet and set Iteration as the
-    // stopping criteria
-    exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
-        dense_x, y.get(), alpha.get(), IterationStoppingId, &stopStatus));
 }
 
 

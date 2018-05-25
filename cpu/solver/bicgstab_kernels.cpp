@@ -110,7 +110,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 template <typename ValueType>
 void finalize(std::shared_ptr<const CpuExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
-              const matrix::Dense<ValueType> *alpha, uint8 stoppingId,
+              const matrix::Dense<ValueType> *alpha,
               Array<StoppingStatus> *stopStatus) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);

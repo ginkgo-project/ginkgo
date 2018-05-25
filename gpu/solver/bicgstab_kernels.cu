@@ -346,30 +346,26 @@ __global__ __launch_bounds__(default_block_size) void finalize_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type x_stride, ValueType *__restrict__ x,
     const ValueType *__restrict__ y, const ValueType *__restrict__ alpha,
-    uint8 stoppingId, StoppingStatus *__restrict__ stopStatus)
+    StoppingStatus *__restrict__ stopStatus)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = tidx / stride;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
-        stopStatus[col].is_finalized()) {
+        stopStatus[col].is_finalized() || !stopStatus[col].has_stopped()) {
         return;
     }
     const auto x_pos = row * x_stride + col;
     x[x_pos] = x[x_pos] + alpha[col] * y[tidx];
-    if (!stopStatus[col].has_stopped()) {
-        stopStatus[col].stop(stoppingId, true);
-    } else {
-        stopStatus[col].finalize();
-    }
+    stopStatus[col].finalize();
 }
 
 
 template <typename ValueType>
 void finalize(std::shared_ptr<const GpuExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
-              const matrix::Dense<ValueType> *alpha, uint8 stoppingId,
+              const matrix::Dense<ValueType> *alpha,
               Array<StoppingStatus> *stopStatus)
 {
     const dim3 block_size(default_block_size, 1, 1);
@@ -380,7 +376,7 @@ void finalize(std::shared_ptr<const GpuExecutor> exec,
         y->get_size().num_rows, y->get_size().num_cols, y->get_stride(),
         x->get_stride(), as_cuda_type(x->get_values()),
         as_cuda_type(y->get_const_values()),
-        as_cuda_type(alpha->get_const_values()), stoppingId,
+        as_cuda_type(alpha->get_const_values()),
         as_cuda_type(stopStatus->get_data()));
 }
 

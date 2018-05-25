@@ -205,7 +205,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 template <typename ValueType>
 void finalize(std::shared_ptr<const ReferenceExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
-              const matrix::Dense<ValueType> *alpha, uint8 stoppingId,
+              const matrix::Dense<ValueType> *alpha,
               Array<StoppingStatus> *stopStatus)
 {
     for (size_type j = 0; j < x->get_size().num_cols; ++j) {
@@ -213,11 +213,7 @@ void finalize(std::shared_ptr<const ReferenceExecutor> exec,
             !stopStatus->get_const_data()[j].is_finalized()) {
             for (size_type i = 0; i < x->get_size().num_rows; ++i) {
                 x->at(i, j) += alpha->at(j) * y->at(i, j);
-                if (!stopStatus->get_const_data()[j].has_stopped()) {
-                    stopStatus->get_data()[j].stop(stoppingId, true);
-                } else {
-                    stopStatus->get_data()[j].finalize();
-                }
+                stopStatus->get_data()[j].finalize();
             }
         }
     }

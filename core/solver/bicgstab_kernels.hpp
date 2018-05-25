@@ -99,7 +99,7 @@ namespace bicgstab {
 #define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(_type)                       \
     void finalize(std::shared_ptr<const DefaultExecutor> exec,            \
                   matrix::Dense<_type> *x, const matrix::Dense<_type> *y, \
-                  const matrix::Dense<_type> *alpha, uint8 stoppingId,    \
+                  const matrix::Dense<_type> *alpha,                      \
                   Array<StoppingStatus> *stopStatus)
 
 
