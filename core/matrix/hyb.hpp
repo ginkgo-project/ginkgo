@@ -38,7 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/mtx_reader.hpp"
-
+#include "core/matrix/coo.hpp"
+#include "core/matrix/ell.hpp"
 
 namespace gko {
 namespace matrix {
@@ -47,6 +48,8 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+// template <typename ValueType, typename IndexType>
+// class Coo;
 
 /**
  * HYB is a matrix format where stride with explicit zeros is used such that
@@ -80,6 +83,28 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using coo_type = Coo<ValueType, IndexType>;
+    using ell_type = Ell<ValueType, IndexType>;
+    
+    /**
+     * This type is used to describe how to get the partition.
+     */
+    enum partition {
+        /**
+         * Marks that partition is decided automatically.
+         */
+        automatically,
+
+        /**
+         * Marks that partition is decided by user with percentile.
+         */
+        percentile,
+
+        /**
+         * Marks that partition is decided by user with columns.
+         */
+        columns
+    };
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -90,114 +115,182 @@ public:
     void write(mat_data &data) const override;
 
     /**
-     * Returns the values of the matrix.
+     * Returns the values of the Ell part.
      *
-     * @return the values of the matrix.
+     * @return the values of the Ell part.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type *get_ell_values() noexcept { return ell_->get_values(); }
 
     /**
-     * @copydoc Hyb::get_values()
+     * @copydoc Hyb::get_ell_values()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type *get_const_ell_values() const noexcept
     {
-        return values_.get_const_data();
+        return ell_->get_const_values();
     }
 
     /**
-     * Returns the column indexes of the matrix.
+     * Returns the column indexes of the ELL part.
      *
-     * @return the column indexes of the matrix.
+     * @return the column indexes of the ELL part.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type *get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
 
     /**
-     * @copydoc Hyb::get_col_idxs()
+     * @copydoc Hyb::get_ell_col_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type *get_const_ell_col_idxs() const noexcept
     {
-        return col_idxs_.get_const_data();
+        return ell_->get_const_col_idxs();
     }
 
     /**
-     * Returns the maximum number of non-zeros per row.
+     * Returns the maximum number of non-zeros per row of ell part.
      *
-     * @return the maximum number of non-zeros per row.
+     * @return the maximum number of non-zeros per row of ell part.
      */
-    size_type get_max_nonzeros_per_row() const noexcept
+    size_type get_ell_max_nonzeros_per_row() const noexcept
     {
-        return max_nonzeros_per_row_;
+        return ell_->get_max_nonzeros_per_row();
     }
 
     /**
-     * Returns the stride of the matrix.
+     * Returns the stride of the ell part.
      *
-     * @return the stride of the matrix.
+     * @return the stride of the ell part.
      */
-    size_type get_stride() const noexcept { return stride_; }
+    size_type get_ell_stride() const noexcept { return ell_->get_stride(); }
+
+    /**
+     * Returns the number of elements explicitly stored in the ell part.
+     *
+     * @return the number of elements explicitly stored in the ell part
+     */
+    size_type get_ell_num_stored_elements() const noexcept
+    {
+        return ell_->get_num_stored_elements();
+    }
+
+    /**
+     * Returns the `idx`-th non-zero element of the `row`-th row in the ell
+     * part.
+     *
+     * @param row  the row of the requested element
+     * @param idx  the idx-th stored element of the row
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    value_type &ell_val_at(size_type row, size_type idx) noexcept
+    {
+        return ell_->val_at(row, idx);
+    }
+
+    /**
+     * @copydoc Hyb::ell_val_at(size_type, size_type)
+     */
+    value_type ell_val_at(size_type row, size_type idx) const noexcept
+    {
+        return ell_->val_at(row, idx);
+    }
+
+    /**
+     * Returns the `idx`-th column index of the `row`-th row in the ell part.
+     *
+     * @param row  the row of the requested element
+     * @param idx  the idx-th stored element of the row
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
+    index_type &ell_col_at(size_type row, size_type idx) noexcept
+    {
+        return ell_->col_at(row, idx);
+    }
+
+    /**
+     * @copydoc Hyb::ell_col_at(size_type, size_type)
+     */
+    index_type ell_col_at(size_type row, size_type idx) const noexcept
+    {
+        return ell_->col_at(row, idx);
+    }
+
+    /**
+     * Returns the values of the coo part.
+     *
+     * @return the values of the coo part.
+     */
+    value_type *get_coo_values() noexcept { return coo_->get_values(); }
+
+    /**
+     * @copydoc Hyb::get_coo_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type *get_const_coo_values() const noexcept
+    {
+        return coo_->get_const_values();
+    }
+
+    /**
+     * Returns the column indexes of the ell part.
+     *
+     * @return the column indexes of the ell part.
+     */
+    index_type *get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
+
+    /**
+     * @copydoc Csr::get_col_idxs()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const index_type *get_const_coo_col_idxs() const noexcept
+    {
+        return coo_->get_const_col_idxs();
+    }
+
+    /**
+     * Returns the row indexes of the matrix.
+     *
+     * @return the row indexes of the matrix.
+     */
+    index_type *get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
+
+    /**
+     * @copydoc Csr::get_row_idxs()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const index_type *get_const_coo_row_idxs() const noexcept
+    {
+        return coo_->get_const_row_idxs();
+    }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
+    size_type get_coo_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
-    }
-
-    /**
-     * Returns the `idx`-th non-zero element of the `row`-th row .
-     *
-     * @param row  the row of the requested element
-     * @param idx  the idx-th stored element of the row
-     *
-     * @note  the method has to be called on the same Executor the matrix is
-     *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
-     */
-    value_type &val_at(size_type row, size_type idx) noexcept
-    {
-        return values_.get_data()[this->linearize_index(row, idx)];
-    }
-
-    /**
-     * @copydoc Hyb::val_at(size_type, size_type)
-     */
-    value_type val_at(size_type row, size_type idx) const noexcept
-    {
-        return values_.get_const_data()[this->linearize_index(row, idx)];
-    }
-
-    /**
-     * Returns the `idx`-th column index of the `row`-th row .
-     *
-     * @param row  the row of the requested element
-     * @param idx  the idx-th stored element of the row
-     *
-     * @note  the method has to be called on the same Executor the matrix is
-     *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
-     */
-    index_type &col_at(size_type row, size_type idx) noexcept
-    {
-        return this->get_col_idxs()[this->linearize_index(row, idx)];
-    }
-
-    /**
-     * @copydoc Hyb::col_at(size_type, size_type)
-     */
-    index_type col_at(size_type row, size_type idx) const noexcept
-    {
-        return this->get_const_col_idxs()[this->linearize_index(row, idx)];
+        return coo_->get_num_stored_elements();
     }
 
 protected:
@@ -233,31 +326,27 @@ protected:
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param stride                stride of the rows
+     * @param num_nonzeros  number of nonzeros
      */
     Hyb(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row, size_type stride)
+        size_type max_nonzeros_per_row, size_type stride,
+        size_type num_nonzeros = {})
         : EnableLinOp<Hyb>(exec, size),
-          values_(exec, stride * max_nonzeros_per_row),
-          col_idxs_(exec, stride * max_nonzeros_per_row),
-          max_nonzeros_per_row_(max_nonzeros_per_row),
-          stride_(stride)
-    {}
+          ell_(std::move(ell_type::create(exec, size, max_nonzeros_per_row, stride))),
+          coo_(std::move(coo_type::create(exec, size, num_nonzeros)))
+    {
+        
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    size_type linearize_index(size_type row, size_type col) const noexcept
-    {
-        return row + stride_ * col;
-    }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    size_type max_nonzeros_per_row_;
-    size_type stride_;
+    std::shared_ptr< ell_type > ell_;
+    std::shared_ptr< coo_type > coo_;
 };
 
 
