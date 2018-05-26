@@ -55,8 +55,7 @@ protected:
 
     static void assert_equal_to_original_mtx(gko::matrix::Dense<> *m)
     {
-        ASSERT_EQ(m->get_num_rows(), 2);
-        ASSERT_EQ(m->get_num_cols(), 3);
+        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_stride(), 4);
         ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
         EXPECT_EQ(m->at(0, 0), 1.0);
@@ -69,8 +68,7 @@ protected:
 
     static void assert_empty(gko::matrix::Dense<> *m)
     {
-        EXPECT_EQ(m->get_num_rows(), 0);
-        EXPECT_EQ(m->get_num_cols(), 0);
+        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
@@ -95,10 +93,9 @@ TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
 
 TEST_F(Dense, CanBeConstructedWithSize)
 {
-    auto m = gko::matrix::Dense<>::create(exec, 2, 3);
+    auto m = gko::matrix::Dense<>::create(exec, gko::dim{2, 3});
 
-    EXPECT_EQ(m->get_num_rows(), 2);
-    EXPECT_EQ(m->get_num_cols(), 3);
+    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     EXPECT_EQ(m->get_stride(), 3);
     ASSERT_EQ(m->get_num_stored_elements(), 6);
 }
@@ -106,10 +103,9 @@ TEST_F(Dense, CanBeConstructedWithSize)
 
 TEST_F(Dense, CanBeConstructedWithSizeAndstride)
 {
-    auto m = gko::matrix::Dense<>::create(exec, 2, 3, 4);
+    auto m = gko::matrix::Dense<>::create(exec, gko::dim{2, 3}, 4);
 
-    EXPECT_EQ(m->get_num_rows(), 2);
-    EXPECT_EQ(m->get_num_cols(), 3);
+    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     EXPECT_EQ(m->get_stride(), 4);
     ASSERT_EQ(m->get_num_stored_elements(), 8);
 }
@@ -125,8 +121,7 @@ TEST_F(Dense, CanBeListConstructed)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>({1.0, 2.0}, exec);
 
-    EXPECT_EQ(m->get_num_rows(), 2);
-    EXPECT_EQ(m->get_num_cols(), 1);
+    ASSERT_EQ(m->get_size(), gko::dim(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 2);
     EXPECT_EQ(m->at(0), 1);
     EXPECT_EQ(m->at(1), 2);
@@ -136,8 +131,7 @@ TEST_F(Dense, CanBeListConstructed)
 TEST_F(Dense, CanBeListConstructedWithstride)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>(2, {1.0, 2.0}, exec);
-    EXPECT_EQ(m->get_num_rows(), 2);
-    EXPECT_EQ(m->get_num_cols(), 1);
+    ASSERT_EQ(m->get_size(), gko::dim(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -149,8 +143,7 @@ TEST_F(Dense, CanBeDoubleListConstructed)
     auto m = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
-    EXPECT_EQ(m->get_num_rows(), 3);
-    EXPECT_EQ(m->get_num_cols(), 2);
+    ASSERT_EQ(m->get_size(), gko::dim(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -165,8 +158,7 @@ TEST_F(Dense, CanBeDoubleListConstructedWithstride)
     auto m = gko::initialize<gko::matrix::Dense<>>(
         4, {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
-    EXPECT_EQ(m->get_num_rows(), 3);
-    EXPECT_EQ(m->get_num_cols(), 2);
+    ASSERT_EQ(m->get_size(), gko::dim(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 12);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -212,8 +204,7 @@ TEST_F(Dense, CanBeCleared)
 TEST_F(Dense, CanBeReadFromMatrixData)
 {
     auto m = gko::matrix::Dense<>::create(exec);
-    m->read(gko::matrix_data<>{2,
-                               3,
+    m->read(gko::matrix_data<>{{2, 3},
                                {{0, 0, 1.0},
                                 {0, 1, 3.0},
                                 {0, 2, 2.0},
@@ -221,8 +212,7 @@ TEST_F(Dense, CanBeReadFromMatrixData)
                                 {1, 1, 5.0},
                                 {1, 2, 0.0}}});
 
-    ASSERT_EQ(m->get_num_rows(), 2);
-    ASSERT_EQ(m->get_num_cols(), 3);
+    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
     EXPECT_EQ(m->at(0, 0), 1.0);
     EXPECT_EQ(m->at(1, 0), 0.0);
@@ -240,8 +230,7 @@ TEST_F(Dense, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.num_rows, 2);
-    ASSERT_EQ(data.num_cols, 3);
+    ASSERT_EQ(data.size, gko::dim(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 6);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 2.0));

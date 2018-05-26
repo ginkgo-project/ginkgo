@@ -19,7 +19,7 @@ find_library(CUBLAS cublas
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
-add_library(ginkgo_gpu SHARED
+add_library(ginkgo_gpu
     $<TARGET_OBJECTS:ginkgo_gpu_device>
     ${SOURCES})
 target_include_directories(ginkgo_gpu PUBLIC ${PROJECT_SOURCE_DIR})

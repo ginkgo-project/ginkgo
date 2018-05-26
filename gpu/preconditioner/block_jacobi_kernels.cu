@@ -49,7 +49,6 @@ namespace gpu {
 namespace kernel {
 namespace {
 
-
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
@@ -111,6 +110,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 
 namespace {
 
+constexpr int default_block_size = 32;
 
 constexpr int get_larger_power(int value, int guess = 1)
 {
@@ -133,7 +133,7 @@ void generate(syn::compile_int_list<max_block_size>,
 
     kernel::generate<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
-            mtx->get_num_rows(), mtx->get_const_row_ptrs(),
+            mtx->get_size().num_rows, mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
             as_cuda_type(block_data), stride, block_ptrs, num_blocks);
 }
@@ -166,6 +166,143 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
 
 
+template <typename IndexType>
+__global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
+                                      const IndexType *__restrict__ row_ptrs,
+                                      const IndexType *__restrict__ col_idx,
+                                      bool *__restrict__ matching_next_row)
+{
+    const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const auto local_tid = threadIdx.x % cuda_config::warp_size;
+    const auto warp_id = global_tid / cuda_config::warp_size;
+
+    if (warp_id >= num_rows - 1) {
+        return;
+    }
+
+    const auto curr_row_start = row_ptrs[warp_id];
+    const auto next_row_start = row_ptrs[warp_id + 1];
+    const auto next_row_end = row_ptrs[warp_id + 2];
+
+    const auto nz_this_row = next_row_end - next_row_start;
+    const auto nz_prev_row = next_row_start - curr_row_start;
+
+    if (nz_this_row != nz_prev_row) {
+        matching_next_row[warp_id] = false;
+        return;
+    }
+    size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
+    for (size_type i = 0; i < steps; i++) {
+        auto j = local_tid + i * cuda_config::warp_size;
+        auto prev_col = (curr_row_start + j < next_row_start)
+                            ? col_idx[curr_row_start + j]
+                            : 0;
+        auto this_col = (curr_row_start + j < next_row_start)
+                            ? col_idx[next_row_start + j]
+                            : 0;
+        if (warp::any(prev_col != this_col)) {
+            matching_next_row[warp_id] = false;
+            return;
+        }
+    }
+    matching_next_row[warp_id] = true;
+}
+
+
+template <typename IndexType>
+__global__ void generate_natural_block_pointer(
+    size_type num_rows, int32 max_block_size,
+    const bool *__restrict__ matching_next_row,
+    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
+{
+    block_ptrs[0] = 0;
+    if (num_rows == 0) {
+        return;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = 1;
+    for (size_type i = 1; i < num_rows; ++i) {
+        if ((matching_next_row[i]) && (current_block_size < max_block_size)) {
+            ++current_block_size;
+        } else {
+            block_ptrs[num_blocks] =
+                block_ptrs[num_blocks - 1] + current_block_size;
+            ++num_blocks;
+            current_block_size = 1;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
+    num_blocks_arr[0] = num_blocks;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type find_natural_blocks(std::shared_ptr<const GpuExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              int32 max_block_size,
+                              IndexType *__restrict__ block_ptrs)
+{
+    Array<size_type> nums(exec, 1);
+
+    Array<bool> matching_next_row(exec, mtx->get_size().num_rows);
+
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(mtx->get_size().num_rows * cuda_config::warp_size,
+                block_size.x),
+        1, 1);
+    compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
+        mtx->get_size().num_rows, max_block_size, mtx->get_const_row_ptrs(),
+        mtx->get_const_col_idxs(), matching_next_row.get_data());
+    generate_natural_block_pointer<<<1, 1, 0, 0>>>(
+        mtx->get_size().num_rows, max_block_size,
+        matching_next_row.get_const_data(), block_ptrs, nums.get_data());
+    nums.set_executor(exec->get_master());
+    return nums.get_const_data()[0];
+}
+
+
+template <typename IndexType>
+__global__ void agglomerate_supervariables_kernel(
+    int32 max_block_size, size_type num_natural_blocks,
+    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
+{
+    num_blocks_arr[0] = 0;
+    if (num_natural_blocks == 0) {
+        return;
+    }
+    size_type num_blocks = 1;
+    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    for (size_type i = 1; i < num_natural_blocks; ++i) {
+        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        if (current_block_size + block_size <= max_block_size) {
+            current_block_size += block_size;
+        } else {
+            block_ptrs[num_blocks] = block_ptrs[i];
+            ++num_blocks;
+            current_block_size = block_size;
+        }
+    }
+    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
+    num_blocks_arr[0] = num_blocks;
+}
+
+
+template <typename IndexType>
+inline size_type agglomerate_supervariables(
+    std::shared_ptr<const GpuExecutor> exec, int32 max_block_size,
+    size_type num_natural_blocks, IndexType *block_ptrs)
+{
+    Array<size_type> nums(exec, 1);
+
+    agglomerate_supervariables_kernel<<<1, 1, 0, 0>>>(
+        max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
+
+    nums.set_executor(exec->get_master());
+    return nums.get_const_data()[0];
+}
+
+
 }  // namespace
 
 
@@ -176,7 +313,13 @@ template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const GpuExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
+                 Array<IndexType> &block_pointers)
+{
+    auto num_natural_blocks = find_natural_blocks(
+        exec, system_matrix, max_block_size, block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(
+        exec, max_block_size, num_natural_blocks, block_pointers.get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
@@ -233,7 +376,7 @@ void simple_apply(std::shared_ptr<const GpuExecutor> exec, size_type num_blocks,
                   matrix::Dense<ValueType> *x)
 {
     // TODO: write a special kernel for multiple RHS
-    for (size_type col = 0; col < b->get_num_cols(); ++col) {
+    for (size_type col = 0; col < b->get_size().num_cols; ++col) {
         select_apply(compiled_kernels(),
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;

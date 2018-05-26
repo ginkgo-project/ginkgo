@@ -49,20 +49,27 @@ namespace {
 class Bicgstab : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Bicgstab<>;
+
     Bicgstab()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
-          bicgstab_factory(
-              gko::solver::BicgstabFactory<>::create(exec, 8, 1e-15)),
-          bicgstab_factory_precision(
-              gko::solver::BicgstabFactory<>::create(exec, 50, 1e-15))
+          bicgstab_factory(Solver::Factory::create()
+                               .with_max_iters(8)
+                               .with_rel_residual_goal(1e-15)
+                               .on_executor(exec)),
+          bicgstab_factory_precision(gko::solver::Bicgstab<>::Factory::create()
+                                         .with_max_iters(50)
+                                         .with_rel_residual_goal(1e-15)
+                                         .on_executor(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory_precision;
+    std::unique_ptr<gko::solver::Bicgstab<>::Factory> bicgstab_factory;
+    std::unique_ptr<gko::solver::Bicgstab<>::Factory>
+        bicgstab_factory_precision;
 };
 
 
@@ -121,8 +128,8 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
     ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
 }
 
-// The following test-data was generated and validated with MATLAB
 
+// The following test-data was generated and validated with MATLAB
 TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
 {
     std::shared_ptr<Mtx> locmtx =
@@ -145,6 +152,7 @@ TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
            -0.0051264177562865719, 0.11609654300797841, 0.1018688746740561}),
         1e-9);
 }
+
 
 TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
 {
@@ -174,7 +182,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_num_rows(); ++i) {
+    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -201,7 +209,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
     auto xc = gko::initialize<Mtx>(
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
-    for (size_t i = 0; i < xc->get_num_rows(); ++i) {
+    for (size_t i = 0; i < xc->get_size().num_rows; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
         xc->at(i, 0) = x1->at(i);
@@ -214,7 +222,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
     auto testMtx = gko::initialize<Mtx>(
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
 
-    for (size_t i = 0; i < testMtx->get_num_rows(); ++i) {
+    for (size_t i = 0; i < testMtx->get_size().num_rows; ++i) {
         testMtx->at(i, 0) = x1->at(i);
         testMtx->at(i, 1) = x2->at(i);
     }

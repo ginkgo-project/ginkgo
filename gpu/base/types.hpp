@@ -138,7 +138,7 @@ using cuda_type = typename detail::cuda_type_impl<T>::type;
  *
  * @param val  the value to reinterpret
  *
- * @return  `val` reinterpreted to CUDA type
+ * @return `val` reinterpreted to CUDA type
  */
 template <typename T>
 inline cuda_type<T> as_cuda_type(T val)
@@ -163,7 +163,7 @@ using culibs_type = typename detail::culibs_type_impl<T>::type;
  *
  * @param val  the value to reinterpret
  *
- * @return  `val` reinterpreted to type used by CUDA libraries
+ * @return `val` reinterpreted to type used by CUDA libraries
  */
 template <typename T>
 inline culibs_type<T> as_culibs_type(T val)

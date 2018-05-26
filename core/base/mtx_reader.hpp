@@ -77,7 +77,7 @@ matrix_data<ValueType, IndexType> read_raw(const std::string &filename);
  * @param filename  filename from which to read the data
  * @param args  additional arguments passed to MatrixType constructor
  *
- * @return  A MatrixType LinOp filled with data from filename
+ * @return A MatrixType LinOp filled with data from filename
  */
 template <typename MatrixType, typename... MatrixArgs>
 inline std::unique_ptr<MatrixType> read(const std::string &filename,

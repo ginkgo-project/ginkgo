@@ -47,7 +47,7 @@ namespace gko {
  *
  * @param x  the number to conjugate
  *
- * @return  conjugate of `x`
+ * @return conjugate of `x`
  */
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE std::complex<T> conj(const std::complex<T> &x)
@@ -149,7 +149,7 @@ using remove_complex = typename detail::remove_complex_impl<T>::type;
  *
  * @tparam T  type to check
  *
- * @return  `true` if T is a complex type, `false` otherwise
+ * @return `true` if T is a complex type, `false` otherwise
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
@@ -304,7 +304,7 @@ using truncate_type =
  *
  * @tparam T type of the object.
  *
- * @return  The squared norm of the object.
+ * @return The squared norm of the object.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)

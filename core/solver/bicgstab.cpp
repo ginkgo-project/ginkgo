@@ -62,12 +62,10 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
 
     auto exec = this->get_executor();
 
@@ -85,7 +83,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto rr = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
@@ -94,7 +92,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    Array<bool> converged(alpha->get_executor(), dense_b->get_num_cols());
+    Array<bool> converged(alpha->get_executor(), dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -111,16 +109,13 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
     system_matrix_->apply(r.get(), v.get());
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         r->compute_dot(r.get(), tau.get());
-
         bool all_converged;
-
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
-                &all_converged));
-
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
         if (all_converged) {
             break;
         }
@@ -143,7 +138,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         // s = r - alpha * v
 
         // TODO: Add second convergence check
-        if (++iter == max_iters_) {
+        if (++iter == parameters_.max_iters) {
             dense_x->add_scaled(alpha.get(), y.get());
             break;
         }
@@ -163,8 +158,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
     auto x_clone = dense_x->clone();
@@ -174,26 +169,9 @@ void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
-    auto bicgstab =
-        std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
-            this->get_executor(), max_iters_, rel_residual_goal_, base));
-    bicgstab->set_preconditioner(precond_factory_->generate(base));
-    return std::move(bicgstab);
-}
-
-
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
-#define GKO_DECLARE_BICGSTAB_FACTORY(_type) class BicgstabFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FACTORY);
 #undef GKO_DECLARE_BICGSTAB
-#undef GKO_DECLARE_BICGSTAB_FACTORY
 
 
 }  // namespace solver

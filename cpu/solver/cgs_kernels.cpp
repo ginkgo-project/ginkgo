@@ -58,12 +58,12 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType j = 0; j < b->get_num_cols(); ++j) {
+    for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = zero<ValueType>();
         prev_rho->at(j) = one<ValueType>();
     }
-    for (sizeValueType i = 0; i < b->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < b->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < b->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
             z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
         }
@@ -97,8 +97,8 @@ void step_1(std::shared_ptr<const CpuExecutor> exec,
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < p->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < p->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < p->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < p->get_size().num_cols; ++j) {
             if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
@@ -124,8 +124,8 @@ void step_2(std::shared_ptr<const CpuExecutor> exec,
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < x->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < x->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
@@ -148,8 +148,8 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < x->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < x->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);

@@ -46,9 +46,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename>
-class BicgstabFactory;
-
 /**
  * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.
  *
@@ -61,26 +58,17 @@ class BicgstabFactory;
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public BasicLinOp<Bicgstab<ValueType>>,
-                 public PreconditionedMethod {
-    friend class BasicLinOp<Bicgstab>;
-    friend class BicgstabFactory<ValueType>;
+class Bicgstab : public EnableLinOp<Bicgstab<ValueType>> {
+    friend class EnableLinOp<Bicgstab>;
+    friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 
 public:
-    using BasicLinOp<Bicgstab>::convert_to;
-    using BasicLinOp<Bicgstab>::move_to;
-
     using value_type = ValueType;
 
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
     /**
-     * Gets the system matrix of the linear system.
+     * Gets the system operator (matrix) of the linear system.
      *
-     * @return  The system matrix.
+     * @return the system operator (matrix)
      */
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
@@ -88,104 +76,63 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
+     * Returns the preconditioner operator used by the solver.
      *
-     * @return  The maximum number of iterations.
+     * @return the preconditioner operator used by the solver
      */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
+    std::shared_ptr<const LinOp> get_preconditioner() const
     {
-        return rel_residual_goal_;
+        return preconditioner_;
     }
 
+    GKO_ENABLE_LIN_OP_FACTORY(Bicgstab, parameters, Factory)
+    {
+        /**
+         * Maximum number of iterations.
+         */
+        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+
+        /**
+         * Relative residual goal.
+         */
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                         0.0);
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+            preconditioner, nullptr);
+    };
+
 protected:
-    using BasicLinOp<Bicgstab>::create;
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Bicgstab>(exec, 0, 0, 0)
+        : EnableLinOp<Bicgstab>(std::move(exec))
     {}
 
-    Bicgstab(std::shared_ptr<const Executor> exec, int max_iters,
-             remove_complex<value_type> rel_residual_goal,
-             std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Bicgstab>(
-              exec, system_matrix->get_num_cols(),
-              system_matrix->get_num_rows(),
-              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
-          system_matrix_(std::move(system_matrix)),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
+    explicit Bicgstab(const Factory *factory,
+                      std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Bicgstab>(factory->get_executor(),
+                                transpose(system_matrix->get_size())),
+          parameters_{factory->get_parameters()},
+          system_matrix_{std::move(system_matrix)}
+    {
+        if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        } else {
+            preconditioner_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_size().num_rows);
+        }
+    }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
-};
-
-
-/**
- * Creates the BiCGSTAB solver.
- *
- * @param exec The executor on which the BiCGSTAB solver is to be created.
- * @param max_iters  The maximum number of iterations to be pursued.
- * @param rel_residual_goal  The relative residual required for
- * convergence.
- *
- * @return The newly created BiCGSTAB solver.
- */
-template <typename ValueType = default_precision>
-class BicgstabFactory : public LinOpFactory,
-                        public PreconditionedMethodFactory {
-public:
-    using value_type = ValueType;
-
-    static std::unique_ptr<BicgstabFactory> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal)
-    {
-        return std::unique_ptr<BicgstabFactory>(
-            new BicgstabFactory(std::move(exec), max_iters, rel_residual_goal));
-    }
-
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
-
-    /**
-     * Gets the maximum number of iterations of the BiCGSTAB solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
-    {
-        return rel_residual_goal_;
-    }
-
-protected:
-    BicgstabFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                    remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(exec),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
-    int max_iters_;
-    remove_complex<value_type> rel_residual_goal_;
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

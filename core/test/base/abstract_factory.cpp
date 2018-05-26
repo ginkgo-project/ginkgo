@@ -31,52 +31,63 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/identity.hpp"
+#include <core/base/abstract_factory.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace matrix {
+namespace {
 
 
-template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+struct IntFactory;
+struct MyInt;
+
+
+struct parameters_type
+    : gko::enable_parameters_type<parameters_type, IntFactory> {
+    int coefficient{5};
+};
+
+
+using base = gko::AbstractFactory<MyInt, int>;
+
+
+struct IntFactory
+    : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
+    friend class gko::enable_parameters_type<parameters_type, IntFactory>;
+    friend class gko::EnablePolymorphicObject<IntFactory, base>;
+    using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
+                                    base>::EnableDefaultFactory;
+};
+
+
+struct MyInt {
+    MyInt(const IntFactory *factory, int orig_value)
+        : value{orig_value * factory->get_parameters().coefficient}
+    {}
+    int value;
+};
+
+
+TEST(EnableDefaultFactory, StoresParameters)
 {
-    x->copy_from(b);
+    auto fact =
+        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+
+    ASSERT_EQ(fact->get_parameters().coefficient, 5);
 }
 
 
-template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
+TEST(EnableDefaultFactory, GeneratesProduct)
 {
-    auto dense_x = as<Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, b);
+    auto fact =
+        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+
+    auto prod = fact->generate(3);
+
+    ASSERT_EQ(prod->value, 15);
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
-    return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_size().num_rows);
-}
-
-
-#define DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_MATRIX);
-#undef DECLARE_IDENTITY_MATRIX
-#define DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_FACTORY);
-#undef DECLARE_IDENTITY_FACTORY
-
-
-}  // namespace matrix
-}  // namespace gko
+}  // namespace

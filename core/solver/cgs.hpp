@@ -46,10 +46,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename>
-class CgsFactory;
-
-
 /**
  * CGS or the conjugate gradient square method is an iterative type Krylov
  * subspace method which is suitable for general systems.
@@ -61,25 +57,17 @@ class CgsFactory;
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cgs : public BasicLinOp<Cgs<ValueType>>, public PreconditionedMethod {
-    friend class BasicLinOp<Cgs>;
-    friend class CgsFactory<ValueType>;
+class Cgs : public EnableLinOp<Cgs<ValueType>> {
+    friend class EnableLinOp<Cgs>;
+    friend class EnablePolymorphicObject<Cgs, LinOp>;
 
 public:
-    using BasicLinOp<Cgs>::convert_to;
-    using BasicLinOp<Cgs>::move_to;
-
     using value_type = ValueType;
 
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
-
     /**
-     * Gets the system matrix of the linear system.
+     * Gets the system operator (matrix) of the linear system.
      *
-     * @return  The system matrix.
+     * @return the system operator (matrix)
      */
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
@@ -87,106 +75,63 @@ public:
     }
 
     /**
-     * Gets the maximum number of iterations of the CGS solver.
+     * Returns the preconditioner operator used by the solver.
      *
-     * @return  The maximum number of iterations.
+     * @return the preconditioner operator used by the solver
      */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
+    std::shared_ptr<const LinOp> get_preconditioner() const
     {
-        return rel_residual_goal_;
+        return preconditioner_;
+    }
+
+    GKO_ENABLE_LIN_OP_FACTORY(Cgs, parameters, Factory)
+    {
+        /**
+         * Maximum number of iterations.
+         */
+        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+
+        /**
+         * Relative residual goal.
+         */
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                         0.0);
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+            preconditioner, nullptr);
+    };
+
+protected:
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
+    explicit Cgs(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Cgs>(std::move(exec))
+    {}
+
+    explicit Cgs(const Factory *factory,
+                 std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Cgs>(factory->get_executor(),
+                           transpose(system_matrix->get_size())),
+          parameters_{factory->get_parameters()},
+          system_matrix_{std::move(system_matrix)}
+    {
+        if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        } else {
+            preconditioner_ = matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_size().num_rows);
+        }
     }
 
 private:
-    using BasicLinOp<Cgs>::create;
-
-    explicit Cgs(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Cgs>(exec, 0, 0, 0)
-    {}
-
-    Cgs(std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal,
-        std::shared_ptr<const LinOp> system_matrix)
-        : BasicLinOp<Cgs>(
-              exec, system_matrix->get_num_cols(),
-              system_matrix->get_num_rows(),
-              system_matrix->get_num_rows() * system_matrix->get_num_cols()),
-          system_matrix_(std::move(system_matrix)),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
     std::shared_ptr<const LinOp> system_matrix_{};
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
-};
-
-
-/**
- * The CgsFactory class is derived from the LinOpFactory class and is used to
- * generate the CGS solver.
- */
-template <typename ValueType = default_precision>
-class CgsFactory : public LinOpFactory, public PreconditionedMethodFactory {
-public:
-    using value_type = ValueType;
-
-    /**
-     * Creates the CGS solver.
-     *
-     * @param exec The executor on which the CGS solver is to be created.
-     * @param max_iters  The maximum number of iterations to be pursued.
-     * @param rel_residual_goal  The relative residual required for
-     * convergence.
-     *
-     * @return The newly created CGS solver.
-     */
-    static std::unique_ptr<CgsFactory> create(
-        std::shared_ptr<const Executor> exec, int max_iters,
-        remove_complex<value_type> rel_residual_goal)
-    {
-        return std::unique_ptr<CgsFactory>(
-            new CgsFactory(std::move(exec), max_iters, rel_residual_goal));
-    }
-
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const override;
-
-    /**
-     * Gets the maximum number of iterations of the CGS solver.
-     *
-     * @return  The maximum number of iterations.
-     */
-    int get_max_iters() const { return max_iters_; }
-
-    /**
-     * Gets the relative residual goal of the solver.
-     *
-     * @return  The relative residual goal.
-     */
-    remove_complex<value_type> get_rel_residual_goal() const
-    {
-        return rel_residual_goal_;
-    }
-
-protected:
-    explicit CgsFactory(std::shared_ptr<const Executor> exec, int max_iters,
-                        remove_complex<value_type> rel_residual_goal)
-        : LinOpFactory(exec),
-          PreconditionedMethodFactory(
-              matrix::IdentityFactory<ValueType>::create(std::move(exec))),
-          max_iters_(max_iters),
-          rel_residual_goal_(rel_residual_goal)
-    {}
-
-    int max_iters_{};
-    remove_complex<value_type> rel_residual_goal_{};
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

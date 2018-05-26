@@ -31,52 +31,83 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/identity.hpp"
+#include <core/base/types.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace matrix {
+namespace {
 
 
-template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+TEST(Dim, ConstructsCorrectObject)
 {
-    x->copy_from(b);
+    gko::dim d{4, 5};
+
+    ASSERT_EQ(d.num_rows, 4);
+    ASSERT_EQ(d.num_cols, 5);
 }
 
 
-template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
+TEST(Dim, ConstructsSquareObject)
 {
-    auto dense_x = as<Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, b);
+    gko::dim d{5};
+
+    ASSERT_EQ(d.num_rows, 5);
+    ASSERT_EQ(d.num_cols, 5);
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
+TEST(Dim, ConstructsNullObject)
 {
-    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
-    return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_size().num_rows);
+    gko::dim d{};
+
+    ASSERT_EQ(d.num_rows, 0);
+    ASSERT_EQ(d.num_cols, 0);
 }
 
 
-#define DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_MATRIX);
-#undef DECLARE_IDENTITY_MATRIX
-#define DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_FACTORY);
-#undef DECLARE_IDENTITY_FACTORY
+TEST(Dim, ConvertsToBool)
+{
+    gko::dim d1{};
+    gko::dim d2{2, 3};
+
+    ASSERT_FALSE(d1);
+    ASSERT_TRUE(d2);
+}
 
 
-}  // namespace matrix
-}  // namespace gko
+TEST(Dim, EqualityReturnsTrueWhenEqual)
+{
+    ASSERT_TRUE(gko::dim(2, 3) == gko::dim(2, 3));
+}
+
+
+TEST(Dim, EqualityReturnsFalseWhenDifferentRows)
+{
+    ASSERT_FALSE(gko::dim(4, 3) == gko::dim(2, 3));
+}
+
+
+TEST(Dim, EqualityReturnsFalseWhenDifferentColumns)
+{
+    ASSERT_FALSE(gko::dim(2, 4) == gko::dim(2, 3));
+}
+
+
+TEST(Dim, NotEqualWorks) { ASSERT_TRUE(gko::dim(3, 5) != gko::dim(4, 3)); }
+
+
+TEST(Dim, MultipliesDimensions)
+{
+    ASSERT_EQ(gko::dim(2, 3) * gko::dim(4, 5), gko::dim(8, 15));
+}
+
+
+TEST(Dim, TransposesDimensions)
+{
+    ASSERT_EQ(transpose(gko::dim(3, 5)), gko::dim(5, 3));
+}
+
+
+}  // namespace
