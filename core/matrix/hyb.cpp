@@ -81,6 +81,7 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
     return;
 }
 
+
 }  // namespace
 
 
@@ -131,18 +132,30 @@ void Hyb<ValueType, IndexType>::read(const mat_data &data)
     Array<index_type> row_nnz(this->get_executor()->get_master(),
                               data.size.num_rows);
     get_each_row_nnz(data, row_nnz);
-    // compute the partition (percentile 80)
     auto row_nnz_val = row_nnz.get_data();
     std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
-    auto percentile_pos = static_cast<size_type>(data.size.num_rows * 0.8);
-    // auto ell_lim = row_nnz_val[percentile_pos];
-    index_type ell_lim = 2;
+
+    // get the limitation of columns of the ell part
+    index_type ell_lim = zero<index_type>();
+    if (method_ == partition::automatically) {
+        auto percent_pos = data.size.num_rows * 80 / 100;
+        ell_lim = row_nnz_val[percent_pos];
+    } else if (method_ == partition::percent) {
+        if (method_val_ == 100) {
+            ell_lim = row_nnz_val[row_nnz.get_num_elems() - 1];
+        } else {
+            auto percent_pos = data.size.num_rows * method_val_ / 100;
+            ell_lim = row_nnz_val[percent_pos];
+        }
+    } else if (method_ == partition::columns) {
+        ell_lim = method_val_;
+    }
+
     // calculate coo storage
     size_type coo_nnz = 0;
     for (size_type i = 0; i < data.size.num_rows; i++) {
         coo_nnz += std::max(row_nnz_val[i] - ell_lim, zero<index_type>());
     }
-
     auto tmp = Hyb::create(this->get_executor()->get_master(), data.size,
                            ell_lim, data.size.num_rows, coo_nnz);
 

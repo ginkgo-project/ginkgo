@@ -171,7 +171,7 @@ TEST_F(Hyb, CanBeCleared)
 
 TEST_F(Hyb, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    auto m = Mtx::create(exec, Mtx::partition::columns, 2);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -181,6 +181,41 @@ TEST_F(Hyb, CanBeReadFromMatrixData)
               {1, 2, 0.0}}});
 
     assert_equal_to_original_mtx(m.get());
+}
+
+
+TEST_F(Hyb, CanBeReadFromMatrixDataByPercent80)
+{
+    auto m = Mtx::create(exec, Mtx::partition::percent, 80);
+    m->read({{2, 3},
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
+
+    auto v = m->get_const_ell_values();
+    auto c = m->get_const_ell_col_idxs();
+    auto n = m->get_ell_max_nonzeros_per_row();
+    auto p = m->get_ell_stride();
+    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_ell_num_stored_elements(), 6);
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 0);
+    EXPECT_EQ(n, 3);
+    EXPECT_EQ(p, 2);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 2);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+    EXPECT_EQ(v[2], 3.0);
+    EXPECT_EQ(v[3], 0.0);
+    EXPECT_EQ(v[4], 2.0);
+    EXPECT_EQ(v[5], 0.0);
 }
 
 

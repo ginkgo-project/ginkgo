@@ -41,6 +41,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo.hpp"
 #include "core/matrix/ell.hpp"
 
+
+#include <algorithm>
+
+
 namespace gko {
 namespace matrix {
 
@@ -48,19 +52,10 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
-// template <typename ValueType, typename IndexType>
-// class Coo;
 
 /**
- * HYB is a matrix format where stride with explicit zeros is used such that
- * all rows have the same number of stored elements. The number of elements
- * stored in each row is the largest number of nonzero elements in any of the
- * rows (obtainable through get_max_nonzeros_per_row() method). This removes
- * the need of a row pointer like in the CSR format, and allows for SIMD
- * processing of the distinct rows. For efficient processing, the nonzero
- * elements and the corresponding column indices are stored in column-major
- * fashion. The columns are padded to the length by user-defined stride
- * parameter whose default value is the number of rows of the matrix.
+ * HYB is a matrix format which splits the matrix into ELLPACK  and COO format.
+ * Achieve the excellent performance with a proper partition of ELLPACK and COO.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -85,20 +80,20 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
-    
+
     /**
      * This type is used to describe how to get the partition.
      */
     enum partition {
         /**
-         * Marks that partition is decided automatically.
+         * Marks that partition is decided automatically (percent 80).
          */
         automatically,
 
         /**
-         * Marks that partition is decided by user with percentile.
+         * Marks that partition is decided by user with percent.
          */
-        percentile,
+        percent,
 
         /**
          * Marks that partition is decided by user with columns.
@@ -246,14 +241,14 @@ public:
     }
 
     /**
-     * Returns the column indexes of the ell part.
+     * Returns the column indexes of the coo part.
      *
-     * @return the column indexes of the ell part.
+     * @return the column indexes of the coo part.
      */
     index_type *get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
 
     /**
-     * @copydoc Csr::get_col_idxs()
+     * @copydoc Hyb::get_coo_col_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -265,14 +260,14 @@ public:
     }
 
     /**
-     * Returns the row indexes of the matrix.
+     * Returns the row indexes of the coo part.
      *
-     * @return the row indexes of the matrix.
+     * @return the row indexes of the coo part.
      */
     index_type *get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
 
     /**
-     * @copydoc Csr::get_row_idxs()
+     * @copydoc Hyb::get_coo_row_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -284,58 +279,96 @@ public:
     }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored in the coo part.
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements explicitly stored in the coo part
      */
     size_type get_coo_num_stored_elements() const noexcept
     {
         return coo_->get_num_stored_elements();
     }
 
+    /**
+     * Returns the number of elements explicitly stored in the matrix.
+     *
+     * @return the number of elements explicitly stored in the matrix
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return coo_->get_num_stored_elements() +
+               ell_->get_num_stored_elements();
+    }
+
 protected:
     /**
-     * Creates an uninitialized Hyb matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.
-     *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
+     * Creates an uninitialized Hyb matrix of specified method.
+     *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
+     *     ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
+     * @param partition  partition method
+     * @param val  the value used in partition (ignored in automatically)
      */
-    Hyb(std::shared_ptr<const Executor> exec, const dim &size = dim{})
-        : Hyb(std::move(exec), size, size.num_cols)
+    Hyb(std::shared_ptr<const Executor> exec,
+        partition method = partition::automatically, index_type val = 0)
+        : Hyb(std::move(exec), dim{}, method, val)
     {}
 
     /**
-     * Creates an uninitialized Hyb matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.)
+     * Creates an uninitialized Hyb matrix of the specified size and method.
+     *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
+     *     ell_stride is set to the number of rows of the matrix.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param partition  partition method
+     * @param val  the value used in partition (ignored in automatically)
+     */
+    Hyb(std::shared_ptr<const Executor> exec, const dim &size,
+        partition method = partition::automatically, index_type val = 0)
+        : Hyb(std::move(exec), size, size.num_cols, method, val)
+    {}
+
+    /**
+     * Creates an uninitialized Hyb matrix of the specified size and method.
+     *    (ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param partition  partition method
+     * @param val  the value used in partition (ignored in automatically)
      */
     Hyb(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row)
-        : Hyb(std::move(exec), size, max_nonzeros_per_row, size.num_rows)
+        size_type max_nonzeros_per_row,
+        partition method = partition::automatically, index_type val = 0)
+        : Hyb(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
+              method, val)
     {}
 
     /**
-     * Creates an uninitialized Hyb matrix of the specified size.
+     * Creates an uninitialized Hyb matrix of the specified size and method.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param stride                stride of the rows
      * @param num_nonzeros  number of nonzeros
+     * @param partition  partition method
+     * @param val  the value used in partition (ignored in automatically)
      */
     Hyb(std::shared_ptr<const Executor> exec, const dim &size,
         size_type max_nonzeros_per_row, size_type stride,
-        size_type num_nonzeros = {})
+        size_type num_nonzeros = {},
+        partition method = partition::automatically, index_type val = 0)
         : EnableLinOp<Hyb>(exec, size),
-          ell_(std::move(ell_type::create(exec, size, max_nonzeros_per_row, stride))),
+          method_(method),
+          method_val_(val),
+          ell_(std::move(
+              ell_type::create(exec, size, max_nonzeros_per_row, stride))),
           coo_(std::move(coo_type::create(exec, size, num_nonzeros)))
     {
-        
+        check_method_val();
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -343,10 +376,21 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    void check_method_val()
+    {
+        if (method_ == partition::automatically) {
+            method_val_ = 0;
+        } else if (method_ == partition::percent) {
+            method_val_ = std::min(static_cast<index_type>(100), method_val_);
+            method_val_ = std::max(zero<index_type>(), method_val_);
+        }
+    }
 
 private:
-    std::shared_ptr< ell_type > ell_;
-    std::shared_ptr< coo_type > coo_;
+    std::shared_ptr<ell_type> ell_;
+    std::shared_ptr<coo_type> coo_;
+    partition method_;
+    index_type method_val_;
 };
 
 
