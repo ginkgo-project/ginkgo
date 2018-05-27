@@ -59,7 +59,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     ValueType *__restrict__ p, ValueType *__restrict__ prev_rho,
     ValueType *__restrict__ rho, ValueType *__restrict__ alpha,
     ValueType *__restrict__ beta, ValueType *__restrict__ gamma,
-    ValueType *__restrict__ omega, StoppingStatus *__restrict__ stopStatus)
+    ValueType *__restrict__ omega, StoppingStatus *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -71,7 +71,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         beta[tidx] = one<ValueType>();
         gamma[tidx] = one<ValueType>();
         omega[tidx] = one<ValueType>();
-        stopStatus[tidx].reset();
+        stop_status[tidx].reset();
     }
 
     if (tidx < num_rows * stride) {
@@ -97,7 +97,7 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *omega,
-                Array<StoppingStatus> *stopStatus)
+                Array<StoppingStatus> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -113,7 +113,7 @@ void initialize(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(rho->get_values()), as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_values()), as_cuda_type(gamma->get_values()),
         as_cuda_type(omega->get_values()),
-        as_cuda_type(stopStatus->get_data()));
+        as_cuda_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -124,17 +124,19 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
     size_type num_cols, remove_complex<ValueType> rel_residual_goal,
     const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
     uint8 stoppingId, bool setFinalized,
-    StoppingStatus *__restrict__ stopStatus, bool *__restrict__ all_converged)
+    StoppingStatus *__restrict__ stop_status, bool *__restrict__ all_converged,
+    bool *__restrict__ one_changed)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     if (tidx < num_cols) {
         if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
-            stopStatus[tidx].converge(stoppingId, setFinalized);
+            stop_status[tidx].converge(stoppingId, setFinalized);
+            *one_changed = true;
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
-        else if (stopStatus[tidx].has_stopped()) {
+        else if (!stop_status[tidx].has_stopped()) {
             *all_converged = false;
         }
     }
@@ -146,15 +148,21 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
                       uint8 stoppingId, bool setFinalized,
-                      Array<StoppingStatus> *stopStatus, bool *all_converged)
+                      Array<StoppingStatus> *stop_status, bool *all_converged,
+                      bool *one_changed)
 {
     Array<bool> d_all_converged(exec, 1);
     Array<bool> all_converged_array(exec->get_master());
-
     // initialize all_converged with true
     *all_converged = true;
     all_converged_array.manage(1, all_converged);
     d_all_converged = all_converged_array;
+
+    Array<bool> d_one_changed(exec, 1);
+    Array<bool> one_changed_array(exec->get_master());
+    *one_changed = false;
+    one_changed_array.manage(1, one_changed);
+    d_one_changed = one_changed_array;
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
@@ -163,11 +171,15 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
         tau->get_size().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
-        as_cuda_type(stopStatus->get_data()),
-        as_cuda_type(d_all_converged.get_data()));
+        as_cuda_type(stop_status->get_data()),
+        as_cuda_type(d_all_converged.get_data()),
+        as_cuda_type(d_one_changed.get_data()));
 
     all_converged_array = d_all_converged;
     all_converged_array.release();
+
+    one_changed_array = d_one_changed;
+    one_changed_array.release();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -181,13 +193,13 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     const ValueType *__restrict__ prev_rho, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ omega,
-    const StoppingStatus *__restrict__ stopStatus)
+    const StoppingStatus *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
-        stopStatus[col].has_stopped()) {
+        stop_status[col].has_stopped()) {
         return;
     }
     auto res = r[tidx];
@@ -207,7 +219,7 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
-            const Array<StoppingStatus> &stopStatus)
+            const Array<StoppingStatus> &stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -221,7 +233,7 @@ void step_1(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(prev_rho->get_const_values()),
         as_cuda_type(alpha->get_const_values()),
         as_cuda_type(omega->get_const_values()),
-        as_cuda_type(stopStatus.get_const_data()));
+        as_cuda_type(stop_status.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -233,13 +245,13 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const ValueType *__restrict__ r, ValueType *__restrict__ s,
     const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
     ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
-    const StoppingStatus *__restrict__ stopStatus)
+    const StoppingStatus *__restrict__ stop_status)
 {
     const size_type tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const size_type col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
-        stopStatus[col].has_stopped()) {
+        stop_status[col].has_stopped()) {
         return;
     }
     auto t_alpha = zero<ValueType>();
@@ -260,7 +272,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            const Array<StoppingStatus> &stopStatus)
+            const Array<StoppingStatus> &stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -273,7 +285,7 @@ void step_2(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_const_values()),
-        as_cuda_type(stopStatus.get_const_data()));
+        as_cuda_type(stop_status.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
@@ -287,14 +299,14 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     const ValueType *__restrict__ y, const ValueType *__restrict__ z,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
     const ValueType *__restrict__ gamma, ValueType *__restrict__ omega,
-    const StoppingStatus *__restrict__ stopStatus)
+    const StoppingStatus *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = tidx / stride;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
-        stopStatus[col].has_stopped()) {
+        stop_status[col].has_stopped()) {
         return;
     }
     const auto x_pos = row * x_stride + col;
@@ -319,7 +331,7 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<StoppingStatus> &stopStatus)
+    matrix::Dense<ValueType> *omega, const Array<StoppingStatus> &stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -336,7 +348,7 @@ void step_3(
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(gamma->get_const_values()),
         as_cuda_type(omega->get_values()),
-        as_cuda_type(stopStatus.get_const_data()));
+        as_cuda_type(stop_status.get_const_data()));
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
@@ -346,19 +358,19 @@ __global__ __launch_bounds__(default_block_size) void finalize_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type x_stride, ValueType *__restrict__ x,
     const ValueType *__restrict__ y, const ValueType *__restrict__ alpha,
-    StoppingStatus *__restrict__ stopStatus)
+    StoppingStatus *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = tidx / stride;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
-        stopStatus[col].is_finalized() || !stopStatus[col].has_stopped()) {
+        stop_status[col].is_finalized() || !stop_status[col].has_stopped()) {
         return;
     }
     const auto x_pos = row * x_stride + col;
     x[x_pos] = x[x_pos] + alpha[col] * y[tidx];
-    stopStatus[col].finalize();
+    stop_status[col].finalize();
 }
 
 
@@ -366,7 +378,7 @@ template <typename ValueType>
 void finalize(std::shared_ptr<const GpuExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
               const matrix::Dense<ValueType> *alpha,
-              Array<StoppingStatus> *stopStatus)
+              Array<StoppingStatus> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -377,7 +389,7 @@ void finalize(std::shared_ptr<const GpuExecutor> exec,
         x->get_stride(), as_cuda_type(x->get_values()),
         as_cuda_type(y->get_const_values()),
         as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(stopStatus->get_data()));
+        as_cuda_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
