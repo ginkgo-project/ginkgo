@@ -59,6 +59,27 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(convert_to_dense, hyb::convert_to_dense<TplArgs...>);
 };
 
+template <typename ValueType, typename IndexType>
+void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
+                      Array<IndexType> &row_nnz)
+{
+    size_type nnz = 0;
+    IndexType current_row = 0;
+    auto row_nnz_val = row_nnz.get_data();
+    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
+        row_nnz_val[i] = zero<size_type>();
+    }
+    for (const auto &elem : data.nonzeros) {
+        if (elem.row != current_row) {
+            row_nnz_val[current_row] = nnz;
+            current_row = elem.row;
+            nnz = 0;
+        }
+        nnz += (elem.value != zero<ValueType>());
+    }
+    row_nnz_val[current_row] = nnz;
+    return;
+}
 
 }  // namespace
 
@@ -105,11 +126,105 @@ void Hyb<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::read(const mat_data &data) NOT_IMPLEMENTED;
+void Hyb<ValueType, IndexType>::read(const mat_data &data)
+{
+    Array<index_type> row_nnz(this->get_executor()->get_master(),
+                              data.size.num_rows);
+    get_each_row_nnz(data, row_nnz);
+    // compute the partition (percentile 80)
+    auto row_nnz_val = row_nnz.get_data();
+    std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
+    auto percentile_pos = static_cast<size_type>(data.size.num_rows * 0.8);
+    // auto ell_lim = row_nnz_val[percentile_pos];
+    index_type ell_lim = 2;
+    // calculate coo storage
+    size_type coo_nnz = 0;
+    for (size_type i = 0; i < data.size.num_rows; i++) {
+        coo_nnz += std::max(row_nnz_val[i] - ell_lim, zero<index_type>());
+    }
+
+    auto tmp = Hyb::create(this->get_executor()->get_master(), data.size,
+                           ell_lim, data.size.num_rows, coo_nnz);
+
+    // Get values and column indexes.
+    size_type ind = 0;
+    size_type n = data.nonzeros.size();
+    auto coo_vals = tmp->get_coo_values();
+    auto coo_col_idxs = tmp->get_coo_col_idxs();
+    auto coo_row_idxs = tmp->get_coo_row_idxs();
+    size_type coo_ind = 0;
+    for (size_type row = 0; row < data.size.num_rows; row++) {
+        size_type col = 0;
+
+        // ell_part
+        while (ind < n && data.nonzeros[ind].row == row && col < ell_lim) {
+            auto val = data.nonzeros[ind].value;
+            if (val != zero<ValueType>()) {
+                tmp->ell_val_at(row, col) = val;
+                tmp->ell_col_at(row, col) = data.nonzeros[ind].column;
+                col++;
+            }
+            ind++;
+        }
+        for (auto i = col; i < ell_lim; i++) {
+            tmp->ell_val_at(row, i) = zero<ValueType>();
+            tmp->ell_col_at(row, i) = 0;
+        }
+
+        // coo_part
+        while (ind < n && data.nonzeros[ind].row == row) {
+            auto val = data.nonzeros[ind].value;
+            if (val != zero<ValueType>()) {
+                coo_vals[coo_ind] = val;
+                coo_col_idxs[coo_ind] = data.nonzeros[ind].column;
+                coo_row_idxs[coo_ind] = data.nonzeros[ind].row;
+                coo_ind++;
+            }
+            ind++;
+        }
+    }
+
+    // Return the matrix
+    tmp->move_to(this);
+}
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::write(mat_data &data) const NOT_IMPLEMENTED;
+void Hyb<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Hyb *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone(this->get_executor()->get_master());
+        tmp = static_cast<const Hyb *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_size(), {}};
+    size_type coo_ind = 0;
+    auto coo_nnz = tmp->get_coo_num_stored_elements();
+    auto coo_vals = tmp->get_const_coo_values();
+    auto coo_col_idxs = tmp->get_const_coo_col_idxs();
+    auto coo_row_idxs = tmp->get_const_coo_row_idxs();
+    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
+        for (size_type i = 0; i < tmp->get_ell_max_nonzeros_per_row(); ++i) {
+            const auto val = tmp->ell_val_at(row, i);
+            if (val != zero<ValueType>()) {
+                const auto col = tmp->ell_col_at(row, i);
+                data.nonzeros.emplace_back(row, col, val);
+            }
+        }
+
+        while (coo_ind < coo_nnz && coo_row_idxs[coo_ind] == row) {
+            if (coo_vals[coo_ind] != zero<ValueType>()) {
+                data.nonzeros.emplace_back(row, coo_col_idxs[coo_ind],
+                                           coo_vals[coo_ind]);
+            }
+            coo_ind++;
+        }
+    }
+}
 
 
 #define DECLARE_HYB_MATRIX(ValueType, IndexType) class Hyb<ValueType, IndexType>

@@ -169,35 +169,35 @@ TEST_F(Hyb, CanBeCleared)
 }
 
 
-// TEST_F(Hyb, CanBeReadFromMatrixData)
-// {
-//     auto m = Mtx::create(exec);
-//     m->read({{2, 3},
-//              {{0, 0, 1.0},
-//               {0, 1, 3.0},
-//               {0, 2, 2.0},
-//               {1, 0, 0.0},
-//               {1, 1, 5.0},
-//               {1, 2, 0.0}}});
+TEST_F(Hyb, CanBeReadFromMatrixData)
+{
+    auto m = Mtx::create(exec);
+    m->read({{2, 3},
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
 
-//     assert_equal_to_original_mtx(m.get());
-// }
+    assert_equal_to_original_mtx(m.get());
+}
 
 
-// TEST_F(Hyb, GeneratesCorrectMatrixData)
-// {
-//     using tpl = gko::matrix_data<>::nonzero_type;
-//     gko::matrix_data<> data;
+TEST_F(Hyb, GeneratesCorrectMatrixData)
+{
+    using tpl = gko::matrix_data<>::nonzero_type;
+    gko::matrix_data<> data;
 
-//     mtx->write(data);
+    mtx->write(data);
 
-//     ASSERT_EQ(data.size, gko::dim(2, 3));
-//     ASSERT_EQ(data.nonzeros.size(), 4);
-//     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
-//     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
-//     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
-//     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
-// }
+    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.nonzeros.size(), 4);
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
+}
 
 
 }  // namespace
