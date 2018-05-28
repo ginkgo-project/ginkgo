@@ -154,7 +154,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
                 dense_x, y.get(), alpha.get(), &stop_status));
         }
-        if (all_converged || iter + 1 == parameters_.max_iters) {
+        if (all_converged) {
             break;
         }
         preconditioner_->apply(s.get(), z.get());
