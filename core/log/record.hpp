@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_RETURN_OBJECT_HPP_
-#define GKO_CORE_LOG_RETURN_OBJECT_HPP_
+#ifndef GKO_CORE_LOG_RECORD_HPP_
+#define GKO_CORE_LOG_RECORD_HPP_
 
 
 #include "core/log/logger.hpp"
@@ -48,15 +48,14 @@ namespace log {
 
 
 /**
- * ReturnObject is a Logger which logs every event to an object. The object can
+ * Record is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
  */
-class ReturnObject : public EnablePolymorphicObject<ReturnObject, Logger> {
-    friend class EnablePolymorphicObject<ReturnObject, Logger>;
+class Record : public EnablePolymorphicObject<Record, Logger> {
+    friend class EnablePolymorphicObject<Record, Logger>;
 
 public:
-    using EnablePolymorphicObject<ReturnObject,
-                                  Logger>::EnablePolymorphicObject;
+    using EnablePolymorphicObject<Record, Logger>::EnablePolymorphicObject;
 
     /**
      * Struct storing the actually logged data
@@ -69,16 +68,16 @@ public:
     };
 
     /**
-     * Creates a ReturnObject Logger used to directly access logged data
+     * Creates a Record Logger used to directly access logged data
      * @param enabled_events  the events enabled for this Logger
      * @param max_storage  the maximum storage allowed in `std::deque`
      */
-    static std::shared_ptr<ReturnObject> create(
+    static std::shared_ptr<Record> create(
         std::shared_ptr<const gko::Executor> exec,
         const mask_type &enabled_events, size_type max_storage = 0)
     {
-        return std::shared_ptr<ReturnObject>(
-            new ReturnObject(exec, enabled_events, max_storage));
+        return std::shared_ptr<Record>(
+            new Record(exec, enabled_events, max_storage));
     }
 
     void on_iteration_complete(const size_type &num_iterations) const override;
@@ -98,10 +97,9 @@ public:
 
 
 protected:
-    explicit ReturnObject(std::shared_ptr<const gko::Executor> exec,
-                          const mask_type &enabled_events,
-                          size_type max_storage)
-        : EnablePolymorphicObject<ReturnObject, Logger>(exec, enabled_events),
+    explicit Record(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type &enabled_events, size_type max_storage)
+        : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
           max_storage_{max_storage}
     {
         data_ = std::unique_ptr<logged_data>(new logged_data());
@@ -110,9 +108,9 @@ protected:
     /** TODO: Help me with this, really can't know how to do it properly,
      * otherwise clear_impl complains!
      */
-    ReturnObject &operator=(const ReturnObject &other) { return *this; }
+    Record &operator=(const Record &other) { return *this; }
 
-    ReturnObject &operator=(ReturnObject &other) { return *this; }
+    Record &operator=(Record &other) { return *this; }
 
 
     std::unique_ptr<logged_data> data_;
@@ -124,4 +122,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_LOG_RETURN_OBJECT_HPP_
+#endif  // GKO_CORE_LOG_RECORD_HPP_

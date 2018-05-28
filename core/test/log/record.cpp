@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/return_object.hpp>
+#include <core/log/record.hpp>
 
 
 #include <gtest/gtest.h>
@@ -47,10 +47,10 @@ constexpr int num_iters = 10;
 const std::string apply_str = "Dummy::apply";
 
 
-TEST(ReturnObject, CanGetData)
+TEST(Record, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::ReturnObject::create(
+    auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
     ASSERT_NE(logger->get(), nullptr);
@@ -58,10 +58,10 @@ TEST(ReturnObject, CanGetData)
 }
 
 
-TEST(ReturnObject, CatchesIterations)
+TEST(Record, CatchesIterations)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::ReturnObject::create(
+    auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
@@ -70,11 +70,10 @@ TEST(ReturnObject, CatchesIterations)
 }
 
 
-TEST(ReturnObject, CatchesApply)
+TEST(Record, CatchesApply)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger =
-        gko::log::ReturnObject::create(exec, gko::log::Logger::apply_mask);
+    auto logger = gko::log::Record::create(exec, gko::log::Logger::apply_mask);
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
@@ -82,11 +81,11 @@ TEST(ReturnObject, CatchesApply)
 }
 
 
-TEST(ReturnObject, CatchesConvergenceWithoutData)
+TEST(Record, CatchesConvergenceWithoutData)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger =
-        gko::log::ReturnObject::create(exec, gko::log::Logger::converged_mask);
+        gko::log::Record::create(exec, gko::log::Logger::converged_mask);
 
     logger->on<gko::log::Logger::converged>(num_iters, nullptr);
 
@@ -95,13 +94,13 @@ TEST(ReturnObject, CatchesConvergenceWithoutData)
 }
 
 
-TEST(ReturnObject, CatchesConvergenceWithData)
+TEST(Record, CatchesConvergenceWithData)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
     auto logger =
-        gko::log::ReturnObject::create(exec, gko::log::Logger::converged_mask);
+        gko::log::Record::create(exec, gko::log::Logger::converged_mask);
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 

@@ -32,20 +32,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/return_object.hpp"
+#include "core/log/record.hpp"
 
 
 namespace gko {
 namespace log {
 
 
-void ReturnObject::on_iteration_complete(const size_type &num_iterations) const
+void Record::on_iteration_complete(const size_type &num_iterations) const
 {
     data_->num_iterations = num_iterations;
 }
 
 
-void ReturnObject::on_apply(const std::string &name) const
+void Record::on_apply(const std::string &name) const
 {
     if (max_storage_ && data_->applies.size() == max_storage_) {
         data_->applies.pop_front();
@@ -55,8 +55,8 @@ void ReturnObject::on_apply(const std::string &name) const
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
-void ReturnObject::on_converged(const size_type &at_iteration,
-                                const LinOp *residual) const
+void Record::on_converged(const size_type &at_iteration,
+                          const LinOp *residual) const
 {
     data_->converged_at_iteration = at_iteration;
     if (residual != nullptr) {

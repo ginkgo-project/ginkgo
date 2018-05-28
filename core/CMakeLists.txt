@@ -3,7 +3,7 @@ set(SOURCES
     base/mtx_reader.cpp
     log/stream.cpp
     log/logger.cpp
-    log/return_object.cpp
+    log/record.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
