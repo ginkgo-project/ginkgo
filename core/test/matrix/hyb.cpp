@@ -169,24 +169,9 @@ TEST_F(Hyb, CanBeCleared)
 }
 
 
-TEST_F(Hyb, CanBeReadFromMatrixData)
+TEST_F(Hyb, CanBeReadFromMatrixDataAutomatically)
 {
-    auto m = Mtx::create(exec, Mtx::partition::columns, 2);
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
-
-    assert_equal_to_original_mtx(m.get());
-}
-
-
-TEST_F(Hyb, CanBeReadFromMatrixDataByPercent80)
-{
-    auto m = Mtx::create(exec, Mtx::partition::percent, 80);
+    auto m = Mtx::create(exec, Mtx::partition::automatically);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -216,6 +201,58 @@ TEST_F(Hyb, CanBeReadFromMatrixDataByPercent80)
     EXPECT_EQ(v[3], 0.0);
     EXPECT_EQ(v[4], 2.0);
     EXPECT_EQ(v[5], 0.0);
+}
+
+
+TEST_F(Hyb, CanBeReadFromMatrixDataByColumns2)
+{
+    auto m = Mtx::create(exec, Mtx::partition::columns, 2);
+    m->read({{2, 3},
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
+
+    assert_equal_to_original_mtx(m.get());
+}
+
+
+TEST_F(Hyb, CanBeReadFromMatrixDataByPercent40)
+{
+    auto m = Mtx::create(exec, Mtx::partition::percent, 40);
+    m->read({{2, 3},
+             {{0, 0, 1.0},
+              {0, 1, 3.0},
+              {0, 2, 2.0},
+              {1, 0, 0.0},
+              {1, 1, 5.0},
+              {1, 2, 0.0}}});
+
+    auto v = m->get_const_ell_values();
+    auto c = m->get_const_ell_col_idxs();
+    auto n = m->get_ell_max_nonzeros_per_row();
+    auto p = m->get_ell_stride();
+    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
+    EXPECT_EQ(n, 1);
+    EXPECT_EQ(p, 2);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 5.0);
+
+    auto coo_v = m->get_const_coo_values();
+    auto coo_c = m->get_const_coo_col_idxs();
+    auto coo_r = m->get_const_coo_row_idxs();
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
+    EXPECT_EQ(coo_v[0], 3.0);
+    EXPECT_EQ(coo_v[1], 2.0);
+    EXPECT_EQ(coo_c[0], 1);
+    EXPECT_EQ(coo_c[1], 2);
+    EXPECT_EQ(coo_r[0], 0);
+    EXPECT_EQ(coo_r[1], 0);
 }
 
 
