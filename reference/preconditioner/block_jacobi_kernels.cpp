@@ -69,7 +69,6 @@ inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
     return true;
 }
 
-
 template <typename ValueType, typename IndexType>
 size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
                               int32 max_block_size, IndexType *block_ptrs)

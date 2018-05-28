@@ -52,14 +52,14 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
+c++ -std=c++11 -o simple_solver_logging simple_solver_logging.cpp \
+   -I../.. -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver_logging
 
 *****************************<COMPILATION>**********************************/
 
@@ -100,32 +100,35 @@ int main(int argc, char *argv[])
                           .with_rel_residual_goal(1e-20)
                           .on_executor(exec);
     auto solver = solver_gen->generate(A);
-    // example: print to a file
-    // only iterations mask : gko::log::Logger::iteration_complete_mask
+
+    // Here begins the actual logging example:
+    // First we add facilities to only print to a file. It's possible to select
+    // events, using masks, e.g. only iterations mask:
+    // gko::log::Logger::iteration_complete_mask. See the documentation of
+    // Logger class for more information.
     std::ofstream filestream("my_file.txt");
-    static_cast<gko::solver::Cg<> *>(solver.get())
-        ->add_logger(gko::log::Ostream<>::create(
-            gko::log::Logger::all_events_mask, filestream));
+    solver->add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, filestream));
 
-    // same thing but print to std::cout
-    // static_cast<gko::solver::Cg<> *>(solver.get())
-    // ->add_logger(gko::log::Ostream::create(
-    //                gko::log::Logger::all_events_mask, std::cout));
+    // Another logger which prints to std::cout instead of printing to a file
+    // We log all events except for apply.
+    solver->add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask ^ gko::log::Logger::apply_mask,
+        std::cout));
 
-    // Also add a logger which allows to get an object representing all the
-    // logged data
+    // Add another logger which puts all the data in an object, we can later
+    // retrieve this object in our code
     auto returnobject_logger =
-        gko::log::ReturnObject::create(gko::log::Logger::all_events_mask);
-    static_cast<gko::solver::Cg<> *>(solver.get())
-        ->add_logger(returnobject_logger);
+        gko::log::ReturnObject::create(exec, gko::log::Logger::all_events_mask);
+    solver->add_logger(returnobject_logger);
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
 
-    // Get the data from `returnobject_logger` and print an element
-    auto loggeddata = returnobject_logger->get_return_object();
-    auto residual = loggeddata->residuals.back().get();
+    // Finally, get the data from `returnobject_logger` and print an element
+    auto residual = returnobject_logger->get()->residuals.back().get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
+    // Set precision as needed for output
     std::cout << std::scientific << std::setprecision(4);
     std::cout << "Residual(1) : " << residual_d->at(1) << std::endl;
 

@@ -31,39 +31,70 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/name_demangling.hpp"
+
+#include "core/log/stream.hpp"
+#include "core/matrix/dense.hpp"
 
 
-#include <cstdlib>
-#include <memory>
+#include <iomanip>
 
 
 namespace gko {
-namespace name_demangling {
-#ifdef HAVE_CXXABI_H
+namespace log {
 
 
-std::string get_full_function_name(const std::type_info &type,
-                                   const char *func_name)
+namespace {
+
+
+template <typename ValueType = default_precision>
+std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 {
-    int status;
-    std::unique_ptr<char, void (*)(void *)> demangled(
-        abi::__cxa_demangle(type.name(), nullptr, nullptr, &status),
-        &std::free);
-    return std::move(std::string() + demangled.get() + "::" + func_name);
+    auto exec = mtx->get_executor();
+    auto tmp = make_temporary_clone(exec->get_master(), mtx);
+    os << "[" << std::endl;
+    for (int i = 0; i < mtx->get_size().num_rows; ++i) {
+        for (int j = 0; j < mtx->get_size().num_cols; ++j) {
+            os << '\t' << mtx->at(i, j);
+        }
+        os << std::endl;
+    }
+    return os << "]" << std::endl;
 }
 
 
-#else  // !HAVE_CXXABI_H
+}  // namespace
 
 
-std::string get_full_function_name(const std::type_info &type,
-                                   const char *func_name)
+template <typename ValueType>
+void Stream<ValueType>::on_iteration_complete(
+    const size_type &num_iterations) const
 {
-    return std::move(std::string() + type.name() + "::" + func_name);
+    os_ << prefix_ << "iteration " << num_iterations << std::endl;
 }
 
 
-#endif  // HAVE_CXXABI_H
+template <typename ValueType>
+void Stream<ValueType>::on_apply(const std::string &name) const
+{
+    os_ << prefix_ << "starting apply function: " << name << std::endl;
 }
+
+
+/* TODO: improve this whenever the criterion class hierarchy MR is merged */
+template <typename ValueType>
+void Stream<ValueType>::on_converged(const size_type &at_iteration,
+                                     const LinOp *residual) const
+{
+    os_ << prefix_ << "converged at iteration " << at_iteration
+        << " residual:\n"
+        << as<gko::matrix::Dense<ValueType>>(residual);
+}
+
+
+#define GKO_DECLARE_STREAM(_type) class Stream<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
+#undef GKO_DECLARE_STREAM
+
+
+}  // namespace log
 }  // namespace gko

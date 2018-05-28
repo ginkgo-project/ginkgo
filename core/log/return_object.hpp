@@ -51,18 +51,21 @@ namespace log {
  * ReturnObject is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
  */
-class ReturnObject : public Logger {
+class ReturnObject : public EnablePolymorphicObject<ReturnObject, Logger> {
+    friend class EnablePolymorphicObject<ReturnObject, Logger>;
+
 public:
+    using EnablePolymorphicObject<ReturnObject,
+                                  Logger>::EnablePolymorphicObject;
+
     /**
      * Struct storing the actually logged data
      */
-    struct LoggedData {
+    struct logged_data {
         std::deque<std::string> applies;
         size_type num_iterations;
         size_type converged_at_iteration;
         std::deque<std::unique_ptr<const LinOp>> residuals;
-
-        LoggedData() = default;
     };
 
     /**
@@ -70,40 +73,49 @@ public:
      * @param enabled_events  the events enabled for this Logger
      * @param max_storage  the maximum storage allowed in `std::deque`
      */
-    static std::shared_ptr<ReturnObject> create(const mask_type &enabled_events,
-                                                size_type max_storage = 0)
+    static std::shared_ptr<ReturnObject> create(
+        std::shared_ptr<const gko::Executor> exec,
+        const mask_type &enabled_events, size_type max_storage = 0)
     {
         return std::shared_ptr<ReturnObject>(
-            new ReturnObject(enabled_events, max_storage));
+            new ReturnObject(exec, enabled_events, max_storage));
     }
 
-    void on_iteration_complete(const size_type num_iterations) const override;
+    void on_iteration_complete(const size_type &num_iterations) const override;
 
-    void on_apply(const std::string name) const override;
+    void on_apply(const std::string &name) const override;
 
-    void on_converged(const size_type at_iteration,
+    void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
 
+
     /**
-     * Returns a shared pointer to the logged data
-     * @return  a shared pointer to the logged data
+     * Returns the logged data
+     *
+     * @return the logged data
      */
-    std::shared_ptr<const LoggedData> get_return_object()
-    {
-        return logged_data_;
-    }
+    const std::unique_ptr<logged_data> &get() noexcept { return data_; }
+
 
 protected:
-    explicit ReturnObject(const mask_type &enabled_events,
+    explicit ReturnObject(std::shared_ptr<const gko::Executor> exec,
+                          const mask_type &enabled_events,
                           size_type max_storage)
-        : Logger(enabled_events), max_storage_{max_storage}
+        : EnablePolymorphicObject<ReturnObject, Logger>(exec, enabled_events),
+          max_storage_{max_storage}
     {
-        /* NOTE: there is a bug with some MacOS compiler not initializing
-         * variables to `0` therefore `make_shared` should not be used here. */
-        logged_data_ = std::shared_ptr<LoggedData>(new LoggedData());
+        data_ = std::unique_ptr<logged_data>(new logged_data());
     }
 
-    std::shared_ptr<LoggedData> logged_data_;
+    /** TODO: Help me with this, really can't know how to do it properly,
+     * otherwise clear_impl complains!
+     */
+    ReturnObject &operator=(const ReturnObject &other) { return *this; }
+
+    ReturnObject &operator=(ReturnObject &other) { return *this; }
+
+
+    std::unique_ptr<logged_data> data_;
     size_type max_storage_;
 };
 

@@ -39,31 +39,31 @@ namespace gko {
 namespace log {
 
 
-void ReturnObject::on_iteration_complete(const size_type num_iterations) const
+void ReturnObject::on_iteration_complete(const size_type &num_iterations) const
 {
-    logged_data_->num_iterations = num_iterations;
+    data_->num_iterations = num_iterations;
 }
 
 
-void ReturnObject::on_apply(const std::string name) const
+void ReturnObject::on_apply(const std::string &name) const
 {
-    if (max_storage_ && logged_data_->applies.size() == max_storage_) {
-        logged_data_->applies.pop_front();
+    if (max_storage_ && data_->applies.size() == max_storage_) {
+        data_->applies.pop_front();
     }
-    logged_data_->applies.push_back(name);
+    data_->applies.push_back(name);
 }
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
-void ReturnObject::on_converged(const size_type at_iteration,
+void ReturnObject::on_converged(const size_type &at_iteration,
                                 const LinOp *residual) const
 {
-    logged_data_->converged_at_iteration = at_iteration;
+    data_->converged_at_iteration = at_iteration;
     if (residual != nullptr) {
-        if (max_storage_ && logged_data_->residuals.size() == max_storage_) {
-            logged_data_->residuals.pop_front();
+        if (max_storage_ && data_->residuals.size() == max_storage_) {
+            data_->residuals.pop_front();
         }
-        logged_data_->residuals.push_back(clone(residual));
+        data_->residuals.push_back(residual->clone());
     }
 }
 

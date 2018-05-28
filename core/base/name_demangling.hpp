@@ -35,8 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_NAME_DEMANGLING_HPP
 
 
-#include "include/config.hpp"
-
+#include "config.hpp"
 
 #ifdef HAVE_CXXABI_H
 #include <cxxabi.h>
@@ -51,19 +50,31 @@ namespace name_demangling {
 
 
 /**
- * This is a function which uses `std::type_info and demangling functionalities
- * when available to return as a string the proper location at which this
- * function is called.
+ * This is a function which uses `std::type_info` and demangling functionalities
+ * when available to return the proper location at which this function is
+ * called.
  *
  * @param type  the `std::type_info` of the object calling this function
- * @param func_name  the name of the function calling this (__func___ is
- * standard here)
- * @return  properly formatted string representing the location of the call
+ * @param func_name  the name of the function calling this (usually __func___)
+ * @return properly formatted string representing the location of the call
  *
- * @see  https://en.cppreference.com/w/cpp/types/type_info
+ * @see C++11 documentation [type.info] and [expr.typeid]
  */
-std::string get_full_function_name(const std::type_info &type,
-                                   const char *func_name);
+inline std::string get_full_function_name(const std::type_info &type,
+                                          const char *func_name)
+
+{
+#ifdef HAVE_CXXABI_H
+    int status{};
+    std::unique_ptr<char[], void (*)(void *)> demangled(
+        abi::__cxa_demangle(type.name(), nullptr, nullptr, &status),
+        &std::free);
+    if (!status)
+        return std::string() + demangled.get() + "::" + func_name;
+    else
+#endif
+        return std::string() + type.name() + "::" + func_name;
+}
 
 
 }  // namespace name_demangling

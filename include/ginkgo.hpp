@@ -49,8 +49,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
 
-#include "core/log/ostream.hpp"
 #include "core/log/return_object.hpp"
+#include "core/log/stream.hpp"
 
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"

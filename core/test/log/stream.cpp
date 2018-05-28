@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/ostream.hpp>
+#include <core/log/stream.hpp>
 
 
 #include <gtest/gtest.h>
@@ -50,26 +50,29 @@ constexpr int num_iters = 10;
 const std::string apply_str = "DummyLoggedClass::apply";
 
 
-TEST(ReturnObject, CatchesApply)
+TEST(Stream, CatchesApply)
 {
+    auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger =
-        gko::log::Ostream<>::create(gko::log::Logger::apply_mask, out);
+        gko::log::Stream<>::create(exec, gko::log::Logger::apply_mask, out);
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
     auto os = out.str();
+    // string os = "";
     ASSERT_FALSE(os.empty());
     ASSERT_TRUE(os.find("starting apply function: " + apply_str) !=
                 std::string::npos);
 }
 
 
-TEST(ReturnObject, CatchesIterations)
+TEST(Stream, CatchesIterations)
 {
+    auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
-    auto logger = gko::log::Ostream<>::create(
-        gko::log::Logger::iteration_complete_mask, out);
+    auto logger = gko::log::Stream<>::create(
+        exec, gko::log::Logger::iteration_complete_mask, out);
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
@@ -79,14 +82,14 @@ TEST(ReturnObject, CatchesIterations)
 }
 
 
-TEST(ReturnObject, CatchesConvergence)
+TEST(Stream, CatchesConvergence)
 {
     std::stringstream out;
     auto exec = gko::ReferenceExecutor::create();
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
     auto logger =
-        gko::log::Ostream<>::create(gko::log::Logger::converged_mask, out);
+        gko::log::Stream<>::create(exec, gko::log::Logger::converged_mask, out);
     out << std::scientific << std::setprecision(4);
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());

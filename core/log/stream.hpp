@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_OSTREAM_HPP_
-#define GKO_CORE_LOG_OSTREAM_HPP_
+#ifndef GKO_CORE_LOG_STREAM_HPP_
+#define GKO_CORE_LOG_STREAM_HPP_
 
 
 #include "core/log/logger.hpp"
@@ -47,40 +47,63 @@ namespace log {
 
 
 /**
- * Ostream is a Logger which logs every event to a stream. This can typically be
+ * Stream is a Logger which logs every event to a stream. This can typically be
  * used to log to a file or to the console.
  *
- * @tparam ValueType  the type of values stored in the class (e.g. residuals)
+ * @tparam ValueType  the type of values stored in the class (i.e. ValueType
+ *                    template parameter of the concrete Loggable this class
+ *                    will log)
  */
 template <typename ValueType = default_precision>
-class Ostream : public Logger {
+class Stream : public EnablePolymorphicObject<Stream<ValueType>, Logger> {
+    friend class EnablePolymorphicObject<Stream<ValueType>, Logger>;
+
 public:
+    using EnablePolymorphicObject<Stream<ValueType>,
+                                  Logger>::EnablePolymorphicObject;
+
     /**
-     * creates an Ostream Logger with output to `os`
+     * creates a Stream Logger with output to `os`
      * @param enabled_events  the events enabled for this Logger
      * @param os  the stream to output logged events to
      */
-    static std::shared_ptr<Ostream> create(const mask_type &enabled_events,
-                                           std::ostream &os)
+    static std::shared_ptr<Stream> create(
+        std::shared_ptr<const gko::Executor> exec,
+        const Logger::mask_type &enabled_events, std::ostream &os)
     {
-        return std::shared_ptr<Ostream>(new Ostream(enabled_events, os));
+        return std::shared_ptr<Stream>(new Stream(exec, enabled_events, os));
     }
 
-    void on_iteration_complete(const size_type num_iterations) const override;
-    void on_apply(const std::string name) const override;
+    void on_iteration_complete(const size_type &num_iterations) const override;
 
-    void on_converged(const size_type at_iteration,
+    void on_apply(const std::string &name) const override;
+
+    void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
 
 protected:
-    explicit Ostream(const mask_type &enabled_events, std::ostream &os)
-        : Logger(enabled_events), os_(os)
+    explicit Stream(
+        std::shared_ptr<const gko::Executor> exec,
+        const Logger::mask_type &enabled_events = Logger::all_events_mask,
+        std::ostream &os = std::cout)
+        : EnablePolymorphicObject<Stream<ValueType>, Logger>(exec,
+                                                             enabled_events),
+          os_(os)
     {}
 
 
-    std::ostream &os_;
+    /** TODO: Help me with this, really can't know how to do it properly,
+     * otherwise clear_impl complains!
+     */
+    Stream<ValueType> &operator=(const Stream<ValueType> &other)
+    {
+        return *this;
+    }
 
-    const std::string prefix = "[LOG] >>> ";
+    Stream<ValueType> &operator=(Stream<ValueType> &other) { return *this; }
+
+    std::ostream &os_;
+    const std::string prefix_ = "[LOG] >>> ";
 };
 
 
@@ -88,4 +111,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_LOG_OSTREAM_HPP_
+#endif  // GKO_CORE_LOG_STREAM_HPP_

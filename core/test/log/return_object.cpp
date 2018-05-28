@@ -49,44 +49,49 @@ const std::string apply_str = "Dummy::apply";
 
 TEST(ReturnObject, CanGetData)
 {
+    auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::ReturnObject::create(
-        gko::log::Logger::iteration_complete_mask);
+        exec, gko::log::Logger::iteration_complete_mask);
 
-    ASSERT_NE(logger->get_return_object(), nullptr);
-    ASSERT_EQ(logger->get_return_object()->num_iterations, 0);
+    ASSERT_NE(logger->get(), nullptr);
+    ASSERT_EQ(logger->get()->num_iterations, 0);
 }
 
 
 TEST(ReturnObject, CatchesIterations)
 {
+    auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::ReturnObject::create(
-        gko::log::Logger::iteration_complete_mask);
+        exec, gko::log::Logger::iteration_complete_mask);
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
-    ASSERT_EQ(num_iters, logger->get_return_object()->num_iterations);
+    ASSERT_EQ(num_iters, logger->get()->num_iterations);
 }
 
 
 TEST(ReturnObject, CatchesApply)
 {
-    auto logger = gko::log::ReturnObject::create(gko::log::Logger::apply_mask);
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger =
+        gko::log::ReturnObject::create(exec, gko::log::Logger::apply_mask);
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
-    ASSERT_EQ(apply_str, logger->get_return_object()->applies.back());
+    ASSERT_EQ(apply_str, logger->get()->applies.back());
 }
 
 
 TEST(ReturnObject, CatchesConvergenceWithoutData)
 {
+    auto exec = gko::ReferenceExecutor::create();
     auto logger =
-        gko::log::ReturnObject::create(gko::log::Logger::converged_mask);
+        gko::log::ReturnObject::create(exec, gko::log::Logger::converged_mask);
 
     logger->on<gko::log::Logger::converged>(num_iters, nullptr);
 
-    ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
-    ASSERT_EQ(logger->get_return_object()->residuals.size(), 0);
+    ASSERT_EQ(num_iters, logger->get()->converged_at_iteration);
+    ASSERT_EQ(logger->get()->residuals.size(), 0);
 }
 
 
@@ -96,12 +101,12 @@ TEST(ReturnObject, CatchesConvergenceWithData)
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
     auto logger =
-        gko::log::ReturnObject::create(gko::log::Logger::converged_mask);
+        gko::log::ReturnObject::create(exec, gko::log::Logger::converged_mask);
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
-    ASSERT_EQ(num_iters, logger->get_return_object()->converged_at_iteration);
-    auto residual = logger->get_return_object()->residuals.back().get();
+    ASSERT_EQ(num_iters, logger->get()->converged_at_iteration);
+    auto residual = logger->get()->residuals.back().get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     ASSERT_EQ(residual_d->at(0), 1.0);
     ASSERT_EQ(residual_d->at(1), 2.0);

@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <core/log/logger.hpp>
-#include <core/log/ostream.hpp>
 #include <core/log/return_object.hpp>
+#include <core/log/stream.hpp>
 
 
 #include <gtest/gtest.h>
@@ -47,7 +47,8 @@ namespace {
 constexpr int num_iters = 10;
 
 
-struct DummyLoggedClass : public gko::log::EnableLogging {
+struct DummyLoggedClass : gko::log::EnableLogging  // <DummyLoggedClass>
+{
     int get_num_loggers() { return loggers_.size(); }
 
     void apply() { this->log<gko::log::Logger::iteration_complete>(num_iters); }
@@ -56,64 +57,67 @@ struct DummyLoggedClass : public gko::log::EnableLogging {
 
 TEST(DummyLogged, CanAddLogger)
 {
+    auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::ReturnObject::create(gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::ReturnObject::create(
+        exec, gko::log::Logger::all_events_mask));
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
 
 
 TEST(DummyLogged, CanAddMultipleLoggers)
 {
+    auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::ReturnObject::create(gko::log::Logger::all_events_mask));
-    c.add_logger(gko::log::Ostream<>::create(gko::log::Logger::all_events_mask,
-                                             std::cout));
+    c.add_logger(gko::log::ReturnObject::create(
+        exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
-
 
 struct DummyData {
     gko::size_type num_iterations;
 };
 
 
-struct DummyLogger : public gko::log::Logger {
-    static std::shared_ptr<DummyLogger> create(const mask_type &enabled_events)
-    {
-        return std::shared_ptr<DummyLogger>(new DummyLogger(enabled_events));
-    }
+struct DummyLogger
+    : gko::EnablePolymorphicObject<DummyLogger, gko::log::Logger> {
+    using Logger = gko::log::Logger;
+    using EnablePolymorphicObject<DummyLogger, Logger>::EnablePolymorphicObject;
 
-
-    explicit DummyLogger(const mask_type &enabled_events)
-        : Logger(enabled_events)
+    explicit DummyLogger(
+        std::shared_ptr<const gko::Executor> exec,
+        const mask_type &enabled_events = Logger::all_events_mask)
+        : EnablePolymorphicObject<DummyLogger, Logger>(exec, enabled_events)
     {
         data_ = std::unique_ptr<DummyData>(new DummyData());
     }
 
 
     void on_iteration_complete(
-        const gko::size_type num_iterations) const override
+        const gko::size_type &num_iterations) const override
     {
-        data_->num_iterations = num_iterations;
+        this->data_->num_iterations = num_iterations;
     }
-    std::shared_ptr<DummyData> data_;
+
+    std::unique_ptr<DummyData> data_;
 };
 
 
 TEST(DummyLogged, CanLogEvents)
 {
+    auto exec = gko::ReferenceExecutor::create();
+    auto l = std::shared_ptr<DummyLogger>(
+        new DummyLogger(exec, gko::log::Logger::iteration_complete_mask));
     DummyLoggedClass c;
-    auto logger =
-        DummyLogger::create(gko::log::Logger::iteration_complete_mask);
+    c.add_logger(l);
 
-    c.add_logger(logger);
     c.apply();
 
-    ASSERT_EQ(num_iters, logger->data_->num_iterations);
+    ASSERT_EQ(num_iters, l->data_->num_iterations);
 }
 
 

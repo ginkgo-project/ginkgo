@@ -37,11 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/lin_op.hpp"
 #include "core/base/name_demangling.hpp"
+#include "core/base/polymorphic_object.hpp"
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
 
-#include <bitset>
 #include <memory>
 #include <string>
 #include <vector>
@@ -65,7 +65,7 @@ namespace log {
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
  */
-class Logger {
+class Logger : public EnableAbstractPolymorphicObject<Logger> {
 public:
     /**
      * Maximum amount of events (bits) with the current implementation
@@ -79,35 +79,22 @@ public:
     static constexpr mask_type all_events_mask = ~mask_type{0};
 
     /**
-     * Constructor for a Logger object.
-     *
-     * @param  enabled_events the events enabled for this Logger. These can be
-     * of the following form:
-     * 1. `all_event_mask` which logs every event
-     * 2. an OR combination of masks, e.g. `iteration_complete_mask|apply_mask`
-     * which activates both of these events.
-     * 3. all events with exclusion through XOR, e.g.
-     * `all_event_mask^apply_mask` which logs every event except the apply event
-     */
-    Logger(const mask_type &enabled_events = all_events_mask)
-        : enabled_events_{enabled_events}
-    {}
-
-    virtual ~Logger() = default;
-
-    /**
      * Helper macro to define functions and masks for each event.
-     * A mask named _event_name##_mask is created for each event. `_id` is the
-     * number assigned to this event and should be unique.
+     * A mask named _event_name##_mask is created for each event. `_id` is
+     * the number assigned to this event and should be unique.
      *
-     * @internal  the templated function `on(Params)` will trigged the event
-     * call only if the user activates this event through the mask. If the event
-     * is activated, we rely on polymorphism and the virtual method
-     * `on_##_event_name()` to either call the Logger class's function, which
-     * does nothing, or the overriden version in the derived class if any.
-     * Therefore, to support a new event in any Logger (i.e. class which derive
-     * from this class), the function `on_##_event_name()` should be overriden
-     * and implemented.
+     * @internal the templated function `on(Params)` will trigger the event
+     * call only if the user activates this event through the mask. If the
+     * event is activated, we rely on polymorphism and the virtual method
+     * `on_##_event_name()` to either call the Logger class's function,
+     * which does nothing, or the overriden version in the derived class if
+     * any. Therefore, to support a new event in any Logger (i.e. class
+     * which derive from this class), the function `on_##_event_name()`
+     * should be overriden and implemented.
+     *
+     * @param _id  the unique id of the event
+     *
+     * @param _event_name  the name of the event
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
@@ -125,12 +112,33 @@ public:                                                              \
     static constexpr size_type _event_name{_id};                     \
     static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
 
-    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type);
-    GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string);
-    GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type, const LinOp *);
+    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type &);
+    GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string &);
+    GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type &, const LinOp *);
     // register other events
 
 #undef GKO_LOGGER_REGISTER_EVENT
+
+protected:
+    /**
+     * Constructor for a Logger object.
+     *
+     * @param enabled_events  the events enabled for this Logger. These can be
+     *                        of the following form:
+     *                        1. `all_event_mask` which logs every event
+     *                        2. an OR combination of masks, e.g.
+     *                           `iteration_complete_mask|apply_mask` which
+     *                            activates both of these events.
+     *                        3. all events with exclusion through XOR, e.g.
+     *                           `all_event_mask^apply_mask` which logs every
+     *                           event except the apply event
+     */
+    explicit Logger(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type &enabled_events = all_events_mask)
+        : EnableAbstractPolymorphicObject<Logger>(exec),
+          enabled_events_{enabled_events}
+    {}
+
 
 private:
     mask_type enabled_events_;
@@ -138,7 +146,9 @@ private:
 
 
 /**
- * Loggable class is an interface used as base class to EnableLogging.
+ * Loggable class is an interface which should be implemented by classes wanting
+ * to support logging. For most cases, one can rely on the EnableLogging mixin
+ * which provides a default implementation of this interface.
  */
 class Loggable {
 public:
@@ -153,9 +163,20 @@ public:
 
 
 /**
- * EnableLogging should be inherited by any class which wants to enable logging.
- * All the received events are passed to the loggers this class contains.
+ * EnableLogging is a mixin which should be inherited by any class which wants
+ * to enable logging. All the received events are passed to the loggers this
+ * class contains.
+ *
+ * @tparam ConcreteLoggable  the object being logged [CRTP parameter]
+ *
+ * @tparam PolymorphicBase  the polymorphic base of this class. By default
+ *                          it is Loggable. Change if you want to use a new
+ *                          superclass of `Loggable` as polymorphic base of this
+ *                          class.
  */
+// TODO: help me with this, cannot get clang to compile properly when I use CRTP
+//       here??
+// template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
 class EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override

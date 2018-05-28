@@ -61,7 +61,9 @@ namespace solver {
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>>, public log::EnableLogging {
+class Cg : public EnableLinOp<Cg<ValueType>>,
+           public log::EnableLogging  // <Cg<ValueType>>
+{
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
 
