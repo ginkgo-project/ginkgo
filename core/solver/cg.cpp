@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
+#include "core/base/name_demangling.hpp"
 #include "core/base/utils.hpp"
 #include "core/solver/cg_kernels.hpp"
 
@@ -64,8 +65,7 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->template log<log::Logger::apply>(
-        name_demangling::get_full_function_name(typeid(*this), __func__));
+    this->template log<log::Logger::apply>(FUNCTION_NAME);
 
     using std::swap;
     using Vector = matrix::Dense<ValueType>;

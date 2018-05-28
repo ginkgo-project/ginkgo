@@ -49,32 +49,40 @@ namespace gko {
 namespace name_demangling {
 
 
+namespace detail {
+template <typename T>
+std::string get_enclosing_scope_name(const T &)
+{
+#ifdef HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void *)>(
+            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name.substr(0, name.rfind(':') - 1);
+    else
+#endif
+        return std::string(typeid(T).name());
+}
+}  // namespace detail
+
+
 /**
  * This is a function which uses `std::type_info` and demangling functionalities
  * when available to return the proper location at which this function is
  * called.
  *
- * @param type  the `std::type_info` of the object calling this function
- * @param func_name  the name of the function calling this (usually __func___)
  * @return properly formatted string representing the location of the call
+ *
+ * @internal we use a lambda to capture the scope of the function this is called
+ * in, so that we have direct access to the relevant `std::type_info`
  *
  * @see C++11 documentation [type.info] and [expr.typeid]
  */
-inline std::string get_full_function_name(const std::type_info &type,
-                                          const char *func_name)
-
-{
-#ifdef HAVE_CXXABI_H
-    int status{};
-    std::unique_ptr<char[], void (*)(void *)> demangled(
-        abi::__cxa_demangle(type.name(), nullptr, nullptr, &status),
-        &std::free);
-    if (!status)
-        return std::string() + demangled.get() + "::" + func_name;
-    else
-#endif
-        return std::string() + type.name() + "::" + func_name;
-}
+#define FUNCTION_NAME \
+    gko::name_demangling::detail::get_enclosing_scope_name([] {})
 
 
 }  // namespace name_demangling
