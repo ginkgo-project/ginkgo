@@ -115,8 +115,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(r.get(), v.get());
     for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         r->compute_dot(r.get(), tau.get());
-        bool all_converged;
-        bool one_changed;
+        bool all_converged{};
+        bool one_changed{};
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
