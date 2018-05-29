@@ -31,8 +31,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_STOPPING_STATUS_HPP_
-#define GKO_CORE_BASE_STOPPING_STATUS_HPP_
+#ifndef GKO_CORE_STOP_STOPPING_STATUS_HPP_
+#define GKO_CORE_STOP_STOPPING_STATUS_HPP_
+
 
 #include "core/base/array.hpp"
 #include "core/base/types.hpp"
@@ -144,4 +145,4 @@ private:
 
 }  // namespace gko
 
-#endif  // GKO_CORE_BASE_STOPPING_STATUS_HPP_
+#endif  // GKO_CORE_STOP_STOPPING_STATUS_HPP_

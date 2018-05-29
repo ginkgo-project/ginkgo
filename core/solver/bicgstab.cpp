@@ -106,7 +106,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
-    // stop_status = false
+    // stop_status = 0x00
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
