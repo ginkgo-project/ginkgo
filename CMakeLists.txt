@@ -86,6 +86,11 @@ if (PAPI_LIB)
   endif(HAVE_PAPI_SDE)
 endif(PAPI_LIB)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
+include_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 
 add_subdirectory(third_party)    # Third-party tools and libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions

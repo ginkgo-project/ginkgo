@@ -44,18 +44,18 @@ const papi_handle_t papi_handle = papi_sde_init("ginkgo");
 
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
-    const size_type num_iterations) const
+    const size_type &num_iterations) const
 {}
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_apply(const std::string name) const
+void Papi<ValueType>::on_apply(const std::string &name) const
 {}
 
 
 /* TODO: improve this whenever the criterion class hierarchy MR is merged */
 template <typename ValueType>
-void Papi<ValueType>::on_converged(const size_type at_iteration,
+void Papi<ValueType>::on_converged(const size_type &at_iteration,
                                    const LinOp *residual) const
 {}
 

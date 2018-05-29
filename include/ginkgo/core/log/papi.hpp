@@ -56,26 +56,44 @@ extern const papi_handle_t papi_handle;
  * @tparam ValueType  the type of values stored in the class (e.g. residuals)
  */
 template <typename ValueType = default_precision>
-class Papi : public Logger {
+class Papi : public EnablePolymorphicObject<Papi<ValueType>, Logger> {
+    friend class EnablePolymorphicObject<Papi<ValueType>, Logger>;
+
 public:
+    using EnablePolymorphicObject<Papi<ValueType>,
+                                  Logger>::EnablePolymorphicObject;
+
     /**
      * creates a Papi Logger
      * @param enabled_events  the events enabled for this Logger
      * @param handle  the papi handle
      */
-    static std::shared_ptr<Papi> create(const mask_type &enabled_events)
+    static std::shared_ptr<Papi> create(
+        std::shared_ptr<const gko::Executor> exec,
+        const Logger::mask_type &enabled_events)
     {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
+        return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
     }
 
-    void on_iteration_complete(const size_type num_iterations) const override;
-    void on_apply(const std::string name) const override;
+    void on_iteration_complete(const size_type &num_iterations) const override;
+    void on_apply(const std::string &name) const override;
 
-    void on_converged(const size_type at_iteration,
+    void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
 
 protected:
-    explicit Papi(const mask_type &enabled_events) : Logger(enabled_events) {}
+    explicit Papi(
+        std::shared_ptr<const gko::Executor> exec,
+        const Logger::mask_type &enabled_events = Logger::all_events_mask)
+        : EnablePolymorphicObject<Papi<ValueType>, Logger>(exec, enabled_events)
+    {}
+
+    /** TODO: Help me with this, really can't know how to do it properly,
+     * otherwise clear_impl complains!
+     */
+    Papi<ValueType> &operator=(const Papi<ValueType> &other) { return *this; }
+
+    Papi<ValueType> &operator=(Papi<ValueType> &other) { return *this; }
 };
 
 
