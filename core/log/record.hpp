@@ -61,10 +61,10 @@ public:
      * Struct storing the actually logged data
      */
     struct logged_data {
-        std::deque<std::string> applies;
-        size_type num_iterations;
-        size_type converged_at_iteration;
-        std::deque<std::unique_ptr<const LinOp>> residuals;
+        std::deque<std::string> applies{};
+        size_type num_iterations{};
+        size_type converged_at_iteration{};
+        std::deque<std::unique_ptr<const LinOp>> residuals{};
     };
 
     /**

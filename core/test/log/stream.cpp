@@ -60,8 +60,6 @@ TEST(Stream, CatchesApply)
     logger->on<gko::log::Logger::apply>(apply_str);
 
     auto os = out.str();
-    // string os = "";
-    ASSERT_FALSE(os.empty());
     ASSERT_TRUE(os.find("starting apply function: " + apply_str) !=
                 std::string::npos);
 }
@@ -77,7 +75,6 @@ TEST(Stream, CatchesIterations)
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
     auto os = out.str();
-    ASSERT_FALSE(os.empty());
     ASSERT_TRUE(os.find("iteration " + num_iters) != std::string::npos);
 }
 
@@ -95,7 +92,6 @@ TEST(Stream, CatchesConvergence)
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
     auto os = out.str();
-    ASSERT_FALSE(os.empty());
     ASSERT_TRUE(os.find("converged at iteration " + num_iters) !=
                 std::string::npos);
     ASSERT_TRUE(os.find("1.0") != std::string::npos);
