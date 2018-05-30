@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense.hpp"
 #include "core/stop/stopping_status.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace bicgstab {

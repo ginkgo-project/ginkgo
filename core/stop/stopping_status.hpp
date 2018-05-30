@@ -38,7 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/types.hpp"
 
+
 namespace gko {
+
 
 /**
  * This structure is used to keep track of the stopping status of one vector.
