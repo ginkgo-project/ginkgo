@@ -75,13 +75,25 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
             }
         }
         add_val = warp::shuffle_down(add_val, i);
-        if (threadIdx.x < 32 - i) {
+        if (threadIdx.x < cuda_config::warp_size - i) {
             *val += add_val;
         }
     }
 }
 
 
+/**
+ * The device function of COO spmv
+ *
+ * @param nnz  the number of nonzeros in the matrix
+ * @param num_line  the maximum round of each warp
+ * @param val  the value array of the matrix
+ * @param col  the column index array of the matrix
+ * @param row  the row index array of the matrix
+ * @param b  the input dense vector
+ * @param c  the output dense vector
+ * @param scale  the function on the added value
+ */
 template <typename ValueType, typename IndexType, typename Clousure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                             const ValueType *__restrict__ val,
@@ -94,16 +106,19 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
                            blockDim.y * num_lines +
                        threadIdx.y * blockDim.x * num_lines;
-    size_type num = (nnz > start) * ceildiv(nnz - start, 32);
+    size_type num =
+        (nnz > start) * ceildiv(nnz - start, cuda_config::warp_size);
     num = min(num, num_lines);
     const IndexType ind_start = start + threadIdx.x;
-    const IndexType ind_end = ind_start + (num - 1) * 32;
+    const IndexType ind_end = ind_start + (num - 1) * cuda_config::warp_size;
     IndexType ind = ind_start;
     bool is_first_in_segment = true;
     IndexType curr_row = (ind < nnz) ? row[ind] : 0;
-    for (; ind < ind_end; ind += 32) {
+    for (; ind < ind_end; ind += cuda_config::warp_size) {
         temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
-        auto next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
+        auto next_row = (ind + cuda_config::warp_size < nnz)
+                            ? row[ind + cuda_config::warp_size]
+                            : row[nnz - 1];
         // segmented scan
         if (warp::any(curr_row != next_row)) {
             is_first_in_segment = true;
@@ -116,7 +131,7 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         curr_row = next_row;
     }
     if (num > 0) {
-        ind = ind_start + (num - 1) * 32;
+        ind = ind_start + (num - 1) * cuda_config::warp_size;
         temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
         // segmented scan
         is_first_in_segment = true;
@@ -165,17 +180,20 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
     }
 }
 
+
 template <typename ValueType>
 ValueType calculate_nwarps(const size_type nnz, const ValueType nwarps_in_gpu)
 {
+    // TODO: multiple is a parameter should be tuned.
     ValueType multiple = 8;
     if (nnz >= 2000000) {
         multiple = 128;
     } else if (nnz >= 200000) {
         multiple = 32;
     }
-    return std::min(multiple * nwarps_in_gpu,
-                    static_cast<ValueType>(ceildiv(nnz, 32)));
+    return std::min(
+        multiple * nwarps_in_gpu,
+        static_cast<ValueType>(ceildiv(nnz, cuda_config::warp_size)));
 }
 
 
@@ -193,7 +211,8 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
     set_zero<<<grid, block>>>(c->get_num_stored_elements(),
                               as_cuda_type(c->get_values()));
 
-    // TODO: get nwarp_in_gpu from GPUExecutor
+    // TODO: nwraps_in_gpu is a parameter that should be tuned.
+    //       it should be from GPUExecutor, and use 112 by default.
     auto nwarps = calculate_nwarps(nnz, 112);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
@@ -220,7 +239,8 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
     auto nnz = a->get_num_stored_elements();
     dense::scale(exec, beta, c);
 
-    // TODO: get nwarp_in_gpu from GPUExecutor
+    // TODO: nwraps_in_gpu is a parameter that should be tuned.
+    //       it should be from GPUExecutor, and use 112 by default.
     auto nwarps = calculate_nwarps(nnz, 112);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
