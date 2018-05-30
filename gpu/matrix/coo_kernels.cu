@@ -99,32 +99,30 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
     const IndexType ind_start = start + threadIdx.x;
     const IndexType ind_end = ind_start + (num - 1) * 32;
     IndexType ind = ind_start;
-    bool atomichead = true;
-    IndexType temp_row = (ind < nnz) ? row[ind] : 0;
-    IndexType next_row;
+    bool is_first_in_segment = true;
+    IndexType curr_row = (ind < nnz) ? row[ind] : 0;
     for (; ind < ind_end; ind += 32) {
         temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
-        next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
+        auto next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
         // segmented scan
-        const bool is_scan = temp_row != next_row;
-        if (warp::any(is_scan)) {
-            atomichead = true;
-            segment_scan(temp_row, &temp_val, &atomichead);
-            if (atomichead) {
-                atomic_add(&(c[temp_row]), scale(temp_val));
+        if (warp::any(curr_row != next_row)) {
+            is_first_in_segment = true;
+            segment_scan(curr_row, &temp_val, &is_first_in_segment);
+            if (is_first_in_segment) {
+                atomic_add(&(c[curr_row]), scale(temp_val));
             }
             temp_val = 0;
         }
-        temp_row = next_row;
+        curr_row = next_row;
     }
     if (num > 0) {
         ind = ind_start + (num - 1) * 32;
         temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
         // segmented scan
-        atomichead = true;
-        segment_scan(temp_row, &temp_val, &atomichead);
-        if (atomichead) {
-            atomic_add(&(c[temp_row]), scale(temp_val));
+        is_first_in_segment = true;
+        segment_scan(curr_row, &temp_val, &is_first_in_segment);
+        if (is_first_in_segment) {
+            atomic_add(&(c[curr_row]), scale(temp_val));
         }
     }
 }
@@ -167,6 +165,19 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
     }
 }
 
+template <typename ValueType>
+ValueType calculate_nwarps(const size_type nnz, const ValueType nwarps_in_gpu)
+{
+    ValueType multiple = 8;
+    if (nnz >= 2000000) {
+        multiple = 128;
+    } else if (nnz >= 200000) {
+        multiple = 32;
+    }
+    return std::min(multiple * nwarps_in_gpu,
+                    static_cast<ValueType>(ceildiv(nnz, 32)));
+}
+
 
 }  // namespace
 
@@ -176,28 +187,18 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    int multiple = 8;
     auto nnz = a->get_num_stored_elements();
     const dim3 grid(ceildiv(nnz, default_block_size));
     const dim3 block(default_block_size);
     set_zero<<<grid, block>>>(c->get_num_stored_elements(),
                               as_cuda_type(c->get_values()));
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-    const int warps_per_block = 4;
-    // TODO: get config from GPUExecutor
-    int config = 112;
-    int nwarps = config * multiple;
-    if (nwarps > ceildiv(nnz, 32)) {
-        nwarps = ceildiv(nnz, 32);
-    }
+
+    // TODO: get nwarp_in_gpu from GPUExecutor
+    auto nwarps = calculate_nwarps(nnz, 112);
     if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * 32);
-        const dim3 coo_block(32, warps_per_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_per_block));
+        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
         abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
@@ -216,25 +217,15 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    dense::scale(exec, beta, c);
-    int multiple = 8;
     auto nnz = a->get_num_stored_elements();
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-    const int warps_per_block = 4;
-    // TODO: get config from GPUExecutor
-    int config = 112;
-    int nwarps = config * multiple;
-    if (nwarps > ceildiv(nnz, 32)) {
-        nwarps = ceildiv(nnz, 32);
-    }
+    dense::scale(exec, beta, c);
+
+    // TODO: get nwarp_in_gpu from GPUExecutor
+    auto nwarps = calculate_nwarps(nnz, 112);
     if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * 32);
-        const dim3 coo_block(32, warps_per_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_per_block));
+        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
         abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
