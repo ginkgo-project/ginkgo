@@ -43,11 +43,11 @@ namespace gko {
 
 
 /**
- * This structure is used to keep track of the stopping status of one vector.
+ * This class is used to keep track of the stopping status of one vector.
  */
-class StoppingStatus {
+class stopping_status {
 public:
-    StoppingStatus() = default;
+    stopping_status() = default;
 
     /**
      * Check if any stopping criteria was fulfilled.

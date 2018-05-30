@@ -113,8 +113,8 @@ protected:
         beta = gen_mtx(1, n);
         gamma = gen_mtx(1, n);
         omega = gen_mtx(1, n);
-        converged = std::unique_ptr<gko::Array<gko::StoppingStatus>>(
-            new gko::Array<gko::StoppingStatus>(ref, n));
+        converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < n; ++i) {
             converged->get_data()[i].reset();
         }
@@ -135,8 +135,8 @@ protected:
         d_beta = Mtx::create(gpu);
         d_gamma = Mtx::create(gpu);
         d_omega = Mtx::create(gpu);
-        d_converged = std::unique_ptr<gko::Array<gko::StoppingStatus>>(
-            new gko::Array<gko::StoppingStatus>(gpu));
+        d_converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(gpu));
 
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
@@ -196,7 +196,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
-    std::unique_ptr<gko::Array<gko::StoppingStatus>> converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> converged;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -214,7 +214,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-    std::unique_ptr<gko::Array<gko::StoppingStatus>> d_converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> d_converged;
 };
 
 

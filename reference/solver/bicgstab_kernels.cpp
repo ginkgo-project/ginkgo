@@ -56,7 +56,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *omega,
-                Array<StoppingStatus> *stop_status)
+                Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = one<ValueType>();
@@ -89,7 +89,7 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
                       uint8 stoppingId, bool setFinalized,
-                      Array<StoppingStatus> *stop_status, bool *all_converged,
+                      Array<stopping_status> *stop_status, bool *all_converged,
                       bool *one_changed)
 {
     *all_converged = true;
@@ -119,7 +119,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
-            const Array<StoppingStatus> &stop_status)
+            const Array<stopping_status> &stop_status)
 
 {
     for (size_type i = 0; i < p->get_size().num_rows; ++i) {
@@ -149,7 +149,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            const Array<StoppingStatus> &stop_status)
+            const Array<stopping_status> &stop_status)
 {
     for (size_type i = 0; i < s->get_size().num_rows; ++i) {
         for (size_type j = 0; j < s->get_size().num_cols; ++j) {
@@ -177,7 +177,7 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<StoppingStatus> &stop_status)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> &stop_status)
 {
     for (size_type j = 0; j < x->get_size().num_cols; ++j) {
         if (stop_status.get_const_data()[j].has_stopped()) {
@@ -208,7 +208,7 @@ template <typename ValueType>
 void finalize(std::shared_ptr<const ReferenceExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
               const matrix::Dense<ValueType> *alpha,
-              Array<StoppingStatus> *stop_status)
+              Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < x->get_size().num_cols; ++j) {
         if (stop_status->get_const_data()[j].has_stopped() &&
