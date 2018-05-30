@@ -63,6 +63,11 @@ using size_type = std::size_t;
 
 
 /**
+ * 8-bit signed integral type.
+ */
+using int8 = std::int8_t;
+
+/**
  * 16-bit signed integral type.
  */
 using int16 = std::int16_t;
@@ -79,6 +84,11 @@ using int32 = std::int32_t;
  */
 using int64 = std::int64_t;
 
+
+/**
+ * 8-bit unsigned integral type.
+ */
+using uint8 = std::uint8_t;
 
 /**
  * 16-bit unsigned integral type.
