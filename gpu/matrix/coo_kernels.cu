@@ -41,9 +41,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu/base/cusparse_bindings.hpp"
 #include "gpu/base/math.hpp"
 #include "gpu/base/types.hpp"
+#include "gpu/components/atomic.cuh"
 #include "gpu/components/shuffle.cuh"
 #include "gpu/components/synchronization.cuh"
-#include "gpu/components/atomic.cuh"
 
 
 namespace gko {
@@ -53,21 +53,22 @@ namespace coo {
 
 
 constexpr int default_block_size = 512;
+constexpr int warps_in_block = 4;
+constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
 
 
 namespace {
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void segment_scan(IndexType *ind, ValueType *val,
+__device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
                                              bool *head)
 {
-    ValueType add_val;
 #pragma unroll
-    for (int i = 1; i < 32; i <<= 1) {
-        const IndexType add_ind = warp::shuffle_up(*ind, i);
-        add_val = zero<ValueType>();
-        if (threadIdx.x >= i && add_ind == *ind) {
+    for (int i = 1; i < cuda_config::warp_size; i <<= 1) {
+        const IndexType add_ind = warp::shuffle_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (threadIdx.x >= i && add_ind == ind) {
             add_val = *val;
             if (i == 1) {
                 *head = false;
@@ -81,12 +82,13 @@ __device__ __forceinline__ void segment_scan(IndexType *ind, ValueType *val,
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(128) void spmv_kernel(
-    const size_type nnz, const size_type num_lines,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const IndexType *__restrict__ row, const ValueType *__restrict__ b,
-    ValueType *__restrict__ c)
+template <typename ValueType, typename IndexType, typename Clousure>
+__device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
+                            const ValueType *__restrict__ val,
+                            const IndexType *__restrict__ col,
+                            const IndexType *__restrict__ row,
+                            const ValueType *__restrict__ b,
+                            ValueType *__restrict__ c, Clousure scale)
 {
     ValueType temp_val = zero<ValueType>();
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
@@ -107,9 +109,9 @@ __global__ __launch_bounds__(128) void spmv_kernel(
         const bool is_scan = temp_row != next_row;
         if (warp::any(is_scan)) {
             atomichead = true;
-            segment_scan(&temp_row, &temp_val, &atomichead);
+            segment_scan(temp_row, &temp_val, &atomichead);
             if (atomichead) {
-                atomic_add(&(c[temp_row]), temp_val);
+                atomic_add(&(c[temp_row]), scale(temp_val));
             }
             temp_val = 0;
         }
@@ -120,11 +122,37 @@ __global__ __launch_bounds__(128) void spmv_kernel(
         temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
         // segmented scan
         atomichead = true;
-        segment_scan(&temp_row, &temp_val, &atomichead);
+        segment_scan(temp_row, &temp_val, &atomichead);
         if (atomichead) {
-            atomic_add(&(c[temp_row]), temp_val);
+            atomic_add(&(c[temp_row]), scale(temp_val));
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const size_type nnz, const size_type num_lines,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const IndexType *__restrict__ row, const ValueType *__restrict__ b,
+    ValueType *__restrict__ c)
+{
+    spmv_kernel(nnz, num_lines, val, col, row, b, c,
+                [](const ValueType &x) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const size_type nnz, const size_type num_lines,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col, const IndexType *__restrict__ row,
+    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+{
+    ValueType scale_factor = alpha[0];
+    spmv_kernel(
+        nnz, num_lines, val, col, row, b, c,
+        [&scale_factor](const ValueType &x) { return scale_factor * x; });
 }
 
 
@@ -170,7 +198,7 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
         int num_lines = ceildiv(nnz, nwarps * 32);
         const dim3 coo_block(32, warps_per_block, 1);
         const dim3 coo_grid(ceildiv(nwarps, warps_per_block));
-        spmv_kernel<<<coo_grid, coo_block>>>(
+        abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
             as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
@@ -178,60 +206,6 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(128) void advanced_spmv_kernel(
-    const size_type nnz, const size_type num_lines,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const IndexType *__restrict__ row,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c)
-{
-    ValueType temp_val = zero<ValueType>();
-    const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
-                           blockDim.y * num_lines +
-                       threadIdx.y * blockDim.x * num_lines;
-    size_type num = (nnz > start) * ceildiv(nnz - start, 32);
-    num = min(num, num_lines);
-    const IndexType ind_start = start + threadIdx.x;
-    const IndexType ind_end = ind_start + (num - 1) * 32;
-    IndexType ind = ind_start;
-    bool atomichead = true;
-    IndexType temp_row = (ind < nnz) ? row[ind] : 0;
-    IndexType next_row;
-    const auto alpha_val = alpha[0];
-    for (; ind < ind_end; ind += 32) {
-        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
-        next_row = (ind + 32 < nnz) ? row[ind + 32] : row[nnz - 1];
-        // segmented scan
-        const bool is_scan = temp_row != next_row;
-        if (warp::any(is_scan)) {
-            atomichead = true;
-            segment_scan(&temp_row, &temp_val, &atomichead);
-            if (atomichead) {
-                atomic_add(&(c[temp_row]), alpha_val * temp_val);
-            }
-            temp_val = 0;
-        }
-        temp_row = next_row;
-    }
-    if (num > 0) {
-        ind = ind_start + (num - 1) * 32;
-        temp_val += (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
-        // segmented scan
-        atomichead = true;
-        segment_scan(&temp_row, &temp_val, &atomichead);
-        if (atomichead) {
-            atomic_add(&(c[temp_row]), alpha_val * temp_val);
-        }
-    }
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -261,7 +235,7 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
         int num_lines = ceildiv(nnz, nwarps * 32);
         const dim3 coo_block(32, warps_per_block, 1);
         const dim3 coo_grid(ceildiv(nwarps, warps_per_block));
-        advanced_spmv_kernel<<<coo_grid, coo_block>>>(
+        abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
             as_cuda_type(a->get_const_row_idxs()),
