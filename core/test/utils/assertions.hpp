@@ -85,8 +85,6 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
                                const MatrixData2 &second)
 {
     using real_vt = remove_complex<typename MatrixData2::value_type>;
-    using std::abs;
-    using std::max;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size.num_rows; ++row) {
@@ -109,8 +107,6 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
-    using std::max;
-    using std::sqrt;
     double diff = 0.0;
     double first_norm = 0.0;
     double second_norm = 0.0;

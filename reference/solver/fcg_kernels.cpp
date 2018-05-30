@@ -78,7 +78,6 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
                       remove_complex<ValueType> rel_residual_goal,
                       Array<bool> *converged, bool *all_converged)
 {
-    using std::abs;
     *all_converged = true;
     for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
@@ -94,6 +93,7 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TEST_CONVERGENCE_KERNEL);
+
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
