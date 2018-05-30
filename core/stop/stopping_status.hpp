@@ -64,7 +64,7 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE bool has_converged() const noexcept
     {
-        return data & converged_mask;
+        return data_ & converged_mask_;
     }
 
     /**
@@ -74,7 +74,7 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE bool is_finalized() const noexcept
     {
-        return data & finalized_mask;
+        return data_ & finalized_mask_;
     }
 
     /**
@@ -83,13 +83,13 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE uint8 get_id() const noexcept
     {
-        return data & id_mask;
+        return data_ & id_mask_;
     }
 
     /**
      * Clear all flags.
      */
-    GKO_ATTRIBUTES GKO_INLINE void reset() noexcept { data = uint8{0}; }
+    GKO_ATTRIBUTES GKO_INLINE void reset() noexcept { data_ = uint8{0}; }
 
     /**
      * Call if a stop occured due to a hard limit (and convergence was not
@@ -102,9 +102,9 @@ public:
                                         bool setFinalized = true) noexcept
     {
         if (!this->has_stopped()) {
-            data |= (id & id_mask);
+            data_ |= (id & id_mask_);
             if (setFinalized) {
-                data |= finalized_mask;
+                data_ |= finalized_mask_;
             }
         }
     }
@@ -119,9 +119,9 @@ public:
                                             bool setFinalized = true) noexcept
     {
         if (!this->has_stopped()) {
-            data |= converged_mask | (id & id_mask);
+            data_ |= converged_mask_ | (id & id_mask_);
             if (setFinalized) {
-                data |= finalized_mask;
+                data_ |= finalized_mask_;
             }
         }
     }
@@ -133,16 +133,16 @@ public:
     GKO_ATTRIBUTES GKO_INLINE void finalize() noexcept
     {
         if (this->has_stopped()) {
-            data |= finalized_mask;
+            data_ |= finalized_mask_;
         }
     }
 
 private:
-    static constexpr uint8 converged_mask = uint8{1} << 7;
-    static constexpr uint8 finalized_mask = uint8{1} << 6;
-    static constexpr uint8 id_mask = (uint8{1} << 6) - uint8{1};
+    static constexpr uint8 converged_mask_ = uint8{1} << 7;
+    static constexpr uint8 finalized_mask_ = uint8{1} << 6;
+    static constexpr uint8 id_mask_ = (uint8{1} << 6) - uint8{1};
 
-    uint8 data;
+    uint8 data_;
 };
 
 }  // namespace gko
