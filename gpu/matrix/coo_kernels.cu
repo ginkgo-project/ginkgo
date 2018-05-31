@@ -191,9 +191,8 @@ ValueType calculate_nwarps(const size_type nnz, const ValueType nwarps_in_gpu)
     } else if (nnz >= 200000) {
         multiple = 32;
     }
-    return std::min(
-        multiple * nwarps_in_gpu,
-        static_cast<ValueType>(ceildiv(nnz, cuda_config::warp_size)));
+    return std::min(static_cast<int64>(multiple * nwarps_in_gpu),
+                    ceildiv(nnz, cuda_config::warp_size));
 }
 
 
