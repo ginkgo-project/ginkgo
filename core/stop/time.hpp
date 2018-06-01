@@ -79,7 +79,9 @@ public:
           start_{clock::now()}
     {}
 
-    bool check(Array<bool> &, const Updater &) override;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
 
 private:
     clock::duration limit_;

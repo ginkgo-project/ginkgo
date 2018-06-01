@@ -39,18 +39,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace relative_residual_norm {
 
-#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(_type)                     \
-    void relative_residual_norm(std::shared_ptr<const DefaultExecutor> exec, \
-                                const matrix::Dense<_type> *tau,             \
-                                const matrix::Dense<_type> *orig_tau,        \
-                                remove_complex<_type> rel_residual_goal,     \
-                                Array<bool> *converged, bool *all_converged)
+
+#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(_type)                       \
+    void relative_residual_norm(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
+        remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
+        bool setFinalized, Array<stopping_status> *stop_status,                \
+        bool *all_converged, bool *one_changed)
 
 
 #define DECLARE_ALL_AS_TEMPLATES  \

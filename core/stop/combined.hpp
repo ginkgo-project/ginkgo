@@ -117,7 +117,9 @@ public:
      */
     void add_subcriterion(std::unique_ptr<Criterion> c);
 
-    bool check(Array<bool> &, const Updater &) override;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
 
 private:
     std::vector<std::unique_ptr<Criterion>> criterions_{};

@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/utils.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
 namespace gko {
@@ -103,9 +104,11 @@ public:
          * Calls the parent Criterion object's check method
          * @copydoc Criterion::check(Array<bool>)
          */
-        bool check(Array<bool> &converged) const
+        bool check(uint8 stoppingId, bool setFinalized,
+                   Array<stopping_status> *stop_status, bool *one_changed) const
         {
-            return parent_->check(converged, *this);
+            return parent_->check(stoppingId, setFinalized, stop_status,
+                                  one_changed, *this);
         }
 
             /**
@@ -143,12 +146,17 @@ public:
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
      *
-     * @param converged outputs where convergence was reached
-     * @param updater the Updater object containing all the information
+     * @param stoppingId  someone else do it
+     * @param setFinalized  someone else do it
+     * @param stop_status  someone else do it
+     * @param one_changed  someone else do it
+     * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
      */
-    virtual bool check(Array<bool> &converged, const Updater &updater) = 0;
+    virtual bool check(uint8 stoppingId, bool setFinalized,
+                       Array<stopping_status> *stop_status, bool *one_changed,
+                       const Updater &updater) = 0;
 };
 
 

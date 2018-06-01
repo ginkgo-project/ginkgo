@@ -46,7 +46,9 @@ std::unique_ptr<Criterion> IveLostPatience::Factory::create_criterion(
     return std::unique_ptr<IveLostPatience>(new IveLostPatience(v_));
 }
 
-bool IveLostPatience::check(Array<bool> &, const Updater &)
+bool IveLostPatience::check(uint8 stoppingId, bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            bool *one_changed, const Updater &)
 {
     return is_user_bored_;
 }

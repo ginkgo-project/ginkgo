@@ -145,6 +145,8 @@ private:
     uint8 data_;
 };
 
+
 }  // namespace gko
+
 
 #endif  // GKO_CORE_STOP_STOPPING_STATUS_HPP_

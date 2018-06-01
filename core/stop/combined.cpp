@@ -57,12 +57,18 @@ void Combined::add_subcriterion(std::unique_ptr<Criterion> c)
 }
 
 
-bool Combined::check(Array<bool> &converged, const Updater &updater)
+bool Combined::check(uint8 stoppingId, bool setFinalized,
+                     Array<stopping_status> *stop_status, bool *one_changed,
+                     const Updater &updater)
 {
     bool one_converged = false;
+    bool global_one_changed = false;
     for (std::unique_ptr<Criterion> &c : criterions_) {
-        one_converged |= c->check(converged, updater);
+        one_converged |= c->check(stoppingId, setFinalized, stop_status,
+                                  one_changed, updater);
+        global_one_changed |= *one_changed;
     }
+    *one_changed = global_one_changed;
     return one_converged;
 }
 

@@ -76,13 +76,15 @@ TEST_F(Time, CanCreateCriterion)
 TEST_F(Time, WaitsTillTime)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    unsigned int iters = 0;
-    gko::Array<bool> converged(exec_, 1);
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto start = std::chrono::system_clock::now();
 
     while (1) {
-        if (criterion->update().num_iterations(iters).check(converged)) break;
-        iters++;
+        if (criterion->update().check(RelativeStoppingId, true, &stop_status,
+                                      &one_changed))
+            break;
     }
     auto time = std::chrono::system_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();

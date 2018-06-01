@@ -93,6 +93,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto omega = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
+    bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size().num_cols);
 
@@ -115,21 +116,21 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     rr->copy_from(r.get());
     r->compute_dot(r.get(), tau.get());
     system_matrix_->apply(r.get(), v.get());
-    /* Potentially update starting tau */
-    stop_criterion->update().residual_norm(tau.get()).check(converged);
+    // Update starting tau
+    stop_criterion->update().residual_norm(tau.get()).check(
+        RelativeStoppingId, false, &stop_status, &one_changed);
 
     int iters = 0;
     while (true) {
         r->compute_dot(r.get(), tau.get());
-        bool one_changed{};
 
-        /* TODO: check this */
+        // TODO: check this
         if (stop_criterion->update()
                 .num_iterations(iters)
                 .residual_norm(tau.get())
                 .residual(r.get())
                 .solution(dense_x)
-                .check(converged)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
@@ -150,17 +151,23 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        /* TODO: check this */
+        // TODO: check this
         iters++;
-        if (stop_criterion->update()
+        auto all_converged =
+            stop_criterion->update()
                 .num_iterations(iters)
                 .residual_norm(tau.get())
                 .residual(r.get())
                 .solution(dense_x)
-                .check(converged)) {
-            dense_x->add_scaled(alpha.get(), y.get());
-            break;
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+
+        if (one_changed) {
+            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
+                dense_x, y.get(), alpha.get(), &stop_status));
         }
+
+        if (all_converged) break;
+
         preconditioner_->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
@@ -174,7 +181,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         swap(prev_rho, rho);
         iters++;
     }
-}
+}  // namespace solver
 
 
 template <typename ValueType>

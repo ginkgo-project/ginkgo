@@ -47,9 +47,11 @@ std::unique_ptr<Criterion> Time::Factory::create_criterion(
 }
 
 
-bool Time::check(Array<bool> &, const Updater &)
+bool Time::check(uint8 stoppingId, bool setFinalized,
+                 Array<stopping_status> *stop_status, bool *one_changed,
+                 const Updater &)
 {
-    // maybe we need to set converged array to true?
+    // maybe we need to set stop_status array to true?
     // or does return value true imply that every value in the array is
     // considered true
     return (clock::now() - start_) >= limit_;

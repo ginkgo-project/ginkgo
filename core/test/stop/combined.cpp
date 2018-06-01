@@ -81,17 +81,24 @@ TEST_F(Combined, CanCreateCriterion)
 /* We know iteration will converge and not time due to huge time picked */
 TEST_F(Combined, WaitsTillIteration)
 {
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     gko::Array<bool> converged(exec_, 1);
 
-    ASSERT_FALSE(criterion->update()
-                     .num_iterations(test_iterations - 1)
-                     .check(converged));
+    ASSERT_FALSE(
+        criterion->update()
+            .num_iterations(test_iterations - 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_TRUE(
-        criterion->update().num_iterations(test_iterations).check(converged));
-    ASSERT_TRUE(criterion->update()
-                    .num_iterations(test_iterations + 1)
-                    .check(converged));
+        criterion->update()
+            .num_iterations(test_iterations)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations + 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 }
 
 
@@ -102,12 +109,16 @@ TEST_F(Combined, WaitsTillTime)
         gko::stop::Iteration::Factory::create(9999),
         gko::stop::Time::Factory::create(1.0e-9));
     unsigned int iters = 0;
-    gko::Array<bool> converged(exec_, 1);
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     auto start = std::chrono::system_clock::now();
 
     while (1) {
-        if (criterion->update().num_iterations(iters).check(converged)) break;
+        if (criterion->update().num_iterations(iters).check(
+                RelativeStoppingId, true, &stop_status, &one_changed))
+            break;
         iters++;
     }
     auto time = std::chrono::system_clock::now() - start;

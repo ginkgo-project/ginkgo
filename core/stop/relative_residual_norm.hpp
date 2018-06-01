@@ -94,7 +94,9 @@ public:
         starting_tau_ = Vector::create(exec_);
     }
 
-    bool check(Array<bool> &, const Updater &) override;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
 
 private:
     remove_complex<ValueType> rel_residual_goal_;

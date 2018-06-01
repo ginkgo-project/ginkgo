@@ -64,7 +64,9 @@ RelativeResidualNorm<ValueType>::Factory::create_criterion(
 
 
 template <typename ValueType>
-bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
+bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
+                                            Array<stopping_status> *stop_status,
+                                            bool *one_changed,
                                             const Updater &updater)
 {
     if (!initialized_tau_) {
@@ -77,7 +79,8 @@ bool RelativeResidualNorm<ValueType>::check(Array<bool> &converged,
     exec_->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
             as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            rel_residual_goal_, &converged, &all_converged));
+            rel_residual_goal_, stoppingId, setFinalized, stop_status,
+            one_changed, &all_converged));
     return all_converged;
 }
 

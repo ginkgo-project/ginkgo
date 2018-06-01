@@ -54,17 +54,20 @@ void relative_residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
                             const matrix::Dense<ValueType> *orig_tau,
                             remove_complex<ValueType> rel_residual_goal,
-                            Array<bool> *converged, bool *all_converged)
+                            uint8 stoppingId, bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            bool *all_converged, bool *one_changed)
 {
     using std::abs;
     *all_converged = true;
     for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
-            converged->get_data()[i] = true;
+            stop_status->get_data()[i].converge(stoppingId, setFinalized);
+            *one_changed = true;
         }
     }
-    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
-        if (!converged->get_const_data()[i]) {
+    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+        if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
             break;
         }

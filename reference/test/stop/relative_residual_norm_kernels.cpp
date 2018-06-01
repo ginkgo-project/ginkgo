@@ -61,43 +61,54 @@ protected:
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(exec_, 1);
-    converged.get_data()[0] = false;
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
+    // stop_status.get_data()[0] = false;
     auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
 
     ASSERT_FALSE(
-        criterion->update().residual_norm(scalar.get()).check(converged));
+        criterion->update()
+            .residual_norm(scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
     scalar->at(0) = residual_goal * 1.0e+2;
     ASSERT_FALSE(
-        criterion->update().residual_norm(scalar.get()).check(converged));
-    ASSERT_EQ(converged.get_data()[0], false);
+        criterion->update()
+            .residual_norm(scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
 
     scalar->at(0) = residual_goal * 1.0e-2;
     ASSERT_TRUE(
-        criterion->update().residual_norm(scalar.get()).check(converged));
-    ASSERT_EQ(converged.get_data()[0], true);
+        criterion->update()
+            .residual_norm(scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
 }
 
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(exec_, 2);
-    converged.get_data()[0] = false;
-    converged.get_data()[1] = false;
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 2);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto mtx =
         gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}, {1.0, 1.0}}, exec_);
 
-    criterion->update().residual_norm(mtx.get()).check(converged);
+    criterion->update().residual_norm(mtx.get()).check(
+        RelativeStoppingId, true, &stop_status, &one_changed);
 
     mtx->at(0, 0) = residual_goal * 1.0e-2;
-    ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(converged));
-    ASSERT_EQ(converged.get_data()[0], true);
+    ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
+        RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
 
     mtx->at(0, 1) = residual_goal * 1.0e-2;
-    ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(converged));
-    ASSERT_EQ(converged.get_data()[1], true);
+    ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
+        RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
 }
 
 

@@ -107,7 +107,9 @@ public:
         is_user_bored_ = false;
     }
 
-    bool check(Array<bool> &, const Updater &) override;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
 
 private:
     volatile bool &is_user_bored_;

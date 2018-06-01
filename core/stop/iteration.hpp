@@ -70,7 +70,9 @@ public:
 
     explicit Iteration(size_type iterations) : iterations_{iterations} {}
 
-    bool check(Array<bool> &, const Updater &updater) override;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &updater) override;
 
 private:
     size_type iterations_;

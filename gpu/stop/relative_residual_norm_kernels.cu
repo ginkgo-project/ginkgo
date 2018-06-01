@@ -53,18 +53,20 @@ __global__
     __launch_bounds__(default_block_size) void relative_residual_norm_kernel(
         size_type num_cols, remove_complex<ValueType> rel_residual_goal,
         const ValueType *__restrict__ tau,
-        const ValueType *__restrict__ orig_tau, bool *__restrict__ converged,
-        bool *__restrict__ all_converged)
+        const ValueType *__restrict__ orig_tau, uint8 stoppingId,
+        bool setFinalized, stopping_status *__restrict__ stop_status,
+        bool *__restrict__ all_converged, bool *__restrict__ one_changed)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     if (tidx < num_cols) {
         if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
-            converged[tidx] = true;
+            stop_status[tidx].converge(stoppingId, setFinalized);
+            *one_changed = true;
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
-        else if (converged[tidx] == false) {
+        else if (!stop_status[tidx].has_stopped()) {
             *all_converged = false;
         }
     }
@@ -75,7 +77,9 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
                             const matrix::Dense<ValueType> *orig_tau,
                             remove_complex<ValueType> rel_residual_goal,
-                            Array<bool> *converged, bool *all_converged)
+                            uint8 stoppingId, bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            bool *all_converged, bool *one_changed)
 {
     Array<bool> d_all_converged(exec, 1);
     Array<bool> all_converged_array(exec->get_master());
@@ -84,6 +88,12 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
     *all_converged = true;
     all_converged_array.manage(1, all_converged);
     d_all_converged = all_converged_array;
+
+    Array<bool> d_one_changed(exec, 1);
+    Array<bool> one_changed_array(exec->get_master());
+    *one_changed = false;
+    one_changed_array.manage(1, one_changed);
+    d_one_changed = one_changed_array;
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
@@ -97,6 +107,9 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
 
     all_converged_array = d_all_converged;
     all_converged_array.release();
+
+    one_changed_array = d_one_changed;
+    one_changed_array.release();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);

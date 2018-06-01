@@ -71,17 +71,23 @@ TEST_F(Iteration, CanCreateCriterion)
 
 TEST_F(Iteration, WaitsTillIteration)
 {
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(exec_, 1);
 
-    ASSERT_FALSE(criterion->update()
-                     .num_iterations(test_iterations - 1)
-                     .check(converged));
+    ASSERT_FALSE(
+        criterion->update()
+            .num_iterations(test_iterations - 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_TRUE(
-        criterion->update().num_iterations(test_iterations).check(converged));
-    ASSERT_TRUE(criterion->update()
-                    .num_iterations(test_iterations + 1)
-                    .check(converged));
+        criterion->update()
+            .num_iterations(test_iterations)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations + 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 }
 
 

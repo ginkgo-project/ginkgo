@@ -47,9 +47,11 @@ std::unique_ptr<Criterion> Iteration::Factory::create_criterion(
 }
 
 
-bool Iteration::check(Array<bool> &, const Updater &updater)
+bool Iteration::check(uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status, bool *one_changed,
+                      const Updater &updater)
 {
-    // maybe we need to set converged array to true?
+    // maybe we need to set stop_status array to true?
     // or does return value true imply that every value in the array is
     // considered true
     return updater.num_iterations_ >= iterations_;

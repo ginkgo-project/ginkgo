@@ -48,8 +48,10 @@ void relative_residual_norm(std::shared_ptr<const CpuExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
                             const matrix::Dense<ValueType> *orig_tau,
                             remove_complex<ValueType> rel_residual_goal,
-                            Array<bool> *converged,
-                            bool *all_converged) NOT_IMPLEMENTED;
+                            uint8 stoppingId, bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            bool *all_converged,
+                            bool *one_changed) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
 
