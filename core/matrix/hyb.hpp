@@ -62,18 +62,18 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Hyb : public EnableLinOp<Hyb<ValueType, IndexType>>,
-            public EnableCreateMethod<Hyb<ValueType, IndexType>>,
+class Hybrid : public EnableLinOp<Hybrid<ValueType, IndexType>>,
+            public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnableCreateMethod<Hyb>;
-    friend class EnablePolymorphicObject<Hyb, LinOp>;
+    friend class EnableCreateMethod<Hybrid>;
+    friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
 
 public:
-    using EnableLinOp<Hyb>::convert_to;
-    using EnableLinOp<Hyb>::move_to;
+    using EnableLinOp<Hybrid>::convert_to;
+    using EnableLinOp<Hybrid>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -117,7 +117,7 @@ public:
     value_type *get_ell_values() noexcept { return ell_->get_values(); }
 
     /**
-     * @copydoc Hyb::get_ell_values()
+     * @copydoc Hybrid::get_ell_values()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -136,7 +136,7 @@ public:
     index_type *get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
 
     /**
-     * @copydoc Hyb::get_ell_col_idxs()
+     * @copydoc Hybrid::get_ell_col_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -191,7 +191,7 @@ public:
     }
 
     /**
-     * @copydoc Hyb::ell_val_at(size_type, size_type)
+     * @copydoc Hybrid::ell_val_at(size_type, size_type)
      */
     value_type ell_val_at(size_type row, size_type idx) const noexcept
     {
@@ -214,7 +214,7 @@ public:
     }
 
     /**
-     * @copydoc Hyb::ell_col_at(size_type, size_type)
+     * @copydoc Hybrid::ell_col_at(size_type, size_type)
      */
     index_type ell_col_at(size_type row, size_type idx) const noexcept
     {
@@ -229,7 +229,7 @@ public:
     value_type *get_coo_values() noexcept { return coo_->get_values(); }
 
     /**
-     * @copydoc Hyb::get_coo_values()
+     * @copydoc Hybrid::get_coo_values()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -248,7 +248,7 @@ public:
     index_type *get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
 
     /**
-     * @copydoc Hyb::get_coo_col_idxs()
+     * @copydoc Hybrid::get_coo_col_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -267,7 +267,7 @@ public:
     index_type *get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
 
     /**
-     * @copydoc Hyb::get_coo_row_idxs()
+     * @copydoc Hybrid::get_coo_row_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -301,7 +301,7 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized Hyb matrix of specified method.
+     * Creates an uninitialized Hybrid matrix of specified method.
      *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
      *     ell_stride is set to the number of rows of the matrix.)
      *
@@ -309,13 +309,13 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hyb(std::shared_ptr<const Executor> exec,
+    Hybrid(std::shared_ptr<const Executor> exec,
         partition method = partition::automatically, index_type val = 0)
-        : Hyb(std::move(exec), dim{}, method, val)
+        : Hybrid(std::move(exec), dim{}, method, val)
     {}
 
     /**
-     * Creates an uninitialized Hyb matrix of the specified size and method.
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
      *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
      *     ell_stride is set to the number of rows of the matrix.)
      *
@@ -324,13 +324,13 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hyb(std::shared_ptr<const Executor> exec, const dim &size,
+    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
         partition method = partition::automatically, index_type val = 0)
-        : Hyb(std::move(exec), size, size.num_cols, method, val)
+        : Hybrid(std::move(exec), size, size.num_cols, method, val)
     {}
 
     /**
-     * Creates an uninitialized Hyb matrix of the specified size and method.
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
      *    (ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
@@ -339,15 +339,15 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hyb(std::shared_ptr<const Executor> exec, const dim &size,
+    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
         size_type max_nonzeros_per_row,
         partition method = partition::automatically, index_type val = 0)
-        : Hyb(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
+        : Hybrid(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
               method, val)
     {}
 
     /**
-     * Creates an uninitialized Hyb matrix of the specified size and method.
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -357,11 +357,11 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hyb(std::shared_ptr<const Executor> exec, const dim &size,
+    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
         size_type max_nonzeros_per_row, size_type stride,
         size_type num_nonzeros = {},
         partition method = partition::automatically, index_type val = 0)
-        : EnableLinOp<Hyb>(exec, size),
+        : EnableLinOp<Hybrid>(exec, size),
           method_(method),
           method_val_(val),
           ell_(std::move(

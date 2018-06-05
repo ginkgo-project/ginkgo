@@ -45,7 +45,7 @@ namespace hyb {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CpuExecutor> exec,
-          const matrix::Hyb<ValueType, IndexType> *a,
+          const matrix::Hybrid<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b,
           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
@@ -55,7 +55,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYB_SPMV_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
-                   const matrix::Hyb<ValueType, IndexType> *a,
+                   const matrix::Hybrid<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
@@ -67,7 +67,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Hyb<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+    const matrix::Hybrid<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL);

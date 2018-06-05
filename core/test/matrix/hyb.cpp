@@ -43,13 +43,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Hyb : public ::testing::Test {
+class Hybrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Hyb<>;
+    using Mtx = gko::matrix::Hybrid<>;
 
-    Hyb()
+    Hybrid()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Hyb<>::create(exec, gko::dim{2, 3}, 2, 2, 1))
+          mtx(gko::matrix::Hybrid<>::create(exec, gko::dim{2, 3}, 2, 2, 1))
     {
         Mtx::value_type *v = mtx->get_ell_values();
         Mtx::index_type *c = mtx->get_ell_col_idxs();
@@ -108,7 +108,7 @@ protected:
 };
 
 
-TEST_F(Hyb, KnowsItsSize)
+TEST_F(Hybrid, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(mtx->get_ell_num_stored_elements(), 4);
@@ -118,10 +118,10 @@ TEST_F(Hyb, KnowsItsSize)
 }
 
 
-TEST_F(Hyb, ContainsCorrectData) { assert_equal_to_original_mtx(mtx.get()); }
+TEST_F(Hybrid, ContainsCorrectData) { assert_equal_to_original_mtx(mtx.get()); }
 
 
-TEST_F(Hyb, CanBeEmpty)
+TEST_F(Hybrid, CanBeEmpty)
 {
     auto mtx = Mtx::create(exec);
 
@@ -129,7 +129,7 @@ TEST_F(Hyb, CanBeEmpty)
 }
 
 
-TEST_F(Hyb, CanBeCopied)
+TEST_F(Hybrid, CanBeCopied)
 {
     auto copy = Mtx::create(exec);
 
@@ -141,7 +141,7 @@ TEST_F(Hyb, CanBeCopied)
 }
 
 
-TEST_F(Hyb, CanBeMoved)
+TEST_F(Hybrid, CanBeMoved)
 {
     auto copy = Mtx::create(exec);
 
@@ -151,7 +151,7 @@ TEST_F(Hyb, CanBeMoved)
 }
 
 
-TEST_F(Hyb, CanBeCloned)
+TEST_F(Hybrid, CanBeCloned)
 {
     auto clone = mtx->clone();
 
@@ -161,7 +161,7 @@ TEST_F(Hyb, CanBeCloned)
 }
 
 
-TEST_F(Hyb, CanBeCleared)
+TEST_F(Hybrid, CanBeCleared)
 {
     mtx->clear();
 
@@ -169,7 +169,7 @@ TEST_F(Hyb, CanBeCleared)
 }
 
 
-TEST_F(Hyb, CanBeReadFromMatrixDataAutomatically)
+TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 {
     auto m = Mtx::create(exec, Mtx::partition::automatically);
     m->read({{2, 3},
@@ -204,7 +204,7 @@ TEST_F(Hyb, CanBeReadFromMatrixDataAutomatically)
 }
 
 
-TEST_F(Hyb, CanBeReadFromMatrixDataByColumns2)
+TEST_F(Hybrid, CanBeReadFromMatrixDataByColumns2)
 {
     auto m = Mtx::create(exec, Mtx::partition::columns, 2);
     m->read({{2, 3},
@@ -219,7 +219,7 @@ TEST_F(Hyb, CanBeReadFromMatrixDataByColumns2)
 }
 
 
-TEST_F(Hyb, CanBeReadFromMatrixDataByPercent40)
+TEST_F(Hybrid, CanBeReadFromMatrixDataByPercent40)
 {
     auto m = Mtx::create(exec, Mtx::partition::percent, 40);
     m->read({{2, 3},
@@ -256,7 +256,7 @@ TEST_F(Hyb, CanBeReadFromMatrixDataByPercent40)
 }
 
 
-TEST_F(Hyb, GeneratesCorrectMatrixData)
+TEST_F(Hybrid, GeneratesCorrectMatrixData)
 {
     using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;

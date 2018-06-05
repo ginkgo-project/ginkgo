@@ -86,7 +86,7 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
@@ -96,7 +96,7 @@ void Hyb<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
@@ -108,7 +108,7 @@ void Hyb<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -120,14 +120,14 @@ void Hyb<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::read(const mat_data &data)
+void Hybrid<ValueType, IndexType>::read(const mat_data &data)
 {
     Array<index_type> row_nnz(this->get_executor()->get_master(),
                               data.size.num_rows);
@@ -156,7 +156,7 @@ void Hyb<ValueType, IndexType>::read(const mat_data &data)
     for (size_type i = 0; i < data.size.num_rows; i++) {
         coo_nnz += std::max(row_nnz_val[i] - ell_lim, zero<index_type>());
     }
-    auto tmp = Hyb::create(this->get_executor()->get_master(), data.size,
+    auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
                            ell_lim, data.size.num_rows, coo_nnz);
 
     // Get values and column indexes.
@@ -203,13 +203,13 @@ void Hyb<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void Hyb<ValueType, IndexType>::write(mat_data &data) const
+void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const Hyb *tmp{};
+    const Hybrid *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Hyb *>(op.get());
+        tmp = static_cast<const Hybrid *>(op.get());
     } else {
         tmp = this;
     }
@@ -240,7 +240,7 @@ void Hyb<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_HYB_MATRIX(ValueType, IndexType) class Hyb<ValueType, IndexType>
+#define DECLARE_HYB_MATRIX(ValueType, IndexType) class Hybrid<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYB_MATRIX);
 #undef DECLARE_HYB_MATRIX
 
