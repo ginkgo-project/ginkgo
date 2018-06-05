@@ -63,10 +63,10 @@ class Dense;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid : public EnableLinOp<Hybrid<ValueType, IndexType>>,
-            public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType> {
+               public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
+               public ConvertibleTo<Dense<ValueType>>,
+               public ReadableFromMatrixData<ValueType, IndexType>,
+               public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
@@ -81,24 +81,47 @@ public:
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
 
-    /**
-     * This type is used to describe how to get the partition.
-     */
-    enum partition {
-        /**
-         * Marks that partition is decided automatically (percent 80).
-         */
-        automatically,
+    class strategy_type {
+    public:
+        virtual void get_hybrid_limit(std::shared_ptr<const Executor> exec,
+                                      const mat_data &data, size_type *ell_lim,
+                                      size_type *coo_lim) = 0;
+    };
 
-        /**
-         * Marks that partition is decided by user with percent.
-         */
-        percent,
+    class column_limit : public strategy_type {
+    public:
+        column_limit(size_type num_column = 0) : num_columns_(num_column) {}
+        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
+                              const mat_data &data, size_type *ell_lim,
+                              size_type *coo_lim) override;
 
-        /**
-         * Marks that partition is decided by user with columns.
-         */
-        columns
+    private:
+        size_type num_columns_;
+    };
+
+    class imbalance_limit : public strategy_type {
+    public:
+        imbalance_limit(float percent = 0.8) : percent_(percent) {}
+        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
+                              const mat_data &data, size_type *ell_lim,
+                              size_type *coo_lim) override;
+
+    private:
+        float percent_;
+    };
+
+    class automatic : public strategy_type {
+    public:
+        automatic() : strategy_(imbalance_limit(0.8)) {}
+        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
+                              const mat_data &data, size_type *ell_lim,
+                              size_type *coo_lim)
+        {
+            strategy_.get_hybrid_limit(exec, data, ell_lim, coo_lim);
+        }
+
+    private:
+        imbalance_limit strategy_;
     };
 
     void convert_to(Dense<ValueType> *other) const override;
@@ -310,8 +333,9 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec,
-        partition method = partition::automatically, index_type val = 0)
-        : Hybrid(std::move(exec), dim{}, method, val)
+           std::shared_ptr<strategy_type> strategy =
+               std::shared_ptr<automatic>(new automatic()))
+        : Hybrid(std::move(exec), dim{}, std::move(strategy))
     {}
 
     /**
@@ -325,8 +349,9 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-        partition method = partition::automatically, index_type val = 0)
-        : Hybrid(std::move(exec), size, size.num_cols, method, val)
+           std::shared_ptr<strategy_type> strategy =
+               std::shared_ptr<automatic>(new automatic()))
+        : Hybrid(std::move(exec), size, size.num_cols, std::move(strategy))
     {}
 
     /**
@@ -340,10 +365,11 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row,
-        partition method = partition::automatically, index_type val = 0)
+           size_type max_nonzeros_per_row,
+           std::shared_ptr<strategy_type> strategy =
+               std::shared_ptr<automatic>(new automatic()))
         : Hybrid(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
-              method, val)
+                 std::move(strategy))
     {}
 
     /**
@@ -358,17 +384,17 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row, size_type stride,
-        size_type num_nonzeros = {},
-        partition method = partition::automatically, index_type val = 0)
+           size_type max_nonzeros_per_row, size_type stride,
+           size_type num_nonzeros = {},
+           std::shared_ptr<strategy_type> strategy =
+               std::shared_ptr<automatic>(new automatic()))
         : EnableLinOp<Hybrid>(exec, size),
-          method_(method),
-          method_val_(val),
           ell_(std::move(
               ell_type::create(exec, size, max_nonzeros_per_row, stride))),
-          coo_(std::move(coo_type::create(exec, size, num_nonzeros)))
+          coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
+          strategy_(std::move(strategy))
     {
-        check_method_val();
+        // check_method_val();
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -376,21 +402,11 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    void check_method_val()
-    {
-        if (method_ == partition::automatically) {
-            method_val_ = 0;
-        } else if (method_ == partition::percent) {
-            method_val_ = std::min(static_cast<index_type>(100), method_val_);
-            method_val_ = std::max(zero<index_type>(), method_val_);
-        }
-    }
 
 private:
     std::shared_ptr<ell_type> ell_;
     std::shared_ptr<coo_type> coo_;
-    partition method_;
-    index_type method_val_;
+    std::shared_ptr<strategy_type> strategy_;
 };
 
 

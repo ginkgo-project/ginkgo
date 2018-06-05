@@ -81,9 +81,48 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
     return;
 }
 
+template <typename IndexType>
+size_type get_coo_lim(const Array<IndexType> &row_nnz, const size_type ell_lim)
+{
+    size_type coo_lim = 0;
+    auto row_nnz_val = row_nnz.get_const_data();
+    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
+        if (row_nnz_val[i] > ell_lim) {
+            coo_lim += row_nnz_val[i] - ell_lim;
+        }
+    }
+    return coo_lim;
+}
 
 }  // namespace
 
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::column_limit::get_hybrid_limit(
+    std::shared_ptr<const Executor> exec, const mat_data &data,
+    size_type *ell_lim, size_type *coo_lim)
+{
+    *ell_lim = num_columns_;
+
+    Array<index_type> row_nnz(exec, data.size.num_rows);
+    get_each_row_nnz(data, row_nnz);
+    *coo_lim = get_coo_lim(row_nnz, *ell_lim);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::imbalance_limit::get_hybrid_limit(
+    std::shared_ptr<const Executor> exec, const mat_data &data,
+    size_type *ell_lim, size_type *coo_lim)
+{
+    Array<index_type> row_nnz(exec, data.size.num_rows);
+    get_each_row_nnz(data, row_nnz);
+    auto row_nnz_val = row_nnz.get_data();
+    std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
+
+    auto percent_pos = static_cast<size_type>(data.size.num_rows * percent_);
+    *ell_lim = row_nnz_val[percent_pos];
+    *coo_lim = get_coo_lim(row_nnz, *ell_lim);
+}
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
@@ -96,8 +135,9 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta, LinOp *x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                              const LinOp *b, const LinOp *beta,
+                                              LinOp *x) const
 {
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
@@ -129,35 +169,14 @@ void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::read(const mat_data &data)
 {
-    Array<index_type> row_nnz(this->get_executor()->get_master(),
-                              data.size.num_rows);
-    get_each_row_nnz(data, row_nnz);
-    auto row_nnz_val = row_nnz.get_data();
-    std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
-
     // get the limitation of columns of the ell part
-    index_type ell_lim = zero<index_type>();
-    if (method_ == partition::automatically) {
-        auto percent_pos = data.size.num_rows * 80 / 100;
-        ell_lim = row_nnz_val[percent_pos];
-    } else if (method_ == partition::percent) {
-        if (method_val_ == 100) {
-            ell_lim = row_nnz_val[row_nnz.get_num_elems() - 1];
-        } else {
-            auto percent_pos = data.size.num_rows * method_val_ / 100;
-            ell_lim = row_nnz_val[percent_pos];
-        }
-    } else if (method_ == partition::columns) {
-        ell_lim = method_val_;
-    }
-
     // calculate coo storage
-    size_type coo_nnz = 0;
-    for (size_type i = 0; i < data.size.num_rows; i++) {
-        coo_nnz += std::max(row_nnz_val[i] - ell_lim, zero<index_type>());
-    }
+    size_type ell_lim = zero<size_type>(), coo_lim = zero<size_type>();
+    strategy_->get_hybrid_limit(this->get_executor()->get_master(), data,
+                                &ell_lim, &coo_lim);
+
     auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
-                           ell_lim, data.size.num_rows, coo_nnz);
+                              ell_lim, data.size.num_rows, coo_lim);
 
     // Get values and column indexes.
     size_type ind = 0;
@@ -240,7 +259,8 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_HYB_MATRIX(ValueType, IndexType) class Hybrid<ValueType, IndexType>
+#define DECLARE_HYB_MATRIX(ValueType, IndexType) \
+    class Hybrid<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYB_MATRIX);
 #undef DECLARE_HYB_MATRIX
 
