@@ -47,8 +47,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-
-
 namespace {
 
 
@@ -58,6 +56,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(advanced_spmv, hyb::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense, hyb::convert_to_dense<TplArgs...>);
 };
+
 
 template <typename ValueType, typename IndexType>
 void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
@@ -78,8 +77,8 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
         nnz += (elem.value != zero<ValueType>());
     }
     row_nnz_val[current_row] = nnz;
-    return;
 }
+
 
 template <typename IndexType>
 size_type get_coo_lim(const Array<IndexType> &row_nnz, const size_type ell_lim)
@@ -94,7 +93,9 @@ size_type get_coo_lim(const Array<IndexType> &row_nnz, const size_type ell_lim)
     return coo_lim;
 }
 
+
 }  // namespace
+
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::column_limit::get_hybrid_limit(
@@ -225,14 +226,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const Hybrid *tmp{};
-    if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Hybrid *>(op.get());
-    } else {
-        tmp = this;
-    }
-
+    auto tmp_clone = make_temporary_clone(this->get_executor()->get_master(), this);
+    auto tmp = tmp_clone.get();
     data = {tmp->get_size(), {}};
     size_type coo_ind = 0;
     auto coo_nnz = tmp->get_coo_num_stored_elements();
