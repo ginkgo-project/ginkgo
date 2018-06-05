@@ -210,6 +210,7 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
         list(APPEND __nvcc_archs_readable compute_${__arch})
     endforeach()
 
+    string(REPLACE ";" " " __nvcc_flags "${__nvcc_flags}")
     string(REPLACE ";" " " __nvcc_archs_readable "${__nvcc_archs_readable}")
     set(${out_variable}          ${__nvcc_flags}          PARENT_SCOPE)
     set(${out_variable}_readable ${__nvcc_archs_readable} PARENT_SCOPE)
