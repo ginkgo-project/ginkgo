@@ -44,7 +44,6 @@ namespace gpu {
     __forceinline__ __device__ void atomic_add(ValueType *addr, ValueType val) \
     {                                                                          \
         atomicAdd(addr, val);                                                  \
-        return;                                                                \
     }
 
 BIND_ATOMIC_ADD(int);
@@ -57,7 +56,7 @@ BIND_ATOMIC_ADD(float);
     (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 
 
-__forceinline__ __device__ static double atomic_add(double *addr, double val)
+__forceinline__ __device__ void atomic_add(double *addr, double val)
 {
     double old = *addr, assumed;
     do {
@@ -66,8 +65,6 @@ __forceinline__ __device__ static double atomic_add(double *addr, double val)
             (unsigned long long int *)addr, __double_as_longlong(assumed),
             __double_as_longlong(val + assumed)));
     } while (assumed != old);
-
-    return old;
 }
 
 
@@ -94,7 +91,6 @@ __forceinline__ __device__ void atomic_add(thrust::complex<float> *address,
     // Separate to real part and imag part
     atomic_add(&(cuaddr->x), val.real());
     atomic_add(&(cuaddr->y), val.imag());
-    return;
 }
 
 /**
@@ -109,7 +105,6 @@ __forceinline__ __device__ void atomic_add(thrust::complex<double> *address,
     // Separate to real part and imag part
     atomic_add(&(cuaddr->x), val.real());
     atomic_add(&(cuaddr->y), val.imag());
-    return;
 }
 
 
