@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_HYB_HPP_
-#define GKO_CORE_MATRIX_HYB_HPP_
+#ifndef GKO_CORE_MATRIX_HYBRID_HPP_
+#define GKO_CORE_MATRIX_HYBRID_HPP_
 
 
 #include "core/base/array.hpp"
@@ -54,7 +54,7 @@ class Dense;
 
 
 /**
- * HYB is a matrix format which splits the matrix into ELLPACK  and COO format.
+ * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO format.
  * Achieve the excellent performance with a proper partition of ELLPACK and COO.
  *
  * @tparam ValueType  precision of matrix elements
@@ -417,4 +417,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_HYB_HPP_
+#endif  // GKO_CORE_MATRIX_HYBRID_HPP_

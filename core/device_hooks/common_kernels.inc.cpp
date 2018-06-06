@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
-#include "core/matrix/hyb_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
 #include "core/preconditioner/block_jacobi_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -366,28 +366,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace ell
 
 
-namespace hyb {
+namespace hybrid {
 
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_HYB_SPMV_KERNEL(ValueType, IndexType)
+GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYB_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_HYB_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYB_ADVANCED_SPMV_KERNEL);
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace hyb
+}  // namespace hybrid
 
 
 namespace block_jacobi {

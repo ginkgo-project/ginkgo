@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hyb.hpp"
+#include "core/matrix/hybrid.hpp"
 
 
 #include <algorithm>
@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/hyb_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 namespace gko {
@@ -52,9 +52,9 @@ namespace {
 
 template <typename... TplArgs>
 struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, hyb::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, hyb::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, hyb::convert_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(spmv, hybrid::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, hybrid::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense<TplArgs...>);
 };
 
 
@@ -260,10 +260,10 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_HYB_MATRIX(ValueType, IndexType) \
+#define DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
     class Hybrid<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYB_MATRIX);
-#undef DECLARE_HYB_MATRIX
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYBRID_MATRIX);
+#undef DECLARE_HYBRID_MATRIX
 
 
 }  // namespace matrix

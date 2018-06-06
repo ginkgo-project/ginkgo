@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hyb_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -39,21 +39,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
-namespace hyb {
+namespace gpu {
+namespace hybrid {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CpuExecutor> exec,
+void spmv(std::shared_ptr<const GpuExecutor> exec,
           const matrix::Hybrid<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b,
           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYB_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
+void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Hybrid<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -61,19 +61,19 @@ void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
                    matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYB_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *result,
+    std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *result,
     const matrix::Hybrid<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace hyb
-}  // namespace cpu
+}  // namespace hybrid
+}  // namespace gpu
 }  // namespace kernels
 }  // namespace gko

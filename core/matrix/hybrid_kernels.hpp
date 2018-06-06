@@ -31,24 +31,24 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_HYB_KERNELS_HPP_
-#define GKO_CORE_MATRIX_HYB_KERNELS_HPP_
+#ifndef GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
+#define GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
 
 
 #include "core/matrix/dense.hpp"
-#include "core/matrix/hyb.hpp"
+#include "core/matrix/hybrid.hpp"
 
 
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_HYB_SPMV_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType)  \
     void spmv(std::shared_ptr<const DefaultExecutor> exec, \
               const matrix::Hybrid<ValueType, IndexType> *a,  \
               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_HYB_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::Dense<ValueType> *alpha,       \
                        const matrix::Hybrid<ValueType, IndexType> *a,  \
@@ -56,44 +56,44 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Hybrid<ValueType, IndexType> *source)
 
 #define DECLARE_ALL_AS_TEMPLATES                                \
     template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_HYB_SPMV_KERNEL(ValueType, IndexType);          \
+    GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_HYB_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
+    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_HYB_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
 namespace cpu {
-namespace hyb {
+namespace hybrid {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace hyb
+}  // namespace hybrid
 }  // namespace cpu
 
 
 namespace gpu {
-namespace hyb {
+namespace hybrid {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace hyb
+}  // namespace hybrid
 }  // namespace gpu
 
 
 namespace reference {
-namespace hyb {
+namespace hybrid {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace hyb
+}  // namespace hybrid
 }  // namespace reference
 
 
@@ -104,4 +104,4 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_HYB_KERNELS_HPP_
+#endif  // GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
