@@ -50,44 +50,25 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence,
+                           bicgstab::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
+    GKO_REGISTER_OPERATION(finalize, bicgstab::finalize<ValueType>);
 };
-
-
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
-        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
-            return false;
-        }
-    }
-    return true;
-}
 
 
 }  // namespace
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
+
+    constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
 
@@ -105,44 +86,51 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto rr = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    Array<stopping_status> stop_status(alpha->get_executor(),
+                                       dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        gamma.get(), omega.get()));
+        gamma.get(), omega.get(), &stop_status));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
+    // stop_status = 0x00
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
     system_matrix_->apply(r.get(), v.get());
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         r->compute_dot(r.get(), tau.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+        bool all_converged{};
+        bool one_changed{};
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                RelativeStoppingId, true, &stop_status, &all_converged,
+                &one_changed));
+        if (all_converged) {
             break;
         }
+
         rr->compute_dot(r.get(), rho.get());
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get()));
+            omega.get(), stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
@@ -150,13 +138,23 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get()));
+            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
+            stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
-        // TODO: Add second convergence check
-        if (++iter == max_iters_) {
-            dense_x->add_scaled(alpha.get(), y.get());
+        s->compute_dot(s.get(), tau.get());
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                RelativeStoppingId, false, &stop_status, &all_converged,
+                &one_changed));
+
+        if (one_changed) {
+            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
+                dense_x, y.get(), alpha.get(), &stop_status));
+        }
+        if (all_converged) {
             break;
         }
         preconditioner_->apply(s.get(), z.get());
@@ -165,7 +163,7 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get()));
+            beta.get(), gamma.get(), omega.get(), stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
@@ -175,8 +173,8 @@ void Bicgstab<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
     auto x_clone = dense_x->clone();
@@ -186,26 +184,9 @@ void Bicgstab<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> BicgstabFactory<ValueType>::generate(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
-    auto bicgstab =
-        std::unique_ptr<Bicgstab<ValueType>>(Bicgstab<ValueType>::create(
-            this->get_executor(), max_iters_, rel_residual_goal_, base));
-    bicgstab->set_preconditioner(precond_factory_->generate(base));
-    return std::move(bicgstab);
-}
-
-
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
-#define GKO_DECLARE_BICGSTAB_FACTORY(_type) class BicgstabFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FACTORY);
 #undef GKO_DECLARE_BICGSTAB
-#undef GKO_DECLARE_BICGSTAB_FACTORY
 
 
 }  // namespace solver

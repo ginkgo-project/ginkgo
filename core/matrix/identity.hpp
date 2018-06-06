@@ -57,20 +57,16 @@ namespace matrix {
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Identity : public BasicLinOp<Identity<ValueType>> {
-    friend class BasicLinOp<Identity>;
+class Identity : public EnableLinOp<Identity<ValueType>>,
+                 public EnableCreateMethod<Identity<ValueType>> {
+    friend class EnablePolymorphicObject<Identity, LinOp>;
+    friend class EnableCreateMethod<Identity>;
 
 public:
-    using BasicLinOp<Identity>::create;
-    using BasicLinOp<Identity>::convert_to;
-    using BasicLinOp<Identity>::move_to;
+    using EnableLinOp<Identity>::convert_to;
+    using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
 protected:
     /**
@@ -79,31 +75,39 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Identity(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Identity>(exec, 0, 0, 0)
+        : EnableLinOp<Identity>(exec)
     {}
 
     /**
      * Creates an Identity matrix of the specified size.
      *
-     * @param dimension  size of the matrix
+     * @param size  size of the matrix
      */
-    Identity(std::shared_ptr<const Executor> exec, size_type dimension)
-        : BasicLinOp<Identity>(exec, dimension, dimension, 0)
+    Identity(std::shared_ptr<const Executor> exec, size_type size)
+        : EnableLinOp<Identity>(exec, dim{size})
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 };
 
 
 /**
  * This factory is a utility which can be used to generate Identity operators.
  *
- * The factory will generate the Identity matrix with the same dimensions as
+ * The factory will generate the Identity matrix with the same dim as
  * the passed in operator. It will throw an exception if the operator is  not
  * square.
  *
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class IdentityFactory : public LinOpFactory {
+class IdentityFactory
+    : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
+    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
+
 public:
     using value_type = ValueType;
 
@@ -121,11 +125,12 @@ public:
             new IdentityFactory(std::move(exec)));
     }
 
-    std::unique_ptr<LinOp> generate(
+protected:
+    std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-protected:
-    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
+    IdentityFactory(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
     {}
 };
 

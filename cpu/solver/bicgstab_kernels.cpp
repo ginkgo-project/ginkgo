@@ -52,10 +52,22 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+                matrix::Dense<ValueType> *omega,
+                Array<stopping_status> *stop_status) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
+template <typename ValueType>
+void test_convergence(std::shared_ptr<const CpuExecutor> exec,
+                      const matrix::Dense<ValueType> *tau,
+                      const matrix::Dense<ValueType> *orig_tau,
+                      remove_complex<ValueType> rel_residual_goal,
+                      uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status, bool *all_converged,
+                      bool *one_changed) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const CpuExecutor> exec,
@@ -64,7 +76,8 @@ void step_1(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *omega,
+            const Array<stopping_status> &stop_status) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
@@ -75,7 +88,8 @@ void step_2(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta) NOT_IMPLEMENTED;
+            const matrix::Dense<ValueType> *beta,
+            const Array<stopping_status> &stop_status) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
@@ -87,9 +101,19 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega) NOT_IMPLEMENTED;
+    matrix::Dense<ValueType> *omega,
+    const Array<stopping_status> &stop_status) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
+
+
+template <typename ValueType>
+void finalize(std::shared_ptr<const CpuExecutor> exec,
+              matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
+              const matrix::Dense<ValueType> *alpha,
+              Array<stopping_status> *stop_status) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
 
 
 }  // namespace bicgstab

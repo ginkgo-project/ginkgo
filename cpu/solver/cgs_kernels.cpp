@@ -44,7 +44,7 @@ namespace cgs {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
+void initialize(std::shared_ptr<const CpuExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *r_tld, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *u,
@@ -53,17 +53,17 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
                 matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho)
+                matrix::Dense<ValueType> *rho, Array<bool> *converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType j = 0; j < b->get_num_cols(); ++j) {
+    for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = zero<ValueType>();
         prev_rho->at(j) = one<ValueType>();
     }
-    for (sizeValueType i = 0; i < b->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < b->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < b->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
             z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
         }
@@ -73,19 +73,32 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
+template <typename ValueType>
+void test_convergence(std::shared_ptr<const CpuExecutor> exec,
+                      const matrix::Dense<ValueType> *tau,
+                      const matrix::Dense<ValueType> *orig_tau,
+                      remove_complex<ValueType> rel_residual_goal,
+                      Array<bool> *converged, bool *all_converged)
+{
+    NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL);
+
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const DefaultExecutor> exec,
+void step_1(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *rho_prev)
+            const matrix::Dense<ValueType> *rho_prev,
+            const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < p->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < p->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < p->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < p->get_size().num_cols; ++j) {
             if (prev_rho->at(j) == zero<ValueType>()) {
                 p->at(i, j) = z->at(i, j);
             } else {
@@ -101,18 +114,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const DefaultExecutor> exec,
+void step_2(std::shared_ptr<const CpuExecutor> exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma)
+            const matrix::Dense<ValueType> *gamma, const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < x->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < x->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
@@ -129,13 +142,14 @@ template <typename ValueType>
 void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha)
+            matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
+            const Array<bool> &converged)
 {
     NOT_IMPLEMENTED;
     // this is the code from the solver template
     /*
-    for (sizeValueType i = 0; i < x->get_num_rows(); ++i) {
-        for (sizeValueType j = 0; j < x->get_num_cols(); ++j) {
+    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
+        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);

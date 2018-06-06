@@ -44,57 +44,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-
-
 namespace {
 
 
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, fcg::initialize<ValueType>);
+    GKO_REGISTER_OPERATION(test_convergence, fcg::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
 };
-
-
-/**
- * Checks whether the required residual goal has been reached or not.
- *
- * @param tau  Residual of the iteration.
- * @param orig_tau  Original residual.
- * @param r  Relative residual goal.
- */
-template <typename ValueType>
-bool has_converged(const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
-                   remove_complex<ValueType> r)
-{
-    using std::abs;
-    for (int i = 0; i < tau->get_num_cols(); ++i) {
-        if (!(abs(tau->at(i)) < r * abs(orig_tau->at(i)))) {
-            return false;
-        }
-    }
-    return true;
-}
 
 
 }  // namespace
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
-    ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
-
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
+    size_type num_vectors = dense_b->get_size().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -105,21 +79,20 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto q = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
     auto rho_t = Vector::create_with_config_of(alpha.get());
 
-    auto master_tau =
-        Vector::create(exec->get_master(), 1, dense_b->get_num_cols());
-    auto starting_tau = Vector::create_with_config_of(master_tau.get());
+    auto starting_tau = Vector::create_with_config_of(tau.get());
+    Array<bool> converged(exec, dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get()));
+        rho.get(), rho_t.get(), &converged));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -131,26 +104,30 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
 
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         t->compute_dot(z.get(), rho_t.get());
-        master_tau->copy_from(tau.get());
-        if (has_converged(master_tau.get(), starting_tau.get(),
-                          rel_residual_goal_)) {
+
+        bool all_converged = false;
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
+        if (all_converged) {
             break;
         }
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get()));
+            p.get(), z.get(), rho_t.get(), prev_rho.get(), converged));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(),
-            rho.get()));
+            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
+            converged));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
@@ -162,8 +139,8 @@ void Fcg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                           const LinOp *beta, LinOp *x) const
+void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
     auto x_clone = dense_x->clone();
@@ -173,25 +150,9 @@ void Fcg<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> FcgFactory<ValueType>::generate(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
-    auto fcg = std::unique_ptr<Fcg<ValueType>>(Fcg<ValueType>::create(
-        this->get_executor(), max_iters_, rel_residual_goal_, base));
-    fcg->set_preconditioner(precond_factory_->generate(base));
-    return std::move(fcg);
-}
-
-
 #define GKO_DECLARE_FCG(_type) class Fcg<_type>
-#define GKO_DECLARE_FCG_FACTORY(_type) class FcgFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_FACTORY);
 #undef GKO_DECLARE_FCG
-#undef GKO_DECLARE_FCG_FACTORY
 
 
 }  // namespace solver

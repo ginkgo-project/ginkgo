@@ -35,9 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TYPES_HPP_
 
 
-#include <complex>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
+
+
+#include <complex>
 #include <type_traits>
 
 
@@ -60,6 +63,11 @@ using size_type = std::size_t;
 
 
 /**
+ * 8-bit signed integral type.
+ */
+using int8 = std::int8_t;
+
+/**
  * 16-bit signed integral type.
  */
 using int16 = std::int16_t;
@@ -76,6 +84,11 @@ using int32 = std::int32_t;
  */
 using int64 = std::int64_t;
 
+
+/**
+ * 8-bit unsigned integral type.
+ */
+using uint8 = std::uint8_t;
 
 /**
  * 16-bit unsigned integral type.
@@ -126,6 +139,113 @@ using full_precision = double;
  * Precision used if no precision is explicitly specified.
  */
 using default_precision = double;
+
+
+/**
+ * Number of bits in a byte
+ */
+constexpr size_type byte_size = CHAR_BIT;
+
+
+/**
+ * A type representing the dimensions of a linear operator.
+ */
+struct dim {
+    /**
+     * Creates a dimension object with both rows and columns set to the same
+     * value.
+     *
+     * @param size  the number of rows and columns
+     */
+    GKO_ATTRIBUTES explicit dim(size_type size = {}) : dim(size, size) {}
+
+    /**
+     * Creates a dimension object with the specified number of rows and columns.
+     *
+     * @param nrows  the number of rows
+     * @param ncols  the number of columsn
+     */
+    GKO_ATTRIBUTES dim(size_type nrows, size_type ncols)
+        : num_rows{nrows}, num_cols{ncols}
+    {}
+
+    /**
+     * Checks if both dimensions are greater than 0.
+     *
+     * @return true if and only if both dimensions are greater than 9.
+     */
+    GKO_ATTRIBUTES operator bool() const
+    {
+        return num_rows > 0 && num_cols > 0;
+    };
+
+    /**
+     * Number of rows of the operator.
+     *
+     * In other words, the dimension of its codomain.
+     */
+    size_type num_rows;
+
+    /**
+     * Number of columns of the operator.
+     *
+     * In other words, the dimension of its domain.
+     */
+    size_type num_cols;
+};
+
+
+/**
+ * Checks if two dim objects are equal.
+ *
+ * @param x  first object
+ * @param y  second object
+ *
+ * @return true if and only if both the number of rows and the number of columns
+ *         of both objects match.
+ */
+GKO_ATTRIBUTES GKO_INLINE bool operator==(const dim &x, const dim &y)
+{
+    return x.num_rows == y.num_rows && x.num_cols == y.num_cols;
+}
+
+
+/**
+ * Checks if two dim objects are different.
+ *
+ * @param x  first object
+ * @param y  second object
+ *
+ * @return `!(x == y)`
+ */
+GKO_ATTRIBUTES GKO_INLINE bool operator!=(const dim &x, const dim &y)
+{
+    return !(x == y);
+}
+
+
+/**
+ * Multiplies two dim objects.
+ *
+ * @param x  first object
+ * @param y  second object
+ *
+ * @return a dim object representing the size of the tensor product `x * y`
+ */
+GKO_ATTRIBUTES GKO_INLINE dim operator*(const dim &x, const dim &y)
+{
+    return dim{x.num_rows * y.num_rows, x.num_cols * y.num_cols};
+}
+
+/**
+ * Returns a dim object with num_rows and num_columns values swapped.
+ *
+ * @return a dim object with num_rows and num_columns values swapped.
+ */
+GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
+{
+    return {dimensions.num_cols, dimensions.num_rows};
+}
 
 
 /**

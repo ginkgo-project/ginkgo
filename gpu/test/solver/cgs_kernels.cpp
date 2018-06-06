@@ -53,6 +53,8 @@ namespace {
 class Cgs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Cgs<>;
+
     Cgs() : rand_engine(30) {}
 
     void SetUp()
@@ -65,8 +67,14 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(gpu);
         d_mtx->copy_from(mtx.get());
-        gpu_cgs_factory = gko::solver::CgsFactory<>::create(gpu, 246, 1e-15);
-        ref_cgs_factory = gko::solver::CgsFactory<>::create(ref, 246, 1e-15);
+        gpu_cgs_factory = Solver::Factory::create()
+                              .with_max_iters(246)
+                              .with_rel_residual_goal(1e-15)
+                              .on_executor(gpu);
+        ref_cgs_factory = Solver::Factory::create()
+                              .with_max_iters(246)
+                              .with_rel_residual_goal(1e-15)
+                              .on_executor(ref);
     }
 
     void TearDown()
@@ -103,6 +111,11 @@ protected:
         gamma = gen_mtx(1, n);
         rho = gen_mtx(1, n);
         rho_prev = gen_mtx(1, n);
+        converged =
+            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
+        for (size_t i = 0; i < converged->get_num_elems(); ++i) {
+            converged->get_data()[i] = false;
+        }
 
         d_b = Mtx::create(gpu);
         d_b->copy_from(b.get());
@@ -134,14 +147,19 @@ protected:
         d_rho_prev->copy_from(rho_prev.get());
         d_rho = Mtx::create(gpu);
         d_rho->copy_from(rho.get());
+        d_converged =
+            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(gpu, n));
+        // because there is no public function copy_from, use overloaded =
+        // operator
+        *d_converged = *converged;
     }
 
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
-        for (int i = 0; i < mtx->get_num_rows(); ++i) {
+        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
             auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_num_cols(); ++j) {
+            for (int j = 0; j < mtx->get_size().num_cols; ++j) {
                 sum += abs(mtx->at(i, j));
             }
             mtx->at(i, i) = sum;
@@ -155,8 +173,8 @@ protected:
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<gko::solver::CgsFactory<>> gpu_cgs_factory;
-    std::unique_ptr<gko::solver::CgsFactory<>> ref_cgs_factory;
+    std::unique_ptr<Solver::Factory> gpu_cgs_factory;
+    std::unique_ptr<Solver::Factory> ref_cgs_factory;
 
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
@@ -173,6 +191,7 @@ protected:
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> rho_prev;
+    std::unique_ptr<gko::Array<bool>> converged;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -189,6 +208,7 @@ protected:
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_rho_prev;
+    std::unique_ptr<gko::Array<bool>> d_converged;
 };
 
 
@@ -199,11 +219,12 @@ TEST_F(Cgs, GpuCgsInitializeIsEquivalentToRef)
     gko::kernels::reference::cgs::initialize(
         ref, b.get(), r.get(), r_tld.get(), p.get(), q.get(), u.get(),
         u_hat.get(), v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
-        rho_prev.get(), rho.get());
+        rho_prev.get(), rho.get(), converged.get());
     gko::kernels::gpu::cgs::initialize(
         gpu, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
         d_u.get(), d_u_hat.get(), d_v_hat.get(), d_t.get(), d_alpha.get(),
-        d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get());
+        d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
+        d_converged.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
@@ -227,10 +248,10 @@ TEST_F(Cgs, GpuCgsStep1IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
                                          q.get(), beta.get(), rho.get(),
-                                         rho_prev.get());
+                                         rho_prev.get(), *converged.get());
     gko::kernels::gpu::cgs::step_1(gpu, d_r.get(), d_u.get(), d_p.get(),
                                    d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_rho_prev.get());
+                                   d_rho_prev.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     ASSERT_MTX_NEAR(d_u, u, 1e-14);
@@ -244,10 +265,10 @@ TEST_F(Cgs, GpuCgsStep2IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
-                                         gamma.get());
+                                         gamma.get(), *converged.get());
     gko::kernels::gpu::cgs::step_2(gpu, d_u.get(), d_v_hat.get(), d_q.get(),
                                    d_t.get(), d_alpha.get(), d_rho.get(),
-                                   d_gamma.get());
+                                   d_gamma.get(), *d_converged.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_t, t, 1e-14);
@@ -260,9 +281,11 @@ TEST_F(Cgs, GpuCgsStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
-                                         x.get(), alpha.get());
+                                         x.get(), alpha.get(),
+                                         *converged.get());
     gko::kernels::gpu::cgs::step_3(gpu, d_t.get(), d_u_hat.get(), d_r.get(),
-                                   d_x.get(), d_alpha.get());
+                                   d_x.get(), d_alpha.get(),
+                                   *d_converged.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);

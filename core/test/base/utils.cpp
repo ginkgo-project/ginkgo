@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
+#include <core/base/polymorphic_object.hpp>
 
 
 namespace {
@@ -48,8 +48,7 @@ struct Base {
 };
 
 
-struct Derived : Base {
-};
+struct Derived : Base {};
 
 
 struct NonRelated {
@@ -67,7 +66,7 @@ struct ClonableDerived : Base {
         return std::unique_ptr<Base>(new ClonableDerived());
     }
 
-    std::unique_ptr<Base> clone_to(std::shared_ptr<const gko::Executor> exec)
+    std::unique_ptr<Base> clone(std::shared_ptr<const gko::Executor> exec)
     {
         return std::unique_ptr<Base>(new ClonableDerived{exec});
     }
@@ -117,7 +116,7 @@ TEST(CloneTo, ClonesUniquePointer)
     auto exec = gko::ReferenceExecutor::create();
     std::unique_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p);
+    auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();
@@ -131,7 +130,7 @@ TEST(CloneTo, ClonesSharedPointer)
     auto exec = gko::ReferenceExecutor::create();
     std::shared_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p);
+    auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();
@@ -145,7 +144,7 @@ TEST(CloneTo, ClonesPlainPointer)
     auto exec = gko::ReferenceExecutor::create();
     std::unique_ptr<ClonableDerived> p(new ClonableDerived());
 
-    auto clone = gko::clone_to(exec, p.get());
+    auto clone = gko::clone(exec, p.get());
 
     ::testing::StaticAssertTypeEq<decltype(clone),
                                   std::unique_ptr<ClonableDerived>>();
@@ -269,6 +268,60 @@ TEST(As, FailsToConvertConstantIfNotRelated)
     const Base *b = &d;
 
     ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+}
+
+
+struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
+                     gko::EnablePolymorphicAssignment<DummyObject>,
+                     gko::EnableCreateMethod<DummyObject> {
+    DummyObject(std::shared_ptr<const gko::Executor> exec, int value = {})
+        : gko::EnablePolymorphicObject<DummyObject>(exec), data{value}
+    {}
+
+    int data;
+};
+
+
+class TemporaryClone : public ::testing::Test {
+protected:
+    TemporaryClone()
+        : ref{gko::ReferenceExecutor::create()},
+          cpu{gko::CpuExecutor::create()},
+          obj{DummyObject::create(ref)}
+    {}
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CpuExecutor> cpu;
+    std::unique_ptr<DummyObject> obj;
+};
+
+
+TEST_F(TemporaryClone, CopiesToAnotherExecutor)
+{
+    auto clone = make_temporary_clone(cpu, gko::lend(obj));
+
+    ASSERT_EQ(clone.get()->get_executor(), cpu);
+    ASSERT_EQ(obj->get_executor(), ref);
+}
+
+
+TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
+{
+    {
+        auto clone = make_temporary_clone(cpu, gko::lend(obj));
+        clone.get()->data = 7;
+    }
+
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
+TEST_F(TemporaryClone, AvoidsCopyOnSameExecutor)
+{
+    auto clone = make_temporary_clone(ref, gko::lend(obj));
+
+    ASSERT_EQ(clone.get(), obj.get());
 }
 
 

@@ -149,8 +149,8 @@ matrix_data<ValueType, IndexType> read_sparse(file_data &f,
     // TODO: this doesn't work for large matrices
     MMIO_CHECK(mm_read_mtx_crd_size(f.f, &m, &n, &k), f.filename);
     matrix_data<ValueType, IndexType> data;
-    data.num_rows = m;
-    data.num_cols = n;
+    data.size.num_rows = m;
+    data.size.num_cols = n;
     read_modifier<ValueType, IndexType> mod(t, f);
     for (int i = 0; i < k; ++i) {
         int row = 0;
@@ -175,11 +175,11 @@ matrix_data<ValueType, IndexType> read_dense(file_data &f, const MM_typecode &t)
     // TODO: this doesn't work for large matrices
     MMIO_CHECK(mm_read_mtx_array_size(f.f, &m, &n), f.filename);
     matrix_data<ValueType, IndexType> data;
-    data.num_rows = m;
-    data.num_cols = n;
+    data.size.num_rows = m;
+    data.size.num_cols = n;
     read_modifier<ValueType, IndexType> mod(t, f);
-    for (int col = 0; col < data.num_cols; ++col) {
-        for (int row = mod.get_offset(col); row < data.num_rows; ++row) {
+    for (int col = 0; col < data.size.num_cols; ++col) {
+        for (int row = mod.get_offset(col); row < data.size.num_rows; ++row) {
             mod.read_value_for(row, col, data);
         }
     }

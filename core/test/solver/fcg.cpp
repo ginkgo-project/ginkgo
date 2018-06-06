@@ -54,13 +54,16 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          fcg_factory(gko::solver::FcgFactory<>::create(exec, 3, 1e-6)),
+          fcg_factory(Solver::Factory::create()
+                          .with_max_iters(3)
+                          .with_rel_residual_goal(1e-6)
+                          .on_executor(exec)),
           solver(fcg_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
+    std::unique_ptr<Solver::Factory> fcg_factory;
     std::unique_ptr<gko::LinOp> solver;
 };
 
@@ -73,24 +76,22 @@ TEST_F(Fcg, FcgFactoryKnowsItsExecutor)
 
 TEST_F(Fcg, FcgFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(fcg_factory->get_max_iters(), 3);
+    ASSERT_EQ(fcg_factory->get_parameters().max_iters, 3);
 }
 
 
 TEST_F(Fcg, FcgFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(fcg_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(fcg_factory->get_parameters().rel_residual_goal, 1e-6);
 }
 
 
 TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_num_rows(), 3);
-    ASSERT_EQ(solver->get_num_cols(), 3);
-    ASSERT_EQ(solver->get_num_stored_elements(), 9);
+    ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto fcg_solver = dynamic_cast<Solver *>(solver.get());
-    ASSERT_EQ(fcg_solver->get_max_iters(), 3);
-    ASSERT_EQ(fcg_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(fcg_solver->get_parameters().max_iters, 3);
+    ASSERT_EQ(fcg_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(fcg_solver->get_system_matrix(), mtx);
 }
@@ -102,9 +103,7 @@ TEST_F(Fcg, CanBeCopied)
 
     copy->copy_from(solver.get());
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
                     1e-14);
@@ -117,9 +116,7 @@ TEST_F(Fcg, CanBeMoved)
 
     copy->copy_from(std::move(solver));
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
                     1e-14);
@@ -130,9 +127,7 @@ TEST_F(Fcg, CanBeCloned)
 {
     auto clone = solver->clone();
 
-    ASSERT_EQ(clone->get_num_rows(), 3);
-    ASSERT_EQ(clone->get_num_cols(), 3);
-    ASSERT_EQ(clone->get_num_stored_elements(), 9);
+    ASSERT_EQ(clone->get_size(), gko::dim(3, 3));
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
                     1e-14);
@@ -143,30 +138,20 @@ TEST_F(Fcg, CanBeCleared)
 {
     solver->clear();
 
-    ASSERT_EQ(solver->get_num_rows(), 0);
-    ASSERT_EQ(solver->get_num_cols(), 0);
-    ASSERT_EQ(solver->get_num_stored_elements(), 0);
+    ASSERT_EQ(solver->get_size(), gko::dim(0, 0));
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
-TEST_F(Fcg, CanSetPreconditioner)
-{
-    std::shared_ptr<Mtx> precond =
-        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
-    auto fcg_solver = static_cast<gko::solver::Fcg<> *>(solver.get());
-
-    fcg_solver->set_preconditioner(precond);
-
-    ASSERT_EQ(fcg_solver->get_preconditioner(), precond);
-}
-
-
 TEST_F(Fcg, CanSetPreconditionerGenertor)
 {
-    fcg_factory->set_preconditioner(
-        gko::solver::FcgFactory<>::create(exec, 3, 0.0));
+    auto fcg_factory =
+        Solver::Factory::create()
+            .with_max_iters(3)
+            .with_rel_residual_goal(1e-6)
+            .with_preconditioner(Solver::Factory::create().on_executor(exec))
+            .on_executor(exec);
     auto solver = fcg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
         static_cast<gko::solver::Fcg<> *>(solver.get())
@@ -174,8 +159,7 @@ TEST_F(Fcg, CanSetPreconditionerGenertor)
             .get());
 
     ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_num_rows(), 3);
-    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_size(), gko::dim(3, 3));
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 

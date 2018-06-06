@@ -35,8 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
 
-#include "core/base/executor.hpp"
-#include "core/base/lin_op_interfaces.hpp"
+#include "core/base/abstract_factory.hpp"
+#include "core/base/exception_helpers.hpp"
+#include "core/base/matrix_data.hpp"
+#include "core/base/polymorphic_object.hpp"
+#include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
 
@@ -100,17 +103,18 @@ namespace gko {
  *         int iters, const LinOp *L, const matrix::Dense<> *x0
  *         const matrix::Dense<> *b)
  * {
- *     auto x = x0->clone();
- *     auto tmp = x0->clone();
+ *     auto x = gko::clone(x0);
+ *     auto tmp = gko::clone(x0);
  *     auto one = Dense<>::create(L->get_executor(), {1.0,});
  *     for (int i = 0; i < iters; ++i) {
- *         L->apply(tmp.get(), x.get());
- *         x->add_scaled(one.get(), b.get());
- *         tmp->copy_from(x.get());
+ *         L->apply(gko::lend(tmp), gko::lend(x));
+ *         x->add_scaled(gko::lend(one), gko::lend(b));
+ *         tmp->copy_from(gko::lend(x));
  *     }
- *     return std::move(x);
+ *     return x;
  * }
  * ```
+ *
  * Here, if \f$L\f$ is a matrix, LinOp::apply() refers to the matrix vector
  * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
  * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update \f$x:=x+b\f$.
@@ -120,33 +124,8 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  */
-class LinOp {
+class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
-    LinOp &operator=(const LinOp &other)
-    {
-        // keep the executor as it is
-        num_rows_ = other.num_rows_;
-        num_cols_ = other.num_cols_;
-        num_stored_elements_ = other.num_stored_elements_;
-        return *this;
-    }
-
-    virtual ~LinOp() = default;
-
-    /**
-     * Creates a copy of another LinOp.
-     *
-     * @param other  the LinOp to copy
-     */
-    virtual void copy_from(const LinOp *other) = 0;
-
-    /**
-     * Moves the data from another LinOp.
-     *
-     * @param other  the LinOp from which the data will be moved
-     */
-    virtual void copy_from(std::unique_ptr<LinOp> other) = 0;
-
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
      *
@@ -154,8 +133,29 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
+     *
+     * @return this
      */
-    virtual void apply(const LinOp *b, LinOp *x) const = 0;
+    LinOp *apply(const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
+    }
+
+    /**
+     * @copydoc apply(cost LinOp *, LinOp *)
+     */
+    const LinOp *apply(const LinOp *b, LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
+    }
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -164,195 +164,119 @@ public:
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
+     *
+     * @return this
      */
-    virtual void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                       LinOp *x) const = 0;
-
-    /**
-     * Creates a new 0x0 LinOp of the same type as this LinOp.
-     *
-     * @param exec the executor where the clone will be created
-     *
-     * @return  a LinOp object of the same type as this
-     */
-    virtual std::unique_ptr<LinOp> create_empty_clone(
-        std::shared_ptr<const Executor> exec) const = 0;
-
-    /**
-     * Creates a new 0x0 LinOp of the same type as this LinOp.
-     *
-     * The new LinOp is created on the same executor as this.
-     *
-     * @return  a LinOp object of the same type as this
-     */
-    std::unique_ptr<LinOp> create_empty_clone() const
+    LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                 LinOp *x)
     {
-        return this->create_empty_clone(exec_);
+        this->validate_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
     }
 
     /**
-     * Creates a clone of the LinOp.
-     *
-     * @param exec the executor where the clone will be created
-     *
-     * @return A clone of the LinOp.
+     * @copydoc apply(const LinOp *, cost LinOp *, const LinOp *, LinOp *)
      */
-    std::unique_ptr<LinOp> clone_to(std::shared_ptr<const Executor> exec) const
+    const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                       LinOp *x) const
     {
-        auto new_op = this->create_empty_clone(exec);
-        new_op->copy_from(this);
-        return new_op;
+        this->validate_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return this;
     }
 
     /**
-     * Creates a clone of the LinOp.
+     * Returns the size of the operator.
      *
-     * The clone is created on the same executor as this.
-     *
-     * @return A clone of the LinOp.
+     * @return size of the operator
      */
-    std::unique_ptr<LinOp> clone() const { return this->clone_to(exec_); }
-
-    /**
-     * Transforms the object into an empty LinOp.
-     */
-    virtual void clear() = 0;
-
-    /**
-     * Gets the Executor of this object.
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
-
-    /**
-     * Gets the dimension of the codomain of this LinOp.
-     *
-     * In other words, the number of rows of the coefficient matrix.
-     *
-     * @return the dimension of the codomain
-     */
-    size_type get_num_rows() const noexcept { return num_rows_; }
-
-    /**
-     * Gets the dimension of the domain of this LinOp.
-     *
-     * In other words, the number of columns of the coefficient matrix.
-     *
-     * @return the dimension of the domain
-     */
-    size_type get_num_cols() const noexcept { return num_cols_; }
-
-    /**
-     * Returns the number of elements that are explicitly stored in memory for
-     * this LinOp.
-     *
-     * For example, for a matrix::Dense `A` it will always hold
-     * ```cpp
-     * A->get_num_stored_elements() == A->get_num_rows() * A->get_stride()
-     * ```
-     *
-     * @return the number of elements explicitly stored in memory
-     */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return num_stored_elements_;
-    }
+    const dim &get_size() const noexcept { return size_; }
 
 protected:
-    LinOp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type num_stored_elements)
-        : exec_(exec),
-          num_rows_(num_rows),
-          num_cols_(num_cols),
-          num_stored_elements_(num_stored_elements)
+    /**
+     * Creates a linear operator.
+     *
+     * @param exec  the executor where all the operations are performed
+     * @param size  the size of the operator
+     */
+    explicit LinOp(std::shared_ptr<const Executor> exec,
+                   const dim &size = dim{})
+        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
     {}
 
-    void set_dimensions(size_type num_rows, size_type num_cols,
-                        size_type num_stored_elements) noexcept
+    /**
+     * Sets the size of the operator.
+     *
+     * @param value  the new size of the operator
+     */
+    void set_size(const dim &value) noexcept { size_ = value; }
+
+    /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, LinOp *).
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    virtual void apply_impl(const LinOp *b, LinOp *x) const = 0;
+
+    /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, const LinOp *, const LinOp *, LinOp *).
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    virtual void apply_impl(const LinOp *alpha, const LinOp *b,
+                            const LinOp *beta, LinOp *x) const = 0;
+
+    /**
+     * Throws a DimensionMismatch exception if the parameters to `apply` are of
+     * the wrong size.
+     *
+     * @param b  vector(s) on which the operator is applied
+     * @param x  output vector(s)
+     */
+    void validate_application_parameters(const LinOp *b, const LinOp *x) const
     {
-        num_rows_ = num_rows;
-        num_cols_ = num_cols;
-        num_stored_elements_ = num_stored_elements;
+        ASSERT_CONFORMANT(this, b);
+        ASSERT_EQUAL_ROWS(this, x);
+        ASSERT_EQUAL_COLS(b, x);
     }
 
-    void set_dimensions(const LinOp *op) noexcept
+    /**
+     * Throws a DimensionMismatch exception if the parameters to `apply` are of
+     * the wrong size.
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    void validate_application_parameters(const LinOp *alpha, const LinOp *b,
+                                         const LinOp *beta,
+                                         const LinOp *x) const
     {
-        num_rows_ = op->num_rows_;
-        num_cols_ = op->num_cols_;
-        num_stored_elements_ = op->num_stored_elements_;
+        this->validate_application_parameters(b, x);
+        ASSERT_EQUAL_DIMENSIONS(alpha, dim(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(beta, dim(1, 1));
     }
 
 private:
-    std::shared_ptr<const Executor> exec_;
-    size_type num_rows_;
-    size_type num_cols_;
-    size_type num_stored_elements_;
-};
-
-
-/**
- * The BasicLinOp CRTP (Curiously Recurring Template Pattern) can be used to
- * provide sensible default implementation of the majority of LinOp's methods.
- *
- * The only overrides that the user has to provide are the two overloads of the
- * LinOp::apply() method. The user also has to define a constructor which takes
- * only a shared pointer to a constant executor as input, and the assignment
- * operator (if the default one is not suitable for his class).
- *
- * The CRTP then takes care of implementing the rest of LinOp's methods, and
- * adds a default implementation of `ConvertibleTo` interface for the derived
- * class.
- */
-template <typename ConcreteLinOp>
-class BasicLinOp : public LinOp, public ConvertibleTo<ConcreteLinOp> {
-public:
-    using LinOp::LinOp;
-
-    BasicLinOp &operator=(const BasicLinOp &) = default;
-
-    BasicLinOp &operator=(BasicLinOp &&) = default;
-
-    void copy_from(const LinOp *other) override
-    {
-        as<ConvertibleTo<ConcreteLinOp>>(other)->convert_to(self());
-    }
-
-    void copy_from(std::unique_ptr<LinOp> other) override
-    {
-        as<ConvertibleTo<ConcreteLinOp>>(other.get())->move_to(self());
-    }
-
-    std::unique_ptr<LinOp> create_empty_clone(
-        std::shared_ptr<const Executor> exec) const override
-    {
-        return std::unique_ptr<LinOp>(new ConcreteLinOp{exec});
-    }
-
-    void clear() override { *self() = ConcreteLinOp{this->get_executor()}; }
-
-    void convert_to(ConcreteLinOp *other) const override { *other = *self(); }
-
-    void move_to(ConcreteLinOp *other) override { *other = std::move(*self()); }
-
-    template <typename... TArgs>
-    static std::unique_ptr<ConcreteLinOp> create(TArgs &&... args)
-    {
-        return std::unique_ptr<ConcreteLinOp>(
-            new ConcreteLinOp(std::forward<TArgs>(args)...));
-    }
-
-protected:
-    ConcreteLinOp *self() noexcept
-    {
-        return static_cast<ConcreteLinOp *>(this);
-    }
-
-    const ConcreteLinOp *self() const noexcept
-    {
-        return static_cast<const ConcreteLinOp *>(this);
-    }
+    dim size_{};
 };
 
 
@@ -365,14 +289,16 @@ protected:
  * can be computed using the CG method. This algorithm can be represented in
  * terms of linear operators and mappings between them as follows:
  *
- * -   A CgFactory is a higher order mapping which, given an input operator
+ * -   A Cg::Factory is a higher order mapping which, given an input operator
  *     \f$A\f$, returns a new linear operator \f$A^{-1}\f$ stored in "CG
  *     format"
  * -   Storing the operator \f$A^{-1}\f$ in "CG format" means that the data
  *     structure used to store the operator is just a simple pointer to the
  *     original matrix \f$A\f$. The application \f$x = A^{-1}b\f$ of such an
  *     operator can then be implemented by solving the linear system
- *     \f$Ax = b\f$ using the CG method.
+ *     \f$Ax = b\f$ using the CG method. This is achieved in code by having a
+ *     special class for each of those "formats" (e.g. the "Cg" class defines
+ *     such a format for the CG solver).
  *
  * Another example of a LinOpFactory is a preconditioner. A preconditioner for
  * a linear operator \f$A\f$ is a linear operator \f$M^{-1}\f$, which
@@ -396,121 +322,320 @@ protected:
  * // Suppose A is a matrix, b a rhs vector, and x an initial guess
  * // Create a CG which runs for at most 1000 iterations, and stops after
  * // reducing the residual norm by 6 orders of magnitude
- * auto cg_factory = solver::CgFactory<>::create(gpu, 1000, 1e-6);
+ * auto cg_factory = solver::Cg::Factory<>::create()
+ *     .with_max_iters(1000)
+ *     .with_rel_residual_goal(1e-6)
+ *     .on_executor(gpu);
  * // create a linear operator which represents the solver
  * auto cg = cg_factory->generate(A);
  * // solve the system
- * cg->apply(b.get(), x.get());
+ * cg->apply(gko::lend(b), gko::lend(x));
  * ```
  */
-class LinOpFactory {
+using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
+
+
+/**
+ * Linear operators which support transposition should implement the
+ * Transposable interface.
+ *
+ * It provides two functionalities, the normal transpose and the
+ * conjugate transpose.
+ *
+ * The normal transpose returns the transpose of the linear operator without
+ * changing any of its elements representing the operation, \f$B = A^{T}\f$.
+ *
+ * The conjugate transpose returns the conjugate of each of the elements and
+ * additionally transposes the linear operator representing the operation, \f$B
+ * = A^{H}\f$.
+ *
+ * Example: Transposing a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Transposing an object of LinOp type.
+ * //The object you want to transpose.
+ * auto op = matrix::Csr::create(exec);
+ * //Transpose the object by first converting it to a transposable type.
+ * auto trans = op->transpose();
+ * ```
+ */
+class Transposable {
 public:
-    /**
-     * Generates a Linear operator from the base linear operator.
-     *
-     * @param base  The base linear operator.
-     */
-    virtual std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> base) const = 0;
-    /**
-     * Gets the exector on which the Linear operator exists.
-     *
-     * @return exec_ The executor.
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
+    virtual ~Transposable() = default;
 
-protected:
-    explicit LinOpFactory(std::shared_ptr<const Executor> exec)
-        : exec_(std::move(exec))
-    {}
+    /**
+     * Returns a LinOp representing the transpose of the Transposable object.
+     *
+     * @return a pointer to the new transposed object
+     */
+    virtual std::unique_ptr<LinOp> transpose() const = 0;
 
-private:
-    std::shared_ptr<const Executor> exec_;
+    /**
+     * Returns a LinOp representing the conjugate transpose of the Transposable
+     * object.
+     *
+     * @return a pointer to the new conjugate transposed object
+     */
+    virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
 };
 
 
 /**
- * PreconditionedMethod is inherited by linear operators that support
- * preconditioning.
- *
- * The class adds utilities for setting and getting the preconditioner operator.
+ * A LinOp implementing this interface can read its data from a matrix_data
+ * structure.
  */
-class PreconditionedMethod {
+template <typename ValueType, typename IndexType>
+class ReadableFromMatrixData {
 public:
-    /**
-     * Sets the preconditioner operator used by PreconditionedMethod.
-     *
-     * @param preconditioner  the precondtioner operator
-     */
-    void set_preconditioner(
-        std::shared_ptr<const LinOp> preconditioner) noexcept
-    {
-        preconditioner_ = preconditioner;
-    }
+    virtual ~ReadableFromMatrixData() = default;
 
     /**
-     * Returns the preconditioner operator used by PreconditionedMethod.
+     * Reads a matrix from a matrix_data structure.
      *
-     * @return the preconditioner operator
+     * @param data  the matrix_data structure
      */
-    std::shared_ptr<const LinOp> get_preconditioner() const noexcept
-    {
-        return preconditioner_;
-    }
-
-protected:
-    PreconditionedMethod() = default;
-
-    explicit PreconditionedMethod(std::shared_ptr<const LinOp> preconditioner)
-        : preconditioner_(preconditioner)
-    {}
-
-    std::shared_ptr<const LinOp> preconditioner_{};
+    virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
 };
 
 
 /**
- * PreconditionedMethodFactory is inherited by operator factories which
- * generate PreconditionedMethod operators.
- *
- * The class adds utilities for setting and getting the LinOpFactory
- * used to generate the preconditioner.
+ * A LinOp implementing this interface can write its data to a matrix_data
+ * structure.
  */
-class PreconditionedMethodFactory {
+template <typename ValueType, typename IndexType>
+class WritableToMatrixData {
 public:
-    /**
-     * Sets the LinOpFactory which will be used by the
-     * PreconditionedMethodFactory to generate the preconditioner.
-     *
-     * @param precond_factory  LinOp factory used to generate the preconditioner
-     */
-    void set_preconditioner(std::shared_ptr<const LinOpFactory> precond_factory)
-    {
-        precond_factory_ = precond_factory;
-    }
+    virtual ~WritableToMatrixData() = default;
 
     /**
-     * Returns the LinOpFactory used by the PreconditionedMethodFactory to
-     * generate the preconditioner.
+     * Writes a matrix to a matrix_data structure.
      *
-     * @return the LinOpFactory used to generate the preconditioner
+     * @param data  the matrix_data structure
      */
-    std::shared_ptr<const LinOpFactory> get_preconditioner() const
+    virtual void write(matrix_data<ValueType, IndexType> &data) const = 0;
+};
+
+
+/**
+ * The EnableLinOp mixin can be used to provide sensible default implementations
+ * of the majority of the LinOp and PolymorphicObject interface.
+ *
+ * The goal of the mixin is to facilitate the development of new LinOp, by
+ * enabling the implementers to focus on the important parts of their operator,
+ * while the library takes care of generating the trivial utility functions.
+ * The mixin will provide default implementations for the entire
+ * PolymorphicObject interface, including a default implementation of
+ * `copy_from` between objects of the new LinOp type. It will also hide the
+ * default LinOp::apply() methods with versions that preserve the static type of
+ * the object.
+ *
+ * Implementers of new LinOps are required to specify only the following
+ * aspects:
+ *
+ * 1.  Creation of the LinOp: This can be facilitated via either
+ *     EnableCreateMethod mixin (used mostly for matrix formats),
+ *     or GKO_ENABLE_LIN_OP_FACTORY macro (used for operators created from other
+ *     operators, like preconditioners and solvers).
+ * 2.  Application of the LinOp: Implementers have to override the two
+ *     overloads of the LinOp::apply_impl() virtual methods.
+ *
+ * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
+ *                        [CRTP parameter]
+ * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
+ *                          hierarchy, has to be a subclass of LinOp
+ */
+template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
+class EnableLinOp
+    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
+      public EnablePolymorphicAssignment<ConcreteLinOp> {
+public:
+    using EnablePolymorphicObject<ConcreteLinOp,
+                                  PolymorphicBase>::EnablePolymorphicObject;
+
+    const ConcreteLinOp *apply(const LinOp *b, LinOp *x) const
     {
-        return precond_factory_;
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
+        return self();
+    }
+
+    ConcreteLinOp *apply(const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get());
+        return self();
+    }
+
+    const ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x) const
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return self();
+    }
+
+    ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                         LinOp *x)
+    {
+        this->validate_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get());
+        return self();
     }
 
 protected:
-    explicit PreconditionedMethodFactory(
-        std::shared_ptr<const LinOpFactory> precond_factory_)
-        : precond_factory_(precond_factory_)
-    {}
-
-    std::shared_ptr<const LinOpFactory> precond_factory_{};
+    GKO_ENABLE_SELF(ConcreteLinOp);
 };
+
+
+/**
+ * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
+ * template parameters to enable a subclass of LinOpFactory.
+ *
+ * @tparam ConcreteFactory  the concrete factory which is being implemented
+ *                          [CRTP parmeter]
+ * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
+ *                        needs to have a constructor which takes a
+ *                        const ConcreteFactory *, and an
+ *                        std::shared_ptr<const LinOp> as parameters.
+ * @tparam ParametersType  a subclass of enable_parameters_type template which
+ *                         defines all of the parameters of the factory
+ * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
+ *                          hierarchy, has to be a subclass of LinOpFactory
+ */
+template <typename ConcreteFactory, typename ConcreteLinOp,
+          typename ParametersType, typename PolymorphicBase = LinOpFactory>
+using EnableDefaultLinOpFactory =
+    EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, ParametersType,
+                         PolymorphicBase>;
+
+
+/**
+ * This macro will generate a default implementation of a LinOpFactory for the
+ * LinOp subclass it is defined in.
+ *
+ * The list of parameters for the factory should be defined in a code block
+ * after the macro definition, and should contain a list of
+ * GKO_FACTORY_PARMETER declarations. The class should provide a constructor
+ * with signature
+ * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
+ * which the factory will use a callback to construct the object.
+ *
+ * A minimal example of a linear operator is the following:
+ *
+ * ```c++
+ * struct MyLinOp : public EnableLinOp<MyLinOp> {
+ *     GKO_ENABLE_LIN_OP_FACTORY(MyLinOp, my_parameters, Factory) {
+ *         // a factory parameter named "my_value", of type int and default
+ *         // value of 5
+ *         int GKO_FACTORY_PARAMETER(my_value, 5);
+ *     };
+ *     // constructor needed by EnableLinOp
+ *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
+ *         : EnableLinOp<MyLinOp>(exec) {}
+ *     // constructor needed by the factory
+ *     explicit MyLinOp(const Factory *factory,
+ *                      std::shared_ptr<const LinOp> matrix)
+ *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *           // store factory's parameters locally
+ *           my_parameters_{factory->get_parameters()},
+ *     {
+ *          int value = my_parameters_.my_value;
+ *          // do something with value
+ *     }
+ * ```
+ *
+ * MyLinOp can then be created as follows:
+ *
+ * ```c++
+ * auto exec = gko::ReferenceExecutor::create();
+ * // create a factory with default `my_value` parameter
+ * auto fact = MyLinOp::Factory::create().on_executor(exec);
+ * // create a operator using the factory:
+ * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
+ * std::cout << my_op->get_my_parameters().my_value;  // prints 5
+ *
+ * // create a factory with custom `my_value` parameter
+ * auto fact = MyLinOp::Factory::create().with_my_value(0).on_executor(exec);
+ * // create a operator using the factory:
+ * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
+ * std::cout << my_op->get_my_parameters().my_value;  // prints 0
+ * ```
+ *
+ * @note This macro only works with class __templates__ (not with regular
+ *       classes). See <https://stackoverflow.com/q/50202718/9385966> for more
+ *       details.
+ *
+ * @param _lin_op  concrete operator for which the factory is to be created
+ *                 [CRTP parameter]
+ * @param _parameters_name  name of the parameters member in the class
+ *                          (its type is `<_parameters_name>_type`, the
+ *                          protected member's name is `<_parameters_name>_`,
+ *                          and the public getter's name is
+ *                          `get_<_parameters_name>()`)
+ * @param _factory_name  name of the generated factory type
+ */
+#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
+public:                                                                      \
+    struct _parameters_name##_type;                                          \
+                                                                             \
+    const _parameters_name##_type &get_##_parameters_name() const            \
+    {                                                                        \
+        return _parameters_name##_;                                          \
+    }                                                                        \
+                                                                             \
+    class _factory_name                                                      \
+        : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
+                                                  _parameters_name##_type> { \
+        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
+                                                    ::gko::LinOpFactory>;    \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
+                                                   _factory_name>;           \
+        using ::gko::EnableDefaultLinOpFactory<                              \
+            _factory_name, _lin_op,                                          \
+            _parameters_name##_type>::EnableDefaultLinOpFactory;             \
+    };                                                                       \
+    friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
+                                            _parameters_name##_type>;        \
+                                                                             \
+private:                                                                     \
+    _parameters_name##_type _parameters_name##_;                             \
+                                                                             \
+public:                                                                      \
+    struct _parameters_name##_type                                           \
+        : ::gko::enable_parameters_type<_parameters_name##_type,             \
+                                        _factory_name>
+
+
+/**
+ * Creates a factory parameter in the factory parameters structure.
+ *
+ * @param _name  name of the parameter
+ * @param __VA_ARGS__  default value of the parameter
+ *
+ * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ */
+#define GKO_FACTORY_PARAMETER(_name, ...)                    \
+    mutable _name{__VA_ARGS__};                              \
+                                                             \
+    auto with_##_name(const decltype(_name) &value)          \
+        const->const ::gko::xstd::decay_t<decltype(*this)> & \
+    {                                                        \
+        this->_name = value;                                 \
+        return *this;                                        \
+    }
 
 
 }  // namespace gko

@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "gpu/components/shuffle.cuh"
+#include "gpu/components/synchronization.cuh"
+#include "gpu/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -61,7 +63,7 @@ namespace warp {
  */
 template <int32 subwarp_size, typename ValueType, typename Operator>
 __device__ __forceinline__ ValueType reduce(ValueType local_data,
-                                            Operator reduce_op)
+                                            Operator reduce_op = Operator{})
 {
 #pragma unroll
     for (int32 bitmask = 1; bitmask < subwarp_size; bitmask <<= 1) {
@@ -102,6 +104,52 @@ __device__ __forceinline__ int choose_pivot(ValueType local_data,
 
 
 }  // namespace warp
+
+
+namespace block {
+
+
+/**
+ * @internal
+ *
+ * Computes a reduction using the binary operation `reduce_op` on entire block.
+ * The data for the reduction is taken from the `data` array which has to be of
+ * size `block_size` and accessible from all threads. The `data` array is also
+ * used as work space (so its content will be destroyed in the process), as well
+ * as to store the return value - which is stored in the 0-th position of the
+ * array.
+ */
+template <size_type block_size, int32 subwarp_size, typename ValueType,
+          typename Operator>
+__device__ void reduce(ValueType *data, Operator reduce_op = Operator{})
+{
+    const auto local_id = thread::get_local_thread_id<subwarp_size>();
+
+#pragma unroll
+    for (int k = block_size / 2; k >= cuda_config::warp_size; k /= 2) {
+        block::synchronize();
+        if (local_id < k) {
+            data[local_id] = reduce_op(data[local_id], data[local_id + k]);
+        }
+    }
+
+    if (local_id >= cuda_config::warp_size) {
+        return;
+    }
+    auto result = data[local_id];
+    // TODO: implement function-level launch configuration to use warp::reduce
+#pragma unroll
+    for (int bitmask = 1; bitmask < cuda_config::warp_size; bitmask <<= 1) {
+        result = reduce_op(result, warp::shuffle_xor(result, bitmask));
+    }
+
+    if (local_id == 0) {
+        data[0] = result;
+    }
+}
+
+
+}  // namespace block
 }  // namespace gpu
 }  // namespace kernels
 }  // namespace gko

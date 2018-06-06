@@ -35,8 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BICGSTAB_KERNELS_HPP_
 
 
+#include "core/base/array.hpp"
+#include "core/base/math.hpp"
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
 namespace gko {
@@ -53,16 +56,27 @@ namespace bicgstab {
                     matrix::Dense<_type> *p, matrix::Dense<_type> *prev_rho, \
                     matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha,  \
                     matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma, \
-                    matrix::Dense<_type> *omega)
+                    matrix::Dense<_type> *omega,                             \
+                    Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                       \
-    void step_1(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Dense<_type> *r, matrix::Dense<_type> *p,         \
-        const matrix::Dense<_type> *v, const matrix::Dense<_type> *rho, \
-        const matrix::Dense<_type> *prev_rho,                           \
-        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *omega)
+#define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(_type)                    \
+    void test_convergence(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
+        remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
+        bool setFinalized, Array<stopping_status> *stop_status,                \
+        bool *all_converged, bool *one_changed)
+
+
+#define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                             \
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Dense<_type> *r, matrix::Dense<_type> *p,               \
+        const matrix::Dense<_type> *v, const matrix::Dense<_type> *rho,       \
+        const matrix::Dense<_type> *prev_rho,                                 \
+        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *omega, \
+        const Array<stopping_status> &stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(_type)                             \
@@ -70,7 +84,8 @@ namespace bicgstab {
                 const matrix::Dense<_type> *r, matrix::Dense<_type> *s,       \
                 const matrix::Dense<_type> *v,                                \
                 const matrix::Dense<_type> *rho, matrix::Dense<_type> *alpha, \
-                const matrix::Dense<_type> *beta)
+                const matrix::Dense<_type> *beta,                             \
+                const Array<stopping_status> &stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)                             \
@@ -80,18 +95,29 @@ namespace bicgstab {
         const matrix::Dense<_type> *t, const matrix::Dense<_type> *y,         \
         const matrix::Dense<_type> *z, const matrix::Dense<_type> *alpha,     \
         const matrix::Dense<_type> *beta, const matrix::Dense<_type> *gamma,  \
-        matrix::Dense<_type> *omega)
+        matrix::Dense<_type> *omega,                                          \
+        const Array<stopping_status> &stop_status)
 
-#define DECLARE_ALL_AS_TEMPLATES                       \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);     \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType)
+#define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(_type)                       \
+    void finalize(std::shared_ptr<const DefaultExecutor> exec,            \
+                  matrix::Dense<_type> *x, const matrix::Dense<_type> *y, \
+                  const matrix::Dense<_type> *alpha,                      \
+                  Array<stopping_status> *stop_status)
 
+
+#define DECLARE_ALL_AS_TEMPLATES                             \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType);       \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(ValueType); \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);           \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);           \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);           \
+    template <typename ValueType>                            \
+    GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType);
 
 }  // namespace bicgstab
 

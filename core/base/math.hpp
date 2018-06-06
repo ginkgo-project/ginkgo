@@ -35,73 +35,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATH_HPP_
 
 
+#include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
+
+
+#include <cmath>
+#include <complex>
+#include <cstdlib>
 
 
 namespace gko {
 
 
-/**
- * Returns the conjugate of a number.
- *
- * @param x  the number to conjugate
- *
- * @return  conjugate of `x`
- */
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::complex<T> conj(const std::complex<T> &x)
-{
-    return std::conj(x);
-}
-
-/**
- * @copydoc conj(std::complex<T>)
- *
- * @note This is the overload for real types, which acts as an identity.
- */
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE T conj(T x)
-{
-    return x;
-}
-
-
-/**
- * Performs integer division with rounding up.
- *
- * @param num  numerator
- * @param den  denominator
- *
- * @return returns the ceiled quotient.
- */
-GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
-{
-    return (num + den - 1) / den;
-}
-
-
-/**
- * Returns the additive identity for T.
- *
- * @return additive identity for T
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
-{
-    return T(0);
-}
-
-
-/**
- * Returns the multiplicative identity for T.
- *
- * @return the multiplicative identity for T
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T one()
-{
-    return T(1);
-}
+// type manipulations
 
 
 namespace detail {
@@ -125,13 +71,11 @@ struct remove_complex_impl<std::complex<T>> {
 
 
 template <typename T>
-struct is_complex_impl : public std::integral_constant<bool, false> {
-};
+struct is_complex_impl : public std::integral_constant<bool, false> {};
 
 template <typename T>
 struct is_complex_impl<std::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
+    : public std::integral_constant<bool, true> {};
 
 
 }  // namespace detail
@@ -150,7 +94,7 @@ using remove_complex = typename detail::remove_complex_impl<T>::type;
  *
  * @tparam T  type to check
  *
- * @return  `true` if T is a complex type, `false` otherwise
+ * @return `true` if T is a complex type, `false` otherwise
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
@@ -253,19 +197,51 @@ GKO_INLINE GKO_ATTRIBUTES constexpr increase_precision<T> round_up(T val)
 }
 
 
-/**
- * Returns the squared norm of the object.
- *
- * @tparam T type of the object.
- *
- * @return  The squared norm of the object.
- */
+template <typename FloatType, size_type NumComponents, size_type ComponentId>
+class truncated;
+
+
+namespace detail {
+
+
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr remove_complex<T> squared_norm(const T &x)
-{
-    using std::real;
-    return real(gko::conj(x) * x);
-}
+struct truncate_type_impl {
+    using type = truncated<T, 2, 0>;
+};
+
+template <typename T, size_type Components>
+struct truncate_type_impl<truncated<T, Components, 0>> {
+    using type = truncated<T, 2 * Components, 0>;
+};
+
+template <typename T>
+struct truncate_type_impl<std::complex<T>> {
+    using type = std::complex<typename truncate_type_impl<T>::type>;
+};
+
+
+template <typename T>
+struct type_size_impl {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+template <typename T>
+struct type_size_impl<std::complex<T>> {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Truncates the type by half (by dropping bits), but ensures that it is at
+ * least `Limit` bits wide.
+ */
+template <typename T, size_type Limit = sizeof(uint16) * byte_size>
+using truncate_type =
+    xstd::conditional_t<detail::type_size_impl<T>::value >= 2 * Limit,
+                        typename detail::truncate_type_impl<T>::type, T>;
 
 
 /**
@@ -283,6 +259,200 @@ struct default_converter {
      */
     GKO_ATTRIBUTES R operator()(S val) { return static_cast<R>(val); }
 };
+
+
+// mathematical functions
+
+
+/**
+ * Performs integer division with rounding up.
+ *
+ * @param num  numerator
+ * @param den  denominator
+ *
+ * @return returns the ceiled quotient.
+ */
+GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
+{
+    return (num + den - 1) / den;
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
+{
+    return T(0);
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `zero<decltype(x)>()`. Instead, it allows `zero(x)`.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T one()
+{
+    return T(1);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `one<decltype(x)>()`. Instead, it allows `one(x)`.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
+{
+    return one<T>();
+}
+
+
+/**
+ * Returns the absolute value of the object.
+ *
+ * @tparam T  the type of the object
+ *
+ * @param x  the object
+ *
+ * @return x >= zero<T>() ? x : -x;
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
+{
+    return x >= zero<T>() ? x : -x;
+}
+
+
+using std::abs;  // use optimized abs functions for basic types
+
+
+/**
+ * Returns the larger of the arguments.
+ *
+ * @tparam T  type of the arguments
+ *
+ * @param x  first argument
+ * @param y  second argument
+ *
+ * @return x >= y ? x : y
+ *
+ * @note C++11 version of this function is not constexpr, thus we provide our
+ *       own implementation.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
+{
+    return x >= y ? x : y;
+}
+
+
+/**
+ * Returns the smaller of the arguments.
+ *
+ * @tparam T  type of the arguments
+ *
+ * @param x  first argument
+ * @param y  second argument
+ *
+ * @return x <= y ? x : y
+ *
+ * @note C++11 version of this function is not `constexpr`, thus we provide our
+ *       own implementation.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
+{
+    return x <= y ? x : y;
+}
+
+
+/**
+ * Returns the real part of the object.
+ *
+ * @tparam T  type of the object
+ *
+ * @param x  the object
+ *
+ * @return real part of the object (by default, the object itself)
+ */
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr T real(const T &x)
+{
+    return x;
+}
+
+
+/**
+ * Returns the imaginary part of the object.
+ *
+ * @tparam T  type of the object
+ *
+ * @param x  the object
+ *
+ * @return imaginary part of the object (by default, zero<T>())
+ */
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr T imag(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the conjugate of an object.
+ *
+ * @param x  the number to conjugate
+ *
+ * @return  conjugate of the object (by default, the object itself)
+ */
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE T conj(const T &x)
+{
+    return x;
+}
+
+
+using std::sqrt;  // use standard sqrt functions for basic types
+
+
+/**
+ * Returns the squared norm of the object.
+ *
+ * @tparam T type of the object.
+ *
+ * @return  The squared norm of the object.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
+    -> decltype(real(conj(x) * x))
+{
+    return real(conj(x) * x);
+}
 
 
 }  // namespace gko

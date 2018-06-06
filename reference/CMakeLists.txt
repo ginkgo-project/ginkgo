@@ -9,7 +9,7 @@ set(SOURCES
     solver/cgs_kernels.cpp
     solver/cg_kernels.cpp)
 
-add_library(ginkgo_reference SHARED
+add_library(ginkgo_reference
     $<TARGET_OBJECTS:ginkgo_reference_device>
     ${SOURCES})
 target_include_directories(ginkgo_reference PUBLIC ${PROJECT_SOURCE_DIR})

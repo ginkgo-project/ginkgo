@@ -55,15 +55,15 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *c)
 {
-    for (size_type row = 0; row < c->get_num_rows(); ++row) {
-        for (size_type col = 0; col < c->get_num_cols(); ++col) {
+    for (size_type row = 0; row < c->get_size().num_rows; ++row) {
+        for (size_type col = 0; col < c->get_size().num_cols; ++col) {
             c->at(row, col) = zero<ValueType>();
         }
     }
 
-    for (size_type row = 0; row < c->get_num_rows(); ++row) {
-        for (size_type inner = 0; inner < a->get_num_cols(); ++inner) {
-            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+    for (size_type row = 0; row < c->get_size().num_rows; ++row) {
+        for (size_type inner = 0; inner < a->get_size().num_cols; ++inner) {
+            for (size_type col = 0; col < c->get_size().num_cols; ++col) {
                 c->at(row, col) += a->at(row, inner) * b->at(inner, col);
             }
         }
@@ -80,22 +80,22 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 {
     if (beta->at(0, 0) != zero<ValueType>()) {
-        for (size_type row = 0; row < c->get_num_rows(); ++row) {
-            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+        for (size_type row = 0; row < c->get_size().num_rows; ++row) {
+            for (size_type col = 0; col < c->get_size().num_cols; ++col) {
                 c->at(row, col) *= beta->at(0, 0);
             }
         }
     } else {
-        for (size_type row = 0; row < c->get_num_rows(); ++row) {
-            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+        for (size_type row = 0; row < c->get_size().num_rows; ++row) {
+            for (size_type col = 0; col < c->get_size().num_cols; ++col) {
                 c->at(row, col) *= zero<ValueType>();
             }
         }
     }
 
-    for (size_type row = 0; row < c->get_num_rows(); ++row) {
-        for (size_type inner = 0; inner < a->get_num_cols(); ++inner) {
-            for (size_type col = 0; col < c->get_num_cols(); ++col) {
+    for (size_type row = 0; row < c->get_size().num_rows; ++row) {
+        for (size_type inner = 0; inner < a->get_size().num_cols; ++inner) {
+            for (size_type col = 0; col < c->get_size().num_cols; ++col) {
                 c->at(row, col) +=
                     alpha->at(0, 0) * a->at(row, inner) * b->at(inner, col);
             }
@@ -110,15 +110,15 @@ template <typename ValueType>
 void scale(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (alpha->get_num_cols() == 1) {
-        for (size_type i = 0; i < x->get_num_rows(); ++i) {
-            for (size_type j = 0; j < x->get_num_cols(); ++j) {
+    if (alpha->get_size().num_cols == 1) {
+        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type j = 0; j < x->get_size().num_cols; ++j) {
                 x->at(i, j) *= alpha->at(0, 0);
             }
         }
     } else {
-        for (size_type i = 0; i < x->get_num_rows(); ++i) {
-            for (size_type j = 0; j < x->get_num_cols(); ++j) {
+        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type j = 0; j < x->get_size().num_cols; ++j) {
                 x->at(i, j) *= alpha->at(0, j);
             }
         }
@@ -133,15 +133,15 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (alpha->get_num_cols() == 1) {
-        for (size_type i = 0; i < x->get_num_rows(); ++i) {
-            for (size_type j = 0; j < x->get_num_cols(); ++j) {
+    if (alpha->get_size().num_cols == 1) {
+        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type j = 0; j < x->get_size().num_cols; ++j) {
                 y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
             }
         }
     } else {
-        for (size_type i = 0; i < x->get_num_rows(); ++i) {
-            for (size_type j = 0; j < x->get_num_cols(); ++j) {
+        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type j = 0; j < x->get_size().num_cols; ++j) {
                 y->at(i, j) += alpha->at(0, j) * x->at(i, j);
             }
         }
@@ -157,12 +157,12 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
-    for (size_type j = 0; j < x->get_num_cols(); ++j) {
+    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
         result->at(0, j) = zero<ValueType>();
     }
-    for (size_type i = 0; i < x->get_num_rows(); ++i) {
-        for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            result->at(0, j) += gko::conj(x->at(i, j)) * y->at(i, j);
+    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
         }
     }
 }
@@ -175,8 +175,8 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
 {
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
+    auto num_rows = result->get_size().num_rows;
+    auto num_cols = result->get_size().num_cols;
     auto num_nonzeros = result->get_num_stored_elements();
 
     auto row_idxs = result->get_row_idxs();
@@ -206,8 +206,8 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
 {
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
+    auto num_rows = result->get_size().num_rows;
+    auto num_cols = result->get_size().num_cols;
     auto num_nonzeros = result->get_num_stored_elements();
 
     auto row_ptrs = result->get_row_ptrs();
@@ -250,8 +250,8 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Ell<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
 {
-    auto num_rows = result->get_num_rows();
-    auto num_cols = result->get_num_cols();
+    auto num_rows = result->get_size().num_rows;
+    auto num_cols = result->get_size().num_cols;
     auto max_nnz_per_row = result->get_max_nonzeros_per_row();
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_stride(); j++) {
@@ -293,8 +293,8 @@ template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType> *source, size_type *result)
 {
-    auto num_rows = source->get_num_rows();
-    auto num_cols = source->get_num_cols();
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
     auto num_nonzeros = 0;
 
     for (size_type row = 0; row < num_rows; ++row) {
@@ -314,8 +314,8 @@ void calculate_max_nonzeros_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Dense<ValueType> *source, size_type *result)
 {
-    auto num_rows = source->get_num_rows();
-    auto num_cols = source->get_num_cols();
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
     size_type max_nonzeros_per_row = 0;
     size_type num_nonzeros = 0;
     for (size_type row = 0; row < num_rows; ++row) {
@@ -338,8 +338,8 @@ void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig)
 {
-    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
-        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
+    for (size_type i = 0; i < orig->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < orig->get_size().num_cols; ++j) {
             trans->at(j, i) = orig->at(i, j);
         }
     }
@@ -353,9 +353,9 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Dense<ValueType> *trans,
                     const matrix::Dense<ValueType> *orig)
 {
-    for (size_type i = 0; i < orig->get_num_rows(); ++i) {
-        for (size_type j = 0; j < orig->get_num_cols(); ++j) {
-            trans->at(j, i) = gko::conj(orig->at(i, j));
+    for (size_type i = 0; i < orig->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < orig->get_size().num_cols; ++j) {
+            trans->at(j, i) = conj(orig->at(i, j));
         }
     }
 }

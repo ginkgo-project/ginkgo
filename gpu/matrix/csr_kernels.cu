@@ -54,25 +54,30 @@ void spmv(std::shared_ptr<const GpuExecutor> exec,
           const matrix::Csr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    // TODO: add implementation for int64 and multiple RHS
-    auto handle = cusparse::init();
-    auto descr = cusparse::create_mat_descr();
-    ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        // TODO: add implementation for int64 and multiple RHS
+        auto handle = cusparse::init();
+        auto descr = cusparse::create_mat_descr();
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
 
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto alpha = one<ValueType>();
-    auto beta = zero<ValueType>();
-    if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+        auto row_ptrs = a->get_const_row_ptrs();
+        auto col_idxs = a->get_const_col_idxs();
+        auto alpha = one<ValueType>();
+        auto beta = zero<ValueType>();
+        if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
-    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
-                   a->get_num_cols(), a->get_num_stored_elements(), &alpha,
-                   descr, a->get_const_values(), row_ptrs, col_idxs,
-                   b->get_const_values(), &beta, c->get_values());
+        cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                       a->get_size().num_rows, a->get_size().num_cols,
+                       a->get_num_stored_elements(), &alpha, descr,
+                       a->get_const_values(), row_ptrs, col_idxs,
+                       b->get_const_values(), &beta, c->get_values());
 
-    cusparse::destroy(descr);
-    cusparse::destroy(handle);
+        cusparse::destroy(descr);
+        cusparse::destroy(handle);
+    } else {
+        NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
@@ -86,23 +91,28 @@ void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    // TODO: add implementation for int64 and multiple RHS
-    auto handle = cusparse::init();
-    auto descr = cusparse::create_mat_descr();
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        // TODO: add implementation for int64 and multiple RHS
+        auto handle = cusparse::init();
+        auto descr = cusparse::create_mat_descr();
 
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
+        auto row_ptrs = a->get_const_row_ptrs();
+        auto col_idxs = a->get_const_col_idxs();
 
-    if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+        if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
-    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_num_rows(),
-                   a->get_num_cols(), a->get_num_stored_elements(),
-                   alpha->get_const_values(), descr, a->get_const_values(),
-                   row_ptrs, col_idxs, b->get_const_values(),
-                   beta->get_const_values(), c->get_values());
+        cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                       a->get_size().num_rows, a->get_size().num_cols,
+                       a->get_num_stored_elements(), alpha->get_const_values(),
+                       descr, a->get_const_values(), row_ptrs, col_idxs,
+                       b->get_const_values(), beta->get_const_values(),
+                       c->get_values());
 
-    cusparse::destroy(descr);
-    cusparse::destroy(handle);
+        cusparse::destroy(descr);
+        cusparse::destroy(handle);
+    } else {
+        NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -141,18 +151,22 @@ void transpose(std::shared_ptr<const GpuExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans,
                const matrix::Csr<ValueType, IndexType> *orig)
 {
-    auto handle = cusparse::init();
-    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = cusparse::init();
+        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
-                        orig->get_num_stored_elements(),
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+        cusparse::transpose(
+            handle, orig->get_size().num_rows, orig->get_size().num_cols,
+            orig->get_num_stored_elements(), orig->get_const_values(),
+            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+            trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+            copyValues, idxBase);
 
-    cusparse::destroy(handle);
+        cusparse::destroy(handle);
+    } else {
+        NOT_IMPLEMENTED;
+    }
 }
 
 
@@ -170,7 +184,7 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
         static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
 
     if (tidx < num_nonzeros) {
-        val[tidx] = gko::conj(val[tidx]);
+        val[tidx] = conj(val[tidx]);
     }
 }
 
@@ -183,25 +197,30 @@ void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *trans,
                     const matrix::Csr<ValueType, IndexType> *orig)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        const dim3 block_size(default_block_size, 1, 1);
+        const dim3 grid_size(
+            ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
 
-    auto handle = cusparse::init();
-    cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-    cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+        auto handle = cusparse::init();
+        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-    cusparse::transpose(handle, orig->get_num_rows(), orig->get_num_cols(),
-                        orig->get_num_stored_elements(),
-                        orig->get_const_values(), orig->get_const_row_ptrs(),
-                        orig->get_const_col_idxs(), trans->get_values(),
-                        trans->get_col_idxs(), trans->get_row_ptrs(),
-                        copyValues, idxBase);
+        cusparse::transpose(
+            handle, orig->get_size().num_rows, orig->get_size().num_cols,
+            orig->get_num_stored_elements(), orig->get_const_values(),
+            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+            trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
+            copyValues, idxBase);
 
-    cusparse::destroy(handle);
+        cusparse::destroy(handle);
 
-    conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
-        trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
+        conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
+            trans->get_num_stored_elements(),
+            as_cuda_type(trans->get_values()));
+    } else {
+        NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
