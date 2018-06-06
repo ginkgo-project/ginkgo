@@ -100,7 +100,7 @@ size_type get_coo_lim(const Array<IndexType> &row_nnz, const size_type ell_lim)
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::column_limit::get_hybrid_limit(
     std::shared_ptr<const Executor> exec, const mat_data &data,
-    size_type *ell_lim, size_type *coo_lim)
+    size_type *ell_lim, size_type *coo_lim) const
 {
     *ell_lim = num_columns_;
 
@@ -113,17 +113,22 @@ void Hybrid<ValueType, IndexType>::column_limit::get_hybrid_limit(
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::imbalance_limit::get_hybrid_limit(
     std::shared_ptr<const Executor> exec, const mat_data &data,
-    size_type *ell_lim, size_type *coo_lim)
+    size_type *ell_lim, size_type *coo_lim) const
 {
     Array<index_type> row_nnz(exec, data.size.num_rows);
     get_each_row_nnz(data, row_nnz);
     auto row_nnz_val = row_nnz.get_data();
     std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
-
-    auto percent_pos = static_cast<size_type>(data.size.num_rows * percent_);
-    *ell_lim = row_nnz_val[percent_pos];
+    if (percent_ < 1) {
+        auto percent_pos =
+            static_cast<size_type>(data.size.num_rows * percent_);
+        *ell_lim = row_nnz_val[percent_pos];
+    } else {
+        *ell_lim = row_nnz_val[data.size.num_rows - 1];
+    }
     *coo_lim = get_coo_lim(row_nnz, *ell_lim);
 }
+
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
@@ -226,7 +231,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 {
     std::unique_ptr<const LinOp> op{};
-    auto tmp_clone = make_temporary_clone(this->get_executor()->get_master(), this);
+    auto tmp_clone =
+        make_temporary_clone(this->get_executor()->get_master(), this);
     auto tmp = tmp_clone.get();
     data = {tmp->get_size(), {}};
     size_type coo_ind = 0;

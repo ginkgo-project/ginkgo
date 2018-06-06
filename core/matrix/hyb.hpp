@@ -85,15 +85,17 @@ public:
     public:
         virtual void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                                       const mat_data &data, size_type *ell_lim,
-                                      size_type *coo_lim) = 0;
+                                      size_type *coo_lim) const = 0;
     };
 
     class column_limit : public strategy_type {
     public:
-        column_limit(size_type num_column = 0) : num_columns_(num_column) {}
+        explicit column_limit(size_type num_column = 0)
+            : num_columns_(num_column)
+        {}
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim) override;
+                              size_type *coo_lim) const override;
 
     private:
         size_type num_columns_;
@@ -101,10 +103,14 @@ public:
 
     class imbalance_limit : public strategy_type {
     public:
-        imbalance_limit(float percent = 0.8) : percent_(percent) {}
+        explicit imbalance_limit(float percent = 0.8) : percent_(percent)
+        {
+            percent_ = std::min(percent_, 1.0f);
+            percent_ = std::max(percent_, 0.0f);
+        }
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim) override;
+                              size_type *coo_lim) const override;
 
     private:
         float percent_;
@@ -115,7 +121,7 @@ public:
         automatic() : strategy_(imbalance_limit(0.8)) {}
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim)
+                              size_type *coo_lim) const
         {
             strategy_.get_hybrid_limit(exec, data, ell_lim, coo_lim);
         }
@@ -333,8 +339,8 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<strategy_type> strategy =
-               std::shared_ptr<automatic>(new automatic()))
+           std::shared_ptr<const strategy_type> strategy =
+               std::make_shared<const automatic>())
         : Hybrid(std::move(exec), dim{}, std::move(strategy))
     {}
 
@@ -349,8 +355,8 @@ protected:
      * @param val  the value used in partition (ignored in automatically)
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-           std::shared_ptr<strategy_type> strategy =
-               std::shared_ptr<automatic>(new automatic()))
+           std::shared_ptr<const strategy_type> strategy =
+               std::make_shared<const automatic>())
         : Hybrid(std::move(exec), size, size.num_cols, std::move(strategy))
     {}
 
@@ -366,8 +372,8 @@ protected:
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
            size_type max_nonzeros_per_row,
-           std::shared_ptr<strategy_type> strategy =
-               std::shared_ptr<automatic>(new automatic()))
+           std::shared_ptr<const strategy_type> strategy =
+               std::make_shared<const automatic>())
         : Hybrid(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
                  std::move(strategy))
     {}
@@ -386,27 +392,24 @@ protected:
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
            size_type max_nonzeros_per_row, size_type stride,
            size_type num_nonzeros = {},
-           std::shared_ptr<strategy_type> strategy =
-               std::shared_ptr<automatic>(new automatic()))
+           std::shared_ptr<const strategy_type> strategy =
+               std::make_shared<const automatic>())
         : EnableLinOp<Hybrid>(exec, size),
           ell_(std::move(
               ell_type::create(exec, size, max_nonzeros_per_row, stride))),
           coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
           strategy_(std::move(strategy))
-    {
-        // check_method_val();
-    }
+    {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-
 private:
     std::shared_ptr<ell_type> ell_;
     std::shared_ptr<coo_type> coo_;
-    std::shared_ptr<strategy_type> strategy_;
+    std::shared_ptr<const strategy_type> strategy_;
 };
 
 

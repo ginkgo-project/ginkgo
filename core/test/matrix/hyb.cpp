@@ -171,8 +171,7 @@ TEST_F(Hybrid, CanBeCleared)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 {
-    auto m = Mtx::create(exec,
-                         std::shared_ptr<Mtx::automatic>(new Mtx::automatic()));
+    auto m = Mtx::create(exec, std::make_shared<const Mtx::automatic>());
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -207,8 +206,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataByColumns2)
 {
-    auto m = Mtx::create(
-        exec, std::shared_ptr<Mtx::column_limit>(new Mtx::column_limit(2)));
+    auto m = Mtx::create(exec, std::make_shared<const Mtx::column_limit>(2));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -223,8 +221,8 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataByColumns2)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataByPercent40)
 {
-    auto m = Mtx::create(exec, std::shared_ptr<Mtx::imbalance_limit>(
-                                   new Mtx::imbalance_limit(0.4)));
+    auto m =
+        Mtx::create(exec, std::make_shared<const Mtx::imbalance_limit>(0.4));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
