@@ -283,6 +283,9 @@ public:
 private:
     void copy_from(const Array &other)
     {
+        if (&other == this) {
+            return;
+        }
         this->resize_and_reset(other.get_num_elems());
         exec_->copy_from(other.get_executor().get(), num_elems_,
                          other.get_const_data(), data_);

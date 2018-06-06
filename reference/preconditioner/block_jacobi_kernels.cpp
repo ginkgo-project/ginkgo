@@ -180,7 +180,6 @@ template <typename ValueType, typename IndexType>
 inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
                               size_type stride)
 {
-    using std::abs;
     IndexType cp = 0;
     for (IndexType i = 1; i < block_size; ++i) {
         if (abs(block[cp * stride]) < abs(block[i * stride])) {
@@ -267,7 +266,6 @@ template <typename ValueType, typename IndexType>
 inline void invert_block(IndexType block_size, IndexType *perm,
                          ValueType *block, size_type stride)
 {
-    using std::abs;
     using std::swap;
     for (IndexType k = 0; k < block_size; ++k) {
         const auto cp =

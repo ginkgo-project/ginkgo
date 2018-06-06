@@ -55,6 +55,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
+    GKO_REGISTER_OPERATION(finalize, bicgstab::finalize<ValueType>);
 };
 
 
@@ -66,6 +67,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
+
+    constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
 
@@ -92,17 +95,18 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto tau = Vector::create_with_config_of(alpha.get());
     auto starting_tau = Vector::create_with_config_of(tau.get());
 
-    Array<bool> converged(alpha->get_executor(), dense_b->get_size().num_cols);
+    Array<stopping_status> stop_status(alpha->get_executor(),
+                                       dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        gamma.get(), omega.get(), &converged));
+        gamma.get(), omega.get(), &stop_status));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
-    // converged = false
+    // stop_status = 0x00
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
@@ -111,11 +115,13 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(r.get(), v.get());
     for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         r->compute_dot(r.get(), tau.get());
-        bool all_converged;
+        bool all_converged{};
+        bool one_changed{};
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
                 tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                &converged, &all_converged));
+                RelativeStoppingId, true, &stop_status, &all_converged,
+                &one_changed));
         if (all_converged) {
             break;
         }
@@ -124,7 +130,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get(), converged));
+            omega.get(), stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
@@ -133,13 +139,22 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-            converged));
+            stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
-        // TODO: Add second convergence check
-        if (++iter == parameters_.max_iters) {
-            dense_x->add_scaled(alpha.get(), y.get());
+        s->compute_dot(s.get(), tau.get());
+        exec->run(
+            TemplatedOperation<ValueType>::make_test_convergence_operation(
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                RelativeStoppingId, false, &stop_status, &all_converged,
+                &one_changed));
+
+        if (one_changed) {
+            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
+                dense_x, y.get(), alpha.get(), &stop_status));
+        }
+        if (all_converged) {
             break;
         }
         preconditioner_->apply(s.get(), z.get());
@@ -148,7 +163,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), converged));
+            beta.get(), gamma.get(), omega.get(), stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t

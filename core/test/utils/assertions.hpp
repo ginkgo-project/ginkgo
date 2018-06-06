@@ -85,8 +85,6 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
                                const MatrixData2 &second)
 {
     using real_vt = remove_complex<typename MatrixData2::value_type>;
-    using std::abs;
-    using std::max;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size.num_rows; ++row) {
@@ -94,7 +92,8 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
         for (size_type col = 0; col < first.size.num_cols; ++col) {
             auto r = get_next_value(first_it, end(first.nonzeros), row, col);
             auto e = get_next_value(second_it, end(second.nonzeros), row, col);
-            auto m = max<real_vt>(abs(r), abs(e));
+            auto m =
+                max(static_cast<real_vt>(abs(r)), static_cast<real_vt>(abs(e)));
             if (m == zero<real_vt>()) {
                 os << abs(r - e) << "\t";
             } else {
@@ -109,8 +108,6 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
-    using std::max;
-    using std::sqrt;
     double diff = 0.0;
     double first_norm = 0.0;
     double second_norm = 0.0;

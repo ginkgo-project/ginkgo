@@ -1,3 +1,4 @@
 add_subdirectory(ginkgo_overhead)
 add_subdirectory(preconditioned_solver)
+add_subdirectory(ranges)
 add_subdirectory(simple_solver)
