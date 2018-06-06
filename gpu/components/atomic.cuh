@@ -40,16 +40,24 @@ namespace kernels {
 namespace gpu {
 
 
-#define BIND_ATOMIC_ADD(ValueType)                                             \
+template <typename T>
+__forceinline__ __device__ void atomic_add(T *, T)
+{
+    GKO_ASSERT(false);
+    // TODO: add proper implementation of generic atomic add
+}
+
+
+#define GKO_BIND_ATOMIC_ADD(ValueType)                                         \
     __forceinline__ __device__ void atomic_add(ValueType *addr, ValueType val) \
     {                                                                          \
         atomicAdd(addr, val);                                                  \
     }
 
-BIND_ATOMIC_ADD(int);
-BIND_ATOMIC_ADD(unsigned int);
-BIND_ATOMIC_ADD(unsigned long long int);
-BIND_ATOMIC_ADD(float);
+GKO_BIND_ATOMIC_ADD(int);
+GKO_BIND_ATOMIC_ADD(unsigned int);
+GKO_BIND_ATOMIC_ADD(unsigned long long int);
+GKO_BIND_ATOMIC_ADD(float);
 
 
 #if (defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
@@ -71,12 +79,13 @@ __forceinline__ __device__ void atomic_add(double *addr, double val)
 #else
 
 
-BIND_ATOMIC_ADD(double);
+GKO_BIND_ATOMIC_ADD(double);
 
 
 #endif
 
-#undef BIND_ATOMIC_ADD
+
+#undef GKO_BIND_ATOMIC_ADD
 
 
 /**
