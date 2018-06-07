@@ -28,7 +28,7 @@ set(SOURCES
     stop/time.cpp)
 
 
-if(HAVE_PAPI_SDE)
+if(GKO_HAVE_PAPI_SDE)
   set(SOURCES ${SOURCES} log/papi.cpp)
 endif()
 
@@ -40,7 +40,7 @@ add_library(ginkgo ${SOURCES})
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ${PAPI_SDE_LIB})
+    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ${GKO_PAPI_SDE_LIB})
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 

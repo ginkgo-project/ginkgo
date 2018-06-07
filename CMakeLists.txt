@@ -46,20 +46,7 @@ endif()
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
-include_directories(
-  ${CMAKE_CURRENT_BINARY_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
-  DESTINATION "include"
-  FILES_MATCHING PATTERN "*.hpp"
-  )
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
-  DESTINATION "include"
-  FILES_MATCHING PATTERN "*.hpp"
-  )
 
 # Automatically find PAPI and search for required 'sde' component
 # CURRENT REQUIREMENTS:
@@ -73,23 +60,34 @@ install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
 #           and add: `extern "C" {}` around the whole function definitions
 #           to disable C++ name mangling
 #     4. Copy the previous header to an include path in your system
-find_library(PAPI_LIB papi)
-if (PAPI_LIB)
+find_library(GKO_PAPI_LIB papi)
+if (GKO_PAPI_LIB)
   include (CheckSymbolExists)
 
-  SET(CMAKE_REQUIRED_LIBRARIES ${PAPI_LIB})
-  check_symbol_exists(papi_sde_init papi_sde_interface.h HAVE_PAPI_SDE)
+  SET(CMAKE_REQUIRED_LIBRARIES ${GKO_PAPI_LIB})
+  check_symbol_exists(papi_sde_init papi_sde_interface.h GKO_HAVE_PAPI_SDE)
   unset(CMAKE_REQUIRED_LIBRARIES)
 
-  if (HAVE_PAPI_SDE)
-    set(PAPI_SDE_LIB ${PAPI_LIB})
-  endif(HAVE_PAPI_SDE)
-endif(PAPI_LIB)
+  if (GKO_HAVE_PAPI_SDE)
+    set(GKO_PAPI_SDE_LIB ${GKO_PAPI_LIB})
+  endif(GKO_HAVE_PAPI_SDE)
+endif(GKO_PAPI_LIB)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
+  DESTINATION "include"
+  FILES_MATCHING PATTERN "*.hpp"
+  )
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
+  DESTINATION "include"
+  FILES_MATCHING PATTERN "*.hpp"
+  )
 
 
 add_subdirectory(third_party)    # Third-party tools and libraries

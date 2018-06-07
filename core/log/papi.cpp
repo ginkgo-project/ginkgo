@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/papi.hpp"
+#include <ginkgo/core/log/papi.hpp>
 
 
 namespace gko {

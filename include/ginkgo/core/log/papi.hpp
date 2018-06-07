@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_LOG_PAPI_HPP_
 
 
-#include "core/log/logger.hpp"
+#include <ginkgo/core/log/logger.hpp>
 
 
 #include <papi_sde_interface.h>
@@ -87,13 +87,6 @@ protected:
         const Logger::mask_type &enabled_events = Logger::all_events_mask)
         : EnablePolymorphicObject<Papi<ValueType>, Logger>(exec, enabled_events)
     {}
-
-    /** TODO: Help me with this, really can't know how to do it properly,
-     * otherwise clear_impl complains!
-     */
-    Papi<ValueType> &operator=(const Papi<ValueType> &other) { return *this; }
-
-    Papi<ValueType> &operator=(Papi<ValueType> &other) { return *this; }
 };
 
 
