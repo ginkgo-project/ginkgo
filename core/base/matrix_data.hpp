@@ -245,20 +245,18 @@ struct matrix_data {
      *
      * @return data  range used to initialize the matrix
      */
-    /*
     template <typename Accessor>
     matrix_data(const range<Accessor> &data)
-        : num_rows{data.length(0)}, num_cols{data.length(1)}
+        : size{data.length(0), data.length(1)}
     {
-        for (gko::size_type row = 0; row < num_rows; ++row) {
-            for (gko::size_type col = 0; col < num_cols; ++col) {
-                if (data(row, col) != zero<ValueType>) {
+        for (gko::size_type row = 0; row < size.num_rows; ++row) {
+            for (gko::size_type col = 0; col < size.num_cols; ++col) {
+                if (data(row, col) != zero<ValueType>()) {
                     nonzeros.emplace_back(row, col, data(row, col));
                 }
             }
         }
     }
-    */
 
     /**
      * Initializes a diagonal matrix.
@@ -327,31 +325,31 @@ struct matrix_data {
      */
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
-            remove_complex<ValueType> condition_number,
-            RandomDistribution &&dist, RandomEngine &&engine,
-            size_type num_reflectors)
+                            remove_complex<ValueType> condition_number,
+                            RandomDistribution &&dist, RandomEngine &&engine,
+                            size_type num_reflectors)
     {
         using range = range<accessor::row_major<ValueType, 2>>;
         std::vector<ValueType> mtx_data(size * size, zero<ValueType>());
         std::vector<ValueType> ref_data(size);
         std::vector<ValueType> work(size);
         range matrix(mtx_data.data(), size, size, size);
-        range reflector(ref_data.data(), size, 1, 1);
+        range reflector(ref_data.data(), size, 1u, 1u);
 
         initialize_diag_with_cond(condition_number, matrix);
         for (size_type i = 0; i < num_reflectors; ++i) {
             generate_random_reflector(dist, engine, reflector);
             reflect_domain(reflector, matrix, work.data());
             generate_random_reflector(dist, engine, reflector);
-            reflect_range(reflector, matrix. work.data());
+            reflect_range(reflector, matrix, work.data());
         }
         return matrix;
     }
 
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
-            remove_complex<ValueType> condition_number,
-            RandomDistribution &&dist, RandomEngine &&engine)
+                            remove_complex<ValueType> condition_number,
+                            RandomDistribution &&dist, RandomEngine &&engine)
     {
         return cond(size, condition_number,
                     std::forward<RandomDistribution>(dist),
@@ -386,8 +384,8 @@ struct matrix_data {
 private:
     template <typename Accessor>
     static void initialize_diag_with_cond(
-        remove_complex<ValueType> condition_number, const range<Accessor>
-    &matrix)
+        remove_complex<ValueType> condition_number,
+        const range<Accessor> &matrix)
     {
         using sigma_type = remove_complex<ValueType>;
         const auto size = matrix.length(0);
@@ -396,18 +394,18 @@ private:
 
         matrix = zero(matrix);
         for (gko::size_type i = 0; i < size; ++i) {
-                matrix(i, i) = max_sigma *
-                    static_cast<sigma_type>(size - i - 1) /
-    static_cast<sigma_type>(size - 1) + min_sigma * static_cast<sigma_type>(i) /
+            matrix(i, i) = max_sigma * static_cast<sigma_type>(size - i - 1) /
+                               static_cast<sigma_type>(size - 1) +
+                           min_sigma * static_cast<sigma_type>(i) /
                                static_cast<sigma_type>(size - 1);
         }
     }
 
     template <typename RandomDistribution, typename RandomEngine,
               typename Accessor>
-    static void generate_random_reflector(
-            RandomDistribution &&dist, RandomEngine &&engine,
-            const range<Accessor> &reflector)
+    static void generate_random_reflector(RandomDistribution &&dist,
+                                          RandomEngine &&engine,
+                                          const range<Accessor> &reflector)
     {
         for (gko::size_type i = 0; i < reflector.length(0); ++i) {
             reflector(i, 0) = detail::get_rand_value<ValueType>(dist, engine);
@@ -421,23 +419,25 @@ private:
     {
         const auto two = one<ValueType>() + one<ValueType>();
         range<accessor::row_major<ValueType, 2>> work(work_data,
-    matrix.length(0), 1, 1); work = mmul(matrix, reflector); const auto
-    ct_reflector = conj(transpose(reflector)); const auto scale = two /
-    mmul(ct_reflector, reflector)(0, 0); matrix = matrix - scale * mmul(work,
-    ct_reflector);
+                                                      matrix.length(0), 1u, 1u);
+        work = mmul(matrix, reflector);
+        const auto ct_reflector = conj(transpose(reflector));
+        const auto scale = two / mmul(ct_reflector, reflector)(0, 0);
+        matrix = matrix - scale * mmul(work, ct_reflector);
     }
 
     template <typename Accessor>
     static void reflect_range(const range<Accessor> &reflector,
-                               const range<Accessor> &matrix,
-                               ValueType *work_data)
+                              const range<Accessor> &matrix,
+                              ValueType *work_data)
     {
         const auto two = one<ValueType>() + one<ValueType>();
-        range<accessor::row_major<ValueType, 2>> work(work_data, 1,
-    matrix.length(0), matrix.length(0)); const auto ct_reflector =
-    conj(transpose(reflector)); work = mmul(ct_reflector, matrix); const auto
-    scale = two / mmul(ct_reflector, reflector)(0, 0); matrix = matrix - scale *
-    mmul(reflector, work);
+        range<accessor::row_major<ValueType, 2>> work(
+            work_data, 1u, matrix.length(0), matrix.length(0));
+        const auto ct_reflector = conj(transpose(reflector));
+        work = mmul(ct_reflector, matrix);
+        const auto scale = two / mmul(ct_reflector, reflector)(0, 0);
+        matrix = matrix - scale * mmul(reflector, work);
     }
 };
 
