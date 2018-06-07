@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 constexpr int default_slice_size = 64;
-constexpr int default_padding_factor = 1;
+constexpr int default_stride_factor = 1;
 
 
 namespace gko {
@@ -162,18 +162,18 @@ public:
     size_type get_slice_size() const noexcept { return slice_size_; }
 
     /**
-     * Returns the padding factor(t) of SELL-P.
+     * Returns the stride factor(t) of SELL-P.
      *
-     * @return the padding factor(t) of SELL-P.
+     * @return the stride factor(t) of SELL-P.
      */
-    size_type get_padding_factor() const noexcept { return padding_factor_; }
+    size_type get_stride_factor() const noexcept { return stride_factor_; }
 
     /**
      * Returns the total column number.
      *
      * @return the total column number.
      */
-    size_type get_max_total_cols() const noexcept { return max_total_cols_; }
+    size_type get_total_cols() const noexcept { return total_cols_; }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -244,7 +244,7 @@ public:
 protected:
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The max_total_cols is set to be the number of slice times the number
+     *    (The total_cols is set to be the number of slice times the number
      *     of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
@@ -257,16 +257,16 @@ protected:
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
-     *    (The slice_size and padding_factor are set to the default values.)
+     *    (The slice_size and stride_factor are set to the default values.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_total_cols   number of the sum of all cols in every slice.
+     * @param total_cols   number of the sum of all cols in every slice.
      */
     Sellp(std::shared_ptr<const Executor> exec, const dim &size,
-          size_type max_total_cols)
+          size_type total_cols)
         : Sellp(std::move(exec), size, default_slice_size,
-                default_padding_factor, max_total_cols)
+                default_stride_factor, total_cols)
     {}
 
     /**
@@ -275,16 +275,15 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param slice_size  number of rows in each slice
-     * @param padding_factor  factor for the padding in each slice (paddings
-     *                        should be multiples of the padding_factor)
-     * @param max_total_cols   number of the sum of all cols in every slice.
+     * @param stride_factor  factor for the stride in each slice (strides
+     *                        should be multiples of the stride_factor)
+     * @param total_cols   number of the sum of all cols in every slice.
      */
     Sellp(std::shared_ptr<const Executor> exec, const dim &size,
-          size_type slice_size, size_type padding_factor,
-          size_type max_total_cols)
+          size_type slice_size, size_type stride_factor, size_type total_cols)
         : EnableLinOp<Sellp>(exec, size),
-          values_(exec, slice_size * max_total_cols),
-          col_idxs_(exec, slice_size * max_total_cols),
+          values_(exec, slice_size * total_cols),
+          col_idxs_(exec, slice_size * total_cols),
           slice_lens_(exec, (size.num_rows == 0)
                                 ? 0
                                 : ceildiv(size.num_rows, slice_size)),
@@ -292,8 +291,8 @@ protected:
                                 ? 0
                                 : ceildiv(size.num_rows, slice_size)),
           slice_size_(slice_size),
-          padding_factor_(padding_factor),
-          max_total_cols_(max_total_cols)
+          stride_factor_(stride_factor),
+          total_cols_(total_cols)
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -313,8 +312,8 @@ private:
     Array<size_type> slice_lens_;
     Array<size_type> slice_sets_;
     size_type slice_size_;
-    size_type padding_factor_;
-    size_type max_total_cols_;
+    size_type stride_factor_;
+    size_type total_cols_;
 };
 
 

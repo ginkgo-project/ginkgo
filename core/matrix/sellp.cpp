@@ -45,20 +45,21 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-size_type calculate_max_total_cols(
-    const matrix_data<ValueType, IndexType> &data, const size_type slice_size,
-    const size_type padding_factor, std::vector<size_type> &slice_lens)
+size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
+                               const size_type slice_size,
+                               const size_type stride_factor,
+                               std::vector<size_type> &slice_lens)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
     IndexType current_slice = 0;
-    size_type max_total_cols = 0;
+    size_type total_cols = 0;
     for (const auto &elem : data.nonzeros) {
         if (elem.row / slice_size != current_slice) {
             slice_lens[current_slice] =
-                padding_factor *
-                ceildiv(slice_lens[current_slice], padding_factor);
-            max_total_cols += slice_lens[current_slice];
+                stride_factor *
+                ceildiv(slice_lens[current_slice], stride_factor);
+            total_cols += slice_lens[current_slice];
             current_slice = elem.row / slice_size;
         }
         if (elem.row != current_row) {
@@ -71,9 +72,9 @@ size_type calculate_max_total_cols(
     }
     slice_lens[current_slice] = std::max(slice_lens[current_slice], nnz);
     slice_lens[current_slice] =
-        padding_factor * ceildiv(slice_lens[current_slice], padding_factor);
-    max_total_cols += slice_lens[current_slice];
-    return max_total_cols;
+        stride_factor * ceildiv(slice_lens[current_slice], stride_factor);
+    total_cols += slice_lens[current_slice];
+    return total_cols;
 }
 
 
@@ -112,12 +113,12 @@ void Sellp<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::read(const mat_data &data)
 {
-    // Make sure that slice_size and padding factor are not zero.
+    // Make sure that slice_size and stride factor are not zero.
     auto slice_size = (this->get_slice_size() == 0) ? default_slice_size
                                                     : this->get_slice_size();
-    auto padding_factor = (this->get_padding_factor() == 0)
-                              ? default_padding_factor
-                              : this->get_padding_factor();
+    auto stride_factor = (this->get_stride_factor() == 0)
+                             ? default_stride_factor
+                             : this->get_stride_factor();
 
     // Allocate space for slice_cols.
     size_type slice_num = static_cast<index_type>(
@@ -125,12 +126,12 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     std::vector<size_type> slice_lens(slice_num, 0);
 
     // Get the number of maximum columns for every slice.
-    auto max_total_cols =
-        calculate_max_total_cols(data, slice_size, padding_factor, slice_lens);
+    auto total_cols =
+        calculate_total_cols(data, slice_size, stride_factor, slice_lens);
 
     // Create an SELL-P format matrix based on the sizes.
     auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
-                             slice_size, padding_factor, max_total_cols);
+                             slice_size, stride_factor, total_cols);
 
     // Get slice length, slice set, matrix values and column indexes.
     index_type slice_set = 0;

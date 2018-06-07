@@ -55,7 +55,7 @@ protected:
         Mtx::index_type *c = mtx->get_col_idxs();
         gko::size_type *l = mtx->get_slice_lens();
         gko::size_type *s = mtx->get_slice_sets();
-        l[0] = default_padding_factor * gko::ceildiv(3, default_padding_factor);
+        l[0] = default_stride_factor * gko::ceildiv(3, default_stride_factor);
         s[0] = 0;
         c[0] = 0;
         c[1] = 1;
@@ -87,13 +87,13 @@ protected:
         auto l = m->get_const_slice_lens();
         auto s = m->get_const_slice_sets();
         auto slice_size = m->get_slice_size();
-        auto padding_factor = m->get_padding_factor();
-        auto max_total_cols = m->get_max_total_cols();
+        auto stride_factor = m->get_stride_factor();
+        auto total_cols = m->get_total_cols();
         ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 192);
         ASSERT_EQ(m->get_slice_size(), default_slice_size);
-        ASSERT_EQ(m->get_padding_factor(), default_padding_factor);
-        ASSERT_EQ(m->get_max_total_cols(), 3);
+        ASSERT_EQ(m->get_stride_factor(), default_stride_factor);
+        ASSERT_EQ(m->get_total_cols(), 3);
         EXPECT_EQ(l[0], 3);
         EXPECT_EQ(s[0], 0);
         EXPECT_EQ(c[0], 0);
@@ -110,7 +110,7 @@ protected:
         EXPECT_EQ(v[2 * default_slice_size + 1], 0.0);
     }
 
-    void assert_equal_to_original_mtx_with_slice_size_and_padding_factor(
+    void assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
         const Mtx *m)
     {
         auto v = m->get_const_values();
@@ -118,13 +118,13 @@ protected:
         auto l = m->get_const_slice_lens();
         auto s = m->get_const_slice_sets();
         auto slice_size = m->get_slice_size();
-        auto padding_factor = m->get_padding_factor();
-        auto max_total_cols = m->get_max_total_cols();
+        auto stride_factor = m->get_stride_factor();
+        auto total_cols = m->get_total_cols();
         ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 8);
         ASSERT_EQ(m->get_slice_size(), 2);
-        ASSERT_EQ(m->get_padding_factor(), 2);
-        ASSERT_EQ(m->get_max_total_cols(), 4);
+        ASSERT_EQ(m->get_stride_factor(), 2);
+        ASSERT_EQ(m->get_total_cols(), 4);
         EXPECT_EQ(l[0], 4);
         EXPECT_EQ(s[0], 0);
         EXPECT_EQ(c[0], 0);
@@ -145,7 +145,7 @@ protected:
     {
         ASSERT_EQ(m->get_size(), gko::dim(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
-        ASSERT_EQ(m->get_max_total_cols(), 0);
+        ASSERT_EQ(m->get_total_cols(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_slice_lens(), nullptr);
@@ -159,8 +159,8 @@ TEST_F(Sellp, KnowsItsSize)
     ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 192);
     ASSERT_EQ(mtx->get_slice_size(), default_slice_size);
-    ASSERT_EQ(mtx->get_padding_factor(), default_padding_factor);
-    ASSERT_EQ(mtx->get_max_total_cols(), 3);
+    ASSERT_EQ(mtx->get_stride_factor(), default_stride_factor);
+    ASSERT_EQ(mtx->get_total_cols(), 3);
 }
 
 
@@ -174,15 +174,15 @@ TEST_F(Sellp, CanBeEmpty)
     assert_empty(mtx.get());
 }
 
-TEST_F(Sellp, CanBeConstructedWithSliceSizeAndPaddingFactor)
+TEST_F(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
 {
     auto mtx = Mtx::create(exec, gko::dim{2, 3}, 2, 2, 3);
 
     ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(mtx->get_slice_size(), 2);
-    ASSERT_EQ(mtx->get_padding_factor(), 2);
-    ASSERT_EQ(mtx->get_max_total_cols(), 3);
+    ASSERT_EQ(mtx->get_stride_factor(), 2);
+    ASSERT_EQ(mtx->get_total_cols(), 3);
 }
 
 
@@ -240,7 +240,7 @@ TEST_F(Sellp, CanBeReadFromMatrixData)
     assert_equal_to_original_mtx(m.get());
 }
 
-TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndPaddingFactor)
+TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
 {
     auto m = Mtx::create(exec, gko::dim{2, 3}, 2, 2, 3);
     m->read({{2, 3},
@@ -251,7 +251,7 @@ TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndPaddingFactor)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    assert_equal_to_original_mtx_with_slice_size_and_padding_factor(m.get());
+    assert_equal_to_original_mtx_with_slice_size_and_stride_factor(m.get());
 }
 
 TEST_F(Sellp, GeneratesCorrectMatrixData)
