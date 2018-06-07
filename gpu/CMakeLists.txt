@@ -1,10 +1,11 @@
 set(SOURCES
     base/exception.cpp
     base/executor.cpp
-    matrix/coo_kernels.cpp
+    matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
     matrix/ell_kernels.cu
+    matrix/hybrid_kernels.cpp
     preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu

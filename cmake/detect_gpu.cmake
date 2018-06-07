@@ -1,38 +1,69 @@
 ################################################################################
+# The original version of this file was taken from Caffe
+# (https://github.com/BVLC/caffe) and significantly improved to suite Ginkgo's
+# needs. Caffe is distributed under the following licence:
+######################### Caffe licence ########################################
 # COPYRIGHT
-
+#
 # All contributions by the University of California:
 # Copyright (c) 2014-2017 The Regents of the University of California (Regents)
 # All rights reserved.
-
+#
 # All other contributions:
 # Copyright (c) 2014-2017, the respective contributors
 # All rights reserved.
-
+#
 # Caffe uses a shared copyright model: each contributor holds copyright over
 # their contributions to Caffe. The project versioning records all such
 # contribution and copyright details. If a contributor wants to further mark
 # their specific copyright on a particular contribution, they should indicate
 # their copyright solely in the commit message of the change when it is
 # committed.
+#
+# LICENSE
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# CONTRIBUTION AGREEMENT
+#
+# By contributing to the BVLC/caffe repository through pull-request, comment,
+# or otherwise, the contributor releases their content to the
+# license and copyright terms herein.
 ################################################################################
-# It is from caffe: https://github.com/BVLC/caffe/blob/master/cmake/Cuda.cmake
-################################################################################
-
 
 # Known NVIDIA GPU achitectures Ginkgo can be compiled for.
-set(ginkgo_known_cuda_version "75;80;90;91")
+set(ginkgo_known_cuda_version "75;80;90;91;92")
 
 set(ginkgo_known_gpu_archs_cuda_75 "20;21;30;32;35;37;50;52;53")
 set(ginkgo_known_gpu_archs_cuda_80 "20;21;30;32;35;37;50;52;53;60;61;62")
 set(ginkgo_known_gpu_archs_cuda_90 "30;32;35;37;50;52;53;60;61;62;70")
 set(ginkgo_known_gpu_archs_cuda_91 "30;32;35;37;50;52;53;60;61;62;70;72")
+set(ginkgo_known_gpu_archs_cuda_92 "30;32;35;37;50;52;53;60;61;62;70;72")
 set(ginkgo_unsupported_archs "20;21")
 
 set(ginkgo_known_gpu_archs_name_75 "Fermi;Kepler;Maxwell")
 set(ginkgo_known_gpu_archs_name_80 "Fermi;Kepler;Maxwell;Pascal")
 set(ginkgo_known_gpu_archs_name_90 "Fermi;Kepler;Maxwell;Pascal;Volta")
 set(ginkgo_known_gpu_archs_name_91 "Fermi;Kepler;Maxwell;Pascal;Volta")
+set(ginkgo_known_gpu_archs_name_92 "Fermi;Kepler;Maxwell;Pascal;Volta")
 set(ginkgo_unsupported_archs_name "Fermi")
 
 set(cuda_arch_bin_Kepler "30;32;35;37")
@@ -40,6 +71,7 @@ set(cuda_arch_bin_Maxwell "50;52;53")
 set(cuda_arch_bin_Pascal "60;61;62")
 set(cuda_arch_bin_Volta_90 "70")
 set(cuda_arch_bin_Volta_91 "70;72")
+set(cuda_arch_bin_Volta_92 "70;72")
 
 
 ################################################################################
@@ -99,23 +131,28 @@ function(check_available arch_var_list valid_arch_list)
                 message(FATAL_ERROR "arch ${arch_var} is not invalid")
             elseif(arch_var IN_LIST ginkgo_known_gpu_archs)
                 if(arch_var IN_LIST ginkgo_unsupported_archs)
-                    message(FATAL_ERROR "Ginkgo does not support ${arch_var}")
+                    string(CONCAT MESSAGE
+                        "Ginkgo does not support GPU architecture"
+                        "\"sm_${arch_var}\"")
+                    message(FATAL_ERROR ${MESSAGE})
                 endif()
             else()
-                message(FATAL_ERROR
-                    "CUDA ${CMAKE_CUDA_COMPILER_VERSION}
-                     does not know ${arch_var}")
+                string(CONCAT MESSAGE
+                    "\"sm_${arch_var}\" is not a valid archicecture for"
+                    "NVCC ${CMAKE_CUDA_COMPILER_VERSION}")
+                message(FATAL_ERROR ${MESSAGE})
             endif()
         else()
             if(arch_var IN_LIST ginkgo_known_gpu_archs_name)
                 if(arch_var IN_LIST ginkgo_unsupported_archs_name)
                     message(FATAL_ERROR
-                        "Ginkgo does not support ${arch_var}")
+                        "Ginkgo does not support ${arch_var} GPUs")
                 endif()
             else ()
-                message(FATAL_ERROR
-                    "CUDA ${CMAKE_CUDA_COMPILER_VERSION} does not know
-                     ${arch_var}")
+                string(CONCAT MESSAGE
+                    "${arch_var} is not a valid GPU generation for NVCC"
+                    "${CMAKE_CUDA_COMPILER_VERSION}")
+                message(FATAL_ERROR ${MESSAGE})
             endif()
         endif()
     endforeach()

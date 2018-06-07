@@ -5,6 +5,7 @@ set(SOURCES
     matrix/csr.cpp
     matrix/dense.cpp
     matrix/ell.cpp
+    matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/sellp.cpp
     preconditioner/block_jacobi.cpp
