@@ -162,7 +162,7 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
     }
     for (size_type i = 0; i < x->get_size().num_rows; ++i) {
         for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-            result->at(0, j) += gko::conj(x->at(i, j)) * y->at(i, j);
+            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
         }
     }
 }
@@ -355,7 +355,7 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type i = 0; i < orig->get_size().num_rows; ++i) {
         for (size_type j = 0; j < orig->get_size().num_cols; ++j) {
-            trans->at(j, i) = gko::conj(orig->at(i, j));
+            trans->at(j, i) = conj(orig->at(i, j));
         }
     }
 }

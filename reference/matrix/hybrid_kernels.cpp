@@ -31,70 +31,54 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_BASE_MATH_HPP_
-#define GKO_GPU_BASE_MATH_HPP_
+#include "core/matrix/hybrid_kernels.hpp"
 
 
+#include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
-
-
-#include <thrust/complex.h>
+#include "core/matrix/csr.hpp"
+#include "core/matrix/dense.hpp"
+#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
-namespace detail {
+namespace kernels {
+namespace reference {
+namespace hybrid {
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const ReferenceExecutor> exec,
+          const matrix::Hybrid<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
 
 
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
+template <typename ValueType, typename IndexType>
+void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType> *alpha,
+                   const matrix::Hybrid<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
 
 
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Hybrid<ValueType, IndexType> *source)
+    NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace detail
-
-
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
-{
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-
+}  // namespace hybrid
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_GPU_BASE_MATH_HPP_

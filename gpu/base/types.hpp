@@ -84,6 +84,10 @@ struct culibs_type_impl<std::complex<double>> {
     using type = cuDoubleComplex;
 };
 
+template <typename T>
+struct culibs_type_impl<thrust::complex<T>> {
+    using type = typename culibs_type_impl<std::complex<T>>::type;
+};
 
 template <typename T>
 struct cuda_type_impl {
@@ -110,14 +114,19 @@ struct cuda_type_impl<volatile T> {
     using type = volatile typename cuda_type_impl<T>::type;
 };
 
-template <>
-struct cuda_type_impl<std::complex<float>> {
-    using type = thrust::complex<float>;
+template <typename T>
+struct cuda_type_impl<std::complex<T>> {
+    using type = thrust::complex<T>;
 };
 
 template <>
-struct cuda_type_impl<std::complex<double>> {
+struct cuda_type_impl<cuDoubleComplex> {
     using type = thrust::complex<double>;
+};
+
+template <>
+struct cuda_type_impl<cuComplex> {
+    using type = thrust::complex<float>;
 };
 
 
@@ -199,15 +208,6 @@ struct cuda_config {
 }  // namespace gpu
 }  // namespace kernels
 }  // namespace gko
-
-
-#ifdef __APPLE__
-// Ignore device assertions on MACs, as it does not support them
-#define GKO_DEVICE_ASSERT(expression)
-#else  // __APPLE__
-// Handle assertions on other systems
-#define GKO_DEVICE_ASSERT(expression) assert(expression)
-#endif  // __APPLE__
 
 
 #endif  // GKO_GPU_BASE_TYPES_HPP_

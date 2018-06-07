@@ -130,6 +130,7 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
     // initialize all_converged with true
     *all_converged = true;
     all_converged_array.manage(1, all_converged);
+    d_all_converged = all_converged_array;
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);

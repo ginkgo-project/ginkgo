@@ -31,70 +31,95 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_BASE_MATH_HPP_
-#define GKO_GPU_BASE_MATH_HPP_
+#include <core/base/range_accessors.hpp>
 
 
-#include "core/base/math.hpp"
+#include <gtest/gtest.h>
 
 
-#include <thrust/complex.h>
+namespace {
 
 
-namespace gko {
-namespace detail {
+class RowMajorAccessor : public ::testing::Test {
+protected:
+    using span = gko::span;
 
+    using row_major_int_range = gko::range<gko::accessor::row_major<int, 2>>;
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
+    // clang-format off
+    int data[9]{
+        1, 2, -1,
+        3, 4, -2,
+        5, 6, -3
+    };
+    //clang-format on
+    row_major_int_range r{data, 3u, 2u, 3u};
 };
 
 
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
-
-
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
-
-
-}  // namespace detail
-
-
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
+TEST_F(RowMajorAccessor, CanAccessData)
 {
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
+    EXPECT_EQ(r(0, 0), 1);
+    EXPECT_EQ(r(0, 1), 2);
+    EXPECT_EQ(r(1, 0), 3);
+    EXPECT_EQ(r(1, 1), 4);
+    EXPECT_EQ(r(2, 0), 5);
+    EXPECT_EQ(r(2, 1), 6);
 }
 
 
-}  // namespace gko
+TEST_F(RowMajorAccessor, CanCreateSubrange)
+{
+    auto subr = r(span{1, 3}, span{0, 2});
+
+    EXPECT_EQ(subr(0, 0), 3);
+    EXPECT_EQ(subr(0, 1), 4);
+    EXPECT_EQ(subr(1, 0), 5);
+    EXPECT_EQ(subr(1, 1), 6);
+}
 
 
-#endif  // GKO_GPU_BASE_MATH_HPP_
+TEST_F(RowMajorAccessor, CanCreateRowVector)
+{
+    auto subr = r(2, span{0, 2});
+
+    EXPECT_EQ(subr(0, 0), 5);
+    EXPECT_EQ(subr(0, 1), 6);
+}
+
+
+TEST_F(RowMajorAccessor, CanCreateColumnVector)
+{
+    auto subr = r(span{0, 3}, 0);
+
+    EXPECT_EQ(subr(0, 0), 1);
+    EXPECT_EQ(subr(1, 0), 3);
+    EXPECT_EQ(subr(2, 0), 5);
+}
+
+
+TEST_F(RowMajorAccessor, CanAssignValues)
+{
+    r(1, 1) = r(0, 0);
+
+    EXPECT_EQ(data[4], 1);
+}
+
+
+TEST_F(RowMajorAccessor, CanAssignSubranges)
+{
+    r(0, span{0, 2}) = r(1, span{0, 2});
+
+    EXPECT_EQ(data[0], 3);
+    EXPECT_EQ(data[1], 4);
+    EXPECT_EQ(data[2], -1);
+    EXPECT_EQ(data[3], 3);
+    EXPECT_EQ(data[4], 4);
+    EXPECT_EQ(data[5], -2);
+    EXPECT_EQ(data[6], 5);
+    EXPECT_EQ(data[7], 6);
+    EXPECT_EQ(data[8], -3);
+}
+
+
+}  // namespace

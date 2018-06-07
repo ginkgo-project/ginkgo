@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -40,68 +40,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace gpu {
-namespace coo {
+namespace hybrid {
 
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const GpuExecutor> exec,
-          const matrix::Coo<ValueType, IndexType> *a,
+          const matrix::Hybrid<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b,
           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const GpuExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
-                   const matrix::Coo<ValueType, IndexType> *a,
+                   const matrix::Hybrid<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
-
-
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const GpuExecutor> exec,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs,
-                              size_type length) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const GpuExecutor> exec,
-               matrix::Coo<ValueType, IndexType> *trans,
-               const matrix::Coo<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const GpuExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *trans,
-                    const matrix::Coo<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
+    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const GpuExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+    const matrix::Hybrid<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace coo
+}  // namespace hybrid
 }  // namespace gpu
 }  // namespace kernels
 }  // namespace gko

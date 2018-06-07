@@ -96,8 +96,6 @@ std::unique_ptr<MatrixType> generate_random_matrix(
     ValueDistribution &&value_dist, Engine &&engine,
     std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
 {
-    using std::max;
-    using std::min;
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
 
@@ -109,7 +107,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
         auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row = max(size_type(0), min(nnz_in_row, num_cols));
+        nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
         shuffle(begin(col_idx), end(col_idx), engine);

@@ -133,7 +133,7 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
-    GKO_DEVICE_ASSERT(problem_size <= max_problem_size);
+    GKO_ASSERT(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
     auto pivoted = threadIdx.x >= problem_size;
 #pragma unroll
@@ -192,7 +192,7 @@ __device__ __forceinline__ void copy_matrix(
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
-    GKO_DEVICE_ASSERT(problem_size <= max_problem_size);
+    GKO_ASSERT(problem_size <= max_problem_size);
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
@@ -241,7 +241,7 @@ __device__ __forceinline__ void multiply_transposed_vec(
 {
     static_assert(max_problem_size <= subwarp_size,
                   "max_problem_size cannot be larger than subwarp_size");
-    GKO_DEVICE_ASSERT(problem_size <= max_problem_size);
+    GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<ValueType>();
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
