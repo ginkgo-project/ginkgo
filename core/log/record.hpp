@@ -98,14 +98,6 @@ protected:
           max_storage_{max_storage}
     {}
 
-    /** TODO: Help me with this, really can't know how to do it properly,
-     * otherwise clear_impl complains!
-     */
-    Record &operator=(const Record &other) { return *this; }
-
-    Record &operator=(Record &other) { return *this; }
-
-
     mutable logged_data data_{};
     size_type max_storage_{};
 };

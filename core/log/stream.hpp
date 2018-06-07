@@ -81,10 +81,6 @@ protected:
           os_(os)
     {}
 
-
-    /** TODO: Help me with this, really can't know how to do it properly,
-     * otherwise clear_impl complains!
-     */
     Stream<ValueType> &operator=(const Stream<ValueType> &other)
     {
         return *this;
