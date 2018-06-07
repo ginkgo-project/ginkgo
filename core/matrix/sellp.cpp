@@ -164,6 +164,41 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
 }
 
 
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::write(mat_data &data) const
+{
+    std::unique_ptr<const LinOp> op{};
+    const Sellp *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone(this->get_executor()->get_master());
+        tmp = static_cast<const Sellp *>(op.get());
+    } else {
+        tmp = this;
+    }
+
+    data = {tmp->get_size(), {}};
+
+    auto slice_size = tmp->get_slice_size();
+    size_type slice_num = static_cast<index_type>(
+        (tmp->get_size().num_rows + slice_size - 1) / slice_size);
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row_in_slice = 0; row_in_slice < slice_size;
+             row_in_slice++) {
+            auto row = slice * slice_size + row_in_slice;
+            for (size_type i = 0; i < tmp->get_const_slice_lens()[slice]; i++) {
+                const auto val = tmp->val_at(
+                    row_in_slice, tmp->get_const_slice_sets()[slice], i);
+                if (val != zero<ValueType>()) {
+                    const auto col = tmp->col_at(
+                        row_in_slice, tmp->get_const_slice_sets()[slice], i);
+                    data.nonzeros.emplace_back(row, col, val);
+                }
+            }
+        }
+    }
+}
+
+
 #define DECLARE_SELLP_MATRIX(ValueType, IndexType) \
     class Sellp<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SELLP_MATRIX);

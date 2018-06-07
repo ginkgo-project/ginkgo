@@ -60,7 +60,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
-              public ReadableFromMatrixData<ValueType, IndexType> {
+              public ReadableFromMatrixData<ValueType, IndexType>,
+              public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
@@ -78,6 +79,8 @@ public:
     void move_to(Dense<ValueType> *other) override;
 
     void read(const mat_data &data) override;
+
+    void write(mat_data &data) const override;
 
     /**
      * Returns the values of the matrix.
@@ -141,7 +144,7 @@ public:
      *
      * @return the offsets of slices.
      */
-    index_type *get_slice_sets() noexcept { return slice_sets_.get_data(); }
+    size_type *get_slice_sets() noexcept { return slice_sets_.get_data(); }
 
     /**
      * @copydoc Sellp::get_slice_sets()
@@ -150,7 +153,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_slice_sets() const noexcept
+    const size_type *get_const_slice_sets() const noexcept
     {
         return slice_sets_.get_const_data();
     }
@@ -175,6 +178,32 @@ public:
      * @return the total column number.
      */
     size_type get_max_total_cols() const noexcept { return max_total_cols_; }
+
+    value_type &val_at(size_type row, size_type slice_set,
+                       size_type idx) noexcept
+    {
+        return values_.get_data()[this->linearize_index(row, slice_set, idx)];
+    }
+
+    value_type val_at(size_type row, size_type slice_set, size_type idx) const
+        noexcept
+    {
+        return values_
+            .get_const_data()[this->linearize_index(row, slice_set, idx)];
+    }
+
+    index_type &col_at(size_type row, size_type slice_set,
+                       size_type idx) noexcept
+    {
+        return this->get_col_idxs()[this->linearize_index(row, slice_set, idx)];
+    }
+
+    index_type col_at(size_type row, size_type slice_set, size_type idx) const
+        noexcept
+    {
+        return this
+            ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
+    }
 
 protected:
     Sellp(std::shared_ptr<const Executor> exec, const dim &size = dim{})
@@ -216,28 +245,11 @@ protected:
         return (slice_set + col) * slice_size_ + row;
     }
 
-    size_type linearize_index(size_type row, size_type col) const noexcept
-    {
-        size_type slice_num = slice_sets_.get_num_elems();
-        size_type slice_set = 0;
-        for (index_type i = 1; i < slice_num; i++) {
-            if (col > slice_sets_.get_const_data()[i]) {
-                slice_set = slice_sets_.get_const_data()[i];
-            }
-        }
-        return linearize_index(row, slice_set, col);
-    }
-
-    size_type linearize_index(size_type idx) const noexcept
-    {
-        return linearize_index(idx % slice_size_, idx / slice_size_);
-    }
-
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<size_type> slice_lens_;
-    Array<index_type> slice_sets_;
+    Array<size_type> slice_sets_;
     size_type slice_size_;
     size_type padding_factor_;
     size_type max_total_cols_;
