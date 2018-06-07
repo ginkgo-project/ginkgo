@@ -136,8 +136,7 @@ struct matrix_data {
     /**
      * Initializes a matrix filled with the specified value.
      *
-     * @param size.num_rows_  number of rows of the matrix
-     * @param size.num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param value  value used to fill the elements of the matrix
      */
     matrix_data(dim size_ = dim{}, ValueType value = zero<ValueType>())
@@ -159,8 +158,7 @@ struct matrix_data {
      * @tparam RandomDistribution  random distribution type
      * @tparam RandomEngine  random engine type
      *
-     * @param size.num_rows_  number of rows of the matrix
-     * @param size.num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param dist  random distribution of the elements of the matrix
      * @param engine  random engine used to generate random values
      */
@@ -202,8 +200,7 @@ struct matrix_data {
     /**
      * Initializes the structure from a list of nonzeros.
      *
-     * @param size.num_rows_  number of rows of the matrix
-     * @param size.num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param nonzeros_  list of nonzero elements
      */
     matrix_data(
@@ -243,7 +240,9 @@ struct matrix_data {
     /**
      * Initializes a matrix from a range.
      *
-     * @return data  range used to initialize the matrix
+     * @tparam Accessor  accessor type of the input range
+     *
+     * @param data  range used to initialize the matrix
      */
     template <typename Accessor>
     matrix_data(const range<Accessor> &data)
@@ -261,9 +260,10 @@ struct matrix_data {
     /**
      * Initializes a diagonal matrix.
      *
-     * @param size.num_rows_  number of rows of the matrix
-     * @param size.num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param value  value used to fill the elements of the matrix
+     *
+     * @return the diagonal matrix
      */
     static matrix_data diag(dim size_, ValueType value)
     {
@@ -281,9 +281,10 @@ struct matrix_data {
     /**
      * Initializes a diagonal matrix using a list of diagonal elements.
      *
-     * @param size.num_rows_  number of rows of the matrix
-     * @param size.num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param nonzeros_  list of diagonal elements
+     *
+     * @return the diagonal matrix
      */
     static matrix_data diag(dim size_,
                             std::initializer_list<ValueType> nonzeros_)
@@ -301,9 +302,10 @@ struct matrix_data {
     /**
      * Initializes a block-diagonal matrix.
      *
-     * @param num_block_rows  number of block-rows
-     * @param num_block_cols  number of block-columns
+     * @param size_  the size of the matrix
      * @param diag_block  matrix used to fill diagonal blocks
+     *
+     * @return the block-diagonal matrix
      */
     static matrix_data diag(dim size_, const matrix_data &block)
     {
@@ -328,11 +330,16 @@ struct matrix_data {
      * distributed between `sqrt(condition_number)` and
      * `1/sqrt(condition_number)`.
      *
+     * @tparam RandomDistribution  the type of the random distribution
+     * @tparam RandomEngine  the type of the random engine
+     *
      * @param size  number of rows and columns of the matrix
      * @param condition_number  condition number of the matrix
      * @param dist  random distribution used to generate reflectors
      * @param engine  random engine used to generate reflectors
      * @param num_reflectors  number of reflectors to apply from each side
+     *
+     * @return the dense matrix with the specified condition number
      */
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
@@ -365,13 +372,18 @@ struct matrix_data {
      * distributed between `sqrt(condition_number)` and
      * `1/sqrt(condition_number)`.
      *
-     * This version of the function applies size-1 reflectors to each side of
-     * the diagonal matrix.
+     * This version of the function applies `size - 1` reflectors to each side
+     * of the diagonal matrix.
+     *
+     * @tparam RandomDistribution  the type of the random distribution
+     * @tparam RandomEngine  the type of the random engine
      *
      * @param size  number of rows and columns of the matrix
      * @param condition_number  condition number of the matrix
      * @param dist  random distribution used to generate reflectors
      * @param engine  random engine used to generate reflectors
+     *
+     * @return the dense matrix with the specified condition number
      */
     template <typename RandomDistribution, typename RandomEngine>
     static matrix_data cond(size_type size,
