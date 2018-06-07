@@ -193,7 +193,8 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
             for (size_type i = 0; i < tmp->get_const_slice_lens()[slice]; i++) {
                 const auto val = tmp->val_at(
                     row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                if (val != zero<ValueType>()) {
+                if (val != zero<ValueType>() &&
+                    row < tmp->get_size().num_rows) {
                     const auto col = tmp->col_at(
                         row_in_slice, tmp->get_const_slice_sets()[slice], i);
                     data.nonzeros.emplace_back(row, col, val);
