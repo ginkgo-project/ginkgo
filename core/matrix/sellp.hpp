@@ -44,13 +44,9 @@ template <typename ValueType>
 class Dense;
 
 /**
- * Sellp is a matrix format which stores only the nonzero coefficients by
- * compressing each row of the matrix (compressed sparse row format).
- *
- * The nonzero elements are stored in a 1D array row-wise, and accompanied
- * with a row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column of each
- * nonzero element.
+ * SELL-P is a matrix format similar to ELL format. The difference is that
+ * SELL-P format divides rows into smaller slices and store each slice with ELL
+ * format.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -179,12 +175,37 @@ public:
      */
     size_type get_max_total_cols() const noexcept { return max_total_cols_; }
 
+    /**
+     * Returns the number of elements explicitly stored in the matrix.
+     *
+     * @return the number of elements explicitly stored in the matrix
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
+
+    /**
+     * Returns the `idx`-th non-zero element of the `row`-th row with
+     * `slice_set` slice set.
+     *
+     * @param row  the row of the requested element in the slice
+     * @param slice_set  the slice set of the slice
+     * @param idx  the idx-th stored element of the row in the slice
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
     value_type &val_at(size_type row, size_type slice_set,
                        size_type idx) noexcept
     {
         return values_.get_data()[this->linearize_index(row, slice_set, idx)];
     }
 
+    /**
+     * @copydoc Sellp::val_at(size_type, size_type, size_type)
+     */
     value_type val_at(size_type row, size_type slice_set, size_type idx) const
         noexcept
     {
@@ -192,12 +213,27 @@ public:
             .get_const_data()[this->linearize_index(row, slice_set, idx)];
     }
 
+    /**
+     * Returns the `idx`-th column index of the `row`-th row with `slice_set`
+     * slice set.
+     *
+     * @param row  the row of the requested element in the slice
+     * @param slice_set  the slice set of the slice
+     * @param idx  the idx-th stored element of the row in the slice
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the CPU results in a runtime error)
+     */
     index_type &col_at(size_type row, size_type slice_set,
                        size_type idx) noexcept
     {
         return this->get_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
 
+    /**
+     * @copydoc Sellp::col_at(size_type, size_type, size_type)
+     */
     index_type col_at(size_type row, size_type slice_set, size_type idx) const
         noexcept
     {
@@ -206,17 +242,43 @@ public:
     }
 
 protected:
+    /**
+     * Creates an uninitialized Sellp matrix of the specified size.
+     *    (The max_total_cols is set to be the number of slice times the number
+     *     of cols of the matrix.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     */
     Sellp(std::shared_ptr<const Executor> exec, const dim &size = dim{})
         : Sellp(std::move(exec), size,
                 ceildiv(size.num_rows, default_slice_size) * size.num_cols)
     {}
 
+    /**
+     * Creates an uninitialized Sellp matrix of the specified size.
+     *    (The slice_size and padding_factor are set to the default values.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param max_total_cols   number of the sum of all cols in every slice.
+     */
     Sellp(std::shared_ptr<const Executor> exec, const dim &size,
           size_type max_total_cols)
         : Sellp(std::move(exec), size, default_slice_size,
                 default_padding_factor, max_total_cols)
     {}
 
+    /**
+     * Creates an uninitialized Sellp matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param slice_size  number of rows in each slice
+     * @param padding_factor  factor for the padding in each slice (paddings
+     *                        should be multiples of the padding_factor)
+     * @param max_total_cols   number of the sum of all cols in every slice.
+     */
     Sellp(std::shared_ptr<const Executor> exec, const dim &size,
           size_type slice_size, size_type padding_factor,
           size_type max_total_cols)
