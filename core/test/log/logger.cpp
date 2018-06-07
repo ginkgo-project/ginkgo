@@ -78,10 +78,6 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
 
-struct DummyData {
-    gko::size_type num_iterations;
-};
-
 
 struct DummyLogger
     : gko::EnablePolymorphicObject<DummyLogger, gko::log::Logger> {
@@ -92,18 +88,16 @@ struct DummyLogger
         std::shared_ptr<const gko::Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask)
         : EnablePolymorphicObject<DummyLogger, Logger>(exec, enabled_events)
-    {
-        data_ = std::unique_ptr<DummyData>(new DummyData());
-    }
+    {}
 
 
     void on_iteration_complete(
         const gko::size_type &num_iterations) const override
     {
-        this->data_->num_iterations = num_iterations;
+        this->num_iterations_ = num_iterations;
     }
 
-    std::unique_ptr<DummyData> data_;
+    mutable gko::size_type num_iterations_{};
 };
 
 
@@ -117,7 +111,7 @@ TEST(DummyLogged, CanLogEvents)
 
     c.apply();
 
-    ASSERT_EQ(num_iters, l->data_->num_iterations);
+    ASSERT_EQ(num_iters, l->num_iterations_);
 }
 
 

@@ -37,9 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "config.hpp"
 
-#ifdef HAVE_CXXABI_H
+#ifdef GKO_HAVE_CXXABI_H
 #include <cxxabi.h>
-#endif  // HAVE_CXXABI_H
+#endif  // GKO_HAVE_CXXABI_H
 
 
 #include <string>
@@ -47,13 +47,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace name_demangling {
-
-
 namespace detail {
+
+
 template <typename T>
 std::string get_enclosing_scope_name(const T &)
 {
-#ifdef HAVE_CXXABI_H
+#ifdef GKO_HAVE_CXXABI_H
     int status{};
     const std::string name(
         std::unique_ptr<char[], void (*)(void *)>(
@@ -63,9 +63,11 @@ std::string get_enclosing_scope_name(const T &)
     if (!status)
         return name.substr(0, name.rfind(':') - 1);
     else
-#endif
+#endif  // GKO_HAVE_CXXABI_H
         return std::string(typeid(T).name());
 }
+
+
 }  // namespace detail
 
 
@@ -81,7 +83,7 @@ std::string get_enclosing_scope_name(const T &)
  *
  * @see C++11 documentation [type.info] and [expr.typeid]
  */
-#define FUNCTION_NAME \
+#define GKO_FUNCTION_NAME \
     gko::name_demangling::detail::get_enclosing_scope_name([] {})
 
 

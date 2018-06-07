@@ -51,8 +51,10 @@ namespace log {
  * Record is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
  */
-class Record : public EnablePolymorphicObject<Record, Logger> {
+class Record : public EnablePolymorphicObject<Record, Logger>,
+               public EnableCreateMethod<Record> {
     friend class EnablePolymorphicObject<Record, Logger>;
+    friend class EnableCreateMethod<Record>;
 
 public:
     using EnablePolymorphicObject<Record, Logger>::EnablePolymorphicObject;
@@ -67,18 +69,6 @@ public:
         std::deque<std::unique_ptr<const LinOp>> residuals{};
     };
 
-    /**
-     * Creates a Record Logger used to directly access logged data
-     * @param enabled_events  the events enabled for this Logger
-     * @param max_storage  the maximum storage allowed in `std::deque`
-     */
-    static std::shared_ptr<Record> create(
-        std::shared_ptr<const gko::Executor> exec,
-        const mask_type &enabled_events, size_type max_storage = 0)
-    {
-        return std::shared_ptr<Record>(
-            new Record(exec, enabled_events, max_storage));
-    }
 
     void on_iteration_complete(const size_type &num_iterations) const override;
 
@@ -93,7 +83,12 @@ public:
      *
      * @return the logged data
      */
-    const std::unique_ptr<logged_data> &get() noexcept { return data_; }
+    const logged_data &get() const noexcept { return data_; }
+
+    /**
+     * @copydoc ::get()
+     */
+    logged_data &get() noexcept { return data_; }
 
 
 protected:
@@ -101,9 +96,7 @@ protected:
                     const mask_type &enabled_events, size_type max_storage)
         : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
           max_storage_{max_storage}
-    {
-        data_ = std::unique_ptr<logged_data>(new logged_data());
-    }
+    {}
 
     /** TODO: Help me with this, really can't know how to do it properly,
      * otherwise clear_impl complains!
@@ -113,8 +106,8 @@ protected:
     Record &operator=(Record &other) { return *this; }
 
 
-    std::unique_ptr<logged_data> data_;
-    size_type max_storage_;
+    mutable logged_data data_{};
+    size_type max_storage_{};
 };
 
 

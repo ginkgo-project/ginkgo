@@ -66,13 +66,13 @@ namespace log {
  */
 class Logger : public EnableAbstractPolymorphicObject<Logger> {
 public:
+    /* @internal std::bitset allows to store any number of bits */
+    using mask_type = gko::uint64;
+
     /**
      * Maximum amount of events (bits) with the current implementation
      */
-    static constexpr size_type event_count_max = 64;
-
-    /* @internal std::bitset allows to store any number of bits */
-    using mask_type = gko::uint64;
+    static constexpr size_type event_count_max = sizeof(mask_type) * byte_size;
 
     /* Bitset Mask which activates all events */
     static constexpr mask_type all_events_mask = ~mask_type{0};
@@ -180,7 +180,7 @@ class EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
-        loggers_.push_back(std::move(logger));
+        loggers_.push_back(logger);
     }
 
 protected:

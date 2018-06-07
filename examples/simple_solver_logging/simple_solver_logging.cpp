@@ -120,13 +120,13 @@ int main(int argc, char *argv[])
     // retrieve this object in our code
     auto record_logger =
         gko::log::Record::create(exec, gko::log::Logger::all_events_mask);
-    solver->add_logger(record_logger);
+    solver->add_logger(std::move(record_logger));
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
 
     // Finally, get the data from `returnobject_logger` and print an element
-    auto residual = record_logger->get()->residuals.back().get();
+    auto residual = record_logger->get().residuals.back().get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     // Set precision as needed for output
     std::cout << std::scientific << std::setprecision(4);

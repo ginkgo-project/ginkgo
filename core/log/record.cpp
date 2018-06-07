@@ -41,16 +41,16 @@ namespace log {
 
 void Record::on_iteration_complete(const size_type &num_iterations) const
 {
-    data_->num_iterations = num_iterations;
+    data_.num_iterations = num_iterations;
 }
 
 
 void Record::on_apply(const std::string &name) const
 {
-    if (max_storage_ && data_->applies.size() == max_storage_) {
-        data_->applies.pop_front();
+    if (max_storage_ && data_.applies.size() == max_storage_) {
+        data_.applies.pop_front();
     }
-    data_->applies.push_back(name);
+    data_.applies.push_back(name);
 }
 
 
@@ -58,12 +58,12 @@ void Record::on_apply(const std::string &name) const
 void Record::on_converged(const size_type &at_iteration,
                           const LinOp *residual) const
 {
-    data_->converged_at_iteration = at_iteration;
+    data_.converged_at_iteration = at_iteration;
     if (residual != nullptr) {
-        if (max_storage_ && data_->residuals.size() == max_storage_) {
-            data_->residuals.pop_front();
+        if (max_storage_ && data_.residuals.size() == max_storage_) {
+            data_.residuals.pop_front();
         }
-        data_->residuals.push_back(residual->clone());
+        data_.residuals.push_back(residual->clone());
     }
 }
 

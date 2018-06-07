@@ -53,8 +53,7 @@ TEST(Record, CanGetData)
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
-    ASSERT_NE(logger->get(), nullptr);
-    ASSERT_EQ(logger->get()->num_iterations, 0);
+    ASSERT_EQ(logger->get().num_iterations, 0);
 }
 
 
@@ -66,7 +65,7 @@ TEST(Record, CatchesIterations)
 
     logger->on<gko::log::Logger::iteration_complete>(num_iters);
 
-    ASSERT_EQ(num_iters, logger->get()->num_iterations);
+    ASSERT_EQ(num_iters, logger->get().num_iterations);
 }
 
 
@@ -77,7 +76,7 @@ TEST(Record, CatchesApply)
 
     logger->on<gko::log::Logger::apply>(apply_str);
 
-    ASSERT_EQ(apply_str, logger->get()->applies.back());
+    ASSERT_EQ(apply_str, logger->get().applies.back());
 }
 
 
@@ -89,8 +88,8 @@ TEST(Record, CatchesConvergenceWithoutData)
 
     logger->on<gko::log::Logger::converged>(num_iters, nullptr);
 
-    ASSERT_EQ(num_iters, logger->get()->converged_at_iteration);
-    ASSERT_EQ(logger->get()->residuals.size(), 0);
+    ASSERT_EQ(num_iters, logger->get().converged_at_iteration);
+    ASSERT_EQ(logger->get().residuals.size(), 0);
 }
 
 
@@ -104,8 +103,8 @@ TEST(Record, CatchesConvergenceWithData)
 
     logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
 
-    ASSERT_EQ(num_iters, logger->get()->converged_at_iteration);
-    auto residual = logger->get()->residuals.back().get();
+    ASSERT_EQ(num_iters, logger->get().converged_at_iteration);
+    auto residual = logger->get().residuals.back().get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     ASSERT_EQ(residual_d->at(0), 1.0);
     ASSERT_EQ(residual_d->at(1), 2.0);

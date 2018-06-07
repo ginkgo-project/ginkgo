@@ -55,24 +55,14 @@ namespace log {
  *                    will log)
  */
 template <typename ValueType = default_precision>
-class Stream : public EnablePolymorphicObject<Stream<ValueType>, Logger> {
+class Stream : public EnablePolymorphicObject<Stream<ValueType>, Logger>,
+               public EnableCreateMethod<Stream<ValueType>> {
     friend class EnablePolymorphicObject<Stream<ValueType>, Logger>;
+    friend class EnableCreateMethod<Stream<ValueType>>;
 
 public:
     using EnablePolymorphicObject<Stream<ValueType>,
                                   Logger>::EnablePolymorphicObject;
-
-    /**
-     * creates a Stream Logger with output to `os`
-     * @param enabled_events  the events enabled for this Logger
-     * @param os  the stream to output logged events to
-     */
-    static std::shared_ptr<Stream> create(
-        std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events, std::ostream &os)
-    {
-        return std::shared_ptr<Stream>(new Stream(exec, enabled_events, os));
-    }
 
     void on_iteration_complete(const size_type &num_iterations) const override;
 
