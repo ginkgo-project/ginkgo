@@ -281,7 +281,7 @@ TEST(MatrixData, InitializesGeneralMatrixWithConditionNumber)
 
      Reflector:
 
-        R = I = 2 (u* u) / (u u*)
+        R = I - 2 (u* u) / (u u*)
           = 1/5 [  3 -4 ]
                 [ -4 -3 ]
 
@@ -295,8 +295,7 @@ TEST(MatrixData, InitializesGeneralMatrixWithConditionNumber)
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
 
-    const auto m =
-        data::cond(2, 4.0, dummy_distribution{}, std::ranlux48(42), 1);
+    const auto m = data::cond(2, 4.0, dummy_distribution{}, std::ranlux48(42));
 
     ASSERT_EQ(m.size, gko::dim(2, 2));
     ASSERT_EQ(m.nonzeros.size(), 4);
