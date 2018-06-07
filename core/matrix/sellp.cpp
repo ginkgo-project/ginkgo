@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
 
+#include <vector>
+
 
 namespace gko {
 namespace matrix {
@@ -44,28 +46,28 @@ namespace {
 
 template <typename ValueType, typename IndexType>
 size_type calculate_max_total_cols(
-    const matrix_data<ValueType, IndexType> &data)
+    const matrix_data<ValueType, IndexType> &data, const size_type slice_size,
+    std::vector<size_type> &slice_lens)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
-    size_type max_nonzeros_per_row = 0;
     IndexType current_slice = 0;
     size_type max_total_cols = 0;
     for (const auto &elem : data.nonzeros) {
-        if (elem.row / data.slice_size != current_slice) {
-            current_slice = elem.row / data.slice_size;
-            max_total_cols += max_nonzeros_per_row;
-            max_nonzeros_per_row = 0;
+        if (elem.row / slice_size != current_slice) {
+            max_total_cols += slice_lens[current_slice];
+            current_slice = elem.row / slice_size;
         }
         if (elem.row != current_row) {
             current_row = elem.row;
-            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+            slice_lens[current_slice] =
+                std::max(slice_lens[current_slice], nnz);
             nnz = 0;
         }
         nnz += (elem.value != zero<ValueType>());
     }
-    max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
-    max_total_cols += max_nonzeros_per_row;
+    slice_lens[current_slice] = std::max(slice_lens[current_slice], nnz);
+    max_total_cols += slice_lens[current_slice];
     return max_total_cols;
 }
 
@@ -74,15 +76,15 @@ size_type calculate_max_total_cols(
 
 
 template <typename ValueType, typename IndexType>
-void Sellp<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     NOT_IMPLEMENTED;
 }
 
 
 template <typename ValueType, typename IndexType>
-void Sellp<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                        const LinOp *beta, LinOp *x) const
+void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                             const LinOp *beta, LinOp *x) const
 {
     NOT_IMPLEMENTED;
 }
@@ -105,88 +107,60 @@ void Sellp<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::read(const mat_data &data)
 {
-    NOT_IMPLEMENTED;
-    // // Define variables
-    // auto data = read<ValueType, IndexType>(filename);
-    // size_type nnz = 0;
-    // std::vector<index_type> nnz_row(data.num_rows, 0);
-    // auto slice_size = this->get_slice_size();
-    // // Make sure that slice_size is not zero
-    // slice_size = (slice_size == 0) ? default_slice_size : slice_size;
-    // auto padding_factor = this->get_padding_factor();
-    // // Make sure that padding factor is not zero
-    // padding_factor =
-    //     (padding_factor == 0) ? default_padding_factor : padding_factor;
-    // index_type slice_num =
-    //     static_cast<index_type>((data.num_rows + slice_size - 1) /
-    //     slice_size);
-    // std::vector<index_type> slice_cols(slice_num, 0);
+    // Make sure that slice_size and padding factor are not zero.
+    auto slice_size = (this->get_slice_size() == 0) ? default_slice_size
+                                                    : this->get_slice_size();
+    auto padding_factor = (this->get_padding_factor() == 0)
+                              ? default_padding_factor
+                              : this->get_padding_factor();
 
-    // // Count number of nonzeros in every row
-    // for (const auto &elem : data.nonzeros) {
-    //     nnz += (std::get<2>(elem) != zero<ValueType>());
-    //     nnz_row.at(std::get<0>(elem))++;
-    // }
+    // Allocate space for slice_cols.
+    size_type slice_num = static_cast<index_type>(
+        (data.size.num_rows + slice_size - 1) / slice_size);
+    std::vector<size_type> slice_lens(slice_num, 0);
 
-    // // Find longest column for each slice
-    // for (size_type row = 0; row < data.num_rows; row++) {
-    //     index_type slice_id = static_cast<index_type>(row / slice_size);
-    //     slice_cols[slice_id] = std::max(slice_cols[slice_id], nnz_row[row]);
-    // }
+    // Get the number of maximum columns for every slice.
+    auto max_total_cols =
+        calculate_max_total_cols(data, slice_size, slice_lens);
 
-    // // Find total column length
-    // size_type total_cols = 0;
-    // for (size_type slice = 0; slice < slice_num; slice++) {
-    //     total_cols += slice_cols[slice];
-    // }
-    // total_cols = ceildiv(total_cols, padding_factor) * padding_factor;
+    // Create an SELL-P format matrix based on the sizes.
+    auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
+                             slice_size, padding_factor, max_total_cols);
 
-    // auto tmp =
-    //     create(this->get_executor()->get_master(), data.num_rows,
-    //     data.num_cols,
-    //            nnz, slice_size, padding_factor, total_cols);
+    // Get slice length, slice set, matrix values and column indexes.
+    index_type slice_set = 0;
+    size_type ind = 0;
+    auto n = data.nonzeros.size();
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        tmp->get_slice_lens()[slice] = slice_lens[slice];
+        tmp->get_slice_sets()[slice] = slice_set;
+        slice_set += tmp->get_slice_lens()[slice];
+        for (size_type row_in_slice = 0; row_in_slice < slice_size;
+             row_in_slice++) {
+            size_type col = 0;
+            size_type row = slice * slice_size + row_in_slice;
+            while (ind < n && data.nonzeros[ind].row == row) {
+                auto val = data.nonzeros[ind].value;
+                auto sellp_ind =
+                    (tmp->get_slice_sets()[slice] + col) * slice_size + row;
+                if (val != zero<ValueType>()) {
+                    tmp->get_values()[sellp_ind] = val;
+                    tmp->get_col_idxs()[sellp_ind] = data.nonzeros[ind].column;
+                    col++;
+                }
+                ind++;
+            }
+            for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
+                auto sellp_ind =
+                    (tmp->get_slice_sets()[slice] + i) * slice_size + row;
+                tmp->get_values()[sellp_ind] = zero<ValueType>();
+                tmp->get_col_idxs()[sellp_ind] = 0;
+            }
+        }
+    }
 
-    // // Setup slice_lens and slice_sets
-    // index_type start_col = 0;
-    // for (index_type slice = 0; slice < slice_num; slice++) {
-    //     tmp->get_slice_lens()[slice] =
-    //         padding_factor * ceildiv(slice_cols[slice], padding_factor);
-    //     tmp->get_slice_sets()[slice] = start_col;
-    //     start_col += tmp->get_slice_lens()[slice];
-    // }
-
-    // // Get values and column idxs
-    // size_type ind = 0;
-    // int n = data.nonzeros.size();
-    // for (size_type slice = 0; slice < slice_num; slice++) {
-    //     for (size_type row = 0; row < slice_size; row++) {
-    //         size_type col = 0;
-    //         for (; ind < n; ind++) {
-    //             if (std::get<0>(data.nonzeros[ind]) >
-    //                 slice * slice_size + row) {
-    //                 break;
-    //             }
-    //             auto val = std::get<2>(data.nonzeros[ind]);
-    //             auto sliced_ell_ind =
-    //                 row + (tmp->get_slice_sets()[slice] + col) * slice_size;
-    //             if (val != zero<ValueType>()) {
-    //                 tmp->get_values()[sliced_ell_ind] = val;
-    //                 tmp->get_col_idxs()[sliced_ell_ind] =
-    //                     std::get<1>(data.nonzeros[ind]);
-    //                 col++;
-    //             }
-    //         }
-    //         for (auto i = col; i < tmp->get_slice_lens()[slice]; i++) {
-    //             auto sliced_ell_ind =
-    //                 row + (tmp->get_slice_sets()[slice] + i) * slice_size;
-    //             tmp->get_values()[sliced_ell_ind] = 0;
-    //             tmp->get_col_idxs()[sliced_ell_ind] =
-    //                 tmp->get_col_idxs()[sliced_ell_ind - slice_size];
-    //         }
-    //     }
-    // }
-
-    // tmp->move_to(this);
+    // Return the matrix.
+    tmp->move_to(this);
 }
 
 

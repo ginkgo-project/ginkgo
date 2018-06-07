@@ -31,8 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/lin_op_interfaces.hpp"
-#include "core/base/mtx_reader.hpp"
 
 
 constexpr int default_slice_size = 64;
@@ -59,25 +57,21 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sellp : public BasicLinOp<Sellp<ValueType, IndexType>>,
+class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
+              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ReadableFromMatrixData<ValueType, IndexType> {
-    friend class BasicLinOp<Sellp>;
+    friend class EnableCreateMethod<Sellp>;
+    friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
 
 public:
-    using BasicLinOp<Sellp>::create;
-    using BasicLinOp<Sellp>::convert_to;
-    using BasicLinOp<Sellp>::move_to;
+    using EnableLinOp<Sellp>::convert_to;
+    using EnableLinOp<Sellp>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -128,7 +122,7 @@ public:
      *
      * @return the lengths(columns) of slices.
      */
-    index_type *get_slice_lens() noexcept { return slice_lens_.get_data(); }
+    size_type *get_slice_lens() noexcept { return slice_lens_.get_data(); }
 
     /**
      * @copydoc Sellp::get_slice_lens()
@@ -137,7 +131,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_slice_lens() const noexcept
+    const size_type *get_const_slice_lens() const noexcept
     {
         return slice_lens_.get_const_data();
     }
@@ -183,49 +177,38 @@ public:
     size_type get_max_total_cols() const noexcept { return max_total_cols_; }
 
 protected:
-    /**
-     * Creates an empty Sellp matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    explicit Sellp(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Sellp>(exec, 0, 0, 0),
-          values_(exec),
-          col_idxs_(exec),
-          slice_lens_(exec),
-          slice_sets_(exec),
-          slice_size_(0),
-          padding_factor_(0),
-          max_total_cols_(0)
+    Sellp(std::shared_ptr<const Executor> exec, const dim &size = dim{})
+        : Sellp(std::move(exec), size,
+                ceildiv(size.num_rows, default_slice_size) * size.num_cols)
     {}
 
-    Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type slice_size, size_type padding_factor,
+    Sellp(std::shared_ptr<const Executor> exec, const dim &size,
           size_type max_total_cols)
-        : BasicLinOp<Sellp>(exec, num_rows, num_cols,
-                            ceildiv(num_rows, slice_size) * num_cols),
+        : Sellp(std::move(exec), size, default_slice_size,
+                default_padding_factor, max_total_cols)
+    {}
+
+    Sellp(std::shared_ptr<const Executor> exec, const dim &size,
+          size_type slice_size, size_type padding_factor,
+          size_type max_total_cols)
+        : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * max_total_cols),
           col_idxs_(exec, slice_size * max_total_cols),
-          slice_lens_(exec,
-                      (num_rows == 0) ? 0 : ceildiv(num_rows, slice_size)),
-          slice_sets_(exec,
-                      (num_rows == 0) ? 0 : ceildiv(num_rows, slice_size)),
+          slice_lens_(exec, (size.num_rows == 0)
+                                ? 0
+                                : ceildiv(size.num_rows, slice_size)),
+          slice_sets_(exec, (size.num_rows == 0)
+                                ? 0
+                                : ceildiv(size.num_rows, slice_size)),
           slice_size_(slice_size),
           padding_factor_(padding_factor),
           max_total_cols_(max_total_cols)
     {}
 
-    Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols, size_type max_total_cols)
-        : Sellp(std::move(exec), num_rows, num_cols, default_slice_size,
-                default_padding_factor, max_total_cols)
-    {}
+    void apply_impl(const LinOp *b, LinOp *x) const override;
 
-    Sellp(std::shared_ptr<const Executor> exec, size_type num_rows,
-          size_type num_cols)
-        : Sellp(std::move(exec), num_rows, num_cols,
-                ceildiv(num_rows, default_slice_size) * num_cols)
-    {}
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     size_type linearize_index(size_type row, size_type slice_set,
                               size_type col) const noexcept
@@ -253,7 +236,7 @@ protected:
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    Array<index_type> slice_lens_;
+    Array<size_type> slice_lens_;
     Array<index_type> slice_sets_;
     size_type slice_size_;
     size_type padding_factor_;
