@@ -47,7 +47,7 @@ namespace {
 template <typename ValueType, typename IndexType>
 size_type calculate_max_total_cols(
     const matrix_data<ValueType, IndexType> &data, const size_type slice_size,
-    std::vector<size_type> &slice_lens)
+    const size_type padding_factor, std::vector<size_type> &slice_lens)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -55,6 +55,9 @@ size_type calculate_max_total_cols(
     size_type max_total_cols = 0;
     for (const auto &elem : data.nonzeros) {
         if (elem.row / slice_size != current_slice) {
+            slice_lens[current_slice] =
+                padding_factor *
+                ceildiv(slice_lens[current_slice], padding_factor);
             max_total_cols += slice_lens[current_slice];
             current_slice = elem.row / slice_size;
         }
@@ -67,6 +70,8 @@ size_type calculate_max_total_cols(
         nnz += (elem.value != zero<ValueType>());
     }
     slice_lens[current_slice] = std::max(slice_lens[current_slice], nnz);
+    slice_lens[current_slice] =
+        padding_factor * ceildiv(slice_lens[current_slice], padding_factor);
     max_total_cols += slice_lens[current_slice];
     return max_total_cols;
 }
@@ -121,7 +126,7 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
 
     // Get the number of maximum columns for every slice.
     auto max_total_cols =
-        calculate_max_total_cols(data, slice_size, slice_lens);
+        calculate_max_total_cols(data, slice_size, padding_factor, slice_lens);
 
     // Create an SELL-P format matrix based on the sizes.
     auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
