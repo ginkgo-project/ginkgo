@@ -626,7 +626,7 @@ GKO_DEFINE_SIMPLE_UNARY_OPERATION(unary_minus, -operand);
 GKO_DEFINE_SIMPLE_UNARY_OPERATION(logical_not, !operand);
 
 // unary bitwise
-GKO_DEFINE_SIMPLE_UNARY_OPERATION(bitwise_not, ~operand);
+GKO_DEFINE_SIMPLE_UNARY_OPERATION(bitwise_not, ~(operand));
 
 // common functions
 GKO_DEFINE_SIMPLE_UNARY_OPERATION(zero_operation, zero(operand));
