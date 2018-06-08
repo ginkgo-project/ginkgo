@@ -160,7 +160,7 @@ public:
                 (*this)(i, j) = other(i, j);
             }
         }
-    };
+    }
 
     /**
      * Reference to the underlying data.
