@@ -31,6 +31,7 @@ endfunction()
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
 function(doc_gen name in pdf)
+  set(DIR_PAGES "${CMAKE_CURRENT_SOURCE_DIR}/pages")
   set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
   set(DIR_BASE "${CMAKE_CURRENT_SOURCE_DIR}/..")
   set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
@@ -48,7 +49,7 @@ function(doc_gen name in pdf)
   else()
     set(in2 "Doxyfile-html.in")
   endif()
-  doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}"
+  doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
     Doxyfile.in ${in2} ${in} "${doxyfile}"
     )
 endfunction()

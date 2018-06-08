@@ -7,7 +7,7 @@ PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @DIR_BASE@/README.md
+INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @DIR_PAGES@
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples
@@ -17,11 +17,10 @@ FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
 EXAMPLE_PATTERNS       = *.cpp *.hpp
 EXTENSION_MAPPING      = cu=c++ cuh=c++
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = @DOC_BASE@
-STRIP_FROM_INC_PATH    = @DOC_BASE@ @DOC_BASE@/include
+STRIP_FROM_PATH        = @DIR_BASE@
+STRIP_FROM_INC_PATH    = @DIR_BASE@ @DIR_BASE@/include
 EXCLUDE_PATTERNS       = */test/*
 EXCLUDE_SYMBOLS        = *::detail::*
-USE_MDFILE_AS_MAINPAGE = @DIR_BASE@/README.md
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 
 # Parsing options
