@@ -122,6 +122,13 @@ namespace gko {
  */
 class LinOp {
 public:
+    /**
+     * Copy-assignment operator.
+     * It copies the dimensionsionality of the other LinOp,
+     * but leaves the executor unchanged.
+     * @param other The other LinOp
+     * @return This LinOp after the copy
+     */
     LinOp &operator=(const LinOp &other)
     {
         // keep the executor as it is

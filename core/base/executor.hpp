@@ -455,6 +455,7 @@ public:
 
     /**
      * Returns the master CpuExecutor of this Executor.
+     * @return the master CpuExecutor of this Executor.
      */
     virtual std::shared_ptr<CpuExecutor> get_master() noexcept = 0;
 
@@ -483,7 +484,7 @@ protected:
     /**
      * Copies raw data from another Executor.
      *
-     * @param dest_exec  Executor from which the memory will be copied
+     * @param src_exec  Executor from which the memory will be copied
      * @param n_bytes  number of bytes to copy
      * @param src_ptr  pointer to a block of memory containing the data to be
      *                 copied

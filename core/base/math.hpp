@@ -326,6 +326,7 @@ struct default_converter {
      * Converts the object to result type.
      *
      * @param val  the object to convert
+     * @return the converted object
      */
     GKO_ATTRIBUTES R operator()(S val) { return static_cast<R>(val); }
 };
