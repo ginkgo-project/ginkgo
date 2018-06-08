@@ -93,7 +93,7 @@ public:
 
 protected:
     explicit Record(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type &enabled_events, size_type max_storage)
+                    const mask_type &enabled_events, size_type max_storage = 0)
         : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
           max_storage_{max_storage}
     {}

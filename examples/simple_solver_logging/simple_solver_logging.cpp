@@ -118,9 +118,9 @@ int main(int argc, char *argv[])
 
     // Add another logger which puts all the data in an object, we can later
     // retrieve this object in our code
-    auto record_logger =
+    std::shared_ptr<gko::log::Record> record_logger =
         gko::log::Record::create(exec, gko::log::Logger::all_events_mask);
-    solver->add_logger(std::move(record_logger));
+    solver->add_logger(record_logger);
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
