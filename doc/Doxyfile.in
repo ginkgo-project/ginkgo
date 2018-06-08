@@ -1,0 +1,82 @@
+QUIET                  = YES
+
+# General project info
+PROJECT_NAME           = "Ginkgo"
+PROJECT_NUMBER         = @VERSION_MAJOR@.@VERSION_MINOR@
+PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting manycore architectures."
+INLINE_INHERITED_MEMB  = NO
+
+# Paths and in/exclusion patterns
+INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @DIR_BASE@/README.md
+INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
+OUTPUT_DIRECTORY       = @DIR_OUT@
+EXAMPLE_PATH           = @DIR_BASE@/examples
+RECURSIVE              = YES
+EXAMPLE_RECURSIVE      = NO
+FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
+EXAMPLE_PATTERNS       = *.cpp *.hpp
+EXTENSION_MAPPING      = cu=c++ cuh=c++
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = @DOC_BASE@
+STRIP_FROM_INC_PATH    = @DOC_BASE@ @DOC_BASE@/include
+EXCLUDE_PATTERNS       = */test/*
+EXCLUDE_SYMBOLS        = *::detail::*
+USE_MDFILE_AS_MAINPAGE = @DIR_BASE@/README.md
+PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
+
+# Parsing options
+JAVADOC_AUTOBRIEF      = Yes
+TAB_SIZE               = 8
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+DISTRIBUTE_GROUP_DOC   = NO
+GROUP_NESTED_COMPOUNDS = NO
+SUBGROUPING            = YES
+INLINE_GROUPED_CLASSES = NO
+MACRO_EXPANSION        = YES
+SKIP_FUNCTION_MACROS   = YES
+INLINE_INFO            = NO
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = NO
+SORT_MEMBERS_CTORS_1ST = NO
+SORT_GROUP_NAMES       = NO
+SORT_BY_SCOPE_NAME     = NO
+STRICT_PROTO_MATCHING  = NO
+GENERATE_TODOLIST      = NO
+GENERATE_TESTLIST      = NO
+GENERATE_BUGLIST       = NO
+GENERATE_DEPRECATEDLIST= NO
+ENABLED_SECTIONS       =
+MAX_INITIALIZER_LINES  = 30
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+FILE_VERSION_FILTER    = @DIR_SCRIPT@/doxygen_version_extract.sh
+LAYOUT_FILE            =
+CITE_BIB_FILES         = 
+
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = NO
+IMAGE_PATH             =
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+REFERENCES_LINK_SOURCE = YES
+SOURCE_TOOLTIPS        = YES
+VERBATIM_HEADERS       = YES
+CLANG_ASSISTED_PARSING = NO
+CLANG_OPTIONS          = @CLANG_ARGS@ -std=c++11
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+
+# Graph generation
+CLASS_DIAGRAMS         = YES
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+GRAPHICAL_HIERARCHY    = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES

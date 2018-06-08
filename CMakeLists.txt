@@ -10,6 +10,7 @@ option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
+option(BUILD_DOC "Generate documentation" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 option(SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" OFF)
@@ -71,4 +72,8 @@ if(DEVEL_TOOLS)
         COMMAND ${LICENSE_SCRIPT}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(format add_license)
+endif()
+
+if(BUILD_DOC)
+	add_subdirectory(doc)
 endif()

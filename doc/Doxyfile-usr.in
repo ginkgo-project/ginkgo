@@ -1,0 +1,12 @@
+# this is used to hide protected members
+PREDEFINED = protected=private
+
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_PRIVATE        = NO
+INTERNAL_DOCS          = NO
+SOURCE_BROWSER         = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+EXCLUDE_SYMBOLS        = *::detail::*
+USE_MDFILE_AS_MAINPAGE = @DIR_BASE@/DOCUMENTATION.md

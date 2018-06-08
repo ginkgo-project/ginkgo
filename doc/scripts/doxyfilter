@@ -1,0 +1,2 @@
+#!/bin/bash
+sed '/#/d;/^\w*$/d' $1 | sort
