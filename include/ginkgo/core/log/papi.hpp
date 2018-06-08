@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 
 
-#include <papi_sde_interface.h>
+#include "papi_sde_interface.h"
 
 
 namespace gko {
