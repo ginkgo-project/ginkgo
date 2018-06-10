@@ -13,8 +13,11 @@ set(SOURCES
 add_library(ginkgo_cpu
     $<TARGET_OBJECTS:ginkgo_cpu_device>
     ${SOURCES})
-target_include_directories(ginkgo_cpu PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
+if(BUILD_GPU)
+    target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
+endif()
+ginkgo_default_includes(ginkgo_cpu)
+ginkgo_install_library(ginkgo_cpu cpu)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

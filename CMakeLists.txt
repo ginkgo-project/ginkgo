@@ -12,15 +12,14 @@ option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
-option(SKIP_DEPENDENCY_UPDATE
-       "Do not update dependencies each time the project is rebuilt" OFF)
+option(SKIP_DEPENDENCY_UPDATE "Do not update dependencies each time the project is rebuilt" OFF)
 
-
+set(GINKGO_VERSION 1.0)
 include(cmake/create_test.cmake)
-
+include(cmake/install_helpers.cmake)
 
 if(BUILD_GPU)
-    project(Ginkgo LANGUAGES CXX CUDA)
+    project(Ginkgo LANGUAGES CXX CUDA VERSION "${GINKGO_VERSION}")
     include(cmake/detect_gpu.cmake)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
     set(CMAKE_CUDA_STANDARD 11)
@@ -42,7 +41,7 @@ if(BUILD_GPU)
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 else()
-    project(Ginkgo LANGUAGES CXX)
+    project(Ginkgo LANGUAGES CXX VERSION "${GINKGO_VERSION}")
 endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,6 +62,8 @@ endif()
 if(BUILD_GPU)
     add_subdirectory(gpu)        # High-performance gpu kernels
 endif()
+
+ginkgo_install()
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
