@@ -1,2 +1,2 @@
 #!/bin/bash
-sed '/#/d;/^\w*$/d' $1 | sort
+sed -e :a -e '/\\$/N;s/\\\n */ /;ta' $1 | sed '/#/d;/^\w*$/d' | sort
