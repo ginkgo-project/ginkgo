@@ -48,8 +48,3 @@ build
 
 #other
 diff.patch
-
-#Doxygen generated files
-doc/html
-doc/pdf
-doc/internal
