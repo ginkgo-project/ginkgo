@@ -77,10 +77,7 @@ if(DEVEL_TOOLS)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(format add_license)
 endif()
-<<<<<<< HEAD
 
 if(BUILD_DOC)
 	add_subdirectory(doc)
 endif()
-=======
->>>>>>> develop
