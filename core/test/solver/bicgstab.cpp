@@ -53,22 +53,24 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          bicgstab_factory(
-              gko::solver::BicgstabFactory<>::create(exec, 3, 1e-6)),
+          bicgstab_factory(Solver::Factory::create()
+                               .with_max_iters(3)
+                               .with_rel_residual_goal(1e-6)
+                               .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::BicgstabFactory<>> bicgstab_factory;
+    std::unique_ptr<Solver::Factory> bicgstab_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
-        ASSERT_EQ(m1->get_num_rows(), m2->get_num_rows());
-        ASSERT_EQ(m1->get_num_cols(), m2->get_num_cols());
-        for (gko::size_type i = 0; i < m1->get_num_rows(); ++i) {
-            for (gko::size_type j = 0; j < m2->get_num_cols(); ++j) {
+        ASSERT_EQ(m1->get_size().num_rows, m2->get_size().num_rows);
+        ASSERT_EQ(m1->get_size().num_cols, m2->get_size().num_cols);
+        for (gko::size_type i = 0; i < m1->get_size().num_rows; ++i) {
+            for (gko::size_type j = 0; j < m2->get_size().num_cols; ++j) {
                 EXPECT_EQ(m1->at(i, j), m2->at(i, j));
             }
         }
@@ -84,24 +86,22 @@ TEST_F(Bicgstab, BicgstabFactoryKnowsItsExecutor)
 
 TEST_F(Bicgstab, BicgstabFactoryKnowsItsIterationLimit)
 {
-    ASSERT_EQ(bicgstab_factory->get_max_iters(), 3);
+    ASSERT_EQ(bicgstab_factory->get_parameters().max_iters, 3);
 }
 
 
 TEST_F(Bicgstab, BicgstabFactoryKnowsItsRelResidualGoal)
 {
-    ASSERT_EQ(bicgstab_factory->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(bicgstab_factory->get_parameters().rel_residual_goal, 1e-6);
 }
 
 
 TEST_F(Bicgstab, BicgstabFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_num_rows(), 3);
-    ASSERT_EQ(solver->get_num_cols(), 3);
-    ASSERT_EQ(solver->get_num_stored_elements(), 9);
+    ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto bicgstab_solver = static_cast<Solver *>(solver.get());
-    ASSERT_EQ(bicgstab_solver->get_max_iters(), 3);
-    ASSERT_EQ(bicgstab_solver->get_rel_residual_goal(), 1e-6);
+    ASSERT_EQ(bicgstab_solver->get_parameters().max_iters, 3);
+    ASSERT_EQ(bicgstab_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(bicgstab_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(bicgstab_solver->get_system_matrix(), mtx);
 }
@@ -113,9 +113,7 @@ TEST_F(Bicgstab, CanBeCopied)
 
     copy->copy_from(solver.get());
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -127,9 +125,7 @@ TEST_F(Bicgstab, CanBeMoved)
 
     copy->copy_from(std::move(solver));
 
-    ASSERT_EQ(copy->get_num_rows(), 3);
-    ASSERT_EQ(copy->get_num_cols(), 3);
-    ASSERT_EQ(copy->get_num_stored_elements(), 9);
+    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -139,9 +135,7 @@ TEST_F(Bicgstab, CanBeCloned)
 {
     auto clone = solver->clone();
 
-    ASSERT_EQ(clone->get_num_rows(), 3);
-    ASSERT_EQ(clone->get_num_cols(), 3);
-    ASSERT_EQ(clone->get_num_stored_elements(), 9);
+    ASSERT_EQ(clone->get_size(), gko::dim(3, 3));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
@@ -151,39 +145,26 @@ TEST_F(Bicgstab, CanBeCleared)
 {
     solver->clear();
 
-    ASSERT_EQ(solver->get_num_rows(), 0);
-    ASSERT_EQ(solver->get_num_cols(), 0);
-    ASSERT_EQ(solver->get_num_stored_elements(), 0);
+    ASSERT_EQ(solver->get_size(), gko::dim(0, 0));
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
-TEST_F(Bicgstab, CanSetPreconditioner)
-{
-    std::shared_ptr<Mtx> precond =
-        gko::initialize<Mtx>({{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, exec);
-    auto bicgstab_solver = static_cast<gko::solver::Bicgstab<> *>(solver.get());
-
-    bicgstab_solver->set_preconditioner(precond);
-
-    ASSERT_EQ(bicgstab_solver->get_preconditioner(), precond);
-}
-
-
 TEST_F(Bicgstab, CanSetPreconditionerGenertor)
 {
-    bicgstab_factory->set_preconditioner(
-        gko::solver::BicgstabFactory<>::create(exec, 3, 0.0));
+    auto bicgstab_factory =
+        Solver::Factory::create()
+            .with_max_iters(3)
+            .with_rel_residual_goal(1e-6)
+            .with_preconditioner(Solver::Factory::create().on_executor(exec))
+            .on_executor(exec);
     auto solver = bicgstab_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Bicgstab<> *>(
-        static_cast<gko::solver::Bicgstab<> *>(solver.get())
-            ->get_preconditioner()
-            .get());
+        gko::lend(solver->get_preconditioner()));
 
     ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_num_rows(), 3);
-    ASSERT_EQ(precond->get_num_cols(), 3);
+    ASSERT_EQ(precond->get_size(), gko::dim(3, 3));
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 

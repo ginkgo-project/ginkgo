@@ -45,11 +45,16 @@ namespace {
 class Fcg : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::Fcg<>;
+
     Fcg()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          fcg_factory(gko::solver::FcgFactory<>::create(exec, 4, 1e-15)),
+          fcg_factory(Solver::Factory::create()
+                          .with_max_iters(4)
+                          .with_rel_residual_goal(1e-15)
+                          .on_executor(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
                {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
@@ -58,14 +63,17 @@ protected:
                {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
                {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
               exec)),
-          fcg_factory_big(gko::solver::FcgFactory<>::create(exec, 100, 1e-15))
+          fcg_factory_big(gko::solver::Fcg<>::Factory::create()
+                              .with_max_iters(100)
+                              .with_rel_residual_goal(1e-15)
+                              .on_executor(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory;
-    std::unique_ptr<gko::solver::FcgFactory<>> fcg_factory_big;
+    std::unique_ptr<gko::solver::Fcg<>::Factory> fcg_factory;
+    std::unique_ptr<gko::solver::Fcg<>::Factory> fcg_factory_big;
 };
 
 
@@ -150,7 +158,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_num_rows(); ++i) {
+    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -169,9 +177,9 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
     auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
-    auto bc = Mtx::create(exec, mtx_big->get_num_rows(), 2);
-    auto xc = Mtx::create(exec, mtx_big->get_num_cols(), 2);
-    for (size_t i = 0; i < bc->get_num_rows(); ++i) {
+    auto bc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_rows, 2});
+    auto xc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_cols, 2});
+    for (size_t i = 0; i < bc->get_size().num_rows; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
 
@@ -182,8 +190,8 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     solver->apply(b1.get(), x1.get());
     solver->apply(b2.get(), x2.get());
     solver->apply(bc.get(), xc.get());
-    auto mergedRes = Mtx::create(exec, b1->get_num_rows(), 2);
-    for (size_t i = 0; i < mergedRes->get_num_rows(); ++i) {
+    auto mergedRes = Mtx::create(exec, gko::dim{b1->get_size().num_rows, 2});
+    for (size_t i = 0; i < mergedRes->get_size().num_rows; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }
@@ -191,11 +199,11 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     auto alpha = gko::initialize<Mtx>({1.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
 
-    auto residual1 = Mtx::create(exec, b1->get_num_rows(), b1->get_num_cols());
+    auto residual1 = Mtx::create(exec, b1->get_size());
     residual1->copy_from(b1.get());
-    auto residual2 = Mtx::create(exec, b2->get_num_rows(), b2->get_num_cols());
+    auto residual2 = Mtx::create(exec, b2->get_size());
     residual2->copy_from(b2.get());
-    auto residualC = Mtx::create(exec, bc->get_num_rows(), bc->get_num_cols());
+    auto residualC = Mtx::create(exec, bc->get_size());
     residualC->copy_from(bc.get());
 
     mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());

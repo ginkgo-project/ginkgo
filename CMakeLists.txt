@@ -11,6 +11,7 @@ option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_CPU "Compile kernels for CPUs" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" ON)
+option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 option(SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" OFF)
@@ -26,7 +27,7 @@ if(BUILD_GPU)
     set(CMAKE_CUDA_STANDARD 11)
     if(SET_CUDA_HOST_COMPILER)
         set(CMAKE_CUDA_FLAGS
-            "--compiler-bindir ${CMAKE_CXX_COMPILER} ${CMAKE_CUDA_FLAGS}")
+            "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
     endif()
     # set CUDA_ARCH_OPTION strings
     set(CUDA_ARCH_OPTION "Auto" CACHE STRING
@@ -38,6 +39,9 @@ if(BUILD_GPU)
     # setting nvcc arch flags
     ginkgo_select_nvcc_arch_flags(NVCC_FLAGS_EXTRA)
     message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
+    # remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 else()
     project(Ginkgo LANGUAGES CXX)
 endif()
@@ -73,7 +77,10 @@ if(DEVEL_TOOLS)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(format add_license)
 endif()
+<<<<<<< HEAD
 
 if(BUILD_DOC)
 	add_subdirectory(doc)
 endif()
+=======
+>>>>>>> develop

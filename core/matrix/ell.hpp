@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/lin_op_interfaces.hpp"
 #include "core/base/mtx_reader.hpp"
 
 
@@ -65,26 +64,22 @@ class Dense;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell : public BasicLinOp<Ell<ValueType, IndexType>>,
+class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
+            public EnableCreateMethod<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
-    friend class BasicLinOp<Ell>;
+    friend class EnableCreateMethod<Ell>;
+    friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
 
 public:
-    using BasicLinOp<Ell>::create;
-    using BasicLinOp<Ell>::convert_to;
-    using BasicLinOp<Ell>::move_to;
+    using EnableLinOp<Ell>::convert_to;
+    using EnableLinOp<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -150,6 +145,16 @@ public:
     size_type get_stride() const noexcept { return stride_; }
 
     /**
+     * Returns the number of elements explicitly stored in the matrix.
+     *
+     * @return the number of elements explicitly stored in the matrix
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
+
+    /**
      * Returns the `idx`-th non-zero element of the `row`-th row .
      *
      * @param row  the row of the requested element
@@ -197,35 +202,15 @@ public:
 
 protected:
     /**
-     * Creates an empty ELL matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     */
-    explicit Ell(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Ell>(exec, 0, 0, 0),
-          values_(exec),
-          col_idxs_(exec),
-          max_nonzeros_per_row_(0),
-          stride_(0)
-    {}
-
-    /**
      * Creates an uninitialized Ell matrix of the specified size.
+     *    (The stride is set to the number of rows of the matrix.
+     *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
-     * @param stride                stride of the rows
+     * @param size  size of the matrix
      */
-    Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type max_nonzeros_per_row, size_type stride)
-        : BasicLinOp<Ell>(exec, num_rows, num_cols,
-                          stride * max_nonzeros_per_row),
-          values_(exec, stride * max_nonzeros_per_row),
-          col_idxs_(exec, stride * max_nonzeros_per_row),
-          max_nonzeros_per_row_(max_nonzeros_per_row),
-          stride_(stride)
+    Ell(std::shared_ptr<const Executor> exec, const dim &size = dim{})
+        : Ell(std::move(exec), size, size.num_cols)
     {}
 
     /**
@@ -233,29 +218,35 @@ protected:
      *    (The stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
+     * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      */
-    Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type max_nonzeros_per_row)
-        : Ell(std::move(exec), num_rows, num_cols, max_nonzeros_per_row,
-              num_rows)
+    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+        size_type max_nonzeros_per_row)
+        : Ell(std::move(exec), size, max_nonzeros_per_row, size.num_rows)
     {}
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
-     *    (The stride is set to the number of rows of the matrix.
-     *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows               number of rows
-     * @param num_cols               number of columns
+     * @param size  size of the matrix
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param stride                stride of the rows
      */
-    Ell(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols)
-        : Ell(std::move(exec), num_rows, num_cols, num_cols)
+    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+        size_type max_nonzeros_per_row, size_type stride)
+        : EnableLinOp<Ell>(exec, size),
+          values_(exec, stride * max_nonzeros_per_row),
+          col_idxs_(exec, stride * max_nonzeros_per_row),
+          max_nonzeros_per_row_(max_nonzeros_per_row),
+          stride_(stride)
     {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

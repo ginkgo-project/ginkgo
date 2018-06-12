@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/math.hpp"
+#include "core/base/range.hpp"
+#include "core/base/range_accessors.hpp"
 #include "core/base/types.hpp"
 
 
@@ -131,28 +133,20 @@ struct matrix_data {
         value_type value;
     };
 
-
-    /**
-     * Initializes a 0-by-0 matrix.
-     */
-    matrix_data() : num_rows{}, num_cols{} {}
-
     /**
      * Initializes a matrix filled with the specified value.
      *
-     * @param num_rows_  number of rows of the matrix
-     * @param num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param value  value used to fill the elements of the matrix
      */
-    matrix_data(size_type num_rows_, size_type num_cols_,
-                ValueType value = zero<ValueType>())
-        : num_rows(num_rows_), num_cols(num_cols_)
+    matrix_data(dim size_ = dim{}, ValueType value = zero<ValueType>())
+        : size{size_}
     {
         if (value == zero<ValueType>()) {
             return;
         }
-        for (size_type row = 0; row < num_rows; ++row) {
-            for (size_type col = 0; col < num_cols; ++col) {
+        for (size_type row = 0; row < size.num_rows; ++row) {
+            for (size_type col = 0; col < size.num_cols; ++col) {
                 nonzeros.emplace_back(row, col, value);
             }
         }
@@ -164,18 +158,16 @@ struct matrix_data {
      * @tparam RandomDistribution  random distribution type
      * @tparam RandomEngine  random engine type
      *
-     * @param num_rows_  number of rows of the matrix
-     * @param num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param dist  random distribution of the elements of the matrix
      * @param engine  random engine used to generate random values
      */
     template <typename RandomDistribution, typename RandomEngine>
-    matrix_data(size_type num_rows_, size_type num_cols_,
-                RandomDistribution &&dist, RandomEngine &&engine)
-        : num_rows(num_rows_), num_cols(num_cols_)
+    matrix_data(dim size_, RandomDistribution &&dist, RandomEngine &&engine)
+        : size{size_}
     {
-        for (size_type row = 0; row < num_rows; ++row) {
-            for (size_type col = 0; col < num_cols; ++col) {
+        for (size_type row = 0; row < size.num_rows; ++row) {
+            for (size_type col = 0; col < size.num_cols; ++col) {
                 const auto value =
                     detail::get_rand_value<ValueType>(dist, engine);
                 if (value != zero<ValueType>()) {
@@ -191,11 +183,11 @@ struct matrix_data {
      * @param values  a 2D braced-init-list of matrix values.
      */
     matrix_data(std::initializer_list<std::initializer_list<ValueType>> values)
-        : num_rows(values.size()), num_cols{}
+        : size{values.size(), 0}
     {
         for (size_type row = 0; row < values.size(); ++row) {
             const auto row_data = begin(values)[row];
-            num_cols = std::max(num_cols, row_data.size());
+            size.num_cols = std::max(size.num_cols, row_data.size());
             for (size_type col = 0; col < row_data.size(); ++col) {
                 const auto &val = begin(row_data)[col];
                 if (val != zero<ValueType>()) {
@@ -208,15 +200,14 @@ struct matrix_data {
     /**
      * Initializes the structure from a list of nonzeros.
      *
-     * @param num_rows_  number of rows of the matrix
-     * @param num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param nonzeros_  list of nonzero elements
      */
     matrix_data(
-        size_type num_rows_, size_type num_cols_,
+        dim size_,
         std::initializer_list<detail::input_triple<ValueType, IndexType>>
             nonzeros_)
-        : num_rows(num_rows_), num_cols(num_cols_), nonzeros()
+        : size{size_}, nonzeros()
     {
         nonzeros.reserve(nonzeros_.size());
         for (const auto &elem : nonzeros_) {
@@ -227,23 +218,19 @@ struct matrix_data {
     /**
      * Initializes a matrix out of a matrix block via duplication.
      *
-     * @param num_block_rows  number of block-rows
-     * @param num_block_cols  number of block-columns
+     * @param size  size of the block-matrix (in blocks)
      * @param diag_block  matrix block used to fill the complete matrix
      */
-    matrix_data(size_type num_block_rows, size_type num_block_cols,
-                const matrix_data &block)
+    matrix_data(dim size_, const matrix_data &block) : size{size_ * block.size}
     {
-        const auto num_blocks = num_block_rows * num_block_cols;
-        nonzeros.reserve(num_blocks * block.nonzeros.size());
-        num_rows = num_block_rows * block.num_rows;
-        num_cols = num_block_cols * block.num_cols;
-        for (int row = 0; row < num_block_rows; ++row) {
-            for (int col = 0; col < num_block_cols; ++col) {
+        nonzeros.reserve(size_.num_rows * size_.num_cols *
+                         block.nonzeros.size());
+        for (int row = 0; row < size_.num_rows; ++row) {
+            for (int col = 0; col < size_.num_cols; ++col) {
                 for (const auto &elem : block.nonzeros) {
-                    nonzeros.emplace_back(row * block.num_rows + elem.row,
-                                          col * block.num_cols + elem.column,
-                                          elem.value);
+                    nonzeros.emplace_back(
+                        row * block.size.num_rows + elem.row,
+                        col * block.size.num_cols + elem.column, elem.value);
                 }
             }
         }
@@ -251,18 +238,38 @@ struct matrix_data {
     }
 
     /**
+     * Initializes a matrix from a range.
+     *
+     * @tparam Accessor  accessor type of the input range
+     *
+     * @param data  range used to initialize the matrix
+     */
+    template <typename Accessor>
+    matrix_data(const range<Accessor> &data)
+        : size{data.length(0), data.length(1)}
+    {
+        for (gko::size_type row = 0; row < size.num_rows; ++row) {
+            for (gko::size_type col = 0; col < size.num_cols; ++col) {
+                if (data(row, col) != zero<ValueType>()) {
+                    nonzeros.emplace_back(row, col, data(row, col));
+                }
+            }
+        }
+    }
+
+    /**
      * Initializes a diagonal matrix.
      *
-     * @param num_rows_  number of rows of the matrix
-     * @param num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param value  value used to fill the elements of the matrix
+     *
+     * @return the diagonal matrix
      */
-    static matrix_data diag(size_type num_rows, size_type num_cols,
-                            ValueType value)
+    static matrix_data diag(dim size_, ValueType value)
     {
-        matrix_data res(num_rows, num_cols);
+        matrix_data res(size_);
         if (value != zero<ValueType>()) {
-            const auto num_nnz = std::min(num_rows, num_cols);
+            const auto num_nnz = std::min(size_.num_rows, size_.num_cols);
             res.nonzeros.reserve(num_nnz);
             for (int i = 0; i < num_nnz; ++i) {
                 res.nonzeros.emplace_back(i, i, value);
@@ -274,14 +281,15 @@ struct matrix_data {
     /**
      * Initializes a diagonal matrix using a list of diagonal elements.
      *
-     * @param num_rows_  number of rows of the matrix
-     * @param num_cols_  number of columns of the matrix
+     * @param size_  the size of the matrix
      * @param nonzeros_  list of diagonal elements
+     *
+     * @return the diagonal matrix
      */
-    static matrix_data diag(size_type num_rows, size_type num_cols,
+    static matrix_data diag(dim size_,
                             std::initializer_list<ValueType> nonzeros_)
     {
-        matrix_data res(num_rows, num_cols);
+        matrix_data res(size_);
         res.nonzeros.reserve(nonzeros_.size());
         int pos = 0;
         for (auto value : nonzeros_) {
@@ -294,21 +302,20 @@ struct matrix_data {
     /**
      * Initializes a block-diagonal matrix.
      *
-     * @param num_block_rows  number of block-rows
-     * @param num_block_cols  number of block-columns
+     * @param size_  the size of the matrix
      * @param diag_block  matrix used to fill diagonal blocks
+     *
+     * @return the block-diagonal matrix
      */
-    static matrix_data diag(size_type num_block_rows, size_type num_block_cols,
-                            const matrix_data &block)
+    static matrix_data diag(dim size_, const matrix_data &block)
     {
-        matrix_data res(num_block_rows * block.num_rows,
-                        num_block_cols * block.num_cols);
-        const auto num_blocks = std::min(num_block_rows, num_block_cols);
+        matrix_data res(size_ * block.size);
+        const auto num_blocks = std::min(size_.num_rows, size_.num_cols);
         res.nonzeros.reserve(num_blocks * block.nonzeros.size());
         for (int b = 0; b < num_blocks; ++b) {
             for (const auto &elem : block.nonzeros) {
-                res.nonzeros.emplace_back(b * block.num_rows + elem.row,
-                                          b * block.num_cols + elem.column,
+                res.nonzeros.emplace_back(b * block.size.num_rows + elem.row,
+                                          b * block.size.num_cols + elem.column,
                                           elem.value);
             }
         }
@@ -316,14 +323,82 @@ struct matrix_data {
     }
 
     /**
-     * Total number of rows of the matrix.
+     * Initializes a random dense matrix with a specific condition number.
+     *
+     * The matrix is generated by applying a series of random Hausholder
+     * reflectors to a diagonal matrix with diagonal entries uniformly
+     * distributed between `sqrt(condition_number)` and
+     * `1/sqrt(condition_number)`.
+     *
+     * @tparam RandomDistribution  the type of the random distribution
+     * @tparam RandomEngine  the type of the random engine
+     *
+     * @param size  number of rows and columns of the matrix
+     * @param condition_number  condition number of the matrix
+     * @param dist  random distribution used to generate reflectors
+     * @param engine  random engine used to generate reflectors
+     * @param num_reflectors  number of reflectors to apply from each side
+     *
+     * @return the dense matrix with the specified condition number
      */
-    size_type num_rows;
+    template <typename RandomDistribution, typename RandomEngine>
+    static matrix_data cond(size_type size,
+                            remove_complex<ValueType> condition_number,
+                            RandomDistribution &&dist, RandomEngine &&engine,
+                            size_type num_reflectors)
+    {
+        using range = range<accessor::row_major<ValueType, 2>>;
+        std::vector<ValueType> mtx_data(size * size, zero<ValueType>());
+        std::vector<ValueType> ref_data(size);
+        std::vector<ValueType> work(size);
+        range matrix(mtx_data.data(), size, size, size);
+        range reflector(ref_data.data(), size, 1u, 1u);
+
+        initialize_diag_with_cond(condition_number, matrix);
+        for (size_type i = 0; i < num_reflectors; ++i) {
+            generate_random_reflector(dist, engine, reflector);
+            reflect_domain(reflector, matrix, work.data());
+            generate_random_reflector(dist, engine, reflector);
+            reflect_range(reflector, matrix, work.data());
+        }
+        return matrix;
+    }
 
     /**
-     * Total number of columns of the matrix.
+     * Initializes a random dense matrix with a specific condition number.
+     *
+     * The matrix is generated by applying a series of random Hausholder
+     * reflectors to a diagonal matrix with diagonal entries uniformly
+     * distributed between `sqrt(condition_number)` and
+     * `1/sqrt(condition_number)`.
+     *
+     * This version of the function applies `size - 1` reflectors to each side
+     * of the diagonal matrix.
+     *
+     * @tparam RandomDistribution  the type of the random distribution
+     * @tparam RandomEngine  the type of the random engine
+     *
+     * @param size  number of rows and columns of the matrix
+     * @param condition_number  condition number of the matrix
+     * @param dist  random distribution used to generate reflectors
+     * @param engine  random engine used to generate reflectors
+     *
+     * @return the dense matrix with the specified condition number
      */
-    size_type num_cols;
+    template <typename RandomDistribution, typename RandomEngine>
+    static matrix_data cond(size_type size,
+                            remove_complex<ValueType> condition_number,
+                            RandomDistribution &&dist, RandomEngine &&engine)
+    {
+        return cond(size, condition_number,
+                    std::forward<RandomDistribution>(dist),
+                    std::forward<RandomEngine>(engine), size - 1);
+    }
+
+    /**
+     * Size of the matrix.
+     */
+    dim size;
 
     /**
      * A vector of tuples storing the non-zeros of the matrix.
@@ -343,6 +418,65 @@ struct matrix_data {
             begin(nonzeros), end(nonzeros), [](nonzero_type x, nonzero_type y) {
                 return std::tie(x.row, x.column) < std::tie(y.row, y.column);
             });
+    }
+
+private:
+    template <typename Accessor>
+    static void initialize_diag_with_cond(
+        remove_complex<ValueType> condition_number,
+        const range<Accessor> &matrix)
+    {
+        using sigma_type = remove_complex<ValueType>;
+        const auto size = matrix.length(0);
+        const auto min_sigma = one(condition_number) / sqrt(condition_number);
+        const auto max_sigma = sqrt(condition_number);
+
+        matrix = zero(matrix);
+        for (gko::size_type i = 0; i < size; ++i) {
+            matrix(i, i) = max_sigma * static_cast<sigma_type>(size - i - 1) /
+                               static_cast<sigma_type>(size - 1) +
+                           min_sigma * static_cast<sigma_type>(i) /
+                               static_cast<sigma_type>(size - 1);
+        }
+    }
+
+    template <typename RandomDistribution, typename RandomEngine,
+              typename Accessor>
+    static void generate_random_reflector(RandomDistribution &&dist,
+                                          RandomEngine &&engine,
+                                          const range<Accessor> &reflector)
+    {
+        for (gko::size_type i = 0; i < reflector.length(0); ++i) {
+            reflector(i, 0) = detail::get_rand_value<ValueType>(dist, engine);
+        }
+    }
+
+    template <typename Accessor>
+    static void reflect_domain(const range<Accessor> &reflector,
+                               const range<Accessor> &matrix,
+                               ValueType *work_data)
+    {
+        const auto two = one<ValueType>() + one<ValueType>();
+        range<accessor::row_major<ValueType, 2>> work(work_data,
+                                                      matrix.length(0), 1u, 1u);
+        work = mmul(matrix, reflector);
+        const auto ct_reflector = conj(transpose(reflector));
+        const auto scale = two / mmul(ct_reflector, reflector)(0, 0);
+        matrix = matrix - scale * mmul(work, ct_reflector);
+    }
+
+    template <typename Accessor>
+    static void reflect_range(const range<Accessor> &reflector,
+                              const range<Accessor> &matrix,
+                              ValueType *work_data)
+    {
+        const auto two = one<ValueType>() + one<ValueType>();
+        range<accessor::row_major<ValueType, 2>> work(
+            work_data, 1u, matrix.length(0), matrix.length(0));
+        const auto ct_reflector = conj(transpose(reflector));
+        work = mmul(ct_reflector, matrix);
+        const auto scale = two / mmul(ct_reflector, reflector)(0, 0);
+        matrix = matrix - scale * mmul(reflector, work);
     }
 };
 

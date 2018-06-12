@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -54,19 +55,20 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *omega, Array<bool> *converged)
+                matrix::Dense<ValueType> *omega,
+                Array<stopping_status> *stop_status)
 {
-    for (size_type j = 0; j < b->get_num_cols(); ++j) {
+    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = one<ValueType>();
         prev_rho->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
         beta->at(j) = one<ValueType>();
         gamma->at(j) = one<ValueType>();
         omega->at(j) = one<ValueType>();
-        converged->get_data()[j] = false;
+        stop_status->get_data()[j].reset();
     }
-    for (size_type i = 0; i < b->get_num_rows(); ++i) {
-        for (size_type j = 0; j < b->get_num_cols(); ++j) {
+    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
             rr->at(i, j) = zero<ValueType>();
             z->at(i, j) = zero<ValueType>();
@@ -86,17 +88,19 @@ void test_convergence(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
-                      Array<bool> *converged, bool *all_converged)
+                      uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status, bool *all_converged,
+                      bool *one_changed)
 {
-    using std::abs;
     *all_converged = true;
-    for (size_type i = 0; i < tau->get_num_cols(); ++i) {
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
-            converged->get_data()[i] = true;
+            stop_status->get_data()[i].converge(stoppingId, setFinalized);
+            *one_changed = true;
         }
     }
-    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
-        if (!converged->get_const_data()[i]) {
+    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+        if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
             break;
         }
@@ -114,12 +118,13 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *omega, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *omega,
+            const Array<stopping_status> &stop_status)
 
 {
-    for (size_type i = 0; i < p->get_num_rows(); ++i) {
-        for (size_type j = 0; j < p->get_num_cols(); ++j) {
-            if (converged.get_const_data()[j]) {
+    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
@@ -143,11 +148,12 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *beta, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *beta,
+            const Array<stopping_status> &stop_status)
 {
-    for (size_type i = 0; i < s->get_num_rows(); ++i) {
-        for (size_type j = 0; j < s->get_num_cols(); ++j) {
-            if (converged.get_const_data()[j]) {
+    for (size_type i = 0; i < s->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < s->get_size().num_cols; ++j) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (beta->at(j) != zero<ValueType>()) {
@@ -171,10 +177,10 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<bool> &converged)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> &stop_status)
 {
-    for (size_type j = 0; j < x->get_num_cols(); ++j) {
-        if (converged.get_const_data()[j]) {
+    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+        if (stop_status.get_const_data()[j].has_stopped()) {
             continue;
         }
         if (beta->at(j) != zero<ValueType>()) {
@@ -183,9 +189,9 @@ void step_3(
             omega->at(j) = zero<ValueType>();
         }
     }
-    for (size_type i = 0; i < x->get_num_rows(); ++i) {
-        for (size_type j = 0; j < x->get_num_cols(); ++j) {
-            if (converged.get_const_data()[j]) {
+    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             x->at(i, j) +=
@@ -196,6 +202,27 @@ void step_3(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
+
+
+template <typename ValueType>
+void finalize(std::shared_ptr<const ReferenceExecutor> exec,
+              matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
+              const matrix::Dense<ValueType> *alpha,
+              Array<stopping_status> *stop_status)
+{
+    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+        if (stop_status->get_const_data()[j].has_stopped() &&
+            !stop_status->get_const_data()[j].is_finalized()) {
+            for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+                x->at(i, j) += alpha->at(j) * y->at(i, j);
+                stop_status->get_data()[j].finalize();
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
+
 
 }  // namespace bicgstab
 }  // namespace reference

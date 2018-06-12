@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/lin_op_interfaces.hpp"
 
 
 namespace gko {
@@ -66,29 +65,25 @@ class Coo;
  *
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public BasicLinOp<Csr<ValueType, IndexType>>,
+class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
+            public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
-    friend class BasicLinOp<Csr>;
+    friend class EnableCreateMethod<Csr>;
+    friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
 public:
-    using BasicLinOp<Csr>::create;
-    using BasicLinOp<Csr>::convert_to;
-    using BasicLinOp<Csr>::move_to;
+    using EnableLinOp<Csr>::convert_to;
+    using EnableLinOp<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-
-    void apply(const LinOp *b, LinOp *x) const override;
-
-    void apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-               LinOp *x) const override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -163,37 +158,40 @@ public:
         return row_ptrs_.get_const_data();
     }
 
-protected:
     /**
-     * Creates an empty CSR matrix.
+     * Returns the number of elements explicitly stored in the matrix.
      *
-     * @param exec  Executor associated to the matrix
+     * @return the number of elements explicitly stored in the matrix
      */
-    explicit Csr(std::shared_ptr<const Executor> exec)
-        : BasicLinOp<Csr>(exec, 0, 0, 0),
-          values_(exec),
-          col_idxs_(exec),
-          row_ptrs_(exec)
-    {}
+    size_type get_num_stored_elements() const noexcept
+    {
+        return values_.get_num_elems();
+    }
 
+protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_rows      number of rows
-     * @param num_cols      number of columns
+     * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Csr(std::shared_ptr<const Executor> exec, size_type num_rows,
-        size_type num_cols, size_type num_nonzeros)
-        : BasicLinOp<Csr>(exec, num_rows, num_cols, num_nonzeros),
+    Csr(std::shared_ptr<const Executor> exec, const dim &size = dim{},
+        size_type num_nonzeros = {})
+        : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, num_rows + (num_rows > 0))  // avoid allocation for 0
+          // avoid allocation for empty matrix
+          row_ptrs_(exec, size.num_rows + (size.num_rows > 0))
     {}
 
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
     /**
-     * Simple helper function to factorise conversion code of CSR matrix to COO.
+     * Simple helper function to factorize conversion code of CSR matrix to COO.
      *
      * @return this CSR matrix in COO format
      */

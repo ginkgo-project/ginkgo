@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STD_EXTENSIONS_HPP_
 
 
+#include <memory>
 #include <type_traits>
 
 
@@ -68,6 +69,10 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 
 template <bool B, typename T, typename F>
 using conditional_t = typename std::conditional<B, T, F>::type;
+
+
+template <typename T>
+using decay_t = typename std::decay<T>::type;
 
 
 }  // namespace xstd

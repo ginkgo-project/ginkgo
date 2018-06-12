@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     // Some shortcuts
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::CgFactory<>;
+    using cg = gko::solver::Cg<>;
 
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
@@ -94,16 +94,19 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Generate solver
-    auto solver_gen = cg::create(exec, 20, 1e-20);
+    auto solver_gen = cg::Factory::create()
+                          .with_max_iters(20)
+                          .with_rel_residual_goal(1e-20)
+                          .on_executor(exec);
     auto solver = solver_gen->generate(A);
 
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
 
     // Print result
-    auto h_x = gko::clone_to(exec->get_master(), x);
+    auto h_x = gko::clone(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_num_rows(); ++i) {
+    for (int i = 0; i < h_x->get_size().num_rows; ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
     }
     std::cout << "];" << std::endl;
@@ -115,6 +118,6 @@ int main(int argc, char *argv[])
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_dot(gko::lend(b), gko::lend(res));
 
-    auto h_res = gko::clone_to(exec->get_master(), res);
+    auto h_res = gko::clone(exec->get_master(), res);
     std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
 }

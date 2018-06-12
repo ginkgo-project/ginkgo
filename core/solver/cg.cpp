@@ -57,22 +57,20 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(step_2, cg::step_2<ValueType>);
 };
 
+
 }  // namespace
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
-    ASSERT_CONFORMANT(system_matrix_, b);
-    ASSERT_EQUAL_DIMENSIONS(b, x);
-
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_num_cols();
+    size_type num_vectors = dense_b->get_size().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -82,14 +80,14 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, 1, dense_b->get_num_cols());
+    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto tau = Vector::create_with_config_of(alpha.get());
 
     auto starting_tau = Vector::create_with_config_of(tau.get());
-    Array<bool> converged(exec, dense_b->get_num_cols());
+    Array<bool> converged(exec, dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -104,15 +102,15 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
     r->compute_dot(r.get(), tau.get());
     starting_tau->copy_from(tau.get());
 
-    for (int iter = 0; iter < max_iters_; ++iter) {
+    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         r->compute_dot(r.get(), tau.get());
         bool all_converged = false;
         exec->run(
             TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), rel_residual_goal_, &converged,
-                &all_converged));
+                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
+                &converged, &all_converged));
 
         if (all_converged) {
             break;
@@ -136,8 +134,8 @@ void Cg<ValueType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                          LinOp *x) const
+void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -148,25 +146,9 @@ void Cg<ValueType>::apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> CgFactory<ValueType>::generate(
-    std::shared_ptr<const LinOp> base) const
-{
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
-    auto cg = std::unique_ptr<Cg<ValueType>>(Cg<ValueType>::create(
-        this->get_executor(), max_iters_, rel_residual_goal_, base));
-    cg->set_preconditioner(precond_factory_->generate(base));
-    return std::move(cg);
-}
-
-
 #define GKO_DECLARE_CG(_type) class Cg<_type>
-#define GKO_DECLARE_CG_FACTORY(_type) class CgFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_FACTORY);
 #undef GKO_DECLARE_CG
-#undef GKO_DECLARE_CG_FACTORY
 
 
 }  // namespace solver

@@ -65,20 +65,6 @@ struct truncate_type_impl<thrust::complex<T>> {
 }  // namespace detail
 
 
-/**
- * Returns the conjugate of a number.
- *
- * @param x  the number to conjugate
- *
- * @return  conjugate of `x`
- */
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE thrust::complex<T> conj(const thrust::complex<T> &x)
-{
-    return thrust::conj(x);
-}
-
-
 template <>
 __device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
 {

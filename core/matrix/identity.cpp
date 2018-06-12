@@ -44,24 +44,16 @@ namespace matrix {
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply(const LinOp *b, LinOp *x) const
+void Identity<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_COLS(x, b);
     x->copy_from(b);
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Identity<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x) const
 {
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_COLS(x, b);
     auto dense_x = as<Dense<ValueType>>(x);
     dense_x->scale(beta);
     dense_x->add_scaled(alpha, b);
@@ -69,13 +61,12 @@ void Identity<ValueType>::apply(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate(
+std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base,
-                            size(base->get_num_cols(), base->get_num_rows()));
+    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_num_rows());
+                                       base->get_size().num_rows);
 }
 
 

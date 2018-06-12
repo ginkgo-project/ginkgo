@@ -68,7 +68,7 @@ __device__ __forceinline__ void synchronize(
 __device__ __forceinline__ bool any(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
-    GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);
+    GKO_ASSERT(mask == cuda_config::full_lane_mask);
     return __any(predicate);
 }
 
@@ -76,7 +76,7 @@ __device__ __forceinline__ bool any(bool predicate,
 __device__ __forceinline__ bool all(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
-    GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);
+    GKO_ASSERT(mask == cuda_config::full_lane_mask);
     return __all(predicate);
 }
 
@@ -84,7 +84,7 @@ __device__ __forceinline__ bool all(bool predicate,
 __device__ __forceinline__ int32
 count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
-    GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);
+    GKO_ASSERT(mask == cuda_config::full_lane_mask);
     return __popc(__ballot(predicate));
 }
 
@@ -92,7 +92,7 @@ count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 __device__ __forceinline__ uint32
 ballot(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
-    GKO_DEVICE_ASSERT(mask == cuda_config::full_lane_mask);
+    GKO_ASSERT(mask == cuda_config::full_lane_mask);
     return __ballot(predicate);
 }
 

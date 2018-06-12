@@ -67,11 +67,8 @@ struct TemplatedOperation {
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
@@ -80,14 +77,9 @@ void Csr<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta, LinOp *x) const
+void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                           const LinOp *beta, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
@@ -102,11 +94,10 @@ std::unique_ptr<Coo<ValueType, IndexType>> Csr<ValueType, IndexType>::make_coo()
 {
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(),
-        this->get_num_stored_elements());
+        exec, this->get_size(), this->get_num_stored_elements());
     exec->run(
         TemplatedOperation<IndexType>::make_convert_row_ptrs_to_idxs_operation(
-            this->get_const_row_ptrs(), this->get_num_rows(),
+            this->get_const_row_ptrs(), this->get_size().num_rows,
             tmp->get_row_idxs()));
     return tmp;
 }
@@ -137,8 +128,7 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(TemplatedOperation<
               ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
                                                                      this));
@@ -150,8 +140,7 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
             tmp.get(), this));
@@ -166,12 +155,11 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
     for (const auto &elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, nnz);
+    auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz);
     size_type ind = 0;
     size_type cur_ptr = 0;
     tmp->get_row_ptrs()[0] = cur_ptr;
-    for (size_type row = 0; row < data.num_rows; ++row) {
+    for (size_type row = 0; row < data.size.num_rows; ++row) {
         for (; ind < data.nonzeros.size(); ++ind) {
             if (data.nonzeros[ind].row > row) {
                 break;
@@ -195,15 +183,15 @@ void Csr<ValueType, IndexType>::write(mat_data &data) const
     std::unique_ptr<const LinOp> op{};
     const Csr *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone_to(this->get_executor()->get_master());
+        op = this->clone(this->get_executor()->get_master());
         tmp = static_cast<const Csr *>(op.get());
     } else {
         tmp = this;
     }
 
-    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+    data = {tmp->get_size(), {}};
 
-    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
         const auto start = tmp->row_ptrs_.get_const_data()[row];
         const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
         for (auto i = start; i < end; ++i) {
@@ -219,8 +207,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
-                            this->get_num_stored_elements());
+    auto trans_cpy = Csr::create(exec, gko::transpose(this->get_size()),
+                                 this->get_num_stored_elements());
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
@@ -233,8 +221,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = create(exec, this->get_num_cols(), this->get_num_rows(),
-                            this->get_num_stored_elements());
+    auto trans_cpy = Csr::create(exec, gko::transpose(this->get_size()),
+                                 this->get_num_stored_elements());
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(

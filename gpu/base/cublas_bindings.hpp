@@ -46,7 +46,38 @@ namespace gko {
 namespace kernels {
 namespace gpu {
 namespace cublas {
+namespace detail {
 namespace {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args &&...)
+{
+    return static_cast<int64>(CUBLAS_STATUS_NOT_SUPPORTED);
+}
+
+
+}  // namespace
+}  // namespace detail
+
+
+namespace {
+
+
+template <typename ValueType>
+struct is_supported : std::false_type {};
+
+template <>
+struct is_supported<float> : std::true_type {};
+
+template <>
+struct is_supported<double> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<float>> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<double>> : std::true_type {};
 
 
 #define BIND_CUBLAS_GEMM(ValueType, CublasName)                                \
@@ -66,6 +97,8 @@ BIND_CUBLAS_GEMM(float, cublasSgemm);
 BIND_CUBLAS_GEMM(double, cublasDgemm);
 BIND_CUBLAS_GEMM(std::complex<float>, cublasCgemm);
 BIND_CUBLAS_GEMM(std::complex<double>, cublasZgemm);
+template <typename ValueType>
+BIND_CUBLAS_GEMM(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_GEMM
 
@@ -87,6 +120,8 @@ BIND_CUBLAS_GEAM(float, cublasSgeam);
 BIND_CUBLAS_GEAM(double, cublasDgeam);
 BIND_CUBLAS_GEAM(std::complex<float>, cublasCgeam);
 BIND_CUBLAS_GEAM(std::complex<double>, cublasZgeam);
+template <typename ValueType>
+BIND_CUBLAS_GEAM(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_GEAM
 
@@ -103,6 +138,8 @@ BIND_CUBLAS_SCAL(float, cublasSscal);
 BIND_CUBLAS_SCAL(double, cublasDscal);
 BIND_CUBLAS_SCAL(std::complex<float>, cublasCscal);
 BIND_CUBLAS_SCAL(std::complex<double>, cublasZscal);
+template <typename ValueType>
+BIND_CUBLAS_SCAL(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_SCAL
 
@@ -120,6 +157,8 @@ BIND_CUBLAS_AXPY(float, cublasSaxpy);
 BIND_CUBLAS_AXPY(double, cublasDaxpy);
 BIND_CUBLAS_AXPY(std::complex<float>, cublasCaxpy);
 BIND_CUBLAS_AXPY(std::complex<double>, cublasZaxpy);
+template <typename ValueType>
+BIND_CUBLAS_AXPY(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_AXPY
 
@@ -137,6 +176,8 @@ BIND_CUBLAS_DOT(float, cublasSdot);
 BIND_CUBLAS_DOT(double, cublasDdot);
 BIND_CUBLAS_DOT(std::complex<float>, cublasCdotc);
 BIND_CUBLAS_DOT(std::complex<double>, cublasZdotc);
+template <typename ValueType>
+BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_DOT
 

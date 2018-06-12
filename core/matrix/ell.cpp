@@ -69,12 +69,13 @@ size_type calculate_max_nonzeros_per_row(
     size_type max_nonzeros_per_row = 0;
     for (const auto &elem : data.nonzeros) {
         if (elem.row != current_row) {
+            current_row = elem.row;
             max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
             nnz = 0;
         }
         nnz += (elem.value != zero<ValueType>());
     }
-    return max_nonzeros_per_row;
+    return std::max(max_nonzeros_per_row, nnz);
 }
 
 
@@ -82,11 +83,8 @@ size_type calculate_max_nonzeros_per_row(
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
+void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
@@ -95,14 +93,9 @@ void Ell<ValueType, IndexType>::apply(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta, LinOp *x) const
+void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                           const LinOp *beta, LinOp *x) const
 {
-    ASSERT_CONFORMANT(this, b);
-    ASSERT_EQUAL_ROWS(this, x);
-    ASSERT_EQUAL_COLS(b, x);
-    ASSERT_EQUAL_DIMENSIONS(alpha, size(1, 1));
-    ASSERT_EQUAL_DIMENSIONS(beta, size(1, 1));
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
         TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
@@ -115,8 +108,7 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(
-        exec, this->get_num_rows(), this->get_num_cols(), this->get_num_cols());
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(TemplatedOperation<
               ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
                                                                      this));
@@ -138,15 +130,15 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
     auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
 
     // Create an ELLPACK format matrix based on the sizes.
-    auto tmp = create(this->get_executor()->get_master(), data.num_rows,
-                      data.num_cols, max_nonzeros_per_row, data.num_rows);
+    auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
+                           max_nonzeros_per_row, data.size.num_rows);
 
     // Get values and column indexes.
     size_type ind = 0;
     size_type n = data.nonzeros.size();
     auto vals = tmp->get_values();
     auto col_idxs = tmp->get_col_idxs();
-    for (size_type row = 0; row < data.num_rows; row++) {
+    for (size_type row = 0; row < data.size.num_rows; row++) {
         size_type col = 0;
         while (ind < n && data.nonzeros[ind].row == row) {
             auto val = data.nonzeros[ind].value;
@@ -174,15 +166,15 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
     std::unique_ptr<const LinOp> op{};
     const Ell *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone_to(this->get_executor()->get_master());
+        op = this->clone(this->get_executor()->get_master());
         tmp = static_cast<const Ell *>(op.get());
     } else {
         tmp = this;
     }
 
-    data = {tmp->get_num_rows(), tmp->get_num_cols(), {}};
+    data = {tmp->get_size(), {}};
 
-    for (size_type row = 0; row < tmp->get_num_rows(); ++row) {
+    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
         for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
             if (val != zero<ValueType>()) {
