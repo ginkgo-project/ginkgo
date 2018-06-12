@@ -2,12 +2,12 @@ QUIET                  = YES
 
 # General project info
 PROJECT_NAME           = "Ginkgo"
-PROJECT_NUMBER         = @VERSION_MAJOR@.@VERSION_MINOR@
+PROJECT_NUMBER         = @PROJECT_VERSION@
 PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting manycore architectures."
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @DIR_PAGES@
+INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @MAINPAGE@
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples
@@ -20,12 +20,12 @@ FULL_PATH_NAMES        = YES
 STRIP_FROM_PATH        = @DIR_BASE@
 STRIP_FROM_INC_PATH    = @DIR_BASE@ @DIR_BASE@/include
 EXCLUDE_PATTERNS       = */test/*
-EXCLUDE_SYMBOLS        = *::detail::*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
+USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
 
 # Parsing options
 JAVADOC_AUTOBRIEF      = Yes
-TAB_SIZE               = 8
+TAB_SIZE               = 4
 MARKDOWN_SUPPORT       = YES
 AUTOLINK_SUPPORT       = YES
 DISTRIBUTE_GROUP_DOC   = NO
@@ -65,17 +65,51 @@ REFERENCES_LINK_SOURCE = YES
 SOURCE_TOOLTIPS        = YES
 VERBATIM_HEADERS       = YES
 CLANG_ASSISTED_PARSING = NO
-CLANG_OPTIONS          = @CLANG_ARGS@ -std=c++11
+CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
 
 GENERATE_HTML          = NO
 GENERATE_LATEX         = NO
 
 # Graph generation
 CLASS_DIAGRAMS         = YES
-CLASS_GRAPH            = YES
+CLASS_GRAPH            = NO
 COLLABORATION_GRAPH    = YES
 GROUP_GRAPHS           = YES
 GRAPHICAL_HIERARCHY    = YES
 DIRECTORY_GRAPH        = YES
 DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
+
+# HTML-specific configuration
+HTML_OUTPUT            = .
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+HTML_EXTRA_STYLESHEET  =
+HTML_EXTRA_FILES       =
+HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_SAT    = 100
+HTML_COLORSTYLE_GAMMA  = 80
+HTML_TIMESTAMP         = NO
+HTML_DYNAMIC_SECTIONS  = NO
+HTML_INDEX_NUM_ENTRIES = 100
+
+# LaTeX-specific configuration
+LATEX_OUTPUT           = .
+LATEX_CMD_NAME         = latex
+MAKEINDEX_CMD_NAME     = makeindex
+COMPACT_LATEX          = YES
+PAPER_TYPE             = a4
+EXTRA_PACKAGES         =
+LATEX_HEADER           =
+LATEX_FOOTER           =
+LATEX_EXTRA_STYLESHEET =
+LATEX_EXTRA_FILES      =
+PDF_HYPERLINKS         = YES
+USE_PDFLATEX           = YES
+LATEX_BATCHMODE        = YES
+LATEX_HIDE_INDICES     = NO
+LATEX_SOURCE_CODE      = NO
+LATEX_BIB_STYLE        = plain
+LATEX_TIMESTAMP        = NO

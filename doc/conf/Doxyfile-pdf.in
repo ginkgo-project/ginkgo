@@ -1,19 +1,35 @@
-# LaTeX output
 GENERATE_LATEX         = YES
-LATEX_OUTPUT           = .
-LATEX_CMD_NAME         = latex
-MAKEINDEX_CMD_NAME     = makeindex
-COMPACT_LATEX          = YES
-PAPER_TYPE             = a4
-EXTRA_PACKAGES         =
-LATEX_HEADER           =
-LATEX_FOOTER           =
-LATEX_EXTRA_STYLESHEET =
-LATEX_EXTRA_FILES      =
-PDF_HYPERLINKS         = YES
-USE_PDFLATEX           = YES
-LATEX_BATCHMODE        = NO
-LATEX_HIDE_INDICES     = NO
-LATEX_SOURCE_CODE      = NO
-LATEX_BIB_STYLE        = plain
-LATEX_TIMESTAMP        = NO
+
+# this is used to hide protected members
+PREDEFINED = protected=private
+
+# hide all unnecessary graphs
+CLASS_DIAGRAMS         = NO
+CLASS_GRAPH            = NO
+COLLABORATION_GRAPH    = NO
+GROUP_GRAPHS           = NO
+GRAPHICAL_HIERARCHY    = YES
+DIRECTORY_GRAPH        = NO
+INCLUDE_GRAPH          = NO
+INCLUDED_BY_GRAPH      = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# hide some unnecessary stuff
+HIDE_FRIEND_COMPOUNDS  = YES
+HIDE_IN_BODY_DOCS      = YES
+HIDE_UNDOC_CLASSES     = YES
+HIDE_UNDOC_MEMBERS     = YES
+HIDE_UNDOC_RELATIONS   = YES
+
+# hide local, private, internal or static stuff
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_PRIVATE        = NO
+INTERNAL_DOCS          = NO
+SOURCE_BROWSER         = NO
+EXCLUDE_SYMBOLS        = *::detail::* std::*
+
+# remove unnecessary sections from the PDF
+LATEX_HIDE_INDICES     = YES
+ALPHABETICAL_INDEX     = NO
