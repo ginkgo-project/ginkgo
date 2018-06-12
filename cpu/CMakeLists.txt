@@ -13,9 +13,7 @@ set(SOURCES
 add_library(ginkgo_cpu
     $<TARGET_OBJECTS:ginkgo_cpu_device>
     ${SOURCES})
-if(BUILD_GPU)
-    target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
-endif()
+target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
 ginkgo_default_includes(ginkgo_cpu)
 ginkgo_install_library(ginkgo_cpu cpu)
 
