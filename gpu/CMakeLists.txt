@@ -23,11 +23,12 @@ find_library(CUSPARSE cusparse
 add_library(ginkgo_gpu
     $<TARGET_OBJECTS:ginkgo_gpu_device>
     ${SOURCES})
-target_include_directories(ginkgo_gpu PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(ginkgo_gpu
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_gpu PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS}
-  ${CUSPARSE})
+    ${CUSPARSE})
+ginkgo_default_includes(ginkgo_gpu)
+ginkgo_install_library(ginkgo_gpu gpu)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

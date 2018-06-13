@@ -20,10 +20,14 @@ if(BUILD_SHARED_LIBS)
     set_property(TARGET mmio PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 add_library(ginkgo ${SOURCES})
-target_include_directories(ginkgo PUBLIC ${PROJECT_SOURCE_DIR})
+# add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
+# regardless of whether it is installed or added as a subdirectory
+add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_cpu ginkgo_gpu ginkgo_reference
     PRIVATE mmio)
+ginkgo_default_includes(ginkgo)
+ginkgo_install_library(ginkgo core)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

@@ -13,7 +13,8 @@ set(SOURCES
 add_library(ginkgo_reference
     $<TARGET_OBJECTS:ginkgo_reference_device>
     ${SOURCES})
-target_include_directories(ginkgo_reference PUBLIC ${PROJECT_SOURCE_DIR})
+ginkgo_default_includes(ginkgo_reference)
+ginkgo_install_library(ginkgo_reference reference)
 
 if(BUILD_TESTS)
     add_subdirectory(test)
