@@ -84,9 +84,44 @@ public:
 
     class strategy_type {
     public:
+        strategy_type()
+            : ell_lim_(zero<size_type>()), coo_lim_(zero<size_type>())
+        {}
         virtual void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                                       const mat_data &data, size_type *ell_lim,
                                       size_type *coo_lim) const = 0;
+        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
+                              Array<size_type> *row_nnz, size_type *ell_lim,
+                              size_type *coo_lim)
+        {
+            this->compute_ell_limit(exec, row_nnz, ell_lim);
+            *coo_lim = this->get_coo_lim(*row_nnz, *ell_lim);
+            ell_lim_ = *ell_lim;
+            coo_lim_ = *coo_lim;
+        };
+        const size_type get_ell_lim() const noexcept { return ell_lim_; }
+        const size_type get_coo_lim() const noexcept { return coo_lim_; }
+
+        virtual void compute_ell_limit(std::shared_ptr<const Executor> exec,
+                                       Array<size_type> *row_nnz,
+                                       size_type *ell_lim) = 0;
+
+    protected:
+        size_type get_coo_lim(const Array<size_type> &row_nnz,
+                              const size_type ell_lim) const
+        {
+            size_type coo_lim = 0;
+            auto row_nnz_val = row_nnz.get_const_data();
+            for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
+                if (row_nnz_val[i] > ell_lim) {
+                    coo_lim += row_nnz_val[i] - ell_lim;
+                }
+            }
+            return coo_lim;
+        }
+
+    private:
+        size_type ell_lim_, coo_lim_;
     };
 
     class column_limit : public strategy_type {
@@ -97,6 +132,12 @@ public:
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
                               size_type *coo_lim) const override;
+
+        void compute_ell_limit(std::shared_ptr<const Executor> exec,
+                               Array<size_type> *row_nnz, size_type *ell_lim)
+        {
+            *ell_lim = num_columns_;
+        }
 
     private:
         size_type num_columns_;
@@ -112,6 +153,19 @@ public:
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
                               size_type *coo_lim) const override;
+        void compute_ell_limit(std::shared_ptr<const Executor> exec,
+                               Array<size_type> *row_nnz, size_type *ell_lim)
+        {
+            auto row_nnz_val = row_nnz->get_data();
+            auto num_rows = row_nnz->get_num_elems();
+            std::sort(row_nnz_val, row_nnz_val + num_rows);
+            if (percent_ < 1) {
+                auto percent_pos = static_cast<size_type>(num_rows * percent_);
+                *ell_lim = row_nnz_val[percent_pos];
+            } else {
+                *ell_lim = row_nnz_val[num_rows - 1];
+            }
+        }
 
     private:
         float percent_;
@@ -125,6 +179,13 @@ public:
                               size_type *coo_lim) const
         {
             strategy_.get_hybrid_limit(exec, data, ell_lim, coo_lim);
+        }
+
+    protected:
+        void compute_ell_limit(std::shared_ptr<const Executor> exec,
+                               Array<size_type> *row_nnz, size_type *ell_lim)
+        {
+            strategy_.compute_ell_limit(exec, row_nnz, ell_lim);
         }
 
     private:
@@ -343,6 +404,16 @@ public:
                ell_->get_num_stored_elements();
     }
 
+    /**
+     * Returns the strategy
+     *
+     * @return the strategy
+     */
+    std::shared_ptr<strategy_type> get_strategy() const noexcept
+    {
+        return strategy_;
+    }
+
 protected:
     /**
      * Creates an uninitialized Hybrid matrix of specified method.
@@ -353,9 +424,9 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hybrid(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<const strategy_type> strategy =
-               std::make_shared<const automatic>())
+    Hybrid(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : Hybrid(std::move(exec), dim{}, std::move(strategy))
     {}
 
@@ -369,9 +440,9 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-           std::shared_ptr<const strategy_type> strategy =
-               std::make_shared<const automatic>())
+    Hybrid(
+        std::shared_ptr<const Executor> exec, const dim &size,
+        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : Hybrid(std::move(exec), size, size.num_cols, std::move(strategy))
     {}
 
@@ -385,10 +456,10 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-           size_type max_nonzeros_per_row,
-           std::shared_ptr<const strategy_type> strategy =
-               std::make_shared<const automatic>())
+    Hybrid(
+        std::shared_ptr<const Executor> exec, const dim &size,
+        size_type max_nonzeros_per_row,
+        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : Hybrid(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
                  std::move(strategy))
     {}
@@ -404,11 +475,11 @@ protected:
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
      */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-           size_type max_nonzeros_per_row, size_type stride,
-           size_type num_nonzeros = {},
-           std::shared_ptr<const strategy_type> strategy =
-               std::make_shared<const automatic>())
+    Hybrid(
+        std::shared_ptr<const Executor> exec, const dim &size,
+        size_type max_nonzeros_per_row, size_type stride,
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : EnableLinOp<Hybrid>(exec, size),
           ell_(std::move(
               ell_type::create(exec, size, max_nonzeros_per_row, stride))),
@@ -424,8 +495,8 @@ protected:
 private:
     std::shared_ptr<ell_type> ell_;
     std::shared_ptr<coo_type> coo_;
-    std::shared_ptr<const strategy_type> strategy_;
-};
+    std::shared_ptr<strategy_type> strategy_;
+};  // namespace matrix
 
 
 }  // namespace matrix
