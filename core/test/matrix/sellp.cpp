@@ -53,7 +53,7 @@ protected:
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
-        gko::size_type *l = mtx->get_slice_lens();
+        gko::size_type *l = mtx->get_slice_lenghts();
         gko::size_type *s = mtx->get_slice_sets();
         l[0] = default_stride_factor * gko::ceildiv(3, default_stride_factor);
         s[0] = 0;
@@ -84,7 +84,7 @@ protected:
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
-        auto l = m->get_const_slice_lens();
+        auto l = m->get_const_slice_lenghts();
         auto s = m->get_const_slice_sets();
         auto slice_size = m->get_slice_size();
         auto stride_factor = m->get_stride_factor();
@@ -115,7 +115,7 @@ protected:
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
-        auto l = m->get_const_slice_lens();
+        auto l = m->get_const_slice_lenghts();
         auto s = m->get_const_slice_sets();
         auto slice_size = m->get_slice_size();
         auto stride_factor = m->get_stride_factor();
@@ -148,7 +148,7 @@ protected:
         ASSERT_EQ(m->get_total_cols(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_const_slice_lens(), nullptr);
+        ASSERT_EQ(m->get_const_slice_lenghts(), nullptr);
         ASSERT_EQ(m->get_const_slice_sets(), nullptr);
     }
 };

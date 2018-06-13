@@ -121,18 +121,21 @@ public:
      *
      * @return the lengths(columns) of slices.
      */
-    size_type *get_slice_lens() noexcept { return slice_lens_.get_data(); }
+    size_type *get_slice_lengths() noexcept
+    {
+        return slice_lengths_.get_data();
+    }
 
     /**
-     * @copydoc Sellp::get_slice_lens()
+     * @copydoc Sellp::get_slice_lengths()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const size_type *get_const_slice_lens() const noexcept
+    const size_type *get_const_slice_lengths() const noexcept
     {
-        return slice_lens_.get_const_data();
+        return slice_lengths_.get_const_data();
     }
 
     /**
@@ -284,9 +287,9 @@ protected:
         : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
-          slice_lens_(exec, (size.num_rows == 0)
-                                ? 0
-                                : ceildiv(size.num_rows, slice_size)),
+          slice_lengths_(exec, (size.num_rows == 0)
+                                   ? 0
+                                   : ceildiv(size.num_rows, slice_size)),
           slice_sets_(exec, (size.num_rows == 0)
                                 ? 0
                                 : ceildiv(size.num_rows, slice_size)),
@@ -309,7 +312,7 @@ protected:
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    Array<size_type> slice_lens_;
+    Array<size_type> slice_lengths_;
     Array<size_type> slice_sets_;
     size_type slice_size_;
     size_type stride_factor_;
