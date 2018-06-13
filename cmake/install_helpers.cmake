@@ -5,12 +5,12 @@ function(ginkgo_install_library name subdir)
     # install .so and .a files
     install(TARGETS "${name}"
         EXPORT Ginkgo
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
         )
     # copy header files
     install(DIRECTORY "${PROJECT_SOURCE_DIR}/${subdir}"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        DESTINATION include
         FILES_MATCHING PATTERN "*.hpp"
         )
 endfunction()
@@ -19,14 +19,14 @@ function(ginkgo_default_includes name)
     # set include path depending on used interface
     target_include_directories("${name}"
         PUBLIC
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
         )
 endfunction()
 
 function(ginkgo_install)
     # export targets
-    set(INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
+    set(INSTALL_CONFIG_DIR "lib/cmake/Ginkgo")
     install(EXPORT Ginkgo
         FILE GinkgoTargets.cmake
         NAMESPACE Ginkgo::
