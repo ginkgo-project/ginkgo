@@ -61,6 +61,7 @@ class Ell;
 template <typename ValueType, typename IndexType>
 class Hybrid;
 
+
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
  *

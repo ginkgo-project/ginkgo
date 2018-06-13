@@ -595,7 +595,7 @@ TEST_F(Dense, ConvertsToHybridWithStride)
 }
 
 
-TEST_F(Dense, MovesToHybridWithStrideByColumns2)
+TEST_F(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(
         mtx4->get_executor(), gko::dim{}, 0, 3, 3,
@@ -636,7 +636,7 @@ TEST_F(Dense, MovesToHybridWithStrideByColumns2)
 }
 
 
-TEST_F(Dense, ConvertsToHybridWithStrideByColumns2)
+TEST_F(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(
         mtx4->get_executor(), gko::dim{}, 0, 3, 3,
@@ -680,7 +680,7 @@ TEST_F(Dense, ConvertsToHybridWithStrideByColumns2)
 TEST_F(Dense, MovesToHybridWithStrideByPercent40)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(
-        mtx4->get_executor(), gko::dim{}, 0, 3, 0,
+        mtx4->get_executor(), gko::dim{}, 0, 3,
         std::make_shared<gko::matrix::Hybrid<>::imbalance_limit>(0.4));
 
     mtx4->move_to(hybrid_mtx.get());
@@ -716,7 +716,7 @@ TEST_F(Dense, MovesToHybridWithStrideByPercent40)
 TEST_F(Dense, ConvertsToHybridWithStrideByPercent40)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(
-        mtx4->get_executor(), gko::dim{}, 0, 3, 0,
+        mtx4->get_executor(), gko::dim{}, 0, 3,
         std::make_shared<gko::matrix::Hybrid<>::imbalance_limit>(0.4));
 
     mtx4->convert_to(hybrid_mtx.get());

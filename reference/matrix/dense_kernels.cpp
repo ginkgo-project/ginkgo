@@ -40,8 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
 
+
 #include <algorithm>
-#include <iostream>
+
 
 namespace gko {
 namespace kernels {

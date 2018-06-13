@@ -54,7 +54,7 @@ class Dense;
 
 
 /**
- * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO
+ * HYBRID is a matrix format which splits the matrix into ELLPACK and COO
  * format. Achieve the excellent performance with a proper partition of ELLPACK
  * and COO.
  *
@@ -87,9 +87,11 @@ public:
         strategy_type()
             : ell_lim_(zero<size_type>()), coo_lim_(zero<size_type>())
         {}
+
         virtual void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                                       const mat_data &data, size_type *ell_lim,
                                       size_type *coo_lim) const = 0;
+
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               Array<size_type> *row_nnz, size_type *ell_lim,
                               size_type *coo_lim)
@@ -99,7 +101,9 @@ public:
             ell_lim_ = *ell_lim;
             coo_lim_ = *coo_lim;
         };
+
         const size_type get_ell_lim() const noexcept { return ell_lim_; }
+
         const size_type get_coo_lim() const noexcept { return coo_lim_; }
 
         virtual void compute_ell_limit(std::shared_ptr<const Executor> exec,
@@ -129,6 +133,7 @@ public:
         explicit column_limit(size_type num_column = 0)
             : num_columns_(num_column)
         {}
+
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
                               size_type *coo_lim) const override;
@@ -150,9 +155,11 @@ public:
             percent_ = std::min(percent_, 1.0f);
             percent_ = std::max(percent_, 0.0f);
         }
+
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
                               size_type *coo_lim) const override;
+
         void compute_ell_limit(std::shared_ptr<const Executor> exec,
                                Array<size_type> *row_nnz, size_type *ell_lim)
         {
@@ -174,6 +181,7 @@ public:
     class automatic : public strategy_type {
     public:
         automatic() : strategy_(imbalance_limit(0.8)) {}
+
         void get_hybrid_limit(std::shared_ptr<const Executor> exec,
                               const mat_data &data, size_type *ell_lim,
                               size_type *coo_lim) const
@@ -181,7 +189,6 @@ public:
             strategy_.get_hybrid_limit(exec, data, ell_lim, coo_lim);
         }
 
-    protected:
         void compute_ell_limit(std::shared_ptr<const Executor> exec,
                                Array<size_type> *row_nnz, size_type *ell_lim)
         {
@@ -470,7 +477,24 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
-     * @param stride                stride of the rows
+     * @param stride  stride of the rows
+     * @param partition  partition method
+     * @param val  the value used in partition (ignored in automatically)
+     */
+    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
+           size_type max_nonzeros_per_row, size_type stride,
+           std::shared_ptr<strategy_type> strategy)
+        : Hybrid(std::move(exec), size, max_nonzeros_per_row, stride, {},
+                 std::move(strategy))
+    {}
+
+    /**
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param stride  stride of the rows
      * @param num_nonzeros  number of nonzeros
      * @param partition  partition method
      * @param val  the value used in partition (ignored in automatically)
@@ -496,7 +520,7 @@ private:
     std::shared_ptr<ell_type> ell_;
     std::shared_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
-};  // namespace matrix
+};
 
 
 }  // namespace matrix
