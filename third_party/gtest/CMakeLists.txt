@@ -2,6 +2,9 @@
 # settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
+set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
 load_git_package(gtest
     "https://github.com/google/googletest.git"
     "master")
