@@ -292,7 +292,7 @@ protected:
                                    : ceildiv(size.num_rows, slice_size)),
           slice_sets_(exec, (size.num_rows == 0)
                                 ? 0
-                                : ceildiv(size.num_rows, slice_size)),
+                                : ceildiv(size.num_rows, slice_size) + 1),
           slice_size_(slice_size),
           stride_factor_(stride_factor),
           total_cols_(total_cols)
