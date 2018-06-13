@@ -102,6 +102,8 @@ Ginkgo adds the following additional switches to control what is being built:
     the rest of the library (otherwise the nvcc toolchain uses its default host
     compiler). Setting this option may help if you're experiencing linking
     errors due to ABI incompatibilities. The default is `OFF`.
+*   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
+    The default value is usually something like `/usr/local`
 
 For example, to build everything (in debug mode), use:
 
@@ -143,4 +145,10 @@ where `path/to/test` is the path returned by `make test`.
 
 ### Installing ginkgo
 
-__TODO:__ Install step is not yet set up.
+To install ginkgo into the specified folder, execute the following command in the build folder
+
+```sh
+make install
+```
+
+If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix the call with `sudo`.
