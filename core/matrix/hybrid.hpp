@@ -54,8 +54,9 @@ class Dense;
 
 
 /**
- * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO format.
- * Achieve the excellent performance with a proper partition of ELLPACK and COO.
+ * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO
+ * format. Achieve the excellent performance with a proper partition of ELLPACK
+ * and COO.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -251,6 +252,13 @@ public:
     }
 
     /**
+     * Returns the matrix of the ell part
+     *
+     * @return the matrix of the ell part
+     */
+    const ell_type *get_ell() const noexcept { return ell_.get(); }
+
+    /**
      * Returns the values of the coo part.
      *
      * @return the values of the coo part.
@@ -316,6 +324,13 @@ public:
     {
         return coo_->get_num_stored_elements();
     }
+
+    /**
+     * Returns the matrix of the coo part
+     *
+     * @return the matrix of the coo part
+     */
+    const coo_type *get_coo() const noexcept { return coo_.get(); }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
