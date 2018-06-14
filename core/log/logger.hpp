@@ -66,7 +66,7 @@ namespace log {
  */
 class Logger : public EnableAbstractPolymorphicObject<Logger> {
 public:
-    /* @internal std::bitset allows to store any number of bits */
+    /** @internal std::bitset allows to store any number of bits */
     using mask_type = gko::uint64;
 
     /**
@@ -74,7 +74,9 @@ public:
      */
     static constexpr size_type event_count_max = sizeof(mask_type) * byte_size;
 
-    /* Bitset Mask which activates all events */
+    /**
+     * Bitset Mask which activates all events
+     */
     static constexpr mask_type all_events_mask = ~mask_type{0};
 
     /**
@@ -94,6 +96,9 @@ public:
      * @param _id  the unique id of the event
      *
      * @param _event_name  the name of the event
+     *
+     * @param ...  a variable list of arguments representing the event's
+     *             arguments
      */
 #define GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...)             \
 protected:                                                           \
@@ -111,8 +116,20 @@ public:                                                              \
     static constexpr size_type _event_name{_id};                     \
     static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
 
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations
+     */
     GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type &);
+
+    /**
+     * Register the `apply` event which logs every new apply call
+     */
     GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string &);
+
+    /**
+     * Register a the `converged` event which logs convergence
+     */
     GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type &, const LinOp *);
     // register other events
 
@@ -138,7 +155,6 @@ protected:
           enabled_events_{enabled_events}
     {}
 
-
 private:
     mask_type enabled_events_;
 };
@@ -155,7 +171,7 @@ public:
 
     /**
      * Adds a Logger object to log events to.
-     * @param  logger a shared_ptr to the logger object
+     * @param logger  a shared_ptr to the logger object
      */
     virtual void add_logger(std::shared_ptr<const Logger> logger) = 0;
 };
@@ -169,13 +185,11 @@ public:
  * @tparam ConcreteLoggable  the object being logged [CRTP parameter]
  *
  * @tparam PolymorphicBase  the polymorphic base of this class. By default
- *                          it is Loggable. Change if you want to use a new
+ *                          it is Loggable. Change it if you want to use a new
  *                          superclass of `Loggable` as polymorphic base of this
  *                          class.
  */
-// TODO: help me with this, cannot get clang to compile properly when I use CRTP
-//       here??
-// template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
+template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
 class EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
@@ -188,7 +202,7 @@ protected:
     void log(Params &&... params) const
     {
         for (auto &logger : loggers_) {
-            logger->on<Event>(std::forward<Params>(params)...);
+            logger->template on<Event>(std::forward<Params>(params)...);
         }
     }
 

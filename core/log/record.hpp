@@ -69,14 +69,12 @@ public:
         std::deque<std::unique_ptr<const LinOp>> residuals{};
     };
 
-
     void on_iteration_complete(const size_type &num_iterations) const override;
 
     void on_apply(const std::string &name) const override;
 
     void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
-
 
     /**
      * Returns the logged data
@@ -89,7 +87,6 @@ public:
      * @copydoc ::get()
      */
     logged_data &get() noexcept { return data_; }
-
 
 protected:
     explicit Record(std::shared_ptr<const gko::Executor> exec,

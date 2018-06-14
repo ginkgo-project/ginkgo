@@ -89,7 +89,7 @@ protected:
     Stream<ValueType> &operator=(Stream<ValueType> &other) { return *this; }
 
     std::ostream &os_;
-    const std::string prefix_ = "[LOG] >>> ";
+    static constexpr const char *prefix_ = "[LOG] >>> ";
 };
 
 

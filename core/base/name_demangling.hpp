@@ -72,16 +72,17 @@ std::string get_enclosing_scope_name(const T &)
 
 
 /**
- * This is a function which uses `std::type_info` and demangling functionalities
- * when available to return the proper location at which this function is
+ * This is a macro which uses `std::type_info` and demangling functionalities
+ * when available to return the proper location at which this macro is
  * called.
  *
  * @return properly formatted string representing the location of the call
  *
- * @internal we use a lambda to capture the scope of the function this is called
+ * @internal we use a lambda to capture the scope of the macro this is called
  * in, so that we have direct access to the relevant `std::type_info`
  *
  * @see C++11 documentation [type.info] and [expr.typeid]
+ * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
 #define GKO_FUNCTION_NAME \
     gko::name_demangling::detail::get_enclosing_scope_name([] {})

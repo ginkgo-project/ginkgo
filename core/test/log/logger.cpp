@@ -47,8 +47,7 @@ namespace {
 constexpr int num_iters = 10;
 
 
-struct DummyLoggedClass : gko::log::EnableLogging  // <DummyLoggedClass>
-{
+struct DummyLoggedClass : gko::log::EnableLogging<DummyLoggedClass> {
     int get_num_loggers() { return loggers_.size(); }
 
     void apply() { this->log<gko::log::Logger::iteration_complete>(num_iters); }
@@ -62,6 +61,7 @@ TEST(DummyLogged, CanAddLogger)
 
     c.add_logger(
         gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
 
@@ -75,6 +75,7 @@ TEST(DummyLogged, CanAddMultipleLoggers)
         gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
+
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
 
@@ -89,7 +90,6 @@ struct DummyLogger
         const mask_type &enabled_events = Logger::all_events_mask)
         : EnablePolymorphicObject<DummyLogger, Logger>(exec, enabled_events)
     {}
-
 
     void on_iteration_complete(
         const gko::size_type &num_iterations) const override

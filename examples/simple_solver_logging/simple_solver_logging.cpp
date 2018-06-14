@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     // Solve system
     solver->apply(gko::lend(b), gko::lend(x));
 
-    // Finally, get the data from `returnobject_logger` and print an element
+    // Finally, get the data from `record_logger` and print an element
     auto residual = record_logger->get().residuals.back().get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     // Set precision as needed for output
