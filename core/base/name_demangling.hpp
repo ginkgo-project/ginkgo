@@ -31,41 +31,65 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_NAME_DEMANGLING_HPP
+#define GKO_CORE_NAME_DEMANGLING_HPP
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
+#include "config.hpp"
 
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
+#ifdef GKO_HAVE_CXXABI_H
+#include <cxxabi.h>
+#endif  // GKO_HAVE_CXXABI_H
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <string>
+
+
+namespace gko {
+namespace name_demangling {
+namespace detail {
+
+
+template <typename T>
+std::string get_enclosing_scope_name(const T &)
+{
+#ifdef GKO_HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void *)>(
+            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name.substr(0, name.rfind(':') - 1);
+    else
+#endif  // GKO_HAVE_CXXABI_H
+        return std::string(typeid(T).name());
+}
+
+
+}  // namespace detail
+
+
+/**
+ * This is a macro which uses `std::type_info` and demangling functionalities
+ * when available to return the proper location at which this macro is
+ * called.
+ *
+ * @return properly formatted string representing the location of the call
+ *
+ * @internal we use a lambda to capture the scope of the macro this is called
+ * in, so that we have direct access to the relevant `std::type_info`
+ *
+ * @see C++11 documentation [type.info] and [expr.typeid]
+ * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
+ */
+#define GKO_FUNCTION_NAME \
+    gko::name_demangling::detail::get_enclosing_scope_name([] {})
+
+
+}  // namespace name_demangling
+}  // namespace gko
+
+
+#endif  //  GKO_CORE_NAME_DEMANGLING_HPP

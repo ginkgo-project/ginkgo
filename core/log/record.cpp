@@ -31,41 +31,42 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
-
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
 
 #include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace log {
+
+
+void Record::on_iteration_complete(const size_type &num_iterations) const
+{
+    data_.num_iterations = num_iterations;
+}
+
+
+void Record::on_apply(const std::string &name) const
+{
+    if (max_storage_ && data_.applies.size() == max_storage_) {
+        data_.applies.pop_front();
+    }
+    data_.applies.push_back(name);
+}
+
+
+/* TODO: improve this whenever the criterion class hierarchy MR is merged */
+void Record::on_converged(const size_type &at_iteration,
+                          const LinOp *residual) const
+{
+    data_.converged_at_iteration = at_iteration;
+    if (residual != nullptr) {
+        if (max_storage_ && data_.residuals.size() == max_storage_) {
+            data_.residuals.pop_front();
+        }
+        data_.residuals.push_back(residual->clone());
+    }
+}
+
+
+}  // namespace log
+}  // namespace gko

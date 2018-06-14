@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/math.hpp"
+#include "core/base/name_demangling.hpp"
 #include "core/base/utils.hpp"
 #include "core/solver/cg_kernels.hpp"
 
@@ -64,13 +65,14 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    this->template log<log::Logger::apply>(GKO_FUNCTION_NAME);
+
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_size().num_cols;
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -113,6 +115,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 &converged, &all_converged));
 
         if (all_converged) {
+            this->template log<log::Logger::converged>(iter + 1, r.get());
             break;
         }
 
@@ -129,6 +132,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + tmp * p
         // r = r - tmp * q
         swap(prev_rho, rho);
+        this->template log<log::Logger::iteration_complete>(iter + 1);
     }
 }
 
