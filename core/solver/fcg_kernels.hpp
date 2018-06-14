@@ -91,13 +91,13 @@ namespace fcg {
 }  // namespace fcg
 
 
-namespace cpu {
+namespace omp {
 namespace fcg {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fcg
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

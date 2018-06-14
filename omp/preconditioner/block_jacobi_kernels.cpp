@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const CpuExecutor> exec,
+void find_blocks(std::shared_ptr<const OmpExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers) NOT_IMPLEMENTED;
@@ -54,7 +54,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CpuExecutor> exec,
+void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type stride,
               const Array<IndexType> &block_pointers,
@@ -65,7 +65,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
            uint32 max_block_size, size_type stride,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
@@ -79,7 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+void simple_apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
                   uint32 max_block_size, size_type stride,
                   const Array<IndexType> &block_pointers,
                   const Array<ValueType> &blocks,
@@ -91,7 +91,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CpuExecutor> exec,
+void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
                       size_type num_blocks,
                       const Array<IndexType> &block_pointers,
                       const Array<ValueType> &blocks, size_type block_stride,
@@ -109,7 +109,7 @@ namespace adaptive_block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CpuExecutor> exec,
+void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size, size_type stride,
               Array<precision<ValueType, IndexType>> &block_precisions,
@@ -121,7 +121,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
            uint32 max_block_size, size_type stride,
            const Array<precision<ValueType, IndexType>> &block_precisions,
            const Array<IndexType> &block_pointers,
@@ -137,7 +137,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
     uint32 max_block_size, size_type stride,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
@@ -150,7 +150,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const CpuExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     size_type block_stride, ValueType *result_values,
@@ -161,6 +161,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace adaptive_block_jacobi
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

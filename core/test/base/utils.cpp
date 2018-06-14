@@ -286,21 +286,21 @@ class TemporaryClone : public ::testing::Test {
 protected:
     TemporaryClone()
         : ref{gko::ReferenceExecutor::create()},
-          cpu{gko::CpuExecutor::create()},
+          omp{gko::OmpExecutor::create()},
           obj{DummyObject::create(ref)}
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CpuExecutor> cpu;
+    std::shared_ptr<gko::OmpExecutor> omp;
     std::unique_ptr<DummyObject> obj;
 };
 
 
 TEST_F(TemporaryClone, CopiesToAnotherExecutor)
 {
-    auto clone = make_temporary_clone(cpu, gko::lend(obj));
+    auto clone = make_temporary_clone(omp, gko::lend(obj));
 
-    ASSERT_EQ(clone.get()->get_executor(), cpu);
+    ASSERT_EQ(clone.get()->get_executor(), omp);
     ASSERT_EQ(obj->get_executor(), ref);
 }
 
@@ -308,7 +308,7 @@ TEST_F(TemporaryClone, CopiesToAnotherExecutor)
 TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 {
     {
-        auto clone = make_temporary_clone(cpu, gko::lend(obj));
+        auto clone = make_temporary_clone(omp, gko::lend(obj));
         clone.get()->data = 7;
     }
 

@@ -103,13 +103,13 @@ namespace cgs {
 }  // namespace cgs
 
 
-namespace cpu {
+namespace omp {
 namespace cgs {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

@@ -58,7 +58,7 @@ class EnablePolymorphicObject : public testing::Test {
 protected:
     std::shared_ptr<gko::ReferenceExecutor> ref{
         gko::ReferenceExecutor::create()};
-    std::shared_ptr<gko::CpuExecutor> cpu{gko::CpuExecutor::create()};
+    std::shared_ptr<gko::OmpExecutor> omp{gko::OmpExecutor::create()};
     std::unique_ptr<DummyObject> obj{new DummyObject(ref, 5)};
 };
 
@@ -81,10 +81,10 @@ TEST_F(EnablePolymorphicObject, CreatesDefaultObject)
 
 TEST_F(EnablePolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
 {
-    auto def = obj->create_default(cpu);
+    auto def = obj->create_default(omp);
 
     ASSERT_NE(def, obj);
-    ASSERT_EQ(def->get_executor(), cpu);
+    ASSERT_EQ(def->get_executor(), omp);
     ASSERT_EQ(def->x, 0);
 }
 
@@ -101,22 +101,22 @@ TEST_F(EnablePolymorphicObject, ClonesObject)
 
 TEST_F(EnablePolymorphicObject, ClonesObjectToAnotherExecutor)
 {
-    auto clone = obj->clone(cpu);
+    auto clone = obj->clone(omp);
 
     ASSERT_NE(clone, obj);
-    ASSERT_EQ(clone->get_executor(), cpu);
+    ASSERT_EQ(clone->get_executor(), omp);
     ASSERT_EQ(clone->x, 5);
 }
 
 
 TEST_F(EnablePolymorphicObject, CopiesObject)
 {
-    auto copy = DummyObject::create(cpu, 7);
+    auto copy = DummyObject::create(omp, 7);
 
     copy->copy_from(gko::lend(obj));
 
     ASSERT_NE(copy, obj);
-    ASSERT_EQ(copy->get_executor(), cpu);
+    ASSERT_EQ(copy->get_executor(), omp);
     ASSERT_EQ(copy->x, 5);
 }
 

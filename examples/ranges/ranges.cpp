@@ -45,7 +45,7 @@ libraries located in the following subdirectories:
     + core/
     + core/device_hooks/
     + reference/
-    + cpu/
+    + omp/
     + gpu/
 
 to this directory.
@@ -53,7 +53,7 @@ to this directory.
 Then compile the file with the following command line:
 
 c++ -std=c++11 -o ranges ranges.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
+    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 

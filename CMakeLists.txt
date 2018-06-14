@@ -8,8 +8,8 @@ project(Ginkgo LANGUAGES CXX VERSION 1.0)
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
-option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
-option(BUILD_CPU "Compile kernels for CPUs" OFF)
+option(BUILD_REFERENCE "Compile reference OMP kernels" OFF)
+option(BUILD_OMP "Compile kernels for OMP" OFF)
 option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
@@ -55,8 +55,8 @@ add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
-if (BUILD_CPU)
-    add_subdirectory(cpu)        # High-performance cpu kernels
+if (BUILD_OMP)
+    add_subdirectory(omp)        # High-performance omp kernels
 endif()
 if(BUILD_GPU)
     add_subdirectory(gpu)        # High-performance gpu kernels

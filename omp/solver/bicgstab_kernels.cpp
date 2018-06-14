@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace bicgstab {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const CpuExecutor> exec,
+void initialize(std::shared_ptr<const OmpExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *rr, matrix::Dense<ValueType> *y,
                 matrix::Dense<ValueType> *s, matrix::Dense<ValueType> *t,
@@ -58,7 +58,7 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 template <typename ValueType>
-void test_convergence(std::shared_ptr<const CpuExecutor> exec,
+void test_convergence(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
@@ -70,7 +70,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const CpuExecutor> exec,
+void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
@@ -83,7 +83,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const CpuExecutor> exec,
+void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
@@ -96,7 +96,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(
-    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *x,
+    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *x,
     matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
@@ -108,7 +108,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
 
 template <typename ValueType>
-void finalize(std::shared_ptr<const CpuExecutor> exec,
+void finalize(std::shared_ptr<const OmpExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
               const matrix::Dense<ValueType> *alpha,
               Array<stopping_status> *stop_status) NOT_IMPLEMENTED;
@@ -117,6 +117,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
 
 
 }  // namespace bicgstab
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

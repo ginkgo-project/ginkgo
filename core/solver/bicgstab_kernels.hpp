@@ -122,13 +122,13 @@ namespace bicgstab {
 }  // namespace bicgstab
 
 
-namespace cpu {
+namespace omp {
 namespace bicgstab {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicgstab
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

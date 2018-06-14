@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace dense {
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const CpuExecutor> exec,
+void simple_apply(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *a,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
@@ -53,7 +53,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const CpuExecutor> exec,
+void apply(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Dense<ValueType> *alpha,
            const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
            const matrix::Dense<ValueType> *beta,
@@ -63,7 +63,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const CpuExecutor> exec,
+void scale(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Dense<ValueType> *alpha,
            matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
 
@@ -71,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
-void add_scaled(std::shared_ptr<const CpuExecutor> exec,
+void add_scaled(std::shared_ptr<const OmpExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x,
                 matrix::Dense<ValueType> *y) NOT_IMPLEMENTED;
@@ -80,7 +80,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
-void compute_dot(std::shared_ptr<const CpuExecutor> exec,
+void compute_dot(std::shared_ptr<const OmpExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result) NOT_IMPLEMENTED;
@@ -89,7 +89,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const CpuExecutor> exec,
+void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
@@ -98,7 +98,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CpuExecutor> exec,
+void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
@@ -107,7 +107,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_csr(std::shared_ptr<const CpuExecutor> exec,
+void move_to_csr(std::shared_ptr<const OmpExecutor> exec,
                  matrix::Csr<ValueType, IndexType> *result,
                  const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
@@ -116,7 +116,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const CpuExecutor> exec,
+void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Ell<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
@@ -125,7 +125,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_ell(std::shared_ptr<const CpuExecutor> exec,
+void move_to_ell(std::shared_ptr<const OmpExecutor> exec,
                  matrix::Ell<ValueType, IndexType> *result,
                  const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
 
@@ -134,7 +134,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void count_nonzeros(std::shared_ptr<const CpuExecutor> exec,
+void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType> *source,
                     size_type *result) NOT_IMPLEMENTED;
 
@@ -142,7 +142,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 
 template <typename ValueType>
-void calculate_max_nonzeros_per_row(std::shared_ptr<const CpuExecutor> exec,
+void calculate_max_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
                                     const matrix::Dense<ValueType> *source,
                                     size_type *result) NOT_IMPLEMENTED;
 
@@ -151,7 +151,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void transpose(std::shared_ptr<const CpuExecutor> exec,
+void transpose(std::shared_ptr<const OmpExecutor> exec,
                matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;
 
@@ -159,7 +159,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
-void conj_transpose(std::shared_ptr<const CpuExecutor> exec,
+void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Dense<ValueType> *trans,
                     const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;
 
@@ -167,6 +167,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace dense
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

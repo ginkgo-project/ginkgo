@@ -9,8 +9,8 @@ BUILD_DIR=$1
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 
 # copy libraries
-LIBRARY_DIRS="core core/device_hooks reference cpu gpu"
-LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_cpu ginkgo_gpu"
+LIBRARY_DIRS="core core/device_hooks reference omp gpu"
+LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_omp ginkgo_gpu"
 SUFFIXES=".so .dylib .dll d.so d.dylib d.dll"
 for prefix in ${LIBRARY_DIRS}; do
     for name in ${LIBRARY_NAMES}; do
@@ -23,9 +23,9 @@ done
 
 # figure out correct compiler flags
 if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
-    LINK_FLAGS="-lginkgo -lginkgo_cpu -lginkgo_gpu -lginkgo_reference"
+    LINK_FLAGS="-lginkgo -lginkgo_omp -lginkgo_gpu -lginkgo_reference"
 else
-    LINK_FLAGS="-lginkgod -lginkgo_cpud -lginkgo_gpud -lginkgo_referenced"
+    LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_gpud -lginkgo_referenced"
 fi
 if [ -z "${CXX}" ]; then
     CXX="c++"

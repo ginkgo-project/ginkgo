@@ -121,8 +121,8 @@ TEST_F(Array, CanBeMoveConstructed)
 
 TEST_F(Array, CanBeCopied)
 {
-    auto cpu = gko::CpuExecutor::create();
-    gko::Array<int> a(cpu, 3);
+    auto omp = gko::OmpExecutor::create();
+    gko::Array<int> a(omp, 3);
     a = x;
     x.get_data()[0] = 7;
 
@@ -132,8 +132,8 @@ TEST_F(Array, CanBeCopied)
 
 TEST_F(Array, CanBeMoved)
 {
-    auto cpu = gko::CpuExecutor::create();
-    gko::Array<int> a(cpu, 3);
+    auto omp = gko::OmpExecutor::create();
+    gko::Array<int> a(omp, 3);
     a = std::move(x);
 
     assert_equal_to_original_x(a);
@@ -195,10 +195,10 @@ TEST_F(Array, ReleasesData)
 
 TEST_F(Array, ChangesExecutors)
 {
-    auto cpu = gko::CpuExecutor::create();
-    x.set_executor(cpu);
+    auto omp = gko::OmpExecutor::create();
+    x.set_executor(omp);
 
-    ASSERT_EQ(x.get_executor(), cpu);
+    ASSERT_EQ(x.get_executor(), omp);
     assert_equal_to_original_x(x);
 }
 
