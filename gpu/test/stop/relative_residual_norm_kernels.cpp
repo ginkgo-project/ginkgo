@@ -62,58 +62,81 @@ protected:
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(ref_, 1);
-    converged.get_data()[0] = false;
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    stop_status.get_data()[0].clear();
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, ref_);
     auto d_scalar = gko::matrix::Dense<>::create(gpu_);
     d_scalar->copy_from(scalar.get());
-    converged.set_executor(gpu_);
+    stop_status.set_executor(gpu_);
 
     ASSERT_FALSE(
-        criterion->update().residual_norm(d_scalar.get()).check(converged));
+        criterion->update()
+            .residual_norm(d_scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
     scalar->at(0) = residual_goal * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
-        criterion->update().residual_norm(d_scalar.get()).check(converged));
+        criterion->update()
+            .residual_norm(d_scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+    stop_status.set_executor(gpu_);
+    ASSERT_EQ(one_changed, false);
 
     scalar->at(0) = residual_goal * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
-        criterion->update().residual_norm(d_scalar.get()).check(converged));
-    converged.set_executor(ref_);
-    ASSERT_EQ(converged.get_data()[0], true);
+        criterion->update()
+            .residual_norm(d_scalar.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
+    ASSERT_EQ(one_changed, true);
 }
 
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
-    gko::Array<bool> converged(ref_, 2);
-    converged.get_data()[0] = false;
-    converged.get_data()[1] = false;
-    auto mtx =
-        gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}, {1.0, 1.0}}, ref_);
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    stop_status.get_data()[0].clear();
+    stop_status.get_data()[1].clear();
+    constexpr gko::uint8 RelativeStoppingId{1};
+    auto mtx = gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}}, ref_);
     auto d_mtx = gko::matrix::Dense<>::create(gpu_);
     d_mtx->copy_from(mtx.get());
-    converged.set_executor(gpu_);
+    stop_status.set_executor(gpu_);
 
-    criterion->update().residual_norm(d_mtx.get()).check(converged);
+    ASSERT_FALSE(
+        criterion->update()
+            .residual_norm(d_mtx.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
     mtx->at(0, 0) = residual_goal * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
-        criterion->update().residual_norm(d_mtx.get()).check(converged));
-    converged.set_executor(ref_);
-    ASSERT_EQ(converged.get_data()[0], true);
-    converged.set_executor(gpu_);
+        criterion->update()
+            .residual_norm(d_mtx.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
+    stop_status.set_executor(gpu_);
+    ASSERT_EQ(one_changed, true);
 
     mtx->at(0, 1) = residual_goal * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
-        criterion->update().residual_norm(d_mtx.get()).check(converged));
-    converged.set_executor(ref_);
-    ASSERT_EQ(converged.get_data()[1], true);
+        criterion->update()
+            .residual_norm(d_mtx.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
+    ASSERT_EQ(one_changed, true);
 }
 
 

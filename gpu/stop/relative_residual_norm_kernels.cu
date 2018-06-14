@@ -72,6 +72,7 @@ __global__
     }
 }
 
+
 template <typename ValueType>
 void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
@@ -83,7 +84,6 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
 {
     Array<bool> d_all_converged(exec, 1);
     Array<bool> all_converged_array(exec->get_master());
-
     // initialize all_converged with true
     *all_converged = true;
     all_converged_array.manage(1, all_converged);
@@ -101,9 +101,10 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
     relative_residual_norm_kernel<<<grid_size, block_size, 0, 0>>>(
         tau->get_size().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
-        as_cuda_type(orig_tau->get_const_values()),
-        as_cuda_type(converged->get_data()),
-        as_cuda_type(d_all_converged.get_data()));
+        as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
+        as_cuda_type(stop_status->get_data()),
+        as_cuda_type(d_all_converged.get_data()),
+        as_cuda_type(d_one_changed.get_data()));
 
     all_converged_array = d_all_converged;
     all_converged_array.release();

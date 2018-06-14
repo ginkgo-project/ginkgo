@@ -111,14 +111,14 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     mtx->at(0, 0) = residual_goal * 1.0e-2;
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
-    ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);
+    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
     one_changed = false;
 
     mtx->at(0, 1) = residual_goal * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
-    ASSERT_EQ(stop_status.get_data()[1].has_stopped(), true);
+    ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 }
 
