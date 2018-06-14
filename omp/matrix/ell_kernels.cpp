@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -46,8 +48,24 @@ namespace ell {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < a->get_size().num_rows; row++) {
+        for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            c->at(row, j) = zero<ValueType>();
+        }
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
+            auto val = a->val_at(row, i);
+            auto col = a->col_at(row, i);
+            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+                c->at(row, j) += val * b->at(col, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
@@ -58,16 +76,51 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *c)
+{
+    auto max_nonzeros_per_row = a->get_max_nonzeros_per_row();
+    auto alpha_val = alpha->at(0, 0);
+    auto beta_val = beta->at(0, 0);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < a->get_size().num_rows; row++) {
+        for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            c->at(row, j) *= beta_val;
+        }
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
+            auto val = a->val_at(row, i);
+            auto col = a->col_at(row, i);
+            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+                c->at(row, j) += alpha_val * val * b->at(col, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Ell<ValueType, IndexType> *source)
+{
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
+
+    for (size_type row = 0; row < num_rows; row++) {
+#pragma omp parallel for
+        for (size_type col = 0; col < num_cols; col++) {
+            result->at(row, col) = zero<ValueType>();
+        }
+#pragma omp parallel for
+        for (size_type i = 0; i < max_nonzeros_per_row; i++) {
+            result->at(row, source->col_at(row, i)) += source->val_at(row, i);
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
