@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <iostream>
 
 
 namespace gko {
@@ -66,12 +65,8 @@ void relative_residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
     for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
-        // std::cout << "i: " << i << " stopped: "
-        //           << stop_status->get_const_data()[i].has_stopped()
-        //           << std::endl;
         if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
-            std::cout << "set converged to false" << std::endl;
             break;
         }
     }

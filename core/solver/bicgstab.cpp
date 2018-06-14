@@ -151,6 +151,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
+        // s->compute_dot(s.get(), tau.get());
         // TODO: check this
         iters++;
         auto all_converged =
@@ -159,14 +160,16 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .residual_norm(tau.get())
                 .residual(r.get())
                 .solution(dense_x)
-                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
 
         if (one_changed) {
             exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
                 dense_x, y.get(), alpha.get(), &stop_status));
         }
 
-        if (all_converged) break;
+        if (all_converged) {
+            break;
+        }
 
         preconditioner_->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());

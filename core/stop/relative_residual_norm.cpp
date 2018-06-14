@@ -36,9 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/relative_residual_norm_kernels.hpp"
 
 
-#include <iostream>
-
-
 namespace gko {
 namespace stop {
 namespace {
