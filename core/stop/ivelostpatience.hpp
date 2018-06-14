@@ -86,6 +86,10 @@ public:
     struct Factory : public Criterion::Factory {
         using t = volatile bool &;
 
+        /**
+         * Instantiates a IveLostPatience stopping criterion Factory
+         * @param v  user controlled boolean deciding convergence
+         */
         explicit Factory(t v) : v_{v} {}
 
         static std::unique_ptr<Factory> create(t v)
@@ -100,6 +104,10 @@ public:
         t v_;
     };
 
+    /**
+     * Instantiates a IveLostPatience stopping criterion
+     * @param is_user_bored  user controlled boolean deciding convergence
+     */
     explicit IveLostPatience(volatile bool &is_user_bored)
         : is_user_bored_{is_user_bored}
     {
