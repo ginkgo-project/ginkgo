@@ -72,7 +72,6 @@ __global__
     }
 }
 
-
 template <typename ValueType>
 void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
