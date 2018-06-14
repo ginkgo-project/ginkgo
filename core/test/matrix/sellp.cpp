@@ -55,25 +55,27 @@ protected:
         Mtx::index_type *c = mtx->get_col_idxs();
         gko::size_type *l = mtx->get_slice_lengths();
         gko::size_type *s = mtx->get_slice_sets();
-        l[0] = default_stride_factor * gko::ceildiv(3, default_stride_factor);
+        l[0] = gko::matrix::default_stride_factor *
+               gko::ceildiv(3, gko::matrix::default_stride_factor);
         s[0] = 0;
         s[1] = l[0];
         c[0] = 0;
         c[1] = 1;
-        c[default_slice_size] = 1;
-        c[default_slice_size + 1] = 0;
-        c[2 * default_slice_size] = 2;
-        c[2 * default_slice_size + 1] = 0;
+        c[gko::matrix::default_slice_size] = 1;
+        c[gko::matrix::default_slice_size + 1] = 0;
+        c[2 * gko::matrix::default_slice_size] = 2;
+        c[2 * gko::matrix::default_slice_size + 1] = 0;
         v[0] = 1.0;
         v[1] = 5.0;
-        v[default_slice_size] = 3.0;
-        v[default_slice_size + 1] = 0.0;
-        v[2 * default_slice_size] = 2.0;
-        v[2 * default_slice_size + 1] = 0.0;
+        v[gko::matrix::default_slice_size] = 3.0;
+        v[gko::matrix::default_slice_size + 1] = 0.0;
+        v[2 * gko::matrix::default_slice_size] = 2.0;
+        v[2 * gko::matrix::default_slice_size + 1] = 0.0;
         for (int i = 3; i < l[0]; i++) {
             for (int j = 0; j < 2; j++) {
-                c[i * default_slice_size + j] = c[2 * default_slice_size + j];
-                v[i * default_slice_size + j] = 0;
+                c[i * gko::matrix::default_slice_size + j] =
+                    c[2 * gko::matrix::default_slice_size + j];
+                v[i * gko::matrix::default_slice_size + j] = 0;
             }
         }
     }
@@ -92,24 +94,24 @@ protected:
         auto total_cols = m->get_total_cols();
         ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 192);
-        ASSERT_EQ(m->get_slice_size(), default_slice_size);
-        ASSERT_EQ(m->get_stride_factor(), default_stride_factor);
+        ASSERT_EQ(m->get_slice_size(), gko::matrix::default_slice_size);
+        ASSERT_EQ(m->get_stride_factor(), gko::matrix::default_stride_factor);
         ASSERT_EQ(m->get_total_cols(), 3);
         EXPECT_EQ(l[0], 3);
         EXPECT_EQ(s[0], 0);
         EXPECT_EQ(s[1], 3);
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[default_slice_size], 1);
-        EXPECT_EQ(c[default_slice_size + 1], 0);
-        EXPECT_EQ(c[2 * default_slice_size], 2);
-        EXPECT_EQ(c[2 * default_slice_size + 1], 0);
+        EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
+        EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+        EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
+        EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
         EXPECT_EQ(v[0], 1.0);
         EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[default_slice_size], 3.0);
-        EXPECT_EQ(v[default_slice_size + 1], 0.0);
-        EXPECT_EQ(v[2 * default_slice_size], 2.0);
-        EXPECT_EQ(v[2 * default_slice_size + 1], 0.0);
+        EXPECT_EQ(v[gko::matrix::default_slice_size], 3.0);
+        EXPECT_EQ(v[gko::matrix::default_slice_size + 1], 0.0);
+        EXPECT_EQ(v[2 * gko::matrix::default_slice_size], 2.0);
+        EXPECT_EQ(v[2 * gko::matrix::default_slice_size + 1], 0.0);
     }
 
     void assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
@@ -161,8 +163,8 @@ TEST_F(Sellp, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 192);
-    ASSERT_EQ(mtx->get_slice_size(), default_slice_size);
-    ASSERT_EQ(mtx->get_stride_factor(), default_stride_factor);
+    ASSERT_EQ(mtx->get_slice_size(), gko::matrix::default_slice_size);
+    ASSERT_EQ(mtx->get_stride_factor(), gko::matrix::default_stride_factor);
     ASSERT_EQ(mtx->get_total_cols(), 3);
 }
 

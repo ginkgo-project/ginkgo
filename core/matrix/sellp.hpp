@@ -33,12 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 
 
+namespace gko {
+namespace matrix {
+
+
 constexpr int default_slice_size = 64;
 constexpr int default_stride_factor = 1;
 
-
-namespace gko {
-namespace matrix {
 
 template <typename ValueType>
 class Dense;
@@ -310,13 +311,13 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<size_type> slice_lengths_;
-    Array<size_type> slice_sets_;
+    Array<value_type> values_{0};
+    Array<index_type> col_idxs_{0};
+    Array<size_type> slice_lengths_{0};
+    Array<size_type> slice_sets_{0};
     size_type slice_size_;
     size_type stride_factor_;
-    size_type total_cols_;
+    size_type total_cols_{0};
 };
 
 

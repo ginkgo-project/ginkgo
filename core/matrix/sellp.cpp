@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
 
+
 #include <vector>
 
 
@@ -65,12 +66,12 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
         if (elem.row != current_row) {
             current_row = elem.row;
             slice_lengths[current_slice] =
-                std::max(slice_lengths[current_slice], nnz);
+                max(slice_lengths[current_slice], nnz);
             nnz = 0;
         }
         nnz += (elem.value != zero<ValueType>());
     }
-    slice_lengths[current_slice] = std::max(slice_lengths[current_slice], nnz);
+    slice_lengths[current_slice] = max(slice_lengths[current_slice], nnz);
     slice_lengths[current_slice] =
         stride_factor * ceildiv(slice_lengths[current_slice], stride_factor);
     total_cols += slice_lengths[current_slice];
