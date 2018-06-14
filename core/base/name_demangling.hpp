@@ -31,71 +31,65 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
-#define GKO_GPU_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
+#ifndef GKO_CORE_NAME_DEMANGLING_HPP
+#define GKO_CORE_NAME_DEMANGLING_HPP
 
 
-#include "core/base/types.hpp"
+#include "config.hpp"
+
+#ifdef GKO_HAVE_CXXABI_H
+#include <cxxabi.h>
+#endif  // GKO_HAVE_CXXABI_H
+
+
+#include <string>
 
 
 namespace gko {
-namespace kernels {
-namespace gpu {
+namespace name_demangling {
+namespace detail {
 
 
-template <typename ValueType, size_type size>
+template <typename T>
+std::string get_enclosing_scope_name(const T &)
+{
+#ifdef GKO_HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void *)>(
+            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name.substr(0, name.rfind(':') - 1);
+    else
+#endif  // GKO_HAVE_CXXABI_H
+        return std::string(typeid(T).name());
+}
+
+
+}  // namespace detail
+
+
 /**
- * Stores an array with uninitialized contents.
+ * This is a macro which uses `std::type_info` and demangling functionalities
+ * when available to return the proper location at which this macro is
+ * called.
+ *
+ * @return properly formatted string representing the location of the call
+ *
+ * @internal we use a lambda to capture the scope of the macro this is called
+ * in, so that we have direct access to the relevant `std::type_info`
+ *
+ * @see C++11 documentation [type.info] and [expr.typeid]
+ * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
-class UninitializedArray {
-public:
-    /**
-     * Operator for casting an UninitializedArray into its constexpr value
-     * pointer.
-     * @return the constexpr pointer to the first entry of the array.
-     */
-    constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
-    {
-        return &(*this)[0];
-    }
-
-    /**
-     * Operator for casting an UninitializedArray into its non-const value
-     * pointer.
-     * @return the non-const pointer to the first entry of the array.
-     */
-    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
-
-    /**
-     * constexpr array access operator.
-     * @param pos The array index. Using a value outside [0, size) is undefined
-     * behavior.
-     * @return a reference to the array entry at the given index.
-     */
-    constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
-    {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
-    }
-
-    /**
-     * Non-const array access operator.
-     * @param pos The array index. Using a value outside [0, size) is undefined
-     * behavior.
-     * @return a reference to the array entry at the given index.
-     */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
-    {
-        return reinterpret_cast<ValueType *>(data_)[pos];
-    }
-
-private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
-};
+#define GKO_FUNCTION_NAME \
+    gko::name_demangling::detail::get_enclosing_scope_name([] {})
 
 
-}  // namespace gpu
-}  // namespace kernels
+}  // namespace name_demangling
 }  // namespace gko
 
 
-#endif  // GKO_GPU_BASE_COMPONENTS_ARRAY_HPP_
+#endif  //  GKO_CORE_NAME_DEMANGLING_HPP

@@ -31,41 +31,70 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
 
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-
-#include "core/log/record.hpp"
 #include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/identity.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/stopping_status.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <iomanip>
+
+
+namespace gko {
+namespace log {
+
+
+namespace {
+
+
+template <typename ValueType = default_precision>
+std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
+{
+    auto exec = mtx->get_executor();
+    auto tmp = make_temporary_clone(exec->get_master(), mtx);
+    os << "[" << std::endl;
+    for (int i = 0; i < mtx->get_size().num_rows; ++i) {
+        for (int j = 0; j < mtx->get_size().num_cols; ++j) {
+            os << '\t' << mtx->at(i, j);
+        }
+        os << std::endl;
+    }
+    return os << "]" << std::endl;
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_iteration_complete(
+    const size_type &num_iterations) const
+{
+    os_ << prefix_ << "iteration " << num_iterations << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_apply(const std::string &name) const
+{
+    os_ << prefix_ << "starting apply function: " << name << std::endl;
+}
+
+
+/* TODO: improve this whenever the criterion class hierarchy MR is merged */
+template <typename ValueType>
+void Stream<ValueType>::on_converged(const size_type &at_iteration,
+                                     const LinOp *residual) const
+{
+    os_ << prefix_ << "converged at iteration " << at_iteration
+        << " residual:\n"
+        << as<gko::matrix::Dense<ValueType>>(residual);
+}
+
+
+#define GKO_DECLARE_STREAM(_type) class Stream<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
+#undef GKO_DECLARE_STREAM
+
+
+}  // namespace log
+}  // namespace gko

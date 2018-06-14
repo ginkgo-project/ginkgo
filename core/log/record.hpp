@@ -31,71 +31,77 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
-#define GKO_GPU_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
+#ifndef GKO_CORE_LOG_RECORD_HPP_
+#define GKO_CORE_LOG_RECORD_HPP_
 
 
-#include "core/base/types.hpp"
+#include "core/log/logger.hpp"
+#include "core/matrix/dense.hpp"
+
+
+#include <deque>
+#include <memory>
 
 
 namespace gko {
-namespace kernels {
-namespace gpu {
+namespace log {
 
 
-template <typename ValueType, size_type size>
 /**
- * Stores an array with uninitialized contents.
+ * Record is a Logger which logs every event to an object. The object can
+ * then be accessed at any time by asking the logger to return it.
  */
-class UninitializedArray {
+class Record : public EnablePolymorphicObject<Record, Logger>,
+               public EnableCreateMethod<Record> {
+    friend class EnablePolymorphicObject<Record, Logger>;
+    friend class EnableCreateMethod<Record>;
+
 public:
-    /**
-     * Operator for casting an UninitializedArray into its constexpr value
-     * pointer.
-     * @return the constexpr pointer to the first entry of the array.
-     */
-    constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
-    {
-        return &(*this)[0];
-    }
+    using EnablePolymorphicObject<Record, Logger>::EnablePolymorphicObject;
 
     /**
-     * Operator for casting an UninitializedArray into its non-const value
-     * pointer.
-     * @return the non-const pointer to the first entry of the array.
+     * Struct storing the actually logged data
      */
-    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
+    struct logged_data {
+        std::deque<std::string> applies{};
+        size_type num_iterations{};
+        size_type converged_at_iteration{};
+        std::deque<std::unique_ptr<const LinOp>> residuals{};
+    };
+
+    void on_iteration_complete(const size_type &num_iterations) const override;
+
+    void on_apply(const std::string &name) const override;
+
+    void on_converged(const size_type &at_iteration,
+                      const LinOp *residual) const override;
 
     /**
-     * constexpr array access operator.
-     * @param pos The array index. Using a value outside [0, size) is undefined
-     * behavior.
-     * @return a reference to the array entry at the given index.
+     * Returns the logged data
+     *
+     * @return the logged data
      */
-    constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
-    {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
-    }
+    const logged_data &get() const noexcept { return data_; }
 
     /**
-     * Non-const array access operator.
-     * @param pos The array index. Using a value outside [0, size) is undefined
-     * behavior.
-     * @return a reference to the array entry at the given index.
+     * @copydoc ::get()
      */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
-    {
-        return reinterpret_cast<ValueType *>(data_)[pos];
-    }
+    logged_data &get() noexcept { return data_; }
 
-private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+protected:
+    explicit Record(std::shared_ptr<const gko::Executor> exec,
+                    const mask_type &enabled_events, size_type max_storage = 0)
+        : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
+          max_storage_{max_storage}
+    {}
+
+    mutable logged_data data_{};
+    size_type max_storage_{};
 };
 
 
-}  // namespace gpu
-}  // namespace kernels
+}  // namespace log
 }  // namespace gko
 
 
-#endif  // GKO_GPU_BASE_COMPONENTS_ARRAY_HPP_
+#endif  // GKO_CORE_LOG_RECORD_HPP_
