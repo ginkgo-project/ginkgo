@@ -52,7 +52,7 @@ public:
 
         /**
          * Instantiates a Iteration::Factory object
-         * @param v the number of iterations
+         * @param v  the number of iterations
          */
         explicit Factory(t v) : v_{v} {}
 

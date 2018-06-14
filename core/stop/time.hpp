@@ -58,8 +58,8 @@ public:
         explicit Factory(t v) : v_{v} {}
 
         /**
-         * Instantiates a Iteration::Factory object
-         * @param v the amount of seconds to wait
+         * Instantiates a Time::Factory object
+         * @param v  the amount of seconds to wait
          */
         static std::unique_ptr<Factory> create(double v)
         {
@@ -74,6 +74,10 @@ public:
         t v_;
     };
 
+    /**
+     * Instantiates a Time stopping criterion
+     * @param limit  the amount of seconds to wait
+     */
     explicit Time(std::chrono::duration<double> limit)
         : limit_{std::chrono::duration_cast<clock::duration>(limit)},
           start_{clock::now()}

@@ -58,11 +58,10 @@ public:
         /**
          * Instantiates a Combined::Factory object by using any number of
          * unique_ptrs to Criterion::Factory.
-         * @param v any number of unique_ptr to criterion factories
+         * @param v  any number of unique_ptr to criterion factories
          *
          * @internal In order to allow any number of arguments to be passed, the
          * combined class relies on C++ Variadic Templates, or parameter packs.
-         * see: http://en.cppreference.com/w/cpp/language/parameter_pack
          */
         template <class... V>
         Factory(V... v)
@@ -76,10 +75,10 @@ public:
          * v` of the pack, one by one. A recursion is called on the rest of the
          * templates, through the pack `R`.
          *
-         * @tparam V the first element of the variadic template (pack)
-         * @tparam R the rest of the pack
-         * @param v the first element which will be pushed back
-         * @param rest the rest of the pack which we recurse upon
+         * @tparam V  the first element of the variadic template (pack)
+         * @tparam R  the rest of the pack
+         * @param v  the first element which will be pushed back
+         * @param rest  the rest of the pack which we recurse upon
          */
         template <class V, class... R>
         void emplace(V v, R... rest)
@@ -107,13 +106,11 @@ public:
     };
 
 
-    Combined() {}
-
     /**
      * Helper function which allows to add subcriterions in order to properly
      * build the Combined class with pointers to all subcriterions.
      *
-     * @param c the subcriterion to add to the Combined class
+     * @param c  the subcriterion to add to the Combined class
      */
     void add_subcriterion(std::unique_ptr<Criterion> c);
 

@@ -59,8 +59,8 @@ public:
     struct Factory : public Criterion::Factory {
         /**
          * Instantiates a RelativeResidualNorm::Factory object
-         * @param v the number of iterations
-         * @param exec the executor to run the check on.
+         * @param v  the number of iterations
+         * @param exec  the executor to run the check on.
          */
         explicit Factory(remove_complex<ValueType> v,
                          std::shared_ptr<const gko::Executor> exec)
@@ -84,8 +84,8 @@ public:
 
     /**
      * Instantiates a RelativeResidualNorm object
-     * @param v the number of iterations
-     * @param exec the executor to run the kernels on
+     * @param v  the number of iterations
+     * @param exec  the executor to run the kernels on
      */
     explicit RelativeResidualNorm(remove_complex<ValueType> goal,
                                   std::shared_ptr<const gko::Executor> exec)

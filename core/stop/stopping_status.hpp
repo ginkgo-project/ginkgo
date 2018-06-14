@@ -39,6 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
+#include <iostream>
+
+
 namespace gko {
 
 
@@ -47,7 +50,7 @@ namespace gko {
  */
 class stopping_status {
 public:
-    stopping_status() = default;
+    stopping_status() : data_{0} {}
 
     /**
      * Check if any stopping criteria was fulfilled.
@@ -137,12 +140,14 @@ public:
         }
     }
 
+    GKO_ATTRIBUTES GKO_INLINE void clear() noexcept { data_ = 0; }
+
 private:
     static constexpr uint8 converged_mask_ = uint8{1} << 7;
     static constexpr uint8 finalized_mask_ = uint8{1} << 6;
     static constexpr uint8 id_mask_ = (uint8{1} << 6) - uint8{1};
 
-    uint8 data_;
+    uint8 data_{};
 };
 
 

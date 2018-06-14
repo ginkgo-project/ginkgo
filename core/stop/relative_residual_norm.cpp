@@ -36,6 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/relative_residual_norm_kernels.hpp"
 
 
+#include <iostream>
+
+
 namespace gko {
 namespace stop {
 namespace {
@@ -75,12 +78,12 @@ bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
         return false;
     }
 
-    bool all_converged = false;
+    bool all_converged{};
     exec_->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
             as<Vector>(updater.residual_norm_), starting_tau_.get(),
             rel_residual_goal_, stoppingId, setFinalized, stop_status,
-            one_changed, &all_converged));
+            &all_converged, one_changed));
     return all_converged;
 }
 

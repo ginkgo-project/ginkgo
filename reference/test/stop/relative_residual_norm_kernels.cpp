@@ -63,8 +63,8 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    // stop_status.get_data()[0] = false;
     auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
 
     ASSERT_FALSE(
@@ -78,6 +78,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+    ASSERT_EQ(one_changed, false);
 
     scalar->at(0) = residual_goal * 1.0e-2;
     ASSERT_TRUE(
@@ -85,6 +86,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
+    ASSERT_EQ(one_changed, true);
 }
 
 
@@ -93,22 +95,31 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
+    // Array only does malloc, it *does not* construct the object
+    // therefore you get bullcrap in your objects whatever you do.
+    // Proper fix is not easy, we can't just call memset (even with CUDA version
+    // because that would overwrite data version) We can probably not call
+    // placement constructor either
+    stop_status.get_data()[0].clear();
+    stop_status.get_data()[1].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto mtx =
-        gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}, {1.0, 1.0}}, exec_);
+    auto mtx = gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}}, exec_);
 
-    criterion->update().residual_norm(mtx.get()).check(
-        RelativeStoppingId, true, &stop_status, &one_changed);
+    ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
+        RelativeStoppingId, true, &stop_status, &one_changed));
 
     mtx->at(0, 0) = residual_goal * 1.0e-2;
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
-    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
+    ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);
+    ASSERT_EQ(one_changed, true);
+    one_changed = false;
 
     mtx->at(0, 1) = residual_goal * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
-    ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
+    ASSERT_EQ(stop_status.get_data()[1].has_stopped(), true);
+    ASSERT_EQ(one_changed, true);
 }
 
 

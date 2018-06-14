@@ -59,11 +59,11 @@ public:
         /**
          * Creates the stopping criterion test.
          *
-         * @param system_matrix the tested LinOp's system matrix
-         * @param b the tested LinOp's input vector(s)
-         * @param x the tested LinOp's output vector(s)
+         * @param system_matrix  the tested LinOp's system matrix
+         * @param b  the tested LinOp's input vector(s)
+         * @param x  the tested LinOp's output vector(s)
          *
-         * @return The newly created stopping criterion test
+         * @return the newly created stopping criterion test
          */
         virtual std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
@@ -146,10 +146,11 @@ public:
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
      *
-     * @param stoppingId  someone else do it
-     * @param setFinalized  someone else do it
-     * @param stop_status  someone else do it
-     * @param one_changed  someone else do it
+     * @param stoppingId  id of the stopping criteria
+     * @param setFinalized  Controls if the current version should count as
+     *                      finalized or not
+     * @param stop_status  status of the stopping criteria
+     * @param one_changed  indicates if one vector's status changed
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
