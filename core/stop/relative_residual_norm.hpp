@@ -52,7 +52,12 @@ namespace stop {
  * the executor where the algorithm is executed.
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm : public Criterion {
+class RelativeResidualNorm
+    : public EnablePolymorphicObject<RelativeResidualNorm<ValueType>,
+                                     Criterion> {
+    friend class EnablePolymorphicObject<RelativeResidualNorm<ValueType>,
+                                         Criterion>;
+
 public:
     using Vector = matrix::Dense<ValueType>;
 
@@ -60,49 +65,51 @@ public:
         /**
          * Instantiates a RelativeResidualNorm::Factory object
          * @param v  the number of iterations
-         * @param exec  the executor to run the check on.
+         * @param exec  the executor which runs the check
          */
-        explicit Factory(remove_complex<ValueType> v,
-                         std::shared_ptr<const gko::Executor> exec)
+        explicit Factory(std::shared_ptr<const gko::Executor> exec,
+                         remove_complex<ValueType> v)
             : v_{v}, exec_{exec}
         {}
 
         static std::unique_ptr<Factory> create(
-            remove_complex<ValueType> v,
-            std::shared_ptr<const gko::Executor> exec)
+            std::shared_ptr<const gko::Executor> exec,
+            remove_complex<ValueType> v)
         {
-            return std::unique_ptr<Factory>(new Factory(v, exec));
+            return std::unique_ptr<Factory>(new Factory(exec, v));
         }
 
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
 
-        remove_complex<ValueType> v_;
         std::shared_ptr<const gko::Executor> exec_;
+        remove_complex<ValueType> v_;
     };
-
-    /**
-     * Instantiates a RelativeResidualNorm object
-     * @param v  the number of iterations
-     * @param exec  the executor to run the kernels on
-     */
-    explicit RelativeResidualNorm(remove_complex<ValueType> goal,
-                                  std::shared_ptr<const gko::Executor> exec)
-        : rel_residual_goal_{goal}, exec_{exec}, initialized_tau_{false}
-    {
-        starting_tau_ = Vector::create(exec_);
-    }
 
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override;
+               const Criterion::Updater &) override;
+
+protected:
+    /**
+     * Instantiates a RelativeResidualNorm object
+     * @param v  the number of iterations
+     * @param exec  the executor which runs the kernels
+     */
+    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec,
+                                  remove_complex<ValueType> goal = 1e-15)
+        : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(
+              exec),
+          rel_residual_goal_{goal}
+    {
+        starting_tau_ = Vector::create(exec);
+    }
 
 private:
-    remove_complex<ValueType> rel_residual_goal_;
-    std::shared_ptr<const gko::Executor> exec_;
-    std::unique_ptr<Vector> starting_tau_;
-    bool initialized_tau_;
+    remove_complex<ValueType> rel_residual_goal_{};
+    std::unique_ptr<Vector> starting_tau_{};
+    bool initialized_tau_{};
 };
 
 

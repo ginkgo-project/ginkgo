@@ -43,7 +43,7 @@ std::unique_ptr<Criterion> Combined::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    auto criterion = new Combined();
+    auto criterion = new Combined(exec_);
     for (const std::unique_ptr<Criterion::Factory> &f : v_)
         criterion->add_subcriterion(
             std::move(f->create_criterion(system_matrix, b, x)));

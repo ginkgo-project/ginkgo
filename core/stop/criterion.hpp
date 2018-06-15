@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
+#include "core/base/polymorphic_object.hpp"
 #include "core/base/utils.hpp"
 #include "core/stop/stopping_status.hpp"
 
@@ -52,7 +53,7 @@ namespace stop {
  * Note that depending on the tests, convergence may not have happened after
  * stopping.
  */
-class Criterion {
+class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
     class Factory {
     public:
@@ -158,6 +159,11 @@ public:
     virtual bool check(uint8 stoppingId, bool setFinalized,
                        Array<stopping_status> *stop_status, bool *one_changed,
                        const Updater &updater) = 0;
+
+protected:
+    explicit Criterion(std::shared_ptr<const gko::Executor> exec)
+        : EnableAbstractPolymorphicObject<Criterion>(exec)
+    {}
 };
 
 

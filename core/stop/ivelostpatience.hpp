@@ -81,45 +81,62 @@ namespace stop {
  * }
  * ```
  */
-class IveLostPatience : public Criterion {
+class IveLostPatience
+    : public EnablePolymorphicObject<IveLostPatience, Criterion> {
+    friend class EnablePolymorphicObject<IveLostPatience, Criterion>;
+
 public:
     struct Factory : public Criterion::Factory {
         using t = volatile bool &;
 
         /**
          * Instantiates a IveLostPatience stopping criterion Factory
+         * @param exec  the executor to run on
          * @param v  user controlled boolean deciding convergence
          */
-        explicit Factory(t v) : v_{v} {}
+        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
+            : v_{v}, exec_{exec}
+        {}
 
-        static std::unique_ptr<Factory> create(t v)
+        static std::unique_ptr<Factory> create(
+            std::shared_ptr<const gko::Executor> exec, t v)
         {
-            return std::unique_ptr<Factory>(new Factory(v));
+            return std::unique_ptr<Factory>(new Factory(exec, v));
         }
 
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
 
+        std::shared_ptr<const gko::Executor> exec_;
         t v_;
     };
-
-    /**
-     * Instantiates a IveLostPatience stopping criterion
-     * @param is_user_bored  user controlled boolean deciding convergence
-     */
-    explicit IveLostPatience(volatile bool &is_user_bored)
-        : is_user_bored_{is_user_bored}
-    {
-        // assume user is not bored before even starting the solver
-        is_user_bored_ = false;
-    }
 
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &) override;
 
+protected:
+    /**
+     * Instantiates a IveLostPatience stopping criterion
+     * @param is_user_bored  user controlled boolean deciding convergence
+     */
+    explicit IveLostPatience(std::shared_ptr<const gko::Executor> exec,
+                             volatile bool &is_user_bored = tmp)
+        : EnablePolymorphicObject<IveLostPatience, Criterion>(exec),
+          is_user_bored_{is_user_bored}
+    {
+        // assume user is not bored before even starting the solver
+        is_user_bored_ = false;
+    }
+
+    IveLostPatience &operator=(const IveLostPatience &other) { return *this; }
+
+    IveLostPatience &operator=(IveLostPatience &other) { return *this; }
+
+
 private:
+    static bool tmp;
     volatile bool &is_user_bored_;
 };
 

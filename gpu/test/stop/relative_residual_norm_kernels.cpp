@@ -50,7 +50,7 @@ protected:
         ref_ = gko::ReferenceExecutor::create();
         gpu_ = gko::GpuExecutor::create(0, ref_);
         factory_ = gko::stop::RelativeResidualNorm<>::Factory::create(
-            residual_goal, gpu_);
+            gpu_, residual_goal);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;

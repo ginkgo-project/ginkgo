@@ -53,11 +53,13 @@ using double_seconds = std::chrono::duration<double>;
 class Combined : public ::testing::Test {
 protected:
     Combined()
-        : factory_{gko::stop::Combined::Factory::create(
-              gko::stop::Iteration::Factory::create(test_iterations),
-              gko::stop::Time::Factory::create(test_seconds))},
-          exec_{gko::ReferenceExecutor::create()}
-    {}
+    {
+        exec_ = gko::ReferenceExecutor::create();
+        factory_ = gko::stop::Combined::Factory::create(
+            exec_,
+            gko::stop::Iteration::Factory::create(exec_, test_iterations),
+            gko::stop::Time::Factory::create(exec_, test_seconds));
+    }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
@@ -106,8 +108,8 @@ TEST_F(Combined, WaitsTillIteration)
 TEST_F(Combined, WaitsTillTime)
 {
     factory_ = gko::stop::Combined::Factory::create(
-        gko::stop::Iteration::Factory::create(9999),
-        gko::stop::Time::Factory::create(1.0e-9));
+        exec_, gko::stop::Iteration::Factory::create(exec_, 9999),
+        gko::stop::Time::Factory::create(exec_, 1.0e-9));
     unsigned int iters = 0;
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);

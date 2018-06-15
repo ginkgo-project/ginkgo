@@ -75,16 +75,16 @@ protected:
         gpu_bicgstab_factory =
             Solver::Factory::create()
                 .with_criterion(gko::stop::Combined::Factory::create(
-                    gko::stop::Iteration::Factory::create(246),
-                    gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
-                                                                       gpu)))
+                    gpu, gko::stop::Iteration::Factory::create(gpu, 246),
+                    gko::stop::RelativeResidualNorm<>::Factory::create(gpu,
+                                                                       1e-15)))
                 .on_executor(gpu);
         ref_bicgstab_factory =
             Solver::Factory::create()
                 .with_criterion(gko::stop::Combined::Factory::create(
-                    gko::stop::Iteration::Factory::create(246),
-                    gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
-                                                                       ref)))
+                    ref, gko::stop::Iteration::Factory::create(ref, 246),
+                    gko::stop::RelativeResidualNorm<>::Factory::create(ref,
+                                                                       1e-15)))
                 .on_executor(ref);
     }
 

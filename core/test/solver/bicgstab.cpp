@@ -60,9 +60,9 @@ protected:
           bicgstab_factory(
               Solver::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
-                      gko::stop::Iteration::Factory::create(3),
-                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-6,
-                                                                         exec)))
+                      exec, gko::stop::Iteration::Factory::create(exec, 3),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(exec,
+                                                                         1e-6)))
                   .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
     {}
@@ -149,7 +149,7 @@ TEST_F(Bicgstab, CanSetPreconditionerGenertor)
 {
     auto bicgstab_factory =
         Solver::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create(3))
+            .with_criterion(gko::stop::Iteration::Factory::create(exec, 3))
             .with_preconditioner(Solver::Factory::create().on_executor(exec))
             .on_executor(exec);
 

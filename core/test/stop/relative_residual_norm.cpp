@@ -49,7 +49,7 @@ protected:
     {
         exec_ = gko::ReferenceExecutor::create();
         factory_ = gko::stop::RelativeResidualNorm<>::Factory::create(
-            residual_goal, exec_);
+            exec_, residual_goal);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;

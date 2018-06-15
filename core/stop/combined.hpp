@@ -50,7 +50,9 @@ namespace stop {
  * when any one of multiple criterions are satisfied, e.g. a number of
  * iterations, the relative residual norm has reached a threshold, etc.
  */
-class Combined : public Criterion {
+class Combined : public EnablePolymorphicObject<Combined, Criterion> {
+    friend class EnablePolymorphicObject<Combined, Criterion>;
+
 public:
     struct Factory : public Criterion::Factory {
         using t = std::vector<std::unique_ptr<Criterion::Factory>>;
@@ -58,13 +60,15 @@ public:
         /**
          * Instantiates a Combined::Factory object by using any number of
          * unique_ptrs to Criterion::Factory.
+         *
+         * @param exec  the executor to run on
          * @param v  any number of unique_ptr to criterion factories
          *
          * @internal In order to allow any number of arguments to be passed, the
          * combined class relies on C++ Variadic Templates, or parameter packs.
          */
         template <class... V>
-        Factory(V... v)
+        Factory(std::shared_ptr<const gko::Executor> exec, V... v) : exec_{exec}
         {
             emplace(std::move(v)...);
         }
@@ -94,18 +98,25 @@ public:
         void emplace() {}
 
         template <class... V>
-        static std::unique_ptr<Factory> create(V... v)
+        static std::unique_ptr<Factory> create(
+            std::shared_ptr<const gko::Executor> exec, V... v)
         {
-            return std::unique_ptr<Factory>(new Factory(std::move(v)...));
+            return std::unique_ptr<Factory>(new Factory(exec, std::move(v)...));
         }
 
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
+
+        std::shared_ptr<const gko::Executor> exec_;
         t v_{};
     };
 
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
 
+protected:
     /**
      * Helper function which allows to add subcriterions in order to properly
      * build the Combined class with pointers to all subcriterions.
@@ -114,9 +125,9 @@ public:
      */
     void add_subcriterion(std::unique_ptr<Criterion> c);
 
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override;
+    explicit Combined(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<Combined, Criterion>(exec)
+    {}
 
 private:
     std::vector<std::unique_ptr<Criterion>> criterions_{};

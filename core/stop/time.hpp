@@ -48,48 +48,60 @@ namespace stop {
  * The Time class is a stopping criterion which considers convergence happened
  * once a certain amout of time has passed.
  */
-class Time : public Criterion {
+class Time : public EnablePolymorphicObject<Time, Criterion> {
+    friend class EnablePolymorphicObject<Time, Criterion>;
+
 public:
     using clock = std::chrono::system_clock;
 
     struct Factory : public Criterion::Factory {
         using t = std::chrono::duration<double>;
 
-        explicit Factory(t v) : v_{v} {}
+        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
+            : v_{v}, exec_{exec}
+        {}
 
         /**
          * Instantiates a Time::Factory object
+         *
+         * @param exec  the executor to run on
          * @param v  the amount of seconds to wait
          */
-        static std::unique_ptr<Factory> create(double v)
+        static std::unique_ptr<Factory> create(
+            std::shared_ptr<const gko::Executor> exec, double v)
         {
             return std::unique_ptr<Factory>(
-                new Factory(std::chrono::duration<double>(v)));
+                new Factory(exec, std::chrono::duration<double>(v)));
         }
 
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
 
+        std::shared_ptr<const gko::Executor> exec_;
         t v_;
     };
-
-    /**
-     * Instantiates a Time stopping criterion
-     * @param limit  the amount of seconds to wait
-     */
-    explicit Time(std::chrono::duration<double> limit)
-        : limit_{std::chrono::duration_cast<clock::duration>(limit)},
-          start_{clock::now()}
-    {}
 
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &) override;
 
+protected:
+    /**
+     * Instantiates a Time stopping criterion
+     * @param limit  the amount of seconds to wait
+     */
+    explicit Time(std::shared_ptr<const gko::Executor> exec,
+                  std::chrono::duration<double> limit =
+                      std::chrono::duration<double>(10.0))
+        : EnablePolymorphicObject<Time, Criterion>(exec),
+          limit_{std::chrono::duration_cast<clock::duration>(limit)},
+          start_{clock::now()}
+    {}
+
 private:
-    clock::duration limit_;
-    clock::time_point start_;
+    clock::duration limit_{};
+    clock::time_point start_{};
 };
 
 

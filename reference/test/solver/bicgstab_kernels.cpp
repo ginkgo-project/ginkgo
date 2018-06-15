@@ -62,18 +62,18 @@ protected:
           bicgstab_factory(
               Solver::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
-                      gko::stop::Iteration::Factory::create(8),
-                      gko::stop::Time::Factory::create(6),
-                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
-                                                                         exec)))
+                      exec, gko::stop::Iteration::Factory::create(exec, 8),
+                      gko::stop::Time::Factory::create(exec, 6),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(
+                          exec, 1e-15)))
                   .on_executor(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
                   .with_criterion(gko::stop::Combined::Factory::create(
-                      gko::stop::Iteration::Factory::create(50),
-                      gko::stop::Time::Factory::create(6),
-                      gko::stop::RelativeResidualNorm<>::Factory::create(1e-15,
-                                                                         exec)))
+                      exec, gko::stop::Iteration::Factory::create(exec, 50),
+                      gko::stop::Time::Factory::create(exec, 6),
+                      gko::stop::RelativeResidualNorm<>::Factory::create(
+                          exec, 1e-15)))
                   .on_executor(exec))
     {}
 

@@ -43,7 +43,7 @@ std::unique_ptr<Criterion> Iteration::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::unique_ptr<Iteration>(new Iteration(v_));
+    return std::unique_ptr<Iteration>(new Iteration(exec_, v_));
 }
 
 

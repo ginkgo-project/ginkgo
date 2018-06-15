@@ -39,11 +39,14 @@ namespace gko {
 namespace stop {
 
 
+bool IveLostPatience::tmp = false;
+
+
 std::unique_ptr<Criterion> IveLostPatience::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::unique_ptr<IveLostPatience>(new IveLostPatience(v_));
+    return std::unique_ptr<IveLostPatience>(new IveLostPatience(exec_, v_));
 }
 
 bool IveLostPatience::check(uint8 stoppingId, bool setFinalized,

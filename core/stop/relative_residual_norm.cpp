@@ -59,7 +59,7 @@ RelativeResidualNorm<ValueType>::Factory::create_criterion(
     const LinOp *x) const
 {
     return std::unique_ptr<RelativeResidualNorm>(
-        new RelativeResidualNorm<ValueType>(v_, exec_));
+        new RelativeResidualNorm<ValueType>(exec_, v_));
 }
 
 
@@ -67,7 +67,7 @@ template <typename ValueType>
 bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
                                             Array<stopping_status> *stop_status,
                                             bool *one_changed,
-                                            const Updater &updater)
+                                            const Criterion::Updater &updater)
 {
     if (!initialized_tau_) {
         starting_tau_->copy_from(updater.residual_norm_);
@@ -76,7 +76,7 @@ bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
     }
 
     bool all_converged{};
-    exec_->run(
+    this->get_executor()->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
             as<Vector>(updater.residual_norm_), starting_tau_.get(),
             rel_residual_goal_, stoppingId, setFinalized, stop_status,

@@ -45,34 +45,47 @@ namespace stop {
  * The Iteration class is a stopping criterion which considers convergence
  * happened once a certain amount of iterations has been reached.
  */
-class Iteration : public Criterion {
+class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
+    friend class EnablePolymorphicObject<Iteration, Criterion>;
+
 public:
     struct Factory : public Criterion::Factory {
         using t = size_type;
 
         /**
          * Instantiates a Iteration::Factory object
+         *
+         * @param exec  the executor to run on
          * @param v  the number of iterations
          */
-        explicit Factory(t v) : v_{v} {}
+        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
+            : v_{v}, exec_{exec}
+        {}
 
-        static std::unique_ptr<Factory> create(t v)
+        static std::unique_ptr<Factory> create(
+            std::shared_ptr<const gko::Executor> exec, t v)
         {
-            return std::unique_ptr<Factory>(new Factory(v));
+            return std::unique_ptr<Factory>(new Factory(exec, v));
         }
 
         std::unique_ptr<Criterion> create_criterion(
             std::shared_ptr<const LinOp> system_matrix,
             std::shared_ptr<const LinOp> b, const LinOp *x) const override;
 
+        std::shared_ptr<const gko::Executor> exec_;
         t v_;
     };
-
-    explicit Iteration(size_type iterations) : iterations_{iterations} {}
 
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &updater) override;
+
+protected:
+    explicit Iteration(std::shared_ptr<const gko::Executor> exec,
+                       size_type iterations = 100)
+        : EnablePolymorphicObject<Iteration, Criterion>(exec),
+          iterations_{iterations}
+    {}
 
 private:
     size_type iterations_;

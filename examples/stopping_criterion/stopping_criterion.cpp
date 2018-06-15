@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     // Create solver factory
     auto solver_gen =
         bicg::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create(20))
+            .with_criterion(gko::stop::Iteration::Factory::create(exec, 20))
             .on_executor(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
