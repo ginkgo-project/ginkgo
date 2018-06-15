@@ -32,28 +32,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/ivelostpatience.hpp"
+#include "core/stop/byinteraction.hpp"
 
 
 namespace gko {
 namespace stop {
 
 
-bool IveLostPatience::tmp = false;
+bool ByInteraction::tmp = false;
 
 
-std::unique_ptr<Criterion> IveLostPatience::Factory::create_criterion(
+std::unique_ptr<Criterion> ByInteraction::Factory::create_criterion(
     std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
     const LinOp *x) const
 {
-    return std::unique_ptr<IveLostPatience>(new IveLostPatience(exec_, v_));
+    return std::unique_ptr<ByInteraction>(new ByInteraction(exec_, v_));
 }
 
-bool IveLostPatience::check(uint8 stoppingId, bool setFinalized,
-                            Array<stopping_status> *stop_status,
-                            bool *one_changed, const Updater &)
+bool ByInteraction::check(uint8 stoppingId, bool setFinalized,
+                          Array<stopping_status> *stop_status,
+                          bool *one_changed, const Updater &)
 {
-    return is_user_bored_;
+    return user_stops_convergence_;
 }
 
 

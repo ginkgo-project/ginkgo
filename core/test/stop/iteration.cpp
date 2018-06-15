@@ -45,12 +45,11 @@ constexpr unsigned int test_iterations = 10;
 
 class Iteration : public ::testing::Test {
 protected:
-    Iteration()
-        : exec_{gko::ReferenceExecutor::create()},
-          factory_{
-              gko::stop::Iteration::Factory::create(exec_, test_iterations)}
-
-    {}
+    Iteration() : exec_{gko::ReferenceExecutor::create()}
+    {
+        factory_ =
+            gko::stop::Iteration::Factory::create(exec_, test_iterations);
+    }
 
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;

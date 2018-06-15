@@ -45,8 +45,8 @@ namespace gko {
 namespace stop {
 
 /**
- * The Time class is a stopping criterion which considers convergence happened
- * once a certain amout of time has passed.
+ * The Time class is a stopping criterion which stops the iteration process
+ * after a certain amout of time has passed.
  */
 class Time : public EnablePolymorphicObject<Time, Criterion> {
     friend class EnablePolymorphicObject<Time, Criterion>;

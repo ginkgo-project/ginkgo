@@ -42,8 +42,8 @@ namespace gko {
 namespace stop {
 
 /**
- * The Iteration class is a stopping criterion which considers convergence
- * happened once a certain amount of iterations has been reached.
+ * The Iteration class is a stopping criterion which stops the iteration process
+ * after a preset number of iterations.
  */
 class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;

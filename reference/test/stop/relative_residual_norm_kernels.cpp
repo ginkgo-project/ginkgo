@@ -95,10 +95,9 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
     // Array only does malloc, it *does not* construct the object
-    // therefore you get bullcrap in your objects whatever you do.
-    // Proper fix is not easy, we can't just call memset (even with CUDA version
-    // because that would overwrite data version) We can probably not call
-    // placement constructor either
+    // therefore you get undefined values in your objects whatever you do.
+    // Proper fix is not easy, we can't just call memset. We can probably not
+    // call the placement constructor either
     stop_status.get_data()[0].clear();
     stop_status.get_data()[1].clear();
     constexpr gko::uint8 RelativeStoppingId{1};

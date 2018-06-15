@@ -73,12 +73,11 @@ public:
     };
 
     /**
-     * The Updater class serves for pretty argument passing to the Criterion's
-     * check function. The pattern used is a Builder, except Updater builds a
-     * function's arguments before calling the function itself, and does not
-     * build an object. This allows calling a Criterion's check in the form of:
-     * stop_criterion->update()
-     *   .num_iterations(num_iterations)
+     * The Updater class serves for convenient argument passing to the
+     * Criterion's check function. The pattern used is a Builder, except Updater
+     * builds a function's arguments before calling the function itself, and
+     * does not build an object. This allows calling a Criterion's check in the
+     * form of: stop_criterion->update() .num_iterations(num_iterations)
      *   .residual_norm(residual_norm)
      *   .residual(residual)
      *   .solution(solution)

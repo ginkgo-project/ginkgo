@@ -46,8 +46,8 @@ namespace gko {
 namespace stop {
 
 /**
- * The RelativeResidualNorm class is a stopping criterion which considers
- * convergence happened once the relative residual norm is below a certain
+ * The RelativeResidualNorm class is a stopping criterion which stops the
+ * iteration process when the relative residual norm is below a certain
  * threshold. For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  */

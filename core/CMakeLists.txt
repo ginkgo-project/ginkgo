@@ -16,9 +16,9 @@ set(SOURCES
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
+    stop/byinteraction.cpp
     stop/combined.cpp
     stop/iteration.cpp
-    stop/ivelostpatience.cpp
     stop/relative_residual_norm.cpp
     stop/time.cpp)
 

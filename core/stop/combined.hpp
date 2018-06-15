@@ -45,10 +45,10 @@ namespace gko {
 namespace stop {
 
 /**
- * The Combined class is used to combine multiple criterions together through a
- * OR operation. The typical use case is to consider convergence has happened
- * when any one of multiple criterions are satisfied, e.g. a number of
- * iterations, the relative residual norm has reached a threshold, etc.
+ * The Combined class is used to combine multiple criterions together through an
+ * OR operation. The typical use case is to define convergence if any of the
+ * criteria is fulfilled, e.g. a number of iterations, the relative residual
+ * norm has reached a threshold, etc.
  */
 class Combined : public EnablePolymorphicObject<Combined, Criterion> {
     friend class EnablePolymorphicObject<Combined, Criterion>;

@@ -48,11 +48,10 @@ using double_seconds = std::chrono::duration<double>;
 
 class Time : public ::testing::Test {
 protected:
-    Time()
-        : exec_{gko::ReferenceExecutor::create()},
-          factory_{gko::stop::Time::Factory::create(exec_, test_seconds)}
-
-    {}
+    Time() : exec_{gko::ReferenceExecutor::create()}
+    {
+        factory_ = gko::stop::Time::Factory::create(exec_, test_seconds);
+    }
 
     std::unique_ptr<gko::stop::Time::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;

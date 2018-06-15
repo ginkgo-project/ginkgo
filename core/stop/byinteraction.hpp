@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
-#define GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
+#ifndef GKO_CORE_STOP_BYINTERACTION_HPP_
+#define GKO_CORE_STOP_BYINTERACTION_HPP_
 
 
 #include "core/stop/criterion.hpp"
@@ -42,10 +42,10 @@ namespace gko {
 namespace stop {
 
 /**
- * The IveLostPatience class is a criterion which asks for user input to stop
- * convergence. Using this criterion is slightly more complex than the other
- * ones, because it is asynchronous therefore requires the use of threads. The
- * following shows an usage example:
+ * The ByInteraction class is a criterion which asks for user input to stop
+ * the iteration process. Using this criterion is slightly more complex than the
+ * other ones, because it is asynchronous therefore requires the use of threads.
+ * The following shows an usage example:
  *
  * ```C++
  * void run_solver(volatile bool &is_user_bored)
@@ -56,7 +56,7 @@ namespace stop {
  *   auto b = gko::read<mtx>(exec, "b.mtx");
  *   auto x = gko::read<mtx>(exec, "x0.mtx");
  *   gko::solver::CgFactory::create(exec,
- *   IveLostPatience::Factory::create(is_user_bored))
+ *   ByInteraction::Factory::create(exec, is_user_bored))
  *     ->generate(gko::give(A))
  *     ->apply(gko::lend(b), gko::lend(x));
  *   std::cout << "Solver stopped" << std::endl;
@@ -81,16 +81,16 @@ namespace stop {
  * }
  * ```
  */
-class IveLostPatience
-    : public EnablePolymorphicObject<IveLostPatience, Criterion> {
-    friend class EnablePolymorphicObject<IveLostPatience, Criterion>;
+class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
+    friend class EnablePolymorphicObject<ByInteraction, Criterion>;
 
 public:
     struct Factory : public Criterion::Factory {
         using t = volatile bool &;
 
         /**
-         * Instantiates a IveLostPatience stopping criterion Factory
+         * Instantiates a ByInteraction stopping criterion Factory
+         *
          * @param exec  the executor to run on
          * @param v  user controlled boolean deciding convergence
          */
@@ -118,26 +118,27 @@ public:
 
 protected:
     /**
-     * Instantiates a IveLostPatience stopping criterion
+     * Instantiates a ByInteraction stopping criterion
+     *
+     * @param exec  the executor to run on
      * @param is_user_bored  user controlled boolean deciding convergence
      */
-    explicit IveLostPatience(std::shared_ptr<const gko::Executor> exec,
-                             volatile bool &is_user_bored = tmp)
-        : EnablePolymorphicObject<IveLostPatience, Criterion>(exec),
-          is_user_bored_{is_user_bored}
+    explicit ByInteraction(std::shared_ptr<const gko::Executor> exec,
+                           volatile bool &user_stops_convergence = tmp)
+        : EnablePolymorphicObject<ByInteraction, Criterion>(exec),
+          user_stops_convergence_{user_stops_convergence}
     {
-        // assume user is not bored before even starting the solver
-        is_user_bored_ = false;
+        user_stops_convergence_ = false;
     }
 
-    IveLostPatience &operator=(const IveLostPatience &other) { return *this; }
+    ByInteraction &operator=(const ByInteraction &other) { return *this; }
 
-    IveLostPatience &operator=(IveLostPatience &other) { return *this; }
+    ByInteraction &operator=(ByInteraction &other) { return *this; }
 
 
 private:
     static bool tmp;
-    volatile bool &is_user_bored_;
+    volatile bool &user_stops_convergence_;
 };
 
 
@@ -145,4 +146,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_IVELOSTPATIENCE_HPP_
+#endif  // GKO_CORE_STOP_BYINTERACTION_HPP_
