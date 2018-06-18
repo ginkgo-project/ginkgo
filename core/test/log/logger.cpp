@@ -83,7 +83,6 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 struct DummyLogger
     : gko::EnablePolymorphicObject<DummyLogger, gko::log::Logger> {
     using Logger = gko::log::Logger;
-    using EnablePolymorphicObject<DummyLogger, Logger>::EnablePolymorphicObject;
 
     explicit DummyLogger(
         std::shared_ptr<const gko::Executor> exec,

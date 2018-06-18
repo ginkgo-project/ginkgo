@@ -80,10 +80,10 @@ int main(int argc, char *argv[])
     if (argc == 1 || std::string(argv[1]) == "reference") {
         exec = gko::ReferenceExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cpu") {
-        exec = gko::CpuExecutor::create();
+        exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "gpu" &&
                gko::GpuExecutor::get_num_devices() > 0) {
-        exec = gko::GpuExecutor::create(0, gko::CpuExecutor::create());
+        exec = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
