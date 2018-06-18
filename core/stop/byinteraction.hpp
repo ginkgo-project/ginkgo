@@ -100,6 +100,10 @@ private:
     static bool tmp;
 
 public:
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override;
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -110,20 +114,11 @@ public:
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
 
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override;
-
 protected:
     explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
-    /**
-     * Instantiates a ByInteraction stopping criterion
-     *
-     * @param exec  the executor to run on
-     * @param is_user_bored  user controlled boolean deciding convergence
-     */
+
     explicit ByInteraction(const Factory *factory, const CriterionArgs *args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(

@@ -82,9 +82,6 @@ protected:
               std::move(exec))
     {}
 
-    /**
-     * Instantiates a RelativeResidualNorm object
-     */
     explicit RelativeResidualNorm(const Factory *factory,
                                   const CriterionArgs *args)
         : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(

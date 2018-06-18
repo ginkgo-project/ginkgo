@@ -63,6 +63,12 @@ public:
     {
         /**
          * Criterion factories to combine
+         *
+         * @internal In order to simplify the factory, the factories are passed
+         * as `shared_ptr`. This way there is no problem when copying the whole
+         * vector. Technically it's a vector (similar to a traditional array) of
+         * pointers, so copying it when creating the factories should not be too
+         * costly.
          */
         std::vector<std::shared_ptr<const CriterionFactory>>
             GKO_FACTORY_PARAMETER(criteria, );

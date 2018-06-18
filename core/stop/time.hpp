@@ -81,6 +81,11 @@ protected:
     {}
 
 private:
+    /**
+     * @internal in order to improve the interface, we store a `double` in the
+     * parameters and here properly convert the double to a
+     * std::chrono::duration type
+     */
     std::chrono::duration<double> time_limit_{};
     clock::time_point start_{};
 };

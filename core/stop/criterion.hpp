@@ -141,9 +141,13 @@ public:
     virtual ~Criterion() = default;
 
 
+    /**
+     * Returns the updater object
+     *
+     * @return the updater object
+     */
     Updater update() { return {this}; }
 
-public:
     /**
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
@@ -167,7 +171,11 @@ protected:
     {}
 };
 
-
+/**
+ * This struct is used to pass parameters to the
+ * EnableDefaultCriterionFactoryCriterionFactory::generate() method. It is the
+ * ComponentsType of CriterionFactory.
+ */
 struct CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
