@@ -61,9 +61,6 @@ class Stream : public EnablePolymorphicObject<Stream<ValueType>, Logger>,
     friend class EnableCreateMethod<Stream<ValueType>>;
 
 public:
-    using EnablePolymorphicObject<Stream<ValueType>,
-                                  Logger>::EnablePolymorphicObject;
-
     void on_iteration_complete(const size_type &num_iterations) const override;
 
     void on_apply(const std::string &name) const override;
