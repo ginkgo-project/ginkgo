@@ -63,7 +63,7 @@ namespace stop {
  * void run_solver(volatile bool &is_user_bored)
  * {
  *   using mtx = gko::matrix::Dense<>;
- *   auto exec = gko::GpuExecutor::create(gko::CpuExecutor::create(), 0);
+ *   auto exec = gko::GpuExecutor::create(gko::OmpExecutor::create(), 0);
  *   auto A = gko::read<mtx>(exec, "A.mtx");
  *   auto b = gko::read<mtx>(exec, "b.mtx");
  *   auto x = gko::read<mtx>(exec, "x0.mtx");

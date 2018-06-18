@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace relative_residual_norm {
 
 
 template <typename ValueType>
-void relative_residual_norm(std::shared_ptr<const CpuExecutor> exec,
+void relative_residual_norm(std::shared_ptr<const OmpExecutor> exec,
                             const matrix::Dense<ValueType> *tau,
                             const matrix::Dense<ValueType> *orig_tau,
                             remove_complex<ValueType> rel_residual_goal,
@@ -57,6 +57,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace relative_residual_norm
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

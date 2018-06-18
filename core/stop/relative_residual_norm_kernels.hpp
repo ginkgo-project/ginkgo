@@ -64,13 +64,13 @@ namespace relative_residual_norm {
 }  // namespace relative_residual_norm
 
 
-namespace cpu {
+namespace omp {
 namespace relative_residual_norm {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace relative_residual_norm
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {
