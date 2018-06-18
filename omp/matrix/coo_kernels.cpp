@@ -40,12 +40,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace coo {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CpuExecutor> exec,
+void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b,
           matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
@@ -54,7 +54,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CpuExecutor> exec,
+void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Coo<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -66,7 +66,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const CpuExecutor> exec,
+void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
                               IndexType *ptrs,
                               size_type length) NOT_IMPLEMENTED;
@@ -76,7 +76,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const CpuExecutor> exec,
+void transpose(std::shared_ptr<const OmpExecutor> exec,
                matrix::Coo<ValueType, IndexType> *trans,
                const matrix::Coo<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
 
@@ -84,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const CpuExecutor> exec,
+void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *trans,
                     const matrix::Coo<ValueType, IndexType> *orig)
     NOT_IMPLEMENTED;
@@ -95,7 +95,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const CpuExecutor> exec, matrix::Dense<ValueType> *result,
+    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *result,
     const matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -103,6 +103,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace coo
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

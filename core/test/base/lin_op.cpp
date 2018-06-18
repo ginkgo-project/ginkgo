@@ -86,8 +86,8 @@ class EnableLinOp : public ::testing::Test {
 protected:
     EnableLinOp()
         : ref{gko::ReferenceExecutor::create()},
-          cpu{gko::CpuExecutor::create()},
-          op{DummyLinOp::create(cpu, gko::dim{3, 5})},
+          omp{gko::OmpExecutor::create()},
+          op{DummyLinOp::create(omp, gko::dim{3, 5})},
           alpha{DummyLinOp::create(ref, gko::dim{1})},
           beta{DummyLinOp::create(ref, gko::dim{1})},
           b{DummyLinOp::create(ref, gko::dim{5, 4})},
@@ -95,7 +95,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CpuExecutor> cpu;
+    std::shared_ptr<const gko::OmpExecutor> omp;
     std::unique_ptr<DummyLinOp> op;
     std::unique_ptr<DummyLinOp> alpha;
     std::unique_ptr<DummyLinOp> beta;
@@ -108,7 +108,7 @@ TEST_F(EnableLinOp, CallsApplyImpl)
 {
     op->apply(gko::lend(b), gko::lend(x));
 
-    ASSERT_EQ(op->last_access, cpu);
+    ASSERT_EQ(op->last_access, omp);
 }
 
 
@@ -116,7 +116,7 @@ TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 {
     op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
 
-    ASSERT_EQ(op->last_access, cpu);
+    ASSERT_EQ(op->last_access, omp);
 }
 
 
@@ -201,8 +201,8 @@ TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
 {
     op->apply(gko::lend(b), gko::lend(x));
 
-    ASSERT_EQ(op->last_b_access, cpu);
-    ASSERT_EQ(op->last_x_access, cpu);
+    ASSERT_EQ(op->last_b_access, omp);
+    ASSERT_EQ(op->last_x_access, omp);
 }
 
 
@@ -211,7 +211,7 @@ TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
     op->apply(gko::lend(b), gko::lend(x));
 
     ASSERT_EQ(b->last_access, nullptr);
-    ASSERT_EQ(x->last_access, cpu);
+    ASSERT_EQ(x->last_access, omp);
 }
 
 
@@ -219,10 +219,10 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 {
     op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
 
-    ASSERT_EQ(op->last_alpha_access, cpu);
-    ASSERT_EQ(op->last_b_access, cpu);
-    ASSERT_EQ(op->last_beta_access, cpu);
-    ASSERT_EQ(op->last_x_access, cpu);
+    ASSERT_EQ(op->last_alpha_access, omp);
+    ASSERT_EQ(op->last_b_access, omp);
+    ASSERT_EQ(op->last_beta_access, omp);
+    ASSERT_EQ(op->last_x_access, omp);
 }
 
 
@@ -233,7 +233,7 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
     ASSERT_EQ(alpha->last_access, nullptr);
     ASSERT_EQ(b->last_access, nullptr);
     ASSERT_EQ(beta->last_access, nullptr);
-    ASSERT_EQ(x->last_access, cpu);
+    ASSERT_EQ(x->last_access, omp);
 }
 
 

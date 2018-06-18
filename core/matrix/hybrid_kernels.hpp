@@ -43,40 +43,40 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Hybrid<ValueType, IndexType> *a,  \
+#define GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType) \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,   \
+              const matrix::Hybrid<ValueType, IndexType> *a, \
               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<ValueType> *alpha,       \
-                       const matrix::Hybrid<ValueType, IndexType> *a,  \
-                       const matrix::Dense<ValueType> *b,           \
-                       const matrix::Dense<ValueType> *beta,        \
+#define GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
+    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,   \
+                       const matrix::Dense<ValueType> *alpha,         \
+                       const matrix::Hybrid<ValueType, IndexType> *a, \
+                       const matrix::Dense<ValueType> *b,             \
+                       const matrix::Dense<ValueType> *beta,          \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Dense<ValueType> *result,            \
+#define GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,   \
+                          matrix::Dense<ValueType> *result,              \
                           const matrix::Hybrid<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                                \
-    template <typename ValueType, typename IndexType>           \
+#define DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_HYBRID_SPMV_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>           \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>           \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace hybrid {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace hybrid
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

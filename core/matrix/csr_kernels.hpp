@@ -100,13 +100,13 @@ namespace kernels {
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace csr {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace csr
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

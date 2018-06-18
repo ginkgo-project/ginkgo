@@ -73,7 +73,7 @@ private:
 }  // namespace
 
 
-void CpuExecutor::raw_copy_to(const GpuExecutor *dest, size_type num_bytes,
+void OmpExecutor::raw_copy_to(const GpuExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(dest->get_device_id());
@@ -110,7 +110,7 @@ void *GpuExecutor::raw_alloc(size_type num_bytes) const
 }
 
 
-void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
+void GpuExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(this->get_device_id());

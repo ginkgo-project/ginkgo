@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/fcg_kernels.hpp"
+#include "core/solver/cg_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -39,58 +39,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
-namespace fcg {
+namespace omp {
+namespace cg {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const CpuExecutor> exec,
+void initialize(std::shared_ptr<const OmpExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t,
+                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
+                matrix::Dense<ValueType> *rho,
                 Array<bool> *converged) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
-
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
-void test_convergence(std::shared_ptr<const CpuExecutor> exec,
+void test_convergence(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
-                      Array<bool> *converged, bool *all_converged)
-{
-    NOT_IMPLEMENTED;
-}
+                      Array<bool> *converged,
+                      bool *all_converged) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TEST_CONVERGENCE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const CpuExecutor> exec,
+void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho_t,
+            const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<bool> &converged) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const CpuExecutor> exec,
+void step_2(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *p,
+            const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
             const Array<bool> &converged) NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
-}  // namespace fcg
-}  // namespace cpu
+}  // namespace cg
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

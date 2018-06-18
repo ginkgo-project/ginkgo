@@ -54,8 +54,9 @@ class Dense;
 
 
 /**
- * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO format.
- * Achieve the excellent performance with a proper partition of ELLPACK and COO.
+ * HYBRID is a matrix format which splits the matrix into ELLPACK  and COO
+ * format. Achieve the excellent performance with a proper partition of ELLPACK
+ * and COO.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -212,7 +213,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     value_type &ell_val_at(size_type row, size_type idx) noexcept
     {
@@ -235,7 +236,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     index_type &ell_col_at(size_type row, size_type idx) noexcept
     {

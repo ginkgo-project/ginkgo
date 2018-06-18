@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cpu {
+namespace omp {
 namespace cgs {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const CpuExecutor> exec,
+void initialize(std::shared_ptr<const OmpExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *r_tld, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *u,
@@ -74,7 +74,7 @@ void initialize(std::shared_ptr<const CpuExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
 template <typename ValueType>
-void test_convergence(std::shared_ptr<const CpuExecutor> exec,
+void test_convergence(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
                       const matrix::Dense<ValueType> *orig_tau,
                       remove_complex<ValueType> rel_residual_goal,
@@ -87,7 +87,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const CpuExecutor> exec,
+void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
@@ -114,7 +114,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const CpuExecutor> exec,
+void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
@@ -164,6 +164,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 
 
 }  // namespace cgs
-}  // namespace cpu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
