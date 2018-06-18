@@ -209,15 +209,6 @@ using EnableDefaultCriterionFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteCriterion, ParametersType,
                          PolymorphicBase>;
 
-
-#define GKO_CREATE_CRITERION_PARAMETERS(_parameters_name, _factory_name) \
-    class _factory_name;                                                 \
-                                                                         \
-public:                                                                  \
-    struct _parameters_name##_type                                       \
-        : ::gko::enable_parameters_type<_parameters_name##_type,         \
-                                        _factory_name>
-
 /**
  * This macro will generate a default implementation of a CriterionFactory for
  * the Criterion subclass it is defined in.
@@ -257,7 +248,9 @@ public:                                                                     \
         _factory_name, _criterion, _parameters_name##_type>;                \
                                                                             \
 private:                                                                    \
-    _parameters_name##_type _parameters_name##_
+    _parameters_name##_type _parameters_name##_;                            \
+                                                                            \
+public:
 
 
 }  // namespace stop

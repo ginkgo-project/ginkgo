@@ -521,10 +521,31 @@ using EnableDefaultLinOpFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteLinOp, ParametersType,
                          PolymorphicBase>;
 
+/**
+ * This Macro will generate a new type containing the parameters for the factory
+ * `_factory_name`. For more details, see #GKO_ENABLE_LIN_OP_FACTORY().
+ * It is required to use this macro **before** calling the
+ * macro #GKO_ENABLE_LIN_OP_FACTORY().
+ * It is also required to use the same names for all parameters between both
+ * macros.
+ *
+ * @param _parameters_name  name of the parameters member in the class
+ * @param _factory_name  name of the generated factory type
+ */
+#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
+public:                                                                \
+    class _factory_name;                                               \
+    struct _parameters_name##_type                                     \
+        : ::gko::enable_parameters_type<_parameters_name##_type,       \
+                                        _factory_name>
+
 
 /**
  * This macro will generate a default implementation of a LinOpFactory for the
  * LinOp subclass it is defined in.
+ *
+ * It is required to first call the macro #GKO_CREATE_FACTORY_PARAMETERS()
+ * before this one in order to instantiate the parameters type first.
  *
  * The list of parameters for the factory should be defined in a code block
  * after the macro definition, and should contain a list of
@@ -574,9 +595,11 @@ using EnableDefaultLinOpFactory =
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
  * ```
  *
- * @note This macro only works with class __templates__ (not with regular
- *       classes). See <https://stackoverflow.com/q/50202718/9385966> for more
- *       details.
+ * @note It is possible to combine both the #GKO_CREATE_FACTORY_PARAMETER()
+ * macro with this one in a unique macro for class __templates__ (not with
+ * regular classes). Splitting these two macros in two allow to use these macros
+ * in all contexts. See <https://stackoverflow.com/q/50202718/9385966> for more
+ * details.
  *
  * @param _lin_op  concrete operator for which the factory is to be created
  *                 [CRTP parameter]
@@ -613,10 +636,7 @@ public:                                                                      \
 private:                                                                     \
     _parameters_name##_type _parameters_name##_;                             \
                                                                              \
-public:                                                                      \
-    struct _parameters_name##_type                                           \
-        : ::gko::enable_parameters_type<_parameters_name##_type,             \
-                                        _factory_name>
+public:
 
 
 /**

@@ -100,7 +100,7 @@ private:
     static bool tmp;
 
 public:
-    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
          * Boolean set by the user to stop iteration process

@@ -65,7 +65,7 @@ public:
                Array<stopping_status> *stop_status, bool *one_changed,
                const Criterion::Updater &) override;
 
-    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
          * Relative residual norm goal
