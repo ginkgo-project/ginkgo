@@ -48,8 +48,9 @@ protected:
     RelativeResidualNorm()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create(
-            exec_, residual_goal);
+        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
+                       .with_rel_residual_goal(residual_goal)
+                       .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
@@ -60,14 +61,14 @@ protected:
 TEST_F(RelativeResidualNorm, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->v_, residual_goal);
-    ASSERT_EQ(factory_->exec_, exec_);
+    ASSERT_EQ(factory_->get_parameters().rel_residual_goal, residual_goal);
+    ASSERT_EQ(factory_->get_executor(), exec_);
 }
 
 
 TEST_F(RelativeResidualNorm, CanCreateCriterion)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 

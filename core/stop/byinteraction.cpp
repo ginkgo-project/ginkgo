@@ -42,18 +42,11 @@ namespace stop {
 bool ByInteraction::tmp = false;
 
 
-std::unique_ptr<Criterion> ByInteraction::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<ByInteraction>(new ByInteraction(exec_, v_));
-}
-
 bool ByInteraction::check(uint8 stoppingId, bool setFinalized,
                           Array<stopping_status> *stop_status,
                           bool *one_changed, const Updater &)
 {
-    return user_stops_convergence_;
+    return parameters_.user_stops_convergence;
 }
 
 

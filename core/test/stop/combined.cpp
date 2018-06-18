@@ -55,10 +55,14 @@ protected:
     Combined()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::Combined::Factory::create(
-            exec_,
-            gko::stop::Iteration::Factory::create(exec_, test_iterations),
-            gko::stop::Time::Factory::create(exec_, test_seconds));
+        factory_ = gko::stop::Combined::Factory::create()
+                       .with_criteria({gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(test_iterations)
+                                           .on_executor(exec_),
+                                       gko::stop::Time::Factory::create()
+                                           .with_time_limit(test_seconds)
+                                           .on_executor(exec_)})
+                       .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;
@@ -69,13 +73,13 @@ protected:
 TEST_F(Combined, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->v_.size(), 2);
+    ASSERT_EQ(factory_->get_parameters().criteria.size(), 2);
 }
 
 
 TEST_F(Combined, CanCreateCriterion)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
@@ -86,7 +90,7 @@ TEST_F(Combined, WaitsTillIteration)
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     gko::Array<bool> converged(exec_, 1);
 
     ASSERT_FALSE(
@@ -107,14 +111,19 @@ TEST_F(Combined, WaitsTillIteration)
 /* Here we know time will converge */
 TEST_F(Combined, WaitsTillTime)
 {
-    factory_ = gko::stop::Combined::Factory::create(
-        exec_, gko::stop::Iteration::Factory::create(exec_, 9999),
-        gko::stop::Time::Factory::create(exec_, 1.0e-9));
+    factory_ = gko::stop::Combined::Factory::create()
+                   .with_criteria({gko::stop::Iteration::Factory::create()
+                                       .with_max_iters(9999)
+                                       .on_executor(exec_),
+                                   gko::stop::Time::Factory::create()
+                                       .with_time_limit(1.0e-9)
+                                       .on_executor(exec_)})
+                   .on_executor(exec_);
     unsigned int iters = 0;
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     auto start = std::chrono::system_clock::now();
 
     while (1) {

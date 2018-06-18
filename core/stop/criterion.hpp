@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_CRITERION_HPP_
 
 
+#include "core/base/abstract_factory.hpp"
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/polymorphic_object.hpp"
@@ -44,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace stop {
+
 
 /**
  * The Criterion class is a base class for all stopping criterion tests. It
@@ -55,22 +57,22 @@ namespace stop {
  */
 class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
-    class Factory {
-    public:
-        /**
-         * Creates the stopping criterion test.
-         *
-         * @param system_matrix  the tested LinOp's system matrix
-         * @param b  the tested LinOp's input vector(s)
-         * @param x  the tested LinOp's output vector(s)
-         *
-         * @return the newly created stopping criterion test
-         */
-        virtual std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const = 0;
-        virtual ~Factory() = default;
-    };
+    // class Factory {
+    // public:
+    //     /**
+    //      * Creates the stopping criterion test.
+    //      *
+    //      * @param system_matrix  the tested LinOp's system matrix
+    //      * @param b  the tested LinOp's input vector(s)
+    //      * @param x  the tested LinOp's output vector(s)
+    //      *
+    //      * @return the newly created stopping criterion test
+    //      */
+    //     virtual std::unique_ptr<Criterion> create_criterion(
+    //         std::shared_ptr<const LinOp> system_matrix,
+    //         std::shared_ptr<const LinOp> b, const LinOp *x) const = 0;
+    //     virtual ~Factory() = default;
+    // };
 
     /**
      * The Updater class serves for convenient argument passing to the
@@ -139,7 +141,7 @@ public:
     virtual ~Criterion() = default;
 
 
-    Updater update() { return {this}; };
+    Updater update() { return {this}; }
 
 public:
     /**
@@ -164,6 +166,98 @@ protected:
         : EnableAbstractPolymorphicObject<Criterion>(exec)
     {}
 };
+
+
+struct CriterionArgs {
+    std::shared_ptr<const LinOp> system_matrix;
+    std::shared_ptr<const LinOp> b;
+    const LinOp *x;
+
+    explicit CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
+                           std::shared_ptr<const LinOp> b, const LinOp *x)
+    {
+        this->system_matrix = std::move(system_matrix);
+        this->b = std::move(b);
+        this->x = x;
+    }
+};
+
+/**
+ * Declares an Abstract Factory specialized for Criterions
+ */
+using CriterionFactory = AbstractFactory<Criterion, const CriterionArgs *>;
+
+
+/**
+ * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
+ * template parameters to enable a subclass of CriterionFactory.
+ *
+ * @tparam ConcreteFactory  the concrete factory which is being implemented
+ *                          [CRTP parmeter]
+ * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
+ *                        needs to have a constructor which takes a
+ *                        const ConcreteFactory *, and an
+ *                        std::shared_ptr<const LinOp> as parameters.
+ * @tparam ParametersType  a subclass of enable_parameters_type template which
+ *                         defines all of the parameters of the factory
+ * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
+ *                          hierarchy, has to be a subclass of CriterionFactory
+ */
+template <typename ConcreteFactory, typename ConcreteCriterion,
+          typename ParametersType, typename PolymorphicBase = CriterionFactory>
+using EnableDefaultCriterionFactory =
+    EnableDefaultFactory<ConcreteFactory, ConcreteCriterion, ParametersType,
+                         PolymorphicBase>;
+
+
+#define GKO_CREATE_CRITERION_PARAMETERS(_parameters_name, _factory_name) \
+    class _factory_name;                                                 \
+                                                                         \
+public:                                                                  \
+    struct _parameters_name##_type                                       \
+        : ::gko::enable_parameters_type<_parameters_name##_type,         \
+                                        _factory_name>
+
+/**
+ * This macro will generate a default implementation of a CriterionFactory for
+ * the Criterion subclass it is defined in.
+ *
+ * This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more
+ * detailed description of the use of these type of macros can be found there.
+ *
+ * @param _criterion  concrete operator for which the factory is to be created
+ *                    [CRTP parameter]
+ * @param _parameters_name  name of the parameters member in the class
+ *                          (its type is `<_parameters_name>_type`, the
+ *                          protected member's name is `<_parameters_name>_`,
+ *                          and the public getter's name is
+ *                          `get_<_parameters_name>()`)
+ * @param _factory_name  name of the generated factory type
+ */
+#define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,          \
+                                     _factory_name)                         \
+public:                                                                     \
+    const _parameters_name##_type &get_##_parameters_name() const           \
+    {                                                                       \
+        return _parameters_name##_;                                         \
+    }                                                                       \
+                                                                            \
+    class _factory_name                                                     \
+        : public ::gko::stop::EnableDefaultCriterionFactory<                \
+              _factory_name, _criterion, _parameters_name##_type> {         \
+        friend class ::gko::EnablePolymorphicObject<                        \
+            _factory_name, ::gko::stop::CriterionFactory>;                  \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type, \
+                                                   _factory_name>;          \
+        using ::gko::stop::EnableDefaultCriterionFactory<                   \
+            _factory_name, _criterion,                                      \
+            _parameters_name##_type>::EnableDefaultCriterionFactory;        \
+    };                                                                      \
+    friend ::gko::stop::EnableDefaultCriterionFactory<                      \
+        _factory_name, _criterion, _parameters_name##_type>;                \
+                                                                            \
+private:                                                                    \
+    _parameters_name##_type _parameters_name##_
 
 
 }  // namespace stop

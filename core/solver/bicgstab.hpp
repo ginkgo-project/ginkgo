@@ -91,7 +91,7 @@ public:
         /**
          * Criterion factory
          */
-        std::shared_ptr<stop::Criterion::Factory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const stop::CriterionFactory> GKO_FACTORY_PARAMETER(
             criterion, nullptr);
 
         /**
@@ -125,14 +125,15 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size().num_rows);
         }
-        if (parameters_.criterion)
+        if (parameters_.criterion) {
             stop_criterion_factory_ = std::move(parameters_.criterion);
+        }
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
-    std::shared_ptr<stop::Criterion::Factory> stop_criterion_factory_{};
+    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
 

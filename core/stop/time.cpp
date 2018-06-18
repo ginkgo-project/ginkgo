@@ -39,14 +39,6 @@ namespace gko {
 namespace stop {
 
 
-std::unique_ptr<Criterion> Time::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<Time>(new Time(exec_, v_));
-}
-
-
 bool Time::check(uint8 stoppingId, bool setFinalized,
                  Array<stopping_status> *stop_status, bool *one_changed,
                  const Updater &)
@@ -54,7 +46,7 @@ bool Time::check(uint8 stoppingId, bool setFinalized,
     // maybe we need to set stop_status array to true?
     // or does return value true imply that every value in the array is
     // considered true
-    return (clock::now() - start_) >= limit_;
+    return (clock::now() - start_) >= time_limit_;
 }
 
 

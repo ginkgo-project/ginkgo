@@ -61,19 +61,37 @@ protected:
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
               Solver::Factory::create()
-                  .with_criterion(gko::stop::Combined::Factory::create(
-                      exec, gko::stop::Iteration::Factory::create(exec, 8),
-                      gko::stop::Time::Factory::create(exec, 6),
-                      gko::stop::RelativeResidualNorm<>::Factory::create(
-                          exec, 1e-15)))
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(
+                              {gko::stop::Iteration::Factory::create()
+                                   .with_max_iters(8)
+                                   .on_executor(exec),
+                               gko::stop::Time::Factory::create()
+                                   .with_time_limit(6.0)
+                                   .on_executor(exec),
+                               gko::stop::RelativeResidualNorm<>::Factory::
+                                   create()
+                                       .with_rel_residual_goal(1e-15)
+                                       .on_executor(exec)})
+                          .on_executor(exec))
                   .on_executor(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
-                  .with_criterion(gko::stop::Combined::Factory::create(
-                      exec, gko::stop::Iteration::Factory::create(exec, 50),
-                      gko::stop::Time::Factory::create(exec, 6),
-                      gko::stop::RelativeResidualNorm<>::Factory::create(
-                          exec, 1e-15)))
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(
+                              {gko::stop::Iteration::Factory::create()
+                                   .with_max_iters(50)
+                                   .on_executor(exec),
+                               gko::stop::Time::Factory::create()
+                                   .with_time_limit(6.0)
+                                   .on_executor(exec),
+                               gko::stop::RelativeResidualNorm<>::Factory::
+                                   create()
+                                       .with_rel_residual_goal(1e-15)
+                                       .on_executor(exec)})
+                          .on_executor(exec))
                   .on_executor(exec))
     {}
 

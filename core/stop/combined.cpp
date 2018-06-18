@@ -39,31 +39,13 @@ namespace gko {
 namespace stop {
 
 
-std::unique_ptr<Criterion> Combined::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    auto criterion = new Combined(exec_);
-    for (const std::unique_ptr<Criterion::Factory> &f : v_)
-        criterion->add_subcriterion(
-            std::move(f->create_criterion(system_matrix, b, x)));
-    return std::unique_ptr<Combined>(criterion);
-}
-
-
-void Combined::add_subcriterion(std::unique_ptr<Criterion> c)
-{
-    criterions_.emplace_back(std::move(c));
-}
-
-
 bool Combined::check(uint8 stoppingId, bool setFinalized,
                      Array<stopping_status> *stop_status, bool *one_changed,
                      const Updater &updater)
 {
     bool one_converged = false;
     bool global_one_changed = false;
-    for (std::unique_ptr<Criterion> &c : criterions_) {
+    for (std::unique_ptr<Criterion> &c : criteria_) {
         one_converged |= c->check(stoppingId, setFinalized, stop_status,
                                   one_changed, updater);
         global_one_changed |= *one_changed;

@@ -49,46 +49,29 @@ class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;
 
 public:
-    struct Factory : public Criterion::Factory {
-        using t = size_type;
-
-        /**
-         * Instantiates a Iteration::Factory object
-         *
-         * @param exec  the executor to run on
-         * @param v  the number of iterations
-         */
-        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
-            : v_{v}, exec_{exec}
-        {}
-
-        static std::unique_ptr<Factory> create(
-            std::shared_ptr<const gko::Executor> exec, t v)
-        {
-            return std::unique_ptr<Factory>(new Factory(exec, v));
-        }
-
-        std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
-
-        std::shared_ptr<const gko::Executor> exec_;
-        t v_;
-    };
-
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &updater) override;
 
+    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Maximum number of iterations
+         */
+        size_type GKO_FACTORY_PARAMETER(max_iters, 0);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
+
 protected:
-    explicit Iteration(std::shared_ptr<const gko::Executor> exec,
-                       size_type iterations = 100)
-        : EnablePolymorphicObject<Iteration, Criterion>(exec),
-          iterations_{iterations}
+    explicit Iteration(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
     {}
 
-private:
-    size_type iterations_;
+    explicit Iteration(const Factory *factory, const CriterionArgs *args)
+        : EnablePolymorphicObject<Iteration, Criterion>(
+              factory->get_executor()),
+          parameters_{factory->get_parameters()}
+    {}
 };
 
 

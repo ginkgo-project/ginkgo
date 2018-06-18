@@ -41,6 +41,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
+
+#define GKO_TMP_FACTORY_PARAMETER(_name, ...)                \
+    _name{__VA_ARGS__};                                      \
+                                                             \
+    auto with_##_name(decltype(_name) &value)                \
+        const->const ::gko::xstd::decay_t<decltype(*this)> & \
+    {                                                        \
+        this->_name = value;                                 \
+        return *this;                                        \
+    }
+
+
 /**
  * The ByInteraction class is a criterion which asks for user input to stop
  * the iteration process. Using this criterion is slightly more complex than the
@@ -84,61 +96,44 @@ namespace stop {
 class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
     friend class EnablePolymorphicObject<ByInteraction, Criterion>;
 
+private:
+    static bool tmp;
+
 public:
-    struct Factory : public Criterion::Factory {
-        using t = volatile bool &;
-
+    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    {
         /**
-         * Instantiates a ByInteraction stopping criterion Factory
-         *
-         * @param exec  the executor to run on
-         * @param v  user controlled boolean deciding convergence
+         * Boolean set by the user to stop iteration process
          */
-        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
-            : v_{v}, exec_{exec}
-        {}
-
-        static std::unique_ptr<Factory> create(
-            std::shared_ptr<const gko::Executor> exec, t v)
-        {
-            return std::unique_ptr<Factory>(new Factory(exec, v));
-        }
-
-        std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
-
-        std::shared_ptr<const gko::Executor> exec_;
-        t v_;
+        volatile bool &GKO_TMP_FACTORY_PARAMETER(user_stops_convergence, tmp);
+#undef GKO_TMP_FACTORY_PARAMETER
     };
+    GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
 
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &) override;
 
 protected:
+    explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
+    {}
     /**
      * Instantiates a ByInteraction stopping criterion
      *
      * @param exec  the executor to run on
      * @param is_user_bored  user controlled boolean deciding convergence
      */
-    explicit ByInteraction(std::shared_ptr<const gko::Executor> exec,
-                           volatile bool &user_stops_convergence = tmp)
-        : EnablePolymorphicObject<ByInteraction, Criterion>(exec),
-          user_stops_convergence_{user_stops_convergence}
-    {
-        user_stops_convergence_ = false;
-    }
+    explicit ByInteraction(const Factory *factory, const CriterionArgs *args)
+
+        : EnablePolymorphicObject<ByInteraction, Criterion>(
+              factory->get_executor()),
+          parameters_{factory->get_parameters()}
+    {}
 
     ByInteraction &operator=(const ByInteraction &other) { return *this; }
 
     ByInteraction &operator=(ByInteraction &other) { return *this; }
-
-
-private:
-    static bool tmp;
-    volatile bool &user_stops_convergence_;
 };
 
 

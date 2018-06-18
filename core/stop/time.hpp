@@ -54,53 +54,34 @@ class Time : public EnablePolymorphicObject<Time, Criterion> {
 public:
     using clock = std::chrono::system_clock;
 
-    struct Factory : public Criterion::Factory {
-        using t = std::chrono::duration<double>;
-
-        explicit Factory(std::shared_ptr<const gko::Executor> exec, t v)
-            : v_{v}, exec_{exec}
-        {}
-
-        /**
-         * Instantiates a Time::Factory object
-         *
-         * @param exec  the executor to run on
-         * @param v  the amount of seconds to wait
-         */
-        static std::unique_ptr<Factory> create(
-            std::shared_ptr<const gko::Executor> exec, double v)
-        {
-            return std::unique_ptr<Factory>(
-                new Factory(exec, std::chrono::duration<double>(v)));
-        }
-
-        std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
-
-        std::shared_ptr<const gko::Executor> exec_;
-        t v_;
-    };
-
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &) override;
 
+    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Amount of seconds to wait
+         */
+        double GKO_FACTORY_PARAMETER(time_limit, 10.0);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
+
 protected:
-    /**
-     * Instantiates a Time stopping criterion
-     * @param limit  the amount of seconds to wait
-     */
-    explicit Time(std::shared_ptr<const gko::Executor> exec,
-                  std::chrono::duration<double> limit =
-                      std::chrono::duration<double>(10.0))
-        : EnablePolymorphicObject<Time, Criterion>(exec),
-          limit_{std::chrono::duration_cast<clock::duration>(limit)},
+    explicit Time(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<Time, Criterion>(std::move(exec))
+    {}
+
+    explicit Time(const Factory *factory, const CriterionArgs *args)
+        : EnablePolymorphicObject<Time, Criterion>(factory->get_executor()),
+          parameters_{factory->get_parameters()},
+          time_limit_{std::chrono::duration<double>(
+              factory->get_parameters().time_limit)},
           start_{clock::now()}
     {}
 
 private:
-    clock::duration limit_{};
+    std::chrono::duration<double> time_limit_{};
     clock::time_point start_{};
 };
 

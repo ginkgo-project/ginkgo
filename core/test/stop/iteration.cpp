@@ -47,8 +47,9 @@ class Iteration : public ::testing::Test {
 protected:
     Iteration() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ =
-            gko::stop::Iteration::Factory::create(exec_, test_iterations);
+        factory_ = gko::stop::Iteration::Factory::create()
+                       .with_max_iters(test_iterations)
+                       .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;
@@ -59,13 +60,13 @@ protected:
 TEST_F(Iteration, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->v_, test_iterations);
+    ASSERT_EQ(factory_->get_parameters().max_iters, test_iterations);
 }
 
 
 TEST_F(Iteration, CanCreateCriterion)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
@@ -75,7 +76,7 @@ TEST_F(Iteration, WaitsTillIteration)
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
 
     ASSERT_FALSE(
         criterion->update()

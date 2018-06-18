@@ -48,8 +48,9 @@ protected:
     RelativeResidualNorm()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create(
-            exec_, residual_goal);
+        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
+                       .with_rel_residual_goal(residual_goal)
+                       .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
@@ -59,7 +60,7 @@ protected:
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     stop_status.get_data()[0].clear();
@@ -91,7 +92,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
     // Array only does malloc, it *does not* construct the object

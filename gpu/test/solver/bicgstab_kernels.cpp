@@ -74,17 +74,29 @@ protected:
 
         gpu_bicgstab_factory =
             Solver::Factory::create()
-                .with_criterion(gko::stop::Combined::Factory::create(
-                    gpu, gko::stop::Iteration::Factory::create(gpu, 246),
-                    gko::stop::RelativeResidualNorm<>::Factory::create(gpu,
-                                                                       1e-15)))
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria({gko::stop::Iteration::Factory::create()
+                                            .with_max_iters(246)
+                                            .on_executor(gpu),
+                                        gko::stop::RelativeResidualNorm<>::
+                                            Factory::create()
+                                                .with_rel_residual_goal(1e-15)
+                                                .on_executor(gpu)})
+                        .on_executor(gpu))
                 .on_executor(gpu);
         ref_bicgstab_factory =
             Solver::Factory::create()
-                .with_criterion(gko::stop::Combined::Factory::create(
-                    ref, gko::stop::Iteration::Factory::create(ref, 246),
-                    gko::stop::RelativeResidualNorm<>::Factory::create(ref,
-                                                                       1e-15)))
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria({gko::stop::Iteration::Factory::create()
+                                            .with_max_iters(246)
+                                            .on_executor(ref),
+                                        gko::stop::RelativeResidualNorm<>::
+                                            Factory::create()
+                                                .with_rel_residual_goal(1e-15)
+                                                .on_executor(ref)})
+                        .on_executor(ref))
                 .on_executor(ref);
     }
 

@@ -53,17 +53,6 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-std::unique_ptr<Criterion>
-RelativeResidualNorm<ValueType>::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<RelativeResidualNorm>(
-        new RelativeResidualNorm<ValueType>(exec_, v_));
-}
-
-
-template <typename ValueType>
 bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
                                             Array<stopping_status> *stop_status,
                                             bool *one_changed,
@@ -79,8 +68,8 @@ bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
             as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            rel_residual_goal_, stoppingId, setFinalized, stop_status,
-            &all_converged, one_changed));
+            parameters_.rel_residual_goal, stoppingId, setFinalized,
+            stop_status, &all_converged, one_changed));
     return all_converged;
 }
 

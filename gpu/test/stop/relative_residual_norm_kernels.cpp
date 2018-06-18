@@ -49,8 +49,9 @@ protected:
     {
         ref_ = gko::ReferenceExecutor::create();
         gpu_ = gko::GpuExecutor::create(0, ref_);
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create(
-            gpu_, residual_goal);
+        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
+                       .with_rel_residual_goal(residual_goal)
+                       .on_executor(gpu_);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
@@ -61,7 +62,7 @@ protected:
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].clear();
@@ -101,7 +102,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].clear();

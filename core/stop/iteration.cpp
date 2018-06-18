@@ -39,14 +39,6 @@ namespace gko {
 namespace stop {
 
 
-std::unique_ptr<Criterion> Iteration::Factory::create_criterion(
-    std::shared_ptr<const LinOp> system_matrix, std::shared_ptr<const LinOp> b,
-    const LinOp *x) const
-{
-    return std::unique_ptr<Iteration>(new Iteration(exec_, v_));
-}
-
-
 bool Iteration::check(uint8 stoppingId, bool setFinalized,
                       Array<stopping_status> *stop_status, bool *one_changed,
                       const Updater &updater)
@@ -54,7 +46,7 @@ bool Iteration::check(uint8 stoppingId, bool setFinalized,
     // maybe we need to set stop_status array to true?
     // or does return value true imply that every value in the array is
     // considered true
-    return updater.num_iterations_ >= iterations_;
+    return updater.num_iterations_ >= parameters_.max_iters;
 }
 
 

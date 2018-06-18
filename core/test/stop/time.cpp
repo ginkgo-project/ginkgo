@@ -50,7 +50,9 @@ class Time : public ::testing::Test {
 protected:
     Time() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ = gko::stop::Time::Factory::create(exec_, test_seconds);
+        factory_ = gko::stop::Time::Factory::create()
+                       .with_time_limit(test_seconds)
+                       .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::Time::Factory> factory_;
@@ -61,21 +63,20 @@ protected:
 TEST_F(Time, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(std::chrono::duration_cast<double_seconds>(factory_->v_),
-              double_seconds(test_seconds));
+    ASSERT_EQ(factory_->get_parameters().time_limit, test_seconds);
 }
 
 
 TEST_F(Time, CanCreateCriterion)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
 
 TEST_F(Time, WaitsTillTime)
 {
-    auto criterion = factory_->create_criterion(nullptr, nullptr, nullptr);
+    auto criterion = factory_->generate(nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};

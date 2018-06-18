@@ -61,53 +61,40 @@ class RelativeResidualNorm
 public:
     using Vector = matrix::Dense<ValueType>;
 
-    struct Factory : public Criterion::Factory {
-        /**
-         * Instantiates a RelativeResidualNorm::Factory object
-         * @param v  the number of iterations
-         * @param exec  the executor which runs the check
-         */
-        explicit Factory(std::shared_ptr<const gko::Executor> exec,
-                         remove_complex<ValueType> v)
-            : v_{v}, exec_{exec}
-        {}
-
-        static std::unique_ptr<Factory> create(
-            std::shared_ptr<const gko::Executor> exec,
-            remove_complex<ValueType> v)
-        {
-            return std::unique_ptr<Factory>(new Factory(exec, v));
-        }
-
-        std::unique_ptr<Criterion> create_criterion(
-            std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b, const LinOp *x) const override;
-
-        std::shared_ptr<const gko::Executor> exec_;
-        remove_complex<ValueType> v_;
-    };
-
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Criterion::Updater &) override;
 
+    GKO_CREATE_CRITERION_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Relative residual norm goal
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER(rel_residual_goal,
+                                                        1e-15);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(RelativeResidualNorm<ValueType>, parameters,
+                                 Factory);
+
 protected:
+    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(
+              std::move(exec))
+    {}
+
     /**
      * Instantiates a RelativeResidualNorm object
-     * @param v  the number of iterations
-     * @param exec  the executor which runs the kernels
      */
-    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec,
-                                  remove_complex<ValueType> goal = 1e-15)
+    explicit RelativeResidualNorm(const Factory *factory,
+                                  const CriterionArgs *args)
         : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(
-              exec),
-          rel_residual_goal_{goal}
+              factory->get_executor()),
+          parameters_{factory->get_parameters()}
     {
-        starting_tau_ = Vector::create(exec);
+        starting_tau_ = Vector::create(factory->get_executor());
     }
 
 private:
-    remove_complex<ValueType> rel_residual_goal_{};
     std::unique_ptr<Vector> starting_tau_{};
     bool initialized_tau_{};
 };

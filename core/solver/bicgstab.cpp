@@ -97,10 +97,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size().num_cols);
 
-    auto stop_criterion = stop_criterion_factory_->create_criterion(
+    auto args = std::unique_ptr<stop::CriterionArgs>(new stop::CriterionArgs(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x);
-
+        x));
+    auto stop_criterion = stop_criterion_factory_->generate(args.get());
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -124,7 +124,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         r->compute_dot(r.get(), tau.get());
 
-        // TODO: check this
         if (stop_criterion->update()
                 .num_iterations(iters)
                 .residual_norm(tau.get())
