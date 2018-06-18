@@ -57,8 +57,6 @@ class Record : public EnablePolymorphicObject<Record, Logger>,
     friend class EnableCreateMethod<Record>;
 
 public:
-    using EnablePolymorphicObject<Record, Logger>::EnablePolymorphicObject;
-
     /**
      * Struct storing the actually logged data
      */
@@ -90,7 +88,8 @@ public:
 
 protected:
     explicit Record(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type &enabled_events, size_type max_storage = 0)
+                    const mask_type &enabled_events = Logger::all_events_mask,
+                    size_type max_storage = 0)
         : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
           max_storage_{max_storage}
     {}
