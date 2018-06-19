@@ -77,7 +77,7 @@ protected:
                 .with_criterion(
                     gko::stop::Combined::Factory::create()
                         .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246)
+                                           .with_max_iters(246u)
                                            .on_executor(gpu),
                                        gko::stop::ResidualNormReduction<>::
                                            Factory::create()
@@ -90,7 +90,7 @@ protected:
                 .with_criterion(
                     gko::stop::Combined::Factory::create()
                         .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246)
+                                           .with_max_iters(246u)
                                            .on_executor(ref),
                                        gko::stop::ResidualNormReduction<>::
                                            Factory::create()
