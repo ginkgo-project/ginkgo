@@ -150,8 +150,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        // s->compute_dot(s.get(), tau.get());
-        // TODO: check this
         iters++;
         auto all_converged =
             stop_criterion->update()

@@ -84,7 +84,9 @@ TEST_F(Combined, CanCreateCriterion)
 }
 
 
-/* We know iteration will converge and not time due to huge time picked */
+/** The purpose of this test is to check that the iteration process stops due to
+ * the correct stopping criterion: the iteration criterion and not time due to
+ * the huge time picked. */
 TEST_F(Combined, WaitsTillIteration)
 {
     bool one_changed{};
@@ -108,7 +110,9 @@ TEST_F(Combined, WaitsTillIteration)
 }
 
 
-/* Here we know time will converge */
+/** The purpose of this test is to check that the iteration process stops due to
+ * the correct stopping criterion: the time criterion and not iteration due to
+ * the very small time picked and huge iteration count. */
 TEST_F(Combined, WaitsTillTime)
 {
     factory_ = gko::stop::Combined::Factory::create()

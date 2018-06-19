@@ -597,7 +597,7 @@ public:                                                                \
  *
  * @note It is possible to combine both the #GKO_CREATE_FACTORY_PARAMETER()
  * macro with this one in a unique macro for class __templates__ (not with
- * regular classes). Splitting these two macros in two allow to use these macros
+ * regular classes). Splitting this into two distinct macros allows to use them
  * in all contexts. See <https://stackoverflow.com/q/50202718/9385966> for more
  * details.
  *

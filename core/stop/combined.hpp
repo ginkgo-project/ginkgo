@@ -47,8 +47,8 @@ namespace stop {
 
 /**
  * The Combined class is used to combine multiple criterions together through an
- * OR operation. The typical use case is to define convergence if any of the
- * criteria is fulfilled, e.g. a number of iterations, the relative residual
+ * OR operation. The typical use case is to stop the iteration process if any of
+ * the criteria is fulfilled, e.g. a number of iterations, the relative residual
  * norm has reached a threshold, etc.
  */
 class Combined : public EnablePolymorphicObject<Combined, Criterion> {
@@ -66,9 +66,9 @@ public:
          *
          * @internal In order to simplify the factory, the factories are passed
          * as `shared_ptr`. This way there is no problem when copying the whole
-         * vector. Technically it's a vector (similar to a traditional array) of
-         * pointers, so copying it when creating the factories should not be too
-         * costly.
+         * vector. Technically it is a vector (similar to a traditional array)
+         * of pointers, so copying it when creating the factories should not be
+         * too costly.
          */
         std::vector<std::shared_ptr<const CriterionFactory>>
             GKO_FACTORY_PARAMETER(criteria, );
