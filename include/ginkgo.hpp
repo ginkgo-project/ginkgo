@@ -48,6 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/range_accessors.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
+#include "core/base/version.hpp"
 
 #include "core/log/record.hpp"
 #include "core/log/stream.hpp"

@@ -3,7 +3,8 @@ if(WIN32)
 else()
     cmake_minimum_required(VERSION 3.8)
 endif()
-project(Ginkgo LANGUAGES CXX VERSION 1.0)
+project(Ginkgo LANGUAGES CXX VERSION 0.0.0)
+set(Ginkgo_VERSION_TAG "develop")
 
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
@@ -55,7 +56,8 @@ endif()
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
 include (CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)

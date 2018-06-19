@@ -74,6 +74,9 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::Cg<>;
 
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
     if (argc == 1 || std::string(argv[1]) == "reference") {

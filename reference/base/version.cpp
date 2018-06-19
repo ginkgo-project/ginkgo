@@ -31,17 +31,19 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
+#include "core/base/version.hpp"
 
 
-#cmakedefine GKO_HAVE_CXXABI_H
+namespace gko {
 
 
-#define GKO_VERSION_MAJOR ${Ginkgo_VERSION_MAJOR}
-#define GKO_VERSION_MINOR ${Ginkgo_VERSION_MINOR}
-#define GKO_VERSION_PATCH ${Ginkgo_VERSION_PATCH}
-#define GKO_VERSION_TAG "${Ginkgo_VERSION_TAG}"
+version version_info::get_reference_version() noexcept
+{
+    // When compiling the module, the header version is the same as the library
+    // version. Mismatch between the header and the module versions may happen
+    // if using shared libraries from different versions of Ginkgo.
+    return version_info::get_header_version();
+}
 
 
-#endif // GKO_INCLUDE_CONFIG_H
+}  // namespace gko

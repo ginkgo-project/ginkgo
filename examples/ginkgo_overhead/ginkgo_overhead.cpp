@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::cout << gko::version_info::get() << std::endl;
+
     auto exec = gko::ReferenceExecutor::create();
 
     auto cg_factory =

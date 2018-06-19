@@ -31,10 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
 #include "core/base/version.hpp"
-#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -42,72 +39,11 @@ namespace gko {
 
 version version_info::get_gpu_version() noexcept
 {
-    // We just return 0.0.0 with a special "not compiled" tag in placeholder
-    // modules.
-    return {0, 0, 0, "not compiled"};
+    // When compiling the module, the header version is the same as the library
+    // version. Mismatch between the header and the module versions may happen
+    // if using shared libraries from different versions of Ginkgo.
+    return version_info::get_header_version();
 }
-
-
-void OmpExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
-
-
-void GpuExecutor::free(void *ptr) const noexcept
-{
-    // Free must never fail, as it can be called in destructors.
-    // If the nvidia module was not compiled, the library couldn't have
-    // allocated the memory, so there is no need to deallocate it.
-}
-
-
-void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
-
-
-void GpuExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
-
-
-void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
-
-
-void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
-
-
-void GpuExecutor::run(const Operation &op) const
-{
-    op.run(
-        std::static_pointer_cast<const GpuExecutor>(this->shared_from_this()));
-}
-
-
-std::string CudaError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-
-std::string CublasError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-
-std::string CusparseError::get_error(int64)
-{
-    return "ginkgo CUDA module is not compiled";
-}
-
-
-int GpuExecutor::get_num_devices() { return 0; }
 
 
 }  // namespace gko
-
-
-#define GKO_HOOK_MODULE gpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE

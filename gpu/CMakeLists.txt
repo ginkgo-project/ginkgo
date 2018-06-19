@@ -1,6 +1,7 @@
 set(SOURCES
     base/exception.cpp
     base/executor.cpp
+    base/version.cpp
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
