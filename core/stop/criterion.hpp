@@ -166,6 +166,14 @@ public:
                        const Updater &updater) = 0;
 
 protected:
+    void set_all_status(uint8 stoppingId, bool setFinalized,
+                        Array<stopping_status> *stop_status)
+    {
+        for (int i = 0; i < stop_status->get_num_elems(); i++) {
+            stop_status->get_data()[i].stop(stoppingId, setFinalized);
+        }
+    }
+
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<Criterion>(exec)
     {}

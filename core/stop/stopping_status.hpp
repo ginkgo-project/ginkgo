@@ -47,8 +47,6 @@ namespace gko {
  */
 class stopping_status {
 public:
-    stopping_status() : data_{0} {}
-
     /**
      * Check if any stopping criteria was fulfilled.
      * @return Returns true if any stopping criteria was fulfilled.

@@ -46,7 +46,12 @@ bool ByInteraction::check(uint8 stoppingId, bool setFinalized,
                           Array<stopping_status> *stop_status,
                           bool *one_changed, const Updater &)
 {
-    return parameters_.user_stops_convergence;
+    bool result = parameters_.user_stops_convergence;
+    if (result) {
+        this->set_all_status(stoppingId, setFinalized, stop_status);
+        *one_changed = true;
+    }
+    return result;
 }
 
 

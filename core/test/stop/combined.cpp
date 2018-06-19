@@ -91,6 +91,7 @@ TEST_F(Combined, WaitsTillIteration)
 {
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr);
     gko::Array<bool> converged(exec_, 1);
@@ -107,6 +108,7 @@ TEST_F(Combined, WaitsTillIteration)
         criterion->update()
             .num_iterations(test_iterations + 1)
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_EQ(static_cast<int>(stop_status.get_data()[0].get_id()), 1);
 }
 
 
@@ -126,6 +128,7 @@ TEST_F(Combined, WaitsTillTime)
     unsigned int iters = 0;
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr);
     auto start = std::chrono::system_clock::now();
@@ -141,6 +144,7 @@ TEST_F(Combined, WaitsTillTime)
 
 
     ASSERT_GE(time_d + eps, 1.0e-9);
+    ASSERT_EQ(static_cast<int>(stop_status.get_data()[0].get_id()), 2);
 }
 
 

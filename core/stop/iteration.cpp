@@ -43,10 +43,12 @@ bool Iteration::check(uint8 stoppingId, bool setFinalized,
                       Array<stopping_status> *stop_status, bool *one_changed,
                       const Updater &updater)
 {
-    // maybe we need to set stop_status array to true?
-    // or does return value true imply that every value in the array is
-    // considered true
-    return updater.num_iterations_ >= parameters_.max_iters;
+    bool result = updater.num_iterations_ >= parameters_.max_iters;
+    if (result) {
+        this->set_all_status(stoppingId, setFinalized, stop_status);
+        *one_changed = true;
+    }
+    return result;
 }
 
 

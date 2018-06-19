@@ -43,10 +43,12 @@ bool Time::check(uint8 stoppingId, bool setFinalized,
                  Array<stopping_status> *stop_status, bool *one_changed,
                  const Updater &)
 {
-    // maybe we need to set stop_status array to true?
-    // or does return value true imply that every value in the array is
-    // considered true
-    return (clock::now() - start_) >= time_limit_;
+    bool result = clock::now() - start_ >= time_limit_;
+    if (result) {
+        this->set_all_status(stoppingId, setFinalized, stop_status);
+        *one_changed = true;
+    }
+    return result;
 }
 
 
