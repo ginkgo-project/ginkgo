@@ -45,10 +45,12 @@ namespace stop {
 #define GKO_TMP_FACTORY_PARAMETER(_name, ...)                \
     _name{__VA_ARGS__};                                      \
                                                              \
-    auto with_##_name(decltype(_name) &value)                \
+    template <typename... Args>                              \
+    auto with_##_name(Args &&... _value)                     \
         const->const ::gko::xstd::decay_t<decltype(*this)> & \
     {                                                        \
-        this->_name = value;                                 \
+        using type = decltype(this->_name);                  \
+        this->_name = type{std::forward<Args>(_value)...};   \
         return *this;                                        \
     }
 
@@ -97,7 +99,7 @@ class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
     friend class EnablePolymorphicObject<ByInteraction, Criterion>;
 
 private:
-    static bool tmp;
+    static bool unspecified;
 
 public:
     bool check(uint8 stoppingId, bool setFinalized,
@@ -109,7 +111,8 @@ public:
         /**
          * Boolean set by the user to stop iteration process
          */
-        volatile bool &GKO_TMP_FACTORY_PARAMETER(user_stops_convergence, tmp);
+        volatile bool &GKO_TMP_FACTORY_PARAMETER(user_stops_convergence,
+                                                 unspecified);
 #undef GKO_TMP_FACTORY_PARAMETER
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
@@ -119,7 +122,7 @@ protected:
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
 
-    explicit ByInteraction(const Factory *factory, const CriterionArgs *args)
+    explicit ByInteraction(const Factory *factory, const CriterionArgs args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),

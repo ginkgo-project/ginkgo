@@ -31,69 +31,32 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_
-#define GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_
+#include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
-#include "core/base/array.hpp"
-#include "core/base/math.hpp"
-#include "core/base/types.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/stop/stopping_status.hpp"
+#include "core/base/exception_helpers.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace relative_residual_norm {
-
-
-#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(_type)                       \
-    void relative_residual_norm(                                               \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
-        remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
-        bool setFinalized, Array<stopping_status> *stop_status,                \
-        bool *all_converged, bool *one_changed)
-
-
-#define DECLARE_ALL_AS_TEMPLATES  \
-    template <typename ValueType> \
-    GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL(ValueType)
-
-
-}  // namespace relative_residual_norm
-
-
 namespace omp {
-namespace relative_residual_norm {
+namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace relative_residual_norm
+template <typename ValueType>
+void residual_norm_reduction(std::shared_ptr<const OmpExecutor> exec,
+                             const matrix::Dense<ValueType> *tau,
+                             const matrix::Dense<ValueType> *orig_tau,
+                             remove_complex<ValueType> rel_residual_goal,
+                             uint8 stoppingId, bool setFinalized,
+                             Array<stopping_status> *stop_status,
+                             bool *all_converged,
+                             bool *one_changed) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+
+
+}  // namespace residual_norm_reduction
 }  // namespace omp
-
-
-namespace gpu {
-namespace relative_residual_norm {
-
-DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace relative_residual_norm
-}  // namespace gpu
-
-
-namespace reference {
-namespace relative_residual_norm {
-
-DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace relative_residual_norm
-}  // namespace reference
-
-
-#undef DECLARE_ALL_AS_TEMPLATES
-
 }  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_KERNELS_HPP_

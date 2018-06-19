@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/relative_residual_norm.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,27 +40,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-constexpr double residual_goal = 1.0e-14;
+constexpr double reduction_factor = 1.0e-14;
 
 
-class RelativeResidualNorm : public ::testing::Test {
+class ResidualNormReduction : public ::testing::Test {
 protected:
-    RelativeResidualNorm()
+    ResidualNormReduction()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
-                       .with_rel_residual_goal(residual_goal)
+        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+                       .with_reduction_factor(reduction_factor)
                        .on_executor(exec_);
     }
 
-    std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
+    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
+TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     stop_status.get_data()[0].clear();
@@ -72,7 +72,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = residual_goal * 1.0e+2;
+    scalar->at(0) = reduction_factor * 1.0e+2;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -80,7 +80,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    scalar->at(0) = residual_goal * 1.0e-2;
+    scalar->at(0) = reduction_factor * 1.0e-2;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -90,9 +90,9 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
     // Array only does malloc, it *does not* construct the object
@@ -107,14 +107,14 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = residual_goal * 1.0e-2;
+    mtx->at(0, 0) = reduction_factor * 1.0e-2;
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
     one_changed = false;
 
-    mtx->at(0, 1) = residual_goal * 1.0e-2;
+    mtx->at(0, 1) = reduction_factor * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);

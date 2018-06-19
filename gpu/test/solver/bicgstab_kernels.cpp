@@ -47,7 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/solver/bicgstab_kernels.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
-#include <core/stop/relative_residual_norm.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -76,26 +76,26 @@ protected:
             Solver::Factory::create()
                 .with_criterion(
                     gko::stop::Combined::Factory::create()
-                        .with_criteria({gko::stop::Iteration::Factory::create()
-                                            .with_max_iters(246)
-                                            .on_executor(gpu),
-                                        gko::stop::RelativeResidualNorm<>::
-                                            Factory::create()
-                                                .with_rel_residual_goal(1e-15)
-                                                .on_executor(gpu)})
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246)
+                                           .on_executor(gpu),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(gpu))
                         .on_executor(gpu))
                 .on_executor(gpu);
         ref_bicgstab_factory =
             Solver::Factory::create()
                 .with_criterion(
                     gko::stop::Combined::Factory::create()
-                        .with_criteria({gko::stop::Iteration::Factory::create()
-                                            .with_max_iters(246)
-                                            .on_executor(ref),
-                                        gko::stop::RelativeResidualNorm<>::
-                                            Factory::create()
-                                                .with_rel_residual_goal(1e-15)
-                                                .on_executor(ref)})
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246)
+                                           .on_executor(ref),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(ref))
                         .on_executor(ref))
                 .on_executor(ref);
     }

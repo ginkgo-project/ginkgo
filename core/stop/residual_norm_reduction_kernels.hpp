@@ -31,46 +31,69 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/relative_residual_norm.hpp>
+#ifndef GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
+#define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
 
 
-#include <gtest/gtest.h>
+#include "core/base/array.hpp"
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
+#include "core/matrix/dense.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace residual_norm_reduction {
 
 
-constexpr double residual_goal = 1.0e-16;
+#define GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(_type)                      \
+    void residual_norm_reduction(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
+        remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
+        bool setFinalized, Array<stopping_status> *stop_status,                \
+        bool *all_converged, bool *one_changed)
 
 
-class RelativeResidualNorm : public ::testing::Test {
-protected:
-    RelativeResidualNorm()
-    {
-        exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
-                       .with_rel_residual_goal(residual_goal)
-                       .on_executor(exec_);
-    }
-
-    std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
-    std::shared_ptr<const gko::Executor> exec_;
-};
+#define DECLARE_ALL_AS_TEMPLATES  \
+    template <typename ValueType> \
+    GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
 
 
-TEST_F(RelativeResidualNorm, CanCreateFactory)
-{
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().rel_residual_goal, residual_goal);
-    ASSERT_EQ(factory_->get_executor(), exec_);
-}
+}  // namespace residual_norm_reduction
 
 
-TEST_F(RelativeResidualNorm, CanCreateCriterion)
-{
-    auto criterion = factory_->generate(nullptr);
-    ASSERT_NE(criterion, nullptr);
-}
+namespace omp {
+namespace residual_norm_reduction {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace residual_norm_reduction
+}  // namespace omp
 
 
-}  // namespace
+namespace gpu {
+namespace residual_norm_reduction {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace residual_norm_reduction
+}  // namespace gpu
+
+
+namespace reference {
+namespace residual_norm_reduction {
+
+DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace residual_norm_reduction
+}  // namespace reference
+
+
+#undef DECLARE_ALL_AS_TEMPLATES
+
+}  // namespace kernels
+}  // namespace gko
+
+#endif  // GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_

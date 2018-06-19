@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "core/matrix/identity.hpp"
 #include "core/stop/criterion.hpp"
+#include "core/stop/iteration.hpp"
 
 
 namespace gko {
@@ -128,6 +129,10 @@ protected:
         }
         if (parameters_.criterion) {
             stop_criterion_factory_ = std::move(parameters_.criterion);
+        } else {
+            stop_criterion_factory_ = stop::Iteration::Factory::create()
+                                          .with_max_iters(0u)
+                                          .on_executor(this->get_executor());
         }
     }
 

@@ -31,54 +31,51 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/stop/residual_norm_reduction_kernels.hpp"
 
-#include "core/stop/relative_residual_norm.hpp"
-#include "core/stop/relative_residual_norm_kernels.hpp"
+
+#include "core/base/array.hpp"
+#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+
+
+#include <algorithm>
 
 
 namespace gko {
-namespace stop {
-namespace {
+namespace kernels {
+namespace reference {
+namespace residual_norm_reduction {
 
 
 template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        relative_residual_norm,
-        relative_residual_norm::relative_residual_norm<ValueType>);
-};
-
-
-}  // namespace
-
-
-template <typename ValueType>
-bool RelativeResidualNorm<ValueType>::check(uint8 stoppingId, bool setFinalized,
-                                            Array<stopping_status> *stop_status,
-                                            bool *one_changed,
-                                            const Criterion::Updater &updater)
+void residual_norm_reduction(std::shared_ptr<const ReferenceExecutor> exec,
+                             const matrix::Dense<ValueType> *tau,
+                             const matrix::Dense<ValueType> *orig_tau,
+                             remove_complex<ValueType> rel_residual_goal,
+                             uint8 stoppingId, bool setFinalized,
+                             Array<stopping_status> *stop_status,
+                             bool *all_converged, bool *one_changed)
 {
-    if (!initialized_tau_) {
-        starting_tau_->copy_from(updater.residual_norm_);
-        initialized_tau_ = true;
-        return false;
+    *all_converged = true;
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
+        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
+            stop_status->get_data()[i].converge(stoppingId, setFinalized);
+            *one_changed = true;
+        }
     }
-
-    bool all_converged{};
-    this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_relative_residual_norm_operation(
-            as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            parameters_.rel_residual_goal, stoppingId, setFinalized,
-            stop_status, &all_converged, one_changed));
-    return all_converged;
+    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+        if (!stop_status->get_const_data()[i].has_stopped()) {
+            *all_converged = false;
+            break;
+        }
+    }
 }
 
-
-#define GKO_DECLARE_RELATIVE_RESIDUAL_NORM(_type) \
-    class RelativeResidualNorm<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM);
-#undef GKO_DECLARE_RELATIVE_RESIDUAL_NORM
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
 
 
-}  // namespace stop
+}  // namespace residual_norm_reduction
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko

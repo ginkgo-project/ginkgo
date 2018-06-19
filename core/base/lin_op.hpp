@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <utility>
 
 
 namespace gko {
@@ -612,8 +613,6 @@ public:                                                                \
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \
-    struct _parameters_name##_type;                                          \
-                                                                             \
     const _parameters_name##_type &get_##_parameters_name() const            \
     {                                                                        \
         return _parameters_name##_;                                          \
@@ -650,10 +649,12 @@ public:
 #define GKO_FACTORY_PARAMETER(_name, ...)                    \
     mutable _name{__VA_ARGS__};                              \
                                                              \
-    auto with_##_name(const decltype(_name) &value)          \
+    template <typename... Args>                              \
+    auto with_##_name(Args &&... _value)                     \
         const->const ::gko::xstd::decay_t<decltype(*this)> & \
     {                                                        \
-        this->_name = value;                                 \
+        using type = decltype(this->_name);                  \
+        this->_name = type{std::forward<Args>(_value)...};   \
         return *this;                                        \
     }
 

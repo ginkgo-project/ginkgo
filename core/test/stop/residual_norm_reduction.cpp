@@ -31,51 +31,46 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/relative_residual_norm_kernels.hpp"
+#include <core/stop/residual_norm_reduction.hpp>
 
 
-#include "core/base/array.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
+#include <gtest/gtest.h>
 
 
-#include <algorithm>
+namespace {
 
 
-namespace gko {
-namespace kernels {
-namespace reference {
-namespace relative_residual_norm {
+constexpr double reduction_factor = 1.0e-16;
 
 
-template <typename ValueType>
-void relative_residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Dense<ValueType> *tau,
-                            const matrix::Dense<ValueType> *orig_tau,
-                            remove_complex<ValueType> rel_residual_goal,
-                            uint8 stoppingId, bool setFinalized,
-                            Array<stopping_status> *stop_status,
-                            bool *all_converged, bool *one_changed)
+class ResidualNormReduction : public ::testing::Test {
+protected:
+    ResidualNormReduction()
+    {
+        exec_ = gko::ReferenceExecutor::create();
+        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+                       .with_reduction_factor(reduction_factor)
+                       .on_executor(exec_);
+    }
+
+    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
+    std::shared_ptr<const gko::Executor> exec_;
+};
+
+
+TEST_F(ResidualNormReduction, CanCreateFactory)
 {
-    *all_converged = true;
-    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
-        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
-            stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
-        }
-    }
-    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
-        if (!stop_status->get_const_data()[i].has_stopped()) {
-            *all_converged = false;
-            break;
-        }
-    }
+    ASSERT_NE(factory_, nullptr);
+    ASSERT_EQ(factory_->get_parameters().reduction_factor, reduction_factor);
+    ASSERT_EQ(factory_->get_executor(), exec_);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
+
+TEST_F(ResidualNormReduction, CanCreateCriterion)
+{
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+    ASSERT_NE(criterion, nullptr);
+}
 
 
-}  // namespace relative_residual_norm
-}  // namespace reference
-}  // namespace kernels
-}  // namespace gko
+}  // namespace

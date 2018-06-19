@@ -1,1 +1,1 @@
-create_test(relative_residual_norm_kernels)
+create_test(residual_norm_reduction_kernels)

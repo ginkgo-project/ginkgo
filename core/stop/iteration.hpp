@@ -67,7 +67,7 @@ protected:
         : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
     {}
 
-    explicit Iteration(const Factory *factory, const CriterionArgs *args)
+    explicit Iteration(const Factory *factory, const CriterionArgs args)
         : EnablePolymorphicObject<Iteration, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}

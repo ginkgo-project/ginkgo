@@ -31,32 +31,53 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/relative_residual_norm_kernels.hpp"
 
-
-#include "core/base/exception_helpers.hpp"
+#include "core/stop/residual_norm_reduction.hpp"
+#include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 namespace gko {
-namespace kernels {
-namespace omp {
-namespace relative_residual_norm {
+namespace stop {
+namespace {
 
 
 template <typename ValueType>
-void relative_residual_norm(std::shared_ptr<const OmpExecutor> exec,
-                            const matrix::Dense<ValueType> *tau,
-                            const matrix::Dense<ValueType> *orig_tau,
-                            remove_complex<ValueType> rel_residual_goal,
-                            uint8 stoppingId, bool setFinalized,
-                            Array<stopping_status> *stop_status,
-                            bool *all_converged,
-                            bool *one_changed) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(
+        residual_norm_reduction,
+        residual_norm_reduction::residual_norm_reduction<ValueType>);
+};
 
 
-}  // namespace relative_residual_norm
-}  // namespace omp
-}  // namespace kernels
+}  // namespace
+
+
+template <typename ValueType>
+bool ResidualNormReduction<ValueType>::check(
+    uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
+    bool *one_changed, const Criterion::Updater &updater)
+{
+    if (!initialized_tau_) {
+        starting_tau_->copy_from(updater.residual_norm_);
+        initialized_tau_ = true;
+        return false;
+    }
+
+    bool all_converged{};
+    this->get_executor()->run(
+        TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
+            as<Vector>(updater.residual_norm_), starting_tau_.get(),
+            parameters_.reduction_factor, stoppingId, setFinalized, stop_status,
+            &all_converged, one_changed));
+    return all_converged;
+}
+
+
+#define GKO_DECLARE_RESIDUAL_NORM_REDUCTION(_type) \
+    class ResidualNormReduction<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION);
+#undef GKO_DECLARE_RESIDUAL_NORM_REDUCTION
+
+
+}  // namespace stop
 }  // namespace gko

@@ -39,7 +39,7 @@ namespace gko {
 namespace stop {
 
 
-bool ByInteraction::tmp = false;
+bool ByInteraction::unspecified = false;
 
 
 bool ByInteraction::check(uint8 stoppingId, bool setFinalized,

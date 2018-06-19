@@ -48,32 +48,15 @@ namespace stop {
 
 
 /**
- * The Criterion class is a base class for all stopping criterion tests. It
- * contains a factory to instantiate tests. It is up to each specific stopping
- * criterion test to decide what to do with the data that is passed to it.
+ * The Criterion class is a base class for all stopping criteria. It
+ * contains a factory to instantiate criteria. It is up to each specific
+ * stopping criterion to decide what to do with the data that is passed to it.
  *
- * Note that depending on the tests, convergence may not have happened after
+ * Note that depending on the criterion, convergence may not have happened after
  * stopping.
  */
 class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
-    // class Factory {
-    // public:
-    //     /**
-    //      * Creates the stopping criterion test.
-    //      *
-    //      * @param system_matrix  the tested LinOp's system matrix
-    //      * @param b  the tested LinOp's input vector(s)
-    //      * @param x  the tested LinOp's output vector(s)
-    //      *
-    //      * @return the newly created stopping criterion test
-    //      */
-    //     virtual std::unique_ptr<Criterion> create_criterion(
-    //         std::shared_ptr<const LinOp> system_matrix,
-    //         std::shared_ptr<const LinOp> b, const LinOp *x) const = 0;
-    //     virtual ~Factory() = default;
-    // };
-
     /**
      * The Updater class serves for convenient argument passing to the
      * Criterion's check function. The pattern used is a Builder, except Updater
@@ -104,7 +87,7 @@ public:
 
         /**
          * Calls the parent Criterion object's check method
-         * @copydoc Criterion::check(Array<bool>)
+         * @copydoc Criterion::check(uint8, bool, Array<stopping_status>, bool)
          */
         bool check(uint8 stoppingId, bool setFinalized,
                    Array<stopping_status> *stop_status, bool *one_changed) const
@@ -137,10 +120,6 @@ public:
         Criterion *parent_;
     };
 
-
-    virtual ~Criterion() = default;
-
-
     /**
      * Returns the updater object
      *
@@ -152,10 +131,10 @@ public:
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
      *
-     * @param stoppingId  id of the stopping criteria
+     * @param stoppingId  id of the stopping criterion
      * @param setFinalized  Controls if the current version should count as
      *                      finalized or not
-     * @param stop_status  status of the stopping criteria
+     * @param stop_status  status of the stopping criterion
      * @param one_changed  indicates if one vector's status changed
      * @param updater  the Updater object containing all the information
      *
@@ -166,6 +145,16 @@ public:
                        const Updater &updater) = 0;
 
 protected:
+    /**
+     * This is a helper function which properly sets all elements of the
+     * stopping_status to converged. This is used in stopping criteria such as
+     * Time or Iteration.
+     *
+     * @param stoppingId  id of the stopping criterion
+     * @param setFinalized  Controls if the current version should count as
+     *                      finalized or not
+     * @param stop_status  status of the stopping criterion
+     */
     void set_all_status(uint8 stoppingId, bool setFinalized,
                         Array<stopping_status> *stop_status)
     {
@@ -179,6 +168,7 @@ protected:
     {}
 };
 
+
 /**
  * This struct is used to pass parameters to the
  * EnableDefaultCriterionFactoryCriterionFactory::generate() method. It is the
@@ -189,19 +179,17 @@ struct CriterionArgs {
     std::shared_ptr<const LinOp> b;
     const LinOp *x;
 
-    explicit CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
-                           std::shared_ptr<const LinOp> b, const LinOp *x)
-    {
-        this->system_matrix = std::move(system_matrix);
-        this->b = std::move(b);
-        this->x = x;
-    }
+    CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
+                  std::shared_ptr<const LinOp> b, const LinOp *x)
+        : system_matrix{system_matrix}, b{b}, x{x}
+    {}
 };
+
 
 /**
  * Declares an Abstract Factory specialized for Criterions
  */
-using CriterionFactory = AbstractFactory<Criterion, const CriterionArgs *>;
+using CriterionFactory = AbstractFactory<Criterion, CriterionArgs>;
 
 
 /**
@@ -210,10 +198,10 @@ using CriterionFactory = AbstractFactory<Criterion, const CriterionArgs *>;
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
- * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
- *                        needs to have a constructor which takes a
- *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LinOp> as parameters.
+ * @tparam ConcreteCriterion  the concrete Criterion type which this factory
+ *                            produces, needs to have a constructor which takes
+ *                            a const ConcreteFactory *, and a
+ *                            const CriterionArgs * as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic

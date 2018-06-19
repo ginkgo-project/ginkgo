@@ -19,7 +19,7 @@ set(SOURCES
     stop/byinteraction.cpp
     stop/combined.cpp
     stop/iteration.cpp
-    stop/relative_residual_norm.cpp
+    stop/residual_norm_reduction.cpp
     stop/time.cpp)
 
 

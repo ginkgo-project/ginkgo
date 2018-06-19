@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/relative_residual_norm_kernels.hpp"
+#include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace gpu {
-namespace relative_residual_norm {
+namespace residual_norm_reduction {
 
 
 constexpr int default_block_size = 512;
@@ -50,7 +50,7 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void relative_residual_norm_kernel(
+    __launch_bounds__(default_block_size) void residual_norm_reduction_kernel(
         size_type num_cols, remove_complex<ValueType> rel_residual_goal,
         const ValueType *__restrict__ tau,
         const ValueType *__restrict__ orig_tau, uint8 stoppingId,
@@ -73,13 +73,13 @@ __global__
 }
 
 template <typename ValueType>
-void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
-                            const matrix::Dense<ValueType> *tau,
-                            const matrix::Dense<ValueType> *orig_tau,
-                            remove_complex<ValueType> rel_residual_goal,
-                            uint8 stoppingId, bool setFinalized,
-                            Array<stopping_status> *stop_status,
-                            bool *all_converged, bool *one_changed)
+void residual_norm_reduction(std::shared_ptr<const GpuExecutor> exec,
+                             const matrix::Dense<ValueType> *tau,
+                             const matrix::Dense<ValueType> *orig_tau,
+                             remove_complex<ValueType> rel_residual_goal,
+                             uint8 stoppingId, bool setFinalized,
+                             Array<stopping_status> *stop_status,
+                             bool *all_converged, bool *one_changed)
 {
     Array<bool> d_all_converged(exec, 1);
     Array<bool> all_converged_array(exec->get_master());
@@ -97,7 +97,7 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
 
-    relative_residual_norm_kernel<<<grid_size, block_size, 0, 0>>>(
+    residual_norm_reduction_kernel<<<grid_size, block_size, 0, 0>>>(
         tau->get_size().num_cols, rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
@@ -112,10 +112,10 @@ void relative_residual_norm(std::shared_ptr<const GpuExecutor> exec,
     one_changed_array.release();
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RELATIVE_RESIDUAL_NORM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
 
 
-}  // namespace relative_residual_norm
+}  // namespace residual_norm_reduction
 }  // namespace gpu
 }  // namespace kernels
 }  // namespace gko

@@ -46,7 +46,7 @@ bool Combined::check(uint8 stoppingId, bool setFinalized,
     bool one_converged = false;
     bool global_one_changed = false;
     gko::uint8 ids{1};
-    for (std::unique_ptr<Criterion> &c : criteria_) {
+    for (auto &c : criteria_) {
         one_converged |=
             c->check(ids, setFinalized, stop_status, one_changed, updater);
         global_one_changed |= *one_changed;

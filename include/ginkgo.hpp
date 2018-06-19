@@ -68,7 +68,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/byinteraction.hpp"
 #include "core/stop/combined.hpp"
 #include "core/stop/iteration.hpp"
-#include "core/stop/relative_residual_norm.hpp"
+#include "core/stop/residual_norm_reduction.hpp"
 #include "core/stop/stopping_status.hpp"
 #include "core/stop/time.hpp"
 

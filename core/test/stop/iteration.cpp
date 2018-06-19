@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-constexpr unsigned int test_iterations = 10;
+constexpr gko::size_type test_iterations = 10;
 
 
 class Iteration : public ::testing::Test {
@@ -66,7 +66,7 @@ TEST_F(Iteration, CanCreateFactory)
 
 TEST_F(Iteration, CanCreateCriterion)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
@@ -76,7 +76,7 @@ TEST_F(Iteration, WaitsTillIteration)
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
 
     ASSERT_FALSE(
         criterion->update()

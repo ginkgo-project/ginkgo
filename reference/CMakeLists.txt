@@ -9,7 +9,7 @@ set(SOURCES
     solver/fcg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/cg_kernels.cpp
-    stop/relative_residual_norm_kernels.cpp)
+    stop/residual_norm_reduction_kernels.cpp)
 
 add_library(ginkgo_reference
     $<TARGET_OBJECTS:ginkgo_reference_device>

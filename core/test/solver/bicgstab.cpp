@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/dense.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
-#include <core/stop/relative_residual_norm.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/stop/time.hpp>
 
 
@@ -61,14 +61,13 @@ protected:
               Solver::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              {gko::stop::Iteration::Factory::create()
-                                   .with_max_iters(3)
-                                   .on_executor(exec),
-                               gko::stop::RelativeResidualNorm<>::Factory::
-                                   create()
-                                       .with_rel_residual_goal(1e-6)
-                                       .on_executor(exec)})
+                          .with_criteria(gko::stop::Iteration::Factory::create()
+                                             .with_max_iters(3u)
+                                             .on_executor(exec),
+                                         gko::stop::ResidualNormReduction<>::
+                                             Factory::create()
+                                                 .with_reduction_factor(1e-6)
+                                                 .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
@@ -157,7 +156,7 @@ TEST_F(Bicgstab, CanSetPreconditionerGenertor)
     auto bicgstab_factory =
         Solver::Factory::create()
             .with_criterion(gko::stop::Iteration::Factory::create()
-                                .with_max_iters(3)
+                                .with_max_iters(3u)
                                 .on_executor(exec))
             .with_preconditioner(Solver::Factory::create().on_executor(exec))
             .on_executor(exec);

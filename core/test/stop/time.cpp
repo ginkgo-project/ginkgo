@@ -69,14 +69,14 @@ TEST_F(Time, CanCreateFactory)
 
 TEST_F(Time, CanCreateCriterion)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     ASSERT_NE(criterion, nullptr);
 }
 
 
 TEST_F(Time, WaitsTillTime)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};

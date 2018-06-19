@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/relative_residual_norm.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,29 +40,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-constexpr double residual_goal = 1.0e-14;
+constexpr double reduction_factor = 1.0e-14;
 
 
-class RelativeResidualNorm : public ::testing::Test {
+class ResidualNormReduction : public ::testing::Test {
 protected:
-    RelativeResidualNorm()
+    ResidualNormReduction()
     {
         ref_ = gko::ReferenceExecutor::create();
         gpu_ = gko::GpuExecutor::create(0, ref_);
-        factory_ = gko::stop::RelativeResidualNorm<>::Factory::create()
-                       .with_rel_residual_goal(residual_goal)
+        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+                       .with_reduction_factor(reduction_factor)
                        .on_executor(gpu_);
     }
 
-    std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
+    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
     std::shared_ptr<const gko::GpuExecutor> gpu_;
     std::shared_ptr<gko::ReferenceExecutor> ref_;
 };
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
+TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].clear();
@@ -77,7 +77,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = residual_goal * 1.0e+2;
+    scalar->at(0) = reduction_factor * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -88,7 +88,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(gpu_);
     ASSERT_EQ(one_changed, false);
 
-    scalar->at(0) = residual_goal * 1.0e-2;
+    scalar->at(0) = reduction_factor * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -100,9 +100,9 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto criterion = factory_->generate(nullptr);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].clear();
@@ -118,7 +118,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = residual_goal * 1.0e-2;
+    mtx->at(0, 0) = reduction_factor * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -129,7 +129,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(gpu_);
     ASSERT_EQ(one_changed, true);
 
-    mtx->at(0, 1) = residual_goal * 1.0e-2;
+    mtx->at(0, 1) = reduction_factor * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()

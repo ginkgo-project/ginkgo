@@ -142,7 +142,7 @@ private:
     static constexpr uint8 finalized_mask_ = uint8{1} << 6;
     static constexpr uint8 id_mask_ = (uint8{1} << 6) - uint8{1};
 
-    uint8 data_{};
+    uint8 data_;
 };
 
 

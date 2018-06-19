@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_
-#define GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_
+#ifndef GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
+#define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
 
 
 #include "core/matrix/dense.hpp"
@@ -46,16 +46,16 @@ namespace gko {
 namespace stop {
 
 /**
- * The RelativeResidualNorm class is a stopping criterion which stops the
+ * The ResidualNormReduction class is a stopping criterion which stops the
  * iteration process when the relative residual norm is below a certain
  * threshold. For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm
-    : public EnablePolymorphicObject<RelativeResidualNorm<ValueType>,
+class ResidualNormReduction
+    : public EnablePolymorphicObject<ResidualNormReduction<ValueType>,
                                      Criterion> {
-    friend class EnablePolymorphicObject<RelativeResidualNorm<ValueType>,
+    friend class EnablePolymorphicObject<ResidualNormReduction<ValueType>,
                                          Criterion>;
 
 public:
@@ -70,21 +70,21 @@ public:
         /**
          * Relative residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER(rel_residual_goal,
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER(reduction_factor,
                                                         1e-15);
     };
-    GKO_ENABLE_CRITERION_FACTORY(RelativeResidualNorm<ValueType>, parameters,
+    GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
 
 protected:
-    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(
+    explicit ResidualNormReduction(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
               std::move(exec))
     {}
 
-    explicit RelativeResidualNorm(const Factory *factory,
-                                  const CriterionArgs *args)
-        : EnablePolymorphicObject<RelativeResidualNorm<ValueType>, Criterion>(
+    explicit ResidualNormReduction(const Factory *factory,
+                                   const CriterionArgs args)
+        : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
@@ -101,4 +101,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_RELATIVE_RESIDUAL_NORM_HPP_
+#endif  // GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
