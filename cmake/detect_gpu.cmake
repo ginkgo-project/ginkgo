@@ -160,10 +160,10 @@ endfunction()
 
 
 ################################################################################
-# Function for selecting GPU arch flags for nvcc based on CUDA_ARCH_OPTION
+# Function for selecting GPU arch flags for nvcc based on architecture_list
 # Usage:
 #     ginkgo_select_nvcc_arch_flags(out_variable)
-function(ginkgo_select_nvcc_arch_flags out_variable)
+function(ginkgo_select_nvcc_arch_flags architecture_list out_variable)
     if(CMAKE_CUDA_COMPILER_VERSION MATCHES "([0-9]+).([0-9]+).(.*)")
         set(cuda_version ${CMAKE_MATCH_1}${CMAKE_MATCH_2})
     else()
@@ -183,7 +183,7 @@ function(ginkgo_select_nvcc_arch_flags out_variable)
     set(__cuda_arch_bin "")
     set(__cuda_arch_ptx "")
     set(__bool_max_ptx "0")
-    foreach(__option ${CUDA_ARCH_OPTION})
+    foreach(__option ${architecture_list})
         if(__option STREQUAL "Off")
             set(${out_variable}          ""    PARENT_SCOPE)
             set(${out_variable}_readable "Off" PARENT_SCOPE)

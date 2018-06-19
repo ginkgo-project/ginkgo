@@ -15,7 +15,10 @@ option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
-option(SKIP_DEPENDENCY_UPDATE "Do not update dependencies each time the project is rebuilt" OFF)
+option(SKIP_DEPENDENCY_UPDATE
+       "Do not update dependencies each time the project is rebuilt" OFF)
+set(GPU_ARCHITECTURES "Auto" CACHE STRING
+    "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
@@ -29,15 +32,8 @@ if(BUILD_GPU)
         set(CMAKE_CUDA_FLAGS
             "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
     endif()
-    # set CUDA_ARCH_OPTION strings
-    set(CUDA_ARCH_OPTION "Auto" CACHE STRING
-        "Select target NVIDIA GPU achitecture.
-         Use ';' to seperate list.
-         Arch name: Kepler, Maxwell, Pascal, Volta.
-         Specified BIN, BIN(PTX), (PTX).
-         MaxPTX will select the max ptx")
     # setting nvcc arch flags
-    ginkgo_select_nvcc_arch_flags(NVCC_FLAGS_EXTRA)
+    ginkgo_select_nvcc_arch_flags("${GPU_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
     message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()

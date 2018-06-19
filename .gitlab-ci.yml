@@ -90,7 +90,7 @@ build/gcc/all/debug:
     BUILD_OMP: "ON"
     BUILD_GPU: "ON"
     EXTRA_CMAKE_FLAGS: &cuda_flags
-      -DCMAKE_CUDA_COMPILER=/opt/cuda/bin/nvcc -DCUDA_ARCH_OPTION=60
+      -DCMAKE_CUDA_COMPILER=/opt/cuda/bin/nvcc -DGPU_ARCHITECTURES=60
 
 build/clang/all/debug:
   <<: *default_build
