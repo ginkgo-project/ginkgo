@@ -160,9 +160,9 @@ run the following from the build folder:
 where `path/to/test` is the path returned by `make test`.
 
 
-### Installing ginkgo
+### Installing Ginkgo
 
-To install ginkgo into the specified folder, execute the following command in
+To install Ginkgo into the specified folder, execute the following command in
 the build folder
 
 ```sh
