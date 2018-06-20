@@ -31,11 +31,11 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_BYINTERACTION_HPP_
-#define GKO_CORE_STOP_BYINTERACTION_HPP_
+#ifndef GKO_EXAMPLE_BYINTERACTION_HPP_
+#define GKO_EXAMPLE_BYINTERACTION_HPP_
 
 
-#include "core/stop/criterion.hpp"
+#include <core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -98,9 +98,6 @@ namespace stop {
 class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
     friend class EnablePolymorphicObject<ByInteraction, Criterion>;
 
-private:
-    static bool unspecified;
-
 public:
     bool check(uint8 stoppingId, bool setFinalized,
                Array<stopping_status> *stop_status, bool *one_changed,
@@ -109,10 +106,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Boolean set by the user to stop iteration process
+         * Boolean set by the user to stop the iteration process
          */
-        volatile bool &GKO_TMP_FACTORY_PARAMETER(user_stops_convergence,
-                                                 unspecified);
+        mutable volatile bool *GKO_TMP_FACTORY_PARAMETER(stop_iteration_process,
+                                                         nullptr);
 #undef GKO_TMP_FACTORY_PARAMETER
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
@@ -139,4 +136,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_BYINTERACTION_HPP_
+#endif  // GKO_EXAMPLE_BYINTERACTION_HPP_

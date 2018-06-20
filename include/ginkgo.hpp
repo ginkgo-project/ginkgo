@@ -65,7 +65,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs.hpp"
 #include "core/solver/fcg.hpp"
 
-#include "core/stop/byinteraction.hpp"
 #include "core/stop/combined.hpp"
 #include "core/stop/iteration.hpp"
 #include "core/stop/residual_norm_reduction.hpp"

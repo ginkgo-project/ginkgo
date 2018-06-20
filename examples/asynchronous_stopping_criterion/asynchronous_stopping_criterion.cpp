@@ -52,59 +52,50 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -std=c++11 -o stopping_criterion stopping_criterion.cpp -I../.. \
+c++ -std=c++11 -o asynchronous_stopping_criterion  \
+    asynchronous_stopping_criterion.cpp byinteration.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./stopping_criterion
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
+#include "byinteraction.hpp"
+
+
 #include <iostream>
 #include <string>
+#include <thread>
 
-int main(int argc, char *argv[])
+
+void run_solver(volatile bool *stop_iteration_process,
+                std::shared_ptr<gko::Executor> exec)
 {
-    // Some shortcuts
-    using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
+    using vec = gko::matrix::Dense<>;
     using bicg = gko::solver::Bicgstab<>;
 
-    // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "gpu" &&
-               gko::GpuExecutor::get_num_devices() > 0) {
-        exec = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
-    } else {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
-        std::exit(-1);
-    }
-
-    // Read data
+    // Read Data
     auto A = gko::share(gko::read<mtx>("data/A.mtx", exec));
     auto b = gko::read<vec>("data/b.mtx", exec);
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
-    // Create solver factory
-    auto solver_gen =
-        bicg::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create()
-                                .with_max_iters(20u)
-                                .on_executor(exec))
-            .on_executor(exec);
-    // Create solver
-    auto solver = solver_gen->generate(A);
+    // Create solver factory and solve system
+    bicg::Factory::create()
+        .with_criterion(gko::stop::ByInteraction::Factory::create()
+                            .with_stop_iteration_process(stop_iteration_process)
+                            .on_executor(exec))
+        .on_executor(exec)
+        ->generate(A)
+        ->apply(gko::lend(b), gko::lend(x));
 
-    // Solve system
-    solver->apply(gko::lend(b), gko::lend(x));
+    std::cout << "Solver stopped" << std::endl;
+
 
     // Print result
     auto h_x = gko::clone(exec->get_master(), x);
@@ -123,4 +114,45 @@ int main(int argc, char *argv[])
 
     auto h_res = gko::clone(exec->get_master(), res);
     std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
+}
+
+
+int main(int argc, char *argv[])
+{
+    // Some shortcuts
+
+    // Figure out where to run the code
+    std::shared_ptr<gko::Executor> exec;
+    if (argc == 1 || std::string(argv[1]) == "reference") {
+        exec = gko::ReferenceExecutor::create();
+    } else if (argc == 2 && std::string(argv[1]) == "omp") {
+        exec = gko::OmpExecutor::create();
+    } else if (argc == 2 && std::string(argv[1]) == "gpu" &&
+               gko::GpuExecutor::get_num_devices() > 0) {
+        exec = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
+    } else {
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
+        std::exit(-1);
+    }
+
+    // Declare a user controled boolean for the iteration process
+    volatile bool stop_iteration_process{};
+
+    // Create a new a thread to launch the solver
+    std::thread t(run_solver, &stop_iteration_process, exec);
+
+    // Look for an input command "stop" in the console, which sets the boolean
+    // to true
+    std::string command;
+    while (std::cin >> command) {
+        if (command == "stop") {
+            break;
+        } else {
+            std::cout << "Unknown command" << std::endl;
+        }
+    }
+    std::cout << "User input command 'stop' - The solver will stop!"
+              << std::endl;
+    stop_iteration_process = true;
+    t.join();
 }

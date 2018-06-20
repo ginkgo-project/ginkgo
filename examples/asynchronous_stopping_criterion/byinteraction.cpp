@@ -32,21 +32,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/byinteraction.hpp"
+#include "byinteraction.hpp"
 
 
 namespace gko {
 namespace stop {
 
 
-bool ByInteraction::unspecified = false;
-
-
 bool ByInteraction::check(uint8 stoppingId, bool setFinalized,
                           Array<stopping_status> *stop_status,
                           bool *one_changed, const Updater &)
 {
-    bool result = parameters_.user_stops_convergence;
+    bool result = *(parameters_.stop_iteration_process);
     if (result) {
         this->set_all_status(stoppingId, setFinalized, stop_status);
         *one_changed = true;
