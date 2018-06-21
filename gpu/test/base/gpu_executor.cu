@@ -50,7 +50,7 @@ namespace {
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int &val) : value(val) {}
-    void run(std::shared_ptr<const gko::CpuExecutor>) const override
+    void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = -1;
     }
@@ -69,15 +69,15 @@ public:
 
 class GpuExecutor : public ::testing::Test {
 protected:
-    GpuExecutor() : cpu(gko::CpuExecutor::create()), gpu(nullptr), gpu2(nullptr)
+    GpuExecutor() : omp(gko::OmpExecutor::create()), gpu(nullptr), gpu2(nullptr)
     {}
 
     void SetUp()
     {
         ASSERT_GT(gko::GpuExecutor::get_num_devices(), 0);
-        gpu = gko::GpuExecutor::create(0, cpu);
+        gpu = gko::GpuExecutor::create(0, omp);
         gpu2 = gko::GpuExecutor::create(gko::GpuExecutor::get_num_devices() - 1,
-                                        cpu);
+                                        omp);
     }
 
     void TearDown()
@@ -88,7 +88,7 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::CpuExecutor> cpu;
+    std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::GpuExecutor> gpu;
     std::shared_ptr<gko::GpuExecutor> gpu2;
 };
@@ -139,7 +139,7 @@ TEST_F(GpuExecutor, CopiesDataToGpu)
     int orig[] = {3, 8};
     auto *copy = gpu->alloc<int>(2);
 
-    gpu->copy_from(cpu.get(), 2, orig, copy);
+    gpu->copy_from(omp.get(), 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(gpu->synchronize());
@@ -159,7 +159,7 @@ TEST_F(GpuExecutor, CopiesDataFromGpu)
     auto orig = gpu->alloc<int>(2);
     init_data<<<1, 1>>>(orig);
 
-    cpu->copy_from(gpu.get(), 2, orig, copy);
+    omp->copy_from(gpu.get(), 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -207,7 +207,7 @@ TEST_F(GpuExecutor, CopiesDataFromGpuToGpu)
     gpu2->run(ExampleOperation(value));
     ASSERT_EQ(value, gpu2->get_device_id());
 
-    cpu->copy_from(gpu2.get(), 2, copy_gpu2, copy);
+    omp->copy_from(gpu2.get(), 2, copy_gpu2, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);

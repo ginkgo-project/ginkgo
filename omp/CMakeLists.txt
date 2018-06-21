@@ -10,12 +10,12 @@ set(SOURCES
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp)
 
-add_library(ginkgo_cpu
-    $<TARGET_OBJECTS:ginkgo_cpu_device>
+add_library(ginkgo_omp
+    $<TARGET_OBJECTS:ginkgo_omp_device>
     ${SOURCES})
-target_link_libraries(ginkgo_cpu PUBLIC ginkgo_gpu)
-ginkgo_default_includes(ginkgo_cpu)
-ginkgo_install_library(ginkgo_cpu cpu)
+target_link_libraries(ginkgo_omp PUBLIC ginkgo_gpu)
+ginkgo_default_includes(ginkgo_omp)
+ginkgo_install_library(ginkgo_omp omp)
 
 if(BUILD_TESTS)
     add_subdirectory(test)

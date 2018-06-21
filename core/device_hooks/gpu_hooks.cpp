@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void CpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
+void OmpExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     NOT_COMPILED(gpu);
 
@@ -55,7 +55,7 @@ void GpuExecutor::free(void *ptr) const noexcept
 void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
 
 
-void GpuExecutor::raw_copy_to(const CpuExecutor *, size_type num_bytes,
+void GpuExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     NOT_COMPILED(gpu);
 

@@ -111,9 +111,9 @@ TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 
 TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 {
-    gko::AllocationError error("test_file.cpp", 42, "CPU", 135);
+    gko::AllocationError error("test_file.cpp", 42, "OMP", 135);
     ASSERT_EQ(
-        std::string("test_file.cpp:42: CPU: failed to allocate memory block "
+        std::string("test_file.cpp:42: OMP: failed to allocate memory block "
                     "of 135B"),
         error.what());
 }

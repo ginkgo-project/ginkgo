@@ -7,7 +7,7 @@ PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @DIR_BASE@/core @DIR_BASE@/cpu @DIR_BASE@/gpu @DIR_BASE@/reference @MAINPAGE@
+INPUT                  = @DIR_BASE@/core @DIR_BASE@/omp @DIR_BASE@/gpu @DIR_BASE@/reference @MAINPAGE@
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples

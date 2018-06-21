@@ -31,6 +31,49 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#define GKO_HOOK_MODULE cpu
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+#include "core/matrix/ell_kernels.hpp"
+
+
+#include "core/base/exception_helpers.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace omp {
+namespace ell {
+
+
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
+                   const matrix::Dense<ValueType> *alpha,
+                   const matrix::Ell<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(
+    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *result,
+    const matrix::Ell<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
+
+
+}  // namespace ell
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko
