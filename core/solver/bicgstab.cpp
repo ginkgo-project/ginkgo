@@ -113,14 +113,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     rr->copy_from(r.get());
-    r->compute_dot(r.get(), tau.get());
     system_matrix_->apply(r.get(), v.get());
-    // Update starting tau
-    stop_criterion->update()
-        .num_iterations(0)
-        .residual_norm(tau.get())
-        .solution(dense_x)
-        .check(RelativeStoppingId, false, &stop_status, &one_changed);
 
     int iters = 0;
     while (true) {
