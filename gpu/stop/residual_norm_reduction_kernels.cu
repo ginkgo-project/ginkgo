@@ -72,6 +72,7 @@ __global__
     }
 }
 
+
 template <typename ValueType>
 void residual_norm_reduction(std::shared_ptr<const GpuExecutor> exec,
                              const matrix::Dense<ValueType> *tau,
@@ -81,18 +82,15 @@ void residual_norm_reduction(std::shared_ptr<const GpuExecutor> exec,
                              Array<stopping_status> *stop_status,
                              bool *all_converged, bool *one_changed)
 {
-    Array<bool> d_all_converged(exec, 1);
-    Array<bool> all_converged_array(exec->get_master());
-    // initialize all_converged with true
     *all_converged = true;
-    all_converged_array.manage(1, all_converged);
-    d_all_converged = all_converged_array;
+    auto all_converged_array =
+        Array<bool>::view(exec->get_master(), 1, all_converged);
+    Array<bool> d_all_converged(exec, all_converged_array);
 
-    Array<bool> d_one_changed(exec, 1);
-    Array<bool> one_changed_array(exec->get_master());
     *one_changed = false;
-    one_changed_array.manage(1, one_changed);
-    d_one_changed = one_changed_array;
+    auto one_changed_array =
+        Array<bool>::view(exec->get_master(), 1, one_changed);
+    Array<bool> d_one_changed(exec, one_changed_array);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
@@ -106,10 +104,7 @@ void residual_norm_reduction(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(d_one_changed.get_data()));
 
     all_converged_array = d_all_converged;
-    all_converged_array.release();
-
     one_changed_array = d_one_changed;
-    one_changed_array.release();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);

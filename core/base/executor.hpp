@@ -569,7 +569,9 @@ public:
      *
      * @param exec  the executor used to free the data
      */
-    executor_deleter(std::shared_ptr<Executor> exec) : exec_{exec} {}
+    explicit executor_deleter(std::shared_ptr<const Executor> exec)
+        : exec_{exec}
+    {}
 
     /**
      * Deletes the object.
@@ -579,7 +581,23 @@ public:
     void operator()(pointer ptr) const { exec_->free(ptr); }
 
 private:
-    std::shared_ptr<Executor> exec_;
+    std::shared_ptr<const Executor> exec_;
+};
+
+// a specialization for arrays
+template <typename T>
+class executor_deleter<T[]> {
+public:
+    using pointer = T[];
+
+    explicit executor_deleter(std::shared_ptr<const Executor> exec)
+        : exec_{exec}
+    {}
+
+    void operator()(pointer ptr) const { exec_->free(ptr); }
+
+private:
+    std::shared_ptr<const Executor> exec_;
 };
 
 

@@ -342,6 +342,15 @@ public:
     void operator()(pointer ptr) const noexcept {}
 };
 
+// a specialization for arrays
+template <typename T>
+class null_deleter<T[]> {
+public:
+    using pointer = T[];
+
+    void operator()(pointer ptr) const noexcept {}
+};
+
 
 /**
  * A copy_back_deleter is a type of deleter that copies the data to an
