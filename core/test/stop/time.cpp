@@ -36,14 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include <chrono>
+#include <thread>
 
 
 namespace {
 
 
-constexpr double test_seconds = 0.5;
+constexpr long test_ms = 500;
 constexpr double eps = 1.0e-4;
-using double_seconds = std::chrono::duration<double>;
+using double_seconds = std::chrono::duration<double, std::milli>;
 
 
 class Time : public ::testing::Test {
@@ -51,7 +52,7 @@ protected:
     Time() : exec_{gko::ReferenceExecutor::create()}
     {
         factory_ = gko::stop::Time::Factory::create()
-                       .with_time_limit(test_seconds)
+                       .with_time_limit(std::chrono::milliseconds(test_ms))
                        .on_executor(exec_);
     }
 
@@ -63,7 +64,8 @@ protected:
 TEST_F(Time, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().time_limit, test_seconds);
+    ASSERT_EQ(factory_->get_parameters().time_limit,
+              std::chrono::milliseconds(test_ms));
 }
 
 
@@ -82,18 +84,17 @@ TEST_F(Time, WaitsTillTime)
     constexpr gko::uint8 RelativeStoppingId{1};
     auto start = std::chrono::system_clock::now();
 
-    while (1) {
-        if (criterion->update().check(RelativeStoppingId, true, &stop_status,
-                                      &one_changed))
-            break;
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
+    ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
+                                          &stop_status, &one_changed));
+
     auto time = std::chrono::system_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
     /**
      * Somehow this can be imprecise therefore I add an epsilon (here of 0.1ms)
      */
-    ASSERT_GE(time_d + eps, test_seconds);
+    ASSERT_GE(time_d + eps, test_ms);
 }
 
 

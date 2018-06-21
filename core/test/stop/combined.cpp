@@ -39,13 +39,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <thread>
 
 
 namespace {
 
 
 constexpr gko::size_type test_iterations = 10;
-constexpr double test_seconds = 999;  // we will never converge through seconds
+constexpr int test_seconds = 999;  // we will never converge through seconds
 constexpr double eps = 1.0e-4;
 using double_seconds = std::chrono::duration<double>;
 
@@ -55,14 +56,16 @@ protected:
     Combined()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::Combined::Factory::create()
-                       .with_criteria(gko::stop::Iteration::Factory::create()
-                                          .with_max_iters(test_iterations)
-                                          .on_executor(exec_),
-                                      gko::stop::Time::Factory::create()
-                                          .with_time_limit(test_seconds)
-                                          .on_executor(exec_))
-                       .on_executor(exec_);
+        factory_ =
+            gko::stop::Combined::Factory::create()
+                .with_criteria(
+                    gko::stop::Iteration::Factory::create()
+                        .with_max_iters(test_iterations)
+                        .on_executor(exec_),
+                    gko::stop::Time::Factory::create()
+                        .with_time_limit(std::chrono::seconds(test_seconds))
+                        .on_executor(exec_))
+                .on_executor(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;
@@ -117,14 +120,17 @@ TEST_F(Combined, WaitsTillIteration)
  * the very small time picked and huge iteration count. */
 TEST_F(Combined, WaitsTillTime)
 {
-    factory_ = gko::stop::Combined::Factory::create()
-                   .with_criteria(gko::stop::Iteration::Factory::create()
-                                      .with_max_iters(9999u)
-                                      .on_executor(exec_),
-                                  gko::stop::Time::Factory::create()
-                                      .with_time_limit(1.0e-9)
-                                      .on_executor(exec_))
-                   .on_executor(exec_);
+    constexpr double timelimit = 1.0e-9;
+    constexpr int testiters = 10;
+    factory_ =
+        gko::stop::Combined::Factory::create()
+            .with_criteria(gko::stop::Iteration::Factory::create()
+                               .with_max_iters(9999u)
+                               .on_executor(exec_),
+                           gko::stop::Time::Factory::create()
+                               .with_time_limit(std::chrono::nanoseconds(1))
+                               .on_executor(exec_))
+            .on_executor(exec_);
     unsigned int iters = 0;
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
@@ -133,11 +139,12 @@ TEST_F(Combined, WaitsTillTime)
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     auto start = std::chrono::system_clock::now();
 
-    while (1) {
-        if (criterion->update().num_iterations(iters).check(
+    for (int i = 0; i < testiters; i++) {
+        std::this_thread::sleep_for(
+            std::chrono::duration<double>(timelimit / testiters));
+        if (criterion->update().num_iterations(i).check(
                 RelativeStoppingId, true, &stop_status, &one_changed))
             break;
-        iters++;
     }
     auto time = std::chrono::system_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();

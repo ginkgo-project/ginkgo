@@ -151,7 +151,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .num_iterations(iters)
                 .residual_norm(tau.get())
                 .residual(r.get())
-                .solution(dense_x)
+                // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, true, &stop_status, &one_changed);
 
         if (one_changed) {

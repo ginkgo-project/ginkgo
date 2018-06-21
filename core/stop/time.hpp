@@ -63,7 +63,8 @@ public:
         /**
          * Amount of seconds to wait
          */
-        double GKO_FACTORY_PARAMETER(time_limit, 10.0);
+        std::chrono::nanoseconds GKO_FACTORY_PARAMETER(
+            time_limit, std::chrono::seconds(10));
     };
     GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
 

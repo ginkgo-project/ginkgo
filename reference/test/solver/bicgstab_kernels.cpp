@@ -63,32 +63,34 @@ protected:
               Solver::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(8u)
-                                             .on_executor(exec),
-                                         gko::stop::Time::Factory::create()
-                                             .with_time_limit(6.0)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
+                          .with_criteria(
+                              gko::stop::Iteration::Factory::create()
+                                  .with_max_iters(8u)
+                                  .on_executor(exec),
+                              gko::stop::Time::Factory::create()
+                                  .with_time_limit(std::chrono::seconds(6))
+                                  .on_executor(exec),
+                              gko::stop::ResidualNormReduction<>::Factory::
+                                  create()
+                                      .with_reduction_factor(1e-15)
+                                      .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(50u)
-                                             .on_executor(exec),
-                                         gko::stop::Time::Factory::create()
-                                             .with_time_limit(6.0)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
+                          .with_criteria(
+                              gko::stop::Iteration::Factory::create()
+                                  .with_max_iters(50u)
+                                  .on_executor(exec),
+                              gko::stop::Time::Factory::create()
+                                  .with_time_limit(std::chrono::seconds(6))
+                                  .on_executor(exec),
+                              gko::stop::ResidualNormReduction<>::Factory::
+                                  create()
+                                      .with_reduction_factor(1e-15)
+                                      .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec))
     {}
