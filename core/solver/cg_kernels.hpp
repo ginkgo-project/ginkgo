@@ -88,13 +88,13 @@ namespace cg {
 }  // namespace cg
 
 
-namespace cpu {
+namespace omp {
 namespace cg {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cg
-}  // namespace cpu
+}  // namespace omp
 
 
 namespace gpu {

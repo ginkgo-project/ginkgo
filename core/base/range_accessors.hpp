@@ -38,6 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/range.hpp"
 
 
+#include <array>
+
+
 namespace gko {
 namespace accessor {
 

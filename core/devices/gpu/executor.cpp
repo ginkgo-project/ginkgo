@@ -37,13 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-std::shared_ptr<CpuExecutor> GpuExecutor::get_master() noexcept
-{
-    return master_;
-}
+std::shared_ptr<Executor> GpuExecutor::get_master() noexcept { return master_; }
 
 
-std::shared_ptr<const CpuExecutor> GpuExecutor::get_master() const noexcept
+std::shared_ptr<const Executor> GpuExecutor::get_master() const noexcept
 {
     return master_;
 }

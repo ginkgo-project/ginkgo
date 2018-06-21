@@ -35,14 +35,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_HYBRID_HPP_
 
 
+#include <algorithm>
+
+
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/mtx_reader.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/ell.hpp"
-
-
-#include <algorithm>
 
 
 namespace gko {
@@ -281,7 +281,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     value_type &ell_val_at(size_type row, size_type idx) noexcept
     {
@@ -304,7 +304,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     index_type &ell_col_at(size_type row, size_type idx) noexcept
     {

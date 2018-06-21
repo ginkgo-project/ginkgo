@@ -162,7 +162,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     value_type &val_at(size_type row, size_type idx) noexcept
     {
@@ -185,7 +185,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     index_type &col_at(size_type row, size_type idx) noexcept
     {

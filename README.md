@@ -93,7 +93,7 @@ Ginkgo adds the following additional switches to control what is being built:
     (will download googletest), default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`
-*   `-DBUILD_CPU={ON, OFF}` builds optimized cpu versions of the kernels,
+*   `-DBUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
 *   `-DBUILD_GPU={ON, OFF}` builds optimized gpu versions of the kernels
     (requires CUDA), default is `OFF`
@@ -102,13 +102,15 @@ Ginkgo adds the following additional switches to control what is being built:
     the rest of the library (otherwise the nvcc toolchain uses its default host
     compiler). Setting this option may help if you're experiencing linking
     errors due to ABI incompatibilities. The default is `OFF`.
+*   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
+    The default value is usually something like `/usr/local`
 
 For example, to build everything (in debug mode), use:
 
 ```cmake
 mkdir build; cd build
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DDEVEL_TOOLS=ON \
-      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_CPU=ON -DBUILD_GPU=ON  ..
+      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_GPU=ON  ..
 make
 ```
 
@@ -143,4 +145,10 @@ where `path/to/test` is the path returned by `make test`.
 
 ### Installing ginkgo
 
-__TODO:__ Install step is not yet set up.
+To install ginkgo into the specified folder, execute the following command in the build folder
+
+```sh
+make install
+```
+
+If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix the call with `sudo`.

@@ -68,9 +68,9 @@ namespace gko {
  *
  * int main()
  * {
- *     auto cpu = create<CpuExecutor>();
- *     auto A = randn_fill<matrix::Csr<float>>(5, 5, 0f, 1f, cpu);
- *     auto x = fill<matrix::Dense<float>>(6, 1, 1f, cpu);
+ *     auto omp = create<OmpExecutor>();
+ *     auto A = randn_fill<matrix::Csr<float>>(5, 5, 0f, 1f, omp);
+ *     auto x = fill<matrix::Dense<float>>(6, 1, 1f, omp);
  *     try {
  *         auto y = apply(A.get(), x.get());
  *     } catch(Error e) {
@@ -84,6 +84,12 @@ namespace gko {
  */
 class Error : public std::exception {
 public:
+    /**
+     * Initializes an error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param what The error message
+     */
     Error(const std::string &file, int line, const std::string &what)
         : what_(file + ":" + std::to_string(line) + ": " + what)
     {}
@@ -105,6 +111,12 @@ private:
  */
 class NotImplemented : public Error {
 public:
+    /**
+     * Initializes a NotImplemented error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the not-yet implemented function
+     */
     NotImplemented(const std::string &file, int line, const std::string &func)
         : Error(file, line, func + " is not implemented")
     {}
@@ -117,6 +129,13 @@ public:
  */
 class NotCompiled : public Error {
 public:
+    /**
+     * Initializes a NotCompiled error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the function that has not been compiled
+     * @param module The name of the module which contains the function
+     */
     NotCompiled(const std::string &file, int line, const std::string &func,
                 const std::string &module)
         : Error(file, line,
@@ -132,6 +151,14 @@ public:
  */
 class NotSupported : public Error {
 public:
+    /**
+     * Initializes a NotSupported error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the function where the error occured
+     * @param obj_type The object type on which the requested operation
+                       cannot be performed.
+     */
     NotSupported(const std::string &file, int line, const std::string &func,
                  const std::string &obj_type)
         : Error(file, line,
@@ -146,6 +173,13 @@ public:
  */
 class CudaError : public Error {
 public:
+    /**
+     * Initializes a CUDA error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the CUDA routine that failed
+     * @param error_code The resulting CUDA error code
+     */
     CudaError(const std::string &file, int line, const std::string &func,
               int64 error_code)
         : Error(file, line, func + ": " + get_error(error_code))
@@ -161,6 +195,13 @@ private:
  */
 class CublasError : public Error {
 public:
+    /**
+     * Initializes a cuBLAS error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the cuBLAS routine that failed
+     * @param error_code The resulting cuBLAS error code
+     */
     CublasError(const std::string &file, int line, const std::string &func,
                 int64 error_code)
         : Error(file, line, func + ": " + get_error(error_code))
@@ -176,6 +217,13 @@ private:
  */
 class CusparseError : public Error {
 public:
+    /**
+     * Initializes a cuSPARSE error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the cuSPARSE routine that failed
+     * @param error_code The resulting cuSPARSE error code
+     */
     CusparseError(const std::string &file, int line, const std::string &func,
                   int64 error_code)
         : Error(file, line, func + ": " + get_error(error_code))
@@ -192,6 +240,19 @@ private:
  */
 class DimensionMismatch : public Error {
 public:
+    /**
+     * Initializes a dimension mismatch error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The function name where the error occurred
+     * @param first_name The name of the first operator
+     * @param first_rows The output dimension of the first operator
+     * @param first_cols The input dimension of the first operator
+     * @param second_name The name of the second operator
+     * @param second_rows The output dimension of the second operator
+     * @param second_cols The input dimension of the second operator
+     * @param clarification An additional message describing the error further
+     */
     DimensionMismatch(const std::string &file, int line,
                       const std::string &func, const std::string &first_name,
                       size_type first_rows, size_type first_cols,
@@ -212,6 +273,13 @@ public:
  */
 class AllocationError : public Error {
 public:
+    /**
+     * Initializes an allocation error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param device The device on which the error occurred
+     * @param bytes The size of the memory block whose allocation failed.
+     */
     AllocationError(const std::string &file, int line,
                     const std::string &device, size_type bytes)
         : Error(file, line,
@@ -226,6 +294,14 @@ public:
  */
 class FileError : public Error {
 public:
+    /**
+     * Initializes a file access error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the function that tried to access the file
+     * @param filename The name of the file
+     * @param message The error message
+     */
     FileError(const std::string &file, int line, const std::string &func,
               const std::string &filename, const std::string &message)
         : Error(file, line,
@@ -240,6 +316,12 @@ public:
  */
 class KernelNotFound : public Error {
 public:
+    /**
+     * Initializes a KernelNotFound error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the function where the error occurred
+     */
     KernelNotFound(const std::string &file, int line, const std::string &func)
         : Error(file, line, func + ": unable to find an eligible kernel")
     {}

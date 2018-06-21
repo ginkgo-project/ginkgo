@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/dense.hpp>
 
 
+#include <complex>
+
+
 #include <gtest/gtest.h>
 
 
@@ -44,9 +47,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/ell.hpp>
 #include <core/matrix/hybrid.hpp>
 #include <core/test/utils/assertions.hpp>
-
-
-#include <complex>
 
 
 namespace {
@@ -461,7 +461,7 @@ TEST_F(Dense, MovesToEllWithStride)
 }
 
 
-TEST_F(Dense, MovesToHybrid)
+TEST_F(Dense, MovesToHybridAutomatically)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
 
@@ -491,7 +491,7 @@ TEST_F(Dense, MovesToHybrid)
 }
 
 
-TEST_F(Dense, ConvertsToHybrid)
+TEST_F(Dense, ConvertsToHybridAutomatically)
 {
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
 
@@ -521,7 +521,7 @@ TEST_F(Dense, ConvertsToHybrid)
 }
 
 
-TEST_F(Dense, MovesToHybridWithStride)
+TEST_F(Dense, MovesToHybridWithStrideAutomatically)
 {
     auto hybrid_mtx =
         gko::matrix::Hybrid<>::create(mtx4->get_executor(), gko::dim{}, 0, 3);
@@ -558,7 +558,7 @@ TEST_F(Dense, MovesToHybridWithStride)
 }
 
 
-TEST_F(Dense, ConvertsToHybridWithStride)
+TEST_F(Dense, ConvertsToHybridWithStrideAutomatically)
 {
     auto hybrid_mtx =
         gko::matrix::Hybrid<>::create(mtx4->get_executor(), gko::dim{}, 0, 3);
