@@ -553,6 +553,36 @@ private:
 };
 
 
+/**
+ * This is a deleter that uses an executor's `free` method to deallocate the
+ * data.
+ *
+ * @tparam T  the type of object being deleted
+ */
+template <typename T>
+class executor_deleter {
+public:
+    using pointer = T *;
+
+    /**
+     * Creates a new deleter.
+     *
+     * @param exec  the executor used to free the data
+     */
+    executor_deleter(std::shared_ptr<Executor> exec) : exec_{exec} {}
+
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer ptr) const { exec_->free(ptr); }
+
+private:
+    std::shared_ptr<Executor> exec_;
+};
+
+
 namespace detail {
 
 

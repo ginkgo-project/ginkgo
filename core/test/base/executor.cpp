@@ -295,4 +295,31 @@ TEST(GpuExecutor, KnowsItsDeviceId)
 }
 
 
+template <typename T>
+struct mock_free : T {
+    template <typename... Params>
+    mock_free(Params &&... params) : T{std::forward<Params>(params)...}
+    {}
+
+    void free(void *ptr) const noexcept override
+    {
+        called_free = true;
+        T::free(ptr);
+    }
+
+    mutable bool called_free{false};
+};
+
+
+TEST(ExecutorDeleter, DeletesObject)
+{
+    auto ref = std::make_shared<mock_free<gko::ReferenceExecutor>>();
+    auto x = ref->alloc<int>(5);
+
+    gko::executor_deleter<int>{ref}(x);
+
+    ASSERT_TRUE(ref->called_free);
+}
+
+
 }  // namespace
