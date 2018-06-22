@@ -45,6 +45,8 @@ constexpr double reduction_factor = 1.0e-14;
 
 class ResidualNormReduction : public ::testing::Test {
 protected:
+    using Mtx = gko::matrix::Dense<>;
+
     ResidualNormReduction()
     {
         ref_ = gko::ReferenceExecutor::create();
@@ -62,13 +64,16 @@ protected:
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+    auto b = gko::initialize<Mtx>({1.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_b = Mtx::create(gpu_);
+    d_b->copy_from(b.get());
+    auto criterion = factory_->generate(nullptr, d_b, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto scalar = gko::initialize<gko::matrix::Dense<>>({1.0}, ref_);
-    auto d_scalar = gko::matrix::Dense<>::create(gpu_);
+    auto scalar = gko::initialize<Mtx>({1.0}, ref_);
+    auto d_scalar = Mtx::create(gpu_);
     d_scalar->copy_from(scalar.get());
     stop_status.set_executor(gpu_);
 
@@ -102,14 +107,17 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+    auto b = gko::initialize<Mtx>({1.0, 1.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_b = Mtx::create(gpu_);
+    d_b->copy_from(b.get());
+    auto criterion = factory_->generate(nullptr, d_b, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].clear();
     stop_status.get_data()[1].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto mtx = gko::initialize<gko::matrix::Dense<>>({{1.0, 1.0}}, ref_);
-    auto d_mtx = gko::matrix::Dense<>::create(gpu_);
+    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, ref_);
+    auto d_mtx = Mtx::create(gpu_);
     d_mtx->copy_from(mtx.get());
     stop_status.set_executor(gpu_);
 

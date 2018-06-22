@@ -91,7 +91,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
-    auto tau = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
@@ -117,11 +116,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iters = 0;
     while (true) {
-        r->compute_dot(r.get(), tau.get());
-
         if (stop_criterion->update()
                 .num_iterations(iters)
-                .residual_norm(tau.get())
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
@@ -149,10 +145,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iters)
-                .residual_norm(tau.get())
-                .residual(r.get())
+                .residual(s.get())
                 // .solution(dense_x) // outdated at this point
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
 
         if (one_changed) {
             exec->run(TemplatedOperation<ValueType>::make_finalize_operation(

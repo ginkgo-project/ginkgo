@@ -56,17 +56,37 @@ bool ResidualNormReduction<ValueType>::check(
     bool *one_changed, const Criterion::Updater &updater)
 {
     if (!initialized_tau_) {
-        starting_tau_->copy_from(updater.residual_norm_);
+        if (updater.residual_norm_ != nullptr) {
+            starting_tau_->copy_from(updater.residual_norm_);
+        } else if (updater.residual_ != nullptr) {
+            auto dense_r = as<Vector>(updater.residual_);
+            dense_r->compute_dot(dense_r, starting_tau_.get());
+        } else {
+            NOT_IMPLEMENTED;
+        }
         initialized_tau_ = true;
         return false;
+    }
+
+    std::unique_ptr<Vector> u_dense_tau;
+    const Vector *dense_tau;
+    if (updater.residual_norm_ != nullptr) {
+        dense_tau = as<Vector>(updater.residual_norm_);
+    } else if (updater.residual_ != nullptr) {
+        u_dense_tau = Vector::create_with_config_of(starting_tau_.get());
+        auto dense_r = as<Vector>(updater.residual_);
+        dense_r->compute_dot(dense_r, u_dense_tau.get());
+        dense_tau = u_dense_tau.get();
+    } else {
+        NOT_IMPLEMENTED;
     }
 
     bool all_converged{};
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
-            as<Vector>(updater.residual_norm_), starting_tau_.get(),
-            parameters_.reduction_factor, stoppingId, setFinalized, stop_status,
-            &all_converged, one_changed));
+            dense_tau, starting_tau_.get(), parameters_.reduction_factor,
+            stoppingId, setFinalized, stop_status, &all_converged,
+            one_changed));
     return all_converged;
 }
 

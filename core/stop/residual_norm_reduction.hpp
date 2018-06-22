@@ -50,6 +50,11 @@ namespace stop {
  * iteration process when the relative residual norm is below a certain
  * threshold. For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
+ *
+ * @note To use this stopping criterion there are some dependencies on: `b` in
+ * order to know the size of the tau vector, either the `residual_norm` or the
+ * `residual`. When any of those is not correctly provided, an exception
+ * ::gko::NotImplemented() is thrown.
  */
 template <typename ValueType = default_precision>
 class ResidualNormReduction
@@ -88,7 +93,11 @@ protected:
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        starting_tau_ = Vector::create(factory->get_executor());
+        if (args.b == nullptr) {
+            NOT_IMPLEMENTED;
+        }
+        starting_tau_ = Vector::create(factory->get_executor(),
+                                       dim{1, args.b->get_size().num_cols});
     }
 
 private:
