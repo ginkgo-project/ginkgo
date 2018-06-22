@@ -10,6 +10,7 @@ set(SOURCES
     matrix/ell.cpp
     matrix/hybrid.cpp
     matrix/identity.cpp
+    matrix/sellp.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/cg.cpp
