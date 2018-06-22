@@ -71,7 +71,7 @@ public:
          * too costly.
          */
         std::vector<std::shared_ptr<const CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, );
+            GKO_FACTORY_PARAMETER(criteria);
     };
     GKO_ENABLE_CRITERION_FACTORY(Combined, parameters, Factory);
 
@@ -84,8 +84,9 @@ protected:
         : EnablePolymorphicObject<Combined, Criterion>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        for (const auto &f : parameters_.criteria)
+        for (const auto &f : parameters_.criteria) {
             criteria_.push_back(f->generate(args));
+        }
     }
 
 private:

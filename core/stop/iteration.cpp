@@ -45,7 +45,7 @@ bool Iteration::check(uint8 stoppingId, bool setFinalized,
 {
     bool result = updater.num_iterations_ >= parameters_.max_iters;
     if (result) {
-        this->set_all_status(stoppingId, setFinalized, stop_status);
+        this->set_all_statuses(stoppingId, setFinalized, stop_status);
         *one_changed = true;
     }
     return result;

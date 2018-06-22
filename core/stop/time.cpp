@@ -45,7 +45,7 @@ bool Time::check(uint8 stoppingId, bool setFinalized,
 {
     bool result = clock::now() - start_ >= time_limit_;
     if (result) {
-        this->set_all_status(stoppingId, setFinalized, stop_status);
+        this->set_all_statuses(stoppingId, setFinalized, stop_status);
         *one_changed = true;
     }
     return result;

@@ -39,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 namespace {
+
+
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(

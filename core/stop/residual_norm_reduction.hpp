@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
 
 
+#include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/stop/criterion.hpp"
 

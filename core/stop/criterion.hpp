@@ -155,8 +155,8 @@ protected:
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
      */
-    void set_all_status(uint8 stoppingId, bool setFinalized,
-                        Array<stopping_status> *stop_status)
+    void set_all_statuses(uint8 stoppingId, bool setFinalized,
+                          Array<stopping_status> *stop_status)
     {
         for (int i = 0; i < stop_status->get_num_elems(); i++) {
             stop_status->get_data()[i].stop(stoppingId, setFinalized);

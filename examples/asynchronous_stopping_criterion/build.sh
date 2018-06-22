@@ -34,5 +34,4 @@ fi
 # build
 ${CXX} -std=c++11 -o ${THIS_DIR}/asynchronous_stopping_criterion \
     ${THIS_DIR}/asynchronous_stopping_criterion.cpp \
-    ${THIS_DIR}/byinteraction.cpp \
     -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}

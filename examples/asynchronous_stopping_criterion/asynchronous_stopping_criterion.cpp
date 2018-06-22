@@ -53,7 +53,7 @@ to this directory.
 Then compile the file with the following command line:
 
 c++ -std=c++11 -o asynchronous_stopping_criterion  \
-    asynchronous_stopping_criterion.cpp byinteration.cpp -I../.. \
+    asynchronous_stopping_criterion.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_gpu
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
@@ -65,12 +65,68 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
-#include "byinteraction.hpp"
 
 
 #include <iostream>
 #include <string>
 #include <thread>
+
+
+namespace gko {
+namespace stop {
+
+
+/**
+ * The ByInteraction class is a criterion which asks for user input to stop
+ * the iteration process. Using this criterion is slightly more complex than the
+ * other ones, because it is asynchronous therefore requires the use of threads.
+ */
+class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
+    friend class EnablePolymorphicObject<ByInteraction, Criterion>;
+
+public:
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &) override
+    {
+        bool result = *(parameters_.stop_iteration_process);
+        if (result) {
+            this->set_all_statuses(stoppingId, setFinalized, stop_status);
+            *one_changed = true;
+        }
+        return result;
+    }
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Boolean set by the user to stop the iteration process
+         */
+        std::add_pointer<volatile bool>::type GKO_FACTORY_PARAMETER(
+            stop_iteration_process, nullptr);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
+
+protected:
+    explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
+        : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
+    {}
+
+    explicit ByInteraction(const Factory *factory, const CriterionArgs args)
+
+        : EnablePolymorphicObject<ByInteraction, Criterion>(
+              factory->get_executor()),
+          parameters_{factory->get_parameters()}
+    {}
+
+    ByInteraction &operator=(const ByInteraction &other) { return *this; }
+
+    ByInteraction &operator=(ByInteraction &other) { return *this; }
+};
+
+
+}  // namespace stop
+}  // namespace gko
 
 
 void run_solver(volatile bool *stop_iteration_process,
@@ -86,6 +142,7 @@ void run_solver(volatile bool *stop_iteration_process,
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Create solver factory and solve system
+    // TODO: add residual logging when available
     bicg::Factory::create()
         .with_criterion(gko::stop::ByInteraction::Factory::create()
                             .with_stop_iteration_process(stop_iteration_process)

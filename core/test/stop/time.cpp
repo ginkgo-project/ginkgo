@@ -82,19 +82,11 @@ TEST_F(Time, WaitsTillTime)
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto start = std::chrono::system_clock::now();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
+
     ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
                                           &stop_status, &one_changed));
-
-    auto time = std::chrono::system_clock::now() - start;
-    double time_d = std::chrono::duration_cast<double_seconds>(time).count();
-
-    /**
-     * Somehow this can be imprecise therefore I add an epsilon (here of 0.1ms)
-     */
-    ASSERT_GE(time_d + eps, test_ms);
 }
 
 
