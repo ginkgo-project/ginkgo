@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/ell.hpp>
 
 
-#include <omp.h>
 #include <random>
 
 
@@ -99,7 +98,6 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
@@ -145,7 +143,6 @@ TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 {
     set_up_apply_data(300, 600);
 
-    printf("running on %d threads\n", omp_get_num_threads());
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
