@@ -31,6 +31,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <omp.h>
+
+
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -60,6 +63,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) = zero<ValueType>();
     }
+
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
         for (size_type j = 0; j < num_cols; j++) {
@@ -89,6 +93,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) *= beta_val;
     }
+
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
         for (size_type j = 0; j < num_cols; j++) {
@@ -142,8 +147,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto coo_row = source->get_const_row_idxs();
     auto num_rows = result->get_size().num_rows;
     auto num_cols = result->get_size().num_cols;
-    for (size_type row = 0; row < num_rows; row++) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
         }
