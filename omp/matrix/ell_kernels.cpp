@@ -31,6 +31,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <omp.h>
+
+
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -110,12 +113,11 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto num_cols = source->get_size().num_cols;
     auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
 
-    for (size_type row = 0; row < num_rows; row++) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
         }
-#pragma omp parallel for
         for (size_type i = 0; i < max_nonzeros_per_row; i++) {
             result->at(row, source->col_at(row, i)) += source->val_at(row, i);
         }
