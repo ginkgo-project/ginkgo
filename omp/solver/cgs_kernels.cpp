@@ -31,10 +31,15 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <omp.h>
+
+
 #include "core/solver/cgs_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
 
 
 namespace gko {
@@ -55,21 +60,26 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, Array<bool> *converged)
 {
-    NOT_IMPLEMENTED;
-    // this is the code from the solver template
-    /*
-    for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
+#pragma omp parallel for
+    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
         rho->at(j) = zero<ValueType>();
         prev_rho->at(j) = one<ValueType>();
+        alpha->at(j) = one<ValueType>();
+        beta->at(j) = one<ValueType>();
+        gamma->at(j) = one<ValueType>();
+        converged->get_data()[j] = false;
     }
-    for (sizeValueType i = 0; i < b->get_size().num_rows; ++i) {
-        for (sizeValueType j = 0; j < b->get_size().num_cols; ++j) {
+#pragma omp parallel for
+    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
-            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
+            r_tld->at(i, j) = b->at(i, j);
+            u->at(i, j) = u_hat->at(i, j) = p->at(i, j) = q->at(i, j) =
+                v_hat->at(i, j) = t->at(i, j) = zero<ValueType>();
         }
     }
-    */
 }
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
@@ -80,7 +90,18 @@ void test_convergence(std::shared_ptr<const OmpExecutor> exec,
                       remove_complex<ValueType> rel_residual_goal,
                       Array<bool> *converged, bool *all_converged)
 {
-    NOT_IMPLEMENTED;
+    *all_converged = true;
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
+        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
+            converged->get_data()[i] = true;
+        }
+    }
+    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
+        if (!converged->get_const_data()[i]) {
+            *all_converged = false;
+            break;
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL);
@@ -94,20 +115,27 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *rho_prev,
             const Array<bool> &converged)
 {
-    NOT_IMPLEMENTED;
-    // this is the code from the solver template
-    /*
-    for (sizeValueType i = 0; i < p->get_size().num_rows; ++i) {
-        for (sizeValueType j = 0; j < p->get_size().num_cols; ++j) {
-            if (prev_rho->at(j) == zero<ValueType>()) {
-                p->at(i, j) = z->at(i, j);
-            } else {
-                auto tmp = rho->at(j) / prev_rho->at(j);
-                p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
-            }
+#pragma omp parallel for
+    for (size_type j = 0; j < p->get_size().num_cols; ++j) {
+        if (converged.get_const_data()[j]) {
+            continue;
+        }
+        if (rho_prev->at(j) != zero<ValueType>()) {
+            beta->at(j) = rho->at(j) / rho_prev->at(j);
         }
     }
-    */
+#pragma omp parallel for
+    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
+            u->at(i, j) = r->at(i, j) + beta->at(j) * q->at(i, j);
+            p->at(i, j) =
+                u->at(i, j) +
+                beta->at(j) * (q->at(i, j) + beta->at(j) * p->at(i, j));
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -121,19 +149,25 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *gamma, const Array<bool> &converged)
 {
-    NOT_IMPLEMENTED;
-    // this is the code from the solver template
-    /*
-    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
-        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
-            if (beta->at(j) != zero<ValueType>()) {
-                auto tmp = rho->at(j) / beta->at(j);
-                x->at(i, j) += tmp * p->at(i, j);
-                r->at(i, j) -= tmp * q->at(i, j);
-            }
+#pragma omp parallel for
+    for (size_type j = 0; j < u->get_size().num_cols; ++j) {
+        if (converged.get_const_data()[j]) {
+            continue;
+        }
+        if (gamma->at(j) != zero<ValueType>()) {
+            alpha->at(j) = rho->at(j) / gamma->at(j);
         }
     }
-    */
+#pragma omp parallel for
+    for (size_type i = 0; i < u->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < u->get_size().num_cols; ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
+            }
+            q->at(i, j) = u->at(i, j) - alpha->at(j) * v_hat->at(i, j);
+            t->at(i, j) = u->at(i, j) + q->at(i, j);
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
@@ -145,19 +179,16 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
             const Array<bool> &converged)
 {
-    NOT_IMPLEMENTED;
-    // this is the code from the solver template
-    /*
-    for (sizeValueType i = 0; i < x->get_size().num_rows; ++i) {
-        for (sizeValueType j = 0; j < x->get_size().num_cols; ++j) {
-            if (beta->at(j) != zero<ValueType>()) {
-                auto tmp = rho->at(j) / beta->at(j);
-                x->at(i, j) += tmp * p->at(i, j);
-                r->at(i, j) -= tmp * q->at(i, j);
+#pragma omp parallel for
+    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+            if (converged.get_const_data()[j]) {
+                continue;
             }
+            x->at(i, j) += alpha->at(j) * u_hat->at(i, j);
+            r->at(i, j) -= alpha->at(j) * t->at(i, j);
         }
     }
-    */
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
