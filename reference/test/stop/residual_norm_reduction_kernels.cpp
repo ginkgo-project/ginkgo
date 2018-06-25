@@ -66,9 +66,9 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     auto criterion =
         factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     stop_status.get_data()[0].clear();
-    constexpr gko::uint8 RelativeStoppingId{1};
 
     ASSERT_FALSE(
         criterion->update()
@@ -98,6 +98,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, exec_);
     auto criterion = factory_->generate(nullptr, nullptr, nullptr, mtx.get());
     bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
     // Array only does malloc, it *does not* construct the object
     // therefore you get undefined values in your objects whatever you do.
@@ -105,7 +106,6 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     // call the placement constructor either
     stop_status.get_data()[0].clear();
     stop_status.get_data()[1].clear();
-    constexpr gko::uint8 RelativeStoppingId{1};
 
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));

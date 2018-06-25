@@ -17,6 +17,7 @@ set(SOURCES
     solver/cgs.cpp
     solver/fcg.cpp
     stop/combined.cpp
+    stop/criterion.cpp
     stop/iteration.cpp
     stop/residual_norm_reduction.cpp
     stop/time.cpp)
