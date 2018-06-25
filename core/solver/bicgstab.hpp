@@ -130,9 +130,7 @@ protected:
         if (parameters_.criterion) {
             stop_criterion_factory_ = std::move(parameters_.criterion);
         } else {
-            stop_criterion_factory_ = stop::Iteration::Factory::create()
-                                          .with_max_iters(0u)
-                                          .on_executor(this->get_executor());
+            NOT_SUPPORTED(nullptr);
         }
     }
 
