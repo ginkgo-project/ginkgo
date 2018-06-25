@@ -85,6 +85,22 @@ build/clang/reference/debug:
     CXX_COMPILER: clang++
     EXTRA_PACKAGES: clang
 
+build/gcc/omp/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+
+build/clang/omp/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    EXTRA_PACKAGES: openmp clang
+    BUILD_OMP: "ON"
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    EXTRA_PACKAGES: clang
+
 build/gcc/all/debug:
   <<: *default_build
   variables:
@@ -99,7 +115,7 @@ build/clang/all/debug:
   <<: *default_build
   variables:
     <<: *default_variables
-    EXTRA_PACKAGES: clang cuda
+    EXTRA_PACKAGES: openmp clang cuda
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
@@ -152,3 +168,12 @@ gh-pages:
       - develop
     variables:
       - $PUBLIC_CI_TAG
+test/gcc/omp/debug:
+  <<: *default_test
+  dependencies:
+    - build/gcc/omp/debug
+
+test/clang/omp/debug:
+  <<: *default_test
+  dependencies:
+    - build/clang/omp/debug
