@@ -93,7 +93,6 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
             const Array<stopping_status> &stop_status)
-
 {
     for (size_type i = 0; i < p->get_size().num_rows; ++i) {
         for (size_type j = 0; j < p->get_size().num_cols; ++j) {
