@@ -56,7 +56,7 @@ namespace stop {
  * constructor depends on `initial_residual` in order to compute the first
  * relative residual norm. The check method depends on either the
  * `residual_norm` or the `residual` being set. When any of those is not
- * correctly provided, an exception ::gko::NotImplemented() is thrown.
+ * correctly provided, an exception ::gko::NotSupported() is thrown.
  */
 template <typename ValueType = default_precision>
 class ResidualNormReduction

@@ -68,7 +68,7 @@ TEST_F(ResidualNormReduction, CanCreateFactory)
 TEST_F(ResidualNormReduction, CannotCreateCriterionWithoutB)
 {
     ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr, nullptr),
-                 gko::NotImplemented);
+                 gko::NotSupported);
 }
 
 TEST_F(ResidualNormReduction, CanCreateCriterionWithB)

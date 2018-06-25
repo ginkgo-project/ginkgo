@@ -118,10 +118,6 @@ protected:
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {}
-
-    ByInteraction &operator=(const ByInteraction &other) { return *this; }
-
-    ByInteraction &operator=(ByInteraction &other) { return *this; }
 };
 
 
