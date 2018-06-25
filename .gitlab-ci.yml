@@ -174,5 +174,8 @@ test/gcc/omp/debug:
 
 test/clang/omp/debug:
   <<: *default_test
+  variables:
+    <<: *default_variables
+    EXTRA_PACKAGES: openmp
   dependencies:
     - build/clang/omp/debug
