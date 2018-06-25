@@ -99,7 +99,6 @@ build/clang/omp/debug:
     BUILD_OMP: "ON"
     C_COMPILER: clang
     CXX_COMPILER: clang++
-    EXTRA_PACKAGES: clang
 
 build/gcc/all/debug:
   <<: *default_build
