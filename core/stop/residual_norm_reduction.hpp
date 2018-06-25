@@ -96,7 +96,7 @@ protected:
           parameters_{factory->get_parameters()}
     {
         if (args.initial_residual == nullptr) {
-            NOT_IMPLEMENTED;
+            NOT_SUPPORTED(nullptr);
         }
 
         auto dense_r = as<Vector>(args.initial_residual);

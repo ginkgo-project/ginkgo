@@ -219,6 +219,7 @@ using EnableDefaultCriterionFactory =
     EnableDefaultFactory<ConcreteFactory, ConcreteCriterion, ParametersType,
                          PolymorphicBase>;
 
+
 /**
  * This macro will generate a default implementation of a CriterionFactory for
  * the Criterion subclass it is defined in.
@@ -265,5 +266,6 @@ public:
 
 }  // namespace stop
 }  // namespace gko
+
 
 #endif  // GKO_CORE_STOP_CRITERION_HPP_

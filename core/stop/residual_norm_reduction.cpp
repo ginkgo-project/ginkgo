@@ -67,7 +67,7 @@ bool ResidualNormReduction<ValueType>::check(
         dense_r->compute_dot(dense_r, u_dense_tau.get());
         dense_tau = u_dense_tau.get();
     } else {
-        NOT_IMPLEMENTED;
+        NOT_SUPPORTED(nullptr);
     }
 
     bool all_converged{};
