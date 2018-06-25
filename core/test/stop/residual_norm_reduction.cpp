@@ -67,15 +67,16 @@ TEST_F(ResidualNormReduction, CanCreateFactory)
 
 TEST_F(ResidualNormReduction, CannotCreateCriterionWithoutB)
 {
-    ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr),
+    ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr, nullptr),
                  gko::NotImplemented);
 }
 
 TEST_F(ResidualNormReduction, CanCreateCriterionWithB)
 {
-    std::shared_ptr<gko::LinOp> b =
+    std::shared_ptr<gko::LinOp> scalar =
         gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
-    auto criterion = factory_->generate(nullptr, b, nullptr);
+    auto criterion =
+        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     ASSERT_NE(criterion, nullptr);
 }
 

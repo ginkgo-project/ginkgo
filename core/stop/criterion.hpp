@@ -173,15 +173,26 @@ protected:
  * This struct is used to pass parameters to the
  * EnableDefaultCriterionFactoryCriterionFactory::generate() method. It is the
  * ComponentsType of CriterionFactory.
+ *
+ * @note Dependly on the use case, some of these parameters can be `nullptr` as
+ * only some stopping criterion require them to be set. An example is the
+ * `ResidualNormReduction` which really requires the `initial_residual` to be
+ * set.
  */
 struct CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
     const LinOp *x;
+    const LinOp *initial_residual;
+
 
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
-                  std::shared_ptr<const LinOp> b, const LinOp *x)
-        : system_matrix{system_matrix}, b{b}, x{x}
+                  std::shared_ptr<const LinOp> b, const LinOp *x,
+                  const LinOp *initial_residual = nullptr)
+        : system_matrix{system_matrix},
+          b{b},
+          x{x},
+          initial_residual{initial_residual}
     {}
 };
 

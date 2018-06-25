@@ -52,10 +52,11 @@ namespace stop {
  * threshold. For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
- * @note To use this stopping criterion there are some dependencies on: `b` in
- * order to know the size of the tau vector, either the `residual_norm` or the
- * `residual`. When any of those is not correctly provided, an exception
- * ::gko::NotImplemented() is thrown.
+ * @note To use this stopping criterion there are some dependencies. The
+ * constructor depends on `initial_residual` in order to compute the first
+ * relative residual norm. The check method depends on either the
+ * `residual_norm` or the `residual` being set. When any of those is not
+ * correctly provided, an exception ::gko::NotImplemented() is thrown.
  */
 template <typename ValueType = default_precision>
 class ResidualNormReduction
@@ -94,16 +95,19 @@ protected:
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        if (args.b == nullptr) {
+        if (args.initial_residual == nullptr) {
             NOT_IMPLEMENTED;
         }
-        starting_tau_ = Vector::create(factory->get_executor(),
-                                       dim{1, args.b->get_size().num_cols});
+
+        auto dense_r = as<Vector>(args.initial_residual);
+        starting_tau_ =
+            Vector::create(factory->get_executor(),
+                           dim{1, args.initial_residual->get_size().num_cols});
+        dense_r->compute_dot(dense_r, starting_tau_.get());
     }
 
 private:
     std::unique_ptr<Vector> starting_tau_{};
-    bool initialized_tau_{};
 };
 
 

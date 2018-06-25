@@ -62,13 +62,13 @@ protected:
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    std::shared_ptr<gko::LinOp> b = gko::initialize<Mtx>({1.0}, exec_);
-    auto criterion = factory_->generate(nullptr, b, nullptr);
+    auto scalar = gko::initialize<Mtx>({1.0}, exec_);
+    auto criterion =
+        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
     stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto scalar = gko::initialize<Mtx>({1.0}, exec_);
 
     ASSERT_FALSE(
         criterion->update()
@@ -95,8 +95,8 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    std::shared_ptr<gko::LinOp> b = gko::initialize<Mtx>({1.0, 1.0}, exec_);
-    auto criterion = factory_->generate(nullptr, b, nullptr);
+    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, exec_);
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr, mtx.get());
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 2);
     // Array only does malloc, it *does not* construct the object
@@ -106,7 +106,6 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     stop_status.get_data()[0].clear();
     stop_status.get_data()[1].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, exec_);
 
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
