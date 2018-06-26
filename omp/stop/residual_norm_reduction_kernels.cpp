@@ -31,6 +31,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <omp.h>
+
+
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
@@ -50,8 +53,25 @@ void residual_norm_reduction(std::shared_ptr<const OmpExecutor> exec,
                              remove_complex<ValueType> rel_residual_goal,
                              uint8 stoppingId, bool setFinalized,
                              Array<stopping_status> *stop_status,
-                             bool *all_converged,
-                             bool *one_changed) NOT_IMPLEMENTED;
+                             bool *all_converged, bool *one_changed)
+{
+    *all_converged = true;
+#pragma omp parallel for
+    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
+        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
+            stop_status->get_data()[i].converge(stoppingId, setFinalized);
+            *one_changed = true;
+        }
+    }
+        // No early stopping here because one cannot use break with omp parallel
+        // for But it's parallel so does it matter?
+#pragma omp parallel for
+    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+        if (!stop_status->get_const_data()[i].has_stopped()) {
+            *all_converged = false;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
 

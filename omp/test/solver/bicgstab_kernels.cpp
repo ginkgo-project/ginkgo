@@ -45,6 +45,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/solver/bicgstab_kernels.hpp>
+#include <core/stop/combined.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -67,14 +70,33 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(omp);
         d_mtx->copy_from(mtx.get());
-        omp_bicgstab_factory = Solver::Factory::create()
-                                   .with_max_iters(246)
-                                   .with_rel_residual_goal(1e-15)
-                                   .on_executor(omp);
-        ref_bicgstab_factory = Solver::Factory::create()
-                                   .with_max_iters(246)
-                                   .with_rel_residual_goal(1e-15)
-                                   .on_executor(ref);
+        omp_bicgstab_factory =
+            Solver::Factory::create()
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246u)
+                                           .on_executor(omp),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(omp))
+                        .on_executor(omp))
+                .on_executor(omp);
+
+        ref_bicgstab_factory =
+            Solver::Factory::create()
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246u)
+                                           .on_executor(ref),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(ref))
+                        .on_executor(ref))
+                .on_executor(ref);
     }
 
     void TearDown()
