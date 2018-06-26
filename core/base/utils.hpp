@@ -324,6 +324,35 @@ inline const typename std::decay<T>::type *as(const U *obj)
 
 
 /**
+ * This is a deleter that does not delete the object.
+ *
+ * It is useful where the object has been allocated elsewhere and will be
+ * deleted manually.
+ */
+template <typename T>
+class null_deleter {
+public:
+    using pointer = T *;
+
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer ptr) const noexcept {}
+};
+
+// a specialization for arrays
+template <typename T>
+class null_deleter<T[]> {
+public:
+    using pointer = T[];
+
+    void operator()(pointer ptr) const noexcept {}
+};
+
+
+/**
  * A copy_back_deleter is a type of deleter that copies the data to an
  * internally referenced object before performing the deletion.
  *

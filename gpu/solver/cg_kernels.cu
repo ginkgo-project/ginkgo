@@ -117,6 +117,7 @@ __global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
     }
 }
 
+
 template <typename ValueType>
 void test_convergence(std::shared_ptr<const GpuExecutor> exec,
                       const matrix::Dense<ValueType> *tau,
@@ -124,13 +125,10 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
                       remove_complex<ValueType> rel_residual_goal,
                       Array<bool> *converged, bool *all_converged)
 {
-    Array<bool> d_all_converged(exec, 1);
-    Array<bool> all_converged_array(exec->get_master());
-
-    // initialize all_converged with true
     *all_converged = true;
-    all_converged_array.manage(1, all_converged);
-    d_all_converged = all_converged_array;
+    auto all_converged_array =
+        Array<bool>::view(exec->get_master(), 1, all_converged);
+    Array<bool> d_all_converged(exec, all_converged_array);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
@@ -143,7 +141,6 @@ void test_convergence(std::shared_ptr<const GpuExecutor> exec,
         as_cuda_type(d_all_converged.get_data()));
 
     all_converged_array = d_all_converged;
-    all_converged_array.release();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL);
