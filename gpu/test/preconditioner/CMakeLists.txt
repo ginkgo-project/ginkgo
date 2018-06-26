@@ -1,1 +1,0 @@
-create_test(block_jacobi_kernels)
