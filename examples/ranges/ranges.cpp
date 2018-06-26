@@ -115,6 +115,9 @@ void print_lu(const gko::range<Accessor> &A)
 
 int main(int argc, char *argv[])
 {
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     // Create some test data, add some padding just to demonstrate how to use it
     // with ranges.
     // clang-format off

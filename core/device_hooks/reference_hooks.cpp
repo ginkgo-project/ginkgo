@@ -31,6 +31,24 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
+#include "core/base/version.hpp"
+
+
+namespace gko {
+
+
+version version_info::get_reference_version() noexcept
+{
+    // We just return 0.0.0 with a special "not compiled" tag in placeholder
+    // modules.
+    return {0, 0, 0, "not compiled"};
+}
+
+
+}  // namespace gko
+
+
 #define GKO_HOOK_MODULE reference
 #include "core/device_hooks/common_kernels.inc.cpp"
 #undef GKO_HOOK_MODULE

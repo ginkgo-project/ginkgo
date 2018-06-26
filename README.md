@@ -91,6 +91,7 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `ON`
 *   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
+*   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`
 *   `-DBUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
@@ -104,6 +105,22 @@ Ginkgo adds the following additional switches to control what is being built:
     errors due to ABI incompatibilities. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`
+*   `-DGPU_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
+    list of architectures. Supported values are:
+
+    *   `Auto`
+    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`
+    *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
+    *   `Off`
+
+    `Auto` will automatically detect the architectures of GPUs present on the
+    system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
+    architectures of that particular GPU generation. `COMPUTE` and `CODE` are
+    placeholders that should be replaced with compute and code numbers (e.g.
+    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
+    with `70`. `MaxPTX` will select the latest architecture supported by the
+    compiler. `Off` will not select any architectures and compile with NVCC's
+    default settings. Default is `Auto`.
 
 For example, to build everything (in debug mode), use:
 
@@ -143,12 +160,15 @@ run the following from the build folder:
 where `path/to/test` is the path returned by `make test`.
 
 
-### Installing ginkgo
+### Installing Ginkgo
 
-To install ginkgo into the specified folder, execute the following command in the build folder
+To install Ginkgo into the specified folder, execute the following command in
+the build folder
 
 ```sh
 make install
 ```
 
-If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix the call with `sudo`.
+If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your
+user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
+the call with `sudo`.
