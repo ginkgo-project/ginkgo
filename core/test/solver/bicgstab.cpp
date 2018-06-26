@@ -101,7 +101,6 @@ TEST_F(Bicgstab, BicgstabFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto bicgstab_solver = static_cast<Solver *>(solver.get());
-
     ASSERT_NE(bicgstab_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(bicgstab_solver->get_system_matrix(), mtx);
 }

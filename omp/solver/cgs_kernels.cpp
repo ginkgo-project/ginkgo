@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include "core/base/array.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
@@ -58,7 +59,8 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
                 matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, Array<bool> *converged)
+                matrix::Dense<ValueType> *rho,
+                Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < b->get_size().num_cols; ++j) {
@@ -67,7 +69,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
         alpha->at(j) = one<ValueType>();
         beta->at(j) = one<ValueType>();
         gamma->at(j) = one<ValueType>();
-        converged->get_data()[j] = false;
+        stop_status->get_data()[j].reset();
     }
 #pragma omp parallel for
     for (size_type i = 0; i < b->get_size().num_rows; ++i) {
@@ -83,29 +85,6 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
-template <typename ValueType>
-void test_convergence(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Dense<ValueType> *tau,
-                      const matrix::Dense<ValueType> *orig_tau,
-                      remove_complex<ValueType> rel_residual_goal,
-                      Array<bool> *converged, bool *all_converged)
-{
-    *all_converged = true;
-    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
-        if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
-            converged->get_data()[i] = true;
-        }
-    }
-    for (size_type i = 0; i < converged->get_num_elems(); ++i) {
-        if (!converged->get_const_data()[i]) {
-            *all_converged = false;
-            break;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL);
-
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const OmpExecutor> exec,
@@ -113,11 +92,11 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev,
-            const Array<bool> &converged)
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < p->get_size().num_cols; ++j) {
-        if (converged.get_const_data()[j]) {
+        if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
         if (rho_prev->at(j) != zero<ValueType>()) {
@@ -127,7 +106,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < p->get_size().num_rows; ++i) {
         for (size_type j = 0; j < p->get_size().num_cols; ++j) {
-            if (converged.get_const_data()[j]) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             u->at(i, j) = r->at(i, j) + beta->at(j) * q->at(i, j);
@@ -147,11 +126,12 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *gamma,
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < u->get_size().num_cols; ++j) {
-        if (converged.get_const_data()[j]) {
+        if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
         if (gamma->at(j) != zero<ValueType>()) {
@@ -161,7 +141,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < u->get_size().num_rows; ++i) {
         for (size_type j = 0; j < u->get_size().num_cols; ++j) {
-            if (converged.get_const_data()[j]) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             q->at(i, j) = u->at(i, j) - alpha->at(j) * v_hat->at(i, j);
@@ -177,12 +157,12 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<bool> &converged)
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < x->get_size().num_rows; ++i) {
         for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-            if (converged.get_const_data()[j]) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             x->at(i, j) += alpha->at(j) * u_hat->at(i, j);

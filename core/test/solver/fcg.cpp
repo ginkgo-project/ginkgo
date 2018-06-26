@@ -39,6 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/stop/combined.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -54,10 +57,19 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          fcg_factory(Solver::Factory::create()
-                          .with_max_iters(3)
-                          .with_rel_residual_goal(1e-6)
-                          .on_executor(exec)),
+          fcg_factory(
+              Solver::Factory::create()
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(gko::stop::Iteration::Factory::create()
+                                             .with_max_iters(3u)
+                                             .on_executor(exec),
+                                         gko::stop::ResidualNormReduction<>::
+                                             Factory::create()
+                                                 .with_reduction_factor(1e-6)
+                                                 .on_executor(exec))
+                          .on_executor(exec))
+                  .on_executor(exec)),
           solver(fcg_factory->generate(mtx))
     {}
 
@@ -74,24 +86,10 @@ TEST_F(Fcg, FcgFactoryKnowsItsExecutor)
 }
 
 
-TEST_F(Fcg, FcgFactoryKnowsItsIterationLimit)
-{
-    ASSERT_EQ(fcg_factory->get_parameters().max_iters, 3);
-}
-
-
-TEST_F(Fcg, FcgFactoryKnowsItsRelResidualGoal)
-{
-    ASSERT_EQ(fcg_factory->get_parameters().rel_residual_goal, 1e-6);
-}
-
-
 TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto fcg_solver = dynamic_cast<Solver *>(solver.get());
-    ASSERT_EQ(fcg_solver->get_parameters().max_iters, 3);
-    ASSERT_EQ(fcg_solver->get_parameters().rel_residual_goal, 1e-6);
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(fcg_solver->get_system_matrix(), mtx);
 }
@@ -148,8 +146,16 @@ TEST_F(Fcg, CanSetPreconditionerGenertor)
 {
     auto fcg_factory =
         Solver::Factory::create()
-            .with_max_iters(3)
-            .with_rel_residual_goal(1e-6)
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(3u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-6)
+                            .on_executor(exec))
+                    .on_executor(exec))
             .with_preconditioner(Solver::Factory::create().on_executor(exec))
             .on_executor(exec);
     auto solver = fcg_factory->generate(mtx);
