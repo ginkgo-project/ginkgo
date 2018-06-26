@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-version version_info::get_gpu_version() noexcept
+version version_info::get_cuda_version() noexcept
 {
     // We just return 0.0.0 with a special "not compiled" tag in placeholder
     // modules.
@@ -48,12 +48,12 @@ version version_info::get_gpu_version() noexcept
 }
 
 
-void OmpExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
+void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+    NOT_COMPILED(cuda);
 
 
-void GpuExecutor::free(void *ptr) const noexcept
+void CudaExecutor::free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -61,26 +61,26 @@ void GpuExecutor::free(void *ptr) const noexcept
 }
 
 
-void *GpuExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
+void *CudaExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
 
 
-void GpuExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    NOT_COMPILED(cuda);
 
 
-void GpuExecutor::raw_copy_to(const GpuExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(gpu);
+void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    NOT_COMPILED(cuda);
 
 
-void GpuExecutor::synchronize() const NOT_COMPILED(gpu);
+void CudaExecutor::synchronize() const NOT_COMPILED(cuda);
 
 
-void GpuExecutor::run(const Operation &op) const
+void CudaExecutor::run(const Operation &op) const
 {
     op.run(
-        std::static_pointer_cast<const GpuExecutor>(this->shared_from_this()));
+        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
 }
 
 
@@ -102,12 +102,12 @@ std::string CusparseError::get_error(int64)
 }
 
 
-int GpuExecutor::get_num_devices() { return 0; }
+int CudaExecutor::get_num_devices() { return 0; }
 
 
 }  // namespace gko
 
 
-#define GKO_HOOK_MODULE gpu
+#define GKO_HOOK_MODULE cuda
 #include "core/device_hooks/common_kernels.inc.cpp"
 #undef GKO_HOOK_MODULE

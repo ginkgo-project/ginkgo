@@ -11,19 +11,19 @@ option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(BUILD_REFERENCE "Compile reference OMP kernels" OFF)
 option(BUILD_OMP "Compile kernels for OMP" OFF)
-option(BUILD_GPU "Compile kernels for NVIDIA GPUs" OFF)
+option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 option(SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" OFF)
-set(GPU_ARCHITECTURES "Auto" CACHE STRING
+set(CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 
-if(BUILD_GPU)
+if(BUILD_CUDA)
     enable_language(CUDA)
     include(cmake/detect_gpu.cmake)
     set(CMAKE_CUDA_STANDARD_REQUIRED true)
@@ -33,7 +33,7 @@ if(BUILD_GPU)
             "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
     endif()
     # setting nvcc arch flags
-    ginkgo_select_nvcc_arch_flags("${GPU_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
+    ginkgo_select_nvcc_arch_flags("${CUDA_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
     message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
     # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
@@ -71,8 +71,8 @@ endif()
 if (BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
 endif()
-if(BUILD_GPU)
-    add_subdirectory(gpu)        # High-performance gpu kernels
+if(BUILD_CUDA)
+    add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 
 ginkgo_install()

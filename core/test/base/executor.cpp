@@ -56,7 +56,7 @@ public:
     {
         value = 1;
     }
-    void run(std::shared_ptr<const gko::GpuExecutor>) const override
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         value = 2;
     }
@@ -83,10 +83,10 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
+    auto cuda_lambda = [&value]() { value = 2; };
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(omp_lambda, gpu_lambda);
+    omp->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -159,10 +159,10 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
+    auto cuda_lambda = [&value]() { value = 2; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(omp_lambda, gpu_lambda);
+    ref->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -255,43 +255,43 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 }
 
 
-TEST(GpuExecutor, RunsCorrectOperation)
+TEST(CudaExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr gpu = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
+    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
-    gpu->run(ExampleOperation(value));
+    cuda->run(ExampleOperation(value));
     ASSERT_EQ(2, value);
 }
 
 
-TEST(GpuExecutor, RunsCorrectLambdaOperation)
+TEST(CudaExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
-    exec_ptr gpu = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
+    auto cuda_lambda = [&value]() { value = 2; };
+    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
-    gpu->run(omp_lambda, gpu_lambda);
+    cuda->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(2, value);
 }
 
 
-TEST(GpuExecutor, KnowsItsMaster)
+TEST(CudaExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
-    exec_ptr gpu = gko::GpuExecutor::create(0, omp);
+    exec_ptr cuda = gko::CudaExecutor::create(0, omp);
 
-    ASSERT_EQ(omp, gpu->get_master());
+    ASSERT_EQ(omp, cuda->get_master());
 }
 
 
-TEST(GpuExecutor, KnowsItsDeviceId)
+TEST(CudaExecutor, KnowsItsDeviceId)
 {
     auto omp = gko::OmpExecutor::create();
-    auto gpu = gko::GpuExecutor::create(5, omp);
+    auto cuda = gko::CudaExecutor::create(5, omp);
 
-    ASSERT_EQ(5, gpu->get_device_id());
+    ASSERT_EQ(5, cuda->get_device_id());
 }
 
 

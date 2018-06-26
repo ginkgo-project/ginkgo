@@ -326,7 +326,7 @@ private:
  * auto cg_factory = solver::Cg::Factory<>::create()
  *     .with_max_iters(1000)
  *     .with_rel_residual_goal(1e-6)
- *     .on_executor(gpu);
+ *     .on_executor(cuda);
  * // create a linear operator which represents the solver
  * auto cg = cg_factory->generate(A);
  * // solve the system

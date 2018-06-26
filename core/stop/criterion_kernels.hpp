@@ -63,13 +63,13 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace set_all_statuses {
 
 GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 
 }  // namespace set_all_statuses
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

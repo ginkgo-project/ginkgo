@@ -96,7 +96,7 @@ Ginkgo adds the following additional switches to control what is being built:
     kernels, usefull for testing, default os `OFF`
 *   `-DBUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
-*   `-DBUILD_GPU={ON, OFF}` builds optimized gpu versions of the kernels
+*   `-DBUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
 *   `-DSET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
     explicitly set CUDA's host compiler to match the commpiler used to build the
@@ -127,7 +127,7 @@ For example, to build everything (in debug mode), use:
 ```cmake
 mkdir build; cd build
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DDEVEL_TOOLS=ON \
-      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_GPU=ON  ..
+      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_CUDA=ON  ..
 make
 ```
 

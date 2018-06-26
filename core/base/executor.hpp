@@ -96,7 +96,7 @@ class ExecutorBase;
  *
  *     void run(const gko::OmpExecutor *) const override { os_ << "OMP"; }
  *
- *     void run(const gko::GpuExecutor *exec) const override
+ *     void run(const gko::CudaExecutor *exec) const override
  *     { os_ << "GPU(" << exec->get_device_id() << ")"; }
  *
  *     // This is optional, if not overloaded, defaults to OmpExecutor overload
@@ -125,7 +125,7 @@ class ExecutorBase;
  * ```
  * auto omp = gko::OmpExecutor::create();
  * std::cout << *omp << std::endl
- *           << *gko::GpuExecutor::create(0, omp) << std::endl
+ *           << *gko::CudaExecutor::create(0, omp) << std::endl
  *           << *gko::ReferenceExecutor::create() << std::endl;
  * ```
  *
@@ -133,7 +133,7 @@ class ExecutorBase;
  *
  * ```
  * OMP
- * GPU(0)
+ * CUDA(0)
  * Reference CPU
  * ```
  *
@@ -141,7 +141,7 @@ class ExecutorBase;
  * Luckily, there is an overload of the Executor::run() method, which is
  * designed to facilitate writing simple operations like this one. The method
  * takes two closures as input: one which is run for OMP, and the other one for
- * GPU executors. Using this method, there is no need to implement an Operation
+ * CUDA executors. Using this method, there is no need to implement an Operation
  * subclass:
  *
  * ```
@@ -149,8 +149,8 @@ class ExecutorBase;
  * {
  *     exec.run(
  *         [&]() { os << "OMP"; },  // OMP closure
- *         [&]() { os << "GPU("     // GPU closure
- *                    << static_cast<gko::GpuExecutor&>(exec)
+ *         [&]() { os << "CUDA("    // CUDA closure
+ *                    << static_cast<gko::CudaExecutor&>(exec)
  *                         .get_device_id()
  *                    << ")"; });
  *     return os;
@@ -209,7 +209,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * kernel when the operation is executed.
  *
  * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
- * namespace, where `DEV_TYPE` is replaced by `omp`, `gpu` and `reference`.
+ * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda` and `reference`.
  *
  * @param _name  operation name
  * @param _kernel  kernel which will be bound to the operation
@@ -218,7 +218,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * -------
  *
  * ```c++
- * // define the omp, gpu and reference kernels which will be bound to the
+ * // define the omp, cuda and reference kernels which will be bound to the
  * // operation
  * namespace kernels {
  * namespace omp {
@@ -226,9 +226,9 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  *      // omp code
  * }
  * }
- * namespace gpu {
+ * namespace cuda {
  * void my_kernel(int x) {
- *      // gpu code
+ *      // cuda code
  * }
  * }
  * namespace reference {
@@ -243,14 +243,14 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * int main() {
  *     // create executors
  *     auto omp = OmpExecutor::create();
- *     auto gpu = GpuExecutor::create(omp, 0);
+ *     auto cuda = CudaExecutor::create(omp, 0);
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
  *     auto op = make_my_op_operation(5); // x = 5
  *
  *     omp->run(op);  // run omp kernel
- *     gpu->run(op);  // run gpu kernel
+ *     cuda->run(op);  // run cuda kernel
  *     ref->run(op);  // run reference kernel
  * }
  * ```
@@ -267,9 +267,9 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
             ::gko::detail::call(::gko::kernels::omp::_kernel, exec, data);     \
         }                                                                      \
                                                                                \
-        void run(std::shared_ptr<const GpuExecutor> exec) const override       \
+        void run(std::shared_ptr<const CudaExecutor> exec) const override      \
         {                                                                      \
-            ::gko::detail::call(::gko::kernels::gpu::_kernel, exec, data);     \
+            ::gko::detail::call(::gko::kernels::cuda::_kernel, exec, data);    \
         }                                                                      \
                                                                                \
         void run(std::shared_ptr<const ReferenceExecutor> exec) const override \
@@ -298,7 +298,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  *
  * +    OmpExecutor specifies that the data should be stored and the associated
  *      operations executed on an OpenMP-supporting device (e.g. host CPU);
- * +    GpuExecutor specifies that the data should be stored and the
+ * +    CudaExecutor specifies that the data should be stored and the
  *      operations executed on the NVIDIA GPU accelerator;
  * +    ReferenceExecutor executes a non-optimized reference implementation,
  *      which can be used to debug the library.
@@ -326,11 +326,11 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * demonstrated by the next code snippet:
  *
  * ```cpp
- * auto gpu = gko::create<gko::GpuExecutor>(0, omp);
- * auto dA = gko::copy_to<gko::matrix::Csr<float>>(A.get(), gpu);
+ * auto cuda = gko::create<gko::CudaExecutor>(0, omp);
+ * auto dA = gko::copy_to<gko::matrix::Csr<float>>(A.get(), cuda);
  * ```
  *
- * The first line of the snippet creates a new GPU executor. Since there may be
+ * The first line of the snippet creates a new CUDA executor. Since there may be
  * multiple GPUs present on the system, the first parameter instructs the
  * library to use the first device (i.e. the one with device ID zero, as in
  * cudaSetDevice() routine from the CUDA runtime API). In addition, since GPUs
@@ -358,8 +358,8 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  *
  * ```cpp
  * auto omp = gko::create<gko::OmpExecutor>();
- * auto gpu = gko::create<gko::GpuExecutor>(0, omp);
- * auto dA = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", gpu);
+ * auto cuda = gko::create<gko::CudaExecutor>(0, omp);
+ * auto dA = gko::read_from_mtx<gko::matrix::Csr<float>>("A.mtx", cuda);
  * ```
  * Notice that even though reading the matrix directly from a file to the
  * accelerator is not supported, the library is designed to abstract away the
@@ -395,16 +395,16 @@ public:
      * Runs one of the passed in functors, depending on the Executor type.
      *
      * @tparam ClosureOmp  type of op_omp
-     * @tparam ClosureGpu  type of op_gpu
+     * @tparam ClosureCuda  type of op_cuda
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
-     * @param op_gpu  functor to run in case of a GpuExecutor
+     * @param op_cuda  functor to run in case of a CudaExecutor
      */
-    template <typename ClosureOmp, typename ClosureGpu>
-    void run(const ClosureOmp &op_omp, const ClosureGpu &op_gpu) const
+    template <typename ClosureOmp, typename ClosureCuda>
+    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda) const
     {
-        LambdaOperation<ClosureOmp, ClosureGpu> op(op_omp, op_gpu);
+        LambdaOperation<ClosureOmp, ClosureCuda> op(op_omp, op_cuda);
         this->run(op);
     }
 
@@ -516,13 +516,13 @@ private:
      * The LambdaOperation class wraps two functor objects into an Operation.
      *
      * The first object is called by the OmpExecutor, while the other one by the
-     * GpuExecutor. When run on the ReferenceExecutor, the implementation will
+     * CudaExecutor. When run on the ReferenceExecutor, the implementation will
      * launch the CPU reference version.
      *
      * @tparam ClosureOmp  the type of the first functor
-     * @tparam ClosureGpu  the type of the second functor
+     * @tparam ClosureCuda  the type of the second functor
      */
-    template <typename ClosureOmp, typename ClosureGpu>
+    template <typename ClosureOmp, typename ClosureCuda>
     class LambdaOperation : public Operation {
     public:
         /**
@@ -530,10 +530,10 @@ private:
          *
          * @param op_omp  a functor object which will be called by OmpExecutor
          *                and ReferenceExecutor
-         * @param op_gpu  a functor object which will be called by GpuExecutor
+         * @param op_cuda  a functor object which will be called by CudaExecutor
          */
-        LambdaOperation(const ClosureOmp &op_omp, const ClosureGpu &op_gpu)
-            : op_omp_(op_omp), op_gpu_(op_gpu)
+        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda)
+            : op_omp_(op_omp), op_cuda_(op_cuda)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -541,14 +541,14 @@ private:
             op_omp_();
         }
 
-        void run(std::shared_ptr<const GpuExecutor>) const override
+        void run(std::shared_ptr<const CudaExecutor>) const override
         {
-            op_gpu_();
+            op_cuda_();
         }
 
     private:
         ClosureOmp op_omp_;
-        ClosureGpu op_gpu_;
+        ClosureCuda op_cuda_;
     };
 };
 
@@ -713,23 +713,23 @@ using DefaultExecutor = ReferenceExecutor;
 /**
  * This is the Executor subclass which represents the GPU device.
  */
-class GpuExecutor : public detail::ExecutorBase<GpuExecutor>,
-                    public std::enable_shared_from_this<GpuExecutor> {
-    friend class ExecutorBase<GpuExecutor>;
+class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
+                     public std::enable_shared_from_this<CudaExecutor> {
+    friend class ExecutorBase<CudaExecutor>;
 
 public:
     /**
-     * Creates a new GpuExecutor.
+     * Creates a new CudaExecutor.
      *
      * @param device_id  the CUDA device id of this device
      * @param master  an executor on the host that is used to invoke the device
      * kernels
      */
-    static std::shared_ptr<GpuExecutor> create(int device_id,
-                                               std::shared_ptr<Executor> master)
+    static std::shared_ptr<CudaExecutor> create(
+        int device_id, std::shared_ptr<Executor> master)
     {
-        return std::shared_ptr<GpuExecutor>(
-            new GpuExecutor(device_id, std::move(master)));
+        return std::shared_ptr<CudaExecutor>(
+            new CudaExecutor(device_id, std::move(master)));
     }
 
     void free(void *ptr) const noexcept override;
@@ -753,7 +753,7 @@ public:
     static int get_num_devices();
 
 protected:
-    GpuExecutor(int device_id, std::shared_ptr<Executor> master)
+    CudaExecutor(int device_id, std::shared_ptr<Executor> master)
         : device_id_(device_id), master_(master)
     {}
 
@@ -768,9 +768,9 @@ private:
 
 
 namespace kernels {
-namespace gpu {
-using DefaultExecutor = GpuExecutor;
-}  // namespace gpu
+namespace cuda {
+using DefaultExecutor = CudaExecutor;
+}  // namespace cuda
 }  // namespace kernels
 
 

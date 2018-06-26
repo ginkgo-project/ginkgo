@@ -73,13 +73,13 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace residual_norm_reduction {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {
