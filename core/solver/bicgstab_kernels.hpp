@@ -60,15 +60,6 @@ namespace bicgstab {
                     Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(_type)                    \
-    void test_convergence(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
-        remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
-        bool setFinalized, Array<stopping_status> *stop_status,                \
-        bool *all_converged, bool *one_changed)
-
-
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                             \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
@@ -109,8 +100,6 @@ namespace bicgstab {
     template <typename ValueType>                            \
     GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType);       \
     template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(ValueType); \
-    template <typename ValueType>                            \
     GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);           \
     template <typename ValueType>                            \
     GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);           \
@@ -118,6 +107,7 @@ namespace bicgstab {
     GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);           \
     template <typename ValueType>                            \
     GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType);
+
 
 }  // namespace bicgstab
 

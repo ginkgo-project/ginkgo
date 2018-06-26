@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+#include "core/stop/criterion_kernels.hpp"
+#include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 #ifndef GKO_HOOK_MODULE
@@ -196,12 +198,6 @@ template <typename ValueType>
 GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
-
-template <typename ValueType>
-GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL(ValueType)
-NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
 template <typename ValueType>
 GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType)
@@ -461,6 +457,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace adaptive_block_jacobi
+
+
+namespace set_all_statuses {
+
+
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL()
+NOT_COMPILED(GKO_HOOK_MODULE);
+
+
+}  // namespace set_all_statuses
+
+
+namespace residual_norm_reduction {
+
+
+template <typename ValueType>
+GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+
+
+}  // namespace residual_norm_reduction
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

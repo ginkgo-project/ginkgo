@@ -10,7 +10,9 @@ set(SOURCES
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu
     solver/cgs_kernels.cu
-    solver/fcg_kernels.cu)
+    solver/fcg_kernels.cu
+    stop/criterion_kernels.cu
+    stop/residual_norm_reduction_kernels.cu)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS cudart

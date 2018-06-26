@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/stop/criterion.hpp"
 
 
 namespace gko {
@@ -50,8 +51,6 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(test_convergence,
-                           bicgstab::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
     GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
@@ -92,9 +91,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
     auto omega = Vector::create_with_config_of(alpha.get());
-    auto tau = Vector::create_with_config_of(alpha.get());
-    auto starting_tau = Vector::create_with_config_of(tau.get());
 
+    bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size().num_cols);
 
@@ -109,20 +107,19 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // stop_status = 0x00
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
+        x, r.get());
     rr->copy_from(r.get());
-    r->compute_dot(r.get(), tau.get());
-    starting_tau->copy_from(tau.get());
     system_matrix_->apply(r.get(), v.get());
-    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
-        r->compute_dot(r.get(), tau.get());
-        bool all_converged{};
-        bool one_changed{};
-        exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                RelativeStoppingId, true, &stop_status, &all_converged,
-                &one_changed));
-        if (all_converged) {
+
+    int iters = 0;
+    while (true) {
+        if (stop_criterion->update()
+                .num_iterations(iters)
+                .residual(r.get())
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
@@ -143,20 +140,23 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        s->compute_dot(s.get(), tau.get());
-        exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                RelativeStoppingId, false, &stop_status, &all_converged,
-                &one_changed));
+        iters++;
+        auto all_converged =
+            stop_criterion->update()
+                .num_iterations(iters)
+                .residual(s.get())
+                // .solution(dense_x) // outdated at this point
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
 
         if (one_changed) {
             exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
                 dense_x, y.get(), alpha.get(), &stop_status));
         }
+
         if (all_converged) {
             break;
         }
+
         preconditioner_->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
@@ -168,8 +168,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
+        iters++;
     }
-}
+}  // namespace solver
 
 
 template <typename ValueType>
