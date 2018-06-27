@@ -47,7 +47,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
 #include <core/stop/residual_norm_reduction.hpp>
-#include <core/stop/stopping_status.hpp>
 #include <core/test/utils.hpp>
 
 namespace {
