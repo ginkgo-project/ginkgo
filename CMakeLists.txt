@@ -36,8 +36,12 @@ if(BUILD_GPU)
     ginkgo_select_nvcc_arch_flags("${GPU_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
     message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
-    # remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+    # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
+    # merged at commit ed12b3df5d26
+    if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+      # remove false positive CUDA warnings when calling one<T>() and zero<T>()
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+    endif()
 endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

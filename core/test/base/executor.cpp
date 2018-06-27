@@ -297,8 +297,12 @@ TEST(GpuExecutor, KnowsItsDeviceId)
 
 template <typename T>
 struct mock_free : T {
+    /**
+     * @internal Due to a bug with gcc 5.3, the constructor needs to be called
+     * with `()` operator instead of `{}`.
+     */
     template <typename... Params>
-    mock_free(Params &&... params) : T{std::forward<Params>(params)...}
+    mock_free(Params &&... params) : T(std::forward<Params>(params)...)
     {}
 
     void free(void *ptr) const noexcept override
