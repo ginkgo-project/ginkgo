@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_REDUCTION_CUH_
-#define GKO_GPU_COMPONENTS_REDUCTION_CUH_
+#ifndef GKO_CUDA_COMPONENTS_REDUCTION_CUH_
+#define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
 #include "cuda/components/shuffle.cuh"
@@ -155,4 +155,4 @@ __device__ void reduce(ValueType *data, Operator reduce_op = Operator{})
 }  // namespace gko
 
 
-#endif  // GKO_GPU_COMPONENTS_REDUCTION_CUH_
+#endif  // GKO_CUDA_COMPONENTS_REDUCTION_CUH_

@@ -12,7 +12,7 @@ stages:
   BUILD_TYPE: Debug
   BUILD_REFERENCE: "ON"
   BUILD_OMP: "OFF"
-  BUILD_GPU: "OFF"
+  BUILD_CUDA: "OFF"
   EXTRA_CMAKE_FLAGS: ""
   EXTRA_PACKAGES: ""
 
@@ -31,7 +31,7 @@ stages:
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
         ${EXTRA_CMAKE_FLAGS} -DDEVEL_TOOLS=OFF
         -DBUILD_REFERENCE=${BUILD_REFERENCE} -DBUILD_OMP=${BUILD_OMP}
-        -DBUILD_GPU=${BUILD_GPU} -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
+        -DBUILD_CUDA=${BUILD_CUDA} -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
   artifacts:
     paths:
@@ -88,9 +88,9 @@ build/gcc/all/debug:
     <<: *default_variables
     EXTRA_PACKAGES: cuda
     BUILD_OMP: "ON"
-    BUILD_GPU: "ON"
+    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: &cuda_flags
-      -DCMAKE_CUDA_COMPILER=/opt/cuda/bin/nvcc -DGPU_ARCHITECTURES=60
+      -DCMAKE_CUDA_COMPILER=/opt/cuda/bin/nvcc -DCUDA_ARCHITECTURES=60
 
 build/clang/all/debug:
   <<: *default_build
@@ -100,7 +100,7 @@ build/clang/all/debug:
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
-    BUILD_GPU: "ON"
+    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
 # Test jobs

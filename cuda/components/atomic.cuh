@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_ATOMIC_CUH_
-#define GKO_GPU_COMPONENTS_ATOMIC_CUH_
+#ifndef GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+#define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
 
 
 namespace gko {
@@ -122,4 +122,4 @@ __forceinline__ __device__ void atomic_add(thrust::complex<double> *address,
 }  // namespace gko
 
 
-#endif  // GKO_GPU_COMPONENTS_ATOMIC_CUH_
+#endif  // GKO_CUDA_COMPONENTS_ATOMIC_CUH_

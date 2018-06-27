@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_THREAD_IDS_CUH_
-#define GKO_GPU_COMPONENTS_THREAD_IDS_CUH_
+#ifndef GKO_CUDA_COMPONENTS_THREAD_IDS_CUH_
+#define GKO_CUDA_COMPONENTS_THREAD_IDS_CUH_
 
 
 namespace gko {
@@ -212,4 +212,4 @@ __device__ __forceinline__ size_type get_thread_id()
 }  // namespace gko
 
 
-#endif  // GKO_GPU_COMPONENTS_THREAD_IDS_CUH_
+#endif  // GKO_CUDA_COMPONENTS_THREAD_IDS_CUH_

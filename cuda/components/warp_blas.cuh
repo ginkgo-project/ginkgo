@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_WARP_BLAS_CUH_
-#define GKO_GPU_COMPONENTS_WARP_BLAS_CUH_
+#ifndef GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
+#define GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
 
 
 #include "cuda/base/math.hpp"
@@ -266,4 +266,4 @@ __device__ __forceinline__ void multiply_transposed_vec(
 }  // namespace gko
 
 
-#endif  // GKO_GPU_COMPONENTS_WARP_BLAS_CUH_
+#endif  // GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_

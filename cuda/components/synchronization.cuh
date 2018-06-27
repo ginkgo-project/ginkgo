@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GPU_COMPONENTS_SYNCHRONIZATION_CUH_
-#define GKO_GPU_COMPONENTS_SYNCHRONIZATION_CUH_
+#ifndef GKO_CUDA_COMPONENTS_SYNCHRONIZATION_CUH_
+#define GKO_CUDA_COMPONENTS_SYNCHRONIZATION_CUH_
 
 
 #include "cuda/base/types.hpp"
@@ -195,4 +195,4 @@ __device__ __forceinline__ void fence() { __threadfence_system(); }
 }  // namespace gko
 
 
-#endif  // GKO_GPU_COMPONENTS_SYNCHRONIZATION_CUH_
+#endif  // GKO_CUDA_COMPONENTS_SYNCHRONIZATION_CUH_
