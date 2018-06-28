@@ -38,6 +38,7 @@ function(doc_gen name in pdf mainpage)
   add_custom_target("${name}" ALL
     #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
     COMMAND "${DOXYGEN_EXECUTABLE}" "${doxyfile}"
+            > "${CMAKE_CURRENT_BINARY_DIR}/${name}.log" 2>&1
     #COMMAND "${CMAKE_COMMAND}" cmake -E touch "${doxyfile}.stamp"
     COMMENT "Generating ${name} documentation with Doxygen"
     VERBATIM
