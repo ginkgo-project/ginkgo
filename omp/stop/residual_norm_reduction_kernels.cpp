@@ -31,10 +31,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <omp.h>
-
-
 #include "core/stop/residual_norm_reduction_kernels.hpp"
+
+
+#include <omp.h>
 
 
 #include "core/base/exception_helpers.hpp"
@@ -63,8 +63,8 @@ void residual_norm_reduction(std::shared_ptr<const OmpExecutor> exec,
             *one_changed = true;
         }
     }
-        // No early stopping here because one cannot use break with omp parallel
-        // for But it's parallel so does it matter?
+    // No early stopping here because one cannot use break with omp parallel
+    // for But it's parallel so does it matter?
 #pragma omp parallel for
     for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {

@@ -31,10 +31,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <omp.h>
-
-
 #include "core/solver/cgs_kernels.hpp"
+
+
+#include <omp.h>
 
 
 #include "core/base/exception_helpers.hpp"
