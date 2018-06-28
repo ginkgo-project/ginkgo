@@ -31,22 +31,23 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <omp.h>
-
-
 #include "core/matrix/csr_kernels.hpp"
-
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/coo.hpp"
-#include "core/matrix/dense.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 #include <utility>
+
+
+#include <omp.h>
+
+
+#include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "core/matrix/coo.hpp"
+#include "core/matrix/dense.hpp"
+#include "omp/components/format_conversion.hpp"
 
 namespace gko {
 namespace kernels {
