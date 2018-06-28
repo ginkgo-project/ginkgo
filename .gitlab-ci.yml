@@ -20,6 +20,7 @@ stages:
 .before_script_template: &default_before_script
   - pacman-db-upgrade
   - pacman --noconfirm -Syu cmake git python ${EXTRA_PACKAGES}
+  - export OMP_NUM_THREADS=4
 
 .before_script_git_template: &git_before_script
   - pacman-db-upgrade
