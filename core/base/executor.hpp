@@ -331,7 +331,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * ```
  *
  * The first line of the snippet creates a new CUDA executor. Since there may be
- * multiple CUDA GPUs present on the system, the first parameter instructs the
+ * multiple NVIDIA GPUs present on the system, the first parameter instructs the
  * library to use the first device (i.e. the one with device ID zero, as in
  * cudaSetDevice() routine from the CUDA runtime API). In addition, since GPUs
  * are not stand-alone processors, it is required to pass a "master" OmpExecutor

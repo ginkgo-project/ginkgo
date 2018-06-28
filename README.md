@@ -113,9 +113,10 @@ Ginkgo adds the following additional switches to control what is being built:
     *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
     *   `Off`
 
-    `Auto` will automatically detect the present CUDA architectures in the
-    system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
-    architectures of that particular CUDA generation. `COMPUTE` and `CODE` are
+    `Auto` will automatically detect the present CUDA-enabled GPU 
+    architectures in the system.
+    `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
+    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE` are
     placeholders that should be replaced with compute and code numbers (e.g.
     for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
     with `70`. `MaxPTX` will select the latest architecture supported by the
