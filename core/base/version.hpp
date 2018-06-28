@@ -173,7 +173,7 @@ public:
     version omp_version;
 
     /**
-     * Contains version information of the GPU module.
+     * Contains version information of the CUDA module.
      *
      * This is the version of the static/shared library called "ginkgo_cuda".
      */
