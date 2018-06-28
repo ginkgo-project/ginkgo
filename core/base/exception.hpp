@@ -290,6 +290,29 @@ public:
 
 
 /**
+ * OutOfBoundsError is thrown if a memory access is detected to be
+ * out-of-bounds.
+ */
+class OutOfBoundsError : public Error {
+public:
+    /**
+     * Initializes an OutOfBoundsError.
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param index  The position that was accessed
+     * @param bound  The first out-of-bound index
+     */
+    OutOfBoundsError(const std::string &file, int line, size_type index,
+                     size_type bound)
+        : Error(file, line,
+                "trying to access index " + std::to_string(index) +
+                    " in a memory block of " + std::to_string(bound) +
+                    " elements")
+    {}
+};
+
+
+/**
  * FileError is thrown if accessing a file failed.
  */
 class FileError : public Error {

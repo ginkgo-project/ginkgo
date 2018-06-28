@@ -101,13 +101,30 @@ TEST_F(Dense, CanBeConstructedWithSize)
 }
 
 
-TEST_F(Dense, CanBeConstructedWithSizeAndstride)
+TEST_F(Dense, CanBeConstructedWithSizeAndStride)
 {
     auto m = gko::matrix::Dense<>::create(exec, gko::dim{2, 3}, 4);
 
     ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     EXPECT_EQ(m->get_stride(), 4);
     ASSERT_EQ(m->get_num_stored_elements(), 8);
+}
+
+
+TEST_F(Dense, CanBeConstructedFromExistingData)
+{
+    // clang-format off
+    double data[] = {
+        1.0, 2.0, -1.0,
+        3.0, 4.0, -1.0,
+        5.0, 6.0, -1.0};
+    // clang-format on
+
+    auto m = gko::matrix::Dense<>::create(
+        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 9, data), 3);
+
+    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(2, 1), 6.0);
 }
 
 

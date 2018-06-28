@@ -1,3 +1,4 @@
+add_subdirectory(3pt_stencil)
 add_subdirectory(asynchronous_stopping_criterion)
 add_subdirectory(ginkgo_overhead)
 add_subdirectory(preconditioned_solver)

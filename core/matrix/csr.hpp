@@ -185,6 +185,41 @@ protected:
           row_ptrs_(exec, size.num_rows + (size.num_rows > 0))
     {}
 
+
+    /**
+     * Creates a CSR matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @tparam ValuesArray  type of `values` array
+     * @tparam ColIdxsArray  type of `col_idxs` array
+     * @tparam RowPtrsArray  type of `row_ptrs` array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  array of column indexes
+     * @param row_ptrs  array of row pointers
+     *
+     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
+     *       an array of IndexType, IndexType and ValueType, respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     */
+    template <typename ValuesArray, typename ColIdxsArray,
+              typename RowPtrsArray>
+    Csr(std::shared_ptr<const Executor> exec, const dim &size,
+        ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs)
+        : EnableLinOp<Csr>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
+    {
+        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                         col_idxs_.get_num_elems());
+        ENSURE_IN_BOUNDS(this->get_size().num_rows, row_ptrs_.get_num_elems());
+    }
+
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
