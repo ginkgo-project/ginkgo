@@ -60,6 +60,31 @@ protected:
 };
 
 
+TEST_F(ResidualNormReduction, CanCreateFactory)
+{
+    ASSERT_NE(factory_, nullptr);
+    ASSERT_EQ(factory_->get_parameters().reduction_factor, reduction_factor);
+    ASSERT_EQ(factory_->get_executor(), exec_);
+}
+
+
+TEST_F(ResidualNormReduction, CannotCreateCriterionWithoutB)
+{
+    ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr, nullptr),
+                 gko::NotSupported);
+}
+
+
+TEST_F(ResidualNormReduction, CanCreateCriterionWithB)
+{
+    std::shared_ptr<gko::LinOp> scalar =
+        gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
+    auto criterion =
+        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
+    ASSERT_NE(criterion, nullptr);
+}
+
+
 TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
     auto scalar = gko::initialize<Mtx>({1.0}, exec_);

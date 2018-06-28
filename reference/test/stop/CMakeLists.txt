@@ -1,2 +1,5 @@
+create_test(combined)
 create_test(criterion_kernels)
+create_test(iteration)
 create_test(residual_norm_reduction_kernels)
+create_test(time)
