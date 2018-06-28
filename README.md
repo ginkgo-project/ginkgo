@@ -15,7 +15,7 @@ For Ginkgo core library:
     *   _gcc 5.4.0+_
     *   _clang 3.3+_ (__TODO__: verify, works with 5.0)
 
-The Ginkgo GPU module has the following __additional__ requirements:
+The Ginkgo CUDA module has the following __additional__ requirements:
 
 *   _cmake 3.10+_
 *   _CUDA 7.0+_ (__TODO__: verify, works with 8.0)
@@ -44,7 +44,7 @@ For Ginkgo core library:
     *   _clang 3.3+_ (__TODO__: verify)
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
-The Ginkgo GPU module has the following __additional__ requirements:
+The Ginkgo CUDA module has the following __additional__ requirements:
 
 *   _cmake 3.8+_
 *   _CUDA 7.0+_ (__TODO__: verify)
@@ -113,9 +113,9 @@ Ginkgo adds the following additional switches to control what is being built:
     *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
     *   `Off`
 
-    `Auto` will automatically detect the architectures of GPUs present on the
+    `Auto` will automatically detect the present CUDA architectures in the
     system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
-    architectures of that particular GPU generation. `COMPUTE` and `CODE` are
+    architectures of that particular CUDA generation. `COMPUTE` and `CODE` are
     placeholders that should be replaced with compute and code numbers (e.g.
     for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
     with `70`. `MaxPTX` will select the latest architecture supported by the

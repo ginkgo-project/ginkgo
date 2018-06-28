@@ -70,7 +70,7 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
 {
     auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
-    // TODO: GPU conversion Dense -> Csr not yet implemented
+    // TODO: CUDA conversion Dense -> Csr not yet implemented
     auto csr_omp = gko::matrix::Csr<>::create(ref);
     csr_omp->copy_from(mtx.get());
     auto csr_mtx = gko::matrix::Csr<>::create(cuda);

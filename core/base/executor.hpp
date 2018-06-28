@@ -97,7 +97,7 @@ class ExecutorBase;
  *     void run(const gko::OmpExecutor *) const override { os_ << "OMP"; }
  *
  *     void run(const gko::CudaExecutor *exec) const override
- *     { os_ << "GPU(" << exec->get_device_id() << ")"; }
+ *     { os_ << "CUDA(" << exec->get_device_id() << ")"; }
  *
  *     // This is optional, if not overloaded, defaults to OmpExecutor overload
  *     void run(const gko::ReferenceExecutor *) const override
@@ -331,11 +331,11 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * ```
  *
  * The first line of the snippet creates a new CUDA executor. Since there may be
- * multiple GPUs present on the system, the first parameter instructs the
+ * multiple CUDA GPUs present on the system, the first parameter instructs the
  * library to use the first device (i.e. the one with device ID zero, as in
  * cudaSetDevice() routine from the CUDA runtime API). In addition, since GPUs
  * are not stand-alone processors, it is required to pass a "master" OmpExecutor
- * which will be used to schedule the requested GPU kernels on the accelerator.
+ * which will be used to schedule the requested CUDA kernels on the accelerator.
  *
  * The second command creates a copy of the matrix A on the GPU. Notice the use
  * of the get() method. As Ginkgo aims to provide automatic memory
@@ -711,7 +711,7 @@ using DefaultExecutor = ReferenceExecutor;
 
 
 /**
- * This is the Executor subclass which represents the GPU device.
+ * This is the Executor subclass which represents the CUDA device.
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor> {
