@@ -199,7 +199,7 @@ struct cuda_config {
 
     /**
      * The minimal amount of warps that need to be scheduled for each block
-     * to maximize CUDA occupancy.
+     * to maximize GPU occupancy.
      */
     static constexpr uint32 min_warps_per_block = 4;
 };
