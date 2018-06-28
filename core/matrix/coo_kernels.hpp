@@ -102,13 +102,13 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace coo {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

@@ -63,8 +63,8 @@ std::ostream &operator<<(std::ostream &os, const version_info &ver_info)
     print_version(os, ver_info.reference_version);
     os << "\n    the OpenMP    module is  ";
     print_version(os, ver_info.omp_version);
-    os << "\n    the GPU       module is  ";
-    print_version(os, ver_info.gpu_version);
+    os << "\n    the CUDA      module is  ";
+    print_version(os, ver_info.cuda_version);
     return os;
 }
 

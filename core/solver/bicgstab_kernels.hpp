@@ -96,16 +96,16 @@ namespace bicgstab {
                   Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType);       \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);           \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);           \
-    template <typename ValueType>                            \
-    GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);           \
-    template <typename ValueType>                            \
+#define DECLARE_ALL_AS_TEMPLATES                       \
+    template <typename ValueType>                      \
+    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                      \
+    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                      \
+    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                      \
+    GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);     \
+    template <typename ValueType>                      \
     GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType);
 
 
@@ -121,13 +121,13 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace bicgstab {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicgstab
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

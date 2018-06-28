@@ -136,7 +136,7 @@ TEST(VersionInfo, WritesInfoToStream)
     ASSERT_TRUE(ss.str().find("Ginkgo") != std::string::npos);
     ASSERT_TRUE(ss.str().find("reference") != std::string::npos);
     ASSERT_TRUE(ss.str().find("OpenMP") != std::string::npos);
-    ASSERT_TRUE(ss.str().find("GPU") != std::string::npos);
+    ASSERT_TRUE(ss.str().find("CUDA") != std::string::npos);
 }
 
 

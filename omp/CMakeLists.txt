@@ -16,7 +16,7 @@ set(SOURCES
 add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>
     ${SOURCES})
-target_link_libraries(ginkgo_omp PUBLIC ginkgo_gpu)
+target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
 

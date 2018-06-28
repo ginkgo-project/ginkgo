@@ -112,13 +112,13 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace cgs {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

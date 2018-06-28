@@ -128,7 +128,7 @@ std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, GPU).
+ * the core and the kernel modules (reference, OpenMP, CUDA).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -173,11 +173,11 @@ public:
     version omp_version;
 
     /**
-     * Contains version information of the GPU module.
+     * Contains version information of the CUDA module.
      *
-     * This is the version of the static/shared library called "ginkgo_gpu".
+     * This is the version of the static/shared library called "ginkgo_cuda".
      */
-    version gpu_version;
+    version cuda_version;
 
 private:
     static constexpr version get_header_version() noexcept
@@ -192,14 +192,14 @@ private:
 
     static version get_omp_version() noexcept;
 
-    static version get_gpu_version() noexcept;
+    static version get_cuda_version() noexcept;
 
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
-          gpu_version{get_gpu_version()}
+          cuda_version{get_cuda_version()}
     {}
 };
 
