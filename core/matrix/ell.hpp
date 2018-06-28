@@ -255,6 +255,8 @@ protected:
      * @param size  size of the matrix
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param stride  stride of the rows
      *
      * @note If one of `col_idxs` or `values` is not an rvalue, not an array of
      *       IndexType and ValueType, respectively, or is on the wrong executor,
