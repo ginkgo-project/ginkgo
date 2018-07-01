@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 #include <algorithm>
@@ -87,6 +88,14 @@ template <typename... TplArgs>
 struct TemplatedOperationEll {
     GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_ell, dense::move_to_ell<TplArgs...>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationSellp {
+    GKO_REGISTER_OPERATION(convert_to_sellp,
+        dense::convert_to_sellp<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_sellp, dense::move_to_sellp<TplArgs...>);
 };
 
 
@@ -142,6 +151,15 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
                                                  max_nnz_per_row, stride);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Sellp<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    NOT_IMPLEMENTED;
 }
 
 
@@ -341,6 +359,50 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
         result, this,
         TemplatedOperationEll<ValueType, int64>::
             template make_move_to_ell_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int32>::
+            template make_convert_to_sellp_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int32>::
+            template make_move_to_sellp_operation<decltype(result),
+                                                Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int64>::
+            template make_convert_to_sellp_operation<decltype(result),
+                                                   const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int64>::
+            template make_move_to_sellp_operation<decltype(result),
                                                 Dense<ValueType> *&>);
 }
 

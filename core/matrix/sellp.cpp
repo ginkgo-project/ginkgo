@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/matrix/sellp_kernels.hpp"
 
 
 #include <vector>
@@ -49,6 +50,15 @@ namespace matrix {
 
 
 namespace {
+
+
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, sellp::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           sellp::convert_to_dense<TplArgs...>);
+};
 
 
 template <typename ValueType, typename IndexType>

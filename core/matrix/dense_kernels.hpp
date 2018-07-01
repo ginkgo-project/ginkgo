@@ -94,6 +94,16 @@ namespace kernels {
                      matrix::Ell<_type, _prec> *other,            \
                      const matrix::Dense<_type> *source)
 
+#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)        \
+    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Sellp<_type, _prec> *other,            \
+                        const matrix::Dense<_type> *source)
+
+#define GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL(_type, _prec)        \
+    void move_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
+                       matrix::Sellp<_type, _prec> *other,          \
+                       const matrix::Dense<_type> *source)
+
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Dense<_type> *source, size_type *result)
@@ -134,6 +144,10 @@ namespace kernels {
     GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL(ValueType, IndexType);       \
     template <typename ValueType>                                       \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);                 \
     template <typename ValueType>                                       \

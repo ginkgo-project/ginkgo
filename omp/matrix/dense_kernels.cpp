@@ -133,6 +133,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
+                      matrix::Sellp<ValueType, IndexType> *result,
+                      const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_sellp(std::shared_ptr<const OmpExecutor> exec,
+                   matrix::Sellp<ValueType, IndexType> *result,
+                   const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType> *source,

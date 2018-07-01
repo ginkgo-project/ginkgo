@@ -7,6 +7,7 @@ set(SOURCES
     matrix/dense_kernels.cu
     matrix/ell_kernels.cu
     matrix/hybrid_kernels.cpp
+    matrix/sellp_kernels.cu
     preconditioner/block_jacobi_kernels.cu
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu
