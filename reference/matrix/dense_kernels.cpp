@@ -298,8 +298,8 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = result->get_size().num_rows;
     auto num_cols = result->get_size().num_cols;
     auto strategy = result->get_strategy();
-    auto ell_lim = strategy->get_ell_lim();
-    auto coo_lim = strategy->get_coo_lim();
+    auto ell_lim = strategy->get_ell_max_nonzeros_per_row();
+    auto coo_lim = strategy->get_coo_nnz();
     auto coo_val = result->get_coo_values();
     auto coo_col = result->get_coo_col_idxs();
     auto coo_row = result->get_coo_row_idxs();
@@ -314,7 +314,7 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
         coo_col[i] = 0;
         coo_row[i] = 0;
     }
-    
+
     size_type coo_idx = 0;
     for (size_type row = 0; row < num_rows; row++) {
         size_type col_idx = 0, col = 0;

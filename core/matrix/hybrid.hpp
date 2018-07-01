@@ -82,95 +82,159 @@ public:
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
 
+    /**
+     * strategy_type is to decide how to set the hybrid config. It
+     * computes the maximum number of nonzeros per row of the ell part and
+     * then set the number of residual nonzeros as the number of nonzeros of the
+     * coo part.
+     *
+     * The practical strategy method should inherit strategy_type and implement
+     * its `compute_ell_max_nonzeros_per_row` function.
+     */
     class strategy_type {
     public:
+        /**
+         * Creates a strategy_type.
+         */
         strategy_type()
-            : ell_lim_(zero<size_type>()), coo_lim_(zero<size_type>())
+            : ell_max_nonzeros_per_row_(zero<size_type>()),
+              coo_nnz_(zero<size_type>())
         {}
 
-        virtual void get_hybrid_limit(std::shared_ptr<const Executor> exec,
-                                      const mat_data &data, size_type *ell_lim,
-                                      size_type *coo_lim) const = 0;
-
-        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
-                              Array<size_type> *row_nnz, size_type *ell_lim,
-                              size_type *coo_lim)
+        /**
+         * Computes the config of the Hybrid matrix (ell_max_nonzeros_per_row
+         * and coo_nnz). For now, it copies row_nnz to the reference executor
+         * and performs all operations on the reference executor.
+         *
+         * @param row_nnz  the number of nonzeros of each row
+         * @param ell_max_nonzeros_per_row  the output maximum number of
+         *                                  nonzeros per row of the ell part
+         * @param coo_nnz  the output number of nonzeros of the coo part
+         */
+        void compute_hybrid_config(const Array<size_type> &row_nnz,
+                                   size_type *ell_max_nonzeros_per_row,
+                                   size_type *coo_nnz)
         {
-            this->compute_ell_limit(exec, row_nnz, ell_lim);
-            *coo_lim = this->get_coo_lim(*row_nnz, *ell_lim);
-            ell_lim_ = *ell_lim;
-            coo_lim_ = *coo_lim;
-        };
+            Array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
+                                         row_nnz.get_num_elems());
+            ref_row_nnz = row_nnz;
+            ell_max_nonzeros_per_row_ =
+                this->compute_ell_max_nonzeros_per_row(&ref_row_nnz);
+            coo_nnz_ = this->compute_coo_nnz(ref_row_nnz);
+            *ell_max_nonzeros_per_row = ell_max_nonzeros_per_row_;
+            *coo_nnz = coo_nnz_;
+        }
 
-        const size_type get_ell_lim() const noexcept { return ell_lim_; }
+        /**
+         * Returns the maximum nonzeros per row of the ell part.
+         *
+         * @return the maximum nonzeros per row of the ell part
+         */
+        const size_type get_ell_max_nonzeros_per_row() const noexcept
+        {
+            return ell_max_nonzeros_per_row_;
+        }
 
-        const size_type get_coo_lim() const noexcept { return coo_lim_; }
+        /**
+         * Returns the number of nonzeros of the coo part.
+         *
+         * @return the number of nonzeros of the coo part
+         */
+        const size_type get_coo_nnz() const noexcept { return coo_nnz_; }
 
-        virtual void compute_ell_limit(std::shared_ptr<const Executor> exec,
-                                       Array<size_type> *row_nnz,
-                                       size_type *ell_lim) = 0;
+        /**
+         * Computes the maximum number of nonzeros per row of the ell part.
+         *
+         * @param row_nnz  the number of nonzeros of each row
+         *
+         * @return the maximum number of nonzeros per row of the ell part
+         */
+        virtual size_type compute_ell_max_nonzeros_per_row(
+            Array<size_type> *row_nnz) const = 0;
 
     protected:
-        size_type get_coo_lim(const Array<size_type> &row_nnz,
-                              const size_type ell_lim) const
+        /**
+         * Computes the number of residual nonzeros as the number of nonzeros of
+         * the coo part.
+         *
+         * @param row_nnz  the number of nonzeros of each row
+         *
+         * @return the number of nonzeros of the coo part
+         */
+        size_type compute_coo_nnz(const Array<size_type> &row_nnz) const
         {
-            size_type coo_lim = 0;
+            size_type coo_nnz = 0;
             auto row_nnz_val = row_nnz.get_const_data();
             for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-                if (row_nnz_val[i] > ell_lim) {
-                    coo_lim += row_nnz_val[i] - ell_lim;
+                if (row_nnz_val[i] > ell_max_nonzeros_per_row_) {
+                    coo_nnz += row_nnz_val[i] - ell_max_nonzeros_per_row_;
                 }
             }
-            return coo_lim;
+            return coo_nnz;
         }
 
     private:
-        size_type ell_lim_, coo_lim_;
+        size_type ell_max_nonzeros_per_row_;
+        size_type coo_nnz_;
     };
 
+    /**
+     * column_limit is a strategy_type which decides the maximum number of
+     * nonzeros per row of the ell part by specifying the number of columns.
+     */
     class column_limit : public strategy_type {
     public:
+        /**
+         * Creates a column_limit strategy.
+         *
+         * @param num_column  the specified number of columns of the ell part
+         */
         explicit column_limit(size_type num_column = 0)
             : num_columns_(num_column)
         {}
 
-        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
-                              const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim) const override;
-
-        void compute_ell_limit(std::shared_ptr<const Executor> exec,
-                               Array<size_type> *row_nnz, size_type *ell_lim)
+        size_type compute_ell_max_nonzeros_per_row(
+            Array<size_type> *row_nnz) const override
         {
-            *ell_lim = num_columns_;
+            return num_columns_;
         }
 
     private:
         size_type num_columns_;
     };
 
+    /**
+     * imbalance_limit is a strategy_type which decides the maximum number of
+     * nonzeros per row of the ell part according to the percent. It sorts the
+     * number of nonzeros of each row and takes the value at the position
+     * `floor(percent * num_row)` as the maximum number of nonzeros of the ell
+     * part. Thus, at least `percent` rows of all are in the ell part.
+     */
     class imbalance_limit : public strategy_type {
     public:
+        /**
+         * Creates a imbalance_limit strategy.
+         *
+         * @param percent  the row_nnz[floor(num_rows*percent)] is the maximum
+         *                 number of nonzeros per row of the ell part
+         */
         explicit imbalance_limit(float percent = 0.8) : percent_(percent)
         {
             percent_ = std::min(percent_, 1.0f);
             percent_ = std::max(percent_, 0.0f);
         }
 
-        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
-                              const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim) const override;
-
-        void compute_ell_limit(std::shared_ptr<const Executor> exec,
-                               Array<size_type> *row_nnz, size_type *ell_lim)
+        size_type compute_ell_max_nonzeros_per_row(
+            Array<size_type> *row_nnz) const override
         {
             auto row_nnz_val = row_nnz->get_data();
             auto num_rows = row_nnz->get_num_elems();
             std::sort(row_nnz_val, row_nnz_val + num_rows);
             if (percent_ < 1) {
                 auto percent_pos = static_cast<size_type>(num_rows * percent_);
-                *ell_lim = row_nnz_val[percent_pos];
+                return row_nnz_val[percent_pos];
             } else {
-                *ell_lim = row_nnz_val[num_rows - 1];
+                return row_nnz_val[num_rows - 1];
             }
         }
 
@@ -178,21 +242,22 @@ public:
         float percent_;
     };
 
+    /**
+     * automatic is a stratgy_type which decides the maximum number of
+     * nonzeros per row of the ell part automatically. For now, it uses
+     * imbalance_limit(0.8).
+     */
     class automatic : public strategy_type {
     public:
+        /**
+         * Creates an automatic strategy.
+         */
         automatic() : strategy_(imbalance_limit(0.8)) {}
 
-        void get_hybrid_limit(std::shared_ptr<const Executor> exec,
-                              const mat_data &data, size_type *ell_lim,
-                              size_type *coo_lim) const
+        size_type compute_ell_max_nonzeros_per_row(
+            Array<size_type> *row_nnz) const override
         {
-            strategy_.get_hybrid_limit(exec, data, ell_lim, coo_lim);
-        }
-
-        void compute_ell_limit(std::shared_ptr<const Executor> exec,
-                               Array<size_type> *row_nnz, size_type *ell_lim)
-        {
-            strategy_.compute_ell_limit(exec, row_nnz, ell_lim);
+            return strategy_.compute_ell_max_nonzeros_per_row(row_nnz);
         }
 
     private:
@@ -208,9 +273,9 @@ public:
     void write(mat_data &data) const override;
 
     /**
-     * Returns the values of the Ell part.
+     * Returns the values of the ell part.
      *
-     * @return the values of the Ell part.
+     * @return the values of the ell part
      */
     value_type *get_ell_values() noexcept { return ell_->get_values(); }
 
@@ -227,9 +292,9 @@ public:
     }
 
     /**
-     * Returns the column indexes of the ELL part.
+     * Returns the column indexes of the ell part.
      *
-     * @return the column indexes of the ELL part.
+     * @return the column indexes of the ell part
      */
     index_type *get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
 
@@ -248,7 +313,7 @@ public:
     /**
      * Returns the maximum number of non-zeros per row of ell part.
      *
-     * @return the maximum number of non-zeros per row of ell part.
+     * @return the maximum number of non-zeros per row of ell part
      */
     size_type get_ell_max_nonzeros_per_row() const noexcept
     {
@@ -258,7 +323,7 @@ public:
     /**
      * Returns the stride of the ell part.
      *
-     * @return the stride of the ell part.
+     * @return the stride of the ell part
      */
     size_type get_ell_stride() const noexcept { return ell_->get_stride(); }
 
@@ -428,8 +493,7 @@ protected:
      *     ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
-     * @param partition  partition method
-     * @param val  the value used in partition (ignored in automatically)
+     * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec,
@@ -444,8 +508,7 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param partition  partition method
-     * @param val  the value used in partition (ignored in automatically)
+     * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec, const dim &size,
@@ -460,8 +523,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
-     * @param partition  partition method
-     * @param val  the value used in partition (ignored in automatically)
+     * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec, const dim &size,
@@ -478,8 +540,7 @@ protected:
      * @param size  size of the matrix
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param stride  stride of the rows
-     * @param partition  partition method
-     * @param val  the value used in partition (ignored in automatically)
+     * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
            size_type max_nonzeros_per_row, size_type stride,
@@ -496,8 +557,7 @@ protected:
      * @param max_nonzeros_per_row   maximum number of nonzeros in one row
      * @param stride  stride of the rows
      * @param num_nonzeros  number of nonzeros
-     * @param partition  partition method
-     * @param val  the value used in partition (ignored in automatically)
+     * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec, const dim &size,

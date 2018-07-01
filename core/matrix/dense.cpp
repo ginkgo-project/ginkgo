@@ -166,9 +166,9 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     exec->run(TemplatedOperation<
               ValueType>::make_calculate_nonzeros_per_row_operation(source,
                                                                     &row_nnz));
-    size_type ell_lim = zero<size_type>(), coo_lim = zero<size_type>();
-    result->get_strategy()->get_hybrid_limit(exec, &row_nnz, &ell_lim,
-                                             &coo_lim);
+    size_type ell_lim = zero<size_type>();
+    size_type coo_lim = zero<size_type>();
+    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
     const auto max_nnz_per_row =
         std::max(result->get_ell_max_nonzeros_per_row(), ell_lim);
     const auto stride =
