@@ -311,6 +311,33 @@ protected:
           stride_(stride)
     {}
 
+    /**
+     * Creates a Dense matrix from an already allocated (and initialized) array.
+     *
+     * @tparam ValuesArray  type of array of values
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param stride  stride of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     */
+    template <typename ValuesArray>
+    Dense(std::shared_ptr<const Executor> exec, const dim &size,
+          ValuesArray &&values, size_type stride)
+        : EnableLinOp<Dense>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          stride_{stride}
+    {
+        ENSURE_IN_BOUNDS((size.num_rows - 1) * stride + size.num_cols - 1,
+                         values_.get_num_elems());
+    }
+
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,

@@ -181,6 +181,41 @@ protected:
           row_idxs_(exec, num_nonzeros)
     {}
 
+    /**
+     * Creates a COO matrix from already allocated (and initialized) row
+     * index, column index and value arrays.
+     *
+     * @tparam ValuesArray  type of `values` array
+     * @tparam ColIdxsArray  type of `col_idxs` array
+     * @tparam RowIdxArray  type of `row_idxs` array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  array of column indexes
+     * @param row_idxs  array of row pointers
+     *
+     * @note If one of `row_idxs`, `col_idxs` or `values` is not an rvalue, not
+     *       an array of IndexType, IndexType and ValueType, respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     */
+    template <typename ValuesArray, typename ColIdxsArray,
+              typename RowIdxsArray>
+    Coo(std::shared_ptr<const Executor> exec, const dim &size,
+        ValuesArray &&values, ColIdxsArray &&col_idxs, RowIdxsArray &&row_idxs)
+        : EnableLinOp<Coo>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
+    {
+        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                         col_idxs_.get_num_elems());
+        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                         row_idxs_.get_num_elems());
+    }
+
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,

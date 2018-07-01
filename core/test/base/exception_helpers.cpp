@@ -156,6 +156,16 @@ TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 }
 
 
+TEST(EnsureInBounds, DoesNotThrowWhenInBounds)
+{
+    ASSERT_NO_THROW(ENSURE_IN_BOUNDS(9, 10));
+}
+
+TEST(EnsureInBounds, ThrowWhenOutOfBounds)
+{
+    ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
+}
+
 void func_with_file_error()
 {
     throw FILE_ERROR("my_file.txt", "error message");

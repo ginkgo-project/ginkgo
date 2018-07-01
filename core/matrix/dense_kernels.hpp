@@ -174,13 +174,13 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace dense {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

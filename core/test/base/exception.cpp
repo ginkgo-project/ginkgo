@@ -119,6 +119,15 @@ TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, OutOfBoundsErrorReturnsCorrectWhatMessage)
+{
+    gko::OutOfBoundsError error("test_file.cpp", 42, 11, 10);
+    ASSERT_EQ(std::string("test_file.cpp:42: trying to access index 11 in a "
+                          "memory block of 10 elements"),
+              error.what());
+}
+
+
 TEST(ExceptionClasses, FileErrorReturnsCorrectWhatMessage)
 {
     gko::FileError error("test_file.cpp", 75, "my_func", "my_file.txt",

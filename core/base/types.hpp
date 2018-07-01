@@ -262,7 +262,7 @@ GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
  */
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(OmpExecutor, omp);                \
-    _enable_macro(GpuExecutor, gpu)
+    _enable_macro(CudaExecutor, cuda)
 
 
 /**

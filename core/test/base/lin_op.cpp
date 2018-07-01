@@ -245,10 +245,11 @@ public:
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
 
-    GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory)
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         T GKO_FACTORY_PARAMETER(value, T{5});
     };
+    GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
 
     DummyLinOpWithFactory(const Factory *factory,
                           std::shared_ptr<const gko::LinOp> op)

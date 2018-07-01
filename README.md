@@ -15,9 +15,9 @@ For Ginkgo core library:
     *   _gcc 5.4.0+_
     *   _clang 3.3+_ (__TODO__: verify, works with 5.0)
 
-The Ginkgo GPU module has the following __additional__ requirements:
+The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _cmake 3.8+_
+*   _cmake 3.10+_
 *   _CUDA 7.0+_ (__TODO__: verify, works with 8.0)
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
@@ -44,7 +44,7 @@ For Ginkgo core library:
     *   _clang 3.3+_ (__TODO__: verify)
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
-The Ginkgo GPU module has the following __additional__ requirements:
+The Ginkgo CUDA module has the following __additional__ requirements:
 
 *   _cmake 3.8+_
 *   _CUDA 7.0+_ (__TODO__: verify)
@@ -91,11 +91,12 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `ON`
 *   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
+*   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`
 *   `-DBUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
-*   `-DBUILD_GPU={ON, OFF}` builds optimized gpu versions of the kernels
+*   `-DBUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
 *   `-DSET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
     explicitly set CUDA's host compiler to match the commpiler used to build the
@@ -104,13 +105,30 @@ Ginkgo adds the following additional switches to control what is being built:
     errors due to ABI incompatibilities. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`
+*   `-DCUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
+    list of architectures. Supported values are:
+
+    *   `Auto`
+    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`
+    *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
+    *   `Off`
+
+    `Auto` will automatically detect the present CUDA-enabled GPU 
+    architectures in the system.
+    `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
+    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE` are
+    placeholders that should be replaced with compute and code numbers (e.g.
+    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
+    with `70`. `MaxPTX` will select the latest architecture supported by the
+    compiler. `Off` will not select any architectures and compile with NVCC's
+    default settings. Default is `Auto`.
 
 For example, to build everything (in debug mode), use:
 
 ```cmake
 mkdir build; cd build
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DDEVEL_TOOLS=ON \
-      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_GPU=ON  ..
+      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_CUDA=ON  ..
 make
 ```
 
@@ -143,12 +161,15 @@ run the following from the build folder:
 where `path/to/test` is the path returned by `make test`.
 
 
-### Installing ginkgo
+### Installing Ginkgo
 
-To install ginkgo into the specified folder, execute the following command in the build folder
+To install Ginkgo into the specified folder, execute the following command in
+the build folder
 
 ```sh
 make install
 ```
 
-If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix the call with `sudo`.
+If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your
+user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
+the call with `sudo`.

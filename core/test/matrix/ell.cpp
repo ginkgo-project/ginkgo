@@ -126,6 +126,20 @@ TEST_F(Ell, CanBeEmpty)
 }
 
 
+TEST_F(Ell, CanBeCreatedFromExistingData)
+{
+    double values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    gko::int32 col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<>::create(
+        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 8, values),
+        gko::Array<gko::int32>::view(exec, 8, col_idxs), 2, 4);
+
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+}
+
+
 TEST_F(Ell, CanBeCopied)
 {
     auto copy = Mtx::create(exec);

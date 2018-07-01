@@ -272,6 +272,19 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 #define ENSURE_ALLOCATED(_ptr, _dev, _size) \
     ::gko::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, _size)
 
+/**
+ * Ensures that a memory access is in the bounds.
+ *
+ * @param _index  the index which is being accessed
+ * @param _bound  the bound of the array being accessed
+ *
+ * @throw OutOfBoundsError  if `_index >= _bound`
+ */
+#define ENSURE_IN_BOUNDS(_index, _bound)                                   \
+    if (_index >= _bound) {                                                \
+        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _index, _bound); \
+    }
+
 
 /**
  * Creates a FileError exception.
