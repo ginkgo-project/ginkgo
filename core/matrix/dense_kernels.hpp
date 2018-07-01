@@ -144,22 +144,22 @@ namespace kernels {
     GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
-namespace cpu {
+namespace omp {
 namespace dense {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
-}  // namespace cpu
+}  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace dense {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

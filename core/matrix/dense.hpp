@@ -193,7 +193,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     value_type &at(size_type row, size_type col) noexcept
     {
@@ -220,7 +220,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     ValueType &at(size_type idx) noexcept
     {
@@ -294,6 +294,33 @@ protected:
           values_(exec, size.num_rows * stride),
           stride_(stride)
     {}
+
+    /**
+     * Creates a Dense matrix from an already allocated (and initialized) array.
+     *
+     * @tparam ValuesArray  type of array of values
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param stride  stride of the rows (i.e. offset between the first
+     *                  elements of two consecutive rows, expressed as the
+     *                  number of matrix elements)
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     */
+    template <typename ValuesArray>
+    Dense(std::shared_ptr<const Executor> exec, const dim &size,
+          ValuesArray &&values, size_type stride)
+        : EnableLinOp<Dense>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          stride_{stride}
+    {
+        ENSURE_IN_BOUNDS((size.num_rows - 1) * stride + size.num_cols - 1,
+                         values_.get_num_elems());
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

@@ -93,22 +93,22 @@ namespace kernels {
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace coo {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
-}  // namespace cpu
+}  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace coo {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

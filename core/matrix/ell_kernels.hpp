@@ -70,22 +70,22 @@ namespace kernels {
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace ell {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
-}  // namespace cpu
+}  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace ell {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

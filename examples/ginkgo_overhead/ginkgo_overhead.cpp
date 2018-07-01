@@ -45,15 +45,15 @@ libraries located in the following subdirectories:
     + core/
     + core/device_hooks/
     + reference/
-    + cpu/
-    + gpu/
+    + omp/
+    + cuda/
 
 to this directory.
 
 Then compile the file with the following command line:
 
 c++ -O3 -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
+    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
@@ -94,6 +94,8 @@ int main(int argc, char *argv[])
             print_usage_and_exit(argv[0]);
         }
     }
+
+    std::cout << gko::version_info::get() << std::endl;
 
     auto exec = gko::ReferenceExecutor::create();
 

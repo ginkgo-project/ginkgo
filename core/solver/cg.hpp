@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
 
 
@@ -57,10 +58,11 @@ namespace solver {
  * use of data locality. The inner operations in one iteration of CG are merged
  * into 2 separate steps.
  *
- * @tparam ValueType precision of matrix elements
+ * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>> {
+class Cg : public EnableLinOp<Cg<ValueType>>,
+           public log::EnableLogging<Cg<ValueType>> {
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
 
@@ -87,7 +89,7 @@ public:
         return preconditioner_;
     }
 
-    GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory)
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
          * Maximum number of iterations.
@@ -105,6 +107,7 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
     };
+    GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;

@@ -4,6 +4,6 @@ function(ginkgo_add_object_library name)
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-add_subdirectory(cpu)
-add_subdirectory(gpu)
+add_subdirectory(omp)
+add_subdirectory(cuda)
 add_subdirectory(reference)

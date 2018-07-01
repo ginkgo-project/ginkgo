@@ -93,22 +93,22 @@ namespace kernels {
     GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace block_jacobi {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace block_jacobi
-}  // namespace cpu
+}  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace block_jacobi {
 
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace block_jacobi
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {
@@ -174,7 +174,7 @@ DECLARE_ALL_AS_TEMPLATES;
                                                               IndexType)
 
 
-namespace cpu {
+namespace omp {
 namespace adaptive_block_jacobi {
 
 template <typename ValueType, typename IndexType>
@@ -185,10 +185,10 @@ using precision =
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace adaptive_block_jacobi
-}  // namespace cpu
+}  // namespace omp
 
 
-namespace gpu {
+namespace cuda {
 namespace adaptive_block_jacobi {
 
 template <typename ValueType, typename IndexType>
@@ -199,7 +199,7 @@ using precision =
 DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace adaptive_block_jacobi
-}  // namespace gpu
+}  // namespace cuda
 
 
 namespace reference {

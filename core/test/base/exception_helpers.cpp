@@ -49,7 +49,7 @@ TEST(NotImplemented, ThrowsWhenUsed)
 }
 
 
-void not_compiled_func() NOT_COMPILED(cpu);
+void not_compiled_func() NOT_COMPILED(omp);
 
 
 TEST(NotCompiled, ThrowsWhenUsed)
@@ -146,15 +146,25 @@ TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
 TEST(EnsureAllocated, DoesNotThrowWhenAllocated)
 {
     int x = 5;
-    ASSERT_NO_THROW(ENSURE_ALLOCATED(&x, "CPU", 4));
+    ASSERT_NO_THROW(ENSURE_ALLOCATED(&x, "OMP", 4));
 }
 
 
 TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 {
-    ASSERT_THROW(ENSURE_ALLOCATED(nullptr, "CPU", 20), gko::AllocationError);
+    ASSERT_THROW(ENSURE_ALLOCATED(nullptr, "OMP", 20), gko::AllocationError);
 }
 
+
+TEST(EnsureInBounds, DoesNotThrowWhenInBounds)
+{
+    ASSERT_NO_THROW(ENSURE_IN_BOUNDS(9, 10));
+}
+
+TEST(EnsureInBounds, ThrowWhenOutOfBounds)
+{
+    ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
+}
 
 void func_with_file_error()
 {

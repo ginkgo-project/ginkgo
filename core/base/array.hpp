@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/executor.hpp"
 #include "core/base/types.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -65,27 +66,103 @@ public:
     using value_type = ValueType;
 
     /**
+     * The default deleter type used by Array.
+     */
+    using default_deleter = executor_deleter<value_type[]>;
+
+    /**
+     * The deleter type used for views.
+     */
+    using view_deleter = null_deleter<value_type[]>;
+
+    /**
      * Creates an empty Array tied to the specified Executor.
      *
      * @param exec  the Executor where the array data is allocated
      */
     Array(std::shared_ptr<const Executor> exec) noexcept
-        : num_elems_(0), data_(nullptr), exec_(std::move(exec))
+        : num_elems_(0),
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
     {}
 
     /**
-     * Creates an array on the specified Executor.
+     * Creates an Array on the specified Executor.
      *
      * @param exec  the Executor where the array data will be allocated
      * @param num_elems  the amount of memory (expressed as the number of
      *                   `value_type` elements) allocated on the Executor
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : num_elems_(num_elems), data_(nullptr), exec_(std::move(exec))
+        : num_elems_(num_elems),
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
     {
         if (num_elems > 0) {
-            data_ = exec_->alloc<value_type>(num_elems);
+            data_.reset(exec_->alloc<value_type>(num_elems));
         }
+    }
+
+    /**
+     * Creates an Array from existing memory.
+     *
+     * The memory will be managed by the array, and deallocated using the
+     * specified deleter (e.g. use std::default_delete for data allocated with
+     * new).
+     *
+     * @tparam DeleterType  type of the deleter
+     *
+     * @param exec  executor where `data` is located
+     * @param num_elems  number of elements in `data`
+     * @param data  chunk of memory used to create the array
+     * @param deleter  the deleter used to free the memory
+     *
+     * @see Array::view() to create an array that does not deallocate memory
+     * @see Array(std::shared_ptr<cont Executor>, size_type, value_type*) to
+     *      deallocate the memory using Executor::free() method
+     */
+    template <typename DeleterType>
+    Array(std::shared_ptr<const Executor> exec, size_type num_elems,
+          value_type *data, DeleterType deleter)
+        : exec_{exec}, num_elems_{num_elems}, data_(data, deleter)
+    {}
+
+    /**
+     * Creates an Array from existing memory.
+     *
+     * The memory will be managed by the array, and deallocated using the
+     * Executor::free method.
+     *
+     * @param exec  executor where `data` is located
+     * @param num_elems  number of elements in `data`
+     * @param data  chunk of memory used to create the array
+     */
+    Array(std::shared_ptr<const Executor> exec, size_type num_elems,
+          value_type *data)
+        : Array(exec, num_elems, data, default_deleter{exec})
+    {}
+
+    /**
+     * Creates an array on the specified Executor and initializes it with
+     * values.
+     *
+     * @tparam RandomAccessIterator  type of the iterators
+     *
+     * @param exec  the Executor where the array data will be allocated
+     * @param begin  start of range of values
+     * @param end  end of range of values
+     */
+    template <typename RandomAccessIterator>
+    Array(std::shared_ptr<const Executor> exec, RandomAccessIterator begin,
+          RandomAccessIterator end)
+        : Array(exec)
+    {
+        Array tmp(exec->get_master(), end - begin);
+        int i = 0;
+        for (auto it = begin; it != end; ++it, ++i) {
+            tmp.data_[i] = *it;
+        }
+        *this = std::move(tmp);
     }
 
     /**
@@ -101,14 +178,22 @@ public:
     template <typename T>
     Array(std::shared_ptr<const Executor> exec,
           std::initializer_list<T> init_list)
+        : Array(exec, begin(init_list), end(init_list))
+    {}
+
+    /**
+     * Creates a copy of another array on a different executor.
+     *
+     * This does not invoke the constructors of the elements, instead they are
+     * copied as POD types.
+     *
+     * @param exec  the executor where the new array will be created
+     * @param other  the Array to copy from
+     */
+    Array(std::shared_ptr<const Executor> exec, const Array &other)
         : Array(exec)
     {
-        Array tmp(exec->get_master(), init_list.size());
-        int i = 0;
-        for (const auto &elem : init_list) {
-            tmp.data_[i++] = elem;
-        }
-        *this = std::move(tmp);
+        *this = other;
     }
 
     /**
@@ -119,9 +204,20 @@ public:
      *
      * @param other  the Array to copy from
      */
-    Array(const Array &other) : Array(other.get_executor())
+    Array(const Array &other) : Array(other.get_executor(), other) {}
+
+    /**
+     * Moves another array to a different executor.
+     *
+     * This does not invoke the constructors of the elements, instead they are
+     * copied as POD types.
+     *
+     * @param exec  the executor where the new array will be moved
+     * @param other  the Array to move
+     */
+    Array(std::shared_ptr<const Executor> exec, Array &&other) : Array(exec)
     {
-        this->copy_from(other);
+        *this = std::move(other);
     }
 
     /**
@@ -132,9 +228,24 @@ public:
      *
      * @param other  the Array to move
      */
-    Array(Array &&other) : Array(other.get_executor())
+    Array(Array &&other) : Array(other.get_executor(), std::move(other)) {}
+
+    /**
+     * Creates an Array from existing memory.
+     *
+     * The Array does not take ownership of the memory, and will not deallocate
+     * it once it goes out of scope.
+     *
+     * @param exec  executor where `data` is located
+     * @param num_elems  number of elements in `data`
+     * @param data  chunk of memory used to create the array
+     *
+     * @return an Array constructed from `data`
+     */
+    static Array view(std::shared_ptr<const Executor> exec, size_type num_elems,
+                      value_type *data)
     {
-        this->move_from(std::move(other));
+        return Array{exec, num_elems, data, view_deleter{}};
     }
 
     /**
@@ -149,7 +260,12 @@ public:
      */
     Array &operator=(const Array &other)
     {
-        this->copy_from(other);
+        if (&other == this) {
+            return *this;
+        }
+        this->resize_and_reset(other.get_num_elems());
+        exec_->copy_from(other.get_executor().get(), num_elems_,
+                         other.get_const_data(), this->get_data());
         return *this;
     }
 
@@ -165,11 +281,21 @@ public:
      */
     Array &operator=(Array &&other)
     {
-        this->move_from(std::move(other));
+        if (&other == this) {
+            return *this;
+        }
+        if (exec_ == other.get_executor() &&
+            data_.get_deleter().target_type() != typeid(view_deleter)) {
+            // same device and not a view, only move the pointer
+            using std::swap;
+            swap(data_, other.data_);
+            swap(num_elems_, other.num_elems_);
+        } else {
+            // different device or a view, copy the data
+            *this = other;
+        }
         return *this;
     }
-
-    ~Array() noexcept { this->clear(); }
 
     /**
      * Deallocates all data used by the Array.
@@ -180,11 +306,8 @@ public:
      */
     void clear() noexcept
     {
-        if (data_ != nullptr) {
-            exec_->free(data_);
-            data_ = nullptr;
-            num_elems_ = 0;
-        }
+        num_elems_ = 0;
+        data_.reset(nullptr);
     }
 
     /**
@@ -200,65 +323,47 @@ public:
         if (num_elems == num_elems_) {
             return;
         }
-        this->clear();
+        num_elems_ = num_elems;
         if (num_elems > 0) {
-            num_elems_ = num_elems;
-            data_ = exec_->alloc<value_type>(num_elems);
+            data_.reset(exec_->alloc<value_type>(num_elems));
+        } else {
+            data_.reset(nullptr);
         }
     }
 
     /**
-     * Gets the number of elements in the Array.
+     * Returns the number of elements in the Array.
+     *
+     * @return the number of elements in the Array
      */
     size_type get_num_elems() const noexcept { return num_elems_; }
 
     /**
-     * Gets a pointer to the block of memory used to store the elements of the
-     * Array.
+     * Returns a pointer to the block of memory used to store the elements of
+     * the Array.
+     *
+     * @return a pointer to the block of memory used to store the elements of
+     * the Array
      */
-    value_type *get_data() noexcept { return data_; }
+    value_type *get_data() noexcept { return data_.get(); }
 
     /**
-     * Gets a constant pointer to the block of memory used to store the elements
-     * of the Array.
+     * Returns a constant pointer to the block of memory used to store the
+     * elements of the Array.
+     *
+     * @return a constant pointer to the block of memory used to store the
+     * elements of the Array
      */
-    const value_type *get_const_data() const noexcept { return data_; }
+    const value_type *get_const_data() const noexcept { return data_.get(); }
 
     /**
-     * Gets the Executor associated with the array.
+     * Returns the Executor associated with the array.
+     *
+     * @return the Executor associated with the array
      */
     std::shared_ptr<const Executor> get_executor() const noexcept
     {
         return exec_;
-    }
-
-    /**
-     * Takes control of the data allocated elsewhere in the program (but in the
-     * same executor).
-     *
-     * The behavior of the array will be as if the data was allocated by the
-     * library, i.e. the array will deallocate and change the block of data
-     * as needed. Thus the passed block of memory must not be freed elsewhere.
-     * To regain control of the memory block, call Array::release().
-     *
-     * @param num_elems  size (in the number of `value_type` elements) of data
-     * @param data  pointer to the allocated block of memory
-     */
-    void manage(size_type num_elems, value_type *data) noexcept
-    {
-        this->clear();
-        data_ = data;
-        num_elems_ = num_elems;
-    }
-
-    /**
-     * Releases control of a block of memory previously gained by a call to
-     * Array::manage().
-     */
-    void release() noexcept
-    {
-        data_ = nullptr;
-        num_elems_ = 0;
     }
 
     /**
@@ -273,40 +378,18 @@ public:
             // moving to the same executor, no-op
             return;
         }
-        Array tmp(exec);
+        Array tmp(std::move(exec));
         tmp = *this;
-        this->clear();
-        exec_ = exec;
-        *this = std::move(tmp);
+        exec_ = std::move(tmp.exec_);
+        data_ = std::move(tmp.data_);
     }
 
 private:
-    void copy_from(const Array &other)
-    {
-        if (&other == this) {
-            return;
-        }
-        this->resize_and_reset(other.get_num_elems());
-        exec_->copy_from(other.get_executor().get(), num_elems_,
-                         other.get_const_data(), data_);
-    }
-
-    void move_from(Array &&other)
-    {
-        using std::swap;
-        if (exec_ == other.get_executor()) {
-            // same device, only move the pointer
-            swap(data_, other.data_);
-            swap(num_elems_, other.num_elems_);
-        } else {
-            // different device, copy the data
-            this->copy_from(other);
-            other.clear();
-        }
-    }
+    using data_manager =
+        std::unique_ptr<value_type[], std::function<void(value_type[])>>;
 
     size_type num_elems_;
-    value_type *data_;
+    data_manager data_;
     std::shared_ptr<const Executor> exec_;
 };
 

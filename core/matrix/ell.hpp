@@ -162,7 +162,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     value_type &val_at(size_type row, size_type idx) noexcept
     {
@@ -185,7 +185,7 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the CPU results in a runtime error)
+     *        the OMP results in a runtime error)
      */
     index_type &col_at(size_type row, size_type idx) noexcept
     {
@@ -242,6 +242,42 @@ protected:
           max_nonzeros_per_row_(max_nonzeros_per_row),
           stride_(stride)
     {}
+
+
+    /**
+     * Creates an ELL matrix from already allocated (and initialized)
+     * column index and value arrays.
+     *
+     * @tparam ValuesArray  type of `values` array
+     * @tparam ColIdxsArray  type of `col_idxs` array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  array of column indexes
+     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param stride  stride of the rows
+     *
+     * @note If one of `col_idxs` or `values` is not an rvalue, not an array of
+     *       IndexType and ValueType, respectively, or is on the wrong executor,
+     *       an internal copy of that array will be created, and the original
+     *       array data will not be used in the matrix.
+     */
+    template <typename ValuesArray, typename ColIdxsArray>
+    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+        ValuesArray &&values, ColIdxsArray &&col_idxs,
+        size_type max_nonzeros_per_row, size_type stride)
+        : EnableLinOp<Ell>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          max_nonzeros_per_row_{max_nonzeros_per_row},
+          stride_{stride}
+    {
+        ENSURE_IN_BOUNDS(max_nonzeros_per_row_ * stride_ - 1,
+                         values_.get_num_elems());
+        ENSURE_IN_BOUNDS(max_nonzeros_per_row_ * stride_ - 1,
+                         col_idxs_.get_num_elems());
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

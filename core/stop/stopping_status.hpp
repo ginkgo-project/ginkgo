@@ -47,8 +47,6 @@ namespace gko {
  */
 class stopping_status {
 public:
-    stopping_status() = default;
-
     /**
      * Check if any stopping criteria was fulfilled.
      * @return Returns true if any stopping criteria was fulfilled.
@@ -137,6 +135,8 @@ public:
         }
     }
 
+    GKO_ATTRIBUTES GKO_INLINE void clear() noexcept { data_ = 0; }
+
 private:
     static constexpr uint8 converged_mask_ = uint8{1} << 7;
     static constexpr uint8 finalized_mask_ = uint8{1} << 6;
@@ -145,6 +145,8 @@ private:
     uint8 data_;
 };
 
+
 }  // namespace gko
+
 
 #endif  // GKO_CORE_STOP_STOPPING_STATUS_HPP_

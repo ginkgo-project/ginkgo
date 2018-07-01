@@ -112,32 +112,32 @@ CMAKE_FILES=(
     ""
     ""
     "reference/CMakeLists.txt"
-    "cpu/CMakeLists.txt"
-    "gpu/CMakeLists.txt"
+    "omp/CMakeLists.txt"
+    "cuda/CMakeLists.txt"
     "core/test/$source_type/CMakeLists.txt"
     "reference/test/$source_type/CMakeLists.txt"
-    # "cpu/test/$source_type/CMakeLists.txt"
-    "gpu/test/$source_type/CMakeLists.txt"
+    # "omp/test/$source_type/CMakeLists.txt"
+    "cuda/test/$source_type/CMakeLists.txt"
     # "core/benchmark/$source_type/CMakeLists.txt"
     # "reference/benchmark/$source_type/CMakeLists.txt"
-    # "cpu/benchmark/$source_type/CMakeLists.txt"
-    # "gpu/benchmark/$source_type/CMakeLists.txt"
+    # "omp/benchmark/$source_type/CMakeLists.txt"
+    # "cuda/benchmark/$source_type/CMakeLists.txt"
 )
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
     "core/$source_type"
     "core/$source_type"
     "reference/$source_type"
-    "cpu/$source_type"
-    "gpu/$source_type"
+    "omp/$source_type"
+    "cuda/$source_type"
     "core/test/$source_type"
     "reference/test/$source_type"
-    # "cpu/test/$source_type"
-    "gpu/test/$source_type"
+    # "omp/test/$source_type"
+    "cuda/test/$source_type"
     # "core/benchmark/$source_type"
     # "reference/benchmark/$source_type"
-    # "cpu/benchmark/$source_type"
-    # "gpu/benchmark/$source_type"
+    # "omp/benchmark/$source_type"
+    # "cuda/benchmark/$source_type"
 )
 TEMPLATE_FILES_TYPES=(
     "$source_type file"
@@ -148,20 +148,20 @@ TEMPLATE_FILES_TYPES=(
     "kernel file"
     "unit tests for ${name} $type"
     "unit tests for ${name} reference kernels"
-    # "unit tests for ${name} CPU kernels"
-    "unit tests for ${name} GPU kernels"
+    # "unit tests for ${name} OMP kernels"
+    "unit tests for ${name} CUDA kernels"
     # "benchmarks for ${name} $type"
     # "benchmarks for ${name} reference kernels"
-    # "benchmarks for ${name} CPU kernels"
-    # "benchmarks for ${name} GPU kernels"
+    # "benchmarks for ${name} OMP kernels"
+    # "benchmarks for ${name} CUDA kernels"
 )
 TEMPLATE_FILES_DESCRIPTIONS=(
     "This is where the ${name} algorithm needs to be implemented."
     "This is where the ${name} class functions need to be implemented."
     "This is where the algorithm-specific kernels need to be added."
     "Reference kernels for ${name} need to be implemented here."
-    "CPU kernels for ${name} need to be implemented here."
-    "GPU kernels for ${name} need to be implemented here."
+    "OMP kernels for ${name} need to be implemented here."
+    "CUDA kernels for ${name} need to be implemented here."
     ""
     ""
     # ""
@@ -378,11 +378,11 @@ then
     echo "reference/CMakeLists.txt"                                                 | tee -a todo_${name}.txt
     echo "reference/test/${source_type}/CMakeLists.txt"                                     | tee -a todo_${name}.txt
     echo ""                                                                         | tee -a todo_${name}.txt
-    echo "cpu/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
-    echo "cpu/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
+    echo "omp/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
+    echo "omp/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
     echo ""                                                                         | tee -a todo_${name}.txt
-    echo "gpu/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
-    echo "gpu/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
+    echo "cuda/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
+    echo "cuda/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
     echo ""                                                                         | tee -a todo_${name}.txt
     echo ""                                                                         | tee -a todo_${name}.txt
     echo "The following header file has to modified:"                               | tee -a todo_${name}.txt

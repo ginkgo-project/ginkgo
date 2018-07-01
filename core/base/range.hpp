@@ -581,14 +581,18 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
             Operand, ::gko::_operator>::implement_unary_operation;        \
     };                                                                    \
     }                                                                     \
-                                                                          \
-    template <typename Accessor>                                          \
-    GKO_ATTRIBUTES constexpr GKO_INLINE                                   \
-        range<accessor::_operation_name<Accessor>>                        \
-        _operator_name(const range<Accessor> &operand)                    \
-    {                                                                     \
-        return range<accessor::_operation_name<Accessor>>(                \
-            operand.get_accessor());                                      \
+    GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name)
+
+
+#define GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(_operation_name, \
+                                                   _operator_name)  \
+    template <typename Accessor>                                    \
+    GKO_ATTRIBUTES constexpr GKO_INLINE                             \
+        range<accessor::_operation_name<Accessor>>                  \
+        _operator_name(const range<Accessor> &operand)              \
+    {                                                               \
+        return range<accessor::_operation_name<Accessor>>(          \
+            operand.get_accessor());                                \
     }
 
 
@@ -638,20 +642,6 @@ GKO_DEFINE_SIMPLE_UNARY_OPERATION(conj_operation, conj(operand));
 GKO_DEFINE_SIMPLE_UNARY_OPERATION(squared_norm_operation,
                                   squared_norm(operand));
 
-// special range functions
-struct transpose_operation {
-    template <typename AccessorType, typename FirstDimensionType,
-              typename SecondDimensionType, typename... DimensionTypes>
-    GKO_ATTRIBUTES static constexpr auto evaluate(
-        const AccessorType &accessor, const FirstDimensionType &first_dim,
-        const SecondDimensionType &second_dim, const DimensionTypes &... dims)
-        -> decltype(accessor(second_dim, first_dim, dims...))
-    {
-        return accessor(second_dim, first_dim, dims...);
-    }
-};
-
-
 }  // namespace detail
 }  // namespace accessor
 
@@ -686,9 +676,47 @@ GKO_ENABLE_UNARY_RANGE_OPERATION(conj_operaton, conj,
 GKO_ENABLE_UNARY_RANGE_OPERATION(squared_norm_operaton, squared_norm,
                                  accessor::detail::squared_norm_operation);
 
-// special range functions
-GKO_ENABLE_UNARY_RANGE_OPERATION(transpose_operaton, transpose,
-                                 accessor::detail::transpose_operation);
+namespace accessor {
+
+
+template <typename Accessor>
+struct transpose_operation {
+    using accessor = Accessor;
+    static constexpr size_type dimensionality = accessor::dimensionality;
+
+    GKO_ATTRIBUTES constexpr explicit transpose_operation(
+        const Accessor &operand)
+        : operand{operand}
+    {}
+
+    template <typename FirstDimensionType, typename SecondDimensionType,
+              typename... DimensionTypes>
+    GKO_ATTRIBUTES constexpr auto operator()(
+        const FirstDimensionType &first_dim,
+        const SecondDimensionType &second_dim,
+        const DimensionTypes &... dims) const
+        -> decltype(std::declval<accessor>()(second_dim, first_dim, dims...))
+    {
+        return operand(second_dim, first_dim, dims...);
+    }
+
+    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
+    {
+        return dimension < 2 ? operand.length(dimension ^ 1)
+                             : operand.length(dimension);
+    }
+
+    template <typename OtherAccessor>
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+
+    const accessor operand;
+};
+
+
+}  // namespace accessor
+
+
+GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
 
 
 #undef GKO_DEFINE_SIMPLE_UNARY_OPERATION

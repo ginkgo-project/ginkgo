@@ -163,6 +163,22 @@ TEST(MatrixData, InitializesDiagonalMatrix)
 }
 
 
+TEST(MatrixData, InitializesFromRange)
+{
+    using nnz = gko::matrix_data<double, int>::nonzero_type;
+    double data[]{1.2, 0.0, 1.4, 0.0, 0.0, 2.3, 2.4, 0.0};
+    gko::range<gko::accessor::row_major<double, 2>> r(data, 2u, 3u, 4u);
+
+    gko::matrix_data<double> m(r);
+
+    ASSERT_EQ(m.size, gko::dim(2, 3));
+    EXPECT_EQ(m.nonzeros[0], nnz(0, 0, 1.2));
+    EXPECT_EQ(m.nonzeros[1], nnz(0, 2, 1.4));
+    EXPECT_EQ(m.nonzeros[2], nnz(1, 1, 2.3));
+    EXPECT_EQ(m.nonzeros[3], nnz(1, 2, 2.4));
+}
+
+
 TEST(MatrixData, InitializesDiagonalMatrixFromValueList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
@@ -227,6 +243,66 @@ TEST(MatrixData, InitializesCheckeredMatrix)
     EXPECT_EQ(mm.nonzeros[21], nnz(5, 1, 4.0));
     EXPECT_EQ(mm.nonzeros[22], nnz(5, 2, 3.0));
     EXPECT_EQ(mm.nonzeros[23], nnz(5, 3, 4.0));
+}
+
+
+TEST(MatrixData, InitializesDiagonalWithConditionNumber)
+{
+    using data = gko::matrix_data<double, int>;
+
+    const auto m =
+        data::cond(3, 100.0, std::uniform_real_distribution<double>(-1, 1),
+                   std::ranlux48(42), 0);
+
+    ASSERT_EQ(m.size, gko::dim(3, 3));
+    ASSERT_NEAR(m.nonzeros[0].value / m.nonzeros[2].value, 100.0, 1e-16);
+}
+
+
+struct dummy_distribution {
+    template <typename RandomEngine>
+    double operator()(RandomEngine &&) const
+    {
+        if (last >= 2.0) {
+            last = 0.0;
+        }
+        return last = last + 1.0;
+    }
+    mutable double last{0};
+};
+
+
+TEST(MatrixData, InitializesGeneralMatrixWithConditionNumber)
+{
+    /*
+     "Randomly" generated reflection vector:
+
+        u = [ 1 2 ]
+
+     Reflector:
+
+        R = I - 2 (u* u) / (u u*)
+          = 1/5 [  3 -4 ]
+                [ -4 -3 ]
+
+     Reflected matrix:
+
+        M = R [ 2  0   ] R* = 1/25 [  6 -2   ] R* = 1/25 [  26 -18   ]
+              [ 0  1/2 ]           [ -8 -3/2 ]           [ -18  73/2 ]
+          = 1/100 [  104 -72 ]
+                  [ -72  146 ]
+     */
+    using data = gko::matrix_data<double, int>;
+    using nnz = data::nonzero_type;
+
+    const auto m = data::cond(2, 4.0, dummy_distribution{}, std::ranlux48(42));
+
+    ASSERT_EQ(m.size, gko::dim(2, 2));
+    ASSERT_EQ(m.nonzeros.size(), 4);
+    EXPECT_NEAR(m.nonzeros[0].value, 1.04, 1e-15);
+    EXPECT_NEAR(m.nonzeros[1].value, -0.72, 1e-15);
+    EXPECT_NEAR(m.nonzeros[2].value, -0.72, 1e-15);
+    EXPECT_NEAR(m.nonzeros[3].value, 1.46, 1e-15);
 }
 
 

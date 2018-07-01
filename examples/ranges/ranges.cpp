@@ -45,15 +45,15 @@ libraries located in the following subdirectories:
     + core/
     + core/device_hooks/
     + reference/
-    + cpu/
-    + gpu/
+    + omp/
+    + cuda/
 
 to this directory.
 
 Then compile the file with the following command line:
 
 c++ -std=c++11 -o ranges ranges.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_cpu -lginkgo_gpu
+    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
@@ -115,6 +115,9 @@ void print_lu(const gko::range<Accessor> &A)
 
 int main(int argc, char *argv[])
 {
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     // Create some test data, add some padding just to demonstrate how to use it
     // with ranges.
     // clang-format off

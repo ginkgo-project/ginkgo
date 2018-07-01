@@ -52,11 +52,11 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int &val) : value(val) {}
-    void run(std::shared_ptr<const gko::CpuExecutor>) const override
+    void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = 1;
     }
-    void run(std::shared_ptr<const gko::GpuExecutor>) const override
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         value = 2;
     }
@@ -69,79 +69,79 @@ public:
 };
 
 
-TEST(CpuExecutor, RunsCorrectOperation)
+TEST(OmpExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
 
-    cpu->run(ExampleOperation(value));
+    omp->run(ExampleOperation(value));
     ASSERT_EQ(1, value);
 }
 
 
-TEST(CpuExecutor, RunsCorrectLambdaOperation)
+TEST(OmpExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
-    auto cpu_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
-    exec_ptr cpu = gko::CpuExecutor::create();
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    exec_ptr omp = gko::OmpExecutor::create();
 
-    cpu->run(cpu_lambda, gpu_lambda);
+    omp->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(1, value);
 }
 
 
-TEST(CpuExecutor, AllocatesAndFreesMemory)
+TEST(OmpExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
     int *ptr = nullptr;
 
-    ASSERT_NO_THROW(ptr = cpu->alloc<int>(num_elems));
-    ASSERT_NO_THROW(cpu->free(ptr));
+    ASSERT_NO_THROW(ptr = omp->alloc<int>(num_elems));
+    ASSERT_NO_THROW(omp->free(ptr));
 }
 
 
-TEST(CpuExecutor, FreeAcceptsNullptr)
+TEST(OmpExecutor, FreeAcceptsNullptr)
 {
-    exec_ptr cpu = gko::CpuExecutor::create();
-    ASSERT_NO_THROW(cpu->free(nullptr));
+    exec_ptr omp = gko::OmpExecutor::create();
+    ASSERT_NO_THROW(omp->free(nullptr));
 }
 
 
-TEST(CpuExecutor, FailsWhenOverallocating)
+TEST(OmpExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
     int *ptr = nullptr;
 
-    ASSERT_THROW(ptr = cpu->alloc<int>(num_elems), gko::AllocationError);
+    ASSERT_THROW(ptr = omp->alloc<int>(num_elems), gko::AllocationError);
 
-    cpu->free(ptr);
+    omp->free(ptr);
 }
 
 
-TEST(CpuExecutor, CopiesData)
+TEST(OmpExecutor, CopiesData)
 {
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr cpu = gko::CpuExecutor::create();
-    int *copy = cpu->alloc<int>(num_elems);
+    exec_ptr omp = gko::OmpExecutor::create();
+    int *copy = omp->alloc<int>(num_elems);
 
-    // user code is run on the CPU, so local variables are in CPU memory
-    cpu->copy_from(cpu.get(), num_elems, orig, copy);
+    // user code is run on the OMP, so local variables are in OMP memory
+    omp->copy_from(omp.get(), num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
-    cpu->free(copy);
+    omp->free(copy);
 }
 
 
-TEST(CpuExecutor, IsItsOwnMaster)
+TEST(OmpExecutor, IsItsOwnMaster)
 {
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
 
-    ASSERT_EQ(cpu, cpu->get_master());
+    ASSERT_EQ(omp, omp->get_master());
 }
 
 
@@ -158,11 +158,11 @@ TEST(ReferenceExecutor, RunsCorrectOperation)
 TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
-    auto cpu_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(cpu_lambda, gpu_lambda);
+    ref->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -180,8 +180,8 @@ TEST(ReferenceExecutor, AllocatesAndFreesMemory)
 
 TEST(ReferenceExecutor, FreeAcceptsNullptr)
 {
-    exec_ptr cpu = gko::ReferenceExecutor::create();
-    ASSERT_NO_THROW(cpu->free(nullptr));
+    exec_ptr omp = gko::ReferenceExecutor::create();
+    ASSERT_NO_THROW(omp->free(nullptr));
 }
 
 
@@ -204,7 +204,7 @@ TEST(ReferenceExecutor, CopiesData)
     exec_ptr ref = gko::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
 
-    // ReferenceExecutor is a type of CPU executor, so this is O.K.
+    // ReferenceExecutor is a type of OMP executor, so this is O.K.
     ref->copy_from(ref.get(), num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
@@ -213,16 +213,16 @@ TEST(ReferenceExecutor, CopiesData)
 }
 
 
-TEST(ReferenceExecutor, CopiesDataFromCpu)
+TEST(ReferenceExecutor, CopiesDataFromOmp)
 {
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
     int *copy = ref->alloc<int>(num_elems);
 
-    // ReferenceExecutor is a type of CPU executor, so this is O.K.
-    ref->copy_from(cpu.get(), num_elems, orig, copy);
+    // ReferenceExecutor is a type of OMP executor, so this is O.K.
+    ref->copy_from(omp.get(), num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -230,16 +230,16 @@ TEST(ReferenceExecutor, CopiesDataFromCpu)
 }
 
 
-TEST(ReferenceExecutor, CopiesDataToCpu)
+TEST(ReferenceExecutor, CopiesDataToOmp)
 {
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr cpu = gko::CpuExecutor::create();
+    exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = cpu->alloc<int>(num_elems);
+    int *copy = omp->alloc<int>(num_elems);
 
-    // ReferenceExecutor is a type of CPU executor, so this is O.K.
-    cpu->copy_from(ref.get(), num_elems, orig, copy);
+    // ReferenceExecutor is a type of OMP executor, so this is O.K.
+    omp->copy_from(ref.get(), num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -255,43 +255,74 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 }
 
 
-TEST(GpuExecutor, RunsCorrectOperation)
+TEST(CudaExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr gpu = gko::GpuExecutor::create(0, gko::CpuExecutor::create());
+    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
-    gpu->run(ExampleOperation(value));
+    cuda->run(ExampleOperation(value));
     ASSERT_EQ(2, value);
 }
 
 
-TEST(GpuExecutor, RunsCorrectLambdaOperation)
+TEST(CudaExecutor, RunsCorrectLambdaOperation)
 {
     int value = 0;
-    auto cpu_lambda = [&value]() { value = 1; };
-    auto gpu_lambda = [&value]() { value = 2; };
-    exec_ptr gpu = gko::GpuExecutor::create(0, gko::CpuExecutor::create());
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
-    gpu->run(cpu_lambda, gpu_lambda);
+    cuda->run(omp_lambda, cuda_lambda);
     ASSERT_EQ(2, value);
 }
 
 
-TEST(GpuExecutor, KnowsItsMaster)
+TEST(CudaExecutor, KnowsItsMaster)
 {
-    auto cpu = gko::CpuExecutor::create();
-    exec_ptr gpu = gko::GpuExecutor::create(0, cpu);
+    auto omp = gko::OmpExecutor::create();
+    exec_ptr cuda = gko::CudaExecutor::create(0, omp);
 
-    ASSERT_EQ(cpu, gpu->get_master());
+    ASSERT_EQ(omp, cuda->get_master());
 }
 
 
-TEST(GpuExecutor, KnowsItsDeviceId)
+TEST(CudaExecutor, KnowsItsDeviceId)
 {
-    auto cpu = gko::CpuExecutor::create();
-    auto gpu = gko::GpuExecutor::create(5, cpu);
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(5, omp);
 
-    ASSERT_EQ(5, gpu->get_device_id());
+    ASSERT_EQ(5, cuda->get_device_id());
+}
+
+
+template <typename T>
+struct mock_free : T {
+    /**
+     * @internal Due to a bug with gcc 5.3, the constructor needs to be called
+     * with `()` operator instead of `{}`.
+     */
+    template <typename... Params>
+    mock_free(Params &&... params) : T(std::forward<Params>(params)...)
+    {}
+
+    void free(void *ptr) const noexcept override
+    {
+        called_free = true;
+        T::free(ptr);
+    }
+
+    mutable bool called_free{false};
+};
+
+
+TEST(ExecutorDeleter, DeletesObject)
+{
+    auto ref = std::make_shared<mock_free<gko::ReferenceExecutor>>();
+    auto x = ref->alloc<int>(5);
+
+    gko::executor_deleter<int>{ref}(x);
+
+    ASSERT_TRUE(ref->called_free);
 }
 
 
