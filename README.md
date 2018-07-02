@@ -98,6 +98,8 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `OFF`
 *   `-DBUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
+*   `-DBUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
+    from inline comments in the code
 *   `-DSET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
     explicitly set CUDA's host compiler to match the commpiler used to build the
     the rest of the library (otherwise the nvcc toolchain uses its default host
