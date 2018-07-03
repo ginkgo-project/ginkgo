@@ -249,8 +249,8 @@ void calculate_max_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
                                     const matrix::Dense<ValueType> *source,
                                     size_type *result)
 {
-    auto num_rows = source->get_size().num_rows;
-    auto num_cols = source->get_size().num_cols;
+    const auto num_rows = source->get_size().num_rows;
+    const auto num_cols = source->get_size().num_cols;
     size_type max_nonzeros_per_row = 0;
     size_type num_nonzeros = 0;
 #pragma omp parallel for
@@ -261,7 +261,6 @@ void calculate_max_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
         }
         max_nonzeros_per_row = std::max(num_nonzeros, max_nonzeros_per_row);
     }
-
     *result = max_nonzeros_per_row;
 }
 
