@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
+#include "core/log/logger.hpp"
 
 
 #include <memory>
@@ -126,8 +127,11 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
+class LinOp : public EnableAbstractPolymorphicObject<LinOp>,
+              public log::EnableLogging<LinOp> {
 public:
+    using log::EnableLogging<LinOp>::log;
+    using log::EnableLogging<LinOp>::add_logger;
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
      *
@@ -140,22 +144,26 @@ public:
      */
     LinOp *apply(const LinOp *b, LinOp *x)
     {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
 
     /**
-     * @copydoc apply(cost LinOp *, LinOp *)
+     * @copydoc apply(const LinOp *, LinOp *)
      */
     const LinOp *apply(const LinOp *b, LinOp *x) const
     {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
 
@@ -172,12 +180,16 @@ public:
     LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                  LinOp *x)
     {
+        this->template log<log::Logger::linop_advanced_apply_started>(
+            this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
         return this;
     }
 
@@ -187,12 +199,16 @@ public:
     const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                        LinOp *x) const
     {
+        this->template log<log::Logger::linop_advanced_apply_started>(
+            this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
         return this;
     }
 
@@ -334,7 +350,24 @@ private:
  * cg->apply(gko::lend(b), gko::lend(x));
  * ```
  */
-using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
+class LinOpFactory
+    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>>,
+      public log::EnableLogging<LinOpFactory> {
+public:
+    using log::EnableLogging<LinOpFactory>::log;
+    using log::EnableLogging<LinOpFactory>::add_logger;
+    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
+
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
+    {
+        this->template log<log::Logger::linop_factory_generate_started>(
+            this, input.get());
+        auto generated = this->generate_impl(input);
+        this->template log<log::Logger::linop_factory_generate_completed>(
+            this, input.get(), generated.get());
+        return generated;
+    }
+};
 
 
 /**

@@ -68,6 +68,8 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
     friend class EnablePolymorphicObject<Cg, LinOp>;
 
 public:
+    using log::EnableLogging<Cg<ValueType>>::log;
+    using log::EnableLogging<Cg<ValueType>>::add_logger;
     using value_type = ValueType;
 
     /**

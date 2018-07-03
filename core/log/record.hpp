@@ -36,11 +36,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/log/logger.hpp"
-#include "core/matrix/dense.hpp"
 
 
 #include <deque>
 #include <memory>
+
+
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -51,11 +53,7 @@ namespace log {
  * Record is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
  */
-class Record : public EnablePolymorphicObject<Record, Logger>,
-               public EnableCreateMethod<Record> {
-    friend class EnablePolymorphicObject<Record, Logger>;
-    friend class EnableCreateMethod<Record>;
-
+class Record : public Logger {
 public:
     /**
      * Struct storing the actually logged data
@@ -67,12 +65,24 @@ public:
         std::deque<std::unique_ptr<const LinOp>> residuals{};
     };
 
-    void on_iteration_complete(const size_type &num_iterations) const override;
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution = nullptr,
+        const LinOp *residual_norm = nullptr) const override;
 
     void on_apply(const std::string &name) const override;
 
     void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
+
+    static std::unique_ptr<Record> create(
+        std::shared_ptr<const Executor> exec,
+        const mask_type &enabled_events = Logger::all_events_mask,
+        size_type max_storage = 0)
+    {
+        return std::unique_ptr<Record>(
+            new Record(exec, enabled_events, max_storage));
+    }
 
     /**
      * Returns the logged data
@@ -90,8 +100,7 @@ protected:
     explicit Record(std::shared_ptr<const gko::Executor> exec,
                     const mask_type &enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)
-        : EnablePolymorphicObject<Record, Logger>(exec, enabled_events),
-          max_storage_{max_storage}
+        : Logger(exec, enabled_events), max_storage_{max_storage}
     {}
 
     mutable logged_data data_{};

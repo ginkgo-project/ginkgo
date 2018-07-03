@@ -130,6 +130,8 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
 
 void CudaExecutor::free(void *ptr) const noexcept
 {
+    this->template log<log::Logger::free_started>(
+        this, reinterpret_cast<uintptr>(ptr));
     device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
@@ -140,6 +142,8 @@ void CudaExecutor::free(void *ptr) const noexcept
                   << "Exiting program" << std::endl;
         std::exit(error_code);
     }
+    this->template log<log::Logger::free_completed>(
+        this, reinterpret_cast<uintptr>(ptr));
 }
 
 
@@ -182,9 +186,11 @@ void CudaExecutor::synchronize() const
 
 void CudaExecutor::run(const Operation &op) const
 {
+    this->template log<log::Logger::operation_launched>(this, op);
     device_guard g(this->get_device_id());
     op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
+    this->template log<log::Logger::operation_completed>(this, op);
 }
 
 

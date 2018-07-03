@@ -135,6 +135,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = r - tmp * q
         // t = r - [prev_r]
         swap(prev_rho, rho);
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get(), dense_x);
         iter++;
     }
 }

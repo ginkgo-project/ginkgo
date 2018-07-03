@@ -33,10 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/log/stream.hpp"
-#include "core/matrix/dense.hpp"
 
 
 #include <iomanip>
+
+
+#include "core/base/lin_op.hpp"
+#include "core/matrix/dense.hpp"
 
 
 namespace gko {
@@ -66,8 +69,11 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(
-    const size_type &num_iterations) const
+void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
+                                              const size_type &num_iterations,
+                                              const LinOp *residual,
+                                              const LinOp *solution,
+                                              const LinOp *residual_norm) const
 {
     os_ << prefix_ << "iteration " << num_iterations << std::endl;
 }

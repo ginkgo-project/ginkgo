@@ -35,12 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_EXECUTOR_HPP_
 
 
-#include "core/base/types.hpp"
-
-
 #include <memory>
 #include <tuple>
 #include <type_traits>
+
+
+#include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 
 
 namespace gko {
@@ -371,7 +372,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * not required by the user. Nevertheless, this feature should be taken into
  * account when considering performance implications of using such operations.
  */
-class Executor {
+class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
@@ -422,7 +423,11 @@ public:
     template <typename T>
     T *alloc(size_type num_elems) const
     {
-        return static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
+        this->template log<log::Logger::allocation_started>(this, num_elems);
+        T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
+        this->template log<log::Logger::allocation_completed>(
+            this, num_elems, reinterpret_cast<uintptr>(allocated));
+        return allocated;
     }
 
     /**
@@ -450,7 +455,13 @@ public:
     void copy_from(const Executor *src_exec, size_type num_elems,
                    const T *src_ptr, T *dest_ptr) const
     {
+        this->template log<log::Logger::copy_started>(
+            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
         this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
+        this->template log<log::Logger::copy_completed>(
+            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
     }
 
     /**
@@ -694,8 +705,10 @@ public:
 
     void run(const Operation &op) const override
     {
+        this->template log<log::Logger::operation_launched>(this, op);
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
+        this->template log<log::Logger::operation_completed>(this, op);
     }
 
 protected:

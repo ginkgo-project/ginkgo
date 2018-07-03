@@ -39,7 +39,10 @@ namespace gko {
 namespace log {
 
 
-void Record::on_iteration_complete(const size_type &num_iterations) const
+void Record::on_iteration_complete(const LinOp *solver,
+                                   const size_type &num_iterations,
+                                   const LinOp *residual, const LinOp *solution,
+                                   const LinOp *residual_norm) const
 {
     data_.num_iterations = num_iterations;
 }

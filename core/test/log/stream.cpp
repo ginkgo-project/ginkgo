@@ -72,7 +72,8 @@ TEST(Stream, CatchesIterations)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, out);
 
-    logger->on<gko::log::Logger::iteration_complete>(num_iters);
+    logger->on<gko::log::Logger::iteration_complete>(nullptr, num_iters,
+                                                     nullptr, nullptr, nullptr);
 
     auto os = out.str();
     ASSERT_TRUE(os.find("iteration " + num_iters) != std::string::npos);

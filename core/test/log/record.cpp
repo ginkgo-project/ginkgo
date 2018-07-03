@@ -63,7 +63,8 @@ TEST(Record, CatchesIterations)
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
-    logger->on<gko::log::Logger::iteration_complete>(num_iters);
+    logger->on<gko::log::Logger::iteration_complete>(nullptr, num_iters,
+                                                     nullptr, nullptr, nullptr);
 
     ASSERT_EQ(num_iters, logger->get().num_iterations);
 }

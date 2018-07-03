@@ -35,18 +35,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_LOGGER_HPP_
 
 
-#include "core/base/lin_op.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/std_extensions.hpp"
-#include "core/base/types.hpp"
-
-
 #include <memory>
 #include <string>
 #include <vector>
 
 
+#include "core/base/std_extensions.hpp"
+#include "core/base/types.hpp"
+
+
 namespace gko {
+
+
+/* Eliminate circular dependencies the hard way */
+template <typename ValueType>
+class Array;
+class Executor;
+class LinOp;
+class LinOpFactory;
+class PolymorphicObject;
+class Operation;
+class stopping_status;
+
+namespace stop {
+class Criterion;
+}  // namespace stop
+
+
 namespace log {
 
 
@@ -64,7 +79,7 @@ namespace log {
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
  */
-class Logger : public EnableAbstractPolymorphicObject<Logger> {
+class Logger {
 public:
     /** @internal std::bitset allows to store any number of bits */
     using mask_type = gko::uint64;
@@ -118,20 +133,179 @@ public:                                                              \
 
     /**
      * Register the `iteration_complete` event which logs every completed
-     * iterations
+     * iterations. The parameters are the solver, the iteration count, the
+     * residual, the solution vector (optional), the residual norm (optional)
      */
-    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const size_type &);
+    GKO_LOGGER_REGISTER_EVENT(0, iteration_complete, const LinOp *,
+                              const size_type &, const LinOp *,
+                              const LinOp * = nullptr, const LinOp * = nullptr)
 
     /**
      * Register the `apply` event which logs every new apply call
      */
-    GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string &);
+    GKO_LOGGER_REGISTER_EVENT(1, apply, const std::string &)
 
     /**
      * Register a the `converged` event which logs convergence
      */
-    GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type &, const LinOp *);
-    // register other events
+    GKO_LOGGER_REGISTER_EVENT(2, converged, const size_type &, const LinOp *)
+
+    /**
+     * Executor's allocation started event. Parameters are the executor and
+     * number of bytes to allocate.
+     */
+    GKO_LOGGER_REGISTER_EVENT(3, allocation_started, const Executor *,
+                              const size_type &)
+
+    /**
+     * Executor's allocation completed event. Parameters are the executor,
+     * number of bytes allocated, memory location.
+     */
+    GKO_LOGGER_REGISTER_EVENT(4, allocation_completed, const Executor *,
+                              const size_type &, const uintptr)
+
+    /**
+     * Executor's free started event. Parameters are the executor and memory
+     * location.
+     */
+    GKO_LOGGER_REGISTER_EVENT(5, free_started, const Executor *, const uintptr)
+
+    /**
+     * Executor's free completed event. Parameters are the executor and memory
+     * location.
+     */
+    GKO_LOGGER_REGISTER_EVENT(6, free_completed, const Executor *,
+                              const uintptr)
+
+    /**
+     * Executor's copy started event. Parameters are the executor from, the
+     * executor to, the location from, the, location to, the number of bytes .
+     */
+    GKO_LOGGER_REGISTER_EVENT(7, copy_started, const Executor *,
+                              const Executor *, const uintptr, const uintptr,
+                              const size_type &)
+
+    /**
+     * Executor's copy completed event. Parameters are the executor from, the
+     * executor to, the location from, the, location to, the number of bytes .
+     */
+    GKO_LOGGER_REGISTER_EVENT(8, copy_completed, const Executor *,
+                              const Executor *, const uintptr, const uintptr,
+                              const size_type)
+
+    /**
+     * Executor's operation launched event (method run). Parameters are the
+     * executor and the Operation.
+     */
+    GKO_LOGGER_REGISTER_EVENT(9, operation_launched, const Executor *,
+                              const Operation &)
+
+    /**
+     * Executor's operation completed event (method run). Parameters are the
+     * executor and the Operation.
+     *
+     * @note For the GPU, to be certain that the operation completed it is
+     * required to call synchronize. This burden falls on the logger. Most of
+     * the loggers will do lightweight logging, and therefore this operation for
+     * the GPU just notes that the Operation has been sent to the GPU.
+     */
+    GKO_LOGGER_REGISTER_EVENT(10, operation_completed, const Executor *,
+                              const Operation &)
+
+    /**
+     * PolymorphicObject's create started event. Parameters are the polymorphic
+     * object and the Executor
+     */
+    GKO_LOGGER_REGISTER_EVENT(11, po_create_started, const PolymorphicObject *,
+                              const Executor *)
+
+    /**
+     * PolymorphicObject's create completed event. Parameters are the
+     * polymorphic object and the Executor
+     */
+    GKO_LOGGER_REGISTER_EVENT(12, po_create_completed,
+                              const PolymorphicObject *, const Executor *)
+
+    /**
+     * PolymorphicObject's copy started event. Parameters are the polymorphic
+     * object and the Executor
+     */
+    GKO_LOGGER_REGISTER_EVENT(13, po_copy_started, const PolymorphicObject *,
+                              const Executor *)
+
+    /**
+     * PolymorphicObject's copy completed event. Parameters are the
+     * polymorphic object and the Executor
+     */
+    GKO_LOGGER_REGISTER_EVENT(14, po_copy_completed, const PolymorphicObject *,
+                              const Executor *)
+
+    /**
+     * PolymorphicObject's deleted event. Parameters are the
+     * polymorphic object and the Executor
+     */
+    GKO_LOGGER_REGISTER_EVENT(15, po_deleted, const PolymorphicObject *,
+                              const Executor *)
+
+    /**
+     * LinOp's apply started event. Parameters are the LinOp, b and X.
+     */
+    GKO_LOGGER_REGISTER_EVENT(16, linop_apply_started, const LinOp *,
+                              const LinOp *, const LinOp *)
+
+    /**
+     * LinOp's apply completed event. Parameters are the LinOp, b and x.
+     */
+    GKO_LOGGER_REGISTER_EVENT(17, linop_apply_completed, const LinOp *,
+                              const LinOp *, const LinOp *)
+
+    /**
+     * LinOp's advanced apply started event. Parameters are the LinOp, alpha,
+     * b, beta and x.
+     */
+    GKO_LOGGER_REGISTER_EVENT(18, linop_advanced_apply_started, const LinOp *,
+                              const LinOp *, const LinOp *, const LinOp *,
+                              const LinOp *)
+
+    /**
+     * LinOp's advanced apply completed event. Parameters are the LinOp, alpha,
+     * b, beta and x.
+     */
+    GKO_LOGGER_REGISTER_EVENT(19, linop_advanced_apply_completed, const LinOp *,
+                              const LinOp *, const LinOp *, const LinOp *,
+                              const LinOp *)
+
+    /**
+     * LinOp Factory's generate started event. Parameters are the LinOpFactory
+     * and the input operator
+     */
+    GKO_LOGGER_REGISTER_EVENT(20, linop_factory_generate_started,
+                              const LinOpFactory *, const LinOp *)
+
+    /**
+     * LinOp Factory's generate completed event. Parameters are the
+     * LinOpFactory, the input operator and the output operator
+     */
+    GKO_LOGGER_REGISTER_EVENT(21, linop_factory_generate_completed,
+                              const LinOpFactory *, const LinOp *,
+                              const LinOp *)
+
+    /**
+     * stop::Criterion's check started event. Parameters are the Criterion,
+     * the stoppingId, the finalized boolean
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, criterion_check_started,
+                              const stop::Criterion *, const uint8, const bool)
+
+    /**
+     * stop::Criterion's check completed event. Parameters are the Criterion,
+     * the stoppingId, the finalized boolean, the stopping status, plus the
+     * output one_changed boolean and output all_converged boolean.
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, criterion_check_completed,
+                              const stop::Criterion *, const uint8, const bool,
+                              const Array<stopping_status> *, const bool,
+                              const bool)
 
 #undef GKO_LOGGER_REGISTER_EVENT
 
@@ -151,11 +325,11 @@ protected:
      */
     explicit Logger(std::shared_ptr<const gko::Executor> exec,
                     const mask_type &enabled_events = all_events_mask)
-        : EnableAbstractPolymorphicObject<Logger>(exec),
-          enabled_events_{enabled_events}
+        : exec_{exec}, enabled_events_{enabled_events}
     {}
 
 private:
+    std::shared_ptr<const Executor> exec_;
     mask_type enabled_events_;
 };
 

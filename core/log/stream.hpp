@@ -55,35 +55,33 @@ namespace log {
  *                    will log)
  */
 template <typename ValueType = default_precision>
-class Stream : public EnablePolymorphicObject<Stream<ValueType>, Logger>,
-               public EnableCreateMethod<Stream<ValueType>> {
-    friend class EnablePolymorphicObject<Stream<ValueType>, Logger>;
-    friend class EnableCreateMethod<Stream<ValueType>>;
-
+class Stream : public Logger {
 public:
-    void on_iteration_complete(const size_type &num_iterations) const override;
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution = nullptr,
+        const LinOp *residual_norm = nullptr) const override;
 
     void on_apply(const std::string &name) const override;
 
     void on_converged(const size_type &at_iteration,
                       const LinOp *residual) const override;
 
+    static std::unique_ptr<Stream> create(
+        std::shared_ptr<const Executor> exec,
+        const Logger::mask_type &enabled_events = Logger::all_events_mask,
+        std::ostream &os = std::cout)
+    {
+        return std::unique_ptr<Stream>(new Stream(exec, enabled_events, os));
+    }
+
 protected:
     explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
         std::ostream &os = std::cout)
-        : EnablePolymorphicObject<Stream<ValueType>, Logger>(exec,
-                                                             enabled_events),
-          os_(os)
+        : Logger(exec, enabled_events), os_(os)
     {}
-
-    Stream<ValueType> &operator=(const Stream<ValueType> &other)
-    {
-        return *this;
-    }
-
-    Stream<ValueType> &operator=(Stream<ValueType> &other) { return *this; }
 
     std::ostream &os_;
     static constexpr const char *prefix_ = "[LOG] >>> ";
