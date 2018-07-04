@@ -93,13 +93,14 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     auto ell_val = source->get_const_ell_values();
     auto ell_col = source->get_const_ell_col_idxs();
 
-    auto ell_max_nonzeros_per_row = source->get_ell_max_nonzeros_per_row();
+    auto ell_num_stored_elements_per_row =
+        source->get_ell_num_stored_elements_per_row();
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
         }
-        for (size_type i = 0; i < ell_max_nonzeros_per_row; i++) {
+        for (size_type i = 0; i < ell_num_stored_elements_per_row; i++) {
             result->at(row, source->ell_col_at(row, i)) +=
                 source->ell_val_at(row, i);
         }

@@ -84,12 +84,12 @@ public:
 
     /**
      * strategy_type is to decide how to set the hybrid config. It
-     * computes the maximum number of nonzeros per row of the ell part and
+     * computes the number of stored elements per row of the ell part and
      * then set the number of residual nonzeros as the number of nonzeros of the
      * coo part.
      *
      * The practical strategy method should inherit strategy_type and implement
-     * its `compute_ell_max_nonzeros_per_row` function.
+     * its `compute_ell_num_stored_elements_per_row` function.
      */
     class strategy_type {
     public:
@@ -97,42 +97,44 @@ public:
          * Creates a strategy_type.
          */
         strategy_type()
-            : ell_max_nonzeros_per_row_(zero<size_type>()),
+            : ell_num_stored_elements_per_row_(zero<size_type>()),
               coo_nnz_(zero<size_type>())
         {}
 
         /**
-         * Computes the config of the Hybrid matrix (ell_max_nonzeros_per_row
-         * and coo_nnz). For now, it copies row_nnz to the reference executor
-         * and performs all operations on the reference executor.
+         * Computes the config of the Hybrid matrix
+         * (ell_num_stored_elements_per_row and coo_nnz). For now, it copies
+         * row_nnz to the reference executor and performs all operations on the
+         * reference executor.
          *
          * @param row_nnz  the number of nonzeros of each row
-         * @param ell_max_nonzeros_per_row  the output maximum number of
-         *                                  nonzeros per row of the ell part
+         * @param ell_num_stored_elements_per_row  the output number of stored
+         *                                         elements per row of the ell
+         *                                         part
          * @param coo_nnz  the output number of nonzeros of the coo part
          */
         void compute_hybrid_config(const Array<size_type> &row_nnz,
-                                   size_type *ell_max_nonzeros_per_row,
+                                   size_type *ell_num_stored_elements_per_row,
                                    size_type *coo_nnz)
         {
             Array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
                                          row_nnz.get_num_elems());
             ref_row_nnz = row_nnz;
-            ell_max_nonzeros_per_row_ =
-                this->compute_ell_max_nonzeros_per_row(&ref_row_nnz);
+            ell_num_stored_elements_per_row_ =
+                this->compute_ell_num_stored_elements_per_row(&ref_row_nnz);
             coo_nnz_ = this->compute_coo_nnz(ref_row_nnz);
-            *ell_max_nonzeros_per_row = ell_max_nonzeros_per_row_;
+            *ell_num_stored_elements_per_row = ell_num_stored_elements_per_row_;
             *coo_nnz = coo_nnz_;
         }
 
         /**
-         * Returns the maximum nonzeros per row of the ell part.
+         * Returns the number of stored elements per row of the ell part.
          *
-         * @return the maximum nonzeros per row of the ell part
+         * @return the number of stored elements per row of the ell part
          */
-        const size_type get_ell_max_nonzeros_per_row() const noexcept
+        const size_type get_ell_num_stored_elements_per_row() const noexcept
         {
-            return ell_max_nonzeros_per_row_;
+            return ell_num_stored_elements_per_row_;
         }
 
         /**
@@ -143,13 +145,13 @@ public:
         const size_type get_coo_nnz() const noexcept { return coo_nnz_; }
 
         /**
-         * Computes the maximum number of nonzeros per row of the ell part.
+         * Computes the number of stored elements per row of the ell part.
          *
          * @param row_nnz  the number of nonzeros of each row
          *
-         * @return the maximum number of nonzeros per row of the ell part
+         * @return the number of stored elements per row of the ell part
          */
-        virtual size_type compute_ell_max_nonzeros_per_row(
+        virtual size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const = 0;
 
     protected:
@@ -166,21 +168,22 @@ public:
             size_type coo_nnz = 0;
             auto row_nnz_val = row_nnz.get_const_data();
             for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-                if (row_nnz_val[i] > ell_max_nonzeros_per_row_) {
-                    coo_nnz += row_nnz_val[i] - ell_max_nonzeros_per_row_;
+                if (row_nnz_val[i] > ell_num_stored_elements_per_row_) {
+                    coo_nnz +=
+                        row_nnz_val[i] - ell_num_stored_elements_per_row_;
                 }
             }
             return coo_nnz;
         }
 
     private:
-        size_type ell_max_nonzeros_per_row_;
+        size_type ell_num_stored_elements_per_row_;
         size_type coo_nnz_;
     };
 
     /**
-     * column_limit is a strategy_type which decides the maximum number of
-     * nonzeros per row of the ell part by specifying the number of columns.
+     * column_limit is a strategy_type which decides the number of stored
+     * elements per row of the ell part by specifying the number of columns.
      */
     class column_limit : public strategy_type {
     public:
@@ -193,7 +196,7 @@ public:
             : num_columns_(num_column)
         {}
 
-        size_type compute_ell_max_nonzeros_per_row(
+        size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
         {
             return num_columns_;
@@ -204,19 +207,19 @@ public:
     };
 
     /**
-     * imbalance_limit is a strategy_type which decides the maximum number of
-     * nonzeros per row of the ell part according to the percent. It sorts the
+     * imbalance_limit is a strategy_type which decides the number of stored
+     * elements per row of the ell part according to the percent. It sorts the
      * number of nonzeros of each row and takes the value at the position
-     * `floor(percent * num_row)` as the maximum number of nonzeros of the ell
-     * part. Thus, at least `percent` rows of all are in the ell part.
+     * `floor(percent * num_row)` as the number of stored elements per row of
+     * the ell part. Thus, at least `percent` rows of all are in the ell part.
      */
     class imbalance_limit : public strategy_type {
     public:
         /**
          * Creates a imbalance_limit strategy.
          *
-         * @param percent  the row_nnz[floor(num_rows*percent)] is the maximum
-         *                 number of nonzeros per row of the ell part
+         * @param percent  the row_nnz[floor(num_rows*percent)] is the number of
+         *                 stored elements per row of the ell part
          */
         explicit imbalance_limit(float percent = 0.8) : percent_(percent)
         {
@@ -224,7 +227,7 @@ public:
             percent_ = std::max(percent_, 0.0f);
         }
 
-        size_type compute_ell_max_nonzeros_per_row(
+        size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
         {
             auto row_nnz_val = row_nnz->get_data();
@@ -243,8 +246,8 @@ public:
     };
 
     /**
-     * automatic is a stratgy_type which decides the maximum number of
-     * nonzeros per row of the ell part automatically. For now, it uses
+     * automatic is a stratgy_type which decides the number of stored elements
+     * per row of the ell part automatically. For now, it uses
      * imbalance_limit(0.8).
      */
     class automatic : public strategy_type {
@@ -254,10 +257,10 @@ public:
          */
         automatic() : strategy_(imbalance_limit(0.8)) {}
 
-        size_type compute_ell_max_nonzeros_per_row(
+        size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
         {
-            return strategy_.compute_ell_max_nonzeros_per_row(row_nnz);
+            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
 
     private:
@@ -311,13 +314,13 @@ public:
     }
 
     /**
-     * Returns the maximum number of non-zeros per row of ell part.
+     * Returns the number of stored elements per row of ell part.
      *
-     * @return the maximum number of non-zeros per row of ell part
+     * @return the number of stored elements per row of ell part
      */
-    size_type get_ell_max_nonzeros_per_row() const noexcept
+    size_type get_ell_num_stored_elements_per_row() const noexcept
     {
-        return ell_->get_max_nonzeros_per_row();
+        return ell_->get_num_stored_elements_per_row();
     }
 
     /**
@@ -489,8 +492,8 @@ public:
 protected:
     /**
      * Creates an uninitialized Hybrid matrix of specified method.
-     *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
-     *     ell_stride is set to the number of rows of the matrix.)
+     *    (ell_num_stored_elements_per_row is set to the number of cols of the
+     * matrix. ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param strategy  strategy of deciding the Hybrid config
@@ -503,8 +506,8 @@ protected:
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
-     *    (ell_max_nonzeros_per_row is set to the number of cols of the matrix.
-     *     ell_stride is set to the number of rows of the matrix.)
+     *    (ell_num_stored_elements_per_row is set to the number of cols of the
+     * matrix. ell_stride is set to the number of rows of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -522,15 +525,16 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stroed elements per
+     *                                      row
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row,
+        size_type num_stored_elements_per_row,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, max_nonzeros_per_row, size.num_rows, {},
-                 std::move(strategy))
+        : Hybrid(std::move(exec), size, num_stored_elements_per_row,
+                 size.num_rows, {}, std::move(strategy))
     {}
 
     /**
@@ -538,14 +542,15 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
      * @param stride  stride of the rows
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
-           size_type max_nonzeros_per_row, size_type stride,
+           size_type num_stored_elements_per_row, size_type stride,
            std::shared_ptr<strategy_type> strategy)
-        : Hybrid(std::move(exec), size, max_nonzeros_per_row, stride, {},
+        : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
                  std::move(strategy))
     {}
 
@@ -554,19 +559,20 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
      * @param stride  stride of the rows
      * @param num_nonzeros  number of nonzeros
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
         std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row, size_type stride,
+        size_type num_stored_elements_per_row, size_type stride,
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : EnableLinOp<Hybrid>(exec, size),
-          ell_(std::move(
-              ell_type::create(exec, size, max_nonzeros_per_row, stride))),
+          ell_(std::move(ell_type::create(
+              exec, size, num_stored_elements_per_row, stride))),
           coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
           strategy_(std::move(strategy))
     {}

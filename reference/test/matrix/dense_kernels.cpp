@@ -365,7 +365,7 @@ TEST_F(Dense, ConvertsToEll)
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_size(), gko::dim(2, 3));
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
     ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
@@ -389,7 +389,7 @@ TEST_F(Dense, MovesToEll)
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_size(), gko::dim(2, 3));
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 4);
     ASSERT_EQ(ell_mtx->get_stride(), 2);
     EXPECT_EQ(c[0], 0);
@@ -414,7 +414,7 @@ TEST_F(Dense, ConvertsToEllWithStride)
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_size(), gko::dim(2, 3));
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
@@ -443,7 +443,7 @@ TEST_F(Dense, MovesToEllWithStride)
     auto c = ell_mtx->get_const_col_idxs();
 
     ASSERT_EQ(ell_mtx->get_size(), gko::dim(2, 3));
-    ASSERT_EQ(ell_mtx->get_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
@@ -469,7 +469,7 @@ TEST_F(Dense, MovesToHybridAutomatically)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
@@ -499,7 +499,7 @@ TEST_F(Dense, ConvertsToHybridAutomatically)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
@@ -530,7 +530,7 @@ TEST_F(Dense, MovesToHybridWithStrideAutomatically)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
@@ -567,7 +567,7 @@ TEST_F(Dense, ConvertsToHybridWithStrideAutomatically)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
@@ -605,7 +605,7 @@ TEST_F(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
@@ -646,7 +646,7 @@ TEST_F(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
@@ -687,7 +687,7 @@ TEST_F(Dense, MovesToHybridWithStrideByPercent40)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 3);
@@ -723,7 +723,7 @@ TEST_F(Dense, ConvertsToHybridWithStrideByPercent40)
 
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
-    auto n = hybrid_mtx->get_ell_max_nonzeros_per_row();
+    auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 3);

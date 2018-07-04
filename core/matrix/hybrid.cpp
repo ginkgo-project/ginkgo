@@ -81,20 +81,6 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 }
 
 
-template <typename IndexType>
-size_type get_coo_nnz(const Array<IndexType> &row_nnz, const size_type ell_lim)
-{
-    size_type coo_lim = 0;
-    auto row_nnz_val = row_nnz.get_const_data();
-    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-        if (row_nnz_val[i] > ell_lim) {
-            coo_lim += row_nnz_val[i] - ell_lim;
-        }
-    }
-    return coo_lim;
-}
-
-
 }  // namespace
 
 
@@ -212,7 +198,7 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
     auto coo_col_idxs = tmp->get_const_coo_col_idxs();
     auto coo_row_idxs = tmp->get_const_coo_row_idxs();
     for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
-        for (size_type i = 0; i < tmp->get_ell_max_nonzeros_per_row(); ++i) {
+        for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row(); ++i) {
             const auto val = tmp->ell_val_at(row, i);
             if (val != zero<ValueType>()) {
                 const auto col = tmp->ell_col_at(row, i);

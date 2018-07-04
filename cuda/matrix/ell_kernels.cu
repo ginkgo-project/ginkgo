@@ -57,14 +57,14 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col, size_type stride,
-    size_type max_nonzeros_per_row, const ValueType *__restrict__ b,
+    size_type num_stored_elements_per_row, const ValueType *__restrict__ b,
     ValueType *__restrict__ c)
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
     ValueType temp = 0;
     IndexType ind = tidx;
-    const IndexType finish = ind + max_nonzeros_per_row * stride;
+    const IndexType finish = ind + num_stored_elements_per_row * stride;
     if (tidx < num_rows) {
         for (; ind < finish; ind += stride) {
             temp += val[ind] * b[col[ind]];
@@ -87,7 +87,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
     spmv_kernel<<<grid_size, block_size, 0, 0>>>(
         a->get_size().num_rows, as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), a->get_stride(), a->get_max_nonzeros_per_row(),
+        a->get_const_col_idxs(), a->get_stride(), a->get_num_stored_elements_per_row(),
         as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
@@ -101,7 +101,7 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
     size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    size_type stride, size_type max_nonzeros_per_row,
+    size_type stride, size_type num_stored_elements_per_row,
     const ValueType *__restrict__ b, const ValueType *__restrict__ beta,
     ValueType *__restrict__ c)
 {
@@ -109,7 +109,7 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
     ValueType temp = 0;
     IndexType ind = tidx;
-    const IndexType finish = ind + max_nonzeros_per_row * stride;
+    const IndexType finish = ind + num_stored_elements_per_row * stride;
     if (tidx < num_rows) {
         for (; ind < finish; ind += stride) {
             temp += alpha[0] * val[ind] * b[col[ind]];
@@ -136,7 +136,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     advanced_spmv_kernel<<<grid_size, block_size, 0, 0>>>(
         a->get_size().num_rows, as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-        a->get_stride(), a->get_max_nonzeros_per_row(),
+        a->get_stride(), a->get_num_stored_elements_per_row(),
         as_cuda_type(b->get_const_values()),
         as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
 }

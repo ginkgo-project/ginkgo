@@ -64,8 +64,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
-    GKO_REGISTER_OPERATION(calculate_max_nonzeros_per_row,
-                           dense::calculate_max_nonzeros_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
+                           dense::calculate_max_nnz_per_row<ValueType>);
     GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                            dense::calculate_nonzeros_per_row<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
@@ -141,12 +141,12 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-    size_type max_nonzeros_per_row = 0;
-    exec->run(TemplatedOperation<ValueType>::
-                  make_calculate_max_nonzeros_per_row_operation(
-                      source, &max_nonzeros_per_row));
-    const auto max_nnz_per_row =
-        std::max(result->get_max_nonzeros_per_row(), max_nonzeros_per_row);
+    size_type num_stored_elements_per_row = 0;
+    exec->run(
+        TemplatedOperation<ValueType>::make_calculate_max_nnz_per_row_operation(
+            source, &num_stored_elements_per_row));
+    const auto max_nnz_per_row = std::max(
+        result->get_num_stored_elements_per_row(), num_stored_elements_per_row);
     const auto stride =
         std::max(result->get_stride(), source->get_size().num_rows);
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
@@ -170,7 +170,7 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     size_type coo_lim = zero<size_type>();
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
     const auto max_nnz_per_row =
-        std::max(result->get_ell_max_nonzeros_per_row(), ell_lim);
+        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
     const auto stride =
         std::max(result->get_ell_stride(), source->get_size().num_rows);
     const auto coo_nnz =
