@@ -73,7 +73,7 @@ protected:
     {
         auto v = m->get_const_ell_values();
         auto c = m->get_const_ell_col_idxs();
-        auto n = m->get_ell_max_nonzeros_per_row();
+        auto n = m->get_ell_num_stored_elements_per_row();
         auto p = m->get_ell_stride();
         ASSERT_EQ(m->get_size(), gko::dim(2, 3));
         ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
@@ -99,7 +99,7 @@ protected:
         ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_ell_values(), nullptr);
         ASSERT_EQ(m->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_ell_max_nonzeros_per_row(), 0);
+        ASSERT_EQ(m->get_ell_num_stored_elements_per_row(), 0);
         ASSERT_EQ(m->get_ell_stride(), 0);
         ASSERT_EQ(m->get_coo_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_coo_values(), nullptr);
@@ -112,7 +112,7 @@ TEST_F(Hybrid, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
     ASSERT_EQ(mtx->get_ell_num_stored_elements(), 4);
-    ASSERT_EQ(mtx->get_ell_max_nonzeros_per_row(), 2);
+    ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 2);
     ASSERT_EQ(mtx->get_ell_stride(), 2);
     ASSERT_EQ(mtx->get_coo_num_stored_elements(), 1);
 }
@@ -171,7 +171,7 @@ TEST_F(Hybrid, CanBeCleared)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 {
-    auto m = Mtx::create(exec, std::make_shared<const Mtx::automatic>());
+    auto m = Mtx::create(exec, std::make_shared<Mtx::automatic>());
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -182,7 +182,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 
     auto v = m->get_const_ell_values();
     auto c = m->get_const_ell_col_idxs();
-    auto n = m->get_ell_max_nonzeros_per_row();
+    auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
     ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 6);
@@ -206,7 +206,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataByColumns2)
 {
-    auto m = Mtx::create(exec, std::make_shared<const Mtx::column_limit>(2));
+    auto m = Mtx::create(exec, std::make_shared<Mtx::column_limit>(2));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -221,8 +221,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataByColumns2)
 
 TEST_F(Hybrid, CanBeReadFromMatrixDataByPercent40)
 {
-    auto m =
-        Mtx::create(exec, std::make_shared<const Mtx::imbalance_limit>(0.4));
+    auto m = Mtx::create(exec, std::make_shared<Mtx::imbalance_limit>(0.4));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -233,7 +232,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataByPercent40)
 
     auto v = m->get_const_ell_values();
     auto c = m->get_const_ell_col_idxs();
-    auto n = m->get_ell_max_nonzeros_per_row();
+    auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
     ASSERT_EQ(m->get_size(), gko::dim(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 2);

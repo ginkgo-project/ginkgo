@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"
+#include "core/matrix/hybrid.hpp"
 
 
 #include <algorithm>
@@ -252,7 +253,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rows = result->get_size().num_rows;
     auto num_cols = result->get_size().num_cols;
-    auto max_nnz_per_row = result->get_max_nonzeros_per_row();
+    auto max_nnz_per_row = result->get_num_stored_elements_per_row();
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_stride(); j++) {
             result->val_at(j, i) = zero<ValueType>();
@@ -289,6 +290,73 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
+                       matrix::Hybrid<ValueType, IndexType> *result,
+                       const matrix::Dense<ValueType> *source)
+{
+    auto num_rows = result->get_size().num_rows;
+    auto num_cols = result->get_size().num_cols;
+    auto strategy = result->get_strategy();
+    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
+    auto coo_lim = strategy->get_coo_nnz();
+    auto coo_val = result->get_coo_values();
+    auto coo_col = result->get_coo_col_idxs();
+    auto coo_row = result->get_coo_row_idxs();
+    for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
+         i++) {
+        for (size_type j = 0; j < result->get_ell_stride(); j++) {
+            result->ell_val_at(j, i) = zero<ValueType>();
+            result->ell_col_at(j, i) = 0;
+        }
+    }
+    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
+        coo_val[i] = zero<ValueType>();
+        coo_col[i] = 0;
+        coo_row[i] = 0;
+    }
+
+    size_type coo_idx = 0;
+    for (size_type row = 0; row < num_rows; row++) {
+        size_type col_idx = 0, col = 0;
+        while (col < num_cols && col_idx < ell_lim) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                result->ell_val_at(row, col_idx) = val;
+                result->ell_col_at(row, col_idx) = col;
+                col_idx++;
+            }
+            col++;
+        }
+        while (col < num_cols) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                coo_val[coo_idx] = val;
+                coo_col[coo_idx] = col;
+                coo_row[coo_idx] = row;
+                coo_idx++;
+            }
+            col++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Hybrid<ValueType, IndexType> *result,
+                    const matrix::Dense<ValueType> *source)
+{
+    reference::dense::convert_to_hybrid(exec, result, source);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType> *source, size_type *result)
@@ -310,27 +378,49 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 
 template <typename ValueType>
-void calculate_max_nonzeros_per_row(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Dense<ValueType> *source, size_type *result)
+void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                               const matrix::Dense<ValueType> *source,
+                               size_type *result)
 {
     auto num_rows = source->get_size().num_rows;
     auto num_cols = source->get_size().num_cols;
-    size_type max_nonzeros_per_row = 0;
+    size_type num_stored_elements_per_row = 0;
     size_type num_nonzeros = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         num_nonzeros = 0;
         for (size_type col = 0; col < num_cols; ++col) {
             num_nonzeros += (source->at(row, col) != zero<ValueType>());
         }
-        max_nonzeros_per_row = std::max(num_nonzeros, max_nonzeros_per_row);
+        num_stored_elements_per_row =
+            std::max(num_nonzeros, num_stored_elements_per_row);
     }
 
-    *result = max_nonzeros_per_row;
+    *result = num_stored_elements_per_row;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_CALCULATE_MAX_NONZEROS_PER_ROW_KERNEL);
+    GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
+
+template <typename ValueType>
+void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                                const matrix::Dense<ValueType> *source,
+                                Array<size_type> *result)
+{
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto row_nnz_val = result->get_data();
+    for (size_type row = 0; row < num_rows; ++row) {
+        size_type num_nonzeros = 0;
+        for (size_type col = 0; col < num_cols; ++col) {
+            num_nonzeros += (source->at(row, col) != zero<ValueType>());
+        }
+        row_nnz_val[row] = num_nonzeros;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType>

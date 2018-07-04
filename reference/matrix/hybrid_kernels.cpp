@@ -36,8 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
-#include "core/matrix/csr.hpp"
+#include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/matrix/ell_kernels.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -50,8 +51,15 @@ namespace hybrid {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Hybrid<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto ell_mtx = a->get_ell();
+    auto coo_mtx = a->get_coo();
+    ell_mtx->apply(b, c);
+    auto alpha = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
+    auto beta = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
+    coo_mtx->apply(alpha.get(), b, beta.get(), c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
 
@@ -62,7 +70,14 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Hybrid<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *c)
+{
+    auto ell_mtx = a->get_ell();
+    auto coo_mtx = a->get_coo();
+    ell_mtx->apply(alpha, b, beta, c);
+    auto one = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
+    coo_mtx->apply(alpha, b, one.get(), c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
@@ -72,7 +87,32 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Hybrid<ValueType, IndexType> *source)
-    NOT_IMPLEMENTED;
+{
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto ell_val = source->get_const_ell_values();
+    auto ell_col = source->get_const_ell_col_idxs();
+
+    auto ell_num_stored_elements_per_row =
+        source->get_ell_num_stored_elements_per_row();
+
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type col = 0; col < num_cols; col++) {
+            result->at(row, col) = zero<ValueType>();
+        }
+        for (size_type i = 0; i < ell_num_stored_elements_per_row; i++) {
+            result->at(row, source->ell_col_at(row, i)) +=
+                source->ell_val_at(row, i);
+        }
+    }
+
+    auto coo_val = source->get_const_coo_values();
+    auto coo_col = source->get_const_coo_col_idxs();
+    auto coo_row = source->get_const_coo_row_idxs();
+    for (size_type i = 0; i < source->get_coo_num_stored_elements(); i++) {
+        result->at(coo_row[i], coo_col[i]) += coo_val[i];
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);

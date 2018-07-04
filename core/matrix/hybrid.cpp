@@ -54,13 +54,14 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, hybrid::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, hybrid::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           hybrid::convert_to_dense<TplArgs...>);
 };
 
 
 template <typename ValueType, typename IndexType>
 void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
-                      Array<IndexType> &row_nnz)
+                      Array<size_type> &row_nnz)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -80,54 +81,7 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 }
 
 
-template <typename IndexType>
-size_type get_coo_lim(const Array<IndexType> &row_nnz, const size_type ell_lim)
-{
-    size_type coo_lim = 0;
-    auto row_nnz_val = row_nnz.get_const_data();
-    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-        if (row_nnz_val[i] > ell_lim) {
-            coo_lim += row_nnz_val[i] - ell_lim;
-        }
-    }
-    return coo_lim;
-}
-
-
 }  // namespace
-
-
-template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::column_limit::get_hybrid_limit(
-    std::shared_ptr<const Executor> exec, const mat_data &data,
-    size_type *ell_lim, size_type *coo_lim) const
-{
-    *ell_lim = num_columns_;
-
-    Array<index_type> row_nnz(exec, data.size.num_rows);
-    get_each_row_nnz(data, row_nnz);
-    *coo_lim = get_coo_lim(row_nnz, *ell_lim);
-}
-
-
-template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::imbalance_limit::get_hybrid_limit(
-    std::shared_ptr<const Executor> exec, const mat_data &data,
-    size_type *ell_lim, size_type *coo_lim) const
-{
-    Array<index_type> row_nnz(exec, data.size.num_rows);
-    get_each_row_nnz(data, row_nnz);
-    auto row_nnz_val = row_nnz.get_data();
-    std::sort(row_nnz_val, row_nnz_val + row_nnz.get_num_elems());
-    if (percent_ < 1) {
-        auto percent_pos =
-            static_cast<size_type>(data.size.num_rows * percent_);
-        *ell_lim = row_nnz_val[percent_pos];
-    } else {
-        *ell_lim = row_nnz_val[data.size.num_rows - 1];
-    }
-    *coo_lim = get_coo_lim(row_nnz, *ell_lim);
-}
 
 
 template <typename ValueType, typename IndexType>
@@ -177,9 +131,12 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
 {
     // get the limitation of columns of the ell part
     // calculate coo storage
-    size_type ell_lim = zero<size_type>(), coo_lim = zero<size_type>();
-    strategy_->get_hybrid_limit(this->get_executor()->get_master(), data,
-                                &ell_lim, &coo_lim);
+    size_type ell_lim = zero<size_type>();
+    size_type coo_lim = zero<size_type>();
+    Array<size_type> row_nnz(this->get_executor()->get_master(),
+                             data.size.num_rows);
+    get_each_row_nnz(data, row_nnz);
+    strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
 
     auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
                               ell_lim, data.size.num_rows, coo_lim);
@@ -241,7 +198,7 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
     auto coo_col_idxs = tmp->get_const_coo_col_idxs();
     auto coo_row_idxs = tmp->get_const_coo_row_idxs();
     for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
-        for (size_type i = 0; i < tmp->get_ell_max_nonzeros_per_row(); ++i) {
+        for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row(); ++i) {
             const auto val = tmp->ell_val_at(row, i);
             if (val != zero<ValueType>()) {
                 const auto col = tmp->ell_col_at(row, i);

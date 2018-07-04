@@ -61,21 +61,21 @@ struct TemplatedOperation {
 
 
 template <typename ValueType, typename IndexType>
-size_type calculate_max_nonzeros_per_row(
+size_type calculate_max_nnz_per_row(
     const matrix_data<ValueType, IndexType> &data)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
-    size_type max_nonzeros_per_row = 0;
+    size_type num_stored_elements_per_row = 0;
     for (const auto &elem : data.nonzeros) {
         if (elem.row != current_row) {
             current_row = elem.row;
-            max_nonzeros_per_row = std::max(max_nonzeros_per_row, nnz);
+            num_stored_elements_per_row = std::max(num_stored_elements_per_row, nnz);
             nnz = 0;
         }
         nnz += (elem.value != zero<ValueType>());
     }
-    return std::max(max_nonzeros_per_row, nnz);
+    return std::max(num_stored_elements_per_row, nnz);
 }
 
 
@@ -126,12 +126,12 @@ void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read(const mat_data &data)
 {
-    // Get the maximum number of nonzero elements of every row.
-    auto max_nonzeros_per_row = calculate_max_nonzeros_per_row(data);
+    // Get the number of stored elements of every row.
+    auto num_stored_elements_per_row = calculate_max_nnz_per_row(data);
 
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
-                           max_nonzeros_per_row, data.size.num_rows);
+                           num_stored_elements_per_row, data.size.num_rows);
 
     // Get values and column indexes.
     size_type ind = 0;
@@ -149,7 +149,7 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
             }
             ind++;
         }
-        for (auto i = col; i < max_nonzeros_per_row; i++) {
+        for (auto i = col; i < num_stored_elements_per_row; i++) {
             tmp->val_at(row, i) = zero<ValueType>();
             tmp->col_at(row, i) = 0;
         }
@@ -175,7 +175,7 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
     data = {tmp->get_size(), {}};
 
     for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
-        for (size_type i = 0; i < tmp->max_nonzeros_per_row_; ++i) {
+        for (size_type i = 0; i < tmp->num_stored_elements_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
             if (val != zero<ValueType>()) {
                 const auto col = tmp->col_at(row, i);
