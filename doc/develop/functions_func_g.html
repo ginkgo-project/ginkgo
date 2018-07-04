@@ -147,8 +147,14 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Ell.html#a5bc4d3c67b328b353409e76eb9f70803">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a8a3c4738049b7e6819806bb51e1a5523">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
 </li>
+<li>get_coo()
+: <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a80eb99775093553db1029b9675f34e2c">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+</li>
 <li>get_coo_col_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a327548f42867b201cd469f3a21145c87">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_coo_nnz()
+: <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type</a>
 </li>
 <li>get_coo_num_stored_elements()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a2fe06adb3323dcad710329e33a12dff4">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
@@ -165,14 +171,18 @@ $(function() {
 <li>get_device_id()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">gko::CudaExecutor</a>
 </li>
+<li>get_ell()
+: <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#afe9a3a9a801271d5ead4774fff7ffbd7">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+</li>
 <li>get_ell_col_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#ac46548ef106a6b8fe32219d3e11aab22">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
 </li>
-<li>get_ell_max_nonzeros_per_row()
-: <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8101c1539bbcb32d200534e884f17b3a">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
-</li>
 <li>get_ell_num_stored_elements()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a99ab36f3aeae944db440a8bbe324aaff">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_ell_num_stored_elements_per_row()
+: <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a9ac6d0efc8627c915c73a0155e64548d">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a3a1bc0e4837a3fde7650455088c3da8a">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type</a>
 </li>
 <li>get_ell_stride()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a2472495b537b47555a04aa6ba11d5817">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
@@ -196,9 +206,6 @@ $(function() {
 : <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobi.html#a81eb4f72150ea77bc2d954a973443dd4">gko::preconditioner::BasicBlockJacobi&lt; ConcreteBlockJacobi &gt;</a>
 , <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobiFactory.html#a0cf1af113395d0062169535182651f4a">gko::preconditioner::BasicBlockJacobiFactory&lt; ConcreteBlockJacobiFactory &gt;</a>
 </li>
-<li>get_max_nonzeros_per_row()
-: <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac4fe294c5f3c1cb2a0953bb7ea6a53c4">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
-</li>
 <li>get_num_blocks()
 : <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobi.html#a4e1b361972318dd91b2da9d039720b59">gko::preconditioner::BasicBlockJacobi&lt; ConcreteBlockJacobi &gt;</a>
 </li>
@@ -216,6 +223,9 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a00e86ba08ecfc46dbc9b74b800d10a8d">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#aab92660b6249e243e3ad35a51c557f3b">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobi.html#add7ba41ee77b14cb7d19a9dc9f6dbd8d">gko::preconditioner::BasicBlockJacobi&lt; ConcreteBlockJacobi &gt;</a>
+</li>
+<li>get_num_stored_elements_per_row()
+: <a class="el" href="classgko_1_1matrix_1_1Ell.html#a08f9b04b356e58ab57d03ce335ff11ce">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_parameters()
 : <a class="el" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">gko::EnableDefaultFactory&lt; ConcreteFactory, ProductType, ParametersType, PolymorphicBase &gt;</a>
@@ -243,6 +253,9 @@ $(function() {
 </li>
 <li>get_slice_size()
 : <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a0554e79b672f35df5dd01cb467850227">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_strategy()
+: <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8be764050176291d35e7b4dee1b6e1bc">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_stride()
 : <a class="el" href="classgko_1_1matrix_1_1Dense.html#a8c1b220b9b9292893d9be22d632a9a0e">gko::matrix::Dense&lt; ValueType &gt;</a>

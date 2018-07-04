@@ -21,5 +21,5 @@ var searchData=
   ['array_3c_20value_5ftype_20_3e',['Array&lt; value_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['at',['at',['../classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0',1,'gko::matrix::Dense::at(size_type row, size_type col) noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae0b30c42359a03805dee41a5cbf87b26',1,'gko::matrix::Dense::at(size_type row, size_type col) const noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae6ce7585b533123b5572ddf502c9970f',1,'gko::matrix::Dense::at(size_type idx) noexcept'],['../classgko_1_1matrix_1_1Dense.html#a34ba8a7f392c65c481a93d9374cb5769',1,'gko::matrix::Dense::at(size_type idx) const noexcept']]],
   ['authors_20and_20contributors',['Authors and contributors',['../authors.html',1,'']]],
-  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]]
+  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::automatic'],['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html#aadf787a2d56fe0e67c4108f14ee0cb6e',1,'gko::matrix::Hybrid::automatic::automatic()']]]
 ];

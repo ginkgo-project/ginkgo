@@ -133,9 +133,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:addb3c84f52b090c75f519833fb379cef"><td class="memItemLeft" align="right" valign="top">const index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#addb3c84f52b090c75f519833fb379cef">get_const_col_idxs</a> () const noexcept</td></tr>
 <tr class="memdesc:addb3c84f52b090c75f519833fb379cef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the column indexes of the matrix.  <a href="#addb3c84f52b090c75f519833fb379cef">More...</a><br /></td></tr>
 <tr class="separator:addb3c84f52b090c75f519833fb379cef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4fe294c5f3c1cb2a0953bb7ea6a53c4"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#ac4fe294c5f3c1cb2a0953bb7ea6a53c4">get_max_nonzeros_per_row</a> () const noexcept</td></tr>
-<tr class="memdesc:ac4fe294c5f3c1cb2a0953bb7ea6a53c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the maximum number of non-zeros per row.  <a href="#ac4fe294c5f3c1cb2a0953bb7ea6a53c4">More...</a><br /></td></tr>
-<tr class="separator:ac4fe294c5f3c1cb2a0953bb7ea6a53c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08f9b04b356e58ab57d03ce335ff11ce"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#a08f9b04b356e58ab57d03ce335ff11ce">get_num_stored_elements_per_row</a> () const noexcept</td></tr>
+<tr class="memdesc:a08f9b04b356e58ab57d03ce335ff11ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of stored elements per row.  <a href="#a08f9b04b356e58ab57d03ce335ff11ce">More...</a><br /></td></tr>
+<tr class="separator:a08f9b04b356e58ab57d03ce335ff11ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0be6e75dcea0975b10e3389a9eedacc1"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#a0be6e75dcea0975b10e3389a9eedacc1">get_stride</a> () const noexcept</td></tr>
 <tr class="memdesc:a0be6e75dcea0975b10e3389a9eedacc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the stride of the matrix.  <a href="#a0be6e75dcea0975b10e3389a9eedacc1">More...</a><br /></td></tr>
 <tr class="separator:a0be6e75dcea0975b10e3389a9eedacc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -292,7 +292,7 @@ static std::unique_ptr&lt; Ell&lt; ValueType, IndexType &gt; &gt;&#160;</td><td 
 class gko::matrix::Ell&lt; ValueType, IndexType &gt;</h3>
 
 <p>ELL is a matrix format where stride with explicit zeros is used such that all rows have the same number of stored elements. </p>
-<p>The number of elements stored in each row is the largest number of nonzero elements in any of the rows (obtainable through <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac4fe294c5f3c1cb2a0953bb7ea6a53c4" title="Returns the maximum number of non-zeros per row. ">get_max_nonzeros_per_row()</a> method). This removes the need of a row pointer like in the CSR format, and allows for SIMD processing of the distinct rows. For efficient processing, the nonzero elements and the corresponding column indices are stored in column-major fashion. The columns are padded to the length by user-defined stride parameter whose default value is the number of rows of the matrix.</p>
+<p>The number of elements stored in each row is the largest number of nonzero elements in any of the rows (obtainable through <a class="el" href="classgko_1_1matrix_1_1Ell.html#a08f9b04b356e58ab57d03ce335ff11ce" title="Returns the number of stored elements per row. ">get_num_stored_elements_per_row()</a> method). This removes the need of a row pointer like in the CSR format, and allows for SIMD processing of the distinct rows. For efficient processing, the nonzero elements and the corresponding column indices are stored in column-major fashion. The columns are padded to the length by user-defined stride parameter whose default value is the number of rows of the matrix.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
@@ -503,36 +503,6 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 </div>
 </div>
-<a id="ac4fe294c5f3c1cb2a0953bb7ea6a53c4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac4fe294c5f3c1cb2a0953bb7ea6a53c4">&#9670;&nbsp;</a></span>get_max_nonzeros_per_row()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">size_type <a class="el" href="classgko_1_1matrix_1_1Ell.html">gko::matrix::Ell</a>&lt; ValueType, IndexType &gt;::get_max_nonzeros_per_row </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Returns the maximum number of non-zeros per row. </p>
-<dl class="section return"><dt>Returns</dt><dd>the maximum number of non-zeros per row. </dd></dl>
-
-</div>
-</div>
 <a id="aecca4e9cfb1e81958881c6dc3e2aa06f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aecca4e9cfb1e81958881c6dc3e2aa06f">&#9670;&nbsp;</a></span>get_num_stored_elements()</h2>
 
@@ -562,6 +532,36 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <dl class="section return"><dt>Returns</dt><dd>the number of elements explicitly stored in the matrix </dd></dl>
 
 <p class="reference">References <a class="el" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">gko::Array&lt; ValueType &gt;::get_num_elems()</a>.</p>
+
+</div>
+</div>
+<a id="a08f9b04b356e58ab57d03ce335ff11ce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a08f9b04b356e58ab57d03ce335ff11ce">&#9670;&nbsp;</a></span>get_num_stored_elements_per_row()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_type <a class="el" href="classgko_1_1matrix_1_1Ell.html">gko::matrix::Ell</a>&lt; ValueType, IndexType &gt;::get_num_stored_elements_per_row </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of stored elements per row. </p>
+<dl class="section return"><dt>Returns</dt><dd>the number of stored elements per row. </dd></dl>
 
 </div>
 </div>
@@ -804,9 +804,9 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (fcd8eff)</a></li>
-<li>core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (bdfc167)</a></li>
-<li>core/matrix/ell.cpp (0f06380)</li>
+<li>core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (6a3e54b)</a></li>
+<li>core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (38fb026)</a></li>
+<li>core/matrix/ell.cpp (38fb026)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

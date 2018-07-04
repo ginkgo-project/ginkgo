@@ -87,12 +87,16 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1automatic.html">automatic</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">automatic is a stratgy_type which decides the number of stored elements per row of the ell part automatically.  <a href="classgko_1_1matrix_1_1Hybrid_1_1automatic.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html">column_limit</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html" title="column_limit is a strategy_type which decides the number of stored elements per row of the ell part b...">column_limit</a> is a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> which decides the number of stored elements per row of the ell part by specifying the number of columns.  <a href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html">imbalance_limit</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html" title="imbalance_limit is a strategy_type which decides the number of stored elements per row of the ell par...">imbalance_limit</a> is a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> which decides the number of stored elements per row of the ell part according to the percent.  <a href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> is to decide how to set the hybrid config.  <a href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
@@ -140,20 +144,20 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memdesc:a626c07541641bcdfd9a7f61322a89cbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. ">matrix_data</a> structure.  <a href="#a626c07541641bcdfd9a7f61322a89cbe">More...</a><br /></td></tr>
 <tr class="separator:a626c07541641bcdfd9a7f61322a89cbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a9cd9c8b8dbf8b3c2c014f355faa61474">get_ell_values</a> () noexcept</td></tr>
-<tr class="memdesc:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part.  <a href="#a9cd9c8b8dbf8b3c2c014f355faa61474">More...</a><br /></td></tr>
+<tr class="memdesc:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the ell part.  <a href="#a9cd9c8b8dbf8b3c2c014f355faa61474">More...</a><br /></td></tr>
 <tr class="separator:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af792e702c3650f4e77e8cb256250f21e"><td class="memItemLeft" align="right" valign="top">const value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#af792e702c3650f4e77e8cb256250f21e">get_const_ell_values</a> () const noexcept</td></tr>
-<tr class="memdesc:af792e702c3650f4e77e8cb256250f21e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part.  <a href="#af792e702c3650f4e77e8cb256250f21e">More...</a><br /></td></tr>
+<tr class="memdesc:af792e702c3650f4e77e8cb256250f21e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the ell part.  <a href="#af792e702c3650f4e77e8cb256250f21e">More...</a><br /></td></tr>
 <tr class="separator:af792e702c3650f4e77e8cb256250f21e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac46548ef106a6b8fe32219d3e11aab22"><td class="memItemLeft" align="right" valign="top">index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#ac46548ef106a6b8fe32219d3e11aab22">get_ell_col_idxs</a> () noexcept</td></tr>
-<tr class="memdesc:ac46548ef106a6b8fe32219d3e11aab22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the column indexes of the ELL part.  <a href="#ac46548ef106a6b8fe32219d3e11aab22">More...</a><br /></td></tr>
+<tr class="memdesc:ac46548ef106a6b8fe32219d3e11aab22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the column indexes of the ell part.  <a href="#ac46548ef106a6b8fe32219d3e11aab22">More...</a><br /></td></tr>
 <tr class="separator:ac46548ef106a6b8fe32219d3e11aab22"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cba3bbddd3f2f921b65bcb8cd208df5"><td class="memItemLeft" align="right" valign="top">const index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a7cba3bbddd3f2f921b65bcb8cd208df5">get_const_ell_col_idxs</a> () const noexcept</td></tr>
-<tr class="memdesc:a7cba3bbddd3f2f921b65bcb8cd208df5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the column indexes of the ELL part.  <a href="#a7cba3bbddd3f2f921b65bcb8cd208df5">More...</a><br /></td></tr>
+<tr class="memdesc:a7cba3bbddd3f2f921b65bcb8cd208df5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the column indexes of the ell part.  <a href="#a7cba3bbddd3f2f921b65bcb8cd208df5">More...</a><br /></td></tr>
 <tr class="separator:a7cba3bbddd3f2f921b65bcb8cd208df5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8101c1539bbcb32d200534e884f17b3a"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8101c1539bbcb32d200534e884f17b3a">get_ell_max_nonzeros_per_row</a> () const noexcept</td></tr>
-<tr class="memdesc:a8101c1539bbcb32d200534e884f17b3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the maximum number of non-zeros per row of ell part.  <a href="#a8101c1539bbcb32d200534e884f17b3a">More...</a><br /></td></tr>
-<tr class="separator:a8101c1539bbcb32d200534e884f17b3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9ac6d0efc8627c915c73a0155e64548d"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a9ac6d0efc8627c915c73a0155e64548d">get_ell_num_stored_elements_per_row</a> () const noexcept</td></tr>
+<tr class="memdesc:a9ac6d0efc8627c915c73a0155e64548d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of stored elements per row of ell part.  <a href="#a9ac6d0efc8627c915c73a0155e64548d">More...</a><br /></td></tr>
+<tr class="separator:a9ac6d0efc8627c915c73a0155e64548d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2472495b537b47555a04aa6ba11d5817"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a2472495b537b47555a04aa6ba11d5817">get_ell_stride</a> () const noexcept</td></tr>
 <tr class="memdesc:a2472495b537b47555a04aa6ba11d5817"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the stride of the ell part.  <a href="#a2472495b537b47555a04aa6ba11d5817">More...</a><br /></td></tr>
 <tr class="separator:a2472495b537b47555a04aa6ba11d5817"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -172,6 +176,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a3a2d9b00dd8b2333b05a97d968dfabff"><td class="memItemLeft" align="right" valign="top">index_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a3a2d9b00dd8b2333b05a97d968dfabff">ell_col_at</a> (size_type row, size_type idx) const noexcept</td></tr>
 <tr class="memdesc:a3a2d9b00dd8b2333b05a97d968dfabff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the <code>idx</code>-th column index of the <code>row</code>-th row in the ell part.  <a href="#a3a2d9b00dd8b2333b05a97d968dfabff">More...</a><br /></td></tr>
 <tr class="separator:a3a2d9b00dd8b2333b05a97d968dfabff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe9a3a9a801271d5ead4774fff7ffbd7"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classgko_1_1matrix_1_1Ell.html">ell_type</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#afe9a3a9a801271d5ead4774fff7ffbd7">get_ell</a> () const noexcept</td></tr>
+<tr class="memdesc:afe9a3a9a801271d5ead4774fff7ffbd7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the matrix of the ell part.  <a href="#afe9a3a9a801271d5ead4774fff7ffbd7">More...</a><br /></td></tr>
+<tr class="separator:afe9a3a9a801271d5ead4774fff7ffbd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8513b46a3abb728b725fc26af81d09b9"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8513b46a3abb728b725fc26af81d09b9">get_coo_values</a> () noexcept</td></tr>
 <tr class="memdesc:a8513b46a3abb728b725fc26af81d09b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the coo part.  <a href="#a8513b46a3abb728b725fc26af81d09b9">More...</a><br /></td></tr>
 <tr class="separator:a8513b46a3abb728b725fc26af81d09b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -193,9 +200,15 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a2fe06adb3323dcad710329e33a12dff4"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a2fe06adb3323dcad710329e33a12dff4">get_coo_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:a2fe06adb3323dcad710329e33a12dff4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the coo part.  <a href="#a2fe06adb3323dcad710329e33a12dff4">More...</a><br /></td></tr>
 <tr class="separator:a2fe06adb3323dcad710329e33a12dff4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80eb99775093553db1029b9675f34e2c"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classgko_1_1matrix_1_1Coo.html">coo_type</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a80eb99775093553db1029b9675f34e2c">get_coo</a> () const noexcept</td></tr>
+<tr class="memdesc:a80eb99775093553db1029b9675f34e2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the matrix of the coo part.  <a href="#a80eb99775093553db1029b9675f34e2c">More...</a><br /></td></tr>
+<tr class="separator:a80eb99775093553db1029b9675f34e2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a00e86ba08ecfc46dbc9b74b800d10a8d">get_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the matrix.  <a href="#a00e86ba08ecfc46dbc9b74b800d10a8d">More...</a><br /></td></tr>
 <tr class="separator:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8be764050176291d35e7b4dee1b6e1bc"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8be764050176291d35e7b4dee1b6e1bc">get_strategy</a> () const noexcept</td></tr>
+<tr class="memdesc:a8be764050176291d35e7b4dee1b6e1bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the strategy.  <a href="#a8be764050176291d35e7b4dee1b6e1bc">More...</a><br /></td></tr>
+<tr class="separator:a8be764050176291d35e7b4dee1b6e1bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableLinOp"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableLinOp')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp&lt; Hybrid&lt; ValueType, IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a28a3c32ed2934695b46969533db050da inherit pub_methods_classgko_1_1EnableLinOp"><td class="memItemLeft" align="right" valign="top"><a id="a28a3c32ed2934695b46969533db050da"></a>
 const Hybrid&lt; ValueType, IndexType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *x) const</td></tr>
@@ -349,7 +362,7 @@ class gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</h3>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -397,7 +410,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -445,7 +458,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -493,7 +506,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -541,7 +554,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -572,7 +585,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -603,7 +616,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -634,7 +647,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -653,8 +666,8 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </table>
 </div><div class="memdoc">
 
-<p>Returns the column indexes of the ELL part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the column indexes of the ELL part.</dd></dl>
+<p>Returns the column indexes of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the column indexes of the ell part</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This is the constant version of the function, which can be significantly more memory efficient than the non-constant version, so always prefer this version. </dd></dl>
 
 </div>
@@ -665,7 +678,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -684,9 +697,39 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </table>
 </div><div class="memdoc">
 
-<p>Returns the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part.</dd></dl>
+<p>Returns the values of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the values of the ell part</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This is the constant version of the function, which can be significantly more memory efficient than the non-constant version, so always prefer this version. </dd></dl>
+
+</div>
+</div>
+<a id="a80eb99775093553db1029b9675f34e2c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a80eb99775093553db1029b9675f34e2c">&#9670;&nbsp;</a></span>get_coo()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="el" href="classgko_1_1matrix_1_1Coo.html">coo_type</a>* <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_coo </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the matrix of the coo part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the matrix of the coo part </dd></dl>
 
 </div>
 </div>
@@ -696,7 +739,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -726,7 +769,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -756,7 +799,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -786,7 +829,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -810,13 +853,43 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a id="afe9a3a9a801271d5ead4774fff7ffbd7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe9a3a9a801271d5ead4774fff7ffbd7">&#9670;&nbsp;</a></span>get_ell()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="el" href="classgko_1_1matrix_1_1Ell.html">ell_type</a>* <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_ell </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the matrix of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the matrix of the ell part </dd></dl>
+
+</div>
+</div>
 <a id="ac46548ef106a6b8fe32219d3e11aab22"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac46548ef106a6b8fe32219d3e11aab22">&#9670;&nbsp;</a></span>get_ell_col_idxs()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -835,38 +908,8 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </table>
 </div><div class="memdoc">
 
-<p>Returns the column indexes of the ELL part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the column indexes of the ELL part. </dd></dl>
-
-</div>
-</div>
-<a id="a8101c1539bbcb32d200534e884f17b3a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8101c1539bbcb32d200534e884f17b3a">&#9670;&nbsp;</a></span>get_ell_max_nonzeros_per_row()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_ell_max_nonzeros_per_row </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Returns the maximum number of non-zeros per row of ell part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the maximum number of non-zeros per row of ell part. </dd></dl>
+<p>Returns the column indexes of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the column indexes of the ell part </dd></dl>
 
 </div>
 </div>
@@ -876,7 +919,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -900,13 +943,43 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a id="a9ac6d0efc8627c915c73a0155e64548d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9ac6d0efc8627c915c73a0155e64548d">&#9670;&nbsp;</a></span>get_ell_num_stored_elements_per_row()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_ell_num_stored_elements_per_row </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of stored elements per row of ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the number of stored elements per row of ell part </dd></dl>
+
+</div>
+</div>
 <a id="a2472495b537b47555a04aa6ba11d5817"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2472495b537b47555a04aa6ba11d5817">&#9670;&nbsp;</a></span>get_ell_stride()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -926,7 +999,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </div><div class="memdoc">
 
 <p>Returns the stride of the ell part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the stride of the ell part. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>the stride of the ell part </dd></dl>
 
 </div>
 </div>
@@ -936,7 +1009,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -955,8 +1028,8 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </table>
 </div><div class="memdoc">
 
-<p>Returns the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part. </p>
-<dl class="section return"><dt>Returns</dt><dd>the values of the <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">Ell</a> part. </dd></dl>
+<p>Returns the values of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the values of the ell part </dd></dl>
 
 </div>
 </div>
@@ -966,7 +1039,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -987,6 +1060,36 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 <p>Returns the number of elements explicitly stored in the matrix. </p>
 <dl class="section return"><dt>Returns</dt><dd>the number of elements explicitly stored in the matrix </dd></dl>
+
+</div>
+</div>
+<a id="a8be764050176291d35e7b4dee1b6e1bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8be764050176291d35e7b4dee1b6e1bc">&#9670;&nbsp;</a></span>get_strategy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_strategy </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the strategy. </p>
+<dl class="section return"><dt>Returns</dt><dd>the strategy </dd></dl>
 
 </div>
 </div>
@@ -1026,8 +1129,6 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1ReadableFromMatrixData.html#add5c12e23b3ac3c8fbd607fa5a9656bb">gko::ReadableFromMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p class="reference">References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
-
 </div>
 </div>
 <a id="a626c07541641bcdfd9a7f61322a89cbe"></a>
@@ -1066,13 +1167,12 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">gko::WritableToMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p class="reference">References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
-
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (5077e84)</a></li>
-<li>core/matrix/hybrid.cpp (c8f5039)</li>
+<li>core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (6a3e54b)</a></li>
+<li>core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (38fb026)</a></li>
+<li>core/matrix/hybrid.cpp (38fb026)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

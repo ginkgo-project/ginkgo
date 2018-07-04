@@ -28,6 +28,8 @@ var searchData=
   ['convertibleto_3c_20ell_3c_20valuetype_2c_20int64_20_3e_20_3e',['ConvertibleTo&lt; Ell&lt; ValueType, int64 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20fcg_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Fcg&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20hybrid_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Hybrid&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
+  ['convertibleto_3c_20hybrid_3c_20valuetype_2c_20int32_20_3e_20_3e',['ConvertibleTo&lt; Hybrid&lt; ValueType, int32 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
+  ['convertibleto_3c_20hybrid_3c_20valuetype_2c_20int64_20_3e_20_3e',['ConvertibleTo&lt; Hybrid&lt; ValueType, int64 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20identity_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Identity&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20matrix_3a_3adense_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; matrix::Dense&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],

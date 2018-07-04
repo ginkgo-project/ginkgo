@@ -75,15 +75,191 @@ $(function() {
 <div class="title">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> is to decide how to set the hybrid config.  
+ <a href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="hybrid_8hpp_source.html">core/matrix/hybrid.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a25083654bf76615028e3406074a3f16a"><td class="memItemLeft" align="right" valign="top"><a id="a25083654bf76615028e3406074a3f16a"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>get_hybrid_limit</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, const <a class="el" href="structgko_1_1matrix__data.html">mat_data</a> &amp;data, size_type *ell_lim, size_type *coo_lim) const =0</td></tr>
-<tr class="separator:a25083654bf76615028e3406074a3f16a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a307425e7a1b925583cec9d6dd30be301"><td class="memItemLeft" align="right" valign="top"><a id="a307425e7a1b925583cec9d6dd30be301"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301">strategy_type</a> ()</td></tr>
+<tr class="memdesc:a307425e7a1b925583cec9d6dd30be301"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a>. <br /></td></tr>
+<tr class="separator:a307425e7a1b925583cec9d6dd30be301"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af784a54f979bcdf55e1e76b64850dd68"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">compute_hybrid_config</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; &amp;row_nnz, size_type *ell_num_stored_elements_per_row, size_type *coo_nnz)</td></tr>
+<tr class="memdesc:af784a54f979bcdf55e1e76b64850dd68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the config of the <a class="el" href="classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format. ">Hybrid</a> matrix (ell_num_stored_elements_per_row and coo_nnz).  <a href="#af784a54f979bcdf55e1e76b64850dd68">More...</a><br /></td></tr>
+<tr class="separator:af784a54f979bcdf55e1e76b64850dd68"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a1bc0e4837a3fde7650455088c3da8a"><td class="memItemLeft" align="right" valign="top">const size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a3a1bc0e4837a3fde7650455088c3da8a">get_ell_num_stored_elements_per_row</a> () const noexcept</td></tr>
+<tr class="memdesc:a3a1bc0e4837a3fde7650455088c3da8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of stored elements per row of the ell part.  <a href="#a3a1bc0e4837a3fde7650455088c3da8a">More...</a><br /></td></tr>
+<tr class="separator:a3a1bc0e4837a3fde7650455088c3da8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4eab8283af5bbec83dab7c7f24df32ab"><td class="memItemLeft" align="right" valign="top">const size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">get_coo_nnz</a> () const noexcept</td></tr>
+<tr class="memdesc:a4eab8283af5bbec83dab7c7f24df32ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of nonzeros of the coo part.  <a href="#a4eab8283af5bbec83dab7c7f24df32ab">More...</a><br /></td></tr>
+<tr class="separator:a4eab8283af5bbec83dab7c7f24df32ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="memItemLeft" align="right" valign="top">virtual size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a0a0cd4024f27c7d0f286f35fc0a6de60">compute_ell_num_stored_elements_per_row</a> (<a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; *row_nnz) const =0</td></tr>
+<tr class="memdesc:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the number of stored elements per row of the ell part.  <a href="#a0a0cd4024f27c7d0f286f35fc0a6de60">More...</a><br /></td></tr>
+<tr class="separator:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><h3>template&lt;typename ValueType = default_precision, typename IndexType = int32&gt;<br />
+class gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type</h3>
+
+<p><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> is to decide how to set the hybrid config. </p>
+<p>It computes the number of stored elements per row of the ell part and then set the number of residual nonzeros as the number of nonzeros of the coo part.</p>
+<p>The practical strategy method should inherit <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a> and implement its <code>compute_ell_num_stored_elements_per_row</code> function. </p>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a0a0cd4024f27c7d0f286f35fc0a6de60"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0a0cd4024f27c7d0f286f35fc0a6de60">&#9670;&nbsp;</a></span>compute_ell_num_stored_elements_per_row()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::compute_ell_num_stored_elements_per_row </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; *&#160;</td>
+          <td class="paramname"><em>row_nnz</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Computes the number of stored elements per row of the ell part. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">row_nnz</td><td>the number of nonzeros of each row</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the number of stored elements per row of the ell part </dd></dl>
+
+<p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1automatic.html#a804d556fbcbe8ed754e167f270b16118">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::automatic</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit</a>, and <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html#afb410def66106b711ac094fd31d48aba">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::column_limit</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::compute_hybrid_config()</a>.</p>
+
+</div>
+</div>
+<a id="af784a54f979bcdf55e1e76b64850dd68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af784a54f979bcdf55e1e76b64850dd68">&#9670;&nbsp;</a></span>compute_hybrid_config()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::compute_hybrid_config </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; &amp;&#160;</td>
+          <td class="paramname"><em>row_nnz</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_type *&#160;</td>
+          <td class="paramname"><em>ell_num_stored_elements_per_row</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_type *&#160;</td>
+          <td class="paramname"><em>coo_nnz</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Computes the config of the <a class="el" href="classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format. ">Hybrid</a> matrix (ell_num_stored_elements_per_row and coo_nnz). </p>
+<p>For now, it copies row_nnz to the reference executor and performs all operations on the reference executor.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">row_nnz</td><td>the number of nonzeros of each row </td></tr>
+    <tr><td class="paramname">ell_num_stored_elements_per_row</td><td>the output number of stored elements per row of the ell part </td></tr>
+    <tr><td class="paramname">coo_nnz</td><td>the output number of nonzeros of the coo part </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a0a0cd4024f27c7d0f286f35fc0a6de60">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::compute_ell_num_stored_elements_per_row()</a>, <a class="el" href="classgko_1_1Array.html#a820e5930cb5072acc7673fdb2d11efcd">gko::Array&lt; ValueType &gt;::get_executor()</a>, and <a class="el" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">gko::Array&lt; ValueType &gt;::get_num_elems()</a>.</p>
+
+</div>
+</div>
+<a id="a4eab8283af5bbec83dab7c7f24df32ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4eab8283af5bbec83dab7c7f24df32ab">&#9670;&nbsp;</a></span>get_coo_nnz()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_coo_nnz </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of nonzeros of the coo part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the number of nonzeros of the coo part </dd></dl>
+
+</div>
+</div>
+<a id="a3a1bc0e4837a3fde7650455088c3da8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3a1bc0e4837a3fde7650455088c3da8a">&#9670;&nbsp;</a></span>get_ell_num_stored_elements_per_row()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_ell_num_stored_elements_per_row </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of stored elements per row of the ell part. </p>
+<dl class="section return"><dt>Returns</dt><dd>the number of stored elements per row of the ell part </dd></dl>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (5077e84)</a></li>
+<li>core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (38fb026)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
