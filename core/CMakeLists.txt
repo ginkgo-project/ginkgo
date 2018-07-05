@@ -1,6 +1,7 @@
 set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
+    base/version.cpp
     log/stream.cpp
     log/logger.cpp
     log/record.cpp
@@ -10,11 +11,18 @@ set(SOURCES
     matrix/ell.cpp
     matrix/hybrid.cpp
     matrix/identity.cpp
+    matrix/sellp.cpp
     preconditioner/block_jacobi.cpp
     solver/bicgstab.cpp
     solver/cg.cpp
     solver/cgs.cpp
-    solver/fcg.cpp)
+    solver/fcg.cpp
+    stop/combined.cpp
+    stop/criterion.cpp
+    stop/iteration.cpp
+    stop/residual_norm_reduction.cpp
+    stop/time.cpp)
+
 
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
@@ -27,7 +35,7 @@ add_library(ginkgo ${SOURCES})
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_omp ginkgo_gpu ginkgo_reference
+    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference
     PRIVATE mmio)
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)

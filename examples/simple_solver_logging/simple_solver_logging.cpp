@@ -46,14 +46,14 @@ libraries located in the following subdirectories:
     + core/device_hooks/
     + reference/
     + omp/
-    + gpu/
+    + cuda/
 
 to this directory.
 
 Then compile the file with the following command line:
 
 c++ -std=c++11 -o simple_solver_logging simple_solver_logging.cpp \
-   -I../.. -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_gpu
+   -I../.. -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
@@ -75,15 +75,18 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::Cg<>;
 
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
     if (argc == 1 || std::string(argv[1]) == "reference") {
         exec = gko::ReferenceExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "omp") {
         exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "gpu" &&
-               gko::GpuExecutor::get_num_devices() > 0) {
-        exec = gko::GpuExecutor::create(0, gko::OmpExecutor::create());
+    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
+               gko::CudaExecutor::get_num_devices() > 0) {
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);

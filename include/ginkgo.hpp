@@ -48,6 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/range_accessors.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
+#include "core/base/version.hpp"
 
 #include "core/log/record.hpp"
 #include "core/log/stream.hpp"
@@ -65,7 +66,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs.hpp"
 #include "core/solver/fcg.hpp"
 
+#include "core/stop/combined.hpp"
+#include "core/stop/iteration.hpp"
+#include "core/stop/residual_norm_reduction.hpp"
 #include "core/stop/stopping_status.hpp"
+#include "core/stop/time.hpp"
 
 
 #endif  // GKO_GINKGO_HPP_

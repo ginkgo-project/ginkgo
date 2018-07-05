@@ -1,16 +1,16 @@
-if(NOT BUILD_GPU)
-    add_library(ginkgo_gpu
-        $<TARGET_OBJECTS:ginkgo_gpu_device>
-        gpu_hooks.cpp)
-    ginkgo_default_includes(ginkgo_gpu)
-    ginkgo_install_library(ginkgo_gpu gpu)
+if(NOT BUILD_CUDA)
+    add_library(ginkgo_cuda
+        $<TARGET_OBJECTS:ginkgo_cuda_device>
+        cuda_hooks.cpp)
+    ginkgo_default_includes(ginkgo_cuda)
+    ginkgo_install_library(ginkgo_cuda cuda)
 endif()
 
 if (NOT BUILD_OMP)
     add_library(ginkgo_omp
         $<TARGET_OBJECTS:ginkgo_omp_device>
         omp_hooks.cpp)
-    target_link_libraries(ginkgo_omp PUBLIC ginkgo_gpu)
+    target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
     ginkgo_default_includes(ginkgo_omp)
     ginkgo_install_library(ginkgo_omp omp)
 endif()

@@ -119,6 +119,23 @@ TEST_F(Csr, CanBeEmpty)
 }
 
 
+TEST_F(Csr, CanBeCreatedFromExistingData)
+{
+    double values[] = {1.0, 2.0, 3.0, 4.0};
+    gko::int32 col_idxs[] = {0, 1, 1, 0};
+    gko::int32 row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = gko::matrix::Csr<>::create(
+        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 4, values),
+        gko::Array<gko::int32>::view(exec, 4, col_idxs),
+        gko::Array<gko::int32>::view(exec, 4, row_ptrs));
+
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+}
+
+
 TEST_F(Csr, CanBeCopied)
 {
     auto copy = Mtx::create(exec);

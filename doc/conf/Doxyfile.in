@@ -2,12 +2,12 @@ QUIET                  = YES
 
 # General project info
 PROJECT_NAME           = "Ginkgo"
-PROJECT_NUMBER         = @PROJECT_VERSION@
+PROJECT_NUMBER         = "@PROJECT_VERSION_TAG@ @PROJECT_VERSION@"
 PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting manycore architectures."
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @DIR_BASE@/core @DIR_BASE@/omp @DIR_BASE@/gpu @DIR_BASE@/reference @MAINPAGE@
+INPUT                  = @DIR_BASE@/core @DIR_BASE@/omp @DIR_BASE@/cuda @DIR_BASE@/reference @MAINPAGE@
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples
@@ -50,7 +50,7 @@ MAX_INITIALIZER_LINES  = 30
 SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
-FILE_VERSION_FILTER    = @DIR_SCRIPT@/doxygen_version_extract.sh
+FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
 LAYOUT_FILE            =
 CITE_BIB_FILES         = 
 
@@ -64,8 +64,8 @@ REFERENCES_RELATION    = YES
 REFERENCES_LINK_SOURCE = YES
 SOURCE_TOOLTIPS        = YES
 VERBATIM_HEADERS       = YES
-CLANG_ASSISTED_PARSING = NO
-CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
+# CLANG_ASSISTED_PARSING = NO
+# CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
 
 GENERATE_HTML          = NO
 GENERATE_LATEX         = NO

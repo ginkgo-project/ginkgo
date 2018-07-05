@@ -57,17 +57,6 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
-template <typename ValueType>
-void test_convergence(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Dense<ValueType> *tau,
-                      const matrix::Dense<ValueType> *orig_tau,
-                      remove_complex<ValueType> rel_residual_goal,
-                      uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status> *stop_status, bool *all_converged,
-                      bool *one_changed) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BICGSTAB_TEST_CONVERGENCE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const OmpExecutor> exec,

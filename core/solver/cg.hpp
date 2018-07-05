@@ -89,7 +89,7 @@ public:
         return preconditioner_;
     }
 
-    GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory)
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
          * Maximum number of iterations.
@@ -107,6 +107,7 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
     };
+    GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
