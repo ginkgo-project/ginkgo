@@ -143,8 +143,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type col = 0; col < num_cols; col++) {
                 result->at(global_row, col) = zero<ValueType>();
             }
-            for (size_type i = slice_sets[slice];
-                 i < slice_sets[slice] + slice_lengths[slice]; i++) {
+            for (size_type i = slice_sets[slice]; i < slice_sets[slice + 1];
+                 i++) {
                 result->at(global_row, col_idxs[row + i * slice_size]) +=
                     vals[row + i * slice_size];
             }

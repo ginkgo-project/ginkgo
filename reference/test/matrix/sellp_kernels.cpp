@@ -61,7 +61,8 @@ protected:
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
                                      {0.0, 5.0, 0.0}}, exec);
         mtx2 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
-             {0.0, 5.0, 0.0}}, exec, gko::dim{});
+                                     {0.0, 5.0, 0.0}}, exec,
+                                     gko::dim{}, 2, 2, 0);
         // clang-format on
     }
 
@@ -194,7 +195,7 @@ TEST_F(Sellp, MovesToDense)
 }
 
 
-TEST_F(Sellp, AppliesWithStrideToDenseVector)
+TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = Vec::create(exec, gko::dim{2, 1});
@@ -205,7 +206,7 @@ TEST_F(Sellp, AppliesWithStrideToDenseVector)
 }
 
 
-TEST_F(Sellp, AppliesWithStrideToDenseMatrix)
+TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
 {
     // clang-format off
     auto x = gko::initialize<Vec>(
@@ -225,7 +226,7 @@ TEST_F(Sellp, AppliesWithStrideToDenseMatrix)
 }
 
 
-TEST_F(Sellp, AppliesWithStrideLinearCombinationToDenseVector)
+TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseVector)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -238,7 +239,7 @@ TEST_F(Sellp, AppliesWithStrideLinearCombinationToDenseVector)
 }
 
 
-TEST_F(Sellp, AppliesWithStrideLinearCombinationToDenseMatrix)
+TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -262,7 +263,7 @@ TEST_F(Sellp, AppliesWithStrideLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Sellp, ApplyWithStrideFailsOnWrongInnerDimension)
+TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongInnerDimension)
 {
     auto x = Vec::create(exec, gko::dim{2});
     auto y = Vec::create(exec, gko::dim{2});
@@ -271,7 +272,7 @@ TEST_F(Sellp, ApplyWithStrideFailsOnWrongInnerDimension)
 }
 
 
-TEST_F(Sellp, ApplyWithStrideFailsOnWrongNumberOfRows)
+TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfRows)
 {
     auto x = Vec::create(exec, gko::dim{3, 2});
     auto y = Vec::create(exec, gko::dim{3, 2});
@@ -280,7 +281,7 @@ TEST_F(Sellp, ApplyWithStrideFailsOnWrongNumberOfRows)
 }
 
 
-TEST_F(Sellp, ApplyWithStrideFailsOnWrongNumberOfCols)
+TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfCols)
 {
     auto x = Vec::create(exec, gko::dim{3}, 2);
     auto y = Vec::create(exec, gko::dim{2});
@@ -289,7 +290,7 @@ TEST_F(Sellp, ApplyWithStrideFailsOnWrongNumberOfCols)
 }
 
 
-TEST_F(Sellp, ConvertsWithStrideToDense)
+TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
     // clang-format off
@@ -308,7 +309,7 @@ TEST_F(Sellp, ConvertsWithStrideToDense)
 }
 
 
-TEST_F(Sellp, MovesWithStrideToDense)
+TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
 {
     auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
 
