@@ -11,3 +11,4 @@ SOURCE_BROWSER         = NO
 CALL_GRAPH             = NO
 CALLER_GRAPH           = NO
 EXCLUDE_SYMBOLS        = *::detail::* std::*
+WARN_LOGFILE           = @out@.log

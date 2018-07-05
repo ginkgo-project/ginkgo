@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
+#include "core/matrix/hybrid.hpp"
 #include "core/matrix/sellp.hpp"
 
 
@@ -64,8 +65,10 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
-    GKO_REGISTER_OPERATION(calculate_max_nonzeros_per_row,
-                           dense::calculate_max_nonzeros_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
+                           dense::calculate_max_nnz_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
+                           dense::calculate_nonzeros_per_row<ValueType>);
     GKO_REGISTER_OPERATION(calculate_total_cols,
                            dense::calculate_total_cols<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
@@ -90,6 +93,14 @@ template <typename... TplArgs>
 struct TemplatedOperationEll {
     GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_ell, dense::move_to_ell<TplArgs...>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationHybrid {
+    GKO_REGISTER_OPERATION(convert_to_hybrid,
+                           dense::convert_to_hybrid<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_hybrid, dense::move_to_hybrid<TplArgs...>);
 };
 
 
@@ -141,16 +152,43 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-    size_type max_nonzeros_per_row = 0;
-    exec->run(TemplatedOperation<ValueType>::
-                  make_calculate_max_nonzeros_per_row_operation(
-                      source, &max_nonzeros_per_row));
-    const auto max_nnz_per_row =
-        std::max(result->get_max_nonzeros_per_row(), max_nonzeros_per_row);
+    size_type num_stored_elements_per_row = 0;
+    exec->run(
+        TemplatedOperation<ValueType>::make_calculate_max_nnz_per_row_operation(
+            source, &num_stored_elements_per_row));
+    const auto max_nnz_per_row = std::max(
+        result->get_num_stored_elements_per_row(), num_stored_elements_per_row);
     const auto stride =
         std::max(result->get_stride(), source->get_size().num_rows);
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
                                                  max_nnz_per_row, stride);
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+    Array<size_type> row_nnz(exec, source->get_size().num_rows);
+    exec->run(TemplatedOperation<
+              ValueType>::make_calculate_nonzeros_per_row_operation(source,
+                                                                    &row_nnz));
+    size_type ell_lim = zero<size_type>();
+    size_type coo_lim = zero<size_type>();
+    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
+    const auto max_nnz_per_row =
+        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
+    const auto stride =
+        std::max(result->get_ell_stride(), source->get_size().num_rows);
+    const auto coo_nnz =
+        std::max(result->get_coo_num_stored_elements(), coo_lim);
+    auto tmp = Hybrid<ValueType, IndexType>::create(
+        exec, source->get_size(), max_nnz_per_row, stride, coo_nnz,
+        result->get_strategy());
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -377,6 +415,48 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
         TemplatedOperationEll<ValueType, int64>::
             template make_move_to_ell_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Hybrid<ValueType, int32> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationHybrid<ValueType, int32>::
+                          template make_convert_to_hybrid_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Hybrid<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationHybrid<ValueType, int32>::
+            template make_move_to_hybrid_operation<decltype(result),
+                                                   Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Hybrid<ValueType, int64> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationHybrid<ValueType, int64>::
+                          template make_convert_to_hybrid_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Hybrid<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationHybrid<ValueType, int64>::
+            template make_move_to_hybrid_operation<decltype(result),
+                                                   Dense<ValueType> *&>);
 }
 
 

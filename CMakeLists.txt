@@ -5,6 +5,7 @@ else()
 endif()
 project(Ginkgo LANGUAGES CXX VERSION 0.0.0)
 set(Ginkgo_VERSION_TAG "develop")
+set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)

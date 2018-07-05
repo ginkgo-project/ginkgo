@@ -52,7 +52,7 @@ class Dense;
  * ELL is a matrix format where stride with explicit zeros is used such that
  * all rows have the same number of stored elements. The number of elements
  * stored in each row is the largest number of nonzero elements in any of the
- * rows (obtainable through get_max_nonzeros_per_row() method). This removes
+ * rows (obtainable through get_num_stored_elements_per_row() method). This removes
  * the need of a row pointer like in the CSR format, and allows for SIMD
  * processing of the distinct rows. For efficient processing, the nonzero
  * elements and the corresponding column indices are stored in column-major
@@ -128,13 +128,13 @@ public:
     }
 
     /**
-     * Returns the maximum number of non-zeros per row.
+     * Returns the number of stored elements per row.
      *
-     * @return the maximum number of non-zeros per row.
+     * @return the number of stored elements per row.
      */
-    size_type get_max_nonzeros_per_row() const noexcept
+    size_type get_num_stored_elements_per_row() const noexcept
     {
-        return max_nonzeros_per_row_;
+        return num_stored_elements_per_row_;
     }
 
     /**
@@ -204,7 +204,7 @@ protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
      *    (The stride is set to the number of rows of the matrix.
-     *     The max_nonzeros_per_row is set to the number of cols of the matrix.)
+     *     The num_stored_elements_per_row is set to the number of cols of the matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -219,11 +219,12 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
      */
     Ell(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row)
-        : Ell(std::move(exec), size, max_nonzeros_per_row, size.num_rows)
+        size_type num_stored_elements_per_row)
+        : Ell(std::move(exec), size, num_stored_elements_per_row, size.num_rows)
     {}
 
     /**
@@ -231,15 +232,16 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
      * @param stride                stride of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, const dim &size,
-        size_type max_nonzeros_per_row, size_type stride)
+        size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
-          values_(exec, stride * max_nonzeros_per_row),
-          col_idxs_(exec, stride * max_nonzeros_per_row),
-          max_nonzeros_per_row_(max_nonzeros_per_row),
+          values_(exec, stride * num_stored_elements_per_row),
+          col_idxs_(exec, stride * num_stored_elements_per_row),
+          num_stored_elements_per_row_(num_stored_elements_per_row),
           stride_(stride)
     {}
 
@@ -255,7 +257,8 @@ protected:
      * @param size  size of the matrix
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
-     * @param max_nonzeros_per_row   maximum number of nonzeros in one row
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
      * @param stride  stride of the rows
      *
      * @note If one of `col_idxs` or `values` is not an rvalue, not an array of
@@ -266,16 +269,16 @@ protected:
     template <typename ValuesArray, typename ColIdxsArray>
     Ell(std::shared_ptr<const Executor> exec, const dim &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs,
-        size_type max_nonzeros_per_row, size_type stride)
+        size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          max_nonzeros_per_row_{max_nonzeros_per_row},
+          num_stored_elements_per_row_{num_stored_elements_per_row},
           stride_{stride}
     {
-        ENSURE_IN_BOUNDS(max_nonzeros_per_row_ * stride_ - 1,
+        ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
                          values_.get_num_elems());
-        ENSURE_IN_BOUNDS(max_nonzeros_per_row_ * stride_ - 1,
+        ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
                          col_idxs_.get_num_elems());
     }
 
@@ -292,7 +295,7 @@ protected:
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
-    size_type max_nonzeros_per_row_;
+    size_type num_stored_elements_per_row_;
     size_type stride_;
 };
 

@@ -59,7 +59,11 @@ template <typename ValueType, typename IndexType>
 class Ell;
 
 template <typename ValueType, typename IndexType>
+class Hybrid;
+
+template <typename ValueType, typename IndexType>
 class Sellp;
+
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -82,6 +86,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
+              public ConvertibleTo<Hybrid<ValueType, int32>>,
+              public ConvertibleTo<Hybrid<ValueType, int64>>,
               public ConvertibleTo<Sellp<ValueType, int32>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
               public ReadableFromMatrixData<ValueType, int32>,
@@ -97,6 +103,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Csr<ValueType, int64>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
+    friend class Hybrid<ValueType, int32>;
+    friend class Hybrid<ValueType, int64>;
     friend class Sellp<ValueType, int32>;
     friend class Sellp<ValueType, int64>;
 
@@ -143,6 +151,14 @@ public:
     void convert_to(Ell<ValueType, int64> *result) const override;
 
     void move_to(Ell<ValueType, int64> *result) override;
+
+    void convert_to(Hybrid<ValueType, int32> *result) const override;
+
+    void move_to(Hybrid<ValueType, int32> *result) override;
+
+    void convert_to(Hybrid<ValueType, int64> *result) const override;
+
+    void move_to(Hybrid<ValueType, int64> *result) override;
 
     void convert_to(Sellp<ValueType, int32> *result) const override;
 
