@@ -66,6 +66,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
     GKO_REGISTER_OPERATION(calculate_max_nonzeros_per_row,
                            dense::calculate_max_nonzeros_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_total_cols_operation,
+                           dense::calculate_total_cols_operation<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
     GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
@@ -94,7 +96,7 @@ struct TemplatedOperationEll {
 template <typename... TplArgs>
 struct TemplatedOperationSellp {
     GKO_REGISTER_OPERATION(convert_to_sellp,
-        dense::convert_to_sellp<TplArgs...>);
+                           dense::convert_to_sellp<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_sellp, dense::move_to_sellp<TplArgs...>);
 };
 
@@ -159,7 +161,22 @@ template <typename ValueType, typename IndexType, typename MatrixType,
 inline void conversion_helper(Sellp<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
-    NOT_IMPLEMENTED;
+    auto exec = source->get_executor();
+    size_type total_cols = 0;
+    exec->run(
+        TemplatedOperation<ValueType>::make_calculate_total_cols_operation(
+            source, &total_cols));
+    const auto total_cols = std::max(result->get_total_cols(), total_cols);
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? default_slice_size
+                                : result->get_slice_size();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? default_stride_factor
+                                   : result->get_stride_factor();
+    auto tmp = Sliced_ell<ValueType, IndexType>::create(
+        exec, source->get_size(), slice_size, stride_factor, total_cols);
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
 }
 
 
@@ -366,11 +383,10 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        TemplatedOperationSellp<ValueType, int32>::
-            template make_convert_to_sellp_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int32>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
 }
 
 
@@ -381,18 +397,17 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
         result, this,
         TemplatedOperationSellp<ValueType, int32>::
             template make_move_to_sellp_operation<decltype(result),
-                                                Dense<ValueType> *&>);
+                                                  Dense<ValueType> *&>);
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        TemplatedOperationSellp<ValueType, int64>::
-            template make_convert_to_sellp_operation<decltype(result),
-                                                   const Dense<ValueType> *&>);
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int64>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
 }
 
 
@@ -403,7 +418,7 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
         result, this,
         TemplatedOperationSellp<ValueType, int64>::
             template make_move_to_sellp_operation<decltype(result),
-                                                Dense<ValueType> *&>);
+                                                  Dense<ValueType> *&>);
 }
 
 

@@ -169,6 +169,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
+void claculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+                          const matrix::Dense<ValueType> *source,
+                          size_type *result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
+
+
+template <typename ValueType>
 void transpose(std::shared_ptr<const OmpExecutor> exec,
                matrix::Dense<ValueType> *trans,
                const matrix::Dense<ValueType> *orig) NOT_IMPLEMENTED;

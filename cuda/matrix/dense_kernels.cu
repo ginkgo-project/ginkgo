@@ -359,16 +359,16 @@ template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
                       matrix::Sellp<ValueType, IndexType> *result,
                       const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-    
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
-    
-    
+
+
 template <typename ValueType, typename IndexType>
 void move_to_sellp(std::shared_ptr<const CudaExecutor> exec,
                    matrix::Sellp<ValueType, IndexType> *result,
                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-    
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
 
@@ -388,6 +388,15 @@ void calculate_max_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_MAX_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType>
+void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
+                          const matrix::Dense<ValueType> *source,
+                          size_type *result) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType>
