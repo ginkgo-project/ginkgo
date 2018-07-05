@@ -293,7 +293,61 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Sellp<ValueType, IndexType> *result,
-                      const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+                      const matrix::Dense<ValueType> *source)
+{
+    auto num_rows = result->get_size().num_rows;
+    auto num_cols = result->get_size().num_cols;
+    auto num_nonzeros = result->get_num_stored_elements();
+    auto total_cols = result->get_total_cols();
+    auto vals = result->get_values();
+    auto col_idxs = result->get_col_idxs();
+    auto slice_lengths = result->get_slice_lengths();
+    auto slice_sets = result->get_slice_sets();
+    auto slice_size = (result->get_slice_size() == 0)
+                          ? matrix::default_slice_size
+                          : result->get_slice_size();
+    int slice_num = ceildiv(num_rows, slice_size);
+    slice_sets[0] = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        if (slice > 0) {
+            slice_sets[slice] = slice_lengths[slice - 1];
+        }
+        slice_lengths[slice] = 0;
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            size_type global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            size_type max_col = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                if (source->at(global_row, col) != zero<ValueType>()) {
+                    max_col += 1;
+                }
+            }
+            slice_lengths[slice] = std::max(slice_lengths[slice], max_col);
+        }
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            size_type global_row = slice * slice_size + row;
+            size_type sellp_ind = slice_sets[slice] * slice_size + row;
+            for (size_type col = 0; col < num_cols; col++) {
+                if (source->at(global_row, col) != zero<ValueType>()) {
+                    col_idxs[sellp_ind] = col;
+                    vals[sellp_ind] = source->at(global_row, col);
+                    sellp_ind += slice_size;
+                }
+            }
+            for (size_type i = sellp_ind;
+                 i <
+                 (slice_sets[slice] + slice_lengths[slice]) * slice_size + row;
+                 i += slice_size) {
+                col_idxs[i] = col_idxs[sellp_ind - slice_size];
+                vals[i] = 0;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
@@ -302,7 +356,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void move_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::Sellp<ValueType, IndexType> *result,
-                   const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+                   const matrix::Dense<ValueType> *source)
+{
+    reference::dense::convert_to_sellp(exec, result, source);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);

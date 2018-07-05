@@ -101,7 +101,10 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    NOT_IMPLEMENTED;
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -109,21 +112,30 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
 {
-    NOT_IMPLEMENTED;
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
-    NOT_IMPLEMENTED;
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->move_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
-    NOT_IMPLEMENTED;
+    this->convert_to(result);
 }
 
 
