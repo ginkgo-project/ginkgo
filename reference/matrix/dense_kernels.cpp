@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 #include <algorithm>
@@ -352,9 +353,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void claculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
+void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Dense<ValueType> *source,
-                          size_type *result) NOT_IMPLEMENTED;
+                          size_type *result)
+{
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto slice_size = matrix::default_slice_size;
+    auto stride_factor = matrix::default_stride_factor;
+    auto slice_num = ceildiv(num_rows, slice_size);
+    auto total_cols = 0;
+    auto temp = 0, slice_temp = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        slice_temp = 0;
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            temp = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                temp += (source->at(row + slice * slice_size, col) !=
+                         zero<ValueType>());
+            }
+            slice_temp = (slice_temp < temp) ? temp : slice_temp;
+        }
+        total_cols += slice_temp;
+    }
+
+    *result = ceildiv(total_cols, stride_factor) * stride_factor;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);

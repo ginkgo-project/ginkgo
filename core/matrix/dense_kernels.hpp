@@ -114,7 +114,7 @@ namespace kernels {
         const matrix::Dense<_type> *source, size_type *result)
 
 #define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
-    void calaulate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
+    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Dense<_type> *source,          \
                               size_type *result)
 

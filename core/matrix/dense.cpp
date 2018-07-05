@@ -66,8 +66,8 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
     GKO_REGISTER_OPERATION(calculate_max_nonzeros_per_row,
                            dense::calculate_max_nonzeros_per_row<ValueType>);
-    GKO_REGISTER_OPERATION(calculate_total_cols_operation,
-                           dense::calculate_total_cols_operation<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_total_cols,
+                           dense::calculate_total_cols<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
     GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
@@ -162,18 +162,18 @@ inline void conversion_helper(Sellp<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-    size_type total_cols = 0;
+    size_type total_columns = 0;
     exec->run(
         TemplatedOperation<ValueType>::make_calculate_total_cols_operation(
-            source, &total_cols));
-    const auto total_cols = std::max(result->get_total_cols(), total_cols);
+            source, &total_columns));
+    const auto total_cols = std::max(result->get_total_cols(), total_columns);
     const auto slice_size = (result->get_slice_size() == 0)
                                 ? default_slice_size
                                 : result->get_slice_size();
     const auto stride_factor = (result->get_stride_factor() == 0)
                                    ? default_stride_factor
                                    : result->get_stride_factor();
-    auto tmp = Sliced_ell<ValueType, IndexType>::create(
+    auto tmp = Sellp<ValueType, IndexType>::create(
         exec, source->get_size(), slice_size, stride_factor, total_cols);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);

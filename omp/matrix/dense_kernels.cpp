@@ -169,7 +169,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void claculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                           const matrix::Dense<ValueType> *source,
                           size_type *result) NOT_IMPLEMENTED;
 
