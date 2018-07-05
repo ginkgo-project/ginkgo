@@ -54,7 +54,8 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
-    int slice_num = (a->get_size().num_rows + slice_size - 1) / slice_size;
+    auto slice_num =
+        ceildiv(a->get_size().num_rows + slice_size - 1, slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
@@ -91,7 +92,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
-    int slice_num = (a->get_size().num_rows + slice_size - 1) / slice_size;
+    auto slice_num =
+        ceildiv(a->get_size().num_rows + slice_size - 1, slice_size);
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     for (size_type slice = 0; slice < slice_num; slice++) {
@@ -123,20 +125,31 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Sellp<ValueType, IndexType> *source)
 {
-    // auto num_rows = source->get_size().num_rows;
-    // auto num_cols = source->get_size().num_cols;
-    // auto max_nonzeros_per_row = source->get_max_nonzeros_per_row();
-
-    // for (size_type row = 0; row < num_rows; row++) {
-    //     for (size_type col = 0; col < num_cols; col++) {
-    //         result->at(row, col) = zero<ValueType>();
-    //     }
-    //     for (size_type i = 0; i < max_nonzeros_per_row; i++) {
-    //         result->at(row, source->col_at(row, i)) += source->val_at(row,
-    //         i);
-    //     }
-    // }
-    NOT_IMPLEMENTED;
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto vals = source->get_const_values();
+    auto col_idxs = source->get_const_col_idxs();
+    auto slice_lengths = source->get_const_slice_lengths();
+    auto slice_sets = source->get_const_slice_sets();
+    auto slice_size = source->get_slice_size();
+    auto slice_num =
+        ceildiv(source->get_size().num_rows + slice_size - 1, slice_size);
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < slice_size; row++) {
+            size_type global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            for (size_type col = 0; col < num_cols; col++) {
+                result->at(global_row, col) = zero<ValueType>();
+            }
+            for (size_type i = slice_sets[slice];
+                 i < slice_sets[slice] + slice_lengths[slice]; i++) {
+                result->at(global_row, col_idxs[row + i * slice_size]) +=
+                    vals[row + i * slice_size];
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
