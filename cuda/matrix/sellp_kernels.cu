@@ -47,6 +47,33 @@ namespace cuda {
 namespace sellp {
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_slice_size) void spmv_kernel(
+    size_type num_rows, const IndexType *__restrict__ slice_lens,
+    const IndexType *__restrict__ slice_sets, const ValueType *__restrict__ a,
+    const IndexType *__restrict__ col, const ValueType *__restrict__ b,
+    ValueType *__restrict__ c)
+{
+    const auto idx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    ValueType val = 0;
+    IndexType ind = 0;
+    if (idx < num_rows) {
+        for (size_type i = 0; i < slice_lens[blockIdx.x]; i++) {
+            ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
+            val += a[ind] * b[col[ind]];
+        }
+        c[idx] = val;
+    }
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Sellp<ValueType, IndexType> *a,
