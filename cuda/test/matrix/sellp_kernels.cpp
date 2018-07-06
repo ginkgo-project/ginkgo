@@ -79,9 +79,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0)
+    void set_up_apply_data()
     {
-        mtx = Mtx::create(ref, gko::dim{}, num_stored_elements_per_row, stride);
+        mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);
@@ -98,7 +98,6 @@ protected:
         dbeta = Vec::create(cuda);
         dbeta->copy_from(beta.get());
     }
-
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
@@ -119,46 +118,29 @@ protected:
 };
 
 
-TEST_F(Ell, SimpleApplyIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
-{
-    set_up_apply_data(300, 600);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
-{
-    set_up_apply_data(300, 600);
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
