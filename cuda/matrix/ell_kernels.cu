@@ -87,7 +87,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
     spmv_kernel<<<grid_size, block_size, 0, 0>>>(
         a->get_size().num_rows, as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), a->get_stride(), a->get_num_stored_elements_per_row(),
+        a->get_const_col_idxs(), a->get_stride(),
+        a->get_num_stored_elements_per_row(),
         as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
