@@ -79,7 +79,13 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Sellp<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    NOT_IMPLEMENTED;
+    const dim3 blockSize(default_slice_size);
+    const dim3 gridSize(ceildiv(a->get_num_rows(), default_slice_size));
+
+    spmv_kernel<<<gridSize, blockSize>>>(
+        a->get_num_rows(), a->get_const_slice_lens(), a->get_const_slice_sets(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
