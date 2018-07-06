@@ -99,8 +99,8 @@ namespace {
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(matrix::default_slice_size) void advanced_spmv_kernel(
-        size_type num_rows, const IndexType *__restrict__ slice_lengths,
-        const IndexType *__restrict__ slice_sets,
+        size_type num_rows, const size_type *__restrict__ slice_lengths,
+        const size_type *__restrict__ slice_sets,
         const ValueType *__restrict__ alpha, const ValueType *__restrict__ a,
         const IndexType *__restrict__ col, const ValueType *__restrict__ b,
         const ValueType *__restrict__ beta, ValueType *__restrict__ c)
@@ -130,7 +130,15 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    NOT_IMPLEMENTED;
+    const dim3 blockSize(matrix::default_slice_size);
+    const dim3 gridSize(ceildiv(a->get_size().num_rows, blockSize.x));
+
+    advanced_spmv_kernel<<<gridSize, blockSize>>>(
+        a->get_size().num_rows, a->get_const_slice_lengths(),
+        a->get_const_slice_sets(), as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()),
+        as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
