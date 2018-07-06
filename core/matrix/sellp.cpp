@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/matrix/sellp_kernels.hpp"
 
 
 #include <vector>
@@ -51,13 +52,22 @@ namespace matrix {
 namespace {
 
 
+template <typename... TplArgs>
+struct TemplatedOperation {
+    GKO_REGISTER_OPERATION(spmv, sellp::spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           sellp::convert_to_dense<TplArgs...>);
+};
+
+
 template <typename ValueType, typename IndexType>
 size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
                                const size_type slice_size,
                                const size_type stride_factor,
                                std::vector<size_type> &slice_lengths)
 {
-    size_type nnz = 0;
+    size_type nonzeros_per_row = 0;
     IndexType current_row = 0;
     IndexType current_slice = 0;
     size_type total_cols = 0;
@@ -72,12 +82,13 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
         if (elem.row != current_row) {
             current_row = elem.row;
             slice_lengths[current_slice] =
-                max(slice_lengths[current_slice], nnz);
-            nnz = 0;
+                max(slice_lengths[current_slice], nonzeros_per_row);
+            nonzeros_per_row = 0;
         }
-        nnz += (elem.value != zero<ValueType>());
+        nonzeros_per_row += (elem.value != zero<ValueType>());
     }
-    slice_lengths[current_slice] = max(slice_lengths[current_slice], nnz);
+    slice_lengths[current_slice] =
+        max(slice_lengths[current_slice], nonzeros_per_row);
     slice_lengths[current_slice] =
         stride_factor * ceildiv(slice_lengths[current_slice], stride_factor);
     total_cols += slice_lengths[current_slice];
@@ -91,7 +102,10 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    NOT_IMPLEMENTED;
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
+            this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -99,21 +113,30 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
 {
-    NOT_IMPLEMENTED;
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
+            as<Dense>(x)));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
-    NOT_IMPLEMENTED;
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
+    exec->run(TemplatedOperation<
+              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
+                                                                     this));
+    tmp->move_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
-    NOT_IMPLEMENTED;
+    this->convert_to(result);
 }
 
 

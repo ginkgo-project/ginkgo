@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/matrix/csr.hpp>
 #include <core/matrix/ell.hpp>
 #include <core/matrix/hybrid.hpp>
+#include <core/matrix/sellp.hpp>
 #include <core/test/utils/assertions.hpp>
 
 
@@ -71,7 +72,8 @@ protected:
                {-2.0 + 1.5 * i, 4.5 + 0.0 * i},
                {1.0 + 0.0 * i, i}},
               exec)),
-          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec))
+          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec)),
+          mtx8(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec))
     {}
 
     std::complex<double> i{0, 1};
@@ -83,6 +85,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<>> mtx5;
     std::unique_ptr<gko::matrix::Dense<std::complex<double>>> mtx6;
     std::unique_ptr<gko::matrix::Dense<>> mtx7;
+    std::unique_ptr<gko::matrix::Dense<>> mtx8;
 };
 
 
@@ -746,6 +749,156 @@ TEST_F(Dense, ConvertsToHybridWithStrideByPercent40)
     EXPECT_EQ(coo_c[1], 2);
     EXPECT_EQ(coo_r[0], 0);
     EXPECT_EQ(coo_r[1], 0);
+}
+
+
+TEST_F(Dense, ConvertsToSellp)
+{
+    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx8->get_executor());
+
+    mtx8->convert_to(sellp_mtx.get());
+
+    auto v = sellp_mtx->get_const_values();
+    auto c = sellp_mtx->get_const_col_idxs();
+    auto s = sellp_mtx->get_const_slice_sets();
+    auto l = sellp_mtx->get_const_slice_lengths();
+
+    ASSERT_EQ(sellp_mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(sellp_mtx->get_total_cols(), 3);
+    ASSERT_EQ(sellp_mtx->get_num_stored_elements(),
+              3 * gko::matrix::default_slice_size);
+    ASSERT_EQ(sellp_mtx->get_slice_size(), gko::matrix::default_slice_size);
+    ASSERT_EQ(sellp_mtx->get_stride_factor(),
+              gko::matrix::default_stride_factor);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[gko::matrix::default_slice_size], 2.0);
+    EXPECT_EQ(v[gko::matrix::default_slice_size + 1], 0.0);
+    EXPECT_EQ(v[2 * gko::matrix::default_slice_size], 3.0);
+    EXPECT_EQ(v[2 * gko::matrix::default_slice_size + 1], 0.0);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(s[1], 3);
+    EXPECT_EQ(l[0], 3);
+}
+
+
+TEST_F(Dense, MovesToSellp)
+{
+    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx8->get_executor());
+
+    mtx8->move_to(sellp_mtx.get());
+
+    auto v = sellp_mtx->get_const_values();
+    auto c = sellp_mtx->get_const_col_idxs();
+    auto s = sellp_mtx->get_const_slice_sets();
+    auto l = sellp_mtx->get_const_slice_lengths();
+
+    ASSERT_EQ(sellp_mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(sellp_mtx->get_total_cols(), 3);
+    ASSERT_EQ(sellp_mtx->get_num_stored_elements(),
+              3 * gko::matrix::default_slice_size);
+    ASSERT_EQ(sellp_mtx->get_slice_size(), gko::matrix::default_slice_size);
+    ASSERT_EQ(sellp_mtx->get_stride_factor(),
+              gko::matrix::default_stride_factor);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[gko::matrix::default_slice_size], 2.0);
+    EXPECT_EQ(v[gko::matrix::default_slice_size + 1], 0.0);
+    EXPECT_EQ(v[2 * gko::matrix::default_slice_size], 3.0);
+    EXPECT_EQ(v[2 * gko::matrix::default_slice_size + 1], 0.0);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(s[1], 3);
+    EXPECT_EQ(l[0], 3);
+}
+
+
+TEST_F(Dense, ConvertsToSellpWithSliceSizeAndStrideFactor)
+{
+    auto sellp_mtx =
+        gko::matrix::Sellp<>::create(mtx8->get_executor(), gko::dim{}, 2, 2, 0);
+
+    mtx8->convert_to(sellp_mtx.get());
+
+    auto v = sellp_mtx->get_const_values();
+    auto c = sellp_mtx->get_const_col_idxs();
+    auto s = sellp_mtx->get_const_slice_sets();
+    auto l = sellp_mtx->get_const_slice_lengths();
+
+    ASSERT_EQ(sellp_mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(sellp_mtx->get_total_cols(), 4);
+    ASSERT_EQ(sellp_mtx->get_num_stored_elements(), 8);
+    ASSERT_EQ(sellp_mtx->get_slice_size(), 2);
+    ASSERT_EQ(sellp_mtx->get_stride_factor(), 2);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 2);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[6], 0);
+    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 0.0);
+    EXPECT_EQ(v[4], 3.0);
+    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[6], 0.0);
+    EXPECT_EQ(v[7], 0.0);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(s[1], 4);
+    EXPECT_EQ(l[0], 4);
+}
+
+
+TEST_F(Dense, MovesToSellpWithSliceSizeAndStrideFactor)
+{
+    auto sellp_mtx =
+        gko::matrix::Sellp<>::create(mtx8->get_executor(), gko::dim{}, 2, 2, 0);
+
+    mtx8->move_to(sellp_mtx.get());
+
+    auto v = sellp_mtx->get_const_values();
+    auto c = sellp_mtx->get_const_col_idxs();
+    auto s = sellp_mtx->get_const_slice_sets();
+    auto l = sellp_mtx->get_const_slice_lengths();
+
+    ASSERT_EQ(sellp_mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(sellp_mtx->get_total_cols(), 4);
+    ASSERT_EQ(sellp_mtx->get_num_stored_elements(), 8);
+    ASSERT_EQ(sellp_mtx->get_slice_size(), 2);
+    ASSERT_EQ(sellp_mtx->get_stride_factor(), 2);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 1);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 2);
+    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[6], 0);
+    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(v[0], 1.0);
+    EXPECT_EQ(v[1], 1.5);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 0.0);
+    EXPECT_EQ(v[4], 3.0);
+    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[6], 0.0);
+    EXPECT_EQ(v[7], 0.0);
+    EXPECT_EQ(s[0], 0);
+    EXPECT_EQ(s[1], 4);
+    EXPECT_EQ(l[0], 4);
 }
 
 

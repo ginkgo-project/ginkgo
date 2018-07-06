@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 #include <algorithm>
@@ -68,6 +69,8 @@ struct TemplatedOperation {
                            dense::calculate_max_nnz_per_row<ValueType>);
     GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                            dense::calculate_nonzeros_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_total_cols,
+                           dense::calculate_total_cols<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
     GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
@@ -98,6 +101,14 @@ struct TemplatedOperationHybrid {
     GKO_REGISTER_OPERATION(convert_to_hybrid,
                            dense::convert_to_hybrid<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_hybrid, dense::move_to_hybrid<TplArgs...>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationSellp {
+    GKO_REGISTER_OPERATION(convert_to_sellp,
+                           dense::convert_to_sellp<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_sellp, dense::move_to_sellp<TplArgs...>);
 };
 
 
@@ -178,6 +189,30 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     auto tmp = Hybrid<ValueType, IndexType>::create(
         exec, source->get_size(), max_nnz_per_row, stride, coo_nnz,
         result->get_strategy());
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Sellp<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? default_stride_factor
+                                   : result->get_stride_factor();
+    size_type total_columns = 0;
+    exec->run(
+        TemplatedOperation<ValueType>::make_calculate_total_cols_operation(
+            source, &total_columns, stride_factor));
+    const auto total_cols = std::max(result->get_total_cols(), total_columns);
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? default_slice_size
+                                : result->get_slice_size();
+    auto tmp = Sellp<ValueType, IndexType>::create(
+        exec, source->get_size(), slice_size, stride_factor, total_cols);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -422,6 +457,48 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int64> *result)
         TemplatedOperationHybrid<ValueType, int64>::
             template make_move_to_hybrid_operation<decltype(result),
                                                    Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int32>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int32>::
+            template make_move_to_sellp_operation<decltype(result),
+                                                  Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int64>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int64>::
+            template make_move_to_sellp_operation<decltype(result),
+                                                  Dense<ValueType> *&>);
 }
 
 
