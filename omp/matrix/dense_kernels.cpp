@@ -253,7 +253,7 @@ void calculate_max_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
     const auto num_cols = source->get_size().num_cols;
     size_type max_nonzeros_per_row = 0;
     size_type num_nonzeros = 0;
-#pragma omp parallel for
+#pragma omp parallel for reduction(max : max_nonzeros_per_row)
     for (size_type row = 0; row < num_rows; ++row) {
         num_nonzeros = 0;
         for (size_type col = 0; col < num_cols; ++col) {
