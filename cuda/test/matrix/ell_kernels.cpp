@@ -141,7 +141,7 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
+TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 {
     set_up_apply_data(300, 600);
 
@@ -152,7 +152,7 @@ TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
+TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 {
     set_up_apply_data(300, 600);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
