@@ -13,6 +13,13 @@ set(SOURCES
     stop/criterion_kernels.cpp
     stop/residual_norm_reduction_kernels.cpp)
 
+find_package(OpenMP)
+if(OPENMP_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+else()
+    set(BUILD_OMP OFF CACHE BOOL "Compile OpenMP kernels for CPU" FORCE)
+endif()
+
 add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>
     ${SOURCES})
