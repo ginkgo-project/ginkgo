@@ -10,8 +10,8 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
-option(BUILD_REFERENCE "Compile reference OMP kernels" OFF)
-option(BUILD_OMP "Compile kernels for OMP" OFF)
+option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
+option(BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
@@ -24,29 +24,16 @@ set(CUDA_ARCHITECTURES "Auto" CACHE STRING
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 
-if(BUILD_CUDA)
-    enable_language(CUDA)
-    include(cmake/detect_gpu.cmake)
-    set(CMAKE_CUDA_STANDARD_REQUIRED true)
-    set(CMAKE_CUDA_STANDARD 11)
-    if(SET_CUDA_HOST_COMPILER)
-        set(CMAKE_CUDA_FLAGS
-            "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
-    endif()
-    # setting nvcc arch flags
-    ginkgo_select_nvcc_arch_flags("${CUDA_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
-    message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
-    # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-    # merged at commit ed12b3df5d26
-    if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
-      # remove false positive CUDA warnings when calling one<T>() and zero<T>()
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
-    endif()
+if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
+    message("BUILD_TESTS is ON, enabling BUILD_REFERENCE")
+    set(BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
 
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(BUILD_CUDA)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(BUILD_TESTS)
     enable_testing()

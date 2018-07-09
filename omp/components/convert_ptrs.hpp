@@ -31,56 +31,32 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hybrid_kernels.hpp"
-
-
-#include <omp.h>
-
-
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "omp/components/format_conversion.hpp"
+#include <algorithm>
+#include <numeric>
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
-namespace hybrid {
+namespace csr {
 
 
-template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Hybrid<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
+template <typename IndexType>
+inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
+                                 IndexType *idxs)
+{
+    size_type ind = 0;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Hybrid<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_ADVANCED_SPMV_KERNEL);
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type i = ptrs[row]; i < static_cast<size_type>(ptrs[row + 1]);
+             ++i) {
+            idxs[ind++] = row;
+        }
+    }
+}
 
 
-template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Hybrid<ValueType, IndexType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
-
-
-}  // namespace hybrid
+}  // namespace csr
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
