@@ -38,8 +38,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 
 
+#include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/stop/criterion.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
 namespace gko {
@@ -75,7 +78,25 @@ void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
                                               const LinOp *solution,
                                               const LinOp *residual_norm) const
 {
-    os_ << prefix_ << "iteration " << num_iterations << std::endl;
+    os_ << prefix_ << " iteration " << num_iterations
+        << " completed with solver " << linop_name(solver) << " with residual "
+        << linop_name(residual) << ", solution " << linop_name(solution)
+        << " and residual_norm " << residual_norm << std::endl;
+    if (verbose_) {
+        os_ << linop_name(solver) << as<gko::matrix::Dense<ValueType>>(solver)
+            << std::endl;
+        os_ << linop_name(residual)
+            << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
+        if (solution != nullptr) {
+            os_ << linop_name(solution)
+                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
+        }
+        if (residual_norm != nullptr) {
+            os_ << linop_name(residual_norm)
+                << as<gko::matrix::Dense<ValueType>>(residual_norm)
+                << std::endl;
+        }
+    }
 }
 
 
@@ -94,6 +115,270 @@ void Stream<ValueType>::on_converged(const size_type &at_iteration,
     os_ << prefix_ << "converged at iteration " << at_iteration
         << " residual:\n"
         << as<gko::matrix::Dense<ValueType>>(residual);
+}
+
+template <typename ValueType>
+void Stream<ValueType>::on_allocation_started(const Executor *exec,
+                                              const size_type &num_bytes) const
+{
+    os_ << prefix_ << " allocation started on " << executor_name(exec)
+        << " with " << bytes_name(num_bytes) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_allocation_completed(const Executor *exec,
+                                                const size_type &num_bytes,
+                                                const uintptr &location) const
+{
+    os_ << prefix_ << " allocation completed on " << executor_name(exec)
+        << " at " << location_name(location) << " with "
+        << bytes_name(num_bytes) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_free_started(const Executor *exec,
+                                        const uintptr &location) const
+{
+    os_ << prefix_ << " free started on " << executor_name(exec) << " at "
+        << location_name(location) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_free_completed(const Executor *exec,
+                                          const uintptr &location) const
+{
+    os_ << prefix_ << " free completed on " << executor_name(exec) << " at "
+        << location_name(location) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_copy_started(const Executor *from,
+                                        const Executor *to,
+                                        const uintptr &location_from,
+                                        const uintptr &location_to,
+                                        const size_type &num_bytes) const
+{
+    os_ << prefix_ << " copy started from " << executor_name(from) << " to "
+        << executor_name(to) << " from " << location_name(location_from)
+        << " to " << location_name(location_to) << " with "
+        << bytes_name(num_bytes) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_copy_completed(const Executor *from,
+                                          const Executor *to,
+                                          const uintptr &location_from,
+                                          const uintptr &location_to,
+                                          const size_type &num_bytes) const
+{
+    os_ << prefix_ << " copy completed from " << executor_name(from) << " to "
+        << executor_name(to) << " from " << location_name(location_from)
+        << " to " << location_name(location_to) << " with "
+        << bytes_name(num_bytes) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_operation_launched(const Executor *exec,
+                                              const Operation *operation) const
+{
+    os_ << prefix_ << operation_name(operation) << " started on "
+        << executor_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_operation_completed(const Executor *exec,
+                                               const Operation *operation) const
+{
+    os_ << prefix_ << operation_name(operation) << " completed on "
+        << executor_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_po_create_started(const PolymorphicObject *po,
+                                             const Executor *exec) const
+{
+    os_ << prefix_ << po_name(po) << " creation started on "
+        << executor_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_po_create_completed(const PolymorphicObject *po,
+                                               const Executor *exec) const
+{
+    os_ << prefix_ << po_name(po) << " creation completed on "
+        << executor_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_po_copy_started(const PolymorphicObject *po,
+                                           const Executor *exec) const
+{
+    os_ << prefix_ << po_name(po) << " copy started on " << executor_name(exec)
+        << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_po_copy_completed(const PolymorphicObject *po,
+                                             const Executor *exec) const
+{
+    os_ << prefix_ << po_name(po) << " copy completed on "
+        << executor_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_po_deleted(const PolymorphicObject *po,
+                                      const Executor *exec) const
+{
+    os_ << prefix_ << po_name(po) << " deleted on " << executor_name(exec)
+        << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_apply_started(const LinOp *A, const LinOp *b,
+                                               const LinOp *x) const
+{
+    os_ << prefix_ << " apply started on A " << linop_name(A) << " with b "
+        << linop_name(b) << " and x " << linop_name(x) << std::endl;
+    if (verbose_) {
+        os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+            << std::endl;
+        os_ << linop_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+            << std::endl;
+        os_ << linop_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+            << std::endl;
+    }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_apply_completed(const LinOp *A, const LinOp *b,
+                                                 const LinOp *x) const
+{
+    os_ << prefix_ << " apply completed on A " << linop_name(A) << " with b "
+        << linop_name(b) << " and x " << linop_name(x) << std::endl;
+    if (verbose_) {
+        os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+            << std::endl;
+        os_ << linop_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+            << std::endl;
+        os_ << linop_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+            << std::endl;
+    }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp *A,
+                                                        const LinOp *alpha,
+                                                        const LinOp *b,
+                                                        const LinOp *beta,
+                                                        const LinOp *x) const
+{
+    os_ << prefix_ << " advanced apply started on A: " << linop_name(A)
+        << " with alpha " << linop_name(alpha) << " b " << linop_name(b)
+        << " beta " << linop_name(beta) << " and x " << linop_name(x)
+        << std::endl;
+    if (verbose_) {
+        os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+            << std::endl;
+        os_ << linop_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
+            << std::endl;
+        os_ << linop_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+            << std::endl;
+        os_ << linop_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
+            << std::endl;
+        os_ << linop_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+            << std::endl;
+    }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
+                                                          const LinOp *alpha,
+                                                          const LinOp *b,
+                                                          const LinOp *beta,
+                                                          const LinOp *x) const
+{
+    os_ << prefix_ << " advanced apply completed on A: " << linop_name(A)
+        << " with alpha " << linop_name(alpha) << " b " << linop_name(b)
+        << " beta " << linop_name(beta) << " and x " << linop_name(x)
+        << std::endl;
+    if (verbose_) {
+        os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+            << std::endl;
+        os_ << linop_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
+            << std::endl;
+        os_ << linop_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+            << std::endl;
+        os_ << linop_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
+            << std::endl;
+        os_ << linop_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+            << std::endl;
+    }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_factory_generate_started(
+    const LinOpFactory *factory, const LinOp *input) const
+{
+    os_ << prefix_ << " generate started for " << linop_factory_name(factory)
+        << " with input " << linop_name(input) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_linop_factory_generate_completed(
+    const LinOpFactory *factory, const LinOp *input, const LinOp *output) const
+{
+    os_ << prefix_ << " generate completed for " << linop_factory_name(factory)
+        << " with input " << linop_name(input) << " produced "
+        << linop_name(output) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_criterion_check_started(
+    const stop::Criterion *criterion, const uint8 &stoppingId,
+    const bool &setFinalized) const
+{
+    os_ << prefix_ << " check started for " << criterion_name(criterion)
+        << " with ID " << stoppingId << " and finalized set to " << setFinalized
+        << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_criterion_check_completed(
+    const stop::Criterion *criterion, const uint8 &stoppingId,
+    const bool &setFinalized, const Array<stopping_status> *status,
+    const bool &oneChanged, const bool &converged) const
+{
+    os_ << prefix_ << " check completed for " << criterion_name(criterion)
+        << " with ID " << stoppingId << " and finalized set to " << setFinalized
+        << ". It changed one RHS " << oneChanged
+        << ", stopped the iteration process " << converged << std::endl;
+
+    if (verbose_) {
+        Array<stopping_status> tmp(status->get_executor()->get_master(),
+                                   *status);
+        auto data = tmp.get_const_data();
+        os_ << prefix_ << "stopping criterion status " << data;
+    }
 }
 
 

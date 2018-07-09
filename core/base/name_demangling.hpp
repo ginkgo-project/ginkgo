@@ -42,16 +42,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif  // GKO_HAVE_CXXABI_H
 
 
+#include <memory>
 #include <string>
 
 
 namespace gko {
 namespace name_demangling {
-namespace detail {
-
 
 template <typename T>
-std::string get_enclosing_scope_name(const T &)
+std::string get_name(const T &)
 {
 #ifdef GKO_HAVE_CXXABI_H
     int status{};
@@ -68,9 +67,6 @@ std::string get_enclosing_scope_name(const T &)
 }
 
 
-}  // namespace detail
-
-
 /**
  * This is a macro which uses `std::type_info` and demangling functionalities
  * when available to return the proper location at which this macro is
@@ -84,8 +80,7 @@ std::string get_enclosing_scope_name(const T &)
  * @see C++11 documentation [type.info] and [expr.typeid]
  * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
-#define GKO_FUNCTION_NAME \
-    gko::name_demangling::detail::get_enclosing_scope_name([] {})
+#define GKO_FUNCTION_NAME gko::name_demangling::get_name([] {})
 
 
 }  // namespace name_demangling

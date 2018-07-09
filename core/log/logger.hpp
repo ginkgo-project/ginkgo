@@ -162,43 +162,44 @@ public:                                                              \
      * number of bytes allocated, memory location.
      */
     GKO_LOGGER_REGISTER_EVENT(4, allocation_completed, const Executor *,
-                              const size_type &, const uintptr)
+                              const size_type &, const uintptr &)
 
     /**
      * Executor's free started event. Parameters are the executor and memory
      * location.
      */
-    GKO_LOGGER_REGISTER_EVENT(5, free_started, const Executor *, const uintptr)
+    GKO_LOGGER_REGISTER_EVENT(5, free_started, const Executor *,
+                              const uintptr &)
 
     /**
      * Executor's free completed event. Parameters are the executor and memory
      * location.
      */
     GKO_LOGGER_REGISTER_EVENT(6, free_completed, const Executor *,
-                              const uintptr)
+                              const uintptr &)
 
     /**
      * Executor's copy started event. Parameters are the executor from, the
      * executor to, the location from, the, location to, the number of bytes .
      */
     GKO_LOGGER_REGISTER_EVENT(7, copy_started, const Executor *,
-                              const Executor *, const uintptr, const uintptr,
-                              const size_type &)
+                              const Executor *, const uintptr &,
+                              const uintptr &, const size_type &)
 
     /**
      * Executor's copy completed event. Parameters are the executor from, the
      * executor to, the location from, the, location to, the number of bytes .
      */
     GKO_LOGGER_REGISTER_EVENT(8, copy_completed, const Executor *,
-                              const Executor *, const uintptr, const uintptr,
-                              const size_type)
+                              const Executor *, const uintptr &,
+                              const uintptr &, const size_type &)
 
     /**
      * Executor's operation launched event (method run). Parameters are the
      * executor and the Operation.
      */
     GKO_LOGGER_REGISTER_EVENT(9, operation_launched, const Executor *,
-                              const Operation &)
+                              const Operation *)
 
     /**
      * Executor's operation completed event (method run). Parameters are the
@@ -210,7 +211,7 @@ public:                                                              \
      * the GPU just notes that the Operation has been sent to the GPU.
      */
     GKO_LOGGER_REGISTER_EVENT(10, operation_completed, const Executor *,
-                              const Operation &)
+                              const Operation *)
 
     /**
      * PolymorphicObject's create started event. Parameters are the polymorphic
@@ -295,7 +296,8 @@ public:                                                              \
      * the stoppingId, the finalized boolean
      */
     GKO_LOGGER_REGISTER_EVENT(22, criterion_check_started,
-                              const stop::Criterion *, const uint8, const bool)
+                              const stop::Criterion *, const uint8 &,
+                              const bool &)
 
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
@@ -303,9 +305,9 @@ public:                                                              \
      * output one_changed boolean and output all_converged boolean.
      */
     GKO_LOGGER_REGISTER_EVENT(23, criterion_check_completed,
-                              const stop::Criterion *, const uint8, const bool,
-                              const Array<stopping_status> *, const bool,
-                              const bool)
+                              const stop::Criterion *, const uint8 &,
+                              const bool &, const Array<stopping_status> *,
+                              const bool &, const bool &)
 
 #undef GKO_LOGGER_REGISTER_EVENT
 

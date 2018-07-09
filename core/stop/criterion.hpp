@@ -102,8 +102,8 @@ public:
             auto converged = parent_->check(stoppingId, setFinalized,
                                             stop_status, one_changed, *this);
             parent_->template log<log::Logger::criterion_check_completed>(
-                parent_, stoppingId, setFinalized, stop_status, converged,
-                *one_changed);
+                parent_, stoppingId, setFinalized, stop_status, *one_changed,
+                converged);
             return converged;
         }
 
@@ -273,6 +273,9 @@ private:                                                                    \
     _parameters_name##_type _parameters_name##_;                            \
                                                                             \
 public:
+
+
+std::ostream &operator<<(std::ostream &os, const stopping_status *status);
 
 
 }  // namespace stop

@@ -58,5 +58,16 @@ void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
 }
 
 
+std::ostream &operator<<(std::ostream &os, const stopping_status *status)
+{
+    os << "[" << std::endl;
+    os << "Converged: " << status->has_converged() << std::endl;
+    os << "Stopped: " << status->has_stopped() << " with id "
+       << status->get_id() << std::endl;
+    os << "Finalized: " << status->is_finalized() << std::endl;
+    return os << "]" << std::endl;
+}
+
+
 }  // namespace stop
 }  // namespace gko
