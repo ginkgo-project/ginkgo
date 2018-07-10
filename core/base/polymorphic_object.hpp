@@ -69,7 +69,8 @@ class PolymorphicObject : public log::EnableLogging<PolymorphicObject> {
 public:
     virtual ~PolymorphicObject()
     {
-        this->template log<log::Logger::po_deleted>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_deleted>(
+            this, exec_.get());
     }
 
     // preserve the executor of the object
@@ -88,9 +89,11 @@ public:
     std::unique_ptr<PolymorphicObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        this->template log<log::Logger::po_create_started>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_create_started>(
+            this, exec_.get());
         auto created = this->create_default_impl(std::move(exec));
-        this->template log<log::Logger::po_create_completed>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_create_completed>(
+            this, exec_.get());
         return created;
     }
 
@@ -104,9 +107,11 @@ public:
      */
     std::unique_ptr<PolymorphicObject> create_default() const
     {
-        this->template log<log::Logger::po_create_started>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_create_started>(
+            this, exec_.get());
         auto created = this->create_default(exec_);
-        this->template log<log::Logger::po_create_completed>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_create_completed>(
+            this, exec_.get());
         return created;
     }
 
@@ -154,9 +159,11 @@ public:
      */
     PolymorphicObject *copy_from(const PolymorphicObject *other)
     {
-        this->template log<log::Logger::po_copy_started>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_copy_started>(
+            this, exec_.get());
         auto copied = this->copy_from_impl(other);
-        this->template log<log::Logger::po_copy_completed>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_copy_completed>(
+            this, exec_.get());
         return copied;
     }
 
@@ -173,9 +180,11 @@ public:
      */
     PolymorphicObject *copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        this->template log<log::Logger::po_copy_started>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_copy_started>(
+            this, exec_.get());
         auto copied = this->copy_from_impl(std::move(other));
-        this->template log<log::Logger::po_copy_completed>(this, exec_.get());
+        this->template log<log::Logger::polymorphic_object_copy_completed>(
+            this, exec_.get());
         return copied;
     }
 

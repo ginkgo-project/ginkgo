@@ -94,27 +94,30 @@ public:
                            const uintptr &location_to,
                            const size_type &num_bytes) const override;
 
+    /* Operation events */
     void on_operation_launched(const Executor *exec,
                                const Operation *operation) const override;
 
     void on_operation_completed(const Executor *exec,
                                 const Operation *operation) const override;
 
-    void on_po_create_started(const PolymorphicObject *po,
-                              const Executor *exec) const override;
+    /* PolymorphicObject events */
+    void on_polymorphic_object_create_started(
+        const PolymorphicObject *po, const Executor *exec) const override;
 
-    void on_po_create_completed(const PolymorphicObject *po,
-                                const Executor *exec) const override;
+    void on_polymorphic_object_create_completed(
+        const PolymorphicObject *po, const Executor *exec) const override;
 
-    void on_po_copy_started(const PolymorphicObject *po,
-                            const Executor *exec) const override;
+    void on_polymorphic_object_copy_started(
+        const PolymorphicObject *po, const Executor *exec) const override;
 
-    void on_po_copy_completed(const PolymorphicObject *po,
-                              const Executor *exec) const override;
+    void on_polymorphic_object_copy_completed(
+        const PolymorphicObject *po, const Executor *exec) const override;
 
-    void on_po_deleted(const PolymorphicObject *po,
-                       const Executor *exec) const override;
+    void on_polymorphic_object_deleted(const PolymorphicObject *po,
+                                       const Executor *exec) const override;
 
+    /* LinOp events */
     void on_linop_apply_started(const LinOp *A, const LinOp *b,
                                 const LinOp *x) const override;
 
@@ -136,6 +139,7 @@ public:
         const LinOpFactory *factory, const LinOp *input,
         const LinOp *output) const override;
 
+    /* Criterion events */
     void on_criterion_check_started(const stop::Criterion *criterion,
                                     const uint8 &stoppingId,
                                     const bool &setFinalized) const override;

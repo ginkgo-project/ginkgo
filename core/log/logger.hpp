@@ -217,36 +217,36 @@ public:                                                              \
      * PolymorphicObject's create started event. Parameters are the polymorphic
      * object and the Executor
      */
-    GKO_LOGGER_REGISTER_EVENT(11, po_create_started, const PolymorphicObject *,
-                              const Executor *)
+    GKO_LOGGER_REGISTER_EVENT(11, polymorphic_object_create_started,
+                              const PolymorphicObject *, const Executor *)
 
     /**
      * PolymorphicObject's create completed event. Parameters are the
      * polymorphic object and the Executor
      */
-    GKO_LOGGER_REGISTER_EVENT(12, po_create_completed,
+    GKO_LOGGER_REGISTER_EVENT(12, polymorphic_object_create_completed,
                               const PolymorphicObject *, const Executor *)
 
     /**
      * PolymorphicObject's copy started event. Parameters are the polymorphic
      * object and the Executor
      */
-    GKO_LOGGER_REGISTER_EVENT(13, po_copy_started, const PolymorphicObject *,
-                              const Executor *)
+    GKO_LOGGER_REGISTER_EVENT(13, polymorphic_object_copy_started,
+                              const PolymorphicObject *, const Executor *)
 
     /**
      * PolymorphicObject's copy completed event. Parameters are the
      * polymorphic object and the Executor
      */
-    GKO_LOGGER_REGISTER_EVENT(14, po_copy_completed, const PolymorphicObject *,
-                              const Executor *)
+    GKO_LOGGER_REGISTER_EVENT(14, polymorphic_object_copy_completed,
+                              const PolymorphicObject *, const Executor *)
 
     /**
      * PolymorphicObject's deleted event. Parameters are the
      * polymorphic object and the Executor
      */
-    GKO_LOGGER_REGISTER_EVENT(15, po_deleted, const PolymorphicObject *,
-                              const Executor *)
+    GKO_LOGGER_REGISTER_EVENT(15, polymorphic_object_deleted,
+                              const PolymorphicObject *, const Executor *)
 
     /**
      * LinOp's apply started event. Parameters are the LinOp, b and X.

@@ -202,8 +202,8 @@ void Stream<ValueType>::on_operation_completed(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_po_create_started(const PolymorphicObject *po,
-                                             const Executor *exec) const
+void Stream<ValueType>::on_polymorphic_object_create_started(
+    const PolymorphicObject *po, const Executor *exec) const
 {
     os_ << prefix_ << po_name(po) << " creation started on "
         << executor_name(exec) << std::endl;
@@ -211,8 +211,8 @@ void Stream<ValueType>::on_po_create_started(const PolymorphicObject *po,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_po_create_completed(const PolymorphicObject *po,
-                                               const Executor *exec) const
+void Stream<ValueType>::on_polymorphic_object_create_completed(
+    const PolymorphicObject *po, const Executor *exec) const
 {
     os_ << prefix_ << po_name(po) << " creation completed on "
         << executor_name(exec) << std::endl;
@@ -220,8 +220,8 @@ void Stream<ValueType>::on_po_create_completed(const PolymorphicObject *po,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_po_copy_started(const PolymorphicObject *po,
-                                           const Executor *exec) const
+void Stream<ValueType>::on_polymorphic_object_copy_started(
+    const PolymorphicObject *po, const Executor *exec) const
 {
     os_ << prefix_ << po_name(po) << " copy started on " << executor_name(exec)
         << std::endl;
@@ -229,8 +229,8 @@ void Stream<ValueType>::on_po_copy_started(const PolymorphicObject *po,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_po_copy_completed(const PolymorphicObject *po,
-                                             const Executor *exec) const
+void Stream<ValueType>::on_polymorphic_object_copy_completed(
+    const PolymorphicObject *po, const Executor *exec) const
 {
     os_ << prefix_ << po_name(po) << " copy completed on "
         << executor_name(exec) << std::endl;
@@ -238,8 +238,8 @@ void Stream<ValueType>::on_po_copy_completed(const PolymorphicObject *po,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_po_deleted(const PolymorphicObject *po,
-                                      const Executor *exec) const
+void Stream<ValueType>::on_polymorphic_object_deleted(
+    const PolymorphicObject *po, const Executor *exec) const
 {
     os_ << prefix_ << po_name(po) << " deleted on " << executor_name(exec)
         << std::endl;
