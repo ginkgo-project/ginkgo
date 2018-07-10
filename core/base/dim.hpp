@@ -70,6 +70,9 @@ struct dim {
      * object, the remaining dimensions are set to the same value as the last
      * value given.
      *
+     * For example, in the context of matrices `dim<2>{2, 3}` creates the
+     * dimensions for a 2-by-3 matrix.
+     *
      * @param first  first dimension
      * @param rest  other dimensions
      */
@@ -81,6 +84,10 @@ struct dim {
 
     /**
      * Returns the requested dimension.
+     *
+     * For example, if `d`is a dim<2> object representing matrix dimensions,
+     * `d[0]` returns the number of rows, and `d[1]` returns the number of
+     * columns.
      *
      * @param dimension  the requested dimension
      *
@@ -115,7 +122,7 @@ struct dim {
     }
 
     /**
-     * Checks if two dime objects are equal.
+     * Checks if two dim objects are equal.
      *
      * @param x  first object
      * @param y  second object
