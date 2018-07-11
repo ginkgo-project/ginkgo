@@ -79,7 +79,10 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
@@ -132,6 +135,32 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
 
 TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
     set_up_apply_data();
 
