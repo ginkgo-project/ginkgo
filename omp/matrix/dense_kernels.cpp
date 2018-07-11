@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 namespace gko {
@@ -288,10 +289,9 @@ void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rows = source->get_size().num_rows;
     const auto num_cols = source->get_size().num_cols;
     size_type max_nonzeros_per_row = 0;
-    size_type num_nonzeros = 0;
 #pragma omp parallel for reduction(max : max_nonzeros_per_row)
     for (size_type row = 0; row < num_rows; ++row) {
-        num_nonzeros = 0;
+        size_type num_nonzeros = 0;
         for (size_type col = 0; col < num_cols; ++col) {
             num_nonzeros += (source->at(row, col) != zero<ValueType>());
         }
@@ -316,8 +316,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                           const matrix::Dense<ValueType> *source,
-                          size_type *result,
-                          size_type stride_factor) NOT_IMPLEMENTED;
+                          size_type *result, size_type stride_factor)
+{
+    auto num_rows = source->get_size().num_rows;
+    auto num_cols = source->get_size().num_cols;
+    auto slice_size = matrix::default_slice_size;
+    auto slice_num = ceildiv(num_rows, slice_size);
+    size_type total_cols = 0;
+#pragma omp parallel for reduction(+ : total_cols)
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        size_type slice_temp = 0;
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            size_type temp = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                temp += (source->at(row + slice * slice_size, col) !=
+                         zero<ValueType>());
+            }
+            slice_temp = (slice_temp < temp) ? temp : slice_temp;
+        }
+        slice_temp = ceildiv(slice_temp, stride_factor) * stride_factor;
+        total_cols += slice_temp;
+    }
+
+    *result = total_cols;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
