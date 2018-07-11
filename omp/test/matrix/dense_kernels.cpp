@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/test/utils.hpp>
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace {
@@ -73,6 +74,16 @@ protected:
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+    }
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx2(int num_rows, int num_cols,
+                                      int min_nnz_row)
+    {
+        return gko::test::generate_random_matrix<MtxType>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_vector_data(gko::size_type num_vecs,
@@ -246,6 +257,42 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+{
+    std::size_t ref_max_nnz_per_row = 0;
+    std::size_t omp_max_nnz_per_row = 0;
+
+    auto rmtx = gen_mtx2<Mtx>(100, 100, 1);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    gko::kernels::reference::dense::calculate_max_nnz_per_row(
+        ref, rmtx.get(), &ref_max_nnz_per_row);
+    gko::kernels::omp::dense::calculate_max_nnz_per_row(omp, omtx.get(),
+                                                        &omp_max_nnz_per_row);
+
+    ASSERT_EQ(ref_max_nnz_per_row, omp_max_nnz_per_row);
+}
+
+
+TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
+{
+    std::size_t ref_total_cols = 0;
+    std::size_t omp_total_cols = 0;
+
+    auto rmtx = gen_mtx2<Mtx>(100, 100, 1);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    gko::kernels::reference::dense::calculate_total_cols(ref, rmtx.get(),
+                                                         &ref_total_cols, 1);
+    gko::kernels::omp::dense::calculate_total_cols(omp, omtx.get(),
+                                                   &omp_total_cols, 1);
+
+    ASSERT_EQ(ref_total_cols, omp_total_cols);
 }
 
 
