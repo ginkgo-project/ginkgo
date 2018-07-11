@@ -489,6 +489,13 @@ public:
         return strategy_;
     }
 
+    /**
+     * Copies data from another Hybrid.
+     * 
+     * @param other  the Hybrid to copy from
+     *
+     * @return this
+     */
     Hybrid &operator=(const Hybrid &other)
     {
         if (&other == this) {
