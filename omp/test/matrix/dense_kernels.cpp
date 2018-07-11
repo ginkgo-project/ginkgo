@@ -37,11 +37,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <iostream>
 #include <random>
 
 
 #include <core/test/utils.hpp>
 #include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 namespace {
@@ -257,6 +259,48 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+{
+    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Sellp<>::create(ref);
+    auto somtx = gko::matrix::Sellp<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToSellpIsEquivalentToRef)
+{
+    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Sellp<>::create(ref);
+    auto somtx = gko::matrix::Sellp<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
