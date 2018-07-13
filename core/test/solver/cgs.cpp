@@ -152,7 +152,7 @@ TEST_F(Cgs, CanBeCleared)
 }
 
 
-TEST_F(Cgs, CanSetPreconditionerGenertor)
+TEST_F(Cgs, CanSetPreconditionerGenerator)
 {
     auto cgs_factory =
         Solver::Factory::create()

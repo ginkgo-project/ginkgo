@@ -150,7 +150,7 @@ TEST_F(Bicgstab, CanBeCleared)
 }
 
 
-TEST_F(Bicgstab, CanSetPreconditionerGenertor)
+TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 {
     auto bicgstab_factory =
         Solver::Factory::create()
