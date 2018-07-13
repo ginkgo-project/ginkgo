@@ -88,9 +88,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto ell_mtx = this->get_ell();
     auto coo_mtx = this->get_coo();
     ell_mtx->apply(b, x);
-    auto alpha = initialize<Dense<ValueType>>({1.0}, this->get_executor());
-    auto beta = initialize<Dense<ValueType>>({1.0}, this->get_executor());
-    coo_mtx->apply(alpha.get(), b, beta.get(), x);
+    coo_mtx->apply2(b, x);
 }
 
 
@@ -102,9 +100,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     auto ell_mtx = this->get_ell();
     auto coo_mtx = this->get_coo();
     ell_mtx->apply(alpha, b, beta, x);
-    auto one =
-        initialize<gko::matrix::Dense<ValueType>>({1.0}, this->get_executor());
-    coo_mtx->apply(alpha, b, one.get(), x);
+    coo_mtx->apply2(alpha, b, x);
 }
 
 
