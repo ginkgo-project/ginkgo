@@ -257,6 +257,58 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void spmv2(std::shared_ptr<const CudaExecutor> exec,
+           const matrix::Coo<ValueType, IndexType> *a,
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto nnz = a->get_num_stored_elements();
+
+    // TODO: nwraps_in_cuda is a parameter that should be tuned.
+    //       it should be from CUDAExecutor, and use 112 by default.
+    auto nwarps = calculate_nwarps(nnz, 112);
+    if (nwarps > 0) {
+        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
+        abstract_spmv<<<coo_grid, coo_block>>>(
+            nnz, num_lines, as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
+            as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::Dense<ValueType> *alpha,
+                    const matrix::Coo<ValueType, IndexType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    matrix::Dense<ValueType> *c)
+{
+    auto nnz = a->get_num_stored_elements();
+
+    // TODO: nwraps_in_cuda is a parameter that should be tuned.
+    //       it should be from CUDAExecutor, and use 112 by default.
+    auto nwarps = calculate_nwarps(nnz, 112);
+    if (nwarps > 0) {
+        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
+        abstract_spmv<<<coo_grid, coo_block>>>(
+            nnz, num_lines, as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_idxs()),
+            as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,

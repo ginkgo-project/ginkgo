@@ -181,7 +181,7 @@ public:
     }
 
     /**
-     * @copydoc apply(const LinOp *, cost LinOp *, const LinOp *, LinOp *)
+     * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
     const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                        LinOp *x) const
