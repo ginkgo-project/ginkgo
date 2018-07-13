@@ -210,18 +210,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     set_zero<<<grid, block>>>(c->get_num_stored_elements(),
                               as_cuda_type(c->get_values()));
 
-    // TODO: nwraps_in_cuda is a parameter that should be tuned.
-    //       it should be from CUDAExecutor, and use 112 by default.
-    auto nwarps = calculate_nwarps(nnz, 112);
-    if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
-        abstract_spmv<<<coo_grid, coo_block>>>(
-            nnz, num_lines, as_cuda_type(a->get_const_values()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
-            as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
-    }
+    spmv2(exec, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
@@ -235,22 +224,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    auto nnz = a->get_num_stored_elements();
     dense::scale(exec, beta, c);
-
-    // TODO: nwraps_in_cuda is a parameter that should be tuned.
-    //       it should be from CUDAExecutor, and use 112 by default.
-    auto nwarps = calculate_nwarps(nnz, 112);
-    if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
-        abstract_spmv<<<coo_grid, coo_block>>>(
-            nnz, num_lines, as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_idxs()),
-            as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
-    }
+    advanced_spmv2(exec, alpha, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
