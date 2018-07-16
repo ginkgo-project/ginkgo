@@ -64,7 +64,11 @@ struct iteration_complete_data {
                             const LinOp *residual = nullptr,
                             const LinOp *solution = nullptr,
                             const LinOp *residual_norm = nullptr)
-        : num_iterations{num_iterations}
+        : solver{nullptr},
+          num_iterations{num_iterations},
+          residual{nullptr},
+          solution{nullptr},
+          residual_norm{nullptr}
     {
         /* TODO: remove this solver part */
         if (solver != nullptr) {
@@ -78,6 +82,28 @@ struct iteration_complete_data {
         }
         if (residual_norm != nullptr) {
             this->residual_norm = residual_norm->clone();
+        }
+    }
+
+    iteration_complete_data(const iteration_complete_data &other)
+        : solver{nullptr},
+          num_iterations{other.num_iterations},
+          residual{nullptr},
+          solution{nullptr},
+          residual_norm{nullptr}
+    {
+        /* TODO: remove this solver part */
+        if (other.solver != nullptr) {
+            this->solver = other.solver->clone();
+        }
+        if (other.residual != nullptr) {
+            this->residual = other.residual->clone();
+        }
+        if (other.solution != nullptr) {
+            this->solution = other.solution->clone();
+        }
+        if (other.residual_norm != nullptr) {
+            this->residual_norm = other.residual_norm->clone();
         }
     }
 };
@@ -120,6 +146,15 @@ struct polymorphic_object_data {
             this->output = output->clone();
         }
     }
+
+    polymorphic_object_data(const gko::log::polymorphic_object_data &other)
+        : exec{other.exec}
+    {
+        this->input = other.input->clone();
+        if (other.output != nullptr) {
+            this->output = other.output->clone();
+        }
+    }
 };
 
 
@@ -146,6 +181,19 @@ struct linop_data {
         }
         this->x = x->clone();
     }
+
+    linop_data(const gko::log::linop_data &other)
+    {
+        this->A = other.A->clone();
+        if (other.alpha != nullptr) {
+            this->alpha = other.alpha->clone();
+        }
+        this->b = other.b->clone();
+        if (other.beta != nullptr) {
+            this->beta = other.beta->clone();
+        }
+        this->x = other.x->clone();
+    }
 };
 
 
@@ -166,6 +214,14 @@ struct linop_factory_data {
             this->output = output->clone();
         }
     }
+
+    linop_factory_data(const linop_factory_data &other) : factory{other.factory}
+    {
+        this->input = other.input->clone();
+        if (other.output != nullptr) {
+            this->output = other.output->clone();
+        }
+    }
 };
 
 
@@ -173,7 +229,7 @@ struct linop_factory_data {
  * Struct representing Criterion related data
  */
 struct criterion_data {
-    std::unique_ptr<const stop::Criterion> criterion;
+    const stop::Criterion *criterion;
     const uint8 stoppingId;
     const bool setFinalized;
     const Array<stopping_status> *status;
@@ -182,17 +238,24 @@ struct criterion_data {
 
     criterion_data(const stop::Criterion *criterion, const uint8 stoppingId,
                    const bool setFinalized,
-                   const Array<stopping_status> *status, const bool oneChanged,
-                   const bool converged)
-        : stoppingId{stoppingId},
+                   const Array<stopping_status> *status = nullptr,
+                   const bool oneChanged = false, const bool converged = false)
+        : criterion{criterion},
+          stoppingId{stoppingId},
           setFinalized{setFinalized},
+          status{status},
           oneChanged{oneChanged},
           converged{converged}
-    {
-        this->criterion = criterion->clone();
-        this->status =
-            new Array<stopping_status>(status->get_executor(), *status);
-    }
+    {}
+
+    criterion_data(const criterion_data &other)
+        : criterion{other.criterion},
+          stoppingId{other.stoppingId},
+          setFinalized{other.setFinalized},
+          status{other.status},
+          oneChanged{other.oneChanged},
+          converged{other.converged}
+    {}
 };
 
 
@@ -220,7 +283,7 @@ public:
         std::deque<std::tuple<executor_data, executor_data>> copy_started{};
         std::deque<std::tuple<executor_data, executor_data>> copy_completed{};
 
-        std::deque<operation_data> operation_started{};
+        std::deque<operation_data> operation_launched{};
         std::deque<operation_data> operation_completed{};
 
         std::deque<polymorphic_object_data> polymorphic_object_create_started{};
@@ -236,7 +299,6 @@ public:
         std::deque<linop_data> linop_advanced_apply_completed{};
         std::deque<linop_factory_data> linop_factory_generate_started{};
         std::deque<linop_factory_data> linop_factory_generate_completed{};
-
 
         std::deque<criterion_data> criterion_check_started{};
         std::deque<criterion_data> criterion_check_completed{};
@@ -336,6 +398,7 @@ public:
                                       const bool &oneChanged,
                                       const bool &converged) const override;
 
+    /* TODO: documentation */
     static std::unique_ptr<Record> create(
         std::shared_ptr<const Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask,
@@ -358,12 +421,14 @@ public:
     logged_data &get() noexcept { return data_; }
 
 protected:
+    /* TODO: documentation */
     explicit Record(std::shared_ptr<const gko::Executor> exec,
                     const mask_type &enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)
         : Logger(exec, enabled_events), max_storage_{max_storage}
     {}
 
+private:
     mutable logged_data data_{};
     size_type max_storage_{};
 };

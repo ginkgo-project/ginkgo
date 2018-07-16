@@ -94,7 +94,7 @@ void Record::on_allocation_completed(const Executor *exec,
                                      const size_type &num_bytes,
                                      const uintptr &location) const
 {
-    GKO_APPEND_DEQUE(data_.allocation_started,
+    GKO_APPEND_DEQUE(data_.allocation_completed,
                      (executor_data{exec, num_bytes, location}));
 }
 
@@ -140,7 +140,7 @@ void Record::on_copy_completed(const Executor *from, const Executor *to,
 void Record::on_operation_launched(const Executor *exec,
                                    const Operation *operation) const
 {
-    GKO_APPEND_DEQUE(data_.operation_started,
+    GKO_APPEND_DEQUE(data_.operation_launched,
                      (operation_data{exec, operation}));
 }
 
@@ -254,8 +254,7 @@ void Record::on_criterion_check_started(const stop::Criterion *criterion,
                                         const bool &setFinalized) const
 {
     GKO_APPEND_DEQUE(data_.criterion_check_started,
-                     (criterion_data{criterion, stoppingId, setFinalized,
-                                     nullptr, false, false}));
+                     (criterion_data{criterion, stoppingId, setFinalized}));
 }
 
 
@@ -270,6 +269,7 @@ void Record::on_criterion_check_completed(const stop::Criterion *criterion,
                      (criterion_data{criterion, stoppingId, setFinalized,
                                      status, oneChanged, converged}));
 }
+
 
 }  // namespace log
 }  // namespace gko
