@@ -60,7 +60,7 @@ std::string get_name(const T &)
             std::free)
             .get());
     if (!status)
-        return name.substr(0, name.rfind(':') - 1);
+        return name.substr(0, name.rfind(' '));
     else
 #endif  // GKO_HAVE_CXXABI_H
         return std::string(typeid(T).name());

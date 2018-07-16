@@ -153,40 +153,43 @@ void Record::on_operation_completed(const Executor *exec,
 }
 
 
-void Record::on_polymorphic_object_create_started(const PolymorphicObject *po,
-                                                  const Executor *exec) const
+void Record::on_polymorphic_object_create_started(
+    const Executor *exec, const PolymorphicObject *po) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_create_started,
                      (polymorphic_object_data{exec, po}));
 }
 
 
-void Record::on_polymorphic_object_create_completed(const PolymorphicObject *po,
-                                                    const Executor *exec) const
+void Record::on_polymorphic_object_create_completed(
+    const Executor *exec, const PolymorphicObject *input,
+    const PolymorphicObject *output) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_create_completed,
-                     (polymorphic_object_data{exec, po}));
+                     (polymorphic_object_data{exec, input, output}));
 }
 
 
-void Record::on_polymorphic_object_copy_started(const PolymorphicObject *po,
-                                                const Executor *exec) const
+void Record::on_polymorphic_object_copy_started(
+    const Executor *exec, const PolymorphicObject *from,
+    const PolymorphicObject *to) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_copy_started,
-                     (polymorphic_object_data{exec, po}));
+                     (polymorphic_object_data{exec, from, to}));
 }
 
 
-void Record::on_polymorphic_object_copy_completed(const PolymorphicObject *po,
-                                                  const Executor *exec) const
+void Record::on_polymorphic_object_copy_completed(
+    const Executor *exec, const PolymorphicObject *from,
+    const PolymorphicObject *to) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_copy_completed,
-                     (polymorphic_object_data{exec, po}));
+                     (polymorphic_object_data{exec, from, to}));
 }
 
 
-void Record::on_polymorphic_object_deleted(const PolymorphicObject *po,
-                                           const Executor *exec) const
+void Record::on_polymorphic_object_deleted(const Executor *exec,
+                                           const PolymorphicObject *po) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_deleted,
                      (polymorphic_object_data{exec, po}));

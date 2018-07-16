@@ -275,9 +275,6 @@ private:                                                                    \
 public:
 
 
-std::ostream &operator<<(std::ostream &os, const stopping_status *status);
-
-
 }  // namespace stop
 }  // namespace gko
 

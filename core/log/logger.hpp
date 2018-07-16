@@ -180,7 +180,7 @@ public:                                                              \
 
     /**
      * Executor's copy started event. Parameters are the executor from, the
-     * executor to, the location from, the, location to, the number of bytes .
+     * executor to, the location from, the, location to, the number of bytes.
      */
     GKO_LOGGER_REGISTER_EVENT(7, copy_started, const Executor *,
                               const Executor *, const uintptr &,
@@ -188,7 +188,7 @@ public:                                                              \
 
     /**
      * Executor's copy completed event. Parameters are the executor from, the
-     * executor to, the location from, the, location to, the number of bytes .
+     * executor to, the location from, the, location to, the number of bytes.
      */
     GKO_LOGGER_REGISTER_EVENT(8, copy_completed, const Executor *,
                               const Executor *, const uintptr &,
@@ -214,39 +214,42 @@ public:                                                              \
                               const Operation *)
 
     /**
-     * PolymorphicObject's create started event. Parameters are the polymorphic
-     * object and the Executor
+     * PolymorphicObject's create started event. Parameters are the executor and
+     * the PolymorphicObject.
      */
     GKO_LOGGER_REGISTER_EVENT(11, polymorphic_object_create_started,
-                              const PolymorphicObject *, const Executor *)
+                              const Executor *, const PolymorphicObject *)
 
     /**
-     * PolymorphicObject's create completed event. Parameters are the
-     * polymorphic object and the Executor
+     * PolymorphicObject's create completed event. Parameters are the executor,
+     * the model PolymorphicObject and the output.
      */
     GKO_LOGGER_REGISTER_EVENT(12, polymorphic_object_create_completed,
-                              const PolymorphicObject *, const Executor *)
+                              const Executor *, const PolymorphicObject *,
+                              const PolymorphicObject *)
 
     /**
-     * PolymorphicObject's copy started event. Parameters are the polymorphic
-     * object and the Executor
+     * PolymorphicObject's copy started event. Parameters are the Executor, the
+     * input PolymorphicObject and the output PolymorphicObject.
      */
     GKO_LOGGER_REGISTER_EVENT(13, polymorphic_object_copy_started,
-                              const PolymorphicObject *, const Executor *)
+                              const Executor *, const PolymorphicObject *,
+                              const PolymorphicObject *)
 
     /**
-     * PolymorphicObject's copy completed event. Parameters are the
-     * polymorphic object and the Executor
+     * PolymorphicObject's copy completed event. Parameters are the Executor,
+     * the input PolymorphicObject and the output PolymorphicObject.
      */
     GKO_LOGGER_REGISTER_EVENT(14, polymorphic_object_copy_completed,
-                              const PolymorphicObject *, const Executor *)
+                              const Executor *, const PolymorphicObject *,
+                              const PolymorphicObject *)
 
     /**
-     * PolymorphicObject's deleted event. Parameters are the
-     * polymorphic object and the Executor
+     * PolymorphicObject's deleted event. Parameters are the Executor and the
+     * deleted PolymorphicObject.
      */
-    GKO_LOGGER_REGISTER_EVENT(15, polymorphic_object_deleted,
-                              const PolymorphicObject *, const Executor *)
+    GKO_LOGGER_REGISTER_EVENT(15, polymorphic_object_deleted, const Executor *,
+                              const PolymorphicObject *)
 
     /**
      * LinOp's apply started event. Parameters are the LinOp, b and X.
@@ -278,14 +281,14 @@ public:                                                              \
 
     /**
      * LinOp Factory's generate started event. Parameters are the LinOpFactory
-     * and the input operator
+     * and the input operator.
      */
     GKO_LOGGER_REGISTER_EVENT(20, linop_factory_generate_started,
                               const LinOpFactory *, const LinOp *)
 
     /**
      * LinOp Factory's generate completed event. Parameters are the
-     * LinOpFactory, the input operator and the output operator
+     * LinOpFactory, the input operator and the output operator.
      */
     GKO_LOGGER_REGISTER_EVENT(21, linop_factory_generate_completed,
                               const LinOpFactory *, const LinOp *,
@@ -293,7 +296,7 @@ public:                                                              \
 
     /**
      * stop::Criterion's check started event. Parameters are the Criterion,
-     * the stoppingId, the finalized boolean
+     * the stoppingId, the finalized boolean.
      */
     GKO_LOGGER_REGISTER_EVENT(22, criterion_check_started,
                               const stop::Criterion *, const uint8 &,

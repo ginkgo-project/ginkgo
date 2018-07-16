@@ -68,6 +68,17 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 }
 
 
+std::ostream &operator<<(std::ostream &os, const stopping_status *status)
+{
+    os << "[" << std::endl;
+    os << "\tConverged: " << status->has_converged() << std::endl;
+    os << "\tStopped: " << status->has_stopped() << " with id "
+       << static_cast<int>(status->get_id()) << std::endl;
+    os << "\tFinalized: " << status->is_finalized() << std::endl;
+    return os << "]" << std::endl;
+}
+
+
 }  // namespace
 
 
@@ -81,10 +92,8 @@ void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
     os_ << prefix_ << " iteration " << num_iterations
         << " completed with solver " << linop_name(solver) << " with residual "
         << linop_name(residual) << ", solution " << linop_name(solution)
-        << " and residual_norm " << residual_norm << std::endl;
+        << " and residual_norm " << linop_name(residual_norm) << std::endl;
     if (verbose_) {
-        os_ << linop_name(solver) << as<gko::matrix::Dense<ValueType>>(solver)
-            << std::endl;
         os_ << linop_name(residual)
             << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
         if (solution != nullptr) {
@@ -203,43 +212,46 @@ void Stream<ValueType>::on_operation_completed(const Executor *exec,
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_create_started(
-    const PolymorphicObject *po, const Executor *exec) const
+    const Executor *exec, const PolymorphicObject *po) const
 {
-    os_ << prefix_ << po_name(po) << " creation started on "
-        << executor_name(exec) << std::endl;
+    os_ << prefix_ << "PolymorphicObject create started from " << po_name(po)
+        << " on " << executor_name(exec) << std::endl;
 }
 
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_create_completed(
-    const PolymorphicObject *po, const Executor *exec) const
+    const Executor *exec, const PolymorphicObject *input,
+    const PolymorphicObject *output) const
 {
-    os_ << prefix_ << po_name(po) << " creation completed on "
-        << executor_name(exec) << std::endl;
+    os_ << prefix_ << po_name(output) << " create completed from "
+        << po_name(input) << " on " << executor_name(exec) << std::endl;
 }
 
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_copy_started(
-    const PolymorphicObject *po, const Executor *exec) const
+    const Executor *exec, const PolymorphicObject *from,
+    const PolymorphicObject *to) const
 {
-    os_ << prefix_ << po_name(po) << " copy started on " << executor_name(exec)
-        << std::endl;
+    os_ << prefix_ << po_name(from) << " copy started to " << po_name(to)
+        << " on " << executor_name(exec) << std::endl;
 }
 
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_copy_completed(
-    const PolymorphicObject *po, const Executor *exec) const
+    const Executor *exec, const PolymorphicObject *from,
+    const PolymorphicObject *to) const
 {
-    os_ << prefix_ << po_name(po) << " copy completed on "
-        << executor_name(exec) << std::endl;
+    os_ << prefix_ << po_name(from) << " copy completed to " << po_name(to)
+        << " on " << executor_name(exec) << std::endl;
 }
 
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_deleted(
-    const PolymorphicObject *po, const Executor *exec) const
+    const Executor *exec, const PolymorphicObject *po) const
 {
     os_ << prefix_ << po_name(po) << " deleted on " << executor_name(exec)
         << std::endl;
@@ -250,7 +262,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_apply_started(const LinOp *A, const LinOp *b,
                                                const LinOp *x) const
 {
-    os_ << prefix_ << " apply started on A " << linop_name(A) << " with b "
+    os_ << prefix_ << "apply started on A " << linop_name(A) << " with b "
         << linop_name(b) << " and x " << linop_name(x) << std::endl;
     if (verbose_) {
         os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
@@ -267,7 +279,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_apply_completed(const LinOp *A, const LinOp *b,
                                                  const LinOp *x) const
 {
-    os_ << prefix_ << " apply completed on A " << linop_name(A) << " with b "
+    os_ << prefix_ << "apply completed on A " << linop_name(A) << " with b "
         << linop_name(b) << " and x " << linop_name(x) << std::endl;
     if (verbose_) {
         os_ << linop_name(A) << as<gko::matrix::Dense<ValueType>>(A)
@@ -287,7 +299,7 @@ void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp *A,
                                                         const LinOp *beta,
                                                         const LinOp *x) const
 {
-    os_ << prefix_ << " advanced apply started on A: " << linop_name(A)
+    os_ << prefix_ << "advanced apply started on A " << linop_name(A)
         << " with alpha " << linop_name(alpha) << " b " << linop_name(b)
         << " beta " << linop_name(beta) << " and x " << linop_name(x)
         << std::endl;
@@ -313,7 +325,7 @@ void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
                                                           const LinOp *beta,
                                                           const LinOp *x) const
 {
-    os_ << prefix_ << " advanced apply completed on A: " << linop_name(A)
+    os_ << prefix_ << "advanced apply completed on A " << linop_name(A)
         << " with alpha " << linop_name(alpha) << " b " << linop_name(b)
         << " beta " << linop_name(beta) << " and x " << linop_name(x)
         << std::endl;
@@ -336,7 +348,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_started(
     const LinOpFactory *factory, const LinOp *input) const
 {
-    os_ << prefix_ << " generate started for " << linop_factory_name(factory)
+    os_ << prefix_ << "generate started for " << linop_factory_name(factory)
         << " with input " << linop_name(input) << std::endl;
 }
 
@@ -345,7 +357,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_completed(
     const LinOpFactory *factory, const LinOp *input, const LinOp *output) const
 {
-    os_ << prefix_ << " generate completed for " << linop_factory_name(factory)
+    os_ << prefix_ << "generate completed for " << linop_factory_name(factory)
         << " with input " << linop_name(input) << " produced "
         << linop_name(output) << std::endl;
 }
@@ -356,9 +368,9 @@ void Stream<ValueType>::on_criterion_check_started(
     const stop::Criterion *criterion, const uint8 &stoppingId,
     const bool &setFinalized) const
 {
-    os_ << prefix_ << " check started for " << criterion_name(criterion)
-        << " with ID " << stoppingId << " and finalized set to " << setFinalized
-        << std::endl;
+    os_ << prefix_ << "check started for " << criterion_name(criterion)
+        << " with ID " << static_cast<int>(stoppingId)
+        << " and finalized set to " << setFinalized << std::endl;
 }
 
 
@@ -368,16 +380,16 @@ void Stream<ValueType>::on_criterion_check_completed(
     const bool &setFinalized, const Array<stopping_status> *status,
     const bool &oneChanged, const bool &converged) const
 {
-    os_ << prefix_ << " check completed for " << criterion_name(criterion)
-        << " with ID " << stoppingId << " and finalized set to " << setFinalized
-        << ". It changed one RHS " << oneChanged
-        << ", stopped the iteration process " << converged << std::endl;
+    os_ << prefix_ << "check completed for " << criterion_name(criterion)
+        << " with ID " << static_cast<int>(stoppingId)
+        << " and finalized set to " << setFinalized << ". It changed one RHS "
+        << oneChanged << ", stopped the iteration process " << converged
+        << std::endl;
 
     if (verbose_) {
         Array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
-        auto data = tmp.get_const_data();
-        os_ << prefix_ << "stopping criterion status " << data;
+        os_ << tmp.get_const_data();
     }
 }
 

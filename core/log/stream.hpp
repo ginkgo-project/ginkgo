@@ -103,19 +103,22 @@ public:
 
     /* PolymorphicObject events */
     void on_polymorphic_object_create_started(
-        const PolymorphicObject *po, const Executor *exec) const override;
+        const Executor *, const PolymorphicObject *po) const override;
 
     void on_polymorphic_object_create_completed(
-        const PolymorphicObject *po, const Executor *exec) const override;
+        const Executor *exec, const PolymorphicObject *input,
+        const PolymorphicObject *output) const override;
 
     void on_polymorphic_object_copy_started(
-        const PolymorphicObject *po, const Executor *exec) const override;
+        const Executor *exec, const PolymorphicObject *from,
+        const PolymorphicObject *to) const override;
 
     void on_polymorphic_object_copy_completed(
-        const PolymorphicObject *po, const Executor *exec) const override;
+        const Executor *exec, const PolymorphicObject *from,
+        const PolymorphicObject *to) const override;
 
-    void on_polymorphic_object_deleted(const PolymorphicObject *po,
-                                       const Executor *exec) const override;
+    void on_polymorphic_object_deleted(
+        const Executor *exec, const PolymorphicObject *po) const override;
 
     /* LinOp events */
     void on_linop_apply_started(const LinOp *A, const LinOp *b,
@@ -154,9 +157,10 @@ public:
     static std::unique_ptr<Stream> create(
         std::shared_ptr<const Executor> exec,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
-        std::ostream &os = std::cout)
+        std::ostream &os = std::cout, bool verbose = false)
     {
-        return std::unique_ptr<Stream>(new Stream(exec, enabled_events, os));
+        return std::unique_ptr<Stream>(
+            new Stream(exec, enabled_events, os, verbose));
     }
 
 protected:
