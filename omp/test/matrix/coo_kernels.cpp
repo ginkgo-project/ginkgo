@@ -78,7 +78,7 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0)
+    void set_up_apply_data()
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
