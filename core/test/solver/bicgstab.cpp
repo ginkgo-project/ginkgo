@@ -101,7 +101,6 @@ TEST_F(Bicgstab, BicgstabFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto bicgstab_solver = static_cast<Solver *>(solver.get());
-
     ASSERT_NE(bicgstab_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(bicgstab_solver->get_system_matrix(), mtx);
 }
@@ -151,7 +150,7 @@ TEST_F(Bicgstab, CanBeCleared)
 }
 
 
-TEST_F(Bicgstab, CanSetPreconditionerGenertor)
+TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 {
     auto bicgstab_factory =
         Solver::Factory::create()

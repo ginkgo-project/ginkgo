@@ -99,12 +99,12 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
-            const Array<stopping_status> &stop_status)
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < p->get_size().num_rows; ++i) {
         for (size_type j = 0; j < p->get_size().num_cols; ++j) {
-            if (stop_status.get_const_data()[j].has_stopped()) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
@@ -129,12 +129,12 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            const Array<stopping_status> &stop_status)
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < s->get_size().num_rows; ++i) {
         for (size_type j = 0; j < s->get_size().num_cols; ++j) {
-            if (stop_status.get_const_data()[j].has_stopped()) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (beta->at(j) != zero<ValueType>()) {
@@ -158,11 +158,11 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> &stop_status)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-        if (stop_status.get_const_data()[j].has_stopped()) {
+        if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
         if (beta->at(j) != zero<ValueType>()) {
@@ -174,7 +174,7 @@ void step_3(
 #pragma omp parallel for
     for (size_type i = 0; i < x->get_size().num_rows; ++i) {
         for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-            if (stop_status.get_const_data()[j].has_stopped()) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             x->at(i, j) +=

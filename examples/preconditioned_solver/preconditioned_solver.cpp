@@ -98,13 +98,22 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>("data/x0.mtx", exec);
 
     // Create solver factory
-    auto solver_gen = cg::Factory::create()
-                          .with_max_iters(20)
-                          .with_rel_residual_goal(1e-20)
-                          // Add preconditioner, these 2 lines are the only
-                          // difference from the simple solver example
-                          .with_preconditioner(bj::create(exec, 8))
-                          .on_executor(exec);
+    auto solver_gen =
+        cg::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(20u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-20)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            // Add preconditioner, these 2 lines are the only
+            // difference from the simple solver example
+            .with_preconditioner(bj::create(exec, 8))
+            .on_executor(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
 

@@ -134,10 +134,10 @@ protected:
         beta = gen_mtx(1, n);
         gamma = gen_mtx(1, n);
         omega = gen_mtx(1, n);
-        converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < n; ++i) {
-            converged->get_data()[i].reset();
+            stop_status->get_data()[i].reset();
         }
 
         d_x = Mtx::create(omp);
@@ -156,7 +156,7 @@ protected:
         d_beta = Mtx::create(omp);
         d_gamma = Mtx::create(omp);
         d_omega = Mtx::create(omp);
-        d_converged = std::unique_ptr<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(omp));
 
         d_x->copy_from(x.get());
@@ -175,8 +175,8 @@ protected:
         d_beta->copy_from(beta.get());
         d_gamma->copy_from(gamma.get());
         d_omega->copy_from(omega.get());
-        *d_converged =
-            *converged;  // copy_from is not a public member function of Array
+        *d_stop_status =
+            *stop_status;  // copy_from is not a public member function of Array
     }
 
     void make_diag_dominant(Mtx *mtx)
@@ -217,7 +217,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -235,7 +235,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -246,12 +246,12 @@ TEST_F(Bicgstab, OmpBicgstabInitializeIsEquivalentToRef)
     gko::kernels::reference::bicgstab::initialize(
         ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
         v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        gamma.get(), omega.get(), converged.get());
+        gamma.get(), omega.get(), stop_status.get());
     gko::kernels::omp::bicgstab::initialize(
         omp, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
-        d_converged.get());
+        d_stop_status.get());
 
     EXPECT_MTX_NEAR(d_r, r, 1e-14);
     EXPECT_MTX_NEAR(d_z, z, 1e-14);
@@ -276,10 +276,10 @@ TEST_F(Bicgstab, OmpBicgstabStep1IsEquivalentToRef)
 
     gko::kernels::reference::bicgstab::step_1(
         ref, r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-        omega.get(), *converged.get());
+        omega.get(), stop_status.get());
     gko::kernels::omp::bicgstab::step_1(
         omp, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
-        d_alpha.get(), d_omega.get(), *d_converged.get());
+        d_alpha.get(), d_omega.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
@@ -291,10 +291,10 @@ TEST_F(Bicgstab, OmpBicgstabStep2IsEquivalentToRef)
 
     gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
                                               rho.get(), alpha.get(),
-                                              beta.get(), *converged.get());
+                                              beta.get(), stop_status.get());
     gko::kernels::omp::bicgstab::step_2(omp, d_r.get(), d_s.get(), d_v.get(),
                                         d_rho.get(), d_alpha.get(),
-                                        d_beta.get(), *d_converged.get());
+                                        d_beta.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_s, s, 1e-14);
@@ -307,11 +307,11 @@ TEST_F(Bicgstab, OmpBicgstabStep3IsEquivalentToRef)
 
     gko::kernels::reference::bicgstab::step_3(
         ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-        beta.get(), gamma.get(), omega.get(), *converged.get());
+        beta.get(), gamma.get(), omega.get(), stop_status.get());
     gko::kernels::omp::bicgstab::step_3(
         omp, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
-        *d_converged.get());
+        d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
     ASSERT_MTX_NEAR(d_x, x, 1e-14);

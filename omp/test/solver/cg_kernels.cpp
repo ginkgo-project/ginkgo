@@ -44,6 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/solver/cg_kernels.hpp>
+#include <core/stop/combined.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
 
 namespace {
@@ -88,10 +91,10 @@ protected:
         beta = gen_mtx(1, n);
         prev_rho = gen_mtx(1, n);
         rho = gen_mtx(1, n);
-        converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
-        for (size_t i = 0; i < converged->get_num_elems(); ++i) {
-            converged->get_data()[i] = false;
+        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(ref, n));
+        for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
+            stop_status->get_data()[i].reset();
         }
 
         d_b = Mtx::create(omp);
@@ -112,9 +115,9 @@ protected:
         d_prev_rho->copy_from(prev_rho.get());
         d_rho = Mtx::create(omp);
         d_rho->copy_from(rho.get());
-        d_converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(omp, n));
-        *d_converged = *converged;
+        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(omp, n));
+        *d_stop_status = *stop_status;
     }
 
     void make_symetric(Mtx *mtx)
@@ -158,7 +161,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
-    std::unique_ptr<gko::Array<bool>> converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -169,7 +172,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
-    std::unique_ptr<gko::Array<bool>> d_converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -179,10 +182,10 @@ TEST_F(Cg, OmpCgInitializeIsEquivalentToRef)
 
     gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
                                             p.get(), q.get(), prev_rho.get(),
-                                            rho.get(), converged.get());
+                                            rho.get(), stop_status.get());
     gko::kernels::omp::cg::initialize(omp, d_b.get(), d_r.get(), d_z.get(),
                                       d_p.get(), d_q.get(), d_prev_rho.get(),
-                                      d_rho.get(), d_converged.get());
+                                      d_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -198,9 +201,9 @@ TEST_F(Cg, OmpCgStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
-                                        prev_rho.get(), *converged.get());
+                                        prev_rho.get(), stop_status.get());
     gko::kernels::omp::cg::step_1(omp, d_p.get(), d_z.get(), d_rho.get(),
-                                  d_prev_rho.get(), *d_converged.get());
+                                  d_prev_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -212,10 +215,10 @@ TEST_F(Cg, OmpCgStep2IsEquivalentToRef)
     initialize_data();
     gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
                                         beta.get(), rho.get(),
-                                        *converged.get());
+                                        stop_status.get());
     gko::kernels::omp::cg::step_2(omp, d_x.get(), d_r.get(), d_p.get(),
                                   d_q.get(), d_beta.get(), d_rho.get(),
-                                  *d_converged.get());
+                                  d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -236,14 +239,32 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(omp);
     d_b->copy_from(b.get());
-    auto cg_factory = gko::solver::Cg<>::Factory::create()
-                          .with_max_iters(50)
-                          .with_rel_residual_goal(1e-14)
-                          .on_executor(ref);
-    auto d_cg_factory = gko::solver::Cg<>::Factory::create()
-                            .with_max_iters(50)
-                            .with_rel_residual_goal(1e-14)
-                            .on_executor(omp);
+    auto cg_factory =
+        gko::solver::Cg<>::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(50u)
+                            .on_executor(ref),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-14)
+                            .on_executor(ref))
+                    .on_executor(ref))
+            .on_executor(ref);
+    auto d_cg_factory =
+        gko::solver::Cg<>::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(50u)
+                            .on_executor(omp),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-14)
+                            .on_executor(omp))
+                    .on_executor(omp))
+            .on_executor(omp);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 

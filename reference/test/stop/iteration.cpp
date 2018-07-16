@@ -31,48 +31,51 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/time.hpp>
+#include <core/stop/iteration.hpp>
 
 
 #include <gtest/gtest.h>
-#include <chrono>
-#include <thread>
 
 
 namespace {
 
 
-constexpr long test_ms = 500;
-constexpr double eps = 1.0e-4;
-using double_seconds = std::chrono::duration<double, std::milli>;
+constexpr gko::size_type test_iterations = 10;
 
 
-class Time : public ::testing::Test {
+class Iteration : public ::testing::Test {
 protected:
-    Time() : exec_{gko::ReferenceExecutor::create()}
+    Iteration() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ = gko::stop::Time::Factory::create()
-                       .with_time_limit(std::chrono::milliseconds(test_ms))
+        factory_ = gko::stop::Iteration::Factory::create()
+                       .with_max_iters(test_iterations)
                        .on_executor(exec_);
     }
 
-    std::unique_ptr<gko::stop::Time::Factory> factory_;
+    std::unique_ptr<gko::stop::Iteration::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-TEST_F(Time, CanCreateFactory)
+TEST_F(Iteration, WaitsTillIteration)
 {
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().time_limit,
-              std::chrono::milliseconds(test_ms));
-}
-
-
-TEST_F(Time, CanCreateCriterion)
-{
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    ASSERT_NE(criterion, nullptr);
+
+    ASSERT_FALSE(
+        criterion->update()
+            .num_iterations(test_iterations - 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations + 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 }
 
 

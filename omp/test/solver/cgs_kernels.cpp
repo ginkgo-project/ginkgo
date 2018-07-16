@@ -44,6 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/solver/cgs_kernels.hpp>
+#include <core/stop/combined.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
 
 
@@ -66,14 +69,32 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(omp);
         d_mtx->copy_from(mtx.get());
-        omp_cgs_factory = Solver::Factory::create()
-                              .with_max_iters(246)
-                              .with_rel_residual_goal(1e-15)
-                              .on_executor(omp);
-        ref_cgs_factory = Solver::Factory::create()
-                              .with_max_iters(246)
-                              .with_rel_residual_goal(1e-15)
-                              .on_executor(ref);
+        omp_cgs_factory =
+            Solver::Factory::create()
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246u)
+                                           .on_executor(omp),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(omp))
+                        .on_executor(omp))
+                .on_executor(omp);
+        ref_cgs_factory =
+            Solver::Factory::create()
+                .with_criterion(
+                    gko::stop::Combined::Factory::create()
+                        .with_criteria(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(246u)
+                                           .on_executor(ref),
+                                       gko::stop::ResidualNormReduction<>::
+                                           Factory::create()
+                                               .with_reduction_factor(1e-15)
+                                               .on_executor(ref))
+                        .on_executor(ref))
+                .on_executor(ref);
     }
 
     void TearDown()
@@ -110,10 +131,10 @@ protected:
         gamma = gen_mtx(1, n);
         rho = gen_mtx(1, n);
         rho_prev = gen_mtx(1, n);
-        converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(ref, n));
-        for (size_t i = 0; i < converged->get_num_elems(); ++i) {
-            converged->get_data()[i] = false;
+        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(ref, n));
+        for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
+            stop_status->get_data()[i].reset();
         }
 
         d_b = Mtx::create(omp);
@@ -146,11 +167,11 @@ protected:
         d_rho_prev->copy_from(rho_prev.get());
         d_rho = Mtx::create(omp);
         d_rho->copy_from(rho.get());
-        d_converged =
-            std::unique_ptr<gko::Array<bool>>(new gko::Array<bool>(omp, n));
+        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+            new gko::Array<gko::stopping_status>(omp, n));
         // because there is no public function copy_from, use overloaded =
         // operator
-        *d_converged = *converged;
+        *d_stop_status = *stop_status;
     }
 
     void make_diag_dominant(Mtx *mtx)
@@ -190,7 +211,7 @@ protected:
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> rho_prev;
-    std::unique_ptr<gko::Array<bool>> converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -207,7 +228,7 @@ protected:
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_rho_prev;
-    std::unique_ptr<gko::Array<bool>> d_converged;
+    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -218,12 +239,12 @@ TEST_F(Cgs, OmpCgsInitializeIsEquivalentToRef)
     gko::kernels::reference::cgs::initialize(
         ref, b.get(), r.get(), r_tld.get(), p.get(), q.get(), u.get(),
         u_hat.get(), v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
-        rho_prev.get(), rho.get(), converged.get());
+        rho_prev.get(), rho.get(), stop_status.get());
     gko::kernels::omp::cgs::initialize(
         omp, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
         d_u.get(), d_u_hat.get(), d_v_hat.get(), d_t.get(), d_alpha.get(),
         d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
-        d_converged.get());
+        d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
@@ -247,10 +268,10 @@ TEST_F(Cgs, OmpCgsStep1IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
                                          q.get(), beta.get(), rho.get(),
-                                         rho_prev.get(), *converged.get());
+                                         rho_prev.get(), stop_status.get());
     gko::kernels::omp::cgs::step_1(omp, d_r.get(), d_u.get(), d_p.get(),
                                    d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_rho_prev.get(), *d_converged.get());
+                                   d_rho_prev.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     ASSERT_MTX_NEAR(d_u, u, 1e-14);
@@ -264,10 +285,10 @@ TEST_F(Cgs, OmpCgsStep2IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
-                                         gamma.get(), *converged.get());
+                                         gamma.get(), stop_status.get());
     gko::kernels::omp::cgs::step_2(omp, d_u.get(), d_v_hat.get(), d_q.get(),
                                    d_t.get(), d_alpha.get(), d_rho.get(),
-                                   d_gamma.get(), *d_converged.get());
+                                   d_gamma.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     ASSERT_MTX_NEAR(d_t, t, 1e-14);
@@ -281,10 +302,10 @@ TEST_F(Cgs, OmpCgsStep3IsEquivalentToRef)
 
     gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
                                          x.get(), alpha.get(),
-                                         *converged.get());
+                                         stop_status.get());
     gko::kernels::omp::cgs::step_3(omp, d_t.get(), d_u_hat.get(), d_r.get(),
                                    d_x.get(), d_alpha.get(),
-                                   *d_converged.get());
+                                   d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
