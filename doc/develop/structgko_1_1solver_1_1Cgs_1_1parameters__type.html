@@ -79,14 +79,10 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a60252382cf73054f52aa1115775800d7"><td class="memTemplParams" colspan="2"><a id="a60252382cf73054f52aa1115775800d7"></a>
+<tr class="memitem:ab77b300499a1cfeb723480fdad5d0bbe"><td class="memTemplParams" colspan="2"><a id="ab77b300499a1cfeb723480fdad5d0bbe"></a>
 template&lt;typename... Args&gt; </td></tr>
-<tr class="memitem:a60252382cf73054f52aa1115775800d7"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_max_iters</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
-<tr class="separator:a60252382cf73054f52aa1115775800d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2d5a77395f05b06ec60f7c056262a008"><td class="memTemplParams" colspan="2"><a id="a2d5a77395f05b06ec60f7c056262a008"></a>
-template&lt;typename... Args&gt; </td></tr>
-<tr class="memitem:a2d5a77395f05b06ec60f7c056262a008"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_rel_residual_goal</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
-<tr class="separator:a2d5a77395f05b06ec60f7c056262a008"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab77b300499a1cfeb723480fdad5d0bbe"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_criterion</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
+<tr class="separator:ab77b300499a1cfeb723480fdad5d0bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abeaf24c49b94e371901fd83f084dfd8a"><td class="memTemplParams" colspan="2"><a id="abeaf24c49b94e371901fd83f084dfd8a"></a>
 template&lt;typename... Args&gt; </td></tr>
 <tr class="memitem:abeaf24c49b94e371901fd83f084dfd8a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_preconditioner</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
@@ -98,14 +94,10 @@ template&lt;typename... Args&gt; </td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a35b41834a0c73da7e7a3d9b830c59703"><td class="memItemLeft" align="right" valign="top"><a id="a35b41834a0c73da7e7a3d9b830c59703"></a>
-int64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a35b41834a0c73da7e7a3d9b830c59703">max_iters</a> { 0 }</td></tr>
-<tr class="memdesc:a35b41834a0c73da7e7a3d9b830c59703"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of iterations. <br /></td></tr>
-<tr class="separator:a35b41834a0c73da7e7a3d9b830c59703"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe90384c41ea484156c606f42e5a070f"><td class="memItemLeft" align="right" valign="top"><a id="afe90384c41ea484156c606f42e5a070f"></a>
-remove_complex&lt; value_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#afe90384c41ea484156c606f42e5a070f">rel_residual_goal</a> { 0.0 }</td></tr>
-<tr class="memdesc:afe90384c41ea484156c606f42e5a070f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Relative residual goal. <br /></td></tr>
-<tr class="separator:afe90384c41ea484156c606f42e5a070f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a356eeefa105d3d00995692e63de7b790"><td class="memItemLeft" align="right" valign="top"><a id="a356eeefa105d3d00995692e63de7b790"></a>
+std::shared_ptr&lt; const <a class="el" href="classgko_1_1AbstractFactory.html">stop::CriterionFactory</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a356eeefa105d3d00995692e63de7b790">criterion</a> { nullptr }</td></tr>
+<tr class="memdesc:a356eeefa105d3d00995692e63de7b790"><td class="mdescLeft">&#160;</td><td class="mdescRight">Criterion factory. <br /></td></tr>
+<tr class="separator:a356eeefa105d3d00995692e63de7b790"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abbe93702c7bcb93bc1d831d6b947a0f9"><td class="memItemLeft" align="right" valign="top"><a id="abbe93702c7bcb93bc1d831d6b947a0f9"></a>
 std::shared_ptr&lt; const <a class="el" href="classgko_1_1AbstractFactory.html">LinOpFactory</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#abbe93702c7bcb93bc1d831d6b947a0f9">preconditioner</a> { nullptr }</td></tr>
 <tr class="memdesc:abbe93702c7bcb93bc1d831d6b947a0f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Preconditioner factory. <br /></td></tr>
@@ -119,7 +111,7 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>factory</b> = Factor
 <tr class="separator:a0d16b999fffe1aecfbc4824381352268 inherit pub_types_structgko_1_1enable__parameters__type"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>core/solver/<a class="el" href="cgs_8hpp_source.html">cgs.hpp (151bee1)</a></li>
+<li>core/solver/<a class="el" href="cgs_8hpp_source.html">cgs.hpp (ea66fab)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
