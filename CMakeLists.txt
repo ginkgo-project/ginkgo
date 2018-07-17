@@ -17,7 +17,7 @@ option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 option(SKIP_DEPENDENCY_UPDATE
-       "Do not update dependencies each time the project is rebuilt" OFF)
+       "Do not update dependencies each time the project is rebuilt" ON)
 set(CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 
