@@ -66,7 +66,7 @@ __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
             ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
             val += a[ind] * b[col[ind]];
         }
-        c[idx] = val;
+        c[idx + blockIdx.y * num_rows] = val;
     }
 }
 
@@ -79,9 +79,10 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Sellp<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    const dim3 blockSize(matrix::default_slice_size, 1, 1);
+    const dim3 blockSize(matrix::default_slice_size);
     const dim3 gridSize(
-        ceildiv(a->get_size().num_rows, matrix::default_slice_size), 1, 1);
+        ceildiv(a->get_size().num_rows, matrix::default_slice_size),
+        b->get_size().num_cols);
 
     spmv_kernel<<<gridSize, blockSize, 0, 0>>>(
         a->get_size().num_rows, a->get_const_slice_lengths(),
@@ -114,7 +115,7 @@ __global__
             ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
             val += alpha[0] * a[ind] * b[col[ind]];
         }
-        c[idx] = beta[0] * c[idx] + val;
+        c[idx + blockIdx.y * num_rows] = beta[0] * c[idx] + val;
     }
 }
 
@@ -131,7 +132,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    matrix::Dense<ValueType> *c)
 {
     const dim3 blockSize(matrix::default_slice_size);
-    const dim3 gridSize(ceildiv(a->get_size().num_rows, blockSize.x));
+    const dim3 gridSize(
+        ceildiv(a->get_size().num_rows, matrix::default_slice_size),
+        b->get_size().num_cols);
 
     advanced_spmv_kernel<<<gridSize, blockSize>>>(
         a->get_size().num_rows, a->get_const_slice_lengths(),
