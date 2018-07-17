@@ -204,10 +204,10 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto nnz = a->get_num_stored_elements();
+    auto nnz = c->get_num_stored_elements();
     const dim3 grid(ceildiv(nnz, default_block_size));
     const dim3 block(default_block_size);
-    set_zero<<<grid, block>>>(c->get_num_stored_elements(),
+    set_zero<<<grid, block>>>(nnz,
                               as_cuda_type(c->get_values()));
 
     spmv2(exec, a, b, c);
