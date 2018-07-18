@@ -114,7 +114,6 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::converged>(iter + 1, r.get());
             break;
         }
 

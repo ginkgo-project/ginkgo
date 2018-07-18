@@ -83,54 +83,10 @@ std::ostream &operator<<(std::ostream &os, const stopping_status *status)
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
-                                              const size_type &num_iterations,
-                                              const LinOp *residual,
-                                              const LinOp *solution,
-                                              const LinOp *residual_norm) const
-{
-    os_ << prefix_ << " iteration " << num_iterations
-        << " completed with solver " << linop_name(solver) << " with residual "
-        << linop_name(residual) << ", solution " << linop_name(solution)
-        << " and residual_norm " << linop_name(residual_norm) << std::endl;
-    if (verbose_) {
-        os_ << linop_name(residual)
-            << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
-        if (solution != nullptr) {
-            os_ << linop_name(solution)
-                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
-        }
-        if (residual_norm != nullptr) {
-            os_ << linop_name(residual_norm)
-                << as<gko::matrix::Dense<ValueType>>(residual_norm)
-                << std::endl;
-        }
-    }
-}
-
-
-template <typename ValueType>
-void Stream<ValueType>::on_apply(const std::string &name) const
-{
-    os_ << prefix_ << "starting apply function: " << name << std::endl;
-}
-
-
-/* TODO: improve this whenever the criterion class hierarchy MR is merged */
-template <typename ValueType>
-void Stream<ValueType>::on_converged(const size_type &at_iteration,
-                                     const LinOp *residual) const
-{
-    os_ << prefix_ << "converged at iteration " << at_iteration
-        << " residual:\n"
-        << as<gko::matrix::Dense<ValueType>>(residual);
-}
-
-template <typename ValueType>
 void Stream<ValueType>::on_allocation_started(const Executor *exec,
                                               const size_type &num_bytes) const
 {
-    os_ << prefix_ << " allocation started on " << executor_name(exec)
+    os_ << prefix_ << "allocation started on " << executor_name(exec)
         << " with " << bytes_name(num_bytes) << std::endl;
 }
 
@@ -140,7 +96,7 @@ void Stream<ValueType>::on_allocation_completed(const Executor *exec,
                                                 const size_type &num_bytes,
                                                 const uintptr &location) const
 {
-    os_ << prefix_ << " allocation completed on " << executor_name(exec)
+    os_ << prefix_ << "allocation completed on " << executor_name(exec)
         << " at " << location_name(location) << " with "
         << bytes_name(num_bytes) << std::endl;
 }
@@ -150,7 +106,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_free_started(const Executor *exec,
                                         const uintptr &location) const
 {
-    os_ << prefix_ << " free started on " << executor_name(exec) << " at "
+    os_ << prefix_ << "free started on " << executor_name(exec) << " at "
         << location_name(location) << std::endl;
 }
 
@@ -159,7 +115,7 @@ template <typename ValueType>
 void Stream<ValueType>::on_free_completed(const Executor *exec,
                                           const uintptr &location) const
 {
-    os_ << prefix_ << " free completed on " << executor_name(exec) << " at "
+    os_ << prefix_ << "free completed on " << executor_name(exec) << " at "
         << location_name(location) << std::endl;
 }
 
@@ -171,7 +127,7 @@ void Stream<ValueType>::on_copy_started(const Executor *from,
                                         const uintptr &location_to,
                                         const size_type &num_bytes) const
 {
-    os_ << prefix_ << " copy started from " << executor_name(from) << " to "
+    os_ << prefix_ << "copy started from " << executor_name(from) << " to "
         << executor_name(to) << " from " << location_name(location_from)
         << " to " << location_name(location_to) << " with "
         << bytes_name(num_bytes) << std::endl;
@@ -185,7 +141,7 @@ void Stream<ValueType>::on_copy_completed(const Executor *from,
                                           const uintptr &location_to,
                                           const size_type &num_bytes) const
 {
-    os_ << prefix_ << " copy completed from " << executor_name(from) << " to "
+    os_ << prefix_ << "copy completed from " << executor_name(from) << " to "
         << executor_name(to) << " from " << location_name(location_from)
         << " to " << location_name(location_to) << " with "
         << bytes_name(num_bytes) << std::endl;
@@ -390,6 +346,33 @@ void Stream<ValueType>::on_criterion_check_completed(
         Array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
         os_ << tmp.get_const_data();
+    }
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
+                                              const size_type &num_iterations,
+                                              const LinOp *residual,
+                                              const LinOp *solution,
+                                              const LinOp *residual_norm) const
+{
+    os_ << prefix_ << "iteration " << num_iterations
+        << " completed with solver " << linop_name(solver) << " with residual "
+        << linop_name(residual) << ", solution " << linop_name(solution)
+        << " and residual_norm " << linop_name(residual_norm) << std::endl;
+    if (verbose_) {
+        os_ << linop_name(residual)
+            << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
+        if (solution != nullptr) {
+            os_ << linop_name(solution)
+                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
+        }
+        if (residual_norm != nullptr) {
+            os_ << linop_name(residual_norm)
+                << as<gko::matrix::Dense<ValueType>>(residual_norm)
+                << std::endl;
+        }
     }
 }
 

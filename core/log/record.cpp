@@ -51,37 +51,6 @@ namespace log {
     deque_name_.push_back(object_)
 
 
-void Record::on_iteration_complete(const LinOp *solver,
-                                   const size_type &num_iterations,
-                                   const LinOp *residual, const LinOp *solution,
-                                   const LinOp *residual_norm) const
-{
-    /* TODO: remove this part */
-    data_.num_iterations = num_iterations;
-
-    GKO_APPEND_DEQUE(data_.iteration_completed,
-                     (iteration_complete_data{solver, num_iterations, residual,
-                                              solution, residual_norm}));
-}
-
-
-void Record::on_apply(const std::string &name) const
-{
-    GKO_APPEND_DEQUE(data_.applies, name);
-}
-
-
-/* TODO: improve this whenever the criterion class hierarchy MR is merged */
-void Record::on_converged(const size_type &at_iteration,
-                          const LinOp *residual) const
-{
-    data_.converged_at_iteration = at_iteration;
-    if (residual != nullptr) {
-        GKO_APPEND_DEQUE(data_.residuals, residual->clone());
-    }
-}
-
-
 void Record::on_allocation_started(const Executor *exec,
                                    const size_type &num_bytes) const
 {
@@ -268,6 +237,17 @@ void Record::on_criterion_check_completed(const stop::Criterion *criterion,
     GKO_APPEND_DEQUE(data_.criterion_check_completed,
                      (criterion_data{criterion, stoppingId, setFinalized,
                                      status, oneChanged, converged}));
+}
+
+
+void Record::on_iteration_complete(const LinOp *solver,
+                                   const size_type &num_iterations,
+                                   const LinOp *residual, const LinOp *solution,
+                                   const LinOp *residual_norm) const
+{
+    GKO_APPEND_DEQUE(data_.iteration_completed,
+                     (iteration_complete_data{solver, num_iterations, residual,
+                                              solution, residual_norm}));
 }
 
 

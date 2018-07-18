@@ -70,10 +70,7 @@ struct iteration_complete_data {
           solution{nullptr},
           residual_norm{nullptr}
     {
-        /* TODO: remove this solver part */
-        if (solver != nullptr) {
-            this->solver = solver->clone();
-        }
+        this->solver = solver->clone();
         if (residual != nullptr) {
             this->residual = residual->clone();
         }
@@ -86,26 +83,10 @@ struct iteration_complete_data {
     }
 
     iteration_complete_data(const iteration_complete_data &other)
-        : solver{nullptr},
-          num_iterations{other.num_iterations},
-          residual{nullptr},
-          solution{nullptr},
-          residual_norm{nullptr}
-    {
-        /* TODO: remove this solver part */
-        if (other.solver != nullptr) {
-            this->solver = other.solver->clone();
-        }
-        if (other.residual != nullptr) {
-            this->residual = other.residual->clone();
-        }
-        if (other.solution != nullptr) {
-            this->solution = other.solution->clone();
-        }
-        if (other.residual_norm != nullptr) {
-            this->residual_norm = other.residual_norm->clone();
-        }
-    }
+        : iteration_complete_data{other.solver.get(), other.num_iterations,
+                                  other.residual.get(), other.solution.get(),
+                                  other.residual_norm.get()}
+    {}
 };
 
 
@@ -148,13 +129,9 @@ struct polymorphic_object_data {
     }
 
     polymorphic_object_data(const gko::log::polymorphic_object_data &other)
-        : exec{other.exec}
-    {
-        this->input = other.input->clone();
-        if (other.output != nullptr) {
-            this->output = other.output->clone();
-        }
-    }
+        : polymorphic_object_data{other.exec, other.input.get(),
+                                  other.output.get()}
+    {}
 };
 
 
@@ -183,17 +160,9 @@ struct linop_data {
     }
 
     linop_data(const gko::log::linop_data &other)
-    {
-        this->A = other.A->clone();
-        if (other.alpha != nullptr) {
-            this->alpha = other.alpha->clone();
-        }
-        this->b = other.b->clone();
-        if (other.beta != nullptr) {
-            this->beta = other.beta->clone();
-        }
-        this->x = other.x->clone();
-    }
+        : linop_data{other.A.get(), other.alpha.get(), other.b.get(),
+                     other.beta.get(), other.x.get()}
+    {}
 };
 
 
@@ -215,21 +184,48 @@ struct linop_factory_data {
         }
     }
 
-    linop_factory_data(const linop_factory_data &other) : factory{other.factory}
-    {
-        this->input = other.input->clone();
-        if (other.output != nullptr) {
-            this->output = other.output->clone();
-        }
-    }
+    linop_factory_data(const linop_factory_data &other)
+        : linop_factory_data{other.factory, other.input.get(),
+                             other.output.get()}
+    {}
 };
 
+struct updater_data {
+    size_type num_iterations;
+    std::unique_ptr<const LinOp> residual;
+    std::unique_ptr<const LinOp> residual_norm;
+    std::unique_ptr<const LinOp> solution;
+
+    updater_data(const size_type &num_iterations, const LinOp *residual,
+                 const LinOp *residual_norm, const LinOp *solution)
+        : num_iterations{num_iterations},
+          residual{nullptr},
+          residual_norm{nullptr},
+          solution{nullptr}
+    {
+        if (residual != nullptr) {
+            this->residual = std::unique_ptr<const LinOp>(residual->clone());
+        }
+        if (residual_norm != nullptr) {
+            this->residual_norm =
+                std::unique_ptr<const LinOp>(residual_norm->clone());
+        }
+        if (solution != nullptr) {
+            this->solution = std::unique_ptr<const LinOp>(solution->clone());
+        }
+    }
+
+    updater_data(const updater_data &other)
+        : updater_data{other.num_iterations, other.residual.get(),
+                       other.residual_norm.get(), other.solution.get()}
+    {}
+};
 
 /**
  * Struct representing Criterion related data
  */
 struct criterion_data {
-    const stop::Criterion *criterion;
+    std::unique_ptr<const updater_data> updater;
     const uint8 stoppingId;
     const bool setFinalized;
     const Array<stopping_status> *status;
@@ -240,22 +236,28 @@ struct criterion_data {
                    const bool setFinalized,
                    const Array<stopping_status> *status = nullptr,
                    const bool oneChanged = false, const bool converged = false)
-        : criterion{criterion},
-          stoppingId{stoppingId},
+        : stoppingId{stoppingId},
           setFinalized{setFinalized},
           status{status},
           oneChanged{oneChanged},
           converged{converged}
-    {}
+    {
+        const auto &updater = criterion->get_updater();
+        this->updater = std::unique_ptr<const updater_data>(
+            new updater_data{updater.num_iterations_, updater.residual_,
+                             updater.residual_norm_, updater.solution_});
+    }
 
     criterion_data(const criterion_data &other)
-        : criterion{other.criterion},
-          stoppingId{other.stoppingId},
+        : stoppingId{other.stoppingId},
           setFinalized{other.setFinalized},
           status{other.status},
           oneChanged{other.oneChanged},
           converged{other.converged}
-    {}
+    {
+        this->updater = std::unique_ptr<const updater_data>(
+            new updater_data{*other.updater.get()});
+    }
 };
 
 
@@ -269,50 +271,34 @@ public:
      * Struct storing the actually logged data
      */
     struct logged_data {
-        std::deque<std::string> applies{};
-        size_type num_iterations{};
-        size_type converged_at_iteration{};
-        std::deque<std::unique_ptr<const LinOp>> residuals{};
+        std::deque<executor_data> allocation_started;
+        std::deque<executor_data> allocation_completed;
+        std::deque<executor_data> free_started;
+        std::deque<executor_data> free_completed;
+        std::deque<std::tuple<executor_data, executor_data>> copy_started;
+        std::deque<std::tuple<executor_data, executor_data>> copy_completed;
 
-        std::deque<iteration_complete_data> iteration_completed{};
+        std::deque<operation_data> operation_launched;
+        std::deque<operation_data> operation_completed;
 
-        std::deque<executor_data> allocation_started{};
-        std::deque<executor_data> allocation_completed{};
-        std::deque<executor_data> free_started{};
-        std::deque<executor_data> free_completed{};
-        std::deque<std::tuple<executor_data, executor_data>> copy_started{};
-        std::deque<std::tuple<executor_data, executor_data>> copy_completed{};
+        std::deque<polymorphic_object_data> polymorphic_object_create_started;
+        std::deque<polymorphic_object_data> polymorphic_object_create_completed;
+        std::deque<polymorphic_object_data> polymorphic_object_copy_started;
+        std::deque<polymorphic_object_data> polymorphic_object_copy_completed;
+        std::deque<polymorphic_object_data> polymorphic_object_deleted;
 
-        std::deque<operation_data> operation_launched{};
-        std::deque<operation_data> operation_completed{};
+        std::deque<linop_data> linop_apply_started;
+        std::deque<linop_data> linop_apply_completed;
+        std::deque<linop_data> linop_advanced_apply_started;
+        std::deque<linop_data> linop_advanced_apply_completed;
+        std::deque<linop_factory_data> linop_factory_generate_started;
+        std::deque<linop_factory_data> linop_factory_generate_completed;
 
-        std::deque<polymorphic_object_data> polymorphic_object_create_started{};
-        std::deque<polymorphic_object_data>
-            polymorphic_object_create_completed{};
-        std::deque<polymorphic_object_data> polymorphic_object_copy_started{};
-        std::deque<polymorphic_object_data> polymorphic_object_copy_completed{};
-        std::deque<polymorphic_object_data> polymorphic_object_deleted{};
+        std::deque<criterion_data> criterion_check_started;
+        std::deque<criterion_data> criterion_check_completed;
 
-        std::deque<linop_data> linop_apply_started{};
-        std::deque<linop_data> linop_apply_completed{};
-        std::deque<linop_data> linop_advanced_apply_started{};
-        std::deque<linop_data> linop_advanced_apply_completed{};
-        std::deque<linop_factory_data> linop_factory_generate_started{};
-        std::deque<linop_factory_data> linop_factory_generate_completed{};
-
-        std::deque<criterion_data> criterion_check_started{};
-        std::deque<criterion_data> criterion_check_completed{};
+        std::deque<iteration_complete_data> iteration_completed;
     };
-
-    void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution = nullptr,
-        const LinOp *residual_norm = nullptr) const override;
-
-    void on_apply(const std::string &name) const override;
-
-    void on_converged(const size_type &at_iteration,
-                      const LinOp *residual) const override;
 
     /* Executor events */
     void on_allocation_started(const Executor *exec,
@@ -379,6 +365,7 @@ public:
                                            const LinOp *b, const LinOp *beta,
                                            const LinOp *x) const override;
 
+    /* LinOpFactory events */
     void on_linop_factory_generate_started(const LinOpFactory *factory,
                                            const LinOp *input) const override;
 
@@ -398,11 +385,35 @@ public:
                                       const bool &oneChanged,
                                       const bool &converged) const override;
 
-    /* TODO: documentation */
+    /* Internal solver events */
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution = nullptr,
+        const LinOp *residual_norm = nullptr) const override;
+
+
+    /**
+     * Creates a Record logger. This dynamically allocates the memory,
+     * constructs the object and return an std::unique_ptr to this object.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param max_storage  the size of storage (i.e. history) wanted by the
+     *                     user. By default 0 is used, which means unlimited
+     *                     storage. It is advised to control this to reduce
+     *                     memory overhead of this logger.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
     static std::unique_ptr<Record> create(
         std::shared_ptr<const Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask,
-        size_type max_storage = 0)
+        size_type max_storage = 1)
     {
         return std::unique_ptr<Record>(
             new Record(exec, enabled_events, max_storage));
@@ -421,7 +432,17 @@ public:
     logged_data &get() noexcept { return data_; }
 
 protected:
-    /* TODO: documentation */
+    /**
+     * Creates a Record logger.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param max_storage  the size of storage (i.e. history) wanted by the
+     *                     user. By default 0 is used, which means unlimited
+     *                     storage. It is advised to control this to reduce
+     *                     memory overhead of this logger.
+     */
     explicit Record(std::shared_ptr<const gko::Executor> exec,
                     const mask_type &enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)

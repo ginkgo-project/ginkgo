@@ -49,94 +49,6 @@ namespace {
 
 
 constexpr int num_iters = 10;
-const std::string apply_str = "DummyLoggedClass::apply";
-
-
-TEST(Stream, CatchesApply)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    std::stringstream out;
-    auto logger =
-        gko::log::Stream<>::create(exec, gko::log::Logger::apply_mask, out);
-
-    logger->on<gko::log::Logger::apply>(apply_str);
-
-    ASSERT_STR_CONTAINS(out.str(), "starting apply function: " + apply_str);
-}
-
-
-TEST(Stream, CatchesIterations)
-{
-    using Dense = gko::matrix::Dense<>;
-    auto exec = gko::ReferenceExecutor::create();
-    std::stringstream out;
-    auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::iteration_complete_mask, out);
-    auto solver = Dense::create(exec);
-    auto residual = Dense::create(exec);
-    auto solution = Dense::create(exec);
-    auto residual_norm = Dense::create(exec);
-    std::stringstream ptrstream_solver;
-    ptrstream_solver << solver.get();
-    std::stringstream ptrstream_residual;
-    ptrstream_residual << residual.get();
-
-    logger->on<gko::log::Logger::iteration_complete>(solver.get(), num_iters,
-                                                     residual.get());
-
-    ASSERT_STR_CONTAINS(out.str(), "iteration " + num_iters);
-    ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
-    ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
-}
-
-
-TEST(Stream, CatchesIterationsWithVerbose)
-{
-    using Dense = gko::matrix::Dense<>;
-    auto exec = gko::ReferenceExecutor::create();
-    std::stringstream out;
-    auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::iteration_complete_mask, out, true);
-
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
-    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
-    auto residual = gko::initialize<Dense>({-4.4}, exec);
-    auto solution = gko::initialize<Dense>({-2.2}, exec);
-    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
-
-    logger->on<gko::log::Logger::iteration_complete>(
-        solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get());
-
-    auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "-4.4");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "-3.3");
-}
-
-
-TEST(Stream, CatchesConvergence)
-{
-    std::stringstream out;
-    auto exec = gko::ReferenceExecutor::create();
-    auto mtx =
-        gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
-    auto logger =
-        gko::log::Stream<>::create(exec, gko::log::Logger::converged_mask, out);
-    out << std::scientific << std::setprecision(4);
-
-    logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
-
-    auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "converged at iteration " + num_iters);
-    ASSERT_STR_CONTAINS(os, "1.0");
-    ASSERT_STR_CONTAINS(os, "2.0");
-    ASSERT_STR_CONTAINS(os, "3.0");
-}
 
 
 TEST(Stream, CatchesAllocationStarted)
@@ -161,14 +73,16 @@ TEST(Stream, CatchesAllocationCompleted)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::allocation_completed_mask, out);
     int dummy = 1;
-    auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
+    std::stringstream ptrstream;
+    ptrstream << &dummy;
 
-    logger->on<gko::log::Logger::allocation_completed>(exec.get(), 42, ptr);
+    logger->on<gko::log::Logger::allocation_completed>(
+        exec.get(), 42, reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "allocation completed on");
     ASSERT_STR_CONTAINS(os, "42");
-    ASSERT_STR_CONTAINS(os, std::to_string(ptr));
+    ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -179,13 +93,15 @@ TEST(Stream, CatchesFreeStarted)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::free_started_mask, out);
     int dummy = 1;
-    auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
+    std::stringstream ptrstream;
+    ptrstream << &dummy;
 
-    logger->on<gko::log::Logger::free_started>(exec.get(), ptr);
+    logger->on<gko::log::Logger::free_started>(
+        exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "free started on");
-    ASSERT_STR_CONTAINS(os, std::to_string(ptr));
+    ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -196,13 +112,15 @@ TEST(Stream, CatchesFreeCompleted)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::free_completed_mask, out);
     int dummy = 1;
-    auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
+    std::stringstream ptrstream;
+    ptrstream << &dummy;
 
-    logger->on<gko::log::Logger::free_completed>(exec.get(), ptr);
+    logger->on<gko::log::Logger::free_completed>(
+        exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "free completed on");
-    ASSERT_STR_CONTAINS(os, std::to_string(ptr));
+    ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -214,16 +132,19 @@ TEST(Stream, CatchesCopyStarted)
         exec, gko::log::Logger::copy_started_mask, out);
     int dummy_in = 1;
     int dummy_out = 1;
-    auto ptr_in = reinterpret_cast<gko::uintptr>(&dummy_in);
-    auto ptr_out = reinterpret_cast<gko::uintptr>(&dummy_out);
+    std::stringstream ptrstream_in;
+    ptrstream_in << &dummy_in;
+    std::stringstream ptrstream_out;
+    ptrstream_out << &dummy_out;
 
-    logger->on<gko::log::Logger::copy_started>(exec.get(), exec.get(), ptr_in,
-                                               ptr_out, 42);
+    logger->on<gko::log::Logger::copy_started>(
+        exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
+        reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "copy started");
-    ASSERT_STR_CONTAINS(os, "from Location[" + std::to_string(ptr_in));
-    ASSERT_STR_CONTAINS(os, "to Location[" + std::to_string(ptr_out));
+    ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
+    ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
     ASSERT_STR_CONTAINS(os, "with Bytes[42]");
 }
 
@@ -236,16 +157,19 @@ TEST(Stream, CatchesCopyCompleted)
         exec, gko::log::Logger::copy_completed_mask, out);
     int dummy_in = 1;
     int dummy_out = 1;
-    auto ptr_in = reinterpret_cast<gko::uintptr>(&dummy_in);
-    auto ptr_out = reinterpret_cast<gko::uintptr>(&dummy_out);
+    std::stringstream ptrstream_in;
+    ptrstream_in << &dummy_in;
+    std::stringstream ptrstream_out;
+    ptrstream_out << &dummy_out;
 
-    logger->on<gko::log::Logger::copy_completed>(exec.get(), exec.get(), ptr_in,
-                                                 ptr_out, 42);
+    logger->on<gko::log::Logger::copy_completed>(
+        exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
+        reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "copy completed");
-    ASSERT_STR_CONTAINS(os, "from Location[" + std::to_string(ptr_in));
-    ASSERT_STR_CONTAINS(os, "to Location[" + std::to_string(ptr_out));
+    ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
+    ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
     ASSERT_STR_CONTAINS(os, "with Bytes[42]");
 }
 
@@ -753,6 +677,60 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
     ASSERT_STR_CONTAINS(os, "Stopped: " + true_in_stream.str());
     ASSERT_STR_CONTAINS(os, "with id " + std::to_string(RelativeStoppingId));
     ASSERT_STR_CONTAINS(os, "Finalized: " + true_in_stream.str());
+}
+
+
+TEST(Stream, CatchesIterations)
+{
+    using Dense = gko::matrix::Dense<>;
+    auto exec = gko::ReferenceExecutor::create();
+    std::stringstream out;
+    auto logger = gko::log::Stream<>::create(
+        exec, gko::log::Logger::iteration_complete_mask, out);
+    auto solver = Dense::create(exec);
+    auto residual = Dense::create(exec);
+    auto solution = Dense::create(exec);
+    auto residual_norm = Dense::create(exec);
+    std::stringstream ptrstream_solver;
+    ptrstream_solver << solver.get();
+    std::stringstream ptrstream_residual;
+    ptrstream_residual << residual.get();
+
+    logger->on<gko::log::Logger::iteration_complete>(solver.get(), num_iters,
+                                                     residual.get());
+
+    ASSERT_STR_CONTAINS(out.str(), "iteration " + num_iters);
+    ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
+    ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
+}
+
+
+TEST(Stream, CatchesIterationsWithVerbose)
+{
+    using Dense = gko::matrix::Dense<>;
+    auto exec = gko::ReferenceExecutor::create();
+    std::stringstream out;
+    auto logger = gko::log::Stream<>::create(
+        exec, gko::log::Logger::iteration_complete_mask, out, true);
+
+    auto factory = gko::solver::Bicgstab<>::Factory::create()
+                       .with_criterion(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(3u)
+                                           .on_executor(exec))
+                       .on_executor(exec);
+    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
+    auto residual = gko::initialize<Dense>({-4.4}, exec);
+    auto solution = gko::initialize<Dense>({-2.2}, exec);
+    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+
+    logger->on<gko::log::Logger::iteration_complete>(
+        solver.get(), num_iters, residual.get(), solution.get(),
+        residual_norm.get());
+
+    auto os = out.str();
+    ASSERT_STR_CONTAINS(os, "-4.4");
+    ASSERT_STR_CONTAINS(os, "-2.2");
+    ASSERT_STR_CONTAINS(os, "-3.3");
 }
 
 

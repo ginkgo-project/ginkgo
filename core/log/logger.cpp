@@ -40,9 +40,12 @@ namespace log {
 
 
 constexpr Logger::mask_type Logger::all_events_mask;
-constexpr Logger::mask_type Logger::iteration_complete_mask;
-constexpr Logger::mask_type Logger::apply_mask;
-constexpr Logger::mask_type Logger::converged_mask;
+constexpr Logger::mask_type Logger::executor_events_mask;
+constexpr Logger::mask_type Logger::operation_events_mask;
+constexpr Logger::mask_type Logger::polymorphic_object_events_mask;
+constexpr Logger::mask_type Logger::linop_events_mask;
+constexpr Logger::mask_type Logger::linop_factory_events_mask;
+constexpr Logger::mask_type Logger::criterion_events_mask;
 
 constexpr Logger::mask_type Logger::allocation_started_mask;
 constexpr Logger::mask_type Logger::allocation_completed_mask;
@@ -64,12 +67,14 @@ constexpr Logger::mask_type Logger::linop_apply_started_mask;
 constexpr Logger::mask_type Logger::linop_apply_completed_mask;
 constexpr Logger::mask_type Logger::linop_advanced_apply_started_mask;
 constexpr Logger::mask_type Logger::linop_advanced_apply_completed_mask;
+
 constexpr Logger::mask_type Logger::linop_factory_generate_started_mask;
 constexpr Logger::mask_type Logger::linop_factory_generate_completed_mask;
 
 constexpr Logger::mask_type Logger::criterion_check_started_mask;
 constexpr Logger::mask_type Logger::criterion_check_completed_mask;
 
+constexpr Logger::mask_type Logger::iteration_complete_mask;
 
 }  // namespace log
 }  // namespace gko

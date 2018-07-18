@@ -60,16 +60,6 @@ namespace log {
 template <typename ValueType = default_precision>
 class Stream : public Logger {
 public:
-    void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution = nullptr,
-        const LinOp *residual_norm = nullptr) const override;
-
-    void on_apply(const std::string &name) const override;
-
-    void on_converged(const size_type &at_iteration,
-                      const LinOp *residual) const override;
-
     /* Executor events */
     void on_allocation_started(const Executor *exec,
                                const size_type &num_bytes) const override;
@@ -135,6 +125,7 @@ public:
                                            const LinOp *b, const LinOp *beta,
                                            const LinOp *x) const override;
 
+    /* LinOpFactory events */
     void on_linop_factory_generate_started(const LinOpFactory *factory,
                                            const LinOp *input) const override;
 
@@ -154,6 +145,30 @@ public:
                                       const bool &oneChanged,
                                       const bool &converged) const override;
 
+    /* Internal solver events */
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution = nullptr,
+        const LinOp *residual_norm = nullptr) const override;
+
+    /**
+     * Creates a Stream logger. This dynamically allocates the memory,
+     * constructs the object and return an std::unique_ptr to this object.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param os  the stream used for this logger
+     * @param verbose  whether we want detailed information or not. This
+     *                 includes always printing residuals and other information
+     *                 which can give a large output.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
     static std::unique_ptr<Stream> create(
         std::shared_ptr<const Executor> exec,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
@@ -164,6 +179,17 @@ public:
     }
 
 protected:
+    /**
+     * Creates a Stream logger.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param os  the stream used for this logger
+     * @param verbose  whether we want detailed information or not. This
+     *                 includes always printing residuals and other information
+     *                 which can give a large output.
+     */
     explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
@@ -171,6 +197,13 @@ protected:
         : Logger(exec, enabled_events), os_(os), verbose_(verbose)
     {}
 
+    /**
+     * Helper function which formats a number of bytes information.
+     *
+     * @param num_bytes  the number of bytes to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string bytes_name(const size_type &num_bytes) const
     {
         std::ostringstream oss;
@@ -178,6 +211,13 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::Operation information.
+     *
+     * @param op  the operation to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string operation_name(const Operation *op) const
     {
         std::ostringstream oss;
@@ -186,6 +226,13 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::Executor information.
+     *
+     * @param exec  the executor to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string executor_name(const Executor *exec) const
     {
         std::ostringstream oss;
@@ -194,13 +241,27 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a memory location information.
+     *
+     * @param location  the memory location to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string location_name(const uintptr &location) const
     {
         std::ostringstream oss;
-        oss << "Location[" << location << "]";
+        oss << "Location[" << std::hex << "0x" << location << "]" << std::dec;
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::PolymorphicObject information.
+     *
+     * @param po  the PolymorphicObject to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string po_name(const PolymorphicObject *po) const
     {
         std::ostringstream oss;
@@ -209,6 +270,13 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::LinOp information.
+     *
+     * @param linop  the LinOp to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string linop_name(const LinOp *linop) const
     {
         std::ostringstream oss;
@@ -217,6 +285,13 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::LinOpFactory information.
+     *
+     * @param op  the LinOpFactory to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string linop_factory_name(const LinOpFactory *factory) const
     {
         std::ostringstream oss;
@@ -225,6 +300,13 @@ protected:
         return oss.str();
     }
 
+    /**
+     * Helper function which formats a gko::stop::Criterion information.
+     *
+     * @param op  the Criterion to print
+     *
+     * @return a properly formatted string containing the information
+     */
     std::string criterion_name(const stop::Criterion *criterion) const
     {
         std::ostringstream oss;

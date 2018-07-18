@@ -136,17 +136,18 @@ void run_solver(volatile bool *stop_iteration_process,
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    // TODO: add residual logging when available
-    bicg::Factory::create()
-        .with_criterion(ByInteraction::Factory::create()
-                            .with_stop_iteration_process(stop_iteration_process)
-                            .on_executor(exec))
-        .on_executor(exec)
-        ->generate(A)
-        ->apply(lend(b), lend(x));
+    auto solver = bicg::Factory::create()
+                      .with_criterion(ByInteraction::Factory::create()
+                                          .with_stop_iteration_process(
+                                              stop_iteration_process)
+                                          .on_executor(exec))
+                      .on_executor(exec)
+                      ->generate(A);
+    solver->add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
+    solver->apply(lend(b), lend(x));
 
     std::cout << "Solver stopped" << std::endl;
-
 
     // Print solution
     std::cout << "Solution (x): \n";

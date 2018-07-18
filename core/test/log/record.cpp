@@ -56,80 +56,7 @@ TEST(Record, CanGetData)
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
-    ASSERT_EQ(logger->get().num_iterations, 0);
-}
-
-
-TEST(Record, CatchesIterations)
-{
-    using Dense = gko::matrix::Dense<>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::iteration_complete_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
-    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
-    auto residual = gko::initialize<Dense>({-4.4}, exec);
-    auto solution = gko::initialize<Dense>({-2.2}, exec);
-    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
-
-
-    logger->on<gko::log::Logger::iteration_complete>(
-        solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get());
-
-    auto data = logger->get().iteration_completed.back();
-    ASSERT_NE(data.solver.get(), nullptr);
-    ASSERT_EQ(data.num_iterations, num_iters);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data.residual.get()), residual, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data.solution.get()), solution, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data.residual_norm.get()), residual_norm, 0);
-}
-
-
-TEST(Record, CatchesApply)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(exec, gko::log::Logger::apply_mask);
-
-    logger->on<gko::log::Logger::apply>(apply_str);
-
-    ASSERT_EQ(apply_str, logger->get().applies.back());
-}
-
-
-TEST(Record, CatchesConvergenceWithoutData)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::converged_mask);
-
-    logger->on<gko::log::Logger::converged>(num_iters, nullptr);
-
-    ASSERT_EQ(num_iters, logger->get().converged_at_iteration);
-    ASSERT_EQ(logger->get().residuals.size(), 0);
-}
-
-
-TEST(Record, CatchesConvergenceWithData)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    auto mtx =
-        gko::initialize<gko::matrix::Dense<>>(4, {{1.0, 2.0, 3.0}}, exec);
-    auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::converged_mask);
-
-    logger->on<gko::log::Logger::converged>(num_iters, mtx.get());
-
-    ASSERT_EQ(num_iters, logger->get().converged_at_iteration);
-    auto residual = logger->get().residuals.back().get();
-    auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
-    ASSERT_EQ(residual_d->at(0), 1.0);
-    ASSERT_EQ(residual_d->at(1), 2.0);
-    ASSERT_EQ(residual_d->at(2), 3.0);
+    ASSERT_EQ(logger->get().allocation_started.size(), 0);
 }
 
 
@@ -527,7 +454,7 @@ TEST(Record, CatchesCriterionCheckStarted)
         criterion.get(), RelativeStoppingId, true);
 
     auto data = logger->get().criterion_check_started.back();
-    ASSERT_EQ(data.criterion, criterion.get());
+    ASSERT_NE(data.updater, nullptr);
     ASSERT_EQ(data.stoppingId, RelativeStoppingId);
     ASSERT_EQ(data.setFinalized, true);
     ASSERT_EQ(data.oneChanged, false);
@@ -553,7 +480,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
     stop_status.get_data()->clear();
     stop_status.get_data()->stop(RelativeStoppingId);
     auto data = logger->get().criterion_check_completed.back();
-    ASSERT_EQ(data.criterion, criterion.get());
+    ASSERT_NE(data.updater, nullptr);
     ASSERT_EQ(data.stoppingId, RelativeStoppingId);
     ASSERT_EQ(data.setFinalized, true);
     ASSERT_EQ(data.status->get_const_data()->has_stopped(), true);
@@ -562,6 +489,36 @@ TEST(Record, CatchesCriterionCheckCompleted)
     ASSERT_EQ(data.status->get_const_data()->is_finalized(), true);
     ASSERT_EQ(data.oneChanged, true);
     ASSERT_EQ(data.converged, true);
+}
+
+
+TEST(Record, CatchesIterations)
+{
+    using Dense = gko::matrix::Dense<>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Record::create(
+        exec, gko::log::Logger::iteration_complete_mask);
+    auto factory = gko::solver::Bicgstab<>::Factory::create()
+                       .with_criterion(gko::stop::Iteration::Factory::create()
+                                           .with_max_iters(3u)
+                                           .on_executor(exec))
+                       .on_executor(exec);
+    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
+    auto residual = gko::initialize<Dense>({-4.4}, exec);
+    auto solution = gko::initialize<Dense>({-2.2}, exec);
+    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+
+
+    logger->on<gko::log::Logger::iteration_complete>(
+        solver.get(), num_iters, residual.get(), solution.get(),
+        residual_norm.get());
+
+    auto data = logger->get().iteration_completed.back();
+    ASSERT_NE(data.solver.get(), nullptr);
+    ASSERT_EQ(data.num_iterations, num_iters);
+    ASSERT_MTX_NEAR(gko::as<Dense>(data.residual.get()), residual, 0);
+    ASSERT_MTX_NEAR(gko::as<Dense>(data.solution.get()), solution, 0);
+    ASSERT_MTX_NEAR(gko::as<Dense>(data.residual_norm.get()), residual_norm, 0);
 }
 
 
