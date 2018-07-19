@@ -752,10 +752,27 @@ public:
      */
     static int get_num_devices();
 
+    /**
+     * Get the number of cores per SM of this executor.
+     */
+    int get_num_cores_per_sm() const noexcept { return num_cores_per_sm_; }
+
+    /**
+     * Get the number of multiprocessor of this executor.
+     */
+    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+
 protected:
+    void set_gpu_property();
+
     CudaExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id), master_(master)
-    {}
+        : device_id_(device_id),
+          master_(master),
+          num_cores_per_sm_(0),
+          num_multiprocessor_(0)
+    {
+        this->set_gpu_property();
+    }
 
     void *raw_alloc(size_type size) const override;
 
@@ -764,6 +781,8 @@ protected:
 private:
     int device_id_;
     std::shared_ptr<Executor> master_;
+    int num_cores_per_sm_;
+    int num_multiprocessor_;
 };
 
 
