@@ -52,7 +52,8 @@ namespace {
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
-    size_type num_rows, const size_type *__restrict__ slice_lengths,
+    size_type num_rows, size_type num_right_hand_side,
+    const size_type *__restrict__ slice_lengths,
     const size_type *__restrict__ slice_sets, const ValueType *__restrict__ a,
     const IndexType *__restrict__ col, const ValueType *__restrict__ b,
     ValueType *__restrict__ c)
@@ -61,12 +62,12 @@ __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     ValueType val = 0;
     IndexType ind = 0;
-    if (idx < num_rows) {
+    if (idx < num_rows && blockIdx.y < num_right_hand_side) {
         for (size_type i = 0; i < slice_lengths[blockIdx.x]; i++) {
             ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
-            val += a[ind] * b[col[ind]];
+            val += a[ind] * b[col[ind] * num_right_hand_side + blockIdx.y];
         }
-        c[idx + blockIdx.y * num_rows] = val;
+        c[idx * num_right_hand_side + blockIdx.y] = val;
     }
 }
 
@@ -84,11 +85,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(a->get_size().num_rows, matrix::default_slice_size),
         b->get_size().num_cols);
 
-    spmv_kernel<<<gridSize, blockSize, 0, 0>>>(
-        a->get_size().num_rows, a->get_const_slice_lengths(),
-        a->get_const_slice_sets(), as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), as_cuda_type(b->get_const_values()),
-        as_cuda_type(c->get_values()));
+    spmv_kernel<<<gridSize, blockSize>>>(
+        a->get_size().num_rows, b->get_size().num_cols,
+        a->get_const_slice_lengths(), a->get_const_slice_sets(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -100,7 +101,8 @@ namespace {
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(matrix::default_slice_size) void advanced_spmv_kernel(
-        size_type num_rows, const size_type *__restrict__ slice_lengths,
+        size_type num_rows, size_type num_right_hand_side,
+        const size_type *__restrict__ slice_lengths,
         const size_type *__restrict__ slice_sets,
         const ValueType *__restrict__ alpha, const ValueType *__restrict__ a,
         const IndexType *__restrict__ col, const ValueType *__restrict__ b,
@@ -113,9 +115,11 @@ __global__
     if (idx < num_rows) {
         for (size_type i = 0; i < slice_lengths[blockIdx.x]; i++) {
             ind = threadIdx.x + (slice_sets[blockIdx.x] + i) * blockDim.x;
-            val += alpha[0] * a[ind] * b[col[ind]];
+            val += alpha[0] * a[ind] *
+                   b[col[ind] * num_right_hand_side + blockIdx.y];
         }
-        c[idx + blockIdx.y * num_rows] = beta[0] * c[idx] + val;
+        c[idx * num_right_hand_side + blockIdx.y] =
+            beta[0] * c[idx * num_right_hand_side + blockIdx.y] + val;
     }
 }
 
@@ -137,8 +141,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         b->get_size().num_cols);
 
     advanced_spmv_kernel<<<gridSize, blockSize>>>(
-        a->get_size().num_rows, a->get_const_slice_lengths(),
-        a->get_const_slice_sets(), as_cuda_type(alpha->get_const_values()),
+        a->get_size().num_rows, b->get_size().num_cols,
+        a->get_const_slice_lengths(), a->get_const_slice_sets(),
+        as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
         as_cuda_type(b->get_const_values()),
         as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
