@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
+#include "core/stop/criterion.hpp"
 
 
 namespace gko {
@@ -92,15 +93,11 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Maximum number of iterations.
+         * Criterion factory
          */
-        int64 GKO_FACTORY_PARAMETER(max_iters, 0);
+        std::shared_ptr<const stop::CriterionFactory> GKO_FACTORY_PARAMETER(
+            criterion, nullptr);
 
-        /**
-         * Relative residual goal.
-         */
-        remove_complex<value_type> GKO_FACTORY_PARAMETER(rel_residual_goal,
-                                                         0.0);
         /**
          * Preconditioner factory.
          */
@@ -133,11 +130,17 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size().num_rows);
         }
+        if (parameters_.criterion) {
+            stop_criterion_factory_ = std::move(parameters_.criterion);
+        } else {
+            NOT_SUPPORTED(nullptr);
+        }
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
+    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
 

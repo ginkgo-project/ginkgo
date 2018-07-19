@@ -152,7 +152,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
-            const Array<stopping_status> &stop_status)
+            const Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -166,7 +166,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(prev_rho->get_const_values()),
         as_cuda_type(alpha->get_const_values()),
         as_cuda_type(omega->get_const_values()),
-        as_cuda_type(stop_status.get_const_data()));
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -205,7 +205,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            const Array<stopping_status> &stop_status)
+            const Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -218,7 +218,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(alpha->get_values()),
         as_cuda_type(beta->get_const_values()),
-        as_cuda_type(stop_status.get_const_data()));
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
@@ -264,7 +264,7 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> &stop_status)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -281,7 +281,7 @@ void step_3(
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(gamma->get_const_values()),
         as_cuda_type(omega->get_values()),
-        as_cuda_type(stop_status.get_const_data()));
+        as_cuda_type(stop_status->get_const_data()));
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 

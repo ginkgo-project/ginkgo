@@ -31,53 +31,62 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/residual_norm_reduction.hpp>
+#include <core/stop/time.hpp>
 
 
 #include <gtest/gtest.h>
+#include <chrono>
+#include <thread>
 
 
 namespace {
 
 
-constexpr double reduction_factor = 1.0e-16;
+constexpr long test_ms = 500;
+constexpr double eps = 1.0e-4;
+using double_seconds = std::chrono::duration<double, std::milli>;
 
 
-class ResidualNormReduction : public ::testing::Test {
+class Time : public ::testing::Test {
 protected:
-    ResidualNormReduction()
+    Time() : exec_{gko::ReferenceExecutor::create()}
     {
-        exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
-                       .with_reduction_factor(reduction_factor)
+        factory_ = gko::stop::Time::Factory::create()
+                       .with_time_limit(std::chrono::milliseconds(test_ms))
                        .on_executor(exec_);
     }
 
-    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
+    std::unique_ptr<gko::stop::Time::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
 
-TEST_F(ResidualNormReduction, CanCreateFactory)
+TEST_F(Time, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().reduction_factor, reduction_factor);
-    ASSERT_EQ(factory_->get_executor(), exec_);
+    ASSERT_EQ(factory_->get_parameters().time_limit,
+              std::chrono::milliseconds(test_ms));
 }
 
-TEST_F(ResidualNormReduction, CannotCreateCriterionWithoutB)
-{
-    ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr, nullptr),
-                 gko::NotSupported);
-}
 
-TEST_F(ResidualNormReduction, CanCreateCriterionWithB)
+TEST_F(Time, CanCreateCriterion)
 {
-    std::shared_ptr<gko::LinOp> scalar =
-        gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
-    auto criterion =
-        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     ASSERT_NE(criterion, nullptr);
+}
+
+
+TEST_F(Time, WaitsTillTime)
+{
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
+
+    ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
+                                          &stop_status, &one_changed));
 }
 
 

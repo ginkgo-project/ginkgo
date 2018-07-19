@@ -40,6 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/stop/combined.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/stop/residual_norm_reduction.hpp>
+#include <core/stop/time.hpp>
 #include <core/test/utils/assertions.hpp>
 
 
@@ -55,10 +59,19 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
-          cgs_factory(Solver::Factory::create()
-                          .with_max_iters(40)
-                          .with_rel_residual_goal(1e-15)
-                          .on_executor(exec)),
+          cgs_factory(
+              Solver::Factory::create()
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(gko::stop::Iteration::Factory::create()
+                                             .with_max_iters(40u)
+                                             .on_executor(exec),
+                                         gko::stop::ResidualNormReduction<>::
+                                             Factory::create()
+                                                 .with_reduction_factor(1e-15)
+                                                 .on_executor(exec))
+                          .on_executor(exec))
+                  .on_executor(exec)),
           mtx_big(
               gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
                                     {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
@@ -67,10 +80,19 @@ protected:
                                     {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
                                     {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
                                    exec)),
-          cgs_factory_big(gko::solver::Cgs<>::Factory::create()
-                              .with_max_iters(100)
-                              .with_rel_residual_goal(1e-15)
-                              .on_executor(exec))
+          cgs_factory_big(
+              gko::solver::Cgs<>::Factory::create()
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(gko::stop::Iteration::Factory::create()
+                                             .with_max_iters(100u)
+                                             .on_executor(exec),
+                                         gko::stop::ResidualNormReduction<>::
+                                             Factory::create()
+                                                 .with_reduction_factor(1e-15)
+                                                 .on_executor(exec))
+                          .on_executor(exec))
+                  .on_executor(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

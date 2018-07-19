@@ -20,6 +20,7 @@ stages:
 .before_script_template: &default_before_script
   - pacman-db-upgrade
   - pacman --noconfirm -Syu cmake git python ${EXTRA_PACKAGES}
+  - export OMP_NUM_THREADS=4
 
 .before_script_git_template: &git_before_script
   - pacman-db-upgrade
@@ -74,6 +75,21 @@ sync:
     - develop
 
 # Build jobs
+build/gcc/core/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    BUILD_REFERENCE: "off"
+
+build/clang/core/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    BUILD_REFERENCE: "off"
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    EXTRA_PACKAGES: clang
+
 build/gcc/reference/debug:
   <<: *default_build
 
@@ -84,6 +100,21 @@ build/clang/reference/debug:
     C_COMPILER: clang
     CXX_COMPILER: clang++
     EXTRA_PACKAGES: clang
+
+build/gcc/omp/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+
+build/clang/omp/debug:
+  <<: *default_build
+  variables:
+    <<: *default_variables
+    EXTRA_PACKAGES: openmp clang
+    BUILD_OMP: "ON"
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
 
 build/gcc/all/debug:
   <<: *default_build
@@ -99,7 +130,7 @@ build/clang/all/debug:
   <<: *default_build
   variables:
     <<: *default_variables
-    EXTRA_PACKAGES: clang cuda
+    EXTRA_PACKAGES: openmp clang cuda
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
@@ -108,6 +139,16 @@ build/clang/all/debug:
 
 
 # Test jobs
+test/gcc/core/debug:
+  <<: *default_test
+  dependencies:
+    - build/gcc/core/debug
+
+test/clang/core/debug:
+  <<: *default_test
+  dependencies:
+    - build/clang/core/debug
+
 test/gcc/reference/debug:
   <<: *default_test
   dependencies:
@@ -152,3 +193,15 @@ gh-pages:
       - develop
     variables:
       - $PUBLIC_CI_TAG
+test/gcc/omp/debug:
+  <<: *default_test
+  dependencies:
+    - build/gcc/omp/debug
+
+test/clang/omp/debug:
+  <<: *default_test
+  variables:
+    <<: *default_variables
+    EXTRA_PACKAGES: openmp
+  dependencies:
+    - build/clang/omp/debug
