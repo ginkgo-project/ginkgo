@@ -31,29 +31,38 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/criterion_kernels.hpp"
+#include <cstdlib>
 
 
-#include "core/base/exception_helpers.hpp"
+namespace {
 
 
-namespace gko {
-namespace kernels {
-namespace omp {
-namespace set_all_statuses {
-
-
-void set_all_statuses(std::shared_ptr<const OmpExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status> *stop_status)
+// a parallel CUDA kernel that computes the application of a 3 point stencil
+__global__ void stencil_kernel_impl(std::size_t size, const double *coefs,
+                                    const double *b, double *x)
 {
-#pragma omp parallel for
-    for (int i = 0; i < stop_status->get_num_elems(); i++) {
-        stop_status->get_data()[i].stop(stoppingId, setFinalized);
+    const auto thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (thread_id >= size) {
+        return;
     }
+    auto result = coefs[1] * b[thread_id];
+    if (thread_id > 0) {
+        result += coefs[0] * b[thread_id - 1];
+    }
+    if (thread_id < size - 1) {
+        result += coefs[2] * b[thread_id + 1];
+    }
+    x[thread_id] = result;
 }
 
 
-}  // namespace set_all_statuses
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko
+}  // namespace
+
+
+void stencil_kernel(std::size_t size, const double *coefs, const double *b,
+                    double *x)
+{
+    constexpr auto block_size = 512;
+    const auto grid_size = (size + block_size - 1) / block_size;
+    stencil_kernel_impl<<<grid_size, block_size>>>(size, coefs, b, x);
+}

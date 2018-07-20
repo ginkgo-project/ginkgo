@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
 #include "core/matrix/dense.hpp"
+#include "core/stop/stopping_status.hpp"
 
 namespace gko {
 namespace kernels {
@@ -54,14 +55,7 @@ namespace cgs {
                     matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,      \
                     matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma,   \
                     matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho, \
-                    Array<bool> *converged)
-
-#define GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL(_type)                 \
-    void test_convergence(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::Dense<_type> *tau,             \
-                          const matrix::Dense<_type> *orig_tau,        \
-                          remove_complex<_type> rel_residual_goal,     \
-                          Array<bool> *converged, bool *all_converged)
+                    Array<stopping_status> *stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                                 \
@@ -70,33 +64,35 @@ namespace cgs {
                 matrix::Dense<_type> *p, const matrix::Dense<_type> *q,      \
                 matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho, \
                 const matrix::Dense<_type> *rho_prev,                        \
-                const Array<bool> &converged)
+                const Array<stopping_status> *stop_status)
 
-#define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                              \
-    void step_2(                                                          \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Dense<_type> *u, const matrix::Dense<_type> *v_hat, \
-        matrix::Dense<_type> *q, matrix::Dense<_type> *t,                 \
-        matrix::Dense<_type> *alpha, const matrix::Dense<_type> *rho,     \
-        const matrix::Dense<_type> *gamma, const Array<bool> &converged)
+
+#define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                                \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
+                const matrix::Dense<_type> *u,                              \
+                const matrix::Dense<_type> *v_hat, matrix::Dense<_type> *q, \
+                matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,       \
+                const matrix::Dense<_type> *rho,                            \
+                const matrix::Dense<_type> *gamma,                          \
+                const Array<stopping_status> *stop_status)
+
 
 #define GKO_DECLARE_CGS_STEP_3_KERNEL(_type)                                \
     void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Dense<_type> *t,                              \
                 const matrix::Dense<_type> *u_hat, matrix::Dense<_type> *r, \
                 matrix::Dense<_type> *x, const matrix::Dense<_type> *alpha, \
-                const Array<bool> &converged)
+                const Array<stopping_status> *stop_status)
 
-#define DECLARE_ALL_AS_TEMPLATES                        \
-    template <typename ValueType>                       \
-    GKO_DECLARE_CGS_INITIALIZE_KERNEL(ValueType);       \
-    template <typename ValueType>                       \
-    GKO_DECLARE_CGS_TEST_CONVERGENCE_KERNEL(ValueType); \
-    template <typename ValueType>                       \
-    GKO_DECLARE_CGS_STEP_1_KERNEL(ValueType);           \
-    template <typename ValueType>                       \
-    GKO_DECLARE_CGS_STEP_2_KERNEL(ValueType);           \
-    template <typename ValueType>                       \
+
+#define DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType>                 \
+    GKO_DECLARE_CGS_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                 \
+    GKO_DECLARE_CGS_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                 \
+    GKO_DECLARE_CGS_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                 \
     GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType);
 
 

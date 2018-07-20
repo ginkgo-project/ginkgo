@@ -31,29 +31,52 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/criterion_kernels.hpp"
+#include <core/stop/iteration.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace kernels {
-namespace omp {
-namespace set_all_statuses {
+namespace {
 
 
-void set_all_statuses(std::shared_ptr<const OmpExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status> *stop_status)
-{
-#pragma omp parallel for
-    for (int i = 0; i < stop_status->get_num_elems(); i++) {
-        stop_status->get_data()[i].stop(stoppingId, setFinalized);
+constexpr gko::size_type test_iterations = 10;
+
+
+class Iteration : public ::testing::Test {
+protected:
+    Iteration() : exec_{gko::ReferenceExecutor::create()}
+    {
+        factory_ = gko::stop::Iteration::Factory::create()
+                       .with_max_iters(test_iterations)
+                       .on_executor(exec_);
     }
+
+    std::unique_ptr<gko::stop::Iteration::Factory> factory_;
+    std::shared_ptr<const gko::Executor> exec_;
+};
+
+
+TEST_F(Iteration, WaitsTillIteration)
+{
+    bool one_changed{};
+    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    constexpr gko::uint8 RelativeStoppingId{1};
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+
+    ASSERT_FALSE(
+        criterion->update()
+            .num_iterations(test_iterations - 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_TRUE(
+        criterion->update()
+            .num_iterations(test_iterations + 1)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 }
 
 
-}  // namespace set_all_statuses
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko
+}  // namespace

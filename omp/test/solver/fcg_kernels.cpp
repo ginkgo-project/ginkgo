@@ -61,15 +61,14 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        omp = gko::OmpExecutor::create();
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (omp != nullptr) {
+            ASSERT_NO_THROW(omp->synchronize());
         }
     }
 
@@ -102,30 +101,30 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_b = Mtx::create(cuda);
+        d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
-        d_r = Mtx::create(cuda);
+        d_r = Mtx::create(omp);
         d_r->copy_from(r.get());
-        d_t = Mtx::create(cuda);
+        d_t = Mtx::create(omp);
         d_t->copy_from(t.get());
-        d_z = Mtx::create(cuda);
+        d_z = Mtx::create(omp);
         d_z->copy_from(z.get());
-        d_p = Mtx::create(cuda);
+        d_p = Mtx::create(omp);
         d_p->copy_from(p.get());
-        d_q = Mtx::create(cuda);
+        d_q = Mtx::create(omp);
         d_q->copy_from(q.get());
-        d_x = Mtx::create(cuda);
+        d_x = Mtx::create(omp);
         d_x->copy_from(x.get());
-        d_beta = Mtx::create(cuda);
+        d_beta = Mtx::create(omp);
         d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(cuda);
+        d_prev_rho = Mtx::create(omp);
         d_prev_rho->copy_from(prev_rho.get());
-        d_rho_t = Mtx::create(cuda);
+        d_rho_t = Mtx::create(omp);
         d_rho_t->copy_from(rho_t.get());
-        d_rho = Mtx::create(cuda);
+        d_rho = Mtx::create(omp);
         d_rho->copy_from(rho.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda, n));
+            new gko::Array<gko::stopping_status>(omp, n));
         *d_stop_status = *stop_status;
     }
 
@@ -157,7 +156,7 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::ranlux48 rand_engine;
 
@@ -189,15 +188,15 @@ protected:
 };
 
 
-TEST_F(Fcg, CudaFcgInitializeIsEquivalentToRef)
+TEST_F(Fcg, OmpFcgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::fcg::initialize(
         ref, b.get(), r.get(), z.get(), p.get(), q.get(), t.get(),
         prev_rho.get(), rho.get(), rho_t.get(), stop_status.get());
-    gko::kernels::cuda::fcg::initialize(
-        cuda, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
+    gko::kernels::omp::fcg::initialize(
+        omp, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -211,29 +210,29 @@ TEST_F(Fcg, CudaFcgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Fcg, CudaFcgStep1IsEquivalentToRef)
+TEST_F(Fcg, OmpFcgStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::fcg::step_1(ref, p.get(), z.get(), rho_t.get(),
                                          prev_rho.get(), stop_status.get());
-    gko::kernels::cuda::fcg::step_1(cuda, d_p.get(), d_z.get(), d_rho_t.get(),
-                                    d_prev_rho.get(), d_stop_status.get());
+    gko::kernels::omp::fcg::step_1(omp, d_p.get(), d_z.get(), d_rho_t.get(),
+                                   d_prev_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
-TEST_F(Fcg, CudaFcgStep2IsEquivalentToRef)
+TEST_F(Fcg, OmpFcgStep2IsEquivalentToRef)
 {
     initialize_data();
     gko::kernels::reference::fcg::step_2(ref, x.get(), r.get(), t.get(),
                                          p.get(), q.get(), beta.get(),
                                          rho.get(), stop_status.get());
-    gko::kernels::cuda::fcg::step_2(cuda, d_x.get(), d_r.get(), d_t.get(),
-                                    d_p.get(), d_q.get(), d_beta.get(),
-                                    d_rho.get(), d_stop_status.get());
+    gko::kernels::omp::fcg::step_2(omp, d_x.get(), d_r.get(), d_t.get(),
+                                   d_p.get(), d_q.get(), d_beta.get(),
+                                   d_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -247,11 +246,11 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     make_spd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(cuda);
+    auto d_mtx = Mtx::create(omp);
     d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(cuda);
+    auto d_x = Mtx::create(omp);
     d_x->copy_from(x.get());
-    auto d_b = Mtx::create(cuda);
+    auto d_b = Mtx::create(omp);
     d_b->copy_from(b.get());
     auto fcg_factory =
         Solver::Factory::create()
@@ -273,12 +272,12 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
                     .with_criteria(
                         gko::stop::Iteration::Factory::create()
                             .with_max_iters(50u)
-                            .on_executor(cuda),
+                            .on_executor(omp),
                         gko::stop::ResidualNormReduction<>::Factory::create()
                             .with_reduction_factor(1e-14)
-                            .on_executor(cuda))
-                    .on_executor(cuda))
-            .on_executor(cuda);
+                            .on_executor(omp))
+                    .on_executor(omp))
+            .on_executor(omp);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 

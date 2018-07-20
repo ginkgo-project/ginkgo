@@ -55,7 +55,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     const ValueType *__restrict__ b, ValueType *__restrict__ r,
     ValueType *__restrict__ z, ValueType *__restrict__ p,
     ValueType *__restrict__ q, ValueType *__restrict__ prev_rho,
-    ValueType *__restrict__ rho, bool *__restrict__ converged)
+    ValueType *__restrict__ rho, stopping_status *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -63,7 +63,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     if (tidx < num_cols) {
         rho[tidx] = zero<ValueType>();
         prev_rho[tidx] = one<ValueType>();
-        converged[tidx] = false;
+        stop_status[tidx].reset();
     }
 
     if (tidx < num_rows * stride) {
@@ -80,7 +80,8 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, Array<bool> *converged)
+                matrix::Dense<ValueType> *rho,
+                Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -91,59 +92,10 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
         as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
         as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()), as_cuda_type(converged->get_data()));
+        as_cuda_type(rho->get_values()), as_cuda_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void test_convergence_kernel(
-    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-    const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
-    bool *__restrict__ converged, bool *__restrict__ all_converged)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < num_cols) {
-        if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
-            converged[tidx] = true;
-        }
-        // because only false is written to all_converged, write conflicts
-        // should not cause any problem
-        else if (converged[tidx] == false) {
-            *all_converged = false;
-        }
-    }
-}
-
-
-template <typename ValueType>
-void test_convergence(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Dense<ValueType> *tau,
-                      const matrix::Dense<ValueType> *orig_tau,
-                      remove_complex<ValueType> rel_residual_goal,
-                      Array<bool> *converged, bool *all_converged)
-{
-    *all_converged = true;
-    auto all_converged_array =
-        Array<bool>::view(exec->get_master(), 1, all_converged);
-    Array<bool> d_all_converged(exec, all_converged_array);
-
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
-
-    test_convergence_kernel<<<grid_size, block_size, 0, 0>>>(
-        tau->get_size().num_cols, rel_residual_goal,
-        as_cuda_type(tau->get_const_values()),
-        as_cuda_type(orig_tau->get_const_values()),
-        as_cuda_type(converged->get_data()),
-        as_cuda_type(d_all_converged.get_data()));
-
-    all_converged_array = d_all_converged;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TEST_CONVERGENCE_KERNEL);
 
 
 template <typename ValueType>
@@ -151,12 +103,13 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     ValueType *__restrict__ p, const ValueType *__restrict__ z,
     const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho,
-    const bool *__restrict__ converged)
+    const stopping_status *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride || converged[col]) {
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
         return;
     }
     const auto tmp = rho[col] / prev_rho[col];
@@ -170,7 +123,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<bool> &converged)
+            const Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -181,7 +134,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
         as_cuda_type(rho->get_const_values()),
         as_cuda_type(prev_rho->get_const_values()),
-        as_cuda_type(converged.get_const_data()));
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -193,14 +146,15 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
     const ValueType *__restrict__ p, const ValueType *__restrict__ q,
     const ValueType *__restrict__ beta, const ValueType *__restrict__ rho,
-    const bool *__restrict__ converged)
+    const stopping_status *__restrict__ stop_status)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = tidx / stride;
     const auto col = tidx % stride;
 
-    if (col >= num_cols || tidx >= num_rows * num_cols || converged[col]) {
+    if (col >= num_cols || tidx >= num_rows * num_cols ||
+        stop_status[col].has_stopped()) {
         return;
     }
     if (beta[col] != zero<ValueType>()) {
@@ -217,7 +171,8 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho, const Array<bool> &converged)
+            const matrix::Dense<ValueType> *rho,
+            const Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -230,7 +185,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_const_values()),
         as_cuda_type(rho->get_const_values()),
-        as_cuda_type(converged.get_const_data()));
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

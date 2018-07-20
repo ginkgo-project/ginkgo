@@ -31,48 +31,69 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/time.hpp>
+#include <core/stop/criterion.hpp>
+#include <core/stop/iteration.hpp>
 
 
 #include <gtest/gtest.h>
-#include <chrono>
-#include <thread>
 
 
 namespace {
 
 
-constexpr long test_ms = 500;
-constexpr double eps = 1.0e-4;
-using double_seconds = std::chrono::duration<double, std::milli>;
+constexpr gko::size_type test_iterations = 10;
 
 
-class Time : public ::testing::Test {
+class Criterion : public ::testing::Test {
 protected:
-    Time() : exec_{gko::ReferenceExecutor::create()}
+    Criterion()
     {
-        factory_ = gko::stop::Time::Factory::create()
-                       .with_time_limit(std::chrono::milliseconds(test_ms))
-                       .on_executor(exec_);
+        omp_ = gko::OmpExecutor::create();
+        // Actually use an iteration stopping criterion because Criterion is an
+        // abstract class
+        factory_ = gko::stop::Iteration::Factory::create()
+                       .with_max_iters(test_iterations)
+                       .on_executor(omp_);
     }
 
-    std::unique_ptr<gko::stop::Time::Factory> factory_;
-    std::shared_ptr<const gko::Executor> exec_;
+    std::unique_ptr<gko::stop::Iteration::Factory> factory_;
+    std::shared_ptr<const gko::OmpExecutor> omp_;
 };
 
 
-TEST_F(Time, CanCreateFactory)
+TEST_F(Criterion, SetsOneStopStatus)
 {
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().time_limit,
-              std::chrono::milliseconds(test_ms));
+    bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
+    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
+    gko::Array<gko::stopping_status> stop_status(omp_, 1);
+    stop_status.get_data()[0].clear();
+
+    criterion->update()
+        .num_iterations(test_iterations)
+        .check(RelativeStoppingId, true, &stop_status, &one_changed);
+
+    ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);
 }
 
 
-TEST_F(Time, CanCreateCriterion)
+TEST_F(Criterion, SetsMultipleStopStatuses)
 {
+    bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    ASSERT_NE(criterion, nullptr);
+    gko::Array<gko::stopping_status> stop_status(omp_, 3);
+    stop_status.get_data()[0].clear();
+    stop_status.get_data()[1].clear();
+    stop_status.get_data()[2].clear();
+
+    criterion->update()
+        .num_iterations(test_iterations)
+        .check(RelativeStoppingId, true, &stop_status, &one_changed);
+
+    ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);
+    ASSERT_EQ(stop_status.get_data()[1].has_stopped(), true);
+    ASSERT_EQ(stop_status.get_data()[2].has_stopped(), true);
 }
 
 

@@ -34,7 +34,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/fcg_kernels.hpp"
 
 
+#include <omp.h>
+
+
 #include "core/base/exception_helpers.hpp"
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
 
 
 namespace gko {
@@ -50,22 +55,26 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *rho_t,
-                Array<bool> *converged) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
-
-
-template <typename ValueType>
-void test_convergence(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Dense<ValueType> *tau,
-                      const matrix::Dense<ValueType> *orig_tau,
-                      remove_complex<ValueType> rel_residual_goal,
-                      Array<bool> *converged, bool *all_converged)
+                Array<stopping_status> *stop_status)
 {
-    NOT_IMPLEMENTED;
+#pragma omp parallel for
+    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+        rho->at(j) = zero<ValueType>();
+        prev_rho->at(j) = one<ValueType>();
+        rho_t->at(j) = one<ValueType>();
+        stop_status->get_data()[j].reset();
+    }
+#pragma omp parallel for
+    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+            t->at(i, j) = r->at(i, j) = b->at(i, j);
+            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
+        }
+    }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TEST_CONVERGENCE_KERNEL);
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -73,7 +82,23 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<bool> &converged) NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
+                continue;
+            }
+            if (prev_rho->at(j) == zero<ValueType>()) {
+                p->at(i, j) = z->at(i, j);
+            } else {
+                auto tmp = rho_t->at(j) / prev_rho->at(j);
+                p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
 
@@ -85,7 +110,24 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
-            const Array<bool> &converged) NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
+                continue;
+            }
+            if (beta->at(j) != zero<ValueType>()) {
+                auto tmp = rho->at(j) / beta->at(j);
+                auto prev_r = r->at(i, j);
+                x->at(i, j) += tmp * p->at(i, j);
+                r->at(i, j) -= tmp * q->at(i, j);
+                t->at(i, j) = r->at(i, j) - prev_r;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
 

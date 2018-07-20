@@ -52,8 +52,6 @@ namespace {
 
 template <typename... TplArgs>
 struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, hybrid::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, hybrid::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense,
                            hybrid::convert_to_dense<TplArgs...>);
 };
@@ -87,10 +85,12 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+    auto ell_mtx = this->get_ell();
+    auto coo_mtx = this->get_coo();
+    ell_mtx->apply(b, x);
+    auto alpha = initialize<Dense<ValueType>>({1.0}, this->get_executor());
+    auto beta = initialize<Dense<ValueType>>({1.0}, this->get_executor());
+    coo_mtx->apply(alpha.get(), b, beta.get(), x);
 }
 
 
@@ -99,11 +99,12 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                               const LinOp *b, const LinOp *beta,
                                               LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
-            as<Dense>(x)));
+    auto ell_mtx = this->get_ell();
+    auto coo_mtx = this->get_coo();
+    ell_mtx->apply(alpha, b, beta, x);
+    auto one =
+        initialize<gko::matrix::Dense<ValueType>>({1.0}, this->get_executor());
+    coo_mtx->apply(alpha, b, one.get(), x);
 }
 
 
@@ -198,7 +199,8 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
     auto coo_col_idxs = tmp->get_const_coo_col_idxs();
     auto coo_row_idxs = tmp->get_const_coo_row_idxs();
     for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
-        for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row(); ++i) {
+        for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row();
+             ++i) {
             const auto val = tmp->ell_val_at(row, i);
             if (val != zero<ValueType>()) {
                 const auto col = tmp->ell_col_at(row, i);

@@ -50,7 +50,6 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize, fcg::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(test_convergence, fcg::test_convergence<ValueType>);
     GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
 };
@@ -66,6 +65,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     using Vector = matrix::Dense<ValueType>;
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
+
+    constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_size().num_cols;
@@ -83,16 +84,16 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
-    auto tau = Vector::create_with_config_of(alpha.get());
     auto rho_t = Vector::create_with_config_of(alpha.get());
 
-    auto starting_tau = Vector::create_with_config_of(tau.get());
-    Array<bool> converged(exec, dense_b->get_size().num_cols);
+    bool one_changed{};
+    Array<stopping_status> stop_status(alpha->get_executor(),
+                                       dense_b->get_size().num_cols);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
         dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get(), &converged));
+        rho.get(), rho_t.get(), &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -101,39 +102,40 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // z = p = q = 0
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    r->compute_dot(r.get(), tau.get());
-    starting_tau->copy_from(tau.get());
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
+        x, r.get());
 
-    for (int iter = 0; iter < parameters_.max_iters; ++iter) {
+    int iter = 0;
+    while (true) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
-        r->compute_dot(r.get(), tau.get());
         t->compute_dot(z.get(), rho_t.get());
 
-        bool all_converged = false;
-        exec->run(
-            TemplatedOperation<ValueType>::make_test_convergence_operation(
-                tau.get(), starting_tau.get(), parameters_.rel_residual_goal,
-                &converged, &all_converged));
-        if (all_converged) {
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r.get())
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get(), converged));
+            p.get(), z.get(), rho_t.get(), prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
-            converged));
+            &stop_status));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
         swap(prev_rho, rho);
+        iter++;
     }
 }
 

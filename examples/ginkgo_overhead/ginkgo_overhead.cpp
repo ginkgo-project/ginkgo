@@ -72,7 +72,8 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
 #include <iostream>
 
 
-[[noreturn]] void print_usage_and_exit(const char *name) {
+[[noreturn]] void print_usage_and_exit(const char *name)
+{
     std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
     std::exit(-1);
 }
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Dense<>;
     using cg = gko::solver::Cg<>;
 
-    long num_iters = 1000000;
+    long unsigned num_iters = 1000000;
     if (argc > 2) {
         print_usage_and_exit(argv[0]);
     }
@@ -100,7 +101,11 @@ int main(int argc, char *argv[])
     auto exec = gko::ReferenceExecutor::create();
 
     auto cg_factory =
-        cg::Factory::create().with_max_iters(num_iters).on_executor(exec);
+        cg::Factory::create()
+            .with_criterion(gko::stop::Iteration::Factory::create()
+                                .with_max_iters(num_iters)
+                                .on_executor(exec))
+            .on_executor(exec);
     auto A = gko::initialize<mtx>({1.0}, exec);
     auto b = gko::initialize<vec>({std::nan("")}, exec);
     auto x = gko::initialize<vec>({0.0}, exec);

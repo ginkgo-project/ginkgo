@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
-#include "core/stop/criterion.hpp"
 
 
 namespace gko {
@@ -113,10 +112,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     rr->copy_from(r.get());
     system_matrix_->apply(r.get(), v.get());
 
-    int iters = 0;
+    int iter = 0;
     while (true) {
         if (stop_criterion->update()
-                .num_iterations(iters)
+                .num_iterations(iter)
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
@@ -127,7 +126,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get(), stop_status));
+            omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
@@ -136,14 +135,14 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         rr->compute_dot(v.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
             r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-            stop_status));
+            &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
-        iters++;
+        iter++;
         auto all_converged =
             stop_criterion->update()
-                .num_iterations(iters)
+                .num_iterations(iter)
                 .residual(s.get())
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
@@ -163,12 +162,12 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         t->compute_dot(t.get(), beta.get());
         exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), stop_status));
+            beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
-        iters++;
+        iter++;
     }
 }  // namespace solver
 

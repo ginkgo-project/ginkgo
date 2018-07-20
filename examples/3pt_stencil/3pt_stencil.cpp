@@ -174,9 +174,10 @@ double calculate_error(int discretization_points, const double *u,
 }
 
 
-void solve_system(const std::string &executor_string, int discretization_points,
-                  int *row_ptrs, int *col_idxs, double *values, double *rhs,
-                  double *u, double accuracy)
+void solve_system(const std::string &executor_string,
+                  unsigned int discretization_points, int *row_ptrs,
+                  int *col_idxs, double *values, double *rhs, double *u,
+                  double accuracy)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<double>;
@@ -228,12 +229,21 @@ void solve_system(const std::string &executor_string, int discretization_points,
                          val_array::view(app_exec, dp, u), 1);
 
     // Generate solver
-    auto solver_gen = cg::Factory::create()
-                          .with_max_iters(dp)
-                          .with_rel_residual_goal(accuracy)
-                          // something fails here:
-                          // .with_preconditioner(bj::create(exec, 32))
-                          .on_executor(exec);
+    auto solver_gen =
+        cg::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(dp)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(accuracy)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            // something fails here:
+            // .with_preconditioner(bj::create(exec, 32))
+            .on_executor(exec);
     auto solver = solver_gen->generate(gko::give(matrix));
 
     // Solve system

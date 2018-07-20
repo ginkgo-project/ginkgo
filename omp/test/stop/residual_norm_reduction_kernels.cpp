@@ -49,50 +49,25 @@ protected:
 
     ResidualNormReduction()
     {
-        exec_ = gko::ReferenceExecutor::create();
+        omp_ = gko::OmpExecutor::create();
         factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
                        .with_reduction_factor(reduction_factor)
-                       .on_executor(exec_);
+                       .on_executor(omp_);
     }
 
     std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
-    std::shared_ptr<const gko::Executor> exec_;
+    std::shared_ptr<const gko::OmpExecutor> omp_;
 };
-
-
-TEST_F(ResidualNormReduction, CanCreateFactory)
-{
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().reduction_factor, reduction_factor);
-    ASSERT_EQ(factory_->get_executor(), exec_);
-}
-
-
-TEST_F(ResidualNormReduction, CannotCreateCriterionWithoutB)
-{
-    ASSERT_THROW(factory_->generate(nullptr, nullptr, nullptr, nullptr),
-                 gko::NotSupported);
-}
-
-
-TEST_F(ResidualNormReduction, CanCreateCriterionWithB)
-{
-    std::shared_ptr<gko::LinOp> scalar =
-        gko::initialize<gko::matrix::Dense<>>({1.0}, exec_);
-    auto criterion =
-        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
-    ASSERT_NE(criterion, nullptr);
-}
 
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto scalar = gko::initialize<Mtx>({1.0}, exec_);
+    auto scalar = gko::initialize<Mtx>({1.0}, omp_);
     auto criterion =
         factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    gko::Array<gko::stopping_status> stop_status(omp_, 1);
     stop_status.get_data()[0].clear();
 
     ASSERT_FALSE(
@@ -120,15 +95,11 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, exec_);
+    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, omp_);
     auto criterion = factory_->generate(nullptr, nullptr, nullptr, mtx.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(exec_, 2);
-    // Array only does malloc, it *does not* construct the object
-    // therefore you get undefined values in your objects whatever you do.
-    // Proper fix is not easy, we can't just call memset. We can probably not
-    // call the placement constructor either
+    gko::Array<gko::stopping_status> stop_status(omp_, 2);
     stop_status.get_data()[0].clear();
     stop_status.get_data()[1].clear();
 
@@ -140,7 +111,6 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
-    one_changed = false;
 
     mtx->at(0, 1) = reduction_factor * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
