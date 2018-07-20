@@ -33,6 +33,8 @@ var searchData=
   ['convertibleto_3c_20identity_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Identity&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20matrix_3a_3adense_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; matrix::Dense&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
+  ['convertibleto_3c_20sellp_3c_20valuetype_2c_20int32_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, int32 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
+  ['convertibleto_3c_20sellp_3c_20valuetype_2c_20int64_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, int64 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['coo',['Coo',['../classgko_1_1matrix_1_1Coo.html',1,'gko::matrix']]],
   ['copy_5fback_5fdeleter',['copy_back_deleter',['../classgko_1_1copy__back__deleter.html',1,'gko']]],
   ['copy_5fback_5fdeleter_3c_20const_20t_20_3e',['copy_back_deleter&lt; const T &gt;',['../classgko_1_1copy__back__deleter_3_01const_01T_01_4.html',1,'gko']]],
