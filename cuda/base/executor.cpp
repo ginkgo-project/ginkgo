@@ -106,11 +106,11 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         index++;
     }
 
-    // If we don't find the values, we default use the previous one
-    // to run properly
+    // If we don't find the values, we use the last valid value by default to
+    // allow proper execution
     std::cerr << "MapSMtoCores for SM " << major << "." << minor
-              << "is undefined. Default to use "
-              << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM"
+              << "is undefined. The default value of "
+              << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
               << std::endl;
     return nGpuArchCoresPerSM[index - 1].Cores;
 }
