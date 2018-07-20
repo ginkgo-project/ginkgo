@@ -241,6 +241,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
+                      matrix::Sellp<ValueType, IndexType> *result,
+                      const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_sellp(std::shared_ptr<const OmpExecutor> exec,
+                   matrix::Sellp<ValueType, IndexType> *result,
+                   const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType> *source, size_type *result)
@@ -264,8 +282,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                    const matrix::Dense<ValueType> *source,
-                                    size_type *result)
+                               const matrix::Dense<ValueType> *source,
+                               size_type *result)
 {
     const auto num_rows = source->get_size().num_rows;
     const auto num_cols = source->get_size().num_cols;
@@ -293,6 +311,16 @@ void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType>
+void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+                          const matrix::Dense<ValueType> *source,
+                          size_type *result,
+                          size_type stride_factor) NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType>

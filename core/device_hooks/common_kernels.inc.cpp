@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
+#include "core/matrix/sellp_kernels.hpp"
 #include "core/preconditioner/block_jacobi_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -124,6 +125,18 @@ NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
+
 template <typename ValueType>
 GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType)
 NOT_COMPILED(GKO_HOOK_MODULE);
@@ -140,6 +153,12 @@ GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
 
 template <typename ValueType>
 GKO_DECLARE_TRANSPOSE_KERNEL(ValueType)
@@ -381,6 +400,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace hybrid
+
+
+namespace sellp {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
+
+
+}  // namespace sellp
 
 
 namespace block_jacobi {

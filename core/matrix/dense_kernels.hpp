@@ -104,6 +104,16 @@ namespace kernels {
                         matrix::Hybrid<_type, _prec> *other,         \
                         const matrix::Dense<_type> *source)
 
+#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)        \
+    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Sellp<_type, _prec> *other,          \
+                          const matrix::Dense<_type> *source)
+
+#define GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL(_type, _prec)        \
+    void move_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
+                       matrix::Sellp<_type, _prec> *other,          \
+                       const matrix::Dense<_type> *source)
+
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Dense<_type> *source, size_type *result)
@@ -117,6 +127,11 @@ namespace kernels {
     void calculate_nonzeros_per_row(                               \
         std::shared_ptr<const DefaultExecutor> exec,               \
         const matrix::Dense<_type> *source, Array<size_type> *result)
+
+#define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
+    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::Dense<_type> *source,          \
+                              size_type *result, size_type stride_factor)
 
 #define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
@@ -153,12 +168,18 @@ namespace kernels {
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL(ValueType, IndexType);     \
     template <typename ValueType>                                     \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);               \
     template <typename ValueType>                                     \
     GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);    \
     template <typename ValueType>                                     \
     GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);   \
+    template <typename ValueType>                                     \
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);         \
     template <typename ValueType>                                     \
     GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                          \
     template <typename ValueType>                                     \
