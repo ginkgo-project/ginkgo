@@ -67,10 +67,12 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 #include <include/ginkgo.hpp>
 
 #include <chrono>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
+
 
 // Some shortcuts
 using vec = gko::matrix::Dense<>;
@@ -125,8 +127,8 @@ int main(int argc, char *argv[])
     // Open files
     std::ifstream mtx_fd(mtx_list, std::ifstream::in);
     std::ofstream out_fd(out_file, std::ofstream::out);
-    out_fd << "name, num_rows, num_cols, nnz, "
-              "coo_num_stored_elements, time(us)"
+    out_fd << "name,num_rows,num_cols,nnz,"
+              "total_num_stored_elements,time(us)"
            << std::endl;
     while (!mtx_fd.eof()) {
         duration_type duration(0);
@@ -136,9 +138,17 @@ int main(int argc, char *argv[])
             continue;
         }
         std::cout << src_folder + '/' + mtx_file << std::endl;
+
         auto data = gko::read_raw<>(src_folder + '/' + mtx_file);
         auto A = mtx::create(exec);
-        A->read(data);
+        try {
+            A->read(data);
+        } catch (const std::exception &e) {
+            out_fd << mtx_file << ", " << data.size.num_rows << ", "
+                   << data.size.num_cols << ", " << data.nonzeros.size()
+                   << ", 0," << e.what() << std::endl;
+            continue;
+        }
         auto x =
             gen_mtx(exec->get_master(), rand_engine, data.size.num_rows, 1, 1);
         auto y =
@@ -146,18 +156,21 @@ int main(int argc, char *argv[])
         auto dx = vec::create(exec);
         auto dy = vec::create(exec);
         dx->copy_from(x.get());
+        // Warm Up
         for (int i = 0; i < warm_iter; i++) {
             dy->copy_from(y.get());
             A->apply(dx.get(), dy.get());
         }
         exec->synchronize();
+
+        // Test
         for (int i = 0; i < test_iter; i++) {
             dy->copy_from(y.get());
-            // make sure the executor is finished
+            // make sure copy is finished
             exec->synchronize();
             auto start = std::chrono::system_clock::now();
             A->apply(dx.get(), dy.get());
-            // make sure the executor is finished
+            // make sure apply is finished
             exec->synchronize();
             auto finish = std::chrono::system_clock::now();
             duration +=
