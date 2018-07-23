@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/coo.hpp>
+#include <core/matrix/hybrid.hpp>
 
 
 #include <random>
@@ -50,12 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Coo : public ::testing::Test {
+class Hybrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
+    using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
 
-    Coo() : rand_engine(42) {}
+    Hybrid() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -119,7 +119,20 @@ protected:
 };
 
 
-TEST_F(Coo, SimpleApplyIsEquivalentToRef)
+TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExcutor)
+{
+    set_up_apply_data();
+
+    auto coo_mtx = dmtx->get_coo();
+    auto ell_mtx = dmtx->get_ell();
+
+    ASSERT_EQ(coo_mtx->get_executor(), cuda);
+    ASSERT_EQ(ell_mtx->get_executor(), cuda);
+    ASSERT_EQ(dmtx->get_executor(), cuda);
+}
+
+
+TEST_F(Hybrid, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -130,34 +143,12 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
+TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply2(alpha.get(), y.get(), expected.get());
-    dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
