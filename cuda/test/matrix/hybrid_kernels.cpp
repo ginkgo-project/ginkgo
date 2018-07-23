@@ -119,22 +119,13 @@ protected:
 };
 
 
-TEST_F(Hybrid, SubMatrixExecutorAfterCreateIsEquivalentToExcutor)
-{
-    dmtx = Mtx::create(cuda);
-    auto coo_mtx = dmtx->get_coo();
-    auto ell_mtx = dmtx->get_ell();
-    ASSERT_EQ(coo_mtx->get_executor(), cuda);
-    ASSERT_EQ(ell_mtx->get_executor(), cuda);
-    ASSERT_EQ(dmtx->get_executor(), cuda);
-}
-
-
 TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExcutor)
 {
     set_up_apply_data();
+
     auto coo_mtx = dmtx->get_coo();
     auto ell_mtx = dmtx->get_ell();
+
     ASSERT_EQ(coo_mtx->get_executor(), cuda);
     ASSERT_EQ(ell_mtx->get_executor(), cuda);
     ASSERT_EQ(dmtx->get_executor(), cuda);
