@@ -262,12 +262,12 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
     int slice_num = ceildiv(num_rows, slice_size);
     slice_sets[0] = 0;
 
-#pragma omp parallel for
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {
             slice_sets[slice] = slice_lengths[slice - 1];
         }
-        slice_lengths[slice] = 0;
+        size_type current_slice_length = 0;
+#pragma omp parallel for reduction(max : current_slice_length)
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
             if (global_row < num_rows) {
@@ -277,11 +277,11 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
                         max_col += 1;
                     }
                 }
-                slice_lengths[slice] = std::max(slice_lengths[slice], max_col);
+                current_slice_length = std::max(current_slice_length, max_col);
             }
         }
         slice_lengths[slice] =
-            stride_factor * ceildiv(slice_lengths[slice], stride_factor);
+            stride_factor * ceildiv(current_slice_length, stride_factor);
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
             if (global_row < num_rows) {

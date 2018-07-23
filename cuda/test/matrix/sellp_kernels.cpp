@@ -71,11 +71,10 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Vec>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
@@ -85,9 +84,9 @@ protected:
         int total_cols = 0)
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 1);
+        y = gen_mtx(231, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda);
@@ -149,7 +148,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -162,7 +161,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());

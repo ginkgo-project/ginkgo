@@ -70,11 +70,10 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Vec>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
@@ -85,9 +84,9 @@ protected:
     {
         mtx =
             Mtx::create(ref, gko::dim{}, slice_size, stride_factor, total_cols);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 1);
+        y = gen_mtx(231, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -168,7 +167,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     auto rmtx = Mtx::create(ref);
-    rmtx->copy_from(gen_mtx(532, 231, 1));
+    rmtx->copy_from(gen_mtx(532, 231));
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
     auto drmtx = Vec::create(ref);
@@ -183,7 +182,7 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 TEST_F(Sellp, MoveToDenseIsEquivalentToRef)
 {
     auto rmtx = Mtx::create(ref);
-    rmtx->copy_from(gen_mtx(532, 231, 1));
+    rmtx->copy_from(gen_mtx(532, 231));
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
     auto drmtx = Vec::create(ref);

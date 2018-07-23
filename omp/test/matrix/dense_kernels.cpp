@@ -79,8 +79,8 @@ protected:
     }
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx2(int num_rows, int num_cols,
-                                      int min_nnz_row)
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
@@ -309,7 +309,7 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
     std::size_t ref_max_nnz_per_row = 0;
     std::size_t omp_max_nnz_per_row = 0;
 
-    auto rmtx = gen_mtx2<Mtx>(100, 100, 1);
+    auto rmtx = gen_mtx<Mtx>(100, 100, 1);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -327,7 +327,7 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
     std::size_t ref_total_cols = 0;
     std::size_t omp_total_cols = 0;
 
-    auto rmtx = gen_mtx2<Mtx>(100, 100, 1);
+    auto rmtx = gen_mtx<Mtx>(100, 100, 1);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
