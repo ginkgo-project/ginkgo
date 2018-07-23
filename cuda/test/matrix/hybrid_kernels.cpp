@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/coo.hpp>
+#include <core/matrix/hybrid.hpp>
 
 
 #include <random>
@@ -50,23 +50,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Coo : public ::testing::Test {
+class Hybrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
+    using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
 
-    Coo() : rand_engine(42) {}
+    Hybrid() : rand_engine(42) {}
 
     void SetUp()
     {
+        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        cuda = gko::CudaExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (cuda != nullptr) {
+            ASSERT_NO_THROW(cuda->synchronize());
         }
     }
 
@@ -78,7 +79,7 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0)
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
@@ -86,21 +87,21 @@ protected:
         y = gen_mtx(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
+        dmtx = Mtx::create(cuda);
         dmtx->copy_from(mtx.get());
-        dresult = Vec::create(omp);
+        dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
+        dy = Vec::create(cuda);
         dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
+        dalpha = Vec::create(cuda);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
+        dbeta = Vec::create(cuda);
         dbeta->copy_from(beta.get());
     }
 
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::CudaExecutor> cuda;
 
     std::ranlux48 rand_engine;
 
@@ -118,7 +119,20 @@ protected:
 };
 
 
-TEST_F(Coo, SimpleApplyIsEquivalentToRef)
+TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExcutor)
+{
+    set_up_apply_data();
+
+    auto coo_mtx = dmtx->get_coo();
+    auto ell_mtx = dmtx->get_ell();
+
+    ASSERT_EQ(coo_mtx->get_executor(), cuda);
+    ASSERT_EQ(ell_mtx->get_executor(), cuda);
+    ASSERT_EQ(dmtx->get_executor(), cuda);
+}
+
+
+TEST_F(Hybrid, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -129,34 +143,12 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
+TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
-
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply2(alpha.get(), y.get(), expected.get());
-    dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

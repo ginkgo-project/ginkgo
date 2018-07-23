@@ -204,11 +204,40 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto nnz = a->get_num_stored_elements();
+    auto nnz = c->get_num_stored_elements();
     const dim3 grid(ceildiv(nnz, default_block_size));
     const dim3 block(default_block_size);
-    set_zero<<<grid, block>>>(c->get_num_stored_elements(),
+    set_zero<<<grid, block>>>(nnz,
                               as_cuda_type(c->get_values()));
+
+    spmv2(exec, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
+                   const matrix::Dense<ValueType> *alpha,
+                   const matrix::Coo<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   const matrix::Dense<ValueType> *beta,
+                   matrix::Dense<ValueType> *c)
+{
+    dense::scale(exec, beta, c);
+    advanced_spmv2(exec, alpha, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spmv2(std::shared_ptr<const CudaExecutor> exec,
+           const matrix::Coo<ValueType, IndexType> *a,
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto nnz = a->get_num_stored_elements();
 
     // TODO: nwraps_in_cuda is a parameter that should be tuned.
     //       it should be from CUDAExecutor, and use 112 by default.
@@ -224,19 +253,17 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Coo<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::Dense<ValueType> *alpha,
+                    const matrix::Coo<ValueType, IndexType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    matrix::Dense<ValueType> *c)
 {
     auto nnz = a->get_num_stored_elements();
-    dense::scale(exec, beta, c);
 
     // TODO: nwraps_in_cuda is a parameter that should be tuned.
     //       it should be from CUDAExecutor, and use 112 by default.
@@ -254,7 +281,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
 template <typename IndexType>

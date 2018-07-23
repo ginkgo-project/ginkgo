@@ -489,6 +489,24 @@ public:
         return strategy_;
     }
 
+    /**
+     * Copies data from another Hybrid.
+     * 
+     * @param other  the Hybrid to copy from
+     *
+     * @return this
+     */
+    Hybrid &operator=(const Hybrid &other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        EnableLinOp<Hybrid<ValueType, IndexType>>::operator=(other);
+        this->coo_->copy_from(other.get_coo());
+        this->ell_->copy_from(other.get_ell());
+        return *this;
+    }
+
 protected:
     /**
      * Creates an uninitialized Hybrid matrix of specified method.

@@ -55,21 +55,12 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto coo_val = a->get_const_values();
-    auto coo_col = a->get_const_col_idxs();
-    auto coo_row = a->get_const_row_idxs();
-    auto num_cols = b->get_size().num_cols;
 #pragma omp parallel for
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) = zero<ValueType>();
     }
 
-    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
-#pragma omp parallel for
-        for (size_type j = 0; j < num_cols; j++) {
-            c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
-        }
-    }
+    spmv2(exec, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
@@ -83,16 +74,52 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    auto coo_val = a->get_const_values();
-    auto coo_col = a->get_const_col_idxs();
-    auto coo_row = a->get_const_row_idxs();
-    auto alpha_val = alpha->at(0, 0);
     auto beta_val = beta->at(0, 0);
-    auto num_cols = b->get_size().num_cols;
 #pragma omp parallel for
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) *= beta_val;
     }
+
+    advanced_spmv2(exec, alpha, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spmv2(std::shared_ptr<const OmpExecutor> exec,
+           const matrix::Coo<ValueType, IndexType> *a,
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    auto coo_val = a->get_const_values();
+    auto coo_col = a->get_const_col_idxs();
+    auto coo_row = a->get_const_row_idxs();
+    auto num_cols = b->get_size().num_cols;
+
+    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
+#pragma omp parallel for
+        for (size_type j = 0; j < num_cols; j++) {
+            c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Dense<ValueType> *alpha,
+                    const matrix::Coo<ValueType, IndexType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    matrix::Dense<ValueType> *c)
+{
+    auto coo_val = a->get_const_values();
+    auto coo_col = a->get_const_col_idxs();
+    auto coo_row = a->get_const_row_idxs();
+    auto alpha_val = alpha->at(0, 0);
+    auto num_cols = b->get_size().num_cols;
 
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
@@ -104,7 +131,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
 template <typename IndexType>

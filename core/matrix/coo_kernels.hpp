@@ -58,6 +58,18 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
+#define GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType)  \
+    void spmv2(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::Coo<ValueType, IndexType> *a,  \
+               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+
+#define GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType)  \
+    void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec, \
+                        const matrix::Dense<ValueType> *alpha,       \
+                        const matrix::Coo<ValueType, IndexType> *a,  \
+                        const matrix::Dense<ValueType> *b,           \
+                        matrix::Dense<ValueType> *c)
+
 #define GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType)          \
     void convert_row_idxs_to_ptrs(                                          \
         std::shared_ptr<const DefaultExecutor> exec, const IndexType *idxs, \
@@ -83,6 +95,10 @@ namespace kernels {
     GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
     template <typename IndexType>                                  \
     GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType);    \
     template <typename ValueType, typename IndexType>              \
