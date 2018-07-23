@@ -52,8 +52,8 @@ namespace {
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
-    size_type num_rows, size_type num_right_hand_sides,
-    const size_type *__restrict__ slice_lengths,
+    size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
+    size_type c_stride, const size_type *__restrict__ slice_lengths,
     const size_type *__restrict__ slice_sets, const ValueType *__restrict__ a,
     const IndexType *__restrict__ col, const ValueType *__restrict__ b,
     ValueType *__restrict__ c)
@@ -69,9 +69,9 @@ __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
     if (global_row < num_rows && column_id < num_right_hand_sides) {
         for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
             ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
-            val += a[ind] * b[col[ind] * num_right_hand_sides + column_id];
+            val += a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * num_right_hand_sides + column_id] = val;
+        c[global_row * c_stride + column_id] = val;
     }
 }
 
@@ -90,10 +90,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         b->get_size().num_cols);
 
     spmv_kernel<<<gridSize, blockSize>>>(
-        a->get_size().num_rows, b->get_size().num_cols,
-        a->get_const_slice_lengths(), a->get_const_slice_sets(),
-        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
+        a->get_size().num_rows, b->get_size().num_cols, b->get_stride(),
+        c->get_stride(), a->get_const_slice_lengths(),
+        a->get_const_slice_sets(), as_cuda_type(a->get_const_values()),
+        a->get_const_col_idxs(), as_cuda_type(b->get_const_values()),
+        as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -105,8 +106,8 @@ namespace {
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(matrix::default_slice_size) void advanced_spmv_kernel(
-        size_type num_rows, size_type num_right_hand_sides,
-        const size_type *__restrict__ slice_lengths,
+        size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
+        size_type c_stride, const size_type *__restrict__ slice_lengths,
         const size_type *__restrict__ slice_sets,
         const ValueType *__restrict__ alpha, const ValueType *__restrict__ a,
         const IndexType *__restrict__ col, const ValueType *__restrict__ b,
@@ -123,11 +124,10 @@ __global__
     if (global_row < num_rows && column_id < num_right_hand_sides) {
         for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
             ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
-            val += alpha[0] * a[ind] *
-                   b[col[ind] * num_right_hand_sides + column_id];
+            val += alpha[0] * a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * num_right_hand_sides + column_id] =
-            beta[0] * c[global_row * num_right_hand_sides + column_id] + val;
+        c[global_row * c_stride + column_id] =
+            beta[0] * c[global_row * c_stride + column_id] + val;
     }
 }
 
@@ -149,9 +149,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         b->get_size().num_cols);
 
     advanced_spmv_kernel<<<gridSize, blockSize>>>(
-        a->get_size().num_rows, b->get_size().num_cols,
-        a->get_const_slice_lengths(), a->get_const_slice_sets(),
-        as_cuda_type(alpha->get_const_values()),
+        a->get_size().num_rows, b->get_size().num_cols, b->get_stride(),
+        c->get_stride(), a->get_const_slice_lengths(),
+        a->get_const_slice_sets(), as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
         as_cuda_type(b->get_const_values()),
         as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));
