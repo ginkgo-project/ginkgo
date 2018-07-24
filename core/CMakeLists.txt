@@ -2,9 +2,9 @@ set(SOURCES
     base/executor.cpp
     base/mtx_reader.cpp
     base/version.cpp
-    log/stream.cpp
     log/logger.cpp
     log/record.cpp
+    log/stream.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -17,6 +17,7 @@ set(SOURCES
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
+    solver/gmres.cpp
     stop/combined.cpp
     stop/criterion.cpp
     stop/iteration.cpp

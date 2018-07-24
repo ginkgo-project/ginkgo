@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+#include "core/solver/gmres_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
@@ -194,6 +195,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+// TODO (script): adapt this block as needed
 
 
 namespace fcg {

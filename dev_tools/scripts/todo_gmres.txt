@@ -1,0 +1,53 @@
+
+Summary:
+Created solver file
+core/solver/gmres.cpp
+	This is where the gmres algorithm needs to be implemented.
+
+Created class header
+core/solver/gmres.hpp
+	This is where the gmres class functions need to be implemented.
+
+Created kernel header
+core/solver/gmres_kernels.hpp
+	This is where the algorithm-specific kernels need to be added.
+
+Created kernel file
+reference/solver/gmres_kernels.cpp
+	Reference kernels for gmres need to be implemented here.
+
+Created kernel file
+omp/solver/gmres_kernels.cpp
+	OMP kernels for gmres need to be implemented here.
+
+Created kernel file
+cuda/solver/gmres_kernels.cu
+	CUDA kernels for gmres need to be implemented here.
+
+Created unit tests for gmres 
+core/test/solver/gmres.cpp
+
+Created unit tests for gmres reference kernels
+reference/test/solver/gmres_kernels.cpp
+
+Created unit tests for gmres OMP kernels
+omp/test/solver/gmres_kernels.cpp
+
+Created unit tests for gmres CUDA kernels
+cuda/test/solver/gmres_kernels.cpp
+
+Modified core/CMakeLists.txt
+Modified reference/CMakeLists.txt
+Modified omp/CMakeLists.txt
+Modified cuda/CMakeLists.txt
+Modified core/test/solver/CMakeLists.txt
+Modified reference/test/solver/CMakeLists.txt
+Modified omp/test/solver/CMakeLists.txt
+Modified cuda/test/solver/CMakeLists.txt
+Modified core/device_hooks/common_kernels.inc.cpp
+In all of the previous files cg was automatically replaced into gmres. Ensure there is no inconsistency.
+
+All the imported code was commented and TODO items were generated in the new files.
+Check all the modified files for '// TODO (script):' items
+e.g. by using grep -HR '// TODO (script):' /Users/chenjenchen/Documents/cluster/ginkgo/dev_tools/scripts/../..
+
