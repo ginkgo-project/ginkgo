@@ -78,7 +78,7 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(
+    void set_up_apply_vector(
         int slice_size = gko::matrix::default_slice_size,
         int stride_factor = gko::matrix::default_stride_factor,
         int total_cols = 0)
@@ -87,6 +87,29 @@ protected:
         mtx->copy_from(gen_mtx(532, 231));
         expected = gen_mtx(532, 1);
         y = gen_mtx(231, 1);
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
+        dmtx = Mtx::create(cuda);
+        dmtx->copy_from(mtx.get());
+        dresult = Vec::create(cuda);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(cuda);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(cuda);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(cuda);
+        dbeta->copy_from(beta.get());
+    }
+
+    void set_up_apply_matrix(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
+    {
+        mtx = Mtx::create(ref);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 64);
+        y = gen_mtx(231, 64);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda);
@@ -122,7 +145,7 @@ protected:
 
 TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -135,7 +158,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -148,7 +171,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 2);
+    set_up_apply_vector(32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -161,7 +184,61 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 2);
+    set_up_apply_vector(32, 2);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       SimpleApplyMultipleRHSWithSliceSizeAndStrideFactorIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       AdvancedApplyMultipleRHSWithSliceSizeAndStrideFActorIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
