@@ -100,7 +100,7 @@ TEMPLATE_FILES=(
     "${name}_kernels.c*"
     "${name}.cpp"
     "${name}_kernels.cpp"
-    # "${name}_kernels.cpp"
+    "${name}_kernels.cpp"
     "${name}_kernels.cpp"
     # "${name}_kernels.cpp"
     # "${name}_kernels.cpp"
@@ -116,7 +116,7 @@ CMAKE_FILES=(
     "cuda/CMakeLists.txt"
     "core/test/$source_type/CMakeLists.txt"
     "reference/test/$source_type/CMakeLists.txt"
-    # "omp/test/$source_type/CMakeLists.txt"
+    "omp/test/$source_type/CMakeLists.txt"
     "cuda/test/$source_type/CMakeLists.txt"
     # "core/benchmark/$source_type/CMakeLists.txt"
     # "reference/benchmark/$source_type/CMakeLists.txt"
@@ -132,7 +132,7 @@ TEMPLATE_FILES_LOCATIONS=(
     "cuda/$source_type"
     "core/test/$source_type"
     "reference/test/$source_type"
-    # "omp/test/$source_type"
+    "omp/test/$source_type"
     "cuda/test/$source_type"
     # "core/benchmark/$source_type"
     # "reference/benchmark/$source_type"
@@ -148,7 +148,7 @@ TEMPLATE_FILES_TYPES=(
     "kernel file"
     "unit tests for ${name} $type"
     "unit tests for ${name} reference kernels"
-    # "unit tests for ${name} OMP kernels"
+    "unit tests for ${name} OMP kernels"
     "unit tests for ${name} CUDA kernels"
     # "benchmarks for ${name} $type"
     # "benchmarks for ${name} reference kernels"
@@ -164,7 +164,7 @@ TEMPLATE_FILES_DESCRIPTIONS=(
     "CUDA kernels for ${name} need to be implemented here."
     ""
     ""
-    # ""
+    ""
     ""
     # ""
     # ""
@@ -253,7 +253,7 @@ then
             cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i-1]}"
             if [[ $cmake_file == *"test/"* ]]
             then
-                insert=$(grep "$source_name" $cmake_file | sed "s/$source_name/$name/")
+                insert=$(grep "(${source_name}_" $cmake_file | sed "s/$source_name/$name/")
                 echo "$insert" >> $cmake_file
                 cat $cmake_file | sort > tmp
                 mv tmp $cmake_file
@@ -314,7 +314,7 @@ then
         # code_block=( $(echo "${code_block[@]}" ) )
         unset IFS
         unset GLOB_IGNORE
-        old_code_block_end=$(grep -n "}  // namespace ${source_name}" $common_kernels_file | sed 's/:.*//')
+        old_code_block_end=$(grep -ne "}  // namespace ${source_name}$" $common_kernels_file | sed 's/:.*//')
 
         mytmp=`mktemp`
         head -n$old_code_block_end $common_kernels_file > $mytmp
@@ -361,7 +361,7 @@ then
     echo "Modified core/device_hooks/common_kernels.inc.cpp"     | tee -a todo_${name}.txt
 fi
 
-echo -e "In all of the previous files ${sourcename} was automatically replaced into ${name}. Ensure there is no inconsistency."                               | tee -a todo_${name}.txt
+echo -e "In all of the previous files ${source_name} was automatically replaced into ${name}. Ensure there is no inconsistency."                               | tee -a todo_${name}.txt
 echo -e ""                                                       | tee -a todo_${name}.txt
 echo -e "All the imported code was commented and TODO items were generated in the new files." | tee -a todo_${name}.txt
 echo -e "Check all the modified files for '// TODO (script):' items"| tee -a todo_${name}.txt
