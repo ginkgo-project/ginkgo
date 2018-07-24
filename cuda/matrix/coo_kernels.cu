@@ -207,8 +207,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     auto nnz = c->get_num_stored_elements();
     const dim3 grid(ceildiv(nnz, default_block_size));
     const dim3 block(default_block_size);
-    set_zero<<<grid, block>>>(nnz,
-                              as_cuda_type(c->get_values()));
+    set_zero<<<grid, block>>>(nnz, as_cuda_type(c->get_values()));
 
     spmv2(exec, a, b, c);
 }
@@ -239,9 +238,9 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     auto nnz = a->get_num_stored_elements();
 
-    // TODO: nwraps_in_cuda is a parameter that should be tuned.
-    //       it should be from CUDAExecutor, and use 112 by default.
-    auto nwarps = calculate_nwarps(nnz, 112);
+    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
+    auto nwarps =
+        calculate_nwarps(nnz, exec->get_num_multiprocessor() * warps_per_sm);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
@@ -265,9 +264,9 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     auto nnz = a->get_num_stored_elements();
 
-    // TODO: nwraps_in_cuda is a parameter that should be tuned.
-    //       it should be from CUDAExecutor, and use 112 by default.
-    auto nwarps = calculate_nwarps(nnz, 112);
+    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
+    auto nwarps =
+        calculate_nwarps(nnz, exec->get_num_multiprocessor() * warps_per_sm);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
