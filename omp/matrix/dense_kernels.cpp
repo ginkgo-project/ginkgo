@@ -282,8 +282,9 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
         }
         slice_lengths[slice] =
             stride_factor * ceildiv(current_slice_length, stride_factor);
+#pragma omp parallel for
         for (size_type row = 0; row < slice_size; row++) {
-            size_type global_row = slice * slice_size + row;
+            const size_type global_row = slice * slice_size + row;
             if (global_row < num_rows) {
                 size_type sellp_ind = slice_sets[slice] * slice_size + row;
                 for (size_type col = 0; col < num_cols; col++) {
