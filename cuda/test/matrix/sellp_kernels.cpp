@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/ell.hpp>
+#include <core/matrix/sellp.hpp>
 
 
 #include <random>
@@ -50,12 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Ell : public ::testing::Test {
+class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Ell<>;
+    using Mtx = gko::matrix::Sellp<>;
     using Vec = gko::matrix::Dense<>;
 
-    Ell() : rand_engine(42) {}
+    Sellp() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -71,20 +71,22 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Vec>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0)
+    void set_up_apply_vector(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
     {
-        mtx = Mtx::create(ref, gko::dim{}, num_stored_elements_per_row, stride);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        mtx = Mtx::create(ref);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 1);
+        y = gen_mtx(231, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda);
@@ -99,6 +101,28 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    void set_up_apply_matrix(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
+    {
+        mtx = Mtx::create(ref);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 64);
+        y = gen_mtx(231, 64);
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
+        dmtx = Mtx::create(cuda);
+        dmtx->copy_from(mtx.get());
+        dresult = Vec::create(cuda);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(cuda);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(cuda);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(cuda);
+        dbeta->copy_from(beta.get());
+    }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
@@ -119,46 +143,109 @@ protected:
 };
 
 
-TEST_F(Ell, SimpleApplyIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600);
+    set_up_apply_vector(32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600);
+    set_up_apply_vector(32, 2);
+
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       SimpleApplyMultipleRHSWithSliceSizeAndStrideFactorIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       AdvancedApplyMultipleRHSWithSliceSizeAndStrideFActorIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
