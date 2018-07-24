@@ -177,16 +177,16 @@ int main(int argc, char *argv[])
 
     // Finally, get some data from `record_logger` and print the last memory
     // location copied
-    auto last_copy = record_logger->get().copy_completed.back();
+    auto &last_copy = record_logger->get().copy_completed.back();
     std::cout << std::hex << "Last memory copied was of size "
-              << std::get<0>(last_copy).num_bytes << " FROM executor "
-              << std::get<0>(last_copy).exec << " pointer "
-              << std::get<0>(last_copy).location << " TO executor "
-              << std::get<1>(last_copy).exec << " pointer "
-              << std::get<1>(last_copy).location << std::endl;
+              << std::get<0>(*last_copy).num_bytes << " FROM executor "
+              << std::get<0>(*last_copy).exec << " pointer "
+              << std::get<0>(*last_copy).location << " TO executor "
+              << std::get<1>(*last_copy).exec << " pointer "
+              << std::get<1>(*last_copy).location << std::endl;
     // Also print the residual of the last iteration completed
     auto residual =
-        record_logger->get().iteration_completed.back().residual.get();
+        record_logger->get().iteration_completed.back()->residual.get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     print_vector("Residual", residual_d);
 

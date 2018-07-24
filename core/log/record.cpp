@@ -55,7 +55,8 @@ void Record::on_allocation_started(const Executor *exec,
                                    const size_type &num_bytes) const
 {
     GKO_APPEND_DEQUE(data_.allocation_started,
-                     (executor_data{exec, num_bytes, 0}));
+                     (std::unique_ptr<executor_data>(
+                         new executor_data{exec, num_bytes, 0})));
 }
 
 
@@ -64,21 +65,26 @@ void Record::on_allocation_completed(const Executor *exec,
                                      const uintptr &location) const
 {
     GKO_APPEND_DEQUE(data_.allocation_completed,
-                     (executor_data{exec, num_bytes, location}));
+                     (std::unique_ptr<executor_data>(
+                         new executor_data{exec, num_bytes, location})));
 }
 
 
 void Record::on_free_started(const Executor *exec,
                              const uintptr &location) const
 {
-    GKO_APPEND_DEQUE(data_.free_started, (executor_data{exec, 0, location}));
+    GKO_APPEND_DEQUE(
+        data_.free_started,
+        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
 }
 
 
 void Record::on_free_completed(const Executor *exec,
                                const uintptr &location) const
 {
-    GKO_APPEND_DEQUE(data_.free_completed, (executor_data{exec, 0, location}));
+    GKO_APPEND_DEQUE(
+        data_.free_completed,
+        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
 }
 
 
@@ -87,10 +93,11 @@ void Record::on_copy_started(const Executor *from, const Executor *to,
                              const uintptr &location_to,
                              const size_type &num_bytes) const
 {
+    using tuple = std::tuple<executor_data, executor_data>;
     GKO_APPEND_DEQUE(
         data_.copy_started,
-        (std::tuple<executor_data, executor_data>{
-            {from, num_bytes, location_from}, {to, num_bytes, location_to}}));
+        (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},
+                                          {to, num_bytes, location_to}})));
 }
 
 
@@ -99,26 +106,29 @@ void Record::on_copy_completed(const Executor *from, const Executor *to,
                                const uintptr &location_to,
                                const size_type &num_bytes) const
 {
+    using tuple = std::tuple<executor_data, executor_data>;
     GKO_APPEND_DEQUE(
         data_.copy_completed,
-        (std::tuple<executor_data, executor_data>{
-            {from, num_bytes, location_from}, {to, num_bytes, location_to}}));
+        (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},
+                                          {to, num_bytes, location_to}})));
 }
 
 
 void Record::on_operation_launched(const Executor *exec,
                                    const Operation *operation) const
 {
-    GKO_APPEND_DEQUE(data_.operation_launched,
-                     (operation_data{exec, operation}));
+    GKO_APPEND_DEQUE(
+        data_.operation_launched,
+        (std::unique_ptr<operation_data>(new operation_data{exec, operation})));
 }
 
 
 void Record::on_operation_completed(const Executor *exec,
                                     const Operation *operation) const
 {
-    GKO_APPEND_DEQUE(data_.operation_completed,
-                     (operation_data{exec, operation}));
+    GKO_APPEND_DEQUE(
+        data_.operation_completed,
+        (std::unique_ptr<operation_data>(new operation_data{exec, operation})));
 }
 
 
@@ -126,7 +136,8 @@ void Record::on_polymorphic_object_create_started(
     const Executor *exec, const PolymorphicObject *po) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_create_started,
-                     (polymorphic_object_data{exec, po}));
+                     (std::unique_ptr<polymorphic_object_data>(
+                         new polymorphic_object_data{exec, po})));
 }
 
 
@@ -135,7 +146,8 @@ void Record::on_polymorphic_object_create_completed(
     const PolymorphicObject *output) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_create_completed,
-                     (polymorphic_object_data{exec, input, output}));
+                     (std::unique_ptr<polymorphic_object_data>(
+                         new polymorphic_object_data{exec, input, output})));
 }
 
 
@@ -144,7 +156,8 @@ void Record::on_polymorphic_object_copy_started(
     const PolymorphicObject *to) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_copy_started,
-                     (polymorphic_object_data{exec, from, to}));
+                     (std::unique_ptr<polymorphic_object_data>(
+                         new polymorphic_object_data{exec, from, to})));
 }
 
 
@@ -153,7 +166,8 @@ void Record::on_polymorphic_object_copy_completed(
     const PolymorphicObject *to) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_copy_completed,
-                     (polymorphic_object_data{exec, from, to}));
+                     (std::unique_ptr<polymorphic_object_data>(
+                         new polymorphic_object_data{exec, from, to})));
 }
 
 
@@ -161,7 +175,8 @@ void Record::on_polymorphic_object_deleted(const Executor *exec,
                                            const PolymorphicObject *po) const
 {
     GKO_APPEND_DEQUE(data_.polymorphic_object_deleted,
-                     (polymorphic_object_data{exec, po}));
+                     (std::unique_ptr<polymorphic_object_data>(
+                         new polymorphic_object_data{exec, po})));
 }
 
 
@@ -169,7 +184,8 @@ void Record::on_linop_apply_started(const LinOp *A, const LinOp *b,
                                     const LinOp *x) const
 {
     GKO_APPEND_DEQUE(data_.linop_apply_started,
-                     (linop_data{A, nullptr, b, nullptr, x}));
+                     (std::unique_ptr<linop_data>(
+                         new linop_data{A, nullptr, b, nullptr, x})));
 }
 
 
@@ -177,7 +193,8 @@ void Record::on_linop_apply_completed(const LinOp *A, const LinOp *b,
                                       const LinOp *x) const
 {
     GKO_APPEND_DEQUE(data_.linop_apply_completed,
-                     (linop_data{A, nullptr, b, nullptr, x}));
+                     (std::unique_ptr<linop_data>(
+                         new linop_data{A, nullptr, b, nullptr, x})));
 }
 
 
@@ -185,8 +202,9 @@ void Record::on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
                                              const LinOp *b, const LinOp *beta,
                                              const LinOp *x) const
 {
-    GKO_APPEND_DEQUE(data_.linop_advanced_apply_started,
-                     (linop_data{A, alpha, b, beta, x}));
+    GKO_APPEND_DEQUE(
+        data_.linop_advanced_apply_started,
+        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})));
 }
 
 
@@ -196,8 +214,9 @@ void Record::on_linop_advanced_apply_completed(const LinOp *A,
                                                const LinOp *beta,
                                                const LinOp *x) const
 {
-    GKO_APPEND_DEQUE(data_.linop_advanced_apply_completed,
-                     (linop_data{A, alpha, b, beta, x}));
+    GKO_APPEND_DEQUE(
+        data_.linop_advanced_apply_completed,
+        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})));
 }
 
 
@@ -205,7 +224,8 @@ void Record::on_linop_factory_generate_started(const LinOpFactory *factory,
                                                const LinOp *input) const
 {
     GKO_APPEND_DEQUE(data_.linop_factory_generate_started,
-                     (linop_factory_data{factory, input, nullptr}));
+                     (std::unique_ptr<linop_factory_data>(
+                         new linop_factory_data{factory, input, nullptr})));
 }
 
 
@@ -214,7 +234,8 @@ void Record::on_linop_factory_generate_completed(const LinOpFactory *factory,
                                                  const LinOp *output) const
 {
     GKO_APPEND_DEQUE(data_.linop_factory_generate_completed,
-                     (linop_factory_data{factory, input, output}));
+                     (std::unique_ptr<linop_factory_data>(
+                         new linop_factory_data{factory, input, output})));
 }
 
 
@@ -223,7 +244,8 @@ void Record::on_criterion_check_started(const stop::Criterion *criterion,
                                         const bool &setFinalized) const
 {
     GKO_APPEND_DEQUE(data_.criterion_check_started,
-                     (criterion_data{criterion, stoppingId, setFinalized}));
+                     (std::unique_ptr<criterion_data>(new criterion_data{
+                         criterion, stoppingId, setFinalized})));
 }
 
 
@@ -235,8 +257,9 @@ void Record::on_criterion_check_completed(const stop::Criterion *criterion,
                                           const bool &converged) const
 {
     GKO_APPEND_DEQUE(data_.criterion_check_completed,
-                     (criterion_data{criterion, stoppingId, setFinalized,
-                                     status, oneChanged, converged}));
+                     (std::unique_ptr<criterion_data>(
+                         new criterion_data{criterion, stoppingId, setFinalized,
+                                            status, oneChanged, converged})));
 }
 
 
@@ -245,9 +268,10 @@ void Record::on_iteration_complete(const LinOp *solver,
                                    const LinOp *residual, const LinOp *solution,
                                    const LinOp *residual_norm) const
 {
-    GKO_APPEND_DEQUE(data_.iteration_completed,
-                     (iteration_complete_data{solver, num_iterations, residual,
-                                              solution, residual_norm}));
+    GKO_APPEND_DEQUE(
+        data_.iteration_completed,
+        (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
+            solver, num_iterations, residual, solution, residual_norm})));
 }
 
 

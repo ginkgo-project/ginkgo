@@ -81,12 +81,6 @@ struct iteration_complete_data {
             this->residual_norm = residual_norm->clone();
         }
     }
-
-    iteration_complete_data(const iteration_complete_data &other)
-        : iteration_complete_data{other.solver.get(), other.num_iterations,
-                                  other.residual.get(), other.solution.get(),
-                                  other.residual_norm.get()}
-    {}
 };
 
 
@@ -127,11 +121,6 @@ struct polymorphic_object_data {
             this->output = output->clone();
         }
     }
-
-    polymorphic_object_data(const gko::log::polymorphic_object_data &other)
-        : polymorphic_object_data{other.exec, other.input.get(),
-                                  other.output.get()}
-    {}
 };
 
 
@@ -158,11 +147,6 @@ struct linop_data {
         }
         this->x = x->clone();
     }
-
-    linop_data(const gko::log::linop_data &other)
-        : linop_data{other.A.get(), other.alpha.get(), other.b.get(),
-                     other.beta.get(), other.x.get()}
-    {}
 };
 
 
@@ -183,11 +167,6 @@ struct linop_factory_data {
             this->output = output->clone();
         }
     }
-
-    linop_factory_data(const linop_factory_data &other)
-        : linop_factory_data{other.factory, other.input.get(),
-                             other.output.get()}
-    {}
 };
 
 struct updater_data {
@@ -214,11 +193,6 @@ struct updater_data {
             this->solution = std::unique_ptr<const LinOp>(solution->clone());
         }
     }
-
-    updater_data(const updater_data &other)
-        : updater_data{other.num_iterations, other.residual.get(),
-                       other.residual_norm.get(), other.solution.get()}
-    {}
 };
 
 /**
@@ -247,17 +221,6 @@ struct criterion_data {
             new updater_data{updater.num_iterations_, updater.residual_,
                              updater.residual_norm_, updater.solution_});
     }
-
-    criterion_data(const criterion_data &other)
-        : stoppingId{other.stoppingId},
-          setFinalized{other.setFinalized},
-          status{other.status},
-          oneChanged{other.oneChanged},
-          converged{other.converged}
-    {
-        this->updater = std::unique_ptr<const updater_data>(
-            new updater_data{*other.updater.get()});
-    }
 };
 
 
@@ -271,33 +234,43 @@ public:
      * Struct storing the actually logged data
      */
     struct logged_data {
-        std::deque<executor_data> allocation_started;
-        std::deque<executor_data> allocation_completed;
-        std::deque<executor_data> free_started;
-        std::deque<executor_data> free_completed;
-        std::deque<std::tuple<executor_data, executor_data>> copy_started;
-        std::deque<std::tuple<executor_data, executor_data>> copy_completed;
+        std::deque<std::unique_ptr<executor_data>> allocation_started;
+        std::deque<std::unique_ptr<executor_data>> allocation_completed;
+        std::deque<std::unique_ptr<executor_data>> free_started;
+        std::deque<std::unique_ptr<executor_data>> free_completed;
+        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+            copy_started;
+        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+            copy_completed;
 
-        std::deque<operation_data> operation_launched;
-        std::deque<operation_data> operation_completed;
+        std::deque<std::unique_ptr<operation_data>> operation_launched;
+        std::deque<std::unique_ptr<operation_data>> operation_completed;
 
-        std::deque<polymorphic_object_data> polymorphic_object_create_started;
-        std::deque<polymorphic_object_data> polymorphic_object_create_completed;
-        std::deque<polymorphic_object_data> polymorphic_object_copy_started;
-        std::deque<polymorphic_object_data> polymorphic_object_copy_completed;
-        std::deque<polymorphic_object_data> polymorphic_object_deleted;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_create_started;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_create_completed;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_copy_started;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_copy_completed;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_deleted;
 
-        std::deque<linop_data> linop_apply_started;
-        std::deque<linop_data> linop_apply_completed;
-        std::deque<linop_data> linop_advanced_apply_started;
-        std::deque<linop_data> linop_advanced_apply_completed;
-        std::deque<linop_factory_data> linop_factory_generate_started;
-        std::deque<linop_factory_data> linop_factory_generate_completed;
+        std::deque<std::unique_ptr<linop_data>> linop_apply_started;
+        std::deque<std::unique_ptr<linop_data>> linop_apply_completed;
+        std::deque<std::unique_ptr<linop_data>> linop_advanced_apply_started;
+        std::deque<std::unique_ptr<linop_data>> linop_advanced_apply_completed;
+        std::deque<std::unique_ptr<linop_factory_data>>
+            linop_factory_generate_started;
+        std::deque<std::unique_ptr<linop_factory_data>>
+            linop_factory_generate_completed;
 
-        std::deque<criterion_data> criterion_check_started;
-        std::deque<criterion_data> criterion_check_completed;
+        std::deque<std::unique_ptr<criterion_data>> criterion_check_started;
+        std::deque<std::unique_ptr<criterion_data>> criterion_check_completed;
 
-        std::deque<iteration_complete_data> iteration_completed;
+        std::deque<std::unique_ptr<iteration_complete_data>>
+            iteration_completed;
     };
 
     /* Executor events */
