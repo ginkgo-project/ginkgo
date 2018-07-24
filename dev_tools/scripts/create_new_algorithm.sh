@@ -253,7 +253,7 @@ then
             cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i-1]}"
             if [[ $cmake_file == *"test/"* ]]
             then
-                insert=$(grep "(${source_name}_" $cmake_file | sed "s/$source_name/$name/")
+                insert=$(grep -E "\(${source_name}[_\)]{1}" $cmake_file | sed "s/$source_name/$name/")
                 echo "$insert" >> $cmake_file
                 cat $cmake_file | sort > tmp
                 mv tmp $cmake_file
