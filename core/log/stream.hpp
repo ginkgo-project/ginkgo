@@ -221,7 +221,7 @@ protected:
     std::string operation_name(const Operation *op) const
     {
         std::ostringstream oss;
-        oss << "Operation[" << name_demangling::get_name(op) << ";" << op
+        oss << "Operation[" << name_demangling::get_name(*op) << ";" << op
             << "]";
         return oss.str();
     }
@@ -236,7 +236,7 @@ protected:
     std::string executor_name(const Executor *exec) const
     {
         std::ostringstream oss;
-        oss << "Executor[" << name_demangling::get_name(exec) << ";" << exec
+        oss << "Executor[" << name_demangling::get_name(*exec) << ";" << exec
             << "]";
         return oss.str();
     }
@@ -265,7 +265,7 @@ protected:
     std::string po_name(const PolymorphicObject *po) const
     {
         std::ostringstream oss;
-        oss << "PolymorphicObject[" << name_demangling::get_name(po) << ","
+        oss << "PolymorphicObject[" << name_demangling::get_name(*po) << ","
             << po << "]";
         return oss.str();
     }
@@ -280,8 +280,15 @@ protected:
     std::string linop_name(const LinOp *linop) const
     {
         std::ostringstream oss;
-        oss << "LinOp[" << name_demangling::get_name(linop) << "," << linop
-            << "]";
+        oss << "LinOp[";
+        // Only these can eventually be nullptr
+        // due to residual_norm, etc
+        if (linop == nullptr) {
+            oss << name_demangling::get_name(linop);
+        } else {
+            oss << name_demangling::get_name(*linop);
+        }
+        oss << "," << linop << "]";
         return oss.str();
     }
 
@@ -295,7 +302,7 @@ protected:
     std::string linop_factory_name(const LinOpFactory *factory) const
     {
         std::ostringstream oss;
-        oss << "LinOpFactory[" << name_demangling::get_name(factory) << ","
+        oss << "LinOpFactory[" << name_demangling::get_name(*factory) << ","
             << factory << "]";
         return oss.str();
     }
@@ -310,7 +317,7 @@ protected:
     std::string criterion_name(const stop::Criterion *criterion) const
     {
         std::ostringstream oss;
-        oss << "Criterion[" << name_demangling::get_name(criterion) << ","
+        oss << "Criterion[" << name_demangling::get_name(*criterion) << ","
             << criterion << "]";
         return oss.str();
     }

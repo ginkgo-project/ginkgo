@@ -50,20 +50,20 @@ namespace gko {
 namespace name_demangling {
 
 template <typename T>
-std::string get_name(const T &)
+std::string get_name(const T &obj)
 {
 #ifdef GKO_HAVE_CXXABI_H
     int status{};
     const std::string name(
         std::unique_ptr<char[], void (*)(void *)>(
-            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            abi::__cxa_demangle(typeid(obj).name(), nullptr, nullptr, &status),
             std::free)
             .get());
     if (!status)
         return name.substr(0, name.rfind(' '));
     else
 #endif  // GKO_HAVE_CXXABI_H
-        return std::string(typeid(T).name());
+        return std::string(typeid(obj).name());
 }
 
 
