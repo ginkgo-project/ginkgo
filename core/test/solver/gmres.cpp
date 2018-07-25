@@ -50,7 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Cg : public ::testing::Test {
+class Gmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using Solver = gko::solver::Gmres<>;
@@ -102,7 +102,7 @@ TEST_F(Gmres, GmresFactoryKnowsItsExecutor)
 TEST_F(Gmres, GmresFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
-    auto cg_solver = static_cast<Solver *>(solver.get());
+    auto gmres_solver = static_cast<Solver *>(solver.get());
     ASSERT_NE(gmres_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(gmres_solver->get_system_matrix(), mtx);
 }
