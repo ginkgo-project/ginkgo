@@ -190,7 +190,8 @@ int main(int argc, char *argv[])
     }
 
     // Get number of discretization points
-    const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
+    const unsigned int discretization_points =
+        argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
 
     // Figure out where to run the code
@@ -224,8 +225,16 @@ int main(int argc, char *argv[])
 
     // Generate solver and solve the system
     cg::Factory::create()
-        .with_max_iters(discretization_points)
-        .with_rel_residual_goal(1e-6)
+        .with_criterion(
+            gko::stop::Combined::Factory::create()
+                .with_criteria(
+                    gko::stop::Iteration::Factory::create()
+                        .with_max_iters(discretization_points)
+                        .on_executor(exec),
+                    gko::stop::ResidualNormReduction<>::Factory::create()
+                        .with_reduction_factor(1e-6)
+                        .on_executor(exec))
+                .on_executor(exec))
         // something fails here:
         // .with_preconditioner(bj::create(exec, 32))
         .on_executor(exec)
