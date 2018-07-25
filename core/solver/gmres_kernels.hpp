@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_CG_KERNELS_HPP_
-#define GKO_CORE_SOLVER_CG_KERNELS_HPP_
+#ifndef GKO_CORE_SOLVER_GMRES_KERNELS_HPP_
+#define GKO_CORE_SOLVER_GMRES_KERNELS_HPP_
 
 
 #include "core/base/array.hpp"
@@ -43,10 +43,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cg {
+namespace gmres {
 
 
-#define GKO_DECLARE_CG_INITIALIZE_KERNEL(_type)                              \
+#define GKO_DECLARE_GMRES_INITIALIZE_KERNEL(_type)                           \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
                     const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
                     matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
@@ -55,7 +55,7 @@ namespace cg {
                     Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                          \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
                 matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
                 const matrix::Dense<_type> *rho,                        \
@@ -63,7 +63,7 @@ namespace cg {
                 const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                                \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
                 matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
                 const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
@@ -72,42 +72,42 @@ namespace cg {
                 const Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                 \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
+#define DECLARE_ALL_AS_TEMPLATES                    \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
 
 
-}  // namespace cg
+}  // namespace gmres
 
 
 namespace omp {
-namespace cg {
+namespace gmres {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace cg
+}  // namespace gmres
 }  // namespace omp
 
 
 namespace cuda {
-namespace cg {
+namespace gmres {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace cg
+}  // namespace gmres
 }  // namespace cuda
 
 
 namespace reference {
-namespace cg {
+namespace gmres {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace cg
+}  // namespace gmres
 }  // namespace reference
 
 
@@ -118,4 +118,4 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_CG_KERNELS_HPP
+#endif  // GKO_CORE_SOLVER_GMRES_KERNELS_HPP

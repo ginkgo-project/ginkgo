@@ -62,7 +62,7 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     this->template log<log::Logger::apply>(GKO_FUNCTION_NAME);
 
@@ -140,8 +140,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                               const LinOp *beta, LinOp *x) const
+void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                  const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -152,9 +152,9 @@ void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define GKO_DECLARE_CG(_type) class Cg<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
-#undef GKO_DECLARE_CG
+#define GKO_DECLARE_GMRES(_type) class Gmres<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES);
+#undef GKO_DECLARE_GMRES
 
 
 }  // namespace solver

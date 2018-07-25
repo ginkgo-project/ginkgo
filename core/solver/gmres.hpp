@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_CG_HPP_
-#define GKO_CORE_SOLVER_CG_HPP_
+#ifndef GKO_CORE_SOLVER_GMRES_HPP_
+#define GKO_CORE_SOLVER_GMRES_HPP_
 
 
 #include "core/base/array.hpp"
@@ -62,10 +62,10 @@ namespace solver {
  * @tparam ValueType  precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>>,
-           public log::EnableLogging<Cg<ValueType>> {
-    friend class EnableLinOp<Cg>;
-    friend class EnablePolymorphicObject<Cg, LinOp>;
+class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public log::EnableLogging<Gmres<ValueType>> {
+    friend class EnableLinOp<Gmres>;
+    friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -104,7 +104,7 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -112,14 +112,14 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cg>(std::move(exec))
+    explicit Gmres(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Gmres>(std::move(exec))
     {}
 
-    explicit Cg(const Factory *factory,
-                std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cg>(factory->get_executor(),
-                          transpose(system_matrix->get_size())),
+    explicit Gmres(const Factory *factory,
+                   std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Gmres>(factory->get_executor(),
+                             transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
@@ -148,4 +148,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_CG_HPP
+#endif  // GKO_CORE_SOLVER_GMRES_HPP

@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cg.hpp>
+#include <core/solver/gmres.hpp>
 
 
 #include <gtest/gtest.h>
@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
-#include <core/solver/cg_kernels.hpp>
+#include <core/solver/gmres_kernels.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
 #include <core/stop/residual_norm_reduction.hpp>
@@ -52,10 +52,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Cg : public ::testing::Test {
+class Gmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    Cg() : rand_engine(30) {}
+    Gmres() : rand_engine(30) {}
 
     void SetUp()
     {
@@ -177,16 +177,16 @@ protected:
 };
 
 
-TEST_F(Cg, CudaCgInitializeIsEquivalentToRef)
+TEST_F(Gmres, CudaGmresInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
-                                            p.get(), q.get(), prev_rho.get(),
-                                            rho.get(), stop_status.get());
-    gko::kernels::cuda::cg::initialize(cuda, d_b.get(), d_r.get(), d_z.get(),
-                                       d_p.get(), d_q.get(), d_prev_rho.get(),
-                                       d_rho.get(), d_stop_status.get());
+    gko::kernels::reference::gmres::initialize(ref, b.get(), r.get(), z.get(),
+                                               p.get(), q.get(), prev_rho.get(),
+                                               rho.get(), stop_status.get());
+    gko::kernels::cuda::gmres::initialize(
+        cuda, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
+        d_prev_rho.get(), d_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -197,29 +197,29 @@ TEST_F(Cg, CudaCgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Cg, CudaCgStep1IsEquivalentToRef)
+TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
-                                        prev_rho.get(), stop_status.get());
-    gko::kernels::cuda::cg::step_1(cuda, d_p.get(), d_z.get(), d_rho.get(),
-                                   d_prev_rho.get(), d_stop_status.get());
+    gko::kernels::reference::gmres::step_1(ref, p.get(), z.get(), rho.get(),
+                                           prev_rho.get(), stop_status.get());
+    gko::kernels::cuda::gmres::step_1(cuda, d_p.get(), d_z.get(), d_rho.get(),
+                                      d_prev_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_p, p, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
-TEST_F(Cg, CudaCgStep2IsEquivalentToRef)
+TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
-                                        beta.get(), rho.get(),
-                                        stop_status.get());
-    gko::kernels::cuda::cg::step_2(cuda, d_x.get(), d_r.get(), d_p.get(),
-                                   d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_stop_status.get());
+    gko::kernels::reference::gmres::step_2(ref, x.get(), r.get(), p.get(),
+                                           q.get(), beta.get(), rho.get(),
+                                           stop_status.get());
+    gko::kernels::cuda::gmres::step_2(cuda, d_x.get(), d_r.get(), d_p.get(),
+                                      d_q.get(), d_beta.get(), d_rho.get(),
+                                      d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -228,7 +228,7 @@ TEST_F(Cg, CudaCgStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Cg, ApplyIsEquivalentToRef)
+TEST_F(Gmres, ApplyIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50);
     make_spd(mtx.get());
@@ -240,8 +240,8 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(cuda);
     d_b->copy_from(b.get());
-    auto cg_factory =
-        gko::solver::Cg<>::Factory::create()
+    auto gmres_factory =
+        gko::solver::Gmres<>::Factory::create()
             .with_criterion(
                 gko::stop::Combined::Factory::create()
                     .with_criteria(
@@ -253,8 +253,8 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
                             .on_executor(ref))
                     .on_executor(ref))
             .on_executor(ref);
-    auto d_cg_factory =
-        gko::solver::Cg<>::Factory::create()
+    auto d_gmres_factory =
+        gko::solver::Gmres<>::Factory::create()
             .with_criterion(
                 gko::stop::Combined::Factory::create()
                     .with_criteria(
@@ -266,8 +266,8 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
                             .on_executor(cuda))
                     .on_executor(cuda))
             .on_executor(cuda);
-    auto solver = cg_factory->generate(std::move(mtx));
-    auto d_solver = d_cg_factory->generate(std::move(d_mtx));
+    auto solver = gmres_factory->generate(std::move(mtx));
+    auto d_solver = d_gmres_factory->generate(std::move(d_mtx));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

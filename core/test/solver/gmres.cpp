@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cg.hpp>
+#include <core/solver/gmres.hpp>
 
 
 #include <typeinfo>
@@ -53,13 +53,13 @@ namespace {
 class Cg : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Cg<>;
+    using Solver = gko::solver::Gmres<>;
 
-    Cg()
+    Gmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cg_factory(
+          gmres_factory(
               Solver::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
@@ -72,12 +72,12 @@ protected:
                                                  .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
-          solver(cg_factory->generate(mtx))
+          solver(gmres_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Solver::Factory> cg_factory;
+    std::unique_ptr<Solver::Factory> gmres_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -93,24 +93,24 @@ protected:
 };
 
 
-TEST_F(Cg, CgFactoryKnowsItsExecutor)
+TEST_F(Gmres, GmresFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(cg_factory->get_executor(), exec);
+    ASSERT_EQ(gmres_factory->get_executor(), exec);
 }
 
 
-TEST_F(Cg, CgFactoryCreatesCorrectSolver)
+TEST_F(Gmres, GmresFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
     auto cg_solver = static_cast<Solver *>(solver.get());
-    ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(cg_solver->get_system_matrix(), mtx);
+    ASSERT_NE(gmres_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(gmres_solver->get_system_matrix(), mtx);
 }
 
 
-TEST_F(Cg, CanBeCopied)
+TEST_F(Gmres, CanBeCopied)
 {
-    auto copy = cg_factory->generate(Mtx::create(exec));
+    auto copy = gmres_factory->generate(Mtx::create(exec));
 
     copy->copy_from(solver.get());
 
@@ -120,9 +120,9 @@ TEST_F(Cg, CanBeCopied)
 }
 
 
-TEST_F(Cg, CanBeMoved)
+TEST_F(Gmres, CanBeMoved)
 {
-    auto copy = cg_factory->generate(Mtx::create(exec));
+    auto copy = gmres_factory->generate(Mtx::create(exec));
 
     copy->copy_from(std::move(solver));
 
@@ -132,7 +132,7 @@ TEST_F(Cg, CanBeMoved)
 }
 
 
-TEST_F(Cg, CanBeCloned)
+TEST_F(Gmres, CanBeCloned)
 {
     auto clone = solver->clone();
 
@@ -142,7 +142,7 @@ TEST_F(Cg, CanBeCloned)
 }
 
 
-TEST_F(Cg, CanBeCleared)
+TEST_F(Gmres, CanBeCleared)
 {
     solver->clear();
 
@@ -152,9 +152,9 @@ TEST_F(Cg, CanBeCleared)
 }
 
 
-TEST_F(Cg, CanSetPreconditionerGenerator)
+TEST_F(Gmres, CanSetPreconditionerGenerator)
 {
-    auto cg_factory =
+    auto gmres_factory =
         Solver::Factory::create()
             .with_criterion(
                 gko::stop::Combined::Factory::create()
@@ -168,9 +168,9 @@ TEST_F(Cg, CanSetPreconditionerGenerator)
                     .on_executor(exec))
             .with_preconditioner(Solver::Factory::create().on_executor(exec))
             .on_executor(exec);
-    auto solver = cg_factory->generate(mtx);
-    auto precond = dynamic_cast<const gko::solver::Cg<> *>(
-        static_cast<gko::solver::Cg<> *>(solver.get())
+    auto solver = gmres_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::Gmres<> *>(
+        static_cast<gko::solver::Gmres<> *>(solver.get())
             ->get_preconditioner()
             .get());
 
