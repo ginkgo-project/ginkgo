@@ -85,7 +85,7 @@ struct dim {
     /**
      * Returns the requested dimension.
      *
-     * For example, if `d`is a dim<2> object representing matrix dimensions,
+     * For example, if `d` is a dim<2> object representing matrix dimensions,
      * `d[0]` returns the number of rows, and `d[1]` returns the number of
      * columns.
      *
@@ -203,14 +203,18 @@ private:
 /**
  * Checks if two dim objects are different.
  *
+ * @tparam Dimensionality  number of dimensions of the dim objects
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
  * @param x  first object
  * @param y  second object
  *
  * @return `!(x == y)`
  */
-template <size_type Dimensionality>
+template <size_type Dimensionality, typename DimensionType>
 constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-    const dim<Dimensionality> &x, const dim<Dimensionality> &y)
+    const dim<Dimensionality, DimensionType> &x,
+    const dim<Dimensionality, DimensionType> &y)
 {
     return !(x == y);
 }
@@ -219,12 +223,15 @@ constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
 /**
  * Returns a dim<2> object with its dimensions swapped.
  *
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
  * @param dimensions original object
  *
  * @return a dim<2> object with its dimensions swapped
  */
-constexpr GKO_ATTRIBUTES GKO_INLINE dim<2> transpose(
-    const dim<2> &dimensions) noexcept
+template <typename DimensionType>
+constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
+    const dim<2, DimensionType> &dimensions) noexcept
 {
     return {dimensions[1], dimensions[0]};
 }
