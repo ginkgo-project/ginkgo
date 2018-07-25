@@ -37,10 +37,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <iostream>
 #include <random>
 
 
 #include <core/test/utils.hpp>
+#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 namespace {
@@ -73,6 +76,16 @@ protected:
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+    }
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
+    {
+        return gko::test::generate_random_matrix<MtxType>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_vector_data(gko::size_type num_vecs,
@@ -246,6 +259,84 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+{
+    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Sellp<>::create(ref);
+    auto somtx = gko::matrix::Sellp<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToSellpIsEquivalentToRef)
+{
+    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Sellp<>::create(ref);
+    auto somtx = gko::matrix::Sellp<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+{
+    std::size_t ref_max_nnz_per_row = 0;
+    std::size_t omp_max_nnz_per_row = 0;
+
+    auto rmtx = gen_mtx<Mtx>(100, 100, 1);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    gko::kernels::reference::dense::calculate_max_nnz_per_row(
+        ref, rmtx.get(), &ref_max_nnz_per_row);
+    gko::kernels::omp::dense::calculate_max_nnz_per_row(omp, omtx.get(),
+                                                        &omp_max_nnz_per_row);
+
+    ASSERT_EQ(ref_max_nnz_per_row, omp_max_nnz_per_row);
+}
+
+
+TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
+{
+    std::size_t ref_total_cols = 0;
+    std::size_t omp_total_cols = 0;
+
+    auto rmtx = gen_mtx<Mtx>(100, 100, 1);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    gko::kernels::reference::dense::calculate_total_cols(ref, rmtx.get(),
+                                                         &ref_total_cols, 1);
+    gko::kernels::omp::dense::calculate_total_cols(omp, omtx.get(),
+                                                   &omp_total_cols, 1);
+
+    ASSERT_EQ(ref_total_cols, omp_total_cols);
 }
 
 
