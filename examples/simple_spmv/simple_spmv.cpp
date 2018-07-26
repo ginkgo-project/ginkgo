@@ -85,6 +85,8 @@ using csr = gko::matrix::Csr<double, gko::int32>;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
 
 using duration_type = std::chrono::microseconds;
+
+
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
@@ -95,27 +97,24 @@ void generate_rhs(VecType *rhs)
         }
     }
 }
-template <bool line_end = false, bool matlab_format = true>
-void output(const gko::size_type num, const double val)
+
+void output(const gko::size_type num, const double val, bool matlab_format)
 {
     std::string sep = matlab_format ? " " : ", ";
-    std::cout << num << sep << val;
-    if (line_end) {
-        std::cout << std::endl;
-    } else {
-        std::cout << sep;
-    }
+    std::cout << sep << num << sep << val;
 }
-template <bool line_end = false, bool matlab_format = true, typename MatrixType>
+
+template <typename MatrixType>
 void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
-             const int test_iter, const mtx &data, vec *x, vec *y)
+             const int test_iter, const mtx &data, vec *x, vec *y,
+             bool matlab_format)
 {
     auto A = MatrixType::create(exec);
     try {
         A->read(data);
     } catch (...) {
         // -1: read failed
-        output<line_end, matlab_format>(0, -1);
+        output(0, -1, matlab_format);
         return;
     }
 
@@ -126,7 +125,7 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         dy->copy_from(y);
     } catch (...) {
         // -2 : copy vector failed
-        output<line_end, matlab_format>(0, -2);
+        output(0, -2, matlab_format);
         return;
     }
 
@@ -139,7 +138,7 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         exec->synchronize();
     } catch (...) {
         // -3 : apply failed
-        output<line_end, matlab_format>(0, -3);
+        output(0, -3, matlab_format);
         return;
     }
     // Test
@@ -155,9 +154,8 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         auto finish = std::chrono::system_clock::now();
         duration += std::chrono::duration_cast<duration_type>(finish - start);
     }
-    output<line_end, matlab_format>(
-        A->get_num_stored_elements(),
-        static_cast<double>(duration.count()) / test_iter);
+    output(A->get_num_stored_elements(),
+           static_cast<double>(duration.count()) / test_iter, matlab_format);
 }
 
 int main(int argc, char *argv[])
@@ -169,38 +167,71 @@ int main(int argc, char *argv[])
     std::shared_ptr<gko::Executor> exec;
     std::string src_folder;
     std::string mtx_list;
-    std::string format_list;
-    if (argc >= 3) {
-        src_folder = argv[1];
-        mtx_list = argv[2];
+    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp");
+    std::vector<std::string> format_list;
+    bool matlab_format;
+    if (argc >= 5) {
+        src_folder = argv[3];
+        mtx_list = argv[4];
     } else {
-        std::cerr << "Usage: " << argv[0] << "src_folder mtx_list [executor]"
+        std::cerr << "Usage: " << argv[0]
+                  << "executor format src_folder mtx_list testing_format1 "
+                     "testing_format2 ..."
                   << std::endl;
         std::exit(-1);
     }
-    if (argc == 3 || std::string(argv[3]) == "reference") {
+    if (std::string(argv[1]) == "reference") {
         exec = gko::ReferenceExecutor::create();
-    } else if (argc == 4 && std::string(argv[3]) == "omp") {
+    } else if (std::string(argv[1]) == "omp") {
         exec = gko::OmpExecutor::create();
-    } else if (argc == 4 && std::string(argv[3]) == "cuda" &&
+    } else if (std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(1, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     } else {
-        std::cerr << "Usage: " << argv[0] << "src_folder mtx_list [executor]"
+        std::cerr << "Usage: " << argv[0]
+                  << "executor format src_folder mtx_list testing_format1 "
+                     "testing_format2 ..."
                   << std::endl;
         std::exit(-1);
     }
-
+    if (std::string(argv[2]) == "matlab") {
+        matlab_format = true;
+    } else {
+        matlab_format = false;
+    }
+    for (int i = 5; i < argc; i++) {
+        if (allow_list.find(argv[i]) != std::string::npos) {
+            format_list.emplace_back(std::string(argv[i]));
+        } else {
+            std::cout << "Unknown format " << argv[i] << std::endl;
+        }
+    }
+    if (format_list.size() == 0) {
+        std::cout << "No available format" << std::endl;
+        return 0;
+    }
     // Set the testing setting
     const int warm_iter = 2;
     const int test_iter = 10;
     // Open files
     std::ifstream mtx_fd(mtx_list, std::ifstream::in);
-    std::cout << "name,num_rows,num_cols,nnz,"
-                 "total_num_stored_elements,time(us)"
-              << std::endl;
+    if (matlab_format) {
+        std::cout << "data = [" << std::endl;
+        std::cout
+            << "% #rows #cols #nonzeros (#stored_elements, Spmv_time[us]):";
+        for (const auto &elem : format_list) {
+            std::cout << " " << elem;
+        }
+        std::cout << std::endl;
+    } else {
+        std::cout << "name,#rows,#cols,#nonzeros";
+        for (const auto &elem : format_list) {
+            std::cout << ",#stored_elements_of_" << elem << ",Spmv_time[us]_of_"
+                      << elem;
+        }
+        std::cout << std::endl;
+    }
     while (!mtx_fd.eof()) {
-        duration_type duration(0);
         std::string mtx_file;
         mtx_fd >> mtx_file;
         if (mtx_file.empty()) {
@@ -208,50 +239,43 @@ int main(int argc, char *argv[])
         }
 
         auto data = gko::read_raw<>(src_folder + '/' + mtx_file);
-        std::cout << mtx_file << ", " << data.size.num_rows << ", "
-                  << data.size.num_cols << ", " << data.nonzeros.size() << ", ";
+        if (matlab_format) {
+            std::cout << "% " << mtx_file << std::endl;
+        } else {
+            std::cout << mtx_file << ", ";
+        }
+        std::string sep(matlab_format ? " " : ", ");
+        std::cout << data.size.num_rows << sep << data.size.num_cols << sep
+                  << data.nonzeros.size();
         auto x =
             vec::create(exec->get_master(), gko::dim{data.size.num_cols, 1});
         auto y =
             vec::create(exec->get_master(), gko::dim{data.size.num_rows, 1});
         generate_rhs(lend(x));
         generate_rhs(lend(y));
-        for (int i = 0; i < 5; i++) {
-            switch (i) {
-            case 0: {
-                // auto mat = coo::create(exec);
-                testing<false, true, coo>(exec, warm_iter, test_iter, data,
-                                          lend(x), lend(y));
-                break;
-            }
-            case 1: {
-                // auto mat = csr::create(exec);
-                testing<false, true, csr>(exec, warm_iter, test_iter, data,
-                                          lend(x), lend(y));
-                break;
-            }
-            case 2: {
-                // auto mat = ell::create(exec);
-                testing<false, true, ell>(exec, warm_iter, test_iter, data,
-                                          lend(x), lend(y));
-                break;
-            }
-            case 3: {
-                // auto mat = hybrid::create(exec);
-                testing<false, true, hybrid>(exec, warm_iter, test_iter, data,
-                                             lend(x), lend(y));
-                break;
-            }
-            case 4: {
-                // auto mat = sellp::create(exec);
-                testing<true, true, sellp>(exec, warm_iter, test_iter, data,
-                                           lend(x), lend(y));
-                break;
-            }
+        for (const auto &elem : format_list) {
+            if (elem == "Coo") {
+                testing<coo>(exec, warm_iter, test_iter, data, lend(x), lend(y),
+                             matlab_format);
+            } else if (elem == "Csr") {
+                testing<csr>(exec, warm_iter, test_iter, data, lend(x), lend(y),
+                             matlab_format);
+            } else if (elem == "Ell") {
+                testing<ell>(exec, warm_iter, test_iter, data, lend(x), lend(y),
+                             matlab_format);
+            } else if (elem == "Hybrid") {
+                testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                                lend(y), matlab_format);
+            } else if (elem == "Sellp") {
+                testing<sellp>(exec, warm_iter, test_iter, data, lend(x),
+                               lend(y), matlab_format);
             }
         }
+        std::cout << std::endl;
     }
-
+    if (matlab_format) {
+        std::cout << "];" << std::endl;
+    }
     // Close files
     mtx_fd.close();
 }
