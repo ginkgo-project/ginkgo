@@ -47,27 +47,57 @@ namespace gmres {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status)
+void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
+                  matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
+                  Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < b->get_size().num_cols; ++j) {
-        rho->at(j) = zero<ValueType>();
-        prev_rho->at(j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
     for (size_type i = 0; i < b->get_size().num_rows; ++i) {
         for (size_type j = 0; j < b->get_size().num_cols; ++j) {
             r->at(i, j) = b->at(i, j);
-            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
+            if (i == 0) {
+                e1->at(i, j) = one<ValueType>();
+            } else {
+                e1->at(i, j) = zero<ValueType>();
+            }
+        }
+    }
+    for (size_type i = 0; i < solver::default_max_num_iterations; ++i) {
+        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+            sn->at(i, j) = zero<ValueType>();
+            cs->at(i, j) = zero<ValueType>();
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
+
+
+template <typename ValueType>
+void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Dense<ValueType> *r,
+                  matrix::Dense<ValueType> *beta,
+                  range<accessor::row_major<ValueType, 2>> range_Q)
+{
+    auto r_norm = squared_norm(r);
+
+    for (size_type i = 0; i < r->get_size().num_rows; ++i) {
+        for (size_type j = 0; j < r->get_size().num_cols; ++j) {
+            if (i == 0) {
+                beta->at(i, j) = r_norm;
+            } else {
+                beta->at(i, j) = zero<ValueType>();
+            }
+            range_Q(i, j) = r->at(i, j) / r_norm;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType>

@@ -46,13 +46,18 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_KERNEL(_type)                           \
-    void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho,                               \
-                    Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                          \
+    void initialize_1(std::shared_ptr<const DefaultExecutor> exec,            \
+                      const matrix::Dense<_type> *b, matrix::Dense<_type> *r, \
+                      matrix::Dense<_type> *e1, matrix::Dense<_type> *sn,     \
+                      matrix::Dense<_type> *cs,                               \
+                      Array<stopping_status> *stop_status)
+
+#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
+    void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
+                      const matrix::Dense<_type> *r,               \
+                      matrix::Dense<_type> *beta,                  \
+                      range<accessor::row_major<_type, 2>> range_Q)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                          \
@@ -72,12 +77,14 @@ namespace gmres {
                 const Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                    \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                   \
+#define DECLARE_ALL_AS_TEMPLATES                      \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType); \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType); \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);       \
+    template <typename ValueType>                     \
     GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
 
 

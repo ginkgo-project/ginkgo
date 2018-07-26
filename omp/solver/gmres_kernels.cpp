@@ -50,12 +50,11 @@ namespace gmres {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const OmpExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status)
+void initialize_1(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
+                  matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
+                  Array<stopping_status> *stop_status)
 {
     NOT_IMPLEMENTED;
     // #pragma omp parallel for
@@ -73,7 +72,18 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
     //     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
+
+
+template <typename ValueType>
+void initialize_2(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Dense<ValueType> *r,
+                  matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *Q)
+{
+    NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType>
