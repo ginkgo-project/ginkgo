@@ -152,10 +152,10 @@ TEST(MtxReader, ReadsSparsePatternMtx)
 
     ASSERT_EQ(data.size, gko::dim(2, 3));
     auto &v = data.nonzeros;
-    ASSERT_EQ(v[0], tpl(0, 0, 0.0));
-    ASSERT_EQ(v[1], tpl(0, 1, 0.0));
-    ASSERT_EQ(v[2], tpl(0, 2, 0.0));
-    ASSERT_EQ(v[3], tpl(1, 1, 0.0));
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 1.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 1.0));
+    ASSERT_EQ(v[3], tpl(1, 1, 1.0));
 }
 
 

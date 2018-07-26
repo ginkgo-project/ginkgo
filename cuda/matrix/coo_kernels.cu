@@ -94,14 +94,14 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
  * @param c  the output dense vector
  * @param scale  the function on the added value
  */
-template <typename ValueType, typename IndexType, typename Clousure>
+template <typename ValueType, typename IndexType, typename Closure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                             const ValueType *__restrict__ val,
                             const IndexType *__restrict__ col,
                             const IndexType *__restrict__ row,
                             const ValueType *__restrict__ b,
                             const size_type b_stride, ValueType *__restrict__ c,
-                            const size_type c_stride, Clousure scale)
+                            const size_type c_stride, Closure scale)
 {
     ValueType temp_val = zero<ValueType>();
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
