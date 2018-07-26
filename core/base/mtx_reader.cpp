@@ -121,6 +121,9 @@ public:
                     "MMIO: unable to read value for matrix position " +
                         to_string(row) + ", " + to_string(col));
             }
+        } else {
+            // pattern: the value is 1 (True)
+            rp = 1.0;
         }
         data.nonzeros.emplace_back(row, col, combine<ValueType>(rp, ip));
         if (mm_is_symmetric(t_) && row != col) {

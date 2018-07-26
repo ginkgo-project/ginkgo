@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/coo.hpp>
+#include <core/matrix/sellp.hpp>
 
 
 #include <random>
@@ -50,12 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Coo : public ::testing::Test {
+class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
+    using Mtx = gko::matrix::Sellp<>;
     using Vec = gko::matrix::Dense<>;
 
-    Coo() : rand_engine(42) {}
+    Sellp() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -70,20 +70,23 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Vec>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
     {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        mtx =
+            Mtx::create(ref, gko::dim{}, slice_size, stride_factor, total_cols);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 1);
+        y = gen_mtx(231, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -97,7 +100,6 @@ protected:
         dbeta = Vec::create(omp);
         dbeta->copy_from(beta.get());
     }
-
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
@@ -118,7 +120,7 @@ protected:
 };
 
 
-TEST_F(Coo, SimpleApplyIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -129,7 +131,7 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -140,25 +142,55 @@ TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(32, 4, 0);
 
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
-TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(32, 4, 0);
 
-    mtx->apply2(alpha.get(), y.get(), expected.get());
-    dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
+{
+    auto rmtx = Mtx::create(ref);
+    rmtx->copy_from(gen_mtx(532, 231));
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+    auto drmtx = Vec::create(ref);
+    auto domtx = Vec::create(omp);
+
+    rmtx->convert_to(drmtx.get());
+    omtx->convert_to(domtx.get());
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Sellp, MoveToDenseIsEquivalentToRef)
+{
+    auto rmtx = Mtx::create(ref);
+    rmtx->copy_from(gen_mtx(532, 231));
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+    auto drmtx = Vec::create(ref);
+    auto domtx = Vec::create(omp);
+
+    rmtx->move_to(drmtx.get());
+    omtx->move_to(domtx.get());
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
