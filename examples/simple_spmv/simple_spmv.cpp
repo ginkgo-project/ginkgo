@@ -95,44 +95,53 @@ void generate_rhs(VecType *rhs)
         }
     }
 }
-template <bool line_end, typename MatrixType>
-void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
-             const int test_iter, const mtx &data, MatrixType *A, vec *x,
-             vec *y)
+template <bool line_end = false, bool matlab_format = true>
+void output(const gko::size_type num, const double val)
 {
+    std::string sep = matlab_format ? " " : ", ";
+    std::cout << num << sep << val;
+    if (line_end) {
+        std::cout << std::endl;
+    } else {
+        std::cout << sep;
+    }
+}
+template <bool line_end = false, bool matlab_format = true, typename MatrixType>
+void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
+             const int test_iter, const mtx &data, vec *x, vec *y)
+{
+    auto A = MatrixType::create(exec);
     try {
         A->read(data);
-    } catch (const std::exception &e) {
-        std::cout << "0, " << e.what();
-        if (line_end) {
-            std::cout << std::endl;
-        } else {
-            std::cout << ", ";
-        }
+    } catch (...) {
+        // -1: read failed
+        output<line_end, matlab_format>(0, -1);
         return;
     }
-    std::cout << A->get_num_stored_elements() << ", ";
+
     auto dx = vec::create(exec);
     auto dy = vec::create(exec);
     try {
         dx->copy_from(x);
         dy->copy_from(y);
-    } catch (const std::exception &e) {
-        std::cout << e.what();
-        if (line_end) {
-            std::cout << std::endl;
-        } else {
-            std::cout << ", ";
-        }
+    } catch (...) {
+        // -2 : copy vector failed
+        output<line_end, matlab_format>(0, -2);
         return;
     }
 
     // warm up
-    for (int i = 0; i < warm_iter; i++) {
-        dy->copy_from(y);
-        A->apply(dx.get(), dy.get());
+    try {
+        for (int i = 0; i < warm_iter; i++) {
+            dy->copy_from(y);
+            A->apply(dx.get(), dy.get());
+        }
+        exec->synchronize();
+    } catch (...) {
+        // -3 : apply failed
+        output<line_end, matlab_format>(0, -3);
+        return;
     }
-    exec->synchronize();
     // Test
     duration_type duration(0);
     for (int i = 0; i < test_iter; i++) {
@@ -146,12 +155,9 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         auto finish = std::chrono::system_clock::now();
         duration += std::chrono::duration_cast<duration_type>(finish - start);
     }
-    std::cout << static_cast<double>(duration.count()) / test_iter;
-    if (line_end) {
-        std::cout << std::endl;
-    } else {
-        std::cout << ", ";
-    }
+    output<line_end, matlab_format>(
+        A->get_num_stored_elements(),
+        static_cast<double>(duration.count()) / test_iter);
 }
 
 int main(int argc, char *argv[])
@@ -163,6 +169,7 @@ int main(int argc, char *argv[])
     std::shared_ptr<gko::Executor> exec;
     std::string src_folder;
     std::string mtx_list;
+    std::string format_list;
     if (argc >= 3) {
         src_folder = argv[1];
         mtx_list = argv[2];
@@ -209,15 +216,40 @@ int main(int argc, char *argv[])
             vec::create(exec->get_master(), gko::dim{data.size.num_rows, 1});
         generate_rhs(lend(x));
         generate_rhs(lend(y));
-        auto mat = ell::create(exec);
-        auto mat1 = csr::create(exec);
-        // auto mat2 = coo::create(exec);
-        // auto mat3 = sellp::create(exec);
-        // auto mat4 = hybrid::create(exec);
-        testing<false>(exec, warm_iter, test_iter, data, lend(mat1), lend(x),
-                       lend(y));
-        testing<true>(exec, warm_iter, test_iter, data, lend(mat), lend(x),
-                      lend(y));
+        for (int i = 0; i < 5; i++) {
+            switch (i) {
+            case 0: {
+                // auto mat = coo::create(exec);
+                testing<false, true, coo>(exec, warm_iter, test_iter, data,
+                                          lend(x), lend(y));
+                break;
+            }
+            case 1: {
+                // auto mat = csr::create(exec);
+                testing<false, true, csr>(exec, warm_iter, test_iter, data,
+                                          lend(x), lend(y));
+                break;
+            }
+            case 2: {
+                // auto mat = ell::create(exec);
+                testing<false, true, ell>(exec, warm_iter, test_iter, data,
+                                          lend(x), lend(y));
+                break;
+            }
+            case 3: {
+                // auto mat = hybrid::create(exec);
+                testing<false, true, hybrid>(exec, warm_iter, test_iter, data,
+                                             lend(x), lend(y));
+                break;
+            }
+            case 4: {
+                // auto mat = sellp::create(exec);
+                testing<true, true, sellp>(exec, warm_iter, test_iter, data,
+                                           lend(x), lend(y));
+                break;
+            }
+            }
+        }
     }
 
     // Close files
