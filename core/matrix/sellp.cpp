@@ -178,7 +178,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
             while (ind < n && data.nonzeros[ind].row == row) {
                 auto val = data.nonzeros[ind].value;
                 auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + col) * slice_size + row;
+                    (tmp->get_slice_sets()[slice] + col) * slice_size +
+                    row_in_slice;
                 if (val != zero<ValueType>()) {
                     tmp->get_values()[sellp_ind] = val;
                     tmp->get_col_idxs()[sellp_ind] = data.nonzeros[ind].column;
@@ -188,7 +189,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
             }
             for (auto i = col; i < tmp->get_slice_lengths()[slice]; i++) {
                 auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + i) * slice_size + row;
+                    (tmp->get_slice_sets()[slice] + i) * slice_size +
+                    row_in_slice;
                 tmp->get_values()[sellp_ind] = zero<ValueType>();
                 tmp->get_col_idxs()[sellp_ind] = 0;
             }
