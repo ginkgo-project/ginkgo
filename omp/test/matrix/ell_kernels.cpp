@@ -80,7 +80,7 @@ protected:
 
     void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0)
     {
-        mtx = Mtx::create(ref, gko::dim{}, max_nonzeros_per_row, stride);
+        mtx = Mtx::create(ref, gko::dim<2>{}, max_nonzeros_per_row, stride);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, 1, 1);
         y = gen_mtx(231, 1, 1);

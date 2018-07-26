@@ -193,7 +193,7 @@ protected:
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
           block_pointers_(block_pointers),
-          blocks_(exec, this->get_size().num_cols * max_block_size)
+          blocks_(exec, this->get_size()[1] * max_block_size)
     {
         block_pointers_.set_executor(this->get_executor());
     }

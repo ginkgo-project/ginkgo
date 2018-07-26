@@ -68,7 +68,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
         cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                       a->get_size().num_rows, a->get_size().num_cols,
+                       a->get_size()[0], a->get_size()[1],
                        a->get_num_stored_elements(), &alpha, descr,
                        a->get_const_values(), row_ptrs, col_idxs,
                        b->get_const_values(), &beta, c->get_values());
@@ -102,7 +102,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
 
         cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                       a->get_size().num_rows, a->get_size().num_cols,
+                       a->get_size()[0], a->get_size()[1],
                        a->get_num_stored_elements(), alpha->get_const_values(),
                        descr, a->get_const_values(), row_ptrs, col_idxs,
                        b->get_const_values(), beta->get_const_values(),
@@ -157,7 +157,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         cusparse::transpose(
-            handle, orig->get_size().num_rows, orig->get_size().num_cols,
+            handle, orig->get_size()[0], orig->get_size()[1],
             orig->get_num_stored_elements(), orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
             trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
@@ -207,7 +207,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         cusparse::transpose(
-            handle, orig->get_size().num_rows, orig->get_size().num_cols,
+            handle, orig->get_size()[0], orig->get_size()[1],
             orig->get_num_stored_elements(), orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
             trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),

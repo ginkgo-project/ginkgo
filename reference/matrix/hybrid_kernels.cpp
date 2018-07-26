@@ -53,8 +53,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Hybrid<ValueType, IndexType> *source)
 {
-    auto num_rows = source->get_size().num_rows;
-    auto num_cols = source->get_size().num_cols;
+    auto num_rows = source->get_size()[0];
+    auto num_cols = source->get_size()[1];
     auto ell_val = source->get_const_ell_values();
     auto ell_col = source->get_const_ell_col_idxs();
 

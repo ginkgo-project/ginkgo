@@ -60,7 +60,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 3),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim{5}, 13))
+          mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5}, 13))
     {
         block_pointers.get_data()[0] = 0;
         block_pointers.get_data()[1] = 2;
@@ -110,7 +110,7 @@ TEST_F(BlockJacobi, CanBeGenerated)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
+    ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
@@ -127,7 +127,7 @@ TEST_F(BlockJacobi, FindsNaturalBlocks)
         1       1
         1       1
      */
-    auto mtx = Mtx::create(exec, gko::dim{4}, 8);
+    auto mtx = Mtx::create(exec, gko::dim<2>{4}, 8);
     init_array(mtx->get_row_ptrs(), {0, 2, 4, 6, 8});
     init_array(mtx->get_col_idxs(), {0, 1, 0, 1, 0, 2, 0, 2});
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
@@ -152,7 +152,7 @@ TEST_F(BlockJacobi, ExecutesSupervariableAgglomeration)
                 1   1
                         1
      */
-    auto mtx = Mtx::create(exec, gko::dim{5}, 9);
+    auto mtx = Mtx::create(exec, gko::dim<2>{5}, 9);
     init_array(mtx->get_row_ptrs(), {0, 2, 4, 6, 8, 9});
     init_array(mtx->get_col_idxs(), {0, 1, 0, 1, 2, 3, 2, 3, 4});
     init_array(mtx->get_values(),
@@ -180,7 +180,7 @@ TEST_F(BlockJacobi, AdheresToBlockSizeBound)
                             1
                                 1
      */
-    auto mtx = Mtx::create(exec, gko::dim{7}, 7);
+    auto mtx = Mtx::create(exec, gko::dim<2>{7}, 7);
     init_array(mtx->get_row_ptrs(), {0, 1, 2, 3, 4, 5, 6, 7});
     init_array(mtx->get_col_idxs(), {0, 1, 2, 3, 4, 5, 6});
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
@@ -205,7 +205,7 @@ TEST_F(BlockJacobi, CanBeGeneratedWithUnknownBlockSizes)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
+    ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
@@ -246,7 +246,7 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
     gko::Array<gko::int32> bp(exec, 2);
     init_array(bp.get_data(), {0, 3});
     bj_factory->set_block_pointers(bp);
-    auto mtx = Mtx::create(exec, gko::dim{3}, 9);
+    auto mtx = Mtx::create(exec, gko::dim<2>{3}, 9);
     /* test matrix:
        0 2 0
        0 0 4
@@ -387,7 +387,7 @@ TEST_F(AdaptiveBlockJacobi, CanBeGenerated)
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
     EXPECT_EQ(bj->get_max_block_size(), 3);
-    ASSERT_EQ(bj->get_size(), gko::dim(5, 5));
+    ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_const_block_pointers();
     EXPECT_EQ(ptrs[0], 0);
@@ -433,7 +433,7 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
     init_array(bp.get_data(), {0, 3});
     bj_factory->set_block_pointers(bp);
     bj_factory->set_block_precisions(block_precisions);
-    auto mtx = Mtx::create(exec, gko::dim{3}, 9);
+    auto mtx = Mtx::create(exec, gko::dim<2>{3}, 9);
     /* test matrix:
        0 2 0
        0 0 4

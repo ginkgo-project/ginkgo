@@ -81,7 +81,8 @@ protected:
     void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0,
                            int num_vectors = 1)
     {
-        mtx = Mtx::create(ref, gko::dim{}, num_stored_elements_per_row, stride);
+        mtx = Mtx::create(ref, gko::dim<2>{}, num_stored_elements_per_row,
+                          stride);
         mtx->copy_from(gen_mtx(532, 231));
         expected = gen_mtx(532, num_vectors);
         y = gen_mtx(231, num_vectors);

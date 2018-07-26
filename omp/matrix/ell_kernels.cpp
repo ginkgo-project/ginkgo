@@ -58,14 +58,14 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto num_stored_elements_per_row = a->get_num_stored_elements_per_row();
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size().num_rows; row++) {
-        for (size_type j = 0; j < c->get_size().num_cols; j++) {
+    for (size_type row = 0; row < a->get_size()[0]; row++) {
+        for (size_type j = 0; j < c->get_size()[1]; j++) {
             c->at(row, j) = zero<ValueType>();
         }
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
-            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            for (size_type j = 0; j < c->get_size()[1]; j++) {
                 c->at(row, j) += val * b->at(col, j);
             }
         }
@@ -88,14 +88,14 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto beta_val = beta->at(0, 0);
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size().num_rows; row++) {
-        for (size_type j = 0; j < c->get_size().num_cols; j++) {
+    for (size_type row = 0; row < a->get_size()[0]; row++) {
+        for (size_type j = 0; j < c->get_size()[1]; j++) {
             c->at(row, j) *= beta_val;
         }
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
-            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            for (size_type j = 0; j < c->get_size()[1]; j++) {
                 c->at(row, j) += alpha_val * val * b->at(col, j);
             }
         }
@@ -111,8 +111,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Ell<ValueType, IndexType> *source)
 {
-    auto num_rows = source->get_size().num_rows;
-    auto num_cols = source->get_size().num_cols;
+    auto num_rows = source->get_size()[0];
+    auto num_cols = source->get_size()[1];
     auto num_stored_elements_per_row =
         source->get_num_stored_elements_per_row();
 

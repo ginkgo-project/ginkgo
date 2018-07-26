@@ -49,7 +49,7 @@ protected:
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Ell<>::create(exec, gko::dim{2, 3}, 3))
+          mtx(gko::matrix::Ell<>::create(exec, gko::dim<2>{2, 3}, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
@@ -76,7 +76,7 @@ protected:
         auto c = m->get_const_col_idxs();
         auto n = m->get_num_stored_elements_per_row();
         auto p = m->get_stride();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 6);
         EXPECT_EQ(n, 3);
         EXPECT_EQ(p, 2);
@@ -96,7 +96,7 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
@@ -108,7 +108,7 @@ protected:
 
 TEST_F(Ell, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(mtx->get_num_stored_elements_per_row(), 3);
     ASSERT_EQ(mtx->get_stride(), 2);
@@ -132,7 +132,7 @@ TEST_F(Ell, CanBeCreatedFromExistingData)
     gko::int32 col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
 
     auto mtx = gko::matrix::Ell<>::create(
-        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 8, values),
+        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 8, values),
         gko::Array<gko::int32>::view(exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
@@ -202,7 +202,7 @@ TEST_F(Ell, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

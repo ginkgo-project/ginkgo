@@ -95,7 +95,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
     auto coo_row = a->get_const_row_idxs();
-    auto num_cols = b->get_size().num_cols;
+    auto num_cols = b->get_size()[1];
 
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
@@ -119,7 +119,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto coo_col = a->get_const_col_idxs();
     auto coo_row = a->get_const_row_idxs();
     auto alpha_val = alpha->at(0, 0);
-    auto num_cols = b->get_size().num_cols;
+    auto num_cols = b->get_size()[1];
 
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
@@ -172,8 +172,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
     auto coo_row = source->get_const_row_idxs();
-    auto num_rows = result->get_size().num_rows;
-    auto num_cols = result->get_size().num_cols;
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {

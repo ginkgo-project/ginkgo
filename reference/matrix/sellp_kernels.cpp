@@ -54,21 +54,20 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
-    auto slice_num =
-        ceildiv(a->get_size().num_rows + slice_size - 1, slice_size);
+    auto slice_num = ceildiv(a->get_size()[0] + slice_size - 1, slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
-            if (global_row >= a->get_size().num_rows) {
+            if (global_row >= a->get_size()[0]) {
                 break;
             }
-            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            for (size_type j = 0; j < c->get_size()[1]; j++) {
                 c->at(global_row, j) = zero<ValueType>();
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
-                for (size_type j = 0; j < c->get_size().num_cols; j++) {
+                for (size_type j = 0; j < c->get_size()[1]; j++) {
                     c->at(global_row, j) += val * b->at(col, j);
                 }
             }
@@ -92,23 +91,22 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
-    auto slice_num =
-        ceildiv(a->get_size().num_rows + slice_size - 1, slice_size);
+    auto slice_num = ceildiv(a->get_size()[0] + slice_size - 1, slice_size);
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
-            if (global_row >= a->get_size().num_rows) {
+            if (global_row >= a->get_size()[0]) {
                 break;
             }
-            for (size_type j = 0; j < c->get_size().num_cols; j++) {
+            for (size_type j = 0; j < c->get_size()[1]; j++) {
                 c->at(global_row, j) *= vbeta;
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
-                for (size_type j = 0; j < c->get_size().num_cols; j++) {
+                for (size_type j = 0; j < c->get_size()[1]; j++) {
                     c->at(global_row, j) += valpha * val * b->at(col, j);
                 }
             }
@@ -125,15 +123,15 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Sellp<ValueType, IndexType> *source)
 {
-    auto num_rows = source->get_size().num_rows;
-    auto num_cols = source->get_size().num_cols;
+    auto num_rows = source->get_size()[0];
+    auto num_cols = source->get_size()[1];
     auto vals = source->get_const_values();
     auto col_idxs = source->get_const_col_idxs();
     auto slice_lengths = source->get_const_slice_lengths();
     auto slice_sets = source->get_const_slice_sets();
     auto slice_size = source->get_slice_size();
     auto slice_num =
-        ceildiv(source->get_size().num_rows + slice_size - 1, slice_size);
+        ceildiv(source->get_size()[0] + slice_size - 1, slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;

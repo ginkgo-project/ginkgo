@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/types.hpp>
+#include <core/base/dim.hpp>
 
 
 #include <gtest/gtest.h>
@@ -42,35 +42,35 @@ namespace {
 
 TEST(Dim, ConstructsCorrectObject)
 {
-    gko::dim d{4, 5};
+    gko::dim<2> d{4, 5};
 
-    ASSERT_EQ(d.num_rows, 4);
-    ASSERT_EQ(d.num_cols, 5);
+    ASSERT_EQ(d[0], 4);
+    ASSERT_EQ(d[1], 5);
 }
 
 
 TEST(Dim, ConstructsSquareObject)
 {
-    gko::dim d{5};
+    gko::dim<2> d{5};
 
-    ASSERT_EQ(d.num_rows, 5);
-    ASSERT_EQ(d.num_cols, 5);
+    ASSERT_EQ(d[0], 5);
+    ASSERT_EQ(d[1], 5);
 }
 
 
 TEST(Dim, ConstructsNullObject)
 {
-    gko::dim d{};
+    gko::dim<2> d{};
 
-    ASSERT_EQ(d.num_rows, 0);
-    ASSERT_EQ(d.num_cols, 0);
+    ASSERT_EQ(d[0], 0);
+    ASSERT_EQ(d[1], 0);
 }
 
 
 TEST(Dim, ConvertsToBool)
 {
-    gko::dim d1{};
-    gko::dim d2{2, 3};
+    gko::dim<2> d1{};
+    gko::dim<2> d2{2, 3};
 
     ASSERT_FALSE(d1);
     ASSERT_TRUE(d2);
@@ -79,34 +79,37 @@ TEST(Dim, ConvertsToBool)
 
 TEST(Dim, EqualityReturnsTrueWhenEqual)
 {
-    ASSERT_TRUE(gko::dim(2, 3) == gko::dim(2, 3));
+    ASSERT_TRUE(gko::dim<2>(2, 3) == gko::dim<2>(2, 3));
 }
 
 
 TEST(Dim, EqualityReturnsFalseWhenDifferentRows)
 {
-    ASSERT_FALSE(gko::dim(4, 3) == gko::dim(2, 3));
+    ASSERT_FALSE(gko::dim<2>(4, 3) == gko::dim<2>(2, 3));
 }
 
 
 TEST(Dim, EqualityReturnsFalseWhenDifferentColumns)
 {
-    ASSERT_FALSE(gko::dim(2, 4) == gko::dim(2, 3));
+    ASSERT_FALSE(gko::dim<2>(2, 4) == gko::dim<2>(2, 3));
 }
 
 
-TEST(Dim, NotEqualWorks) { ASSERT_TRUE(gko::dim(3, 5) != gko::dim(4, 3)); }
+TEST(Dim, NotEqualWorks)
+{
+    ASSERT_TRUE(gko::dim<2>(3, 5) != gko::dim<2>(4, 3));
+}
 
 
 TEST(Dim, MultipliesDimensions)
 {
-    ASSERT_EQ(gko::dim(2, 3) * gko::dim(4, 5), gko::dim(8, 15));
+    ASSERT_EQ(gko::dim<2>(2, 3) * gko::dim<2>(4, 5), gko::dim<2>(8, 15));
 }
 
 
 TEST(Dim, TransposesDimensions)
 {
-    ASSERT_EQ(transpose(gko::dim(3, 5)), gko::dim(5, 3));
+    ASSERT_EQ(transpose(gko::dim<2>(3, 5)), gko::dim<2>(5, 3));
 }
 
 

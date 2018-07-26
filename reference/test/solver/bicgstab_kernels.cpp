@@ -212,7 +212,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
+    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -239,7 +239,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
     auto xc = gko::initialize<Mtx>(
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
-    for (size_t i = 0; i < xc->get_size().num_rows; ++i) {
+    for (size_t i = 0; i < xc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
         xc->at(i, 0) = x1->at(i);
@@ -252,7 +252,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
     auto testMtx = gko::initialize<Mtx>(
         {{0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}, {0., 0.}}, exec);
 
-    for (size_t i = 0; i < testMtx->get_size().num_rows; ++i) {
+    for (size_t i = 0; i < testMtx->get_size()[0]; ++i) {
         testMtx->at(i, 0) = x1->at(i);
         testMtx->at(i, 1) = x2->at(i);
     }

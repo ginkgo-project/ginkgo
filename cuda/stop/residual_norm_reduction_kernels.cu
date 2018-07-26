@@ -93,10 +93,10 @@ void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
     Array<bool> d_one_changed(exec, one_changed_array);
 
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size().num_cols, block_size.x), 1, 1);
+    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
     residual_norm_reduction_kernel<<<grid_size, block_size, 0, 0>>>(
-        tau->get_size().num_cols, rel_residual_goal,
+        tau->get_size()[1], rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
         as_cuda_type(stop_status->get_data()),

@@ -58,7 +58,7 @@ void residual_norm_reduction(std::shared_ptr<const ReferenceExecutor> exec,
                              bool *all_converged, bool *one_changed)
 {
     *all_converged = true;
-    for (size_type i = 0; i < tau->get_size().num_cols; ++i) {
+    for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
