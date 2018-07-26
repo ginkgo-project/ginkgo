@@ -63,7 +63,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
 *****************************<COMPILATION>**********************************/
 
-#include <core/test/utils.hpp>
+
 #include <include/ginkgo.hpp>
 
 #include <chrono>
@@ -75,17 +75,83 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
 
 // Some shortcuts
-using vec = gko::matrix::Dense<>;
-using mtx = gko::matrix::Coo<>;
+using vec = gko::matrix::Dense<double>;
+using mtx = gko::matrix_data<double, gko::int32>;
+
+using coo = gko::matrix::Coo<double, gko::int32>;
+using ell = gko::matrix::Ell<double, gko::int32>;
+using hybrid = gko::matrix::Hybrid<double, gko::int32>;
+using csr = gko::matrix::Csr<double, gko::int32>;
+using sellp = gko::matrix::Sellp<double, gko::int32>;
+
 using duration_type = std::chrono::microseconds;
-std::unique_ptr<vec> gen_mtx(std::shared_ptr<gko::Executor> exec,
-                             std::ranlux48 rand_engine, int num_rows,
-                             int num_cols, int min_nnz_row)
+template <typename VecType>
+void generate_rhs(VecType *rhs)
 {
-    return gko::test::generate_random_matrix<vec>(
-        num_rows, num_cols,
-        std::uniform_int_distribution<>(min_nnz_row, num_cols),
-        std::normal_distribution<>(-1.0, 1.0), rand_engine, exec);
+    auto values = rhs->get_values();
+    for (gko::size_type row = 0; row < rhs->get_size().num_rows; row++) {
+        for (gko::size_type col = 0; col < rhs->get_size().num_cols; col++) {
+            rhs->at(row, col) = static_cast<double>(row) / col;
+        }
+    }
+}
+template <bool line_end, typename MatrixType>
+void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
+             const int test_iter, const mtx &data, MatrixType *A, vec *x,
+             vec *y)
+{
+    try {
+        A->read(data);
+    } catch (const std::exception &e) {
+        std::cout << "0, " << e.what();
+        if (line_end) {
+            std::cout << std::endl;
+        } else {
+            std::cout << ", ";
+        }
+        return;
+    }
+    std::cout << A->get_num_stored_elements() << ", ";
+    auto dx = vec::create(exec);
+    auto dy = vec::create(exec);
+    try {
+        dx->copy_from(x);
+        dy->copy_from(y);
+    } catch (const std::exception &e) {
+        std::cout << e.what();
+        if (line_end) {
+            std::cout << std::endl;
+        } else {
+            std::cout << ", ";
+        }
+        return;
+    }
+
+    // warm up
+    for (int i = 0; i < warm_iter; i++) {
+        dy->copy_from(y);
+        A->apply(dx.get(), dy.get());
+    }
+    exec->synchronize();
+    // Test
+    duration_type duration(0);
+    for (int i = 0; i < test_iter; i++) {
+        dy->copy_from(y);
+        // make sure copy is finished
+        exec->synchronize();
+        auto start = std::chrono::system_clock::now();
+        A->apply(dx.get(), dy.get());
+        // make sure apply is finished
+        exec->synchronize();
+        auto finish = std::chrono::system_clock::now();
+        duration += std::chrono::duration_cast<duration_type>(finish - start);
+    }
+    std::cout << static_cast<double>(duration.count()) / test_iter;
+    if (line_end) {
+        std::cout << std::endl;
+    } else {
+        std::cout << ", ";
+    }
 }
 
 int main(int argc, char *argv[])
@@ -97,39 +163,35 @@ int main(int argc, char *argv[])
     std::shared_ptr<gko::Executor> exec;
     std::string src_folder;
     std::string mtx_list;
-    std::string out_file;
-    if (argc >= 4) {
+    if (argc >= 3) {
         src_folder = argv[1];
         mtx_list = argv[2];
-        out_file = argv[3];
     } else {
-        std::cerr << "Usage: " << argv[0]
-                  << "src_folder mtx_list out_file [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << "src_folder mtx_list [executor]"
+                  << std::endl;
         std::exit(-1);
     }
-    if (argc == 4 || std::string(argv[4]) == "reference") {
+    if (argc == 3 || std::string(argv[3]) == "reference") {
         exec = gko::ReferenceExecutor::create();
-    } else if (argc == 5 && std::string(argv[4]) == "omp") {
+    } else if (argc == 4 && std::string(argv[3]) == "omp") {
         exec = gko::OmpExecutor::create();
-    } else if (argc == 5 && std::string(argv[4]) == "cuda" &&
+    } else if (argc == 4 && std::string(argv[3]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(1, gko::ReferenceExecutor::create());
+        exec = gko::CudaExecutor::create(1, gko::OmpExecutor::create());
     } else {
-        std::cerr << "Usage: " << argv[0]
-                  << "src_folder mtx_list out_file [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << "src_folder mtx_list [executor]"
+                  << std::endl;
         std::exit(-1);
     }
 
     // Set the testing setting
-    constexpr int warm_iter = 2;
-    constexpr int test_iter = 10;
-    std::ranlux48 rand_engine(42);
+    const int warm_iter = 2;
+    const int test_iter = 10;
     // Open files
     std::ifstream mtx_fd(mtx_list, std::ifstream::in);
-    std::ofstream out_fd(out_file, std::ofstream::out);
-    out_fd << "name,num_rows,num_cols,nnz,"
-              "total_num_stored_elements,time(us)"
-           << std::endl;
+    std::cout << "name,num_rows,num_cols,nnz,"
+                 "total_num_stored_elements,time(us)"
+              << std::endl;
     while (!mtx_fd.eof()) {
         duration_type duration(0);
         std::string mtx_file;
@@ -137,53 +199,27 @@ int main(int argc, char *argv[])
         if (mtx_file.empty()) {
             continue;
         }
-        std::cout << src_folder + '/' + mtx_file << std::endl;
 
         auto data = gko::read_raw<>(src_folder + '/' + mtx_file);
-        auto A = mtx::create(exec);
-        try {
-            A->read(data);
-        } catch (const std::exception &e) {
-            out_fd << mtx_file << ", " << data.size.num_rows << ", "
-                   << data.size.num_cols << ", " << data.nonzeros.size()
-                   << ", 0," << e.what() << std::endl;
-            continue;
-        }
+        std::cout << mtx_file << ", " << data.size.num_rows << ", "
+                  << data.size.num_cols << ", " << data.nonzeros.size() << ", ";
         auto x =
-            gen_mtx(exec->get_master(), rand_engine, data.size.num_rows, 1, 1);
+            vec::create(exec->get_master(), gko::dim{data.size.num_cols, 1});
         auto y =
-            gen_mtx(exec->get_master(), rand_engine, data.size.num_cols, 1, 1);
-        auto dx = vec::create(exec);
-        auto dy = vec::create(exec);
-        dx->copy_from(x.get());
-        // Warm Up
-        for (int i = 0; i < warm_iter; i++) {
-            dy->copy_from(y.get());
-            A->apply(dx.get(), dy.get());
-        }
-        exec->synchronize();
-
-        // Test
-        for (int i = 0; i < test_iter; i++) {
-            dy->copy_from(y.get());
-            // make sure copy is finished
-            exec->synchronize();
-            auto start = std::chrono::system_clock::now();
-            A->apply(dx.get(), dy.get());
-            // make sure apply is finished
-            exec->synchronize();
-            auto finish = std::chrono::system_clock::now();
-            duration +=
-                std::chrono::duration_cast<duration_type>(finish - start);
-        }
-        out_fd << mtx_file << ", " << data.size.num_rows << ", "
-               << data.size.num_cols << ", " << data.nonzeros.size() << ", "
-               << A->get_num_stored_elements() << ", "
-               << static_cast<double>(duration.count()) / test_iter
-               << std::endl;
+            vec::create(exec->get_master(), gko::dim{data.size.num_rows, 1});
+        generate_rhs(lend(x));
+        generate_rhs(lend(y));
+        auto mat = ell::create(exec);
+        auto mat1 = csr::create(exec);
+        // auto mat2 = coo::create(exec);
+        // auto mat3 = sellp::create(exec);
+        // auto mat4 = hybrid::create(exec);
+        testing<false>(exec, warm_iter, test_iter, data, lend(mat1), lend(x),
+                       lend(y));
+        testing<true>(exec, warm_iter, test_iter, data, lend(mat), lend(x),
+                      lend(y));
     }
 
     // Close files
     mtx_fd.close();
-    out_fd.close();
 }
