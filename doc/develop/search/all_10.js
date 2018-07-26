@@ -6,7 +6,7 @@ var searchData=
   ['set_5fblock_5fprecisions',['set_block_precisions',['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobiFactory.html#a91127b54ce14113f44fd81f6a4878da4',1,'gko::preconditioner::AdaptiveBlockJacobiFactory::set_block_precisions(const Array&lt; typename generated_type::precision &gt; &amp;block_precisions)'],['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobiFactory.html#a8795203c44e91e8ec27b2485627b3904',1,'gko::preconditioner::AdaptiveBlockJacobiFactory::set_block_precisions(Array&lt; typename generated_type::precision &gt; &amp;&amp;block_precisions)']]],
   ['set_5fexecutor',['set_executor',['../classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85',1,'gko::Array']]],
   ['single_5fprecision',['single_precision',['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobi.html#ae363093b29d9663c2cd5572005da8622a7690f92e41d85c3c7077d930a8c0b1bf',1,'gko::preconditioner::AdaptiveBlockJacobi']]],
-  ['size',['size',['../structgko_1_1matrix__data.html#a602d103f86282166222595ecd4c2ce64',1,'gko::matrix_data']]],
+  ['size',['size',['../structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b',1,'gko::matrix_data']]],
   ['span',['span',['../structgko_1_1span.html',1,'gko::span'],['../structgko_1_1span.html#a2aafb0414ef14fac91296066f7426d6d',1,'gko::span::span(size_type point) noexcept'],['../structgko_1_1span.html#a1566e1ab67312a6b9ece66fa4f5c8799',1,'gko::span::span(size_type begin, size_type end) noexcept']]],
   ['squared_5fnorm_5foperaton',['squared_norm_operaton',['../structgko_1_1accessor_1_1squared__norm__operaton.html',1,'gko::accessor']]],
   ['stop',['stop',['../classgko_1_1stopping__status.html#a5ade76be357b9813c017558a5f728659',1,'gko::stopping_status']]],

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.14"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: gko::dim Struct Reference</title>
+<title>Ginkgo: gko::dim&lt; Dimensionality, DimensionType &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,94 +69,122 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#pub-attribs">Public Attributes</a> &#124;
+<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
+<a href="#friends">Friends</a> &#124;
 <a href="structgko_1_1dim-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">gko::dim Struct Reference</div>  </div>
+<div class="title">gko::dim&lt; Dimensionality, DimensionType &gt; Struct Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>A type representing the dimensions of a linear operator.  
+<p>A type representing the dimensions of a multidimensional object.  
  <a href="structgko_1_1dim.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="core_2base_2types_8hpp_source.html">core/base/types.hpp</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="dim_8hpp_source.html">core/base/dim.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
+Public Types</h2></td></tr>
+<tr class="memitem:a014dcfcbc2b4a8dad05d417d110711c7"><td class="memItemLeft" align="right" valign="top"><a id="a014dcfcbc2b4a8dad05d417d110711c7"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>dimension_type</b> = DimensionType</td></tr>
+<tr class="separator:a014dcfcbc2b4a8dad05d417d110711c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:afc1c03954a83a30fda07e5da273727b5"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#afc1c03954a83a30fda07e5da273727b5">dim</a> (size_type size={})</td></tr>
-<tr class="memdesc:afc1c03954a83a30fda07e5da273727b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a dimension object with both rows and columns set to the same value.  <a href="#afc1c03954a83a30fda07e5da273727b5">More...</a><br /></td></tr>
-<tr class="separator:afc1c03954a83a30fda07e5da273727b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae82cc2a847f9c98a7adb6f7ba92ee415"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#ae82cc2a847f9c98a7adb6f7ba92ee415">dim</a> (size_type nrows, size_type ncols)</td></tr>
-<tr class="memdesc:ae82cc2a847f9c98a7adb6f7ba92ee415"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a dimension object with the specified number of rows and columns.  <a href="#ae82cc2a847f9c98a7adb6f7ba92ee415">More...</a><br /></td></tr>
-<tr class="separator:ae82cc2a847f9c98a7adb6f7ba92ee415"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9db0b576cc4022a78fc58fda2cca262f"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a9db0b576cc4022a78fc58fda2cca262f">operator bool</a> () const</td></tr>
-<tr class="memdesc:a9db0b576cc4022a78fc58fda2cca262f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if both dimensions are greater than 0.  <a href="#a9db0b576cc4022a78fc58fda2cca262f">More...</a><br /></td></tr>
-<tr class="separator:a9db0b576cc4022a78fc58fda2cca262f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a72c243d90a8aaed7d51b4d2547cba83d"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a72c243d90a8aaed7d51b4d2547cba83d">dim</a> (const dimension_type &amp;size=dimension_type{})</td></tr>
+<tr class="memdesc:a72c243d90a8aaed7d51b4d2547cba83d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a dimension object with all dimensions set to the same value.  <a href="#a72c243d90a8aaed7d51b4d2547cba83d">More...</a><br /></td></tr>
+<tr class="separator:a72c243d90a8aaed7d51b4d2547cba83d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a09b90cec3c5778596ef75bed95ab8850"><td class="memTemplParams" colspan="2">template&lt;typename... Rest&gt; </td></tr>
+<tr class="memitem:a09b90cec3c5778596ef75bed95ab8850"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a09b90cec3c5778596ef75bed95ab8850">dim</a> (const dimension_type &amp;first, const Rest &amp;... rest)</td></tr>
+<tr class="memdesc:a09b90cec3c5778596ef75bed95ab8850"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a dimension object with the specified dimensions.  <a href="#a09b90cec3c5778596ef75bed95ab8850">More...</a><br /></td></tr>
+<tr class="separator:a09b90cec3c5778596ef75bed95ab8850"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33151623775cbe4c229a3bd59046de36"><td class="memItemLeft" align="right" valign="top">constexpr const dimension_type &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a33151623775cbe4c229a3bd59046de36">operator[]</a> (const size_type &amp;dimension) const noexcept</td></tr>
+<tr class="memdesc:a33151623775cbe4c229a3bd59046de36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the requested dimension.  <a href="#a33151623775cbe4c229a3bd59046de36">More...</a><br /></td></tr>
+<tr class="separator:a33151623775cbe4c229a3bd59046de36"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02bf1bbda6859052e8b881dfd43b64a9"><td class="memItemLeft" align="right" valign="top">dimension_type &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a02bf1bbda6859052e8b881dfd43b64a9">operator[]</a> (const size_type &amp;dimension) noexcept</td></tr>
+<tr class="separator:a02bf1bbda6859052e8b881dfd43b64a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a250f37a972c7e3fd0cc4c173e46e577c"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a250f37a972c7e3fd0cc4c173e46e577c">operator bool</a> () const</td></tr>
+<tr class="memdesc:a250f37a972c7e3fd0cc4c173e46e577c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if all dimensions evaluate to true.  <a href="#a250f37a972c7e3fd0cc4c173e46e577c">More...</a><br /></td></tr>
+<tr class="separator:a250f37a972c7e3fd0cc4c173e46e577c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
-Public Attributes</h2></td></tr>
-<tr class="memitem:a3107f1fdf093c447c0301b63bde8c72a"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a3107f1fdf093c447c0301b63bde8c72a">num_rows</a></td></tr>
-<tr class="memdesc:a3107f1fdf093c447c0301b63bde8c72a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of rows of the operator.  <a href="#a3107f1fdf093c447c0301b63bde8c72a">More...</a><br /></td></tr>
-<tr class="separator:a3107f1fdf093c447c0301b63bde8c72a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ebba1f9c2964d40f712c96e04a7a2ff"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a7ebba1f9c2964d40f712c96e04a7a2ff">num_cols</a></td></tr>
-<tr class="memdesc:a7ebba1f9c2964d40f712c96e04a7a2ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of columns of the operator.  <a href="#a7ebba1f9c2964d40f712c96e04a7a2ff">More...</a><br /></td></tr>
-<tr class="separator:a7ebba1f9c2964d40f712c96e04a7a2ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a72d29ecf3590a02a8977efa34c03cec1"><td class="memItemLeft" align="right" valign="top"><a id="a72d29ecf3590a02a8977efa34c03cec1"></a>
+static constexpr size_type&#160;</td><td class="memItemRight" valign="bottom"><b>dimensionality</b> = Dimensionality</td></tr>
+<tr class="separator:a72d29ecf3590a02a8977efa34c03cec1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:a5e2c1e99f1c12540aac8489127c5dfb6"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a5e2c1e99f1c12540aac8489127c5dfb6">operator==</a> (const <a class="el" href="structgko_1_1dim.html">dim</a> &amp;x, const <a class="el" href="structgko_1_1dim.html">dim</a> &amp;y)</td></tr>
+<tr class="memdesc:a5e2c1e99f1c12540aac8489127c5dfb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two dim objects are equal.  <a href="#a5e2c1e99f1c12540aac8489127c5dfb6">More...</a><br /></td></tr>
+<tr class="separator:a5e2c1e99f1c12540aac8489127c5dfb6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a27d25e410396817b4ceafbae3d5df5c8"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="structgko_1_1dim.html">dim</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1dim.html#a27d25e410396817b4ceafbae3d5df5c8">operator*</a> (const <a class="el" href="structgko_1_1dim.html">dim</a> &amp;x, const <a class="el" href="structgko_1_1dim.html">dim</a> &amp;y)</td></tr>
+<tr class="memdesc:a27d25e410396817b4ceafbae3d5df5c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Multiplies two dim objects.  <a href="#a27d25e410396817b4ceafbae3d5df5c8">More...</a><br /></td></tr>
+<tr class="separator:a27d25e410396817b4ceafbae3d5df5c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>A type representing the dimensions of a linear operator. </p>
+<div class="textblock"><h3>template&lt;size_type Dimensionality, typename DimensionType = size_type&gt;<br />
+struct gko::dim&lt; Dimensionality, DimensionType &gt;</h3>
+
+<p>A type representing the dimensions of a multidimensional object. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Dimensionality</td><td>number of dimensions of the object </td></tr>
+    <tr><td class="paramname">DimensionType</td><td>datatype used to represent each dimension </td></tr>
+  </table>
+  </dd>
+</dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="afc1c03954a83a30fda07e5da273727b5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afc1c03954a83a30fda07e5da273727b5">&#9670;&nbsp;</a></span>dim() <span class="overload">[1/2]</span></h2>
+<a id="a72c243d90a8aaed7d51b4d2547cba83d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a72c243d90a8aaed7d51b4d2547cba83d">&#9670;&nbsp;</a></span>dim() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">gko::dim::dim </td>
+          <td class="memname">constexpr <a class="el" href="structgko_1_1dim.html">gko::dim</a>&lt; Dimensionality, DimensionType &gt;::<a class="el" href="structgko_1_1dim.html">dim</a> </td>
           <td>(</td>
-          <td class="paramtype">size_type&#160;</td>
-          <td class="paramname"><em>size</em> = <code>{}</code></td><td>)</td>
+          <td class="paramtype">const dimension_type &amp;&#160;</td>
+          <td class="paramname"><em>size</em> = <code>dimension_type{}</code></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
-<p>Creates a dimension object with both rows and columns set to the same value. </p>
+<p>Creates a dimension object with all dimensions set to the same value. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">size</td><td>the number of rows and columns </td></tr>
+    <tr><td class="paramname">size</td><td>the size of each dimension </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="ae82cc2a847f9c98a7adb6f7ba92ee415"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae82cc2a847f9c98a7adb6f7ba92ee415">&#9670;&nbsp;</a></span>dim() <span class="overload">[2/2]</span></h2>
+<a id="a09b90cec3c5778596ef75bed95ab8850"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a09b90cec3c5778596ef75bed95ab8850">&#9670;&nbsp;</a></span>dim() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
+<div class="memtemplate">
+template&lt;typename... Rest&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">gko::dim::dim </td>
+          <td class="memname">constexpr <a class="el" href="structgko_1_1dim.html">gko::dim</a>&lt; Dimensionality, DimensionType &gt;::<a class="el" href="structgko_1_1dim.html">dim</a> </td>
           <td>(</td>
-          <td class="paramtype">size_type&#160;</td>
-          <td class="paramname"><em>nrows</em>, </td>
+          <td class="paramtype">const dimension_type &amp;&#160;</td>
+          <td class="paramname"><em>first</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">size_type&#160;</td>
-          <td class="paramname"><em>ncols</em>&#160;</td>
+          <td class="paramtype">const Rest &amp;...&#160;</td>
+          <td class="paramname"><em>rest</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -166,11 +194,13 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Creates a dimension object with the specified number of rows and columns. </p>
+<p>Creates a dimension object with the specified dimensions. </p>
+<p>If the number of dimensions given is less than the dimensionality of the object, the remaining dimensions are set to the same value as the last value given.</p>
+<p>For example, in the context of matrices <code>dim&lt;2&gt;{2, 3}</code> creates the dimensions for a 2-by-3 matrix.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">nrows</td><td>the number of rows </td></tr>
-    <tr><td class="paramname">ncols</td><td>the number of columsn </td></tr>
+    <tr><td class="paramname">first</td><td>first dimension </td></tr>
+    <tr><td class="paramname">rest</td><td>other dimensions </td></tr>
   </table>
   </dd>
 </dl>
@@ -178,14 +208,16 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a9db0b576cc4022a78fc58fda2cca262f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9db0b576cc4022a78fc58fda2cca262f">&#9670;&nbsp;</a></span>operator bool()</h2>
+<a id="a250f37a972c7e3fd0cc4c173e46e577c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a250f37a972c7e3fd0cc4c173e46e577c">&#9670;&nbsp;</a></span>operator bool()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">gko::dim::operator bool </td>
+          <td class="memname">constexpr <a class="el" href="structgko_1_1dim.html">gko::dim</a>&lt; Dimensionality, DimensionType &gt;::operator bool </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -193,54 +225,179 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Checks if both dimensions are greater than 0. </p>
-<dl class="section return"><dt>Returns</dt><dd>true if and only if both dimensions are greater than 9. </dd></dl>
-
-<p class="reference">References <a class="el" href="structgko_1_1dim.html#a7ebba1f9c2964d40f712c96e04a7a2ff">num_cols</a>, and <a class="el" href="structgko_1_1dim.html#a3107f1fdf093c447c0301b63bde8c72a">num_rows</a>.</p>
+<p>Checks if all dimensions evaluate to true. </p>
+<p>For standard arithmetic types, this is equivalent to all dimensions being different than zero.</p>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if all dimensions evaluate to true </dd></dl>
 
 </div>
 </div>
-<h2 class="groupheader">Member Data Documentation</h2>
-<a id="a7ebba1f9c2964d40f712c96e04a7a2ff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ebba1f9c2964d40f712c96e04a7a2ff">&#9670;&nbsp;</a></span>num_cols</h2>
+<a id="a33151623775cbe4c229a3bd59046de36"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33151623775cbe4c229a3bd59046de36">&#9670;&nbsp;</a></span>operator[]() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">size_type gko::dim::num_cols</td>
+          <td class="memname">constexpr const dimension_type&amp; <a class="el" href="structgko_1_1dim.html">gko::dim</a>&lt; Dimensionality, DimensionType &gt;::operator[] </td>
+          <td>(</td>
+          <td class="paramtype">const size_type &amp;&#160;</td>
+          <td class="paramname"><em>dimension</em></td><td>)</td>
+          <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>Number of columns of the operator. </p>
-<p>In other words, the dimension of its domain. </p>
-
-<p class="reference">Referenced by <a class="el" href="structgko_1_1matrix__data.html#ad35061fc879071146a4a0152feb19324">gko::matrix_data&lt; ValueType, IndexType &gt;::diag()</a>, and <a class="el" href="structgko_1_1dim.html#a9db0b576cc4022a78fc58fda2cca262f">operator bool()</a>.</p>
+<p>Returns the requested dimension. </p>
+<p>For example, if <code>d</code> is a <a class="el" href="structgko_1_1dim.html">dim&lt;2&gt;</a> object representing matrix dimensions, <code>d[0]</code> returns the number of rows, and <code>d[1]</code> returns the number of columns.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">dimension</td><td>the requested dimension</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the <code>dimension</code>-th dimension </dd></dl>
 
 </div>
 </div>
-<a id="a3107f1fdf093c447c0301b63bde8c72a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3107f1fdf093c447c0301b63bde8c72a">&#9670;&nbsp;</a></span>num_rows</h2>
+<a id="a02bf1bbda6859052e8b881dfd43b64a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02bf1bbda6859052e8b881dfd43b64a9">&#9670;&nbsp;</a></span>operator[]() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">size_type gko::dim::num_rows</td>
+          <td class="memname">dimension_type&amp; <a class="el" href="structgko_1_1dim.html">gko::dim</a>&lt; Dimensionality, DimensionType &gt;::operator[] </td>
+          <td>(</td>
+          <td class="paramtype">const size_type &amp;&#160;</td>
+          <td class="paramname"><em>dimension</em></td><td>)</td>
+          <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>Number of rows of the operator. </p>
-<p>In other words, the dimension of its codomain. </p>
+<p></p>
 
-<p class="reference">Referenced by <a class="el" href="structgko_1_1matrix__data.html#ad35061fc879071146a4a0152feb19324">gko::matrix_data&lt; ValueType, IndexType &gt;::diag()</a>, and <a class="el" href="structgko_1_1dim.html#a9db0b576cc4022a78fc58fda2cca262f">operator bool()</a>.</p>
+</div>
+</div>
+<h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a id="a27d25e410396817b4ceafbae3d5df5c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a27d25e410396817b4ceafbae3d5df5c8">&#9670;&nbsp;</a></span>operator*</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="structgko_1_1dim.html">dim</a> operator* </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Multiplies two dim objects. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>first object </td></tr>
+    <tr><td class="paramname">y</td><td>second object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a dim object representing the size of the tensor product <code>x * y</code> </dd></dl>
+
+</div>
+</div>
+<a id="a5e2c1e99f1c12540aac8489127c5dfb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e2c1e99f1c12540aac8489127c5dfb6">&#9670;&nbsp;</a></span>operator==</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;size_type Dimensionality, typename DimensionType = size_type&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if two dim objects are equal. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>first object </td></tr>
+    <tr><td class="paramname">y</td><td>second object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if all dimensions of both objects are equal. </dd></dl>
 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>core/base/<a class="el" href="core_2base_2types_8hpp_source.html">types.hpp (348bed6)</a></li>
+<li>core/base/<a class="el" href="dim_8hpp_source.html">dim.hpp (7ea3c4d)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
