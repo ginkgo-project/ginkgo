@@ -69,7 +69,7 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // ASSERT_IS_SQUARE_MATRIX(this);
+    ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
     this->template log<log::Logger::apply>(GKO_FUNCTION_NAME);
 

@@ -99,6 +99,24 @@ inline dim get_size(const dim &size) { return size; }
 
 
 /**
+ *Asserts that _op1 is a square matrix.
+ *
+ *@throw DimensionMismatch  if the number of rows of _op1 is different from the
+ *                          number of columns of _op1.
+ */
+#define ASSERT_IS_SQUARE_MATRIX(_op1)                                          \
+    if (::gko::detail::get_size(_op1).num_rows !=                              \
+        ::gko::detail::get_size(_op1).num_cols) {                              \
+        throw ::gko::DimensionMismatch(                                        \
+            __FILE__, __LINE__, __func__, #_op1,                               \
+            ::gko::detail::get_size(_op1).num_rows,                            \
+            ::gko::detail::get_size(_op1).num_cols, #_op1,                     \
+            ::gko::detail::get_size(_op1).num_rows,                            \
+            ::gko::detail::get_size(_op1).num_cols, "expected square matrix"); \
+    }
+
+
+/**
  * Asserts that _op1 can be applied to _op2.
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
