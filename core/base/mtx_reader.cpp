@@ -50,14 +50,16 @@ namespace gko {
 namespace {
 
 
-#define CHECK_STREAM(_stream, _message)        \
-    if ((_stream).fail()) {                    \
-        throw FILE_ERROR("unknown", _message); \
+// utilities for error checking
+#define CHECK_STREAM(_stream, _message) \
+    if ((_stream).fail()) {             \
+        throw STREAM_ERROR(_message);   \
     }
 
-#define CHECK_MATCH(_result, _message)         \
-    if (!_result) {                            \
-        throw FILE_ERROR("unknown", _message); \
+
+#define CHECK_MATCH(_result, _message) \
+    if (!_result) {                    \
+        throw STREAM_ERROR(_message);  \
     }
 
 
@@ -127,8 +129,7 @@ private:
         static xstd::enable_if_t<!is_complex<T>(), T> read_entry_impl(
             std::istream &)
         {
-            throw FILE_ERROR(
-                "unknown",
+            throw STREAM_ERROR(
                 "trying to read a complex matrix into a real storage type");
         }
     } complex_format{};

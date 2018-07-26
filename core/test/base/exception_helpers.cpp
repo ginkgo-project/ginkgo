@@ -167,14 +167,11 @@ TEST(EnsureInBounds, ThrowWhenOutOfBounds)
     ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
 }
 
-void func_with_file_error()
-{
-    throw FILE_ERROR("my_file.txt", "error message");
-}
+void func_with_stream_error() { throw STREAM_ERROR("error message"); }
 
-TEST(FileError, ThrowsFileErrorException)
+TEST(StreamError, ThrowsStreamErrorException)
 {
-    ASSERT_THROW(func_with_file_error(), gko::FileError);
+    ASSERT_THROW(func_with_stream_error(), gko::StreamError);
 }
 
 

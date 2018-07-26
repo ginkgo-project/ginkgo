@@ -128,14 +128,11 @@ TEST(ExceptionClasses, OutOfBoundsErrorReturnsCorrectWhatMessage)
 }
 
 
-TEST(ExceptionClasses, FileErrorReturnsCorrectWhatMessage)
+TEST(ExceptionClasses, StreamErrorReturnsCorrectWhatMessage)
 {
-    gko::FileError error("test_file.cpp", 75, "my_func", "my_file.txt",
-                         "my message");
-    ASSERT_EQ(
-        std::string("test_file.cpp:75: my_func: error accessing my_file.txt: "
-                    "my message"),
-        error.what());
+    gko::StreamError error("test_file.cpp", 75, "my_func", "my message");
+    ASSERT_EQ(std::string("test_file.cpp:75: my_func: my message"),
+              error.what());
 }
 
 
