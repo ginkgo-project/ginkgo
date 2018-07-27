@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/range_accessors.hpp"
 #include "core/matrix/sellp.hpp"
 
 
@@ -55,6 +56,9 @@ void simple_apply(std::shared_ptr<const OmpExecutor> exec,
     NOT_IMPLEMENTED;
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_DENSE_SIMPLE_APPLY_RANGE_KERNEL);
+
 
 template <typename ValueType, typename AccessorType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
@@ -64,6 +68,9 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
 {
     NOT_IMPLEMENTED;
 }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_DENSE_APPLY_RANGE_KERNEL);
 
 
 template <typename ValueType>

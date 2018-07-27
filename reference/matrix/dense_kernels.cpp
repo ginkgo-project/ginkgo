@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/math.hpp"
+#include "core/base/range_accessors.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/ell.hpp"

@@ -148,6 +148,17 @@ constexpr size_type byte_size = CHAR_BIT;
 
 
 /**
+ *define typenames for row_major accessor
+ */
+#define row_major_float range<accessor::row_major<float, 2>>
+#define row_major_double range<accessor::row_major<double, 2>>
+#define row_major_complex_float \
+    range<accessor::row_major<std::complex<float>, 2>>
+#define row_major_complex_double \
+    range<accessor::row_major<std::complex<double>, 2>>
+
+
+/**
  * A type representing the dimensions of a linear operator.
  */
 struct dim {
@@ -321,13 +332,11 @@ GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(_macro)         \
-    template _macro(float, range<accessor::row_major<float, 2>>);        \
-    template _macro(double, range<accessor::row_major<double, 2>>);      \
-    template _macro(std::complex<float>,                                 \
-                    range<accessor::row_major<std::complex<float>, 2>>); \
-    template _macro(std::complex<double>,                                \
-                    range<accessor::row_major<std::complex<double>, 2>>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(_macro)   \
+    template _macro(float, row_major_float);                       \
+    template _macro(double, row_major_double);                     \
+    template _macro(std::complex<float>, row_major_complex_float); \
+    template _macro(std::complex<double>, row_major_complex_double)
 
 
 }  // namespace gko

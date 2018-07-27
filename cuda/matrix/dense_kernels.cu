@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/math.hpp"
+#include "core/base/range_accessors.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -57,6 +58,9 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
     NOT_IMPLEMENTED;
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_DENSE_SIMPLE_APPLY_RANGE_KERNEL);
+
 
 template <typename ValueType, typename AccessorType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
@@ -66,6 +70,9 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     NOT_IMPLEMENTED;
 }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_DENSE_APPLY_RANGE_KERNEL);
 
 
 template <typename ValueType>
