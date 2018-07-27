@@ -64,8 +64,12 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
+
+
+#include <fstream>
 #include <iostream>
 #include <string>
+
 
 int main(int argc, char *argv[])
 {
@@ -92,9 +96,9 @@ int main(int argc, char *argv[])
     }
 
     // Read data
-    auto A = gko::share(gko::read<mtx>("data/A.mtx", exec));
-    auto b = gko::read<vec>("data/b.mtx", exec);
-    auto x = gko::read<vec>("data/x0.mtx", exec);
+    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate solver
     auto solver_gen =

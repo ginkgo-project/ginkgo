@@ -42,7 +42,6 @@ namespace {
 
 void not_implemented_func() NOT_IMPLEMENTED;
 
-
 TEST(NotImplemented, ThrowsWhenUsed)
 {
     ASSERT_THROW(not_implemented_func(), gko::NotImplemented);
@@ -51,7 +50,6 @@ TEST(NotImplemented, ThrowsWhenUsed)
 
 void not_compiled_func() NOT_COMPILED(omp);
 
-
 TEST(NotCompiled, ThrowsWhenUsed)
 {
     ASSERT_THROW(not_compiled_func(), gko::NotCompiled);
@@ -59,7 +57,6 @@ TEST(NotCompiled, ThrowsWhenUsed)
 
 
 void does_not_support_int() { throw NOT_SUPPORTED(int); }
-
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
@@ -162,10 +159,12 @@ TEST(EnsureInBounds, DoesNotThrowWhenInBounds)
     ASSERT_NO_THROW(ENSURE_IN_BOUNDS(9, 10));
 }
 
+
 TEST(EnsureInBounds, ThrowWhenOutOfBounds)
 {
     ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
 }
+
 
 void func_with_stream_error() { throw STREAM_ERROR("error message"); }
 

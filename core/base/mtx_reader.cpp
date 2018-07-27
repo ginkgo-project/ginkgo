@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <cctype>
-#include <fstream>
 #include <map>
 #include <regex>
 #include <string>
@@ -352,8 +351,10 @@ private:
         header_data data{};
 
         std::string description_line{};
-        CHECK_STREAM(getline(is, description_line),
-                     "error when reading the header line");
+        do {
+            CHECK_STREAM(getline(is, description_line),
+                         "error when reading the header line");
+        } while (description_line == "");
         transform(begin(description_line), end(description_line),
                   begin(description_line),
                   [](unsigned char c) { return std::tolower(c); });
@@ -400,16 +401,14 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-matrix_data<ValueType, IndexType> read_raw(const std::string &filename)
+matrix_data<ValueType, IndexType> read_raw(std::istream &is)
 {
-    std::ifstream file(filename);
-    CHECK_STREAM(file, "unable to open file");
-    return mtx_reader<ValueType, IndexType>::get().read(file);
+    return mtx_reader<ValueType, IndexType>::get().read(is);
 }
 
 
 #define DECLARE_READ_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_raw(const std::string &filename)
+    matrix_data<ValueType, IndexType> read_raw(std::istream &is)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_RAW);
 
 
