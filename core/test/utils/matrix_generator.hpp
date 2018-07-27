@@ -99,7 +99,8 @@ std::unique_ptr<MatrixType> generate_random_matrix(
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
 
-    matrix_data<value_type, index_type> data{gko::dim{num_rows, num_cols}, {}};
+    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
+                                             {}};
 
     std::vector<size_type> col_idx(num_cols);
     iota(begin(col_idx), end(col_idx), size_type(0));

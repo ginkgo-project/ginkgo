@@ -251,8 +251,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                            b->get_size().num_cols);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
@@ -279,8 +278,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                            b->get_size().num_cols);
+        const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         abstract_spmv<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),

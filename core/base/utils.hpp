@@ -35,7 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
-#include "core/base/exception_helpers.hpp"
+#include "core/base/exception.hpp"
+#include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 
 
@@ -54,13 +55,6 @@ namespace gko {
 
 
 class Executor;
-
-
-/**
- * An implementation of C++17 `std::void_t`.
- */
-template <typename...>
-using void_t = void;
 
 
 namespace detail {
@@ -92,7 +86,7 @@ template <typename T, typename = void>
 struct is_clonable_impl : std::false_type {};
 
 template <typename T>
-struct is_clonable_impl<T, void_t<decltype(std::declval<T>().clone())>>
+struct is_clonable_impl<T, xstd::void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {};
 
 template <typename T>
@@ -107,7 +101,7 @@ struct is_clonable_to_impl : std::false_type {};
 
 template <typename T>
 struct is_clonable_to_impl<
-    T, void_t<decltype(std::declval<T>().clone(
+    T, xstd::void_t<decltype(std::declval<T>().clone(
            std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
@@ -295,7 +289,7 @@ inline typename std::decay<T>::type *as(U *obj)
     if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NOT_SUPPORTED(obj);
+        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
     }
 }
 
@@ -318,7 +312,7 @@ inline const typename std::decay<T>::type *as(const U *obj)
     if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NOT_SUPPORTED(obj);
+        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
     }
 }
 

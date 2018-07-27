@@ -133,7 +133,7 @@ void generate(syn::compile_int_list<max_block_size>,
 
     kernel::generate<max_block_size, subwarp_size, warps_per_block>
         <<<grid_size, block_size, 0, 0>>>(
-            mtx->get_size().num_rows, mtx->get_const_row_ptrs(),
+            mtx->get_size()[0], mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
             as_cuda_type(block_data), stride, block_ptrs, num_blocks);
 }
@@ -244,19 +244,18 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
 {
     Array<size_type> nums(exec, 1);
 
-    Array<bool> matching_next_row(exec, mtx->get_size().num_rows);
+    Array<bool> matching_next_row(exec, mtx->get_size()[0]);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(mtx->get_size().num_rows * cuda_config::warp_size,
-                block_size.x),
-        1, 1);
+        ceildiv(mtx->get_size()[0] * cuda_config::warp_size, block_size.x), 1,
+        1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
-        mtx->get_size().num_rows, max_block_size, mtx->get_const_row_ptrs(),
+        mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), matching_next_row.get_data());
     generate_natural_block_pointer<<<1, 1, 0, 0>>>(
-        mtx->get_size().num_rows, max_block_size,
-        matching_next_row.get_const_data(), block_ptrs, nums.get_data());
+        mtx->get_size()[0], max_block_size, matching_next_row.get_const_data(),
+        block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }
@@ -376,7 +375,7 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *x)
 {
     // TODO: write a special kernel for multiple RHS
-    for (size_type col = 0; col < b->get_size().num_cols; ++col) {
+    for (size_type col = 0; col < b->get_size()[1]; ++col) {
         select_apply(compiled_kernels(),
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;

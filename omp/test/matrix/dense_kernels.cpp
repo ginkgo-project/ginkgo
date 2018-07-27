@@ -104,8 +104,8 @@ protected:
         dy->copy_from(y.get());
         dalpha = Mtx::create(omp);
         dalpha->copy_from(alpha.get());
-        expected = Mtx::create(ref, gko::dim{1, num_vecs});
-        dresult = Mtx::create(omp, gko::dim{1, num_vecs});
+        expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
+        dresult = Mtx::create(omp, gko::dim<2>{1, num_vecs});
     }
 
     void set_up_apply_data()

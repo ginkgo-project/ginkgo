@@ -133,7 +133,7 @@ public:
     StencilMatrix(std::shared_ptr<const gko::Executor> exec,
                   gko::size_type size = 0, double left = -1.0,
                   double center = 2.0, double right = -1.0)
-        : gko::EnableLinOp<StencilMatrix>(exec, gko::dim{size}),
+        : gko::EnableLinOp<StencilMatrix>(exec, gko::dim<2>{size}),
           coefficients(exec, {left, center, right})
     {}
 
@@ -170,13 +170,13 @@ protected:
                 auto b_values = b->get_const_values();
                 auto x_values = x->get_values();
 #pragma omp parallel for
-                for (std::size_t i = 0; i < x->get_size().num_rows; ++i) {
+                for (std::size_t i = 0; i < x->get_size()[0]; ++i) {
                     auto coefs = coefficients.get_const_data();
                     auto result = coefs[1] * b_values[i];
                     if (i > 0) {
                         result += coefs[0] * b_values[i - 1];
                     }
-                    if (i < x->get_size().num_rows - 1) {
+                    if (i < x->get_size()[0] - 1) {
                         result += coefs[2] * b_values[i + 1];
                     }
                     x_values[i] = result;
@@ -186,8 +186,7 @@ protected:
             // CUDA implementation
             void run(std::shared_ptr<const gko::CudaExecutor>) const override
             {
-                stencil_kernel(x->get_size().num_rows,
-                               coefficients.get_const_data(),
+                stencil_kernel(x->get_size()[0], coefficients.get_const_data(),
                                b->get_const_values(), x->get_values());
             }
 
@@ -227,7 +226,7 @@ private:
 // points.
 void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 {
-    const auto discretization_points = matrix->get_size().num_rows;
+    const auto discretization_points = matrix->get_size()[0];
     auto row_ptrs = matrix->get_row_ptrs();
     auto col_idxs = matrix->get_col_idxs();
     auto values = matrix->get_values();
@@ -251,7 +250,7 @@ void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 template <typename Closure>
 void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 {
-    const auto discretization_points = rhs->get_size().num_rows;
+    const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
     const auto h = 1.0 / (discretization_points + 1);
     for (int i = 0; i < discretization_points; ++i) {
@@ -267,7 +266,7 @@ void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 void print_solution(double u0, double u1, const gko::matrix::Dense<> *u)
 {
     std::cout << u0 << '\n';
-    for (int i = 0; i < u->get_size().num_rows; ++i) {
+    for (int i = 0; i < u->get_size()[0]; ++i) {
         std::cout << u->get_const_values()[i] << '\n';
     }
     std::cout << u1 << std::endl;
@@ -330,10 +329,10 @@ int main(int argc, char *argv[])
     auto u1 = correct_u(1);
 
     // initialize vectors
-    auto rhs = vec::create(app_exec, gko::dim(discretization_points, 1));
+    auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
     generate_rhs(f, u0, u1, lend(rhs));
-    auto u = vec::create(app_exec, gko::dim(discretization_points, 1));
-    for (int i = 0; i < u->get_size().num_rows; ++i) {
+    auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    for (int i = 0; i < u->get_size()[0]; ++i) {
         u->get_values()[i] = 0.0;
     }
 

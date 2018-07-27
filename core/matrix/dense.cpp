@@ -158,8 +158,7 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
             source, &num_stored_elements_per_row));
     const auto max_nnz_per_row = std::max(
         result->get_num_stored_elements_per_row(), num_stored_elements_per_row);
-    const auto stride =
-        std::max(result->get_stride(), source->get_size().num_rows);
+    const auto stride = std::max(result->get_stride(), source->get_size()[0]);
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
                                                  max_nnz_per_row, stride);
     exec->run(op(tmp.get(), source));
@@ -173,7 +172,7 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-    Array<size_type> row_nnz(exec, source->get_size().num_rows);
+    Array<size_type> row_nnz(exec, source->get_size()[0]);
     exec->run(TemplatedOperation<
               ValueType>::make_calculate_nonzeros_per_row_operation(source,
                                                                     &row_nnz));
@@ -183,7 +182,7 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     const auto max_nnz_per_row =
         std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
     const auto stride =
-        std::max(result->get_ell_stride(), source->get_size().num_rows);
+        std::max(result->get_ell_stride(), source->get_size()[0]);
     const auto coo_nnz =
         std::max(result->get_coo_num_stored_elements(), coo_lim);
     auto tmp = Hybrid<ValueType, IndexType>::create(
@@ -244,8 +243,8 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 template <typename ValueType>
 void Dense<ValueType>::scale(const LinOp *alpha)
 {
-    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
-    if (alpha->get_size().num_cols != 1) {
+    ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -259,8 +258,8 @@ void Dense<ValueType>::scale(const LinOp *alpha)
 template <typename ValueType>
 void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
 {
-    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
-    if (alpha->get_size().num_cols != 1) {
+    ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -277,7 +276,7 @@ template <typename ValueType>
 void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     ASSERT_EQUAL_DIMENSIONS(this, b);
-    ASSERT_EQUAL_DIMENSIONS(result, dim(1, this->get_size().num_cols));
+    ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (b->get_executor() != exec || result->get_executor() != exec)
         NOT_IMPLEMENTED;
@@ -510,8 +509,8 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
     auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
     size_type ind = 0;
-    for (size_type row = 0; row < data.size.num_rows; ++row) {
-        for (size_type col = 0; col < data.size.num_cols; ++col) {
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        for (size_type col = 0; col < data.size[1]; ++col) {
             if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
                 data.nonzeros[ind].column == col) {
                 tmp->at(row, col) = data.nonzeros[ind].value;
@@ -559,8 +558,8 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
 
     data = {mtx->get_size(), {}};
 
-    for (size_type row = 0; row < data.size.num_rows; ++row) {
-        for (size_type col = 0; col < data.size.num_cols; ++col) {
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        for (size_type col = 0; col < data.size[1]; ++col) {
             if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
                 data.nonzeros.emplace_back(row, col, tmp->at(row, col));
             }

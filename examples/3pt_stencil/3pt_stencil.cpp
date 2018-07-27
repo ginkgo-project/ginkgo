@@ -208,13 +208,13 @@ void solve_system(const std::string &executor_string,
     // If the two do not match, Ginkgo will automatically create a copy of the
     // data on `exec` (however, it will not copy the data back once it is done
     // - here this is not important since we are not modifying the matrix).
-    auto matrix = mtx::create(exec, gko::dim(dp),
+    auto matrix = mtx::create(exec, gko::dim<2>(dp),
                               val_array::view(app_exec, 3 * dp - 2, values),
                               idx_array::view(app_exec, 3 * dp - 2, col_idxs),
                               idx_array::view(app_exec, dp + 1, row_ptrs));
 
     // RHS: similar to matrix
-    auto b = vec::create(exec, gko::dim(dp, 1),
+    auto b = vec::create(exec, gko::dim<2>(dp, 1),
                          val_array::view(app_exec, dp, rhs), 1);
 
     // Solution: we have to be careful here - if the executors are different,
@@ -225,7 +225,7 @@ void solve_system(const std::string &executor_string,
     // copied back once the operation is completed. Thus, in this case, we can
     // just define the solution on `app_exec`, and it will be automatically
     // transferred to/from `exec` if needed.
-    auto x = vec::create(app_exec, gko::dim(dp, 1),
+    auto x = vec::create(app_exec, gko::dim<2>(dp, 1),
                          val_array::view(app_exec, dp, u), 1);
 
     // Generate solver

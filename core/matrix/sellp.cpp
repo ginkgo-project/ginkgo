@@ -151,8 +151,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
                              : this->get_stride_factor();
 
     // Allocate space for slice_cols.
-    size_type slice_num = static_cast<index_type>(
-        (data.size.num_rows + slice_size - 1) / slice_size);
+    size_type slice_num =
+        static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
     std::vector<size_type> slice_lengths(slice_num, 0);
 
     // Get the number of maximum columns for every slice.
@@ -178,7 +178,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
             while (ind < n && data.nonzeros[ind].row == row) {
                 auto val = data.nonzeros[ind].value;
                 auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + col) * slice_size + row;
+                    (tmp->get_slice_sets()[slice] + col) * slice_size +
+                    row_in_slice;
                 if (val != zero<ValueType>()) {
                     tmp->get_values()[sellp_ind] = val;
                     tmp->get_col_idxs()[sellp_ind] = data.nonzeros[ind].column;
@@ -188,7 +189,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
             }
             for (auto i = col; i < tmp->get_slice_lengths()[slice]; i++) {
                 auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + i) * slice_size + row;
+                    (tmp->get_slice_sets()[slice] + i) * slice_size +
+                    row_in_slice;
                 tmp->get_values()[sellp_ind] = zero<ValueType>();
                 tmp->get_col_idxs()[sellp_ind] = 0;
             }
@@ -217,7 +219,7 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
 
     auto slice_size = tmp->get_slice_size();
     size_type slice_num = static_cast<index_type>(
-        (tmp->get_size().num_rows + slice_size - 1) / slice_size);
+        (tmp->get_size()[0] + slice_size - 1) / slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row_in_slice = 0; row_in_slice < slice_size;
              row_in_slice++) {
@@ -226,8 +228,7 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
                  i++) {
                 const auto val = tmp->val_at(
                     row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                if (val != zero<ValueType>() &&
-                    row < tmp->get_size().num_rows) {
+                if (val != zero<ValueType>() && row < tmp->get_size()[0]) {
                     const auto col = tmp->col_at(
                         row_in_slice, tmp->get_const_slice_sets()[slice], i);
                     data.nonzeros.emplace_back(row, col, val);

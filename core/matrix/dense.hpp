@@ -292,7 +292,7 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dim as this
+     * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
@@ -306,8 +306,8 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Dense(std::shared_ptr<const Executor> exec, const dim &size = dim{})
-        : Dense(std::move(exec), size, size.num_cols)
+    Dense(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
+        : Dense(std::move(exec), size, size[1])
     {}
 
     /**
@@ -319,10 +319,10 @@ protected:
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    Dense(std::shared_ptr<const Executor> exec, const dim &size,
+    Dense(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type stride)
         : EnableLinOp<Dense>(exec, size),
-          values_(exec, size.num_rows * stride),
+          values_(exec, size[0] * stride),
           stride_(stride)
     {}
 
@@ -343,13 +343,13 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    Dense(std::shared_ptr<const Executor> exec, const dim &size,
+    Dense(std::shared_ptr<const Executor> exec, const dim<2> &size,
           ValuesArray &&values, size_type stride)
         : EnableLinOp<Dense>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride}
     {
-        ENSURE_IN_BOUNDS((size.num_rows - 1) * stride + size.num_cols - 1,
+        ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
                          values_.get_num_elems());
     }
 
@@ -365,8 +365,8 @@ protected:
 
     size_type linearize_index(size_type idx) const noexcept
     {
-        return linearize_index(idx / this->get_size().num_cols,
-                               idx % this->get_size().num_cols);
+        return linearize_index(idx / this->get_size()[1],
+                               idx % this->get_size()[1]);
     }
 
 private:
@@ -403,7 +403,7 @@ std::unique_ptr<Matrix> initialize(
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
-    auto tmp = dense::create(exec->get_master(), dim{num_rows, 1}, stride);
+    auto tmp = dense::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
     size_type idx = 0;
     for (const auto &elem : vals) {
         tmp->at(idx) = elem;
@@ -471,7 +471,7 @@ std::unique_ptr<Matrix> initialize(
     size_type num_rows = vals.size();
     size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
     auto tmp =
-        dense::create(exec->get_master(), dim{num_rows, num_cols}, stride);
+        dense::create(exec->get_master(), dim<2>{num_rows, num_cols}, stride);
     size_type ridx = 0;
     for (const auto &row : vals) {
         size_type cidx = 0;

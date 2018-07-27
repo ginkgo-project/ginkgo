@@ -192,12 +192,13 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksInLargeMatrixEquivalentToRef)
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(gko::dim{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                                             {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                             {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
+    auto m =
+        data::diag(gko::dim<2>{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                           {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
     auto mtx = Mtx::create(ref);
     mtx->read(m);
     auto d_mtx = Mtx::create(cuda);
@@ -227,11 +228,11 @@ TEST_F(BlockJacobi,
      */
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
-    auto m = data::diag(gko::dim{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
-                                             {1.0, 1.0, 0.0, 0.0, 0.0},
-                                             {0.0, 0.0, 1.0, 1.0, 0.0},
-                                             {0.0, 0.0, 1.0, 1.0, 0.0},
-                                             {0.0, 0.0, 0.0, 0.0, 1.0}});
+    auto m = data::diag(gko::dim<2>{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
+                                                {1.0, 1.0, 0.0, 0.0, 0.0},
+                                                {0.0, 0.0, 1.0, 1.0, 0.0},
+                                                {0.0, 0.0, 1.0, 1.0, 0.0},
+                                                {0.0, 0.0, 0.0, 0.0, 1.0}});
     auto mtx = Mtx::create(ref);
     mtx->read(m);
     auto d_mtx = Mtx::create(cuda);

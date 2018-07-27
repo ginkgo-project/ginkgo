@@ -74,7 +74,7 @@ template <typename ValueType, typename IndexType>
 size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
                               int32 max_block_size, IndexType *block_ptrs)
 {
-    const auto rows = mtx->get_size().num_rows;
+    const auto rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idx = mtx->get_const_col_idxs();
     block_ptrs[0] = 0;
@@ -361,7 +361,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
         const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
         const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        apply_block(block_size, b->get_size().num_cols, block, stride,
+        apply_block(block_size, b->get_size()[1], block, stride,
                     alpha->at(0, 0), block_b, b->get_stride(), beta->at(0, 0),
                     block_x, x->get_stride());
     }
@@ -385,7 +385,7 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
         const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
         const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
-        apply_block(block_size, b->get_size().num_cols, block, stride,
+        apply_block(block_size, b->get_size()[1], block, stride,
                     one<ValueType>(), block_b, b->get_stride(),
                     zero<ValueType>(), block_x, x->get_stride());
     }
@@ -465,7 +465,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i], block_jacobi::apply_block(
-                         block_size, b->get_size().num_cols,
+                         block_size, b->get_size()[1],
                          reinterpret_cast<const resolved_precision *>(block),
                          stride, alpha->at(0, 0), block_b, b->get_stride(),
                          beta->at(0, 0), block_x, x->get_stride()));
@@ -493,7 +493,7 @@ void simple_apply(
         const auto block_size = ptrs[i + 1] - ptrs[i];
         RESOLVE_PRECISION(
             prec[i], block_jacobi::apply_block(
-                         block_size, b->get_size().num_cols,
+                         block_size, b->get_size()[1],
                          reinterpret_cast<const resolved_precision *>(block),
                          stride, one<ValueType>(), block_b, b->get_stride(),
                          zero<ValueType>(), block_x, x->get_stride()));

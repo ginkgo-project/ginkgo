@@ -73,6 +73,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 #include <random>
 #include <string>
 
+#include "cusparse.h"
 
 // Some shortcuts
 using vec = gko::matrix::Dense<double>;
@@ -87,12 +88,59 @@ using sellp = gko::matrix::Sellp<double, gko::int32>;
 using duration_type = std::chrono::microseconds;
 
 
+class Csrmp : public gko::EnableCreateMethod<Csrmp> {
+    using ValueType = double;
+    using IndexType = gko::int32;
+
+public:
+    void read(const mtx &data) { csr_->read(data); }
+    void apply(const gko::LinOp *b, gko::LinOp *x) const
+    {
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv_mp(
+            handle_, trans_, csr_->get_size()[0], csr_->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, desc_,
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx));
+    }
+    gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+    Csrmp(std::shared_ptr<gko::Executor> exec)
+        : csr_(std::move(csr::create(exec))),
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
+    }
+    ~Csrmp()
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
+    }
+
+private:
+    std::shared_ptr<csr> csr_;
+    cusparseHandle_t handle_;
+    cusparseMatDescr_t desc_;
+    cusparseOperation_t trans_;
+};
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
     auto values = rhs->get_values();
-    for (gko::size_type row = 0; row < rhs->get_size().num_rows; row++) {
-        for (gko::size_type col = 0; col < rhs->get_size().num_cols; col++) {
+    for (gko::size_type row = 0; row < rhs->get_size()[0]; row++) {
+        for (gko::size_type col = 0; col < rhs->get_size()[1]; col++) {
             rhs->at(row, col) = static_cast<double>(row) / col;
         }
     }
@@ -167,38 +215,41 @@ int main(int argc, char *argv[])
     std::shared_ptr<gko::Executor> exec;
     std::string src_folder;
     std::string mtx_list;
-    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp");
+    int device_id = 0;
+    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp;Csrmp");
     std::vector<std::string> format_list;
     bool matlab_format;
     if (argc >= 5) {
+        device_id = std::atoi(argv[1]);
+        if (std::string(argv[2]) == "matlab") {
+            matlab_format = true;
+        } else {
+            matlab_format = false;
+        }
         src_folder = argv[3];
         mtx_list = argv[4];
     } else {
         std::cerr << "Usage: " << argv[0]
-                  << "executor format src_folder mtx_list testing_format1 "
+                  << "device_id format src_folder mtx_list testing_format1 "
                      "testing_format2 ..."
                   << std::endl;
         std::exit(-1);
     }
-    if (std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    if (gko::CudaExecutor::get_num_devices() == 0) {
+        std::cerr << "This program should be run on gpus" << std::endl;
+        exit(-1)
+    }
+
+    if (device_id >= 0 && device_id < gko::CudaExecutor::get_num_devices()) {
+        exec = gko::CudaExecutor::create(device_id, gko::OmpExecutor::create());
+        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     } else {
-        std::cerr << "Usage: " << argv[0]
-                  << "executor format src_folder mtx_list testing_format1 "
-                     "testing_format2 ..."
-                  << std::endl;
+        std::cerr << "device_id should be in [0, "
+                  << gko::CudaExecutor::get_num_devices() << ")." << std::endl;
         std::exit(-1);
     }
-    if (std::string(argv[2]) == "matlab") {
-        matlab_format = true;
-    } else {
-        matlab_format = false;
-    }
+    cusparseHandle_t handle;
+    cusparseCreate(&handle);
     for (int i = 5; i < argc; i++) {
         if (allow_list.find(argv[i]) != std::string::npos) {
             format_list.emplace_back(std::string(argv[i]));
@@ -245,12 +296,10 @@ int main(int argc, char *argv[])
             std::cout << mtx_file << ", ";
         }
         std::string sep(matlab_format ? " " : ", ");
-        std::cout << data.size.num_rows << sep << data.size.num_cols << sep
+        std::cout << data.size[0] << sep << data.size[1] << sep
                   << data.nonzeros.size();
-        auto x =
-            vec::create(exec->get_master(), gko::dim{data.size.num_cols, 1});
-        auto y =
-            vec::create(exec->get_master(), gko::dim{data.size.num_rows, 1});
+        auto x = vec::create(exec->get_master(), gko::dim<2>{data.size[0], 1});
+        auto y = vec::create(exec->get_master(), gko::dim<2>{data.size[1], 1});
         generate_rhs(lend(x));
         generate_rhs(lend(y));
         for (const auto &elem : format_list) {
@@ -268,6 +317,9 @@ int main(int argc, char *argv[])
                                 lend(y), matlab_format);
             } else if (elem == "Sellp") {
                 testing<sellp>(exec, warm_iter, test_iter, data, lend(x),
+                               lend(y), matlab_format);
+            } else if (elem == "Csrmp") {
+                testing<Csrmp>(exec, warm_iter, test_iter, data, lend(x),
                                lend(y), matlab_format);
             }
         }
