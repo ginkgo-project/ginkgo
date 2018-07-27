@@ -73,6 +73,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 #include <random>
 #include <string>
 
+#include "cuda_runtime.h"
 #include "cusparse.h"
 
 // Some shortcuts
@@ -135,6 +136,67 @@ private:
     cusparseMatDescr_t desc_;
     cusparseOperation_t trans_;
 };
+template <cusparseHybPartition_t Partition = CUSPARSE_HYB_PARTITION_AUTO,
+          int Threshold = 0>
+class CuspHybrid
+    : public gko::EnableCreateMethod<CuspHybrid<Partition, Threshold>> {
+    using ValueType = double;
+    using IndexType = gko::int32;
+
+public:
+    gko::dim<2> size;
+    void read(const mtx &data)
+    {
+        auto t_csr = csr::create(exec_);
+        t_csr->read(data);
+        size[0] = t_csr->get_size()[0];
+        size[1] = t_csr->get_size()[1];
+        cusparseDcsr2hyb(handle_, size[0], size[1], desc_,
+                         t_csr->get_const_values(), t_csr->get_const_row_ptrs(),
+                         t_csr->get_const_col_idxs(), hyb_, Threshold,
+                         Partition);
+    }
+    void apply(const gko::LinOp *b, gko::LinOp *x) const
+    {
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDhybmv(handle_, trans_, &alpha, desc_,
+                                                 hyb_, db, &beta, dx));
+    }
+    gko::dim<2> get_size() const noexcept { return size; }
+    gko::size_type get_num_stored_elements() const noexcept { return 0; }
+
+    CuspHybrid(std::shared_ptr<gko::Executor> exec)
+        : exec_(std::move(exec)), trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
+    }
+    ~CuspHybrid()
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
+    }
+
+private:
+    std::shared_ptr<gko::Executor> exec_;
+    cusparseHandle_t handle_;
+    cusparseMatDescr_t desc_;
+    cusparseOperation_t trans_;
+    cusparseHybMat_t hyb_;
+};
+using cusp_hybrid = CuspHybrid<>;
+using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
+using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
+
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
@@ -216,7 +278,7 @@ int main(int argc, char *argv[])
     std::string src_folder;
     std::string mtx_list;
     int device_id = 0;
-    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp;Csrmp");
+    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp;Csrmp;CuspHybrid;CuspCoo;CuspEll");
     std::vector<std::string> format_list;
     bool matlab_format;
     if (argc >= 5) {
@@ -237,7 +299,7 @@ int main(int argc, char *argv[])
     }
     if (gko::CudaExecutor::get_num_devices() == 0) {
         std::cerr << "This program should be run on gpus" << std::endl;
-        exit(-1)
+        exit(-1);
     }
 
     if (device_id >= 0 && device_id < gko::CudaExecutor::get_num_devices()) {
@@ -298,8 +360,8 @@ int main(int argc, char *argv[])
         std::string sep(matlab_format ? " " : ", ");
         std::cout << data.size[0] << sep << data.size[1] << sep
                   << data.nonzeros.size();
-        auto x = vec::create(exec->get_master(), gko::dim<2>{data.size[0], 1});
-        auto y = vec::create(exec->get_master(), gko::dim<2>{data.size[1], 1});
+        auto x = vec::create(exec->get_master(), gko::dim<2>{data.size[1], 1});
+        auto y = vec::create(exec->get_master(), gko::dim<2>{data.size[0], 1});
         generate_rhs(lend(x));
         generate_rhs(lend(y));
         for (const auto &elem : format_list) {
@@ -320,6 +382,15 @@ int main(int argc, char *argv[])
                                lend(y), matlab_format);
             } else if (elem == "Csrmp") {
                 testing<Csrmp>(exec, warm_iter, test_iter, data, lend(x),
+                               lend(y), matlab_format);
+            } else if (elem == "CuspHybrid") {
+                testing<cusp_hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                               lend(y), matlab_format);
+            } else if (elem == "CuspCoo") {
+                testing<cusp_coo>(exec, warm_iter, test_iter, data, lend(x),
+                               lend(y), matlab_format);
+            } else if (elem == "CuspEll") {
+                testing<cusp_ell>(exec, warm_iter, test_iter, data, lend(x),
                                lend(y), matlab_format);
             }
         }
