@@ -311,6 +311,25 @@ GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
 
+
+/**
+ *Instantiates a template for each value and accessor type compiled by
+ Ginkgo.
+ *
+ *@param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(_macro)         \
+    template _macro(float, range<accessor::row_major<float, 2>>);        \
+    template _macro(double, range<accessor::row_major<double, 2>>);      \
+    template _macro(std::complex<float>,                                 \
+                    range<accessor::row_major<std::complex<float>, 2>>); \
+    template _macro(std::complex<double>,                                \
+                    range<accessor::row_major<std::complex<double>, 2>>)
+
+
 }  // namespace gko
 
 

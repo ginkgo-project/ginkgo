@@ -47,6 +47,25 @@ namespace omp {
 namespace dense {
 
 
+template <typename ValueType, typename AccessorType>
+void simple_apply(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Dense<ValueType> *a, AccessorType b,
+                  matrix::Dense<ValueType> *c)
+{
+    NOT_IMPLEMENTED;
+}
+
+
+template <typename ValueType, typename AccessorType>
+void apply(std::shared_ptr<const OmpExecutor> exec,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *a, AccessorType b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+{
+    NOT_IMPLEMENTED;
+}
+
+
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *a,

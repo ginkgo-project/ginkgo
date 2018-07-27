@@ -57,6 +57,13 @@ namespace matrix {
 namespace {
 
 
+template <typename... TplArgs>
+struct TemplatedOperationRange {
+    GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply<TplArgs...>);
+    GKO_REGISTER_OPERATION(apply, dense::apply<TplArgs...>);
+};
+
+
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply<ValueType>);
