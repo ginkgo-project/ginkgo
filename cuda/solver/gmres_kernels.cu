@@ -100,15 +100,16 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *r,
-                  matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *Q)
+                  matrix::Dense<ValueType> *beta, AccessorType range_Q)
 {
     NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 // template <typename ValueType>

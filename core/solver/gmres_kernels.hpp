@@ -53,12 +53,11 @@ namespace gmres {
                       matrix::Dense<_type> *cs,                               \
                       Array<stopping_status> *stop_status)
 
-#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
+#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_type> *r,               \
                       matrix::Dense<_type> *r_norm,                \
-                      matrix::Dense<_type> *beta,                  \
-                      range<accessor::row_major<_type, 2>> range_Q)
+                      matrix::Dense<_type> *beta, _accessor range_Q)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                          \
@@ -78,14 +77,14 @@ namespace gmres {
                 const Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                      \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);       \
-    template <typename ValueType>                     \
+#define DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType);               \
+    template <typename ValueType, typename AccessorType>            \
+    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType, AccessorType); \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);                     \
+    template <typename ValueType>                                   \
     GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
 
 

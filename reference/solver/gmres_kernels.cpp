@@ -78,12 +78,11 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *r,
                   matrix::Dense<ValueType> *r_norm,
-                  matrix::Dense<ValueType> *beta,
-                  range<accessor::row_major<ValueType, 2>> range_Q)
+                  matrix::Dense<ValueType> *beta, AccessorType range_Q)
 {
     for (int i = 0; i < r->get_size().num_cols; ++i) {
         r_norm->at(0, i) = 0;
@@ -104,7 +103,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType>

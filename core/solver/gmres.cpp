@@ -54,9 +54,14 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize_1, gmres::initialize_1<ValueType>);
-    GKO_REGISTER_OPERATION(initialize_2, gmres::initialize_2<ValueType>);
     GKO_REGISTER_OPERATION(step_1, gmres::step_1<ValueType>);
     GKO_REGISTER_OPERATION(step_2, gmres::step_2<ValueType>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationRange {
+    GKO_REGISTER_OPERATION(initialize_2, gmres::initialize_2<TplArgs...>);
 };
 
 
@@ -113,8 +118,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = b - Ax
 
-    exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
-        r.get(), r_norm.get(), beta.get(), range_Q));
+    exec->run(
+        TemplatedOperationRange<ValueType,
+                                range<accessor::row_major<ValueType, 2>>>::
+            make_initialize_2_operation(r.get(), r_norm.get(), beta.get(),
+                                        range_Q));
     // beta = {r_norm, 0, ..., 0}
     // Q(:, 1) = r / r_norm
 
