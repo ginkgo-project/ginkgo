@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/solver/gmres.hpp"
 
 
 namespace gko {
@@ -80,19 +81,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *r,
+                  matrix::Dense<ValueType> *r_norm,
                   matrix::Dense<ValueType> *beta,
                   range<accessor::row_major<ValueType, 2>> range_Q)
 {
-    auto r_norm = squared_norm(r);
-
+    for (int i = 0; i < r->get_size().num_cols; ++i) {
+        r_norm->at(0, i) = 0;
+        for (int j = 0; j < r->get_size().num_rows; ++j) {
+            r_norm->at(0, i) += r->at(i, j) * r->at(i, j);
+        }
+        r_norm->at(0, i) = sqrt(r_norm->at(0, i));
+    }
     for (size_type i = 0; i < r->get_size().num_rows; ++i) {
         for (size_type j = 0; j < r->get_size().num_cols; ++j) {
             if (i == 0) {
-                beta->at(i, j) = r_norm;
+                beta->at(i, j) = r_norm->at(0, j);
             } else {
                 beta->at(i, j) = zero<ValueType>();
             }
-            range_Q(i, j) = r->at(i, j) / r_norm;
+            range_Q(i, j) = r->at(i, j) / r_norm->at(0, j);
         }
     }
 }

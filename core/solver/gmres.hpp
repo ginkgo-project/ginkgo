@@ -48,6 +48,9 @@ namespace gko {
 namespace solver {
 
 
+constexpr auto default_max_num_iterations = 64;
+
+
 /**
  * CG or the conjugate gradient method is an iterative type Krylov subspace
  * method which is suitable for symmetric positive definite methods.

@@ -56,6 +56,7 @@ namespace gmres {
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_type> *r,               \
+                      matrix::Dense<_type> *r_norm,                \
                       matrix::Dense<_type> *beta,                  \
                       range<accessor::row_major<_type, 2>> range_Q)
 

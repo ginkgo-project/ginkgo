@@ -48,9 +48,6 @@ namespace gko {
 namespace solver {
 
 
-constexpr auto default_max_num_iterations = 64;
-
-
 namespace {
 
 
@@ -96,6 +93,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec, dim{default_max_num_iterations, dense_b->get_size().num_cols});
     auto cs = Vector::create(
         exec, dim{default_max_num_iterations, dense_b->get_size().num_cols});
+    auto r_norm = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
     row_major_range range_Q{Q->get_values(), Q->get_size().num_rows,
@@ -116,7 +114,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = b - Ax
 
     exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
-        r.get(), beta.get(), range_Q));
+        r.get(), r_norm.get(), beta.get(), range_Q));
     // beta = {r_norm, 0, ..., 0}
     // Q(:, 1) = r / r_norm
 
