@@ -13,6 +13,7 @@ var searchData=
   ['stopping_5fstatus',['stopping_status',['../classgko_1_1stopping__status.html',1,'gko']]],
   ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301',1,'gko::matrix::Hybrid::strategy_type::strategy_type()']]],
   ['stream',['Stream',['../classgko_1_1log_1_1Stream.html',1,'gko::log']]],
+  ['streamerror',['StreamError',['../classgko_1_1StreamError.html',1,'gko::StreamError'],['../classgko_1_1StreamError.html#a511af28ae0b5a98998ef96f21cf1863e',1,'gko::StreamError::StreamError()']]],
   ['stride',['stride',['../classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316',1,'gko::accessor::row_major']]],
   ['sub',['sub',['../structgko_1_1accessor_1_1sub.html',1,'gko::accessor']]],
   ['synchronize',['synchronize',['../classgko_1_1Executor.html#a24eeee7648c0f0fd07c9866d07154875',1,'gko::Executor::synchronize()'],['../classgko_1_1OmpExecutor.html#ad4e421dcc3d1e5c7e396167a122e57ae',1,'gko::OmpExecutor::synchronize()'],['../classgko_1_1CudaExecutor.html#a903cf7e3460b14677c0bce5ca08a1b81',1,'gko::CudaExecutor::synchronize()']]]
