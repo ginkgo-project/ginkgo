@@ -151,10 +151,10 @@ public:
         t_csr->read(data);
         size[0] = t_csr->get_size()[0];
         size[1] = t_csr->get_size()[1];
-        cusparseDcsr2hyb(handle_, size[0], size[1], desc_,
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(handle_, size[0], size[1], desc_,
                          t_csr->get_const_values(), t_csr->get_const_row_ptrs(),
                          t_csr->get_const_col_idxs(), hyb_, Threshold,
-                         Partition);
+                         Partition));
     }
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
