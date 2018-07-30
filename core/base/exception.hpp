@@ -313,22 +313,20 @@ public:
 
 
 /**
- * FileError is thrown if accessing a file failed.
+ * StreamError is thrown if accessing a stream failed.
  */
-class FileError : public Error {
+class StreamError : public Error {
 public:
     /**
      * Initializes a file access error.
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the function that tried to access the file
-     * @param filename The name of the file
      * @param message The error message
      */
-    FileError(const std::string &file, int line, const std::string &func,
-              const std::string &filename, const std::string &message)
-        : Error(file, line,
-                func + ": error accessing " + filename + ": " + message)
+    StreamError(const std::string &file, int line, const std::string &func,
+                const std::string &message)
+        : Error(file, line, func + ": " + message)
     {}
 };
 

@@ -286,19 +286,17 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
- * Creates a FileError exception.
+ * Creates a StreamError exception.
  * This macro sets the correct information about the location of the error
- * and fills the exception with data about the file, and the reason for the
+ * and fills the exception with data about the stream, and the reason for the
  * error.
  *
- * @param _filename  the name of the file whose access caused the error
  * @param _message  the error message describing the details of the error
  *
- * @return NotSupported
+ * @return FileError
  */
-#define FILE_ERROR(_filename, _message) \
-    ::gko::FileError(__FILE__, __LINE__, __func__, _filename, _message)
-}  // namespace gko
+#define STREAM_ERROR(_message) \
+    ::gko::StreamError(__FILE__, __LINE__, __func__, _message)
 
 
 /**
@@ -311,6 +309,9 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
     {                                                              \
         throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__); \
     }
+
+
+}  // namespace gko
 
 
 #endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_

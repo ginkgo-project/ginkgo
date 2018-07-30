@@ -67,6 +67,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 #include <include/ginkgo.hpp>
 
 
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -133,9 +134,9 @@ void run_solver(volatile bool *stop_iteration_process,
     using bicg = gko::solver::Bicgstab<>;
 
     // Read Data
-    auto A = gko::share(gko::read<mtx>("data/A.mtx", exec));
-    auto b = gko::read<vec>("data/b.mtx", exec);
-    auto x = gko::read<vec>("data/x0.mtx", exec);
+    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
     // TODO: add residual logging when available

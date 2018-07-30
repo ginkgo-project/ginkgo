@@ -25,7 +25,7 @@ include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 
 if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
-    message("BUILD_TESTS is ON, enabling BUILD_REFERENCE")
+    message(STATUS "BUILD_TESTS is ON, enabling BUILD_REFERENCE")
     set(BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
 

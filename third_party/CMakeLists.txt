@@ -1,7 +1,5 @@
 include(package_loader.cmake)
 
-add_subdirectory(mmio)
-
 if(BUILD_TESTS)
     add_subdirectory(gtest)
 endif()
