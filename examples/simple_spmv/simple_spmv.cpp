@@ -151,10 +151,10 @@ public:
         t_csr->read(data);
         size[0] = t_csr->get_size()[0];
         size[1] = t_csr->get_size()[1];
-        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(handle_, size[0], size[1], desc_,
-                         t_csr->get_const_values(), t_csr->get_const_row_ptrs(),
-                         t_csr->get_const_col_idxs(), hyb_, Threshold,
-                         Partition));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(
+            handle_, size[0], size[1], desc_, t_csr->get_const_values(),
+            t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
+            Threshold, Partition));
     }
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
@@ -278,7 +278,8 @@ int main(int argc, char *argv[])
     std::string src_folder;
     std::string mtx_list;
     int device_id = 0;
-    std::string allow_list("Coo;Csr;Ell;Hybrid;Sellp;Csrmp;CuspHybrid;CuspCoo;CuspEll");
+    std::string allow_list(
+        "Coo;Csr;Ell;Hybrid;Sellp;Csrmp;CuspHybrid;CuspCoo;CuspEll");
     std::vector<std::string> format_list;
     bool matlab_format;
     if (argc >= 5) {
@@ -385,13 +386,13 @@ int main(int argc, char *argv[])
                                lend(y), matlab_format);
             } else if (elem == "CuspHybrid") {
                 testing<cusp_hybrid>(exec, warm_iter, test_iter, data, lend(x),
-                               lend(y), matlab_format);
+                                     lend(y), matlab_format);
             } else if (elem == "CuspCoo") {
                 testing<cusp_coo>(exec, warm_iter, test_iter, data, lend(x),
-                               lend(y), matlab_format);
+                                  lend(y), matlab_format);
             } else if (elem == "CuspEll") {
                 testing<cusp_ell>(exec, warm_iter, test_iter, data, lend(x),
-                               lend(y), matlab_format);
+                                  lend(y), matlab_format);
             }
         }
         std::cout << std::endl;
