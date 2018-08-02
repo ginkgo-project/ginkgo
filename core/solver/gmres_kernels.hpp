@@ -50,7 +50,7 @@ namespace gmres {
     void initialize_1(std::shared_ptr<const DefaultExecutor> exec,            \
                       const matrix::Dense<_type> *b, matrix::Dense<_type> *r, \
                       matrix::Dense<_type> *e1, matrix::Dense<_type> *sn,     \
-                      matrix::Dense<_type> *cs,                               \
+                      matrix::Dense<_type> *cs, matrix::Dense<_type> *b_norm, \
                       Array<stopping_status> *stop_status)
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
@@ -60,21 +60,19 @@ namespace gmres {
                       matrix::Dense<_type> *beta, _accessor range_Q)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                          \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho,                        \
-                const matrix::Dense<_type> *prev_rho,                   \
-                const Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)             \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,          \
+                matrix::Dense<_type> *q, matrix::Dense<_type> *sn,    \
+                matrix::Dense<_type> *cs, matrix::Dense<_type> *beta, \
+                _accessor range_Q, _accessor range_H_k,               \
+                const size_type iter_id)
 
 
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                                \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
-                const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho,                              \
-                const Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)            \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,         \
+                const matrix::Dense<_type> *beta, _accessor range_H, \
+                const size_type iter_num, matrix::Dense<_type> *y,   \
+                _accessor range_Q, matrix::Dense<_type> *x)
 
 
 #define DECLARE_ALL_AS_TEMPLATES                                    \
@@ -82,10 +80,10 @@ namespace gmres {
     GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType);               \
     template <typename ValueType, typename AccessorType>            \
     GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType, AccessorType); \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);                     \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
+    template <typename ValueType, typename AccessorType>            \
+    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType, AccessorType);       \
+    template <typename ValueType, typename AccessorType>            \
+    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType, AccessorType)
 
 
 }  // namespace gmres

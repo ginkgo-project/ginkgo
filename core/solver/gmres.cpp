@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/name_demangling.hpp"
 #include "core/base/range_accessors.hpp"
 #include "core/base/utils.hpp"
+#include "core/matrix/dense.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 
 
@@ -54,14 +56,21 @@ namespace {
 template <typename ValueType>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(initialize_1, gmres::initialize_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, gmres::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, gmres::step_2<ValueType>);
 };
 
 
 template <typename... TplArgs>
 struct TemplatedOperationRange {
     GKO_REGISTER_OPERATION(initialize_2, gmres::initialize_2<TplArgs...>);
+    GKO_REGISTER_OPERATION(step_1, gmres::step_1<TplArgs...>);
+    GKO_REGISTER_OPERATION(step_2, gmres::step_2<TplArgs...>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationDenseRange {
+    GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply<TplArgs...>);
+    GKO_REGISTER_OPERATION(apply, dense::apply<TplArgs...>);
 };
 
 
@@ -91,18 +100,25 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto z = Vector::create_with_config_of(dense_b);
     auto e1 = Vector::create_with_config_of(dense_x);
     auto beta = Vector::create_with_config_of(dense_b);
-    auto Q = Vector::create(
-        exec, dim{system_matrix_->get_size().num_cols,
+    auto Q = Vector::create(exec, dim{system_matrix_->get_size().num_cols,
+                                      (default_max_num_iterations + 1) *
+                                          dense_b->get_size().num_cols});
+    auto H = Vector::create(
+        exec, dim{default_max_num_iterations + 1,
                   default_max_num_iterations * dense_b->get_size().num_cols});
     auto sn = Vector::create(
         exec, dim{default_max_num_iterations, dense_b->get_size().num_cols});
     auto cs = Vector::create(
         exec, dim{default_max_num_iterations, dense_b->get_size().num_cols});
     auto r_norm = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
+    auto b_norm = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
 
+    // Define range accessors for Q and H.
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
     row_major_range range_Q{Q->get_values(), Q->get_size().num_rows,
                             Q->get_size().num_cols, Q->get_stride()};
+    row_major_range range_H{H->get_values(), H->get_size().num_rows,
+                            H->get_size().num_cols, H->get_stride()};
 
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
@@ -110,7 +126,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
-        dense_b, r.get(), e1.get(), sn.get(), cs.get(), &stop_status));
+        dense_b, r.get(), e1.get(), sn.get(), cs.get(), b_norm.get(),
+        &stop_status));
     // r = dense_b
     // sn = cs = 0
     // e1 = {1, 0, ..., 0}
@@ -130,7 +147,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
 
-    for (int iter = 0; iter < default_max_num_iterations; ++iter) {
+    size_type iter = 0;
+    for (; iter < default_max_num_iterations; ++iter) {
         preconditioner_->apply(r.get(), z.get());
 
         if (stop_criterion->update()
@@ -143,47 +161,38 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         // Start Arnoldi function
-        auto range_Q_n =
+        auto range_Q_k =
             range_Q(span{0, system_matrix_->get_size().num_rows},
-                    span{0, dense_b->get_size().num_cols * (iter + 1)});
+                    span{dense_b->get_size().num_cols * iter,
+                         dense_b->get_size().num_cols * (iter + 1)});
+        auto range_H_k = range_H(
+            span{0, iter + 1}, span{dense_b->get_size().num_cols * iter,
+                                    dense_b->get_size().num_cols * (iter + 1)});
         auto q = Vector::create_with_config_of(dense_b);
-
-        // system_matrix_->apply(Q_n.get(), q.get());
-
-        // exec->run(TemplatedOperation<ValueType>::make_step_1_operation());
+        exec->run(TemplatedOperationDenseRange<
+                  ValueType, range<accessor::row_major<ValueType, 2>>>::
+                      make_simple_apply_operation(
+                          as<matrix::Dense<ValueType>>(system_matrix_.get()),
+                          range_Q_k, q.get()));
+        exec->run(
+            TemplatedOperationRange<ValueType,
+                                    range<accessor::row_major<ValueType, 2>>>::
+                make_step_1_operation(q.get(), sn.get(), cs.get(), beta.get(),
+                                      range_Q, range_H_k, iter));
+        this->template log<log::Logger::iteration_complete>(iter + 1);
     }
 
-    // int iter = 0;
-    // while (true) {
-    //     preconditioner_->apply(r.get(), z.get());
-    //     r->compute_dot(z.get(), rho.get());
-
-    //     if (stop_criterion->update()
-    //             .num_iterations(iter)
-    //             .residual(r.get())
-    //             .solution(dense_x)
-    //             .check(RelativeStoppingId, true, &stop_status, &one_changed))
-    //             {
-    //         this->template log<log::Logger::converged>(iter + 1, r.get());
-    //         break;
-    //     }
-
-    // exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-    // p.get(), z.get(), rho.get(), prev_rho.get(), &stop_status));
-    //     // tmp = rho / prev_rho
-    //     // p = z + tmp * p
-    //     system_matrix_->apply(p.get(), q.get());
-    //     p->compute_dot(q.get(), beta.get());
-    //     exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-    //         dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get(),
-    //         &stop_status));
-    //     // tmp = rho / beta
-    //     // x = x + tmp * p
-    //     // r = r - tmp * q
-    //     swap(prev_rho, rho);
-    //     this->template log<log::Logger::iteration_complete>(iter + 1);
-    //     iter++;
-    // }
+    // Solve x
+    auto y = Vector::create(
+        exec, dim{default_max_num_iterations, dense_b->get_size().num_cols});
+    auto range_Q_iter =
+        range_Q(span{0, system_matrix_->get_size().num_rows},
+                span{0, dense_b->get_size().num_cols * (iter + 1)});
+    exec->run(
+        TemplatedOperationRange<ValueType,
+                                range<accessor::row_major<ValueType, 2>>>::
+            make_step_2_operation(beta.get(), range_H, iter, y.get(),
+                                  range_Q_iter, dense_x));
 }
 
 

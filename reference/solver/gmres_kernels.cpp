@@ -52,10 +52,16 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
                   matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
+                  matrix::Dense<ValueType> *b_norm,
                   Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < b->get_size().num_cols; ++j) {
         stop_status->get_data()[j].reset();
+        b_norm->at(0, j) = zero<ValueType>();
+        for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+            b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
+        }
+        b_norm->at(0, j) = sqrt(b_norm->at(0, j));
     }
     for (size_type i = 0; i < b->get_size().num_rows; ++i) {
         for (size_type j = 0; j < b->get_size().num_cols; ++j) {
@@ -84,9 +90,9 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *r_norm,
                   matrix::Dense<ValueType> *beta, AccessorType range_Q)
 {
-    for (int i = 0; i < r->get_size().num_cols; ++i) {
+    for (size_type i = 0; i < r->get_size().num_cols; ++i) {
         r_norm->at(0, i) = 0;
-        for (int j = 0; j < r->get_size().num_rows; ++j) {
+        for (size_type j = 0; j < r->get_size().num_rows; ++j) {
             r_norm->at(0, i) += r->at(i, j) * r->at(i, j);
         }
         r_norm->at(0, i) = sqrt(r_norm->at(0, i));
@@ -107,55 +113,107 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
     GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *sn,
+            matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
+            AccessorType range_Q, AccessorType range_H_k,
+            const size_type iter_id)
 {
-    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
-                continue;
+    for (size_type k = 0; k < iter_id + 1; ++k) {
+        auto range_Q_i = range_Q(
+            span{0, q->get_size().num_rows},
+            span{q->get_size().num_cols * k, q->get_size().num_cols * (k + 1)});
+        for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+            range_H_k(iter_id, i) = 0;
+            for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+                range_H_k(k, i) += q->at(j, i) * range_Q_i(j, k);
             }
-            if (prev_rho->at(j) == zero<ValueType>()) {
-                p->at(i, j) = z->at(i, j);
-            } else {
-                auto tmp = rho->at(j) / prev_rho->at(j);
-                p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
+            for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+                q->at(j, i) -= range_H_k(k, i) * range_Q_i(j, k);
             }
         }
     }
+    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+        range_H_k(iter_id + 1, i) = 0;
+        for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+            range_H_k(iter_id + 1, i) += q->at(j, i) * q->at(j, i);
+        }
+        range_H_k(iter_id + 1, i) = sqrt(range_H_k(iter_id, i));
+    }
+    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+        for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+            q->at(j, i) /= range_H_k(iter_id + 1, i);
+        }
+    }
+    // End of arnoldi
+
+    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+        // Start apply givens rotation
+        for (size_type j = 0; j < iter_id; ++j) {
+            auto temp = cs->at(j, i) * range_H_k(j, i) +
+                        sn->at(j, i) * range_H_k(j + 1, i);
+            range_H_k(j + 1, i) = -sn->at(j, i) * range_H_k(j, i) +
+                                  cs->at(j, i) * range_H_k(j + 1, i);
+            range_H_k(j, i) = temp;
+        }
+        if (range_H_k(iter_id, i) == zero<ValueType>()) {
+            cs->at(iter_id, i) = zero<ValueType>();
+            sn->at(iter_id, i) = one<ValueType>();
+        } else {
+            auto t =
+                sqrt(range_H_k(iter_id, i) * range_H_k(iter_id, i) +
+                     range_H_k(iter_id + 1, i) * range_H_k(iter_id + 1, i));
+            cs->at(iter_id, i) = abs(range_H_k(iter_id, i)) / t;
+            sn->at(iter_id, i) = cs->at(iter_id, i) *
+                                 range_H_k(iter_id + 1, i) /
+                                 range_H_k(iter_id, i);
+        }
+        range_H_k(iter_id, i) = cs->at(iter_id, i) * range_H_k(iter_id, i) +
+                                sn->at(iter_id, i) * range_H_k(iter_id + 1, i);
+        range_H_k(iter_id + 1, i) = zero<ValueType>();
+        // End apply givens rotation
+
+        beta->at(iter_id + 1, i) = -sn->at(iter_id, i) * beta->at(iter_id, i);
+        beta->at(iter_id, i) = cs->at(iter_id, i) * beta->at(iter_id, i);
+    }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType> *beta, AccessorType range_H,
+            const size_type iter_num, matrix::Dense<ValueType> *y,
+            AccessorType range_Q, matrix::Dense<ValueType> *x)
 {
-    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
-                continue;
+    // Solve upper triangular.
+    for (size_type k = 0; k < beta->get_size().num_cols; ++k) {
+        for (size_type i = iter_num - 1; i >= 0; --i) {
+            auto temp = beta->at(i, k);
+            for (size_type j = i + 1; j < iter_num; ++j) {
+                temp -= range_H(i, k * beta->get_size().num_cols + j) *
+                        beta->at(j, k);
             }
-            if (beta->at(j) != zero<ValueType>()) {
-                auto tmp = rho->at(j) / beta->at(j);
-                x->at(i, j) += tmp * p->at(i, j);
-                r->at(i, j) -= tmp * q->at(i, j);
+            y->at(i, k) = temp / range_H(i, k * beta->get_size().num_cols + i);
+        }
+    }
+
+    // Solve x
+    for (size_type k = 0; k < x->get_size().num_cols; ++k) {
+        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type j = 0; j < iter_num; ++j) {
+                x->at(i, k) +=
+                    range_Q(i, j * x->get_size().num_cols + k) * y->at(j, k);
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace gmres

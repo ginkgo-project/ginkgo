@@ -54,6 +54,7 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
                   matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
+                  matrix::Dense<ValueType> *b_norm,
                   Array<stopping_status> *stop_status)
 {
     NOT_IMPLEMENTED;
@@ -78,6 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType, typename AccessorType>
 void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *r,
+                  matrix::Dense<ValueType> *r_norm,
                   matrix::Dense<ValueType> *beta, AccessorType range_Q)
 {
     NOT_IMPLEMENTED;
@@ -87,12 +89,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
     GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void step_1(std::shared_ptr<const OmpExecutor> exec,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *sn,
+            matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
+            AccessorType range_Q, AccessorType range_H_k,
+            const size_type iter_id)
 {
     NOT_IMPLEMENTED;
     // #pragma omp parallel for
@@ -111,17 +113,15 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
     //     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename AccessorType>
 void step_2(std::shared_ptr<const OmpExecutor> exec,
-            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType> *beta, AccessorType range_H,
+            const size_type iter_num, matrix::Dense<ValueType> *y,
+            AccessorType range_Q, matrix::Dense<ValueType> *x)
 {
     NOT_IMPLEMENTED;
     // #pragma omp parallel for
@@ -139,7 +139,8 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
     //     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
+    GKO_DECLARE_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace gmres
