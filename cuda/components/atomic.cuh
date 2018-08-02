@@ -64,14 +64,19 @@ GKO_BIND_ATOMIC_ADD(float);
     (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 
 
+// the function is copied from CUDA 9.2 documentation
 __forceinline__ __device__ void atomic_add(double *addr, double val)
 {
-    double old = *addr, assumed;
+    unsigned long long int *address_as_ull = (unsigned long long int *)addr;
+    unsigned long long int old = *address_as_ull, assumed;
     do {
         assumed = old;
-        old = __longlong_as_double(atomicCAS(
-            (unsigned long long int *)addr, __double_as_longlong(assumed),
-            __double_as_longlong(val + assumed)));
+        old = atomicCAS(
+            address_as_ull, assumed,
+            __double_as_longlong(val + __longlong_as_double(assumed)));
+
+        // Note: uses integer comparison to avoid hang in case of NaN (since NaN
+        // != NaN)
     } while (assumed != old);
 }
 

@@ -62,7 +62,7 @@ protected:
                                      {0.0, 5.0, 0.0}}, exec);
         mtx2 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
                                      {0.0, 5.0, 0.0}}, exec,
-                                     gko::dim{}, 2, 2, 0);
+                                     gko::dim<2>{}, 2, 2, 0);
         // clang-format on
     }
 
@@ -75,7 +75,7 @@ protected:
 TEST_F(Sellp, AppliesToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim{2, 1});
+    auto y = Vec::create(exec, gko::dim<2>{2, 1});
 
     mtx1->apply(x.get(), y.get());
 
@@ -91,7 +91,7 @@ TEST_F(Sellp, AppliesToDenseMatrix)
          {1.0, -1.5},
          {4.0, 2.5}}, exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     mtx1->apply(x.get(), y.get());
 
@@ -142,8 +142,8 @@ TEST_F(Sellp, AppliesLinearCombinationToDenseMatrix)
 
 TEST_F(Sellp, ApplyFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim{2});
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -151,8 +151,8 @@ TEST_F(Sellp, ApplyFailsOnWrongInnerDimension)
 
 TEST_F(Sellp, ApplyFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim{3, 2});
-    auto y = Vec::create(exec, gko::dim{3, 2});
+    auto x = Vec::create(exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(exec, gko::dim<2>{3, 2});
 
     ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -160,8 +160,8 @@ TEST_F(Sellp, ApplyFailsOnWrongNumberOfRows)
 
 TEST_F(Sellp, ApplyFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim{3}, 2);
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{3}, 2);
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -198,7 +198,7 @@ TEST_F(Sellp, MovesToDense)
 TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim{2, 1});
+    auto y = Vec::create(exec, gko::dim<2>{2, 1});
 
     mtx2->apply(x.get(), y.get());
 
@@ -214,7 +214,7 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
          {1.0, -1.5},
          {4.0, 2.5}}, exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     mtx2->apply(x.get(), y.get());
 
@@ -265,8 +265,8 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
 
 TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim{2});
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -274,8 +274,8 @@ TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongInnerDimension)
 
 TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim{3, 2});
-    auto y = Vec::create(exec, gko::dim{3, 2});
+    auto x = Vec::create(exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(exec, gko::dim<2>{3, 2});
 
     ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -283,8 +283,8 @@ TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfRows)
 
 TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim{3}, 2);
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{3}, 2);
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }

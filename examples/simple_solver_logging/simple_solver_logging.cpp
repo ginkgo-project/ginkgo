@@ -64,9 +64,13 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver_logging
 *****************************<COMPILATION>**********************************/
 
 #include <include/ginkgo.hpp>
+
+
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
+
 
 int main(int argc, char *argv[])
 {
@@ -93,9 +97,9 @@ int main(int argc, char *argv[])
     }
 
     // Read data
-    auto A = gko::share(gko::read<mtx>("data/A.mtx", exec));
-    auto b = gko::read<vec>("data/b.mtx", exec);
-    auto x = gko::read<vec>("data/x0.mtx", exec);
+    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate solver
     auto solver_gen =
@@ -147,7 +151,7 @@ int main(int argc, char *argv[])
     // Print result
     auto h_x = gko::clone(exec->get_master(), x);
     std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_size().num_rows; ++i) {
+    for (int i = 0; i < h_x->get_size()[0]; ++i) {
         std::cout << "    " << h_x->at(i, 0) << std::endl;
     }
     std::cout << "];" << std::endl;

@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/abstract_factory.hpp"
+#include "core/base/dim.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/matrix_data.hpp"
 #include "core/base/polymorphic_object.hpp"
@@ -200,7 +201,7 @@ public:
      *
      * @return size of the operator
      */
-    const dim &get_size() const noexcept { return size_; }
+    const dim<2> &get_size() const noexcept { return size_; }
 
 protected:
     /**
@@ -210,7 +211,7 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim &size = dim{})
+                   const dim<2> &size = dim<2>{})
         : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
     {}
 
@@ -219,7 +220,7 @@ protected:
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim &value) noexcept { size_ = value; }
+    void set_size(const dim<2> &value) noexcept { size_ = value; }
 
     /**
      * Implementers of LinOp should override this function instead
@@ -272,12 +273,12 @@ protected:
                                          const LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        ASSERT_EQUAL_DIMENSIONS(alpha, dim(1, 1));
-        ASSERT_EQUAL_DIMENSIONS(beta, dim(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
 
 private:
-    dim size_{};
+    dim<2> size_{};
 };
 
 

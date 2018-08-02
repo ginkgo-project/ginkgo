@@ -52,8 +52,8 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
     auto exec = mtx->get_executor();
     auto tmp = make_temporary_clone(exec->get_master(), mtx);
     os << "[" << std::endl;
-    for (int i = 0; i < mtx->get_size().num_rows; ++i) {
-        for (int j = 0; j < mtx->get_size().num_cols; ++j) {
+    for (int i = 0; i < mtx->get_size()[0]; ++i) {
+        for (int j = 0; j < mtx->get_size()[1]; ++j) {
             os << '\t' << mtx->at(i, j);
         }
         os << std::endl;

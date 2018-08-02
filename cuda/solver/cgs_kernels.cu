@@ -101,10 +101,10 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(b->get_size().num_rows * b->get_stride(), block_size.x), 1, 1);
+        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
 
     initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_size().num_rows, b->get_size().num_cols, b->get_stride(),
+        b->get_size()[0], b->get_size()[1], b->get_stride(),
         as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
         as_cuda_type(r_tld->get_values()), as_cuda_type(p->get_values()),
         as_cuda_type(q->get_values()), as_cuda_type(u->get_values()),
@@ -153,10 +153,10 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(p->get_size().num_rows * p->get_stride(), block_size.x), 1, 1);
+        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
 
     step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size().num_rows, p->get_size().num_cols, p->get_stride(),
+        p->get_size()[0], p->get_size()[1], p->get_stride(),
         as_cuda_type(r->get_const_values()), as_cuda_type(u->get_values()),
         as_cuda_type(p->get_values()), as_cuda_type(q->get_const_values()),
         as_cuda_type(beta->get_values()), as_cuda_type(rho->get_const_values()),
@@ -203,10 +203,10 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(u->get_size().num_rows * u->get_stride(), block_size.x), 1, 1);
+        ceildiv(u->get_size()[0] * u->get_stride(), block_size.x), 1, 1);
 
     step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        u->get_size().num_rows, u->get_size().num_cols, u->get_stride(),
+        u->get_size()[0], u->get_size()[1], u->get_stride(),
         as_cuda_type(u->get_const_values()),
         as_cuda_type(v_hat->get_const_values()), as_cuda_type(q->get_values()),
         as_cuda_type(t->get_values()), as_cuda_type(alpha->get_values()),
@@ -251,11 +251,11 @@ void step_3(std::shared_ptr<const CudaExecutor> exec,
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(t->get_size().num_rows * t->get_stride(), block_size.x), 1, 1);
+        ceildiv(t->get_size()[0] * t->get_stride(), block_size.x), 1, 1);
 
     step_3_kernel<<<grid_size, block_size, 0, 0>>>(
-        t->get_size().num_rows, t->get_size().num_cols, t->get_stride(),
-        x->get_stride(), as_cuda_type(t->get_const_values()),
+        t->get_size()[0], t->get_size()[1], t->get_stride(), x->get_stride(),
+        as_cuda_type(t->get_const_values()),
         as_cuda_type(u_hat->get_const_values()), as_cuda_type(r->get_values()),
         as_cuda_type(x->get_values()), as_cuda_type(alpha->get_const_values()),
         as_cuda_type(stop_status->get_const_data()));

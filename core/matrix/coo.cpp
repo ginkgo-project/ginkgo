@@ -123,7 +123,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
     exec->run(
         TemplatedOperation<IndexType>::make_convert_row_idxs_to_ptrs_operation(
             this->get_const_row_idxs(), this->get_num_stored_elements(),
-            tmp->get_row_ptrs(), this->get_size().num_rows + 1));
+            tmp->get_row_ptrs(), this->get_size()[0] + 1));
     return tmp;
 }
 

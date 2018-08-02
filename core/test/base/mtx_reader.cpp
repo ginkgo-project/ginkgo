@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <sstream>
+
+
 #include <core/base/lin_op.hpp>
 
 
@@ -46,10 +49,19 @@ namespace {
 TEST(MtxReader, ReadsDenseRealMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
 
-    auto data = gko::read_raw<double, gko::int32>("data/dense_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -63,10 +75,19 @@ TEST(MtxReader, ReadsDenseRealMtx)
 TEST(MtxReader, ReadsDenseIntegerMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array integer general\n"
+        "2 3\n"
+        "1\n"
+        "0\n"
+        "3\n"
+        "5\n"
+        "2\n"
+        "0\n");
 
-    auto data = gko::read_raw<double, gko::int32>("data/dense_integer.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -81,10 +102,19 @@ TEST(MtxReader, ReadsDenseComplexMtx)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 1.0\n"
+        "5.0 3.0\n"
+        "2.0 4.0\n"
+        "0.0 0.0\n");
 
-    auto data = gko::read_raw<cpx, gko::int32>("data/dense_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
@@ -98,10 +128,17 @@ TEST(MtxReader, ReadsDenseComplexMtx)
 TEST(MtxReader, ReadsSparseRealMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real general\n"
+        "2 3 4\n"
+        "1 1 1.0\n"
+        "2 2 5.0\n"
+        "1 2 3.0\n"
+        "1 3 2.0\n");
 
-    auto data = gko::read_raw<double, gko::int32>("data/sparse_real.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
@@ -113,11 +150,17 @@ TEST(MtxReader, ReadsSparseRealMtx)
 TEST(MtxReader, ReadsSparseRealSymetricMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real symmetric\n"
+        "3 3 4\n"
+        "1 1 1.0\n"
+        "2 1 2.0\n"
+        "3 3 6.0\n"
+        "3 1 3.0\n");
 
-    auto data =
-        gko::read_raw<double, gko::int32>("data/sparse_real_symmetric.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(3, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(3, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 2.0));
@@ -131,11 +174,15 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
 TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real skew-symmetric\n"
+        "3 3 2\n"
+        "2 1 2.0\n"
+        "3 1 3.0\n");
 
-    auto data = gko::read_raw<double, gko::int32>(
-        "data/sparse_real_skew_symmetric.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(3, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(3, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, -2.0));
     ASSERT_EQ(v[1], tpl(0, 2, -3.0));
@@ -147,15 +194,22 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
 TEST(MtxReader, ReadsSparsePatternMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate pattern general\n"
+        "2 3 4\n"
+        "1 1\n"
+        "2 2\n"
+        "1 2\n"
+        "1 3\n");
 
-    auto data = gko::read_raw<double, gko::int32>("data/sparse_pattern.mtx");
+    auto data = gko::read_raw<double, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
-    ASSERT_EQ(v[0], tpl(0, 0, 0.0));
-    ASSERT_EQ(v[1], tpl(0, 1, 0.0));
-    ASSERT_EQ(v[2], tpl(0, 2, 0.0));
-    ASSERT_EQ(v[3], tpl(1, 1, 0.0));
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 1.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 1.0));
+    ASSERT_EQ(v[3], tpl(1, 1, 1.0));
 }
 
 
@@ -163,10 +217,17 @@ TEST(MtxReader, ReadsSparseComplexMtx)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate complex general\n"
+        "2 3 4\n"
+        "1 1 1.0 2.0\n"
+        "2 2 5.0 3.0\n"
+        "1 2 3.0 1.0\n"
+        "1 3 2.0 4.0\n");
 
-    auto data = gko::read_raw<cpx, gko::int32>("data/sparse_complex.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
@@ -179,11 +240,15 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate complex hermitian\n"
+        "2 3 2\n"
+        "1 2 3.0 1.0\n"
+        "1 3 2.0 4.0\n");
 
-    auto data =
-        gko::read_raw<cpx, gko::int32>("data/sparse_complex_hermitian.mtx");
+    auto data = gko::read_raw<cpx, gko::int32>(iss);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[1], tpl(0, 2, cpx(2.0, 4.0)));
@@ -223,15 +288,24 @@ public:
 };
 
 
-TEST(MtxReader, ReadsLinOpFromFile)
+TEST(MtxReader, ReadsLinOpFromStream)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
 
     auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
-        "data/dense_real.mtx", gko::ReferenceExecutor::create());
+        iss, gko::ReferenceExecutor::create());
 
     const auto &data = lin_op->data_;
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     const auto &v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));

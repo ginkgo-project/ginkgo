@@ -85,16 +85,14 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     const dim3 blockSize(matrix::default_slice_size);
-    const dim3 gridSize(
-        ceildiv(a->get_size().num_rows, matrix::default_slice_size),
-        b->get_size().num_cols);
+    const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
+                        b->get_size()[1]);
 
     spmv_kernel<<<gridSize, blockSize>>>(
-        a->get_size().num_rows, b->get_size().num_cols, b->get_stride(),
-        c->get_stride(), a->get_const_slice_lengths(),
-        a->get_const_slice_sets(), as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), as_cuda_type(b->get_const_values()),
-        as_cuda_type(c->get_values()));
+        a->get_size()[0], b->get_size()[1], b->get_stride(), c->get_stride(),
+        a->get_const_slice_lengths(), a->get_const_slice_sets(),
+        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(c->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -144,14 +142,13 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    matrix::Dense<ValueType> *c)
 {
     const dim3 blockSize(matrix::default_slice_size);
-    const dim3 gridSize(
-        ceildiv(a->get_size().num_rows, matrix::default_slice_size),
-        b->get_size().num_cols);
+    const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
+                        b->get_size()[1]);
 
     advanced_spmv_kernel<<<gridSize, blockSize>>>(
-        a->get_size().num_rows, b->get_size().num_cols, b->get_stride(),
-        c->get_stride(), a->get_const_slice_lengths(),
-        a->get_const_slice_sets(), as_cuda_type(alpha->get_const_values()),
+        a->get_size()[0], b->get_size()[1], b->get_stride(), c->get_stride(),
+        a->get_const_slice_lengths(), a->get_const_slice_sets(),
+        as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
         as_cuda_type(b->get_const_values()),
         as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()));

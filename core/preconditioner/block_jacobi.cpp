@@ -174,7 +174,7 @@ void BlockJacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         csr_mtx = csr_mtx_handle.get();
     }
     if (this->block_pointers_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(csr_mtx->get_size().num_rows);
+        this->block_pointers_.resize_and_reset(csr_mtx->get_size()[0]);
         exec->run(BlockJacobiOperation<ValueType, IndexType>::
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,
@@ -323,7 +323,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::generate(
         csr_mtx = csr_mtx_handle.get();
     }
     if (this->block_pointers_.get_data() == nullptr) {
-        this->block_pointers_.resize_and_reset(csr_mtx->get_size().num_rows);
+        this->block_pointers_.resize_and_reset(csr_mtx->get_size()[0]);
         exec->run(BlockJacobiOperation<ValueType, IndexType>::
                       make_find_blocks_operation(csr_mtx, this->max_block_size_,
                                                  this->num_blocks_,

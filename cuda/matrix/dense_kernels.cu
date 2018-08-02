@@ -87,8 +87,8 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
         auto alpha = one<ValueType>();
         auto beta = zero<ValueType>();
-        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size().num_cols,
-                     c->get_size().num_rows, a->get_size().num_cols, &alpha,
+        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
+                     c->get_size()[0], a->get_size()[1], &alpha,
                      b->get_const_values(), b->get_stride(),
                      a->get_const_values(), a->get_stride(), &beta,
                      c->get_values(), c->get_stride());
@@ -109,8 +109,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = cublas::init();
-        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size().num_cols,
-                     c->get_size().num_rows, a->get_size().num_cols,
+        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
+                     c->get_size()[0], a->get_size()[1],
                      alpha->get_const_values(), b->get_const_values(),
                      b->get_stride(), a->get_const_values(), a->get_stride(),
                      beta->get_const_values(), c->get_values(),
@@ -155,21 +155,21 @@ template <typename ValueType>
 void scale(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (cublas::is_supported<ValueType>::value && x->get_size().num_cols == 1) {
+    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
         auto handle = cublas::init();
-        cublas::scal(handle, x->get_size().num_rows, alpha->get_const_values(),
+        cublas::scal(handle, x->get_size()[0], alpha->get_const_values(),
                      x->get_values(), x->get_stride());
         cublas::destroy(handle);
     } else {
         // TODO: tune this parameter
         constexpr auto block_size = default_block_size;
-        const dim3 grid_dim = ceildiv(
-            x->get_size().num_rows * x->get_size().num_cols, block_size);
+        const dim3 grid_dim =
+            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
         const dim3 block_dim{cuda_config::warp_size, 1,
                              block_size / cuda_config::warp_size};
         kernel::scale<block_size><<<grid_dim, block_dim>>>(
-            x->get_size().num_rows, x->get_size().num_cols,
-            alpha->get_size().num_cols, as_cuda_type(alpha->get_const_values()),
+            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
+            as_cuda_type(alpha->get_const_values()),
             as_cuda_type(x->get_values()), x->get_stride());
     }
 }
@@ -207,22 +207,22 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (cublas::is_supported<ValueType>::value && x->get_size().num_cols == 1) {
+    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
         auto handle = cublas::init();
-        cublas::axpy(handle, x->get_size().num_rows, alpha->get_const_values(),
+        cublas::axpy(handle, x->get_size()[0], alpha->get_const_values(),
                      x->get_const_values(), x->get_stride(), y->get_values(),
                      y->get_stride());
         cublas::destroy(handle);
     } else {
         // TODO: tune this parameter
         constexpr auto block_size = default_block_size;
-        const dim3 grid_dim = ceildiv(
-            x->get_size().num_rows * x->get_size().num_cols, block_size);
+        const dim3 grid_dim =
+            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
         const dim3 block_dim{cuda_config::warp_size, 1,
                              block_size / cuda_config::warp_size};
         kernel::add_scaled<block_size><<<grid_dim, block_dim>>>(
-            x->get_size().num_rows, x->get_size().num_cols,
-            alpha->get_size().num_cols, as_cuda_type(alpha->get_const_values()),
+            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
+            as_cuda_type(alpha->get_const_values()),
             as_cuda_type(x->get_const_values()), x->get_stride(),
             as_cuda_type(y->get_values()), y->get_stride());
     }
@@ -299,11 +299,10 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
     if (cublas::is_supported<ValueType>::value) {
         auto handle = cublas::init();
         // TODO: write a custom kernel which does this more efficiently
-        for (size_type col = 0; col < x->get_size().num_cols; ++col) {
-            cublas::dot(handle, x->get_size().num_rows,
-                        x->get_const_values() + col, x->get_stride(),
-                        y->get_const_values() + col, y->get_stride(),
-                        result->get_values() + col);
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            cublas::dot(handle, x->get_size()[0], x->get_const_values() + col,
+                        x->get_stride(), y->get_const_values() + col,
+                        y->get_stride(), result->get_values() + col);
         }
         cublas::destroy(handle);
     } else {
@@ -314,17 +313,16 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
         constexpr auto block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
-        const dim3 grid_dim = ceildiv(x->get_size().num_rows, work_per_block);
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
         const dim3 block_dim{cuda_config::warp_size, 1,
                              block_size / cuda_config::warp_size};
         Array<ValueType> work(exec, grid_dim.x);
         // TODO: write a kernel which does this more efficiently
-        for (size_type col = 0; col < x->get_size().num_cols; ++col) {
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
             kernel::compute_partial_dot<block_size><<<grid_dim, block_dim>>>(
-                x->get_size().num_rows,
-                as_cuda_type(x->get_const_values() + col), x->get_stride(),
-                as_cuda_type(y->get_const_values() + col), y->get_stride(),
-                as_cuda_type(work.get_data()));
+                x->get_size()[0], as_cuda_type(x->get_const_values() + col),
+                x->get_stride(), as_cuda_type(y->get_const_values() + col),
+                y->get_stride(), as_cuda_type(work.get_data()));
             kernel::finalize_dot_computation<block_size><<<1, block_dim>>>(
                 grid_dim.x, as_cuda_type(work.get_const_data()),
                 as_cuda_type(result->get_values() + col));
@@ -465,12 +463,11 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
 
         auto alpha = one<ValueType>();
         auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N,
-                     orig->get_size().num_rows, orig->get_size().num_cols,
-                     &alpha, orig->get_const_values(), orig->get_stride(),
-                     &beta, static_cast<ValueType *>(nullptr),
-                     trans->get_size().num_cols, trans->get_values(),
-                     trans->get_stride());
+        cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
+                     orig->get_size()[1], &alpha, orig->get_const_values(),
+                     orig->get_stride(), &beta,
+                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
+                     trans->get_values(), trans->get_stride());
 
         cublas::destroy(handle);
     } else {
@@ -494,12 +491,11 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 
         auto alpha = one<ValueType>();
         auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N,
-                     orig->get_size().num_rows, orig->get_size().num_cols,
-                     &alpha, orig->get_const_values(), orig->get_stride(),
-                     &beta, static_cast<ValueType *>(nullptr),
-                     trans->get_size().num_cols, trans->get_values(),
-                     trans->get_stride());
+        cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
+                     orig->get_size()[1], &alpha, orig->get_const_values(),
+                     orig->get_stride(), &beta,
+                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
+                     trans->get_values(), trans->get_stride());
 
         cublas::destroy(handle);
     } else {

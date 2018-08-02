@@ -49,7 +49,7 @@ protected:
 
     Sellp()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Sellp<>::create(exec, gko::dim{2, 3}, 3))
+          mtx(gko::matrix::Sellp<>::create(exec, gko::dim<2>{2, 3}, 3))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
@@ -92,7 +92,7 @@ protected:
         auto slice_size = m->get_slice_size();
         auto stride_factor = m->get_stride_factor();
         auto total_cols = m->get_total_cols();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 192);
         ASSERT_EQ(m->get_slice_size(), gko::matrix::default_slice_size);
         ASSERT_EQ(m->get_stride_factor(), gko::matrix::default_stride_factor);
@@ -124,7 +124,7 @@ protected:
         auto slice_size = m->get_slice_size();
         auto stride_factor = m->get_stride_factor();
         auto total_cols = m->get_total_cols();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 8);
         ASSERT_EQ(m->get_slice_size(), 2);
         ASSERT_EQ(m->get_stride_factor(), 2);
@@ -148,7 +148,7 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_total_cols(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
@@ -161,7 +161,7 @@ protected:
 
 TEST_F(Sellp, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 192);
     ASSERT_EQ(mtx->get_slice_size(), gko::matrix::default_slice_size);
     ASSERT_EQ(mtx->get_stride_factor(), gko::matrix::default_stride_factor);
@@ -181,9 +181,9 @@ TEST_F(Sellp, CanBeEmpty)
 
 TEST_F(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
 {
-    auto mtx = Mtx::create(exec, gko::dim{2, 3}, 2, 2, 3);
+    auto mtx = Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 3);
 
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(mtx->get_slice_size(), 2);
     ASSERT_EQ(mtx->get_stride_factor(), 2);
@@ -247,7 +247,7 @@ TEST_F(Sellp, CanBeReadFromMatrixData)
 
 TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
 {
-    auto m = Mtx::create(exec, gko::dim{2, 3}, 2, 2, 3);
+    auto m = Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 3);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -266,7 +266,7 @@ TEST_F(Sellp, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

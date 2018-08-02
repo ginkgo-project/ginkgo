@@ -52,7 +52,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 2),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim{5, 5}, 13))
+          mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5, 5}, 13))
     {
         block_pointers.get_data()[0] = 2;
         block_pointers.get_data()[1] = 3;
@@ -107,7 +107,7 @@ protected:
           bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 2),
           block_precisions(exec, 2),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim{5, 5}, 13))
+          mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5, 5}, 13))
     {
         block_pointers.get_data()[0] = 2;
         block_pointers.get_data()[1] = 3;

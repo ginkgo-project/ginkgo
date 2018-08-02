@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATRIX_DATA_HPP_
 
 
+#include "core/base/dim.hpp"
 #include "core/base/math.hpp"
 #include "core/base/range.hpp"
 #include "core/base/range_accessors.hpp"
@@ -136,17 +137,17 @@ struct matrix_data {
     /**
      * Initializes a matrix filled with the specified value.
      *
-     * @param size_  the size of the matrix
+     * @param size_  dimensions of the matrix
      * @param value  value used to fill the elements of the matrix
      */
-    matrix_data(dim size_ = dim{}, ValueType value = zero<ValueType>())
+    matrix_data(dim<2> size_ = dim<2>{}, ValueType value = zero<ValueType>())
         : size{size_}
     {
         if (value == zero<ValueType>()) {
             return;
         }
-        for (size_type row = 0; row < size.num_rows; ++row) {
-            for (size_type col = 0; col < size.num_cols; ++col) {
+        for (size_type row = 0; row < size[0]; ++row) {
+            for (size_type col = 0; col < size[1]; ++col) {
                 nonzeros.emplace_back(row, col, value);
             }
         }
@@ -158,16 +159,16 @@ struct matrix_data {
      * @tparam RandomDistribution  random distribution type
      * @tparam RandomEngine  random engine type
      *
-     * @param size_  the size of the matrix
+     * @param size_  dimensions of the matrix
      * @param dist  random distribution of the elements of the matrix
      * @param engine  random engine used to generate random values
      */
     template <typename RandomDistribution, typename RandomEngine>
-    matrix_data(dim size_, RandomDistribution &&dist, RandomEngine &&engine)
+    matrix_data(dim<2> size_, RandomDistribution &&dist, RandomEngine &&engine)
         : size{size_}
     {
-        for (size_type row = 0; row < size.num_rows; ++row) {
-            for (size_type col = 0; col < size.num_cols; ++col) {
+        for (size_type row = 0; row < size[0]; ++row) {
+            for (size_type col = 0; col < size[1]; ++col) {
                 const auto value =
                     detail::get_rand_value<ValueType>(dist, engine);
                 if (value != zero<ValueType>()) {
@@ -187,7 +188,7 @@ struct matrix_data {
     {
         for (size_type row = 0; row < values.size(); ++row) {
             const auto row_data = begin(values)[row];
-            size.num_cols = std::max(size.num_cols, row_data.size());
+            size[1] = std::max(size[1], row_data.size());
             for (size_type col = 0; col < row_data.size(); ++col) {
                 const auto &val = begin(row_data)[col];
                 if (val != zero<ValueType>()) {
@@ -200,11 +201,11 @@ struct matrix_data {
     /**
      * Initializes the structure from a list of nonzeros.
      *
-     * @param size_  the size of the matrix
+     * @param size_  dimensions of the matrix
      * @param nonzeros_  list of nonzero elements
      */
     matrix_data(
-        dim size_,
+        dim<2> size_,
         std::initializer_list<detail::input_triple<ValueType, IndexType>>
             nonzeros_)
         : size{size_}, nonzeros()
@@ -221,16 +222,16 @@ struct matrix_data {
      * @param size  size of the block-matrix (in blocks)
      * @param diag_block  matrix block used to fill the complete matrix
      */
-    matrix_data(dim size_, const matrix_data &block) : size{size_ * block.size}
+    matrix_data(dim<2> size_, const matrix_data &block)
+        : size{size_ * block.size}
     {
-        nonzeros.reserve(size_.num_rows * size_.num_cols *
-                         block.nonzeros.size());
-        for (int row = 0; row < size_.num_rows; ++row) {
-            for (int col = 0; col < size_.num_cols; ++col) {
+        nonzeros.reserve(size_[0] * size_[1] * block.nonzeros.size());
+        for (int row = 0; row < size_[0]; ++row) {
+            for (int col = 0; col < size_[1]; ++col) {
                 for (const auto &elem : block.nonzeros) {
-                    nonzeros.emplace_back(
-                        row * block.size.num_rows + elem.row,
-                        col * block.size.num_cols + elem.column, elem.value);
+                    nonzeros.emplace_back(row * block.size[0] + elem.row,
+                                          col * block.size[1] + elem.column,
+                                          elem.value);
                 }
             }
         }
@@ -248,8 +249,8 @@ struct matrix_data {
     matrix_data(const range<Accessor> &data)
         : size{data.length(0), data.length(1)}
     {
-        for (gko::size_type row = 0; row < size.num_rows; ++row) {
-            for (gko::size_type col = 0; col < size.num_cols; ++col) {
+        for (gko::size_type row = 0; row < size[0]; ++row) {
+            for (gko::size_type col = 0; col < size[1]; ++col) {
                 if (data(row, col) != zero<ValueType>()) {
                     nonzeros.emplace_back(row, col, data(row, col));
                 }
@@ -260,16 +261,16 @@ struct matrix_data {
     /**
      * Initializes a diagonal matrix.
      *
-     * @param size_  the size of the matrix
+     * @param size_  dimensions of the matrix
      * @param value  value used to fill the elements of the matrix
      *
      * @return the diagonal matrix
      */
-    static matrix_data diag(dim size_, ValueType value)
+    static matrix_data diag(dim<2> size_, ValueType value)
     {
         matrix_data res(size_);
         if (value != zero<ValueType>()) {
-            const auto num_nnz = std::min(size_.num_rows, size_.num_cols);
+            const auto num_nnz = std::min(size_[0], size_[1]);
             res.nonzeros.reserve(num_nnz);
             for (int i = 0; i < num_nnz; ++i) {
                 res.nonzeros.emplace_back(i, i, value);
@@ -281,12 +282,12 @@ struct matrix_data {
     /**
      * Initializes a diagonal matrix using a list of diagonal elements.
      *
-     * @param size_  the size of the matrix
+     * @param size_  dimensions of the matrix
      * @param nonzeros_  list of diagonal elements
      *
      * @return the diagonal matrix
      */
-    static matrix_data diag(dim size_,
+    static matrix_data diag(dim<2> size_,
                             std::initializer_list<ValueType> nonzeros_)
     {
         matrix_data res(size_);
@@ -307,15 +308,15 @@ struct matrix_data {
      *
      * @return the block-diagonal matrix
      */
-    static matrix_data diag(dim size_, const matrix_data &block)
+    static matrix_data diag(dim<2> size_, const matrix_data &block)
     {
         matrix_data res(size_ * block.size);
-        const auto num_blocks = std::min(size_.num_rows, size_.num_cols);
+        const auto num_blocks = std::min(size_[0], size_[1]);
         res.nonzeros.reserve(num_blocks * block.nonzeros.size());
         for (int b = 0; b < num_blocks; ++b) {
             for (const auto &elem : block.nonzeros) {
-                res.nonzeros.emplace_back(b * block.size.num_rows + elem.row,
-                                          b * block.size.num_cols + elem.column,
+                res.nonzeros.emplace_back(b * block.size[0] + elem.row,
+                                          b * block.size[1] + elem.column,
                                           elem.value);
             }
         }
@@ -398,7 +399,7 @@ struct matrix_data {
     /**
      * Size of the matrix.
      */
-    dim size;
+    dim<2> size;
 
     /**
      * A vector of tuples storing the non-zeros of the matrix.

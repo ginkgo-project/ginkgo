@@ -176,13 +176,13 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Csr(std::shared_ptr<const Executor> exec, const dim &size = dim{},
+    Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
-          row_ptrs_(exec, size.num_rows + (size.num_rows > 0))
+          row_ptrs_(exec, size[0] + (size[0] > 0))
     {}
 
 
@@ -208,7 +208,7 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    Csr(std::shared_ptr<const Executor> exec, const dim &size,
+    Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs)
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -217,7 +217,7 @@ protected:
     {
         ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
                          col_idxs_.get_num_elems());
-        ENSURE_IN_BOUNDS(this->get_size().num_rows, row_ptrs_.get_num_elems());
+        ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

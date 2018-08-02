@@ -94,13 +94,10 @@ executor Ginkgo will solve the system via the command line.
 The function `f` is set to `f(x) = 6x` (making the solution `u(x) = x^3`), but
 that can be changed in the `main` function.
 
-The intention of the example is to show how Ginkgo can be integrated into
-existing software - the `generate_stencil_matrix`, `generate_rhs`,
-`print_solution`, `compute_error` and `main` function do not reference Ginkgo at
-all (i.e. they could have been there before the application developer decided to
-use Ginkgo, and the only part where Ginkgo is introduced is inside the
-`solve_system` function.
-*****************************<DECSRIPTION>**********************************/
+The intention of the example is to show how Ginkgo can be used to build an
+application solving a real-world problem, which includes a solution of a large,
+sparse linear system as a component.
+ *****************************<DECSRIPTION>**********************************/
 
 #include <include/ginkgo.hpp>
 #include <iostream>
@@ -111,9 +108,12 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
-void generate_stencil_matrix(int discretization_points, int *row_ptrs,
-                             int *col_idxs, double *values)
+void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 {
+    const auto discretization_points = matrix->get_size()[0];
+    auto row_ptrs = matrix->get_row_ptrs();
+    auto col_idxs = matrix->get_col_idxs();
+    auto values = matrix->get_values();
     int pos = 0;
     const double coefs[] = {-1, 2, -1};
     row_ptrs[0] = pos;
@@ -132,26 +132,26 @@ void generate_stencil_matrix(int discretization_points, int *row_ptrs,
 
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure>
-void generate_rhs(int discretization_points, Closure f, double u0, double u1,
-                  double *rhs)
+void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 {
+    const auto discretization_points = rhs->get_size()[0];
+    auto values = rhs->get_values();
     const auto h = 1.0 / (discretization_points + 1);
     for (int i = 0; i < discretization_points; ++i) {
         const auto xi = (i + 1) * h;
-        rhs[i] = -f(xi) * h * h;
+        values[i] = -f(xi) * h * h;
     }
-    rhs[0] += u0;
-    rhs[discretization_points - 1] += u1;
+    values[0] += u0;
+    values[discretization_points - 1] += u1;
 }
 
 
 // Prints the solution `u`.
-void print_solution(int discretization_points, double u0, double u1,
-                    const double *u)
+void print_solution(double u0, double u1, const gko::matrix::Dense<> *u)
 {
     std::cout << u0 << '\n';
-    for (int i = 0; i < discretization_points; ++i) {
-        std::cout << u[i] << '\n';
+    for (int i = 0; i < u->get_size()[0]; ++i) {
+        std::cout << u->get_const_values()[i] << '\n';
     }
     std::cout << u1 << std::endl;
 }
@@ -160,7 +160,7 @@ void print_solution(int discretization_points, double u0, double u1,
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure>
-double calculate_error(int discretization_points, const double *u,
+double calculate_error(int discretization_points, const gko::matrix::Dense<> *u,
                        Closure correct_u)
 {
     const auto h = 1.0 / (discretization_points + 1);
@@ -168,25 +168,31 @@ double calculate_error(int discretization_points, const double *u,
     for (int i = 0; i < discretization_points; ++i) {
         using std::abs;
         const auto xi = (i + 1) * h;
-        error += abs(u[i] - correct_u(xi)) / abs(correct_u(xi));
+        error +=
+            abs(u->get_const_values()[i] - correct_u(xi)) / abs(correct_u(xi));
     }
     return error;
 }
 
 
-void solve_system(const std::string &executor_string,
-                  unsigned int discretization_points, int *row_ptrs,
-                  int *col_idxs, double *values, double *rhs, double *u,
-                  double accuracy)
+int main(int argc, char *argv[])
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<double>;
     using mtx = gko::matrix::Csr<double, int>;
     using cg = gko::solver::Cg<double>;
     using bj = gko::preconditioner::BlockJacobiFactory<>;
-    using val_array = gko::Array<double>;
-    using idx_array = gko::Array<int>;
-    const auto &dp = discretization_points;
+
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+                  << std::endl;
+        std::exit(-1);
+    }
+
+    // Get number of discretization points
+    const unsigned int discretization_points =
+        argc >= 2 ? std::atoi(argv[1]) : 100;
+    const auto executor_string = argc >= 3 ? argv[2] : "reference";
 
     // Figure out where to run the code
     const auto omp = gko::OmpExecutor::create();
@@ -194,73 +200,11 @@ void solve_system(const std::string &executor_string,
         {"omp", omp},
         {"cuda", gko::CudaExecutor::create(0, omp)},
         {"reference", gko::ReferenceExecutor::create()}};
+
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string);  // throws if not valid
-    // executor where the application initialized the data
+    // executor used by the application
     const auto app_exec = exec_map["omp"];
-
-    // Tell Ginkgo to use the data in our application
-
-    // Matrix: we have to set the executor of the matrix to the one where we
-    // want SpMVs to run (in this case `exec`). When creating array views, we
-    // have to specify the executor where the data is (in this case `app_exec`).
-    //
-    // If the two do not match, Ginkgo will automatically create a copy of the
-    // data on `exec` (however, it will not copy the data back once it is done
-    // - here this is not important since we are not modifying the matrix).
-    auto matrix = mtx::create(exec, gko::dim<2>(dp),
-                              val_array::view(app_exec, 3 * dp - 2, values),
-                              idx_array::view(app_exec, 3 * dp - 2, col_idxs),
-                              idx_array::view(app_exec, dp + 1, row_ptrs));
-
-    // RHS: similar to matrix
-    auto b = vec::create(exec, gko::dim<2>(dp, 1),
-                         val_array::view(app_exec, dp, rhs), 1);
-
-    // Solution: we have to be careful here - if the executors are different,
-    // once we compute the solution the array will not be automatically copied
-    // back to the original memory locations. Fortunately, whenever `apply` is
-    // called on a linear operator (e.g. matrix, solver) the arguments
-    // automatically get copied to the executor where the operator is, and
-    // copied back once the operation is completed. Thus, in this case, we can
-    // just define the solution on `app_exec`, and it will be automatically
-    // transferred to/from `exec` if needed.
-    auto x = vec::create(app_exec, gko::dim<2>(dp, 1),
-                         val_array::view(app_exec, dp, u), 1);
-
-    // Generate solver
-    auto solver_gen =
-        cg::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(dp)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(accuracy)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            // something fails here:
-            // .with_preconditioner(bj::create(exec, 32))
-            .on_executor(exec);
-    auto solver = solver_gen->generate(gko::give(matrix));
-
-    // Solve system
-    solver->apply(gko::lend(b), gko::lend(x));
-}
-
-
-int main(int argc, char *argv[])
-{
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << std::endl;
-        std::exit(-1);
-    }
-
-    const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
 
     // problem:
     auto correct_u = [](double x) { return x * x * x; };
@@ -268,26 +212,38 @@ int main(int argc, char *argv[])
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
-    // matrix
-    std::vector<int> row_ptrs(discretization_points + 1);
-    std::vector<int> col_idxs(3 * discretization_points - 2);
-    std::vector<double> values(3 * discretization_points - 2);
-    // right hand side
-    std::vector<double> rhs(discretization_points);
-    // solution
-    std::vector<double> u(discretization_points, 0.0);
+    // initialize matrix and vectors
+    auto matrix = mtx::create(app_exec, gko::dim<2>(discretization_points),
+                              3 * discretization_points - 2);
+    generate_stencil_matrix(lend(matrix));
+    auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    generate_rhs(f, u0, u1, lend(rhs));
+    auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    for (int i = 0; i < u->get_size()[0]; ++i) {
+        u->get_values()[i] = 0.0;
+    }
 
-    generate_stencil_matrix(discretization_points, row_ptrs.data(),
-                            col_idxs.data(), values.data());
-    // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
-    generate_rhs(discretization_points, f, u0, u1, rhs.data());
+    // Generate solver and solve the system
+    cg::Factory::create()
+        .with_criterion(
+            gko::stop::Combined::Factory::create()
+                .with_criteria(
+                    gko::stop::Iteration::Factory::create()
+                        .with_max_iters(discretization_points)
+                        .on_executor(exec),
+                    gko::stop::ResidualNormReduction<>::Factory::create()
+                        .with_reduction_factor(1e-6)
+                        .on_executor(exec))
+                .on_executor(exec))
+        // something fails here:
+        // .with_preconditioner(bj::create(exec, 32))
+        .on_executor(exec)
+        ->generate(clone(exec, matrix))  // copy the matrix to the executor
+        ->apply(lend(rhs), lend(u));
 
-    solve_system(executor_string, discretization_points, row_ptrs.data(),
-                 col_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);
-
-    print_solution(discretization_points, 0, 1, u.data());
+    print_solution(u0, u1, lend(u));
     std::cout << "The average relative error is "
-              << calculate_error(discretization_points, u.data(), correct_u) /
+              << calculate_error(discretization_points, lend(u), correct_u) /
                      discretization_points
               << std::endl;
 }
