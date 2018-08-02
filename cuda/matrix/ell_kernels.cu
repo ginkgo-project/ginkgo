@@ -63,13 +63,18 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto column_id = blockIdx.y;
-    ValueType temp = zero<ValueType>();
-    IndexType ind = tidx;
-    const IndexType finish = ind + num_stored_elements_per_row * stride;
+
     if (tidx < num_rows) {
-        for (; ind < finish; ind += stride) {
-            temp += val[ind] * b[col[ind] * b_stride + column_id];
+        ValueType temp = zero<ValueType>();
+        const auto column_id = blockIdx.y;
+        for (IndexType idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx * b_stride + column_id];
+            }
         }
         c[tidx * c_stride + column_id] = temp;
     }
@@ -113,16 +118,21 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto column_id = blockIdx.y;
-    ValueType temp = zero<ValueType>();
-    IndexType ind = tidx;
-    const IndexType finish = ind + num_stored_elements_per_row * stride;
+
     if (tidx < num_rows) {
-        for (; ind < finish; ind += stride) {
-            temp += alpha[0] * val[ind] * b[col[ind] * b_stride + column_id];
+        ValueType temp = zero<ValueType>();
+        const auto column_id = blockIdx.y;
+        for (IndexType idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx * b_stride + column_id];
+            }
         }
         c[tidx * c_stride + column_id] =
-            beta[0] * c[tidx * c_stride + column_id] + temp;
+            beta[0] * c[tidx * c_stride + column_id] + alpha[0] * temp;
     }
 }
 
