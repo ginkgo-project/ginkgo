@@ -48,7 +48,6 @@ namespace ell {
 
 
 constexpr int default_block_size = 512;
-constexpr int num_split = 32;
 
 namespace {
 
@@ -62,26 +61,21 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     ValueType *__restrict__ c, const size_type c_stride)
 {
     const auto tidx =
-        static_cast<IndexType>(blockDim.y) * blockIdx.x + threadIdx.y;
-    const auto column_id = blockIdx.y;
-    ValueType temp = zero<ValueType>();
+        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    // const auto ave_num = num_stored_elements_per_row / blockDim.x;
-    // const auto res_num = num_stored_elements_per_row % blockDim.x;
-    IndexType ind = tidx + threadIdx.x * stride;
-    const IndexType finish = tidx + num_stored_elements_per_row * stride;
-    const auto block_stride = num_split*stride;
-    // printf("tidx = %d, ind = %d, finish = %d\n", (int) tidx, (int) ind,
-    // (int)(finish));
     if (tidx < num_rows) {
-        for (; ind < finish; ind += block_stride) {
-            temp += val[ind] * b[col[ind] * b_stride + column_id];
+        ValueType temp = zero<ValueType>();
+        const auto column_id = blockIdx.y;
+        for (IndexType idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx * b_stride + column_id];
+            }
         }
-        auto ans = warp::reduce<num_split>(
-            temp, [](const ValueType &x, const ValueType &y) { return x + y; });
-        if (threadIdx.x == 0) {
-            c[tidx * c_stride + column_id] = ans;
-        }
+        c[tidx * c_stride + column_id] = temp;
     }
 }
 
@@ -94,8 +88,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    const dim3 block_size(num_split, default_block_size / num_split, 1);
-    const dim3 grid_size(ceildiv(a->get_size()[0], block_size.y),
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
                          b->get_size()[1], 1);
 
     spmv_kernel<<<grid_size, block_size, 0, 0>>>(
