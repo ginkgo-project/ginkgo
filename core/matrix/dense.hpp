@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/array.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/mtx_reader.hpp"
+#include "core/base/mtx_io.hpp"
 #include "core/base/types.hpp"
 
 

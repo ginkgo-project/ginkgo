@@ -1,6 +1,6 @@
 set(SOURCES
     base/executor.cpp
-    base/mtx_reader.cpp
+    base/mtx_io.cpp
     base/version.cpp
     log/stream.cpp
     log/logger.cpp
