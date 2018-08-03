@@ -214,12 +214,12 @@ void output(const gko::size_type num, const double val, bool matlab_format)
     std::cout << sep << num << sep << val;
 }
 
-template <typename MatrixType>
+template <typename MatrixType, typename... MatrixArgs>
 void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
              const int test_iter, const mtx &data, vec *x, vec *y,
-             bool matlab_format)
+             bool matlab_format, MatrixArgs &&... args)
 {
-    auto A = MatrixType::create(exec);
+    auto A = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     try {
         A->read(data);
     } catch (...) {
@@ -279,7 +279,8 @@ int main(int argc, char *argv[])
     std::string mtx_list;
     int device_id = 0;
     std::string allow_list(
-        "Coo;Csr;Ell;Hybrid;Sellp;Csrmp;CuspHybrid;CuspCoo;CuspEll");
+        "Coo;Csr;Ell;Hybrid;Hybrid20;Hybrid40;Hybrid60;Hybrid80;Sellp;Csrmp;"
+        "CuspHybrid;CuspCoo;CuspEll");
     std::vector<std::string> format_list;
     bool matlab_format;
     if (argc >= 5) {
@@ -393,6 +394,22 @@ int main(int argc, char *argv[])
             } else if (elem == "CuspEll") {
                 testing<cusp_ell>(exec, warm_iter, test_iter, data, lend(x),
                                   lend(y), matlab_format);
+            } else if (elem == "Hybrid20") {
+                testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                                lend(y), matlab_format,
+                                std::make_shared<hybrid::imbalance_limit>(0.2));
+            } else if (elem == "Hybrid40") {
+                testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                                lend(y), matlab_format,
+                                std::make_shared<hybrid::imbalance_limit>(0.4));
+            } else if (elem == "Hybrid60") {
+                testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                                lend(y), matlab_format,
+                                std::make_shared<hybrid::imbalance_limit>(0.6));
+            } else if (elem == "Hybrid80") {
+                testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
+                                lend(y), matlab_format,
+                                std::make_shared<hybrid::imbalance_limit>(0.8));
             }
         }
         std::cout << std::endl;
