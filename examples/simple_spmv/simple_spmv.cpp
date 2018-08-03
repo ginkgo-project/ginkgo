@@ -351,8 +351,8 @@ int main(int argc, char *argv[])
         if (mtx_file.empty()) {
             continue;
         }
-
-        auto data = gko::read_raw<>(src_folder + '/' + mtx_file);
+        std::ifstream mtx_fd(src_folder + '/' + mtx_file);
+        auto data = gko::read_raw<>(mtx_fd);
         if (matlab_format) {
             std::cout << "% " << mtx_file << std::endl;
         } else {

@@ -35,26 +35,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MTX_READER_HPP_
 
 
+#include <istream>
+
+
 #include "core/base/matrix_data.hpp"
-
-
-#include <memory>
-#include <string>
 
 
 namespace gko {
 
 
-// TODO: replace filenames with streams
-
-
 /**
- * Reads a matrix stored in MTX (matrix market) file.
+ * Reads a matrix stored in matrix market format from an input stream.
  *
  * @tparam ValueType  type of matrix values
  * @tparam IndexType  type of matrix indexes
  *
- * @param filename  filename from which to read the data
+ * @param is  input stream from which to read the data
  *
  * @return A matrix_data structure containing the matrix. The nonzero elements
  *         are sorted in lexicographic order of their (row, colum) indexes.
@@ -63,29 +59,28 @@ namespace gko {
  *       structure. Consider using gko::read instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_raw(const std::string &filename);
+matrix_data<ValueType, IndexType> read_raw(std::istream &is);
 
 
 /**
- * Reads a matrix stored in MTX (matrix market) file.
+ * Reads a matrix stored in matrix market format from an input stream.
  *
  * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
  *                     matrix once it's been read from disk.
  * @tparam MatrixArgs  additional argument types passed to MatrixType
  *                     constructor
  *
- * @param filename  filename from which to read the data
+ * @param is  input stream from which to read the data
  * @param args  additional arguments passed to MatrixType constructor
  *
  * @return A MatrixType LinOp filled with data from filename
  */
-template <typename MatrixType, typename... MatrixArgs>
-inline std::unique_ptr<MatrixType> read(const std::string &filename,
-                                        MatrixArgs &&... args)
+template <typename MatrixType, typename StreamType, typename... MatrixArgs>
+inline std::unique_ptr<MatrixType> read(StreamType &&is, MatrixArgs &&... args)
 {
     auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
     mtx->read(read_raw<typename MatrixType::value_type,
-                       typename MatrixType::index_type>(filename));
+                       typename MatrixType::index_type>(is));
     return mtx;
 }
 

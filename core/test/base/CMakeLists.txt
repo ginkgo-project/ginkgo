@@ -1,5 +1,3 @@
-add_subdirectory(data)
-
 create_test(abstract_factory)
 create_test(array)
 create_test(dim)
@@ -10,7 +8,6 @@ create_test(executor)
 create_test(lin_op)
 create_test(matrix_data)
 create_test(mtx_reader)
-add_dependencies(core_test_base_mtx_reader test_data)
 create_test(polymorphic_object)
 create_test(range)
 create_test(range_accessors)
