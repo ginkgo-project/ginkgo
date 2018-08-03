@@ -85,11 +85,25 @@ public:
         return data;
     }
 
+    void write(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
+               const std::string &header) const
+    {
+        std::istringstream header_stream(header);
+        auto parsed_header = this->read_description_line(header_stream);
+        CHECK_STREAM(os << header,
+                     "error when writing the matrix market header");
+        parsed_header.layout_reader->write_data(
+            os, data, parsed_header.entry_reader,
+            parsed_header.layout_reader_modifier);
+    }
+
 private:
     // entry format hierarchy provides algorithms for reading a single entry of
     // the matrix, depending on its storage scheme:
     struct entry_format {
         virtual ValueType read_entry(std::istream &is) const = 0;
+        virtual void write_entry(std::ostream &os,
+                                 const ValueType &value) const = 0;
     };
 
     // maps entry format specification strings to algorithms
@@ -100,9 +114,33 @@ private:
         ValueType read_entry(std::istream &is) const override
         {
             double result{};
-            is >> result;
+            CHECK_STREAM(is >> result, "error while reading matrix entry");
             return static_cast<ValueType>(result);
         }
+
+        void write_entry(std::ostream &os,
+                         const ValueType &value) const override
+        {
+            write_entry_impl<ValueType>(os, value);
+        }
+
+    private:
+        template <typename T>
+        static xstd::enable_if_t<is_complex<T>()> write_entry_impl(
+            std::ostream &, const T &)
+        {
+            throw STREAM_ERROR(
+                "trying to write a complex matrix into a real entry format");
+        }
+
+        template <typename T>
+        static xstd::enable_if_t<!is_complex<T>()> write_entry_impl(
+            std::ostream &os, const T &value)
+        {
+            CHECK_STREAM(os << static_cast<double>(value),
+                         "error while writing matrix entry");
+        }
+
     } real_format{};
 
     // the value is encoded as a pair of decimal numbers
@@ -110,6 +148,14 @@ private:
         ValueType read_entry(std::istream &is) const override
         {
             return read_entry_impl<ValueType>(is);
+        }
+
+        void write_entry(std::ostream &os,
+                         const ValueType &value) const override
+        {
+            CHECK_STREAM(os << static_cast<double>(real(value)) << ' '
+                            << static_cast<double>(imag(value)),
+                         "error while writing matrix entry");
         }
 
     private:
@@ -120,7 +166,8 @@ private:
             using real_type = remove_complex<T>;
             double real{};
             double imag{};
-            is >> real >> imag;
+            CHECK_STREAM(is >> real >> imag,
+                         "error while reading matrix entry");
             return {static_cast<real_type>(real), static_cast<real_type>(imag)};
         }
 
@@ -131,6 +178,7 @@ private:
             throw STREAM_ERROR(
                 "trying to read a complex matrix into a real storage type");
         }
+
     } complex_format{};
 
     // the value is not stored - it is implicitly set to "1"
@@ -139,6 +187,9 @@ private:
         {
             return one<ValueType>();
         }
+
+        void write_entry(std::ostream &, const ValueType &) const override {}
+
     } pattern_format{};
 
 
@@ -254,6 +305,11 @@ private:
             std::istream &header, std::istream &content,
             const entry_format *entry_reader,
             const storage_modifier *modifier) const = 0;
+
+        virtual void write_data(std::ostream &os,
+                                const matrix_data<ValueType, IndexType> &data,
+                                const entry_format *entry_reader,
+                                const storage_modifier *modifier) const = 0;
     };
 
     // maps storage layout specification strings to algorithms
@@ -289,6 +345,25 @@ private:
             }
             return data;
         }
+
+        void write_data(std::ostream &os,
+                        const matrix_data<ValueType, IndexType> &data,
+                        const entry_format *entry_reader,
+                        const storage_modifier *) const override
+        {
+            // TODO: use the storage modifier
+            CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << ' '
+                            << data.nonzeros.size() << '\n',
+                         "error when writing size information");
+            for (const auto &nonzero : data.nonzeros) {
+                CHECK_STREAM(
+                    os << nonzero.row + 1 << ' ' << nonzero.column + 1 << ' ',
+                    "error when writing matrix index");
+                entry_reader->write_entry(os, nonzero.value);
+                CHECK_STREAM(os << '\n', "error when writing matrix data");
+            }
+        }
+
     } coordinate_layout{};
 
     // the matrix is dense, only the values are stored, without coordinates
@@ -317,6 +392,35 @@ private:
                 }
             }
             return data;
+        }
+
+        void write_data(std::ostream &os,
+                        const matrix_data<ValueType, IndexType> &data,
+                        const entry_format *entry_reader,
+                        const storage_modifier *) const override
+        {
+            using nt = typename matrix_data<ValueType, IndexType>::nonzero_type;
+            auto nonzeros = data.nonzeros;
+            std::sort(begin(nonzeros), end(nonzeros), [](nt x, nt y) {
+                return std::tie(x.column, x.row) < std::tie(y.column, y.row);
+            });
+            IndexType pos = 0;
+            // TODO: use the storage modifier
+            CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << '\n',
+                         "error when writing size information");
+            for (auto j = zero<IndexType>(); j < data.size[1]; ++j) {
+                for (auto i = zero<IndexType>(); i < data.size[0]; ++i) {
+                    if (pos >= nonzeros.size() ||
+                        std::tie(nonzeros[pos].row, nonzeros[pos].column) !=
+                            std::tie(i, j)) {
+                        entry_reader->write_entry(os, zero<ValueType>());
+                    } else {
+                        entry_reader->write_entry(os, nonzeros[pos].value);
+                        ++pos;
+                    }
+                    CHECK_STREAM(os << '\n', "error when writing matrix data");
+                }
+            }
         }
     } array_layout{};
 
@@ -407,9 +511,27 @@ matrix_data<ValueType, IndexType> read_raw(std::istream &is)
 }
 
 
+template <typename ValueType, typename IndexType>
+void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
+               layout_type layout)
+{
+    // TODO: add support for all layout combinations
+    mtx_reader<ValueType, IndexType>::get().write(
+        os, data,
+        std::string("%%MatrixMarket matrix ") +
+            (layout == layout_type::array ? "array" : "coordinate") + " " +
+            (is_complex<ValueType>() ? "complex" : "real") + " general\n");
+}
+
+
 #define DECLARE_READ_RAW(ValueType, IndexType) \
     matrix_data<ValueType, IndexType> read_raw(std::istream &is)
+#define DECLARE_WRITE_RAW(ValueType, IndexType)                   \
+    void write_raw(std::ostream &os,                              \
+                   const matrix_data<ValueType, IndexType> &data, \
+                   layout_type layout);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_WRITE_RAW);
 
 
 }  // namespace gko

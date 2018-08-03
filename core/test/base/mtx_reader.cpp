@@ -257,11 +257,106 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 }
 
 
+TEST(MatrixData, WritesRealMatrixToMatrixMarketArray)
+{
+    // clang-format off
+    gko::matrix_data<> data{
+        {1.0, 2.0},
+        {2.1, 0.0},
+        {3.0, 3.2}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array real general\n"
+              "3 2\n"
+              "1\n"
+              "2.1\n"
+              "3\n"
+              "2\n"
+              "0\n"
+              "3.2\n");
+}
+
+
+TEST(MatrixData, WritesRealMatrixToMatrixMarketCoordinate)
+{
+    // clang-format off
+    gko::matrix_data<> data{
+        {1.0, 2.0},
+        {2.1, 0.0},
+        {3.0, 3.2}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data, gko::layout_type::coordinate);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate real general\n"
+              "3 2 5\n"
+              "1 1 1\n"
+              "1 2 2\n"
+              "2 1 2.1\n"
+              "3 1 3\n"
+              "3 2 3.2\n");
+}
+
+
+TEST(MatrixData, WritesComplexMatrixToMatrixMarketArray)
+{
+    // clang-format off
+    gko::matrix_data<std::complex<double>> data{
+        {{1.0, 0.0}, {2.0, 3.2}},
+        {{2.1, 2.2}, {0.0, 0.0}},
+        {{0.0, 3.0}, {3.2, 5.3}}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array complex general\n"
+              "3 2\n"
+              "1 0\n"
+              "2.1 2.2\n"
+              "0 3\n"
+              "2 3.2\n"
+              "0 0\n"
+              "3.2 5.3\n");
+}
+
+
+TEST(MatrixData, WritesComplexMatrixToMatrixMarketCoordinate)
+{
+    // clang-format off
+    gko::matrix_data<std::complex<double>> data{
+        {{1.0, 0.0}, {2.0, 3.2}},
+        {{2.1, 2.2}, {0.0, 0.0}},
+        {{0.0, 3.0}, {3.2, 5.3}}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data, gko::layout_type::coordinate);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate complex general\n"
+              "3 2 5\n"
+              "1 1 1 0\n"
+              "1 2 2 3.2\n"
+              "2 1 2.1 2.2\n"
+              "3 1 0 3\n"
+              "3 2 3.2 5.3\n");
+}
+
+
 template <typename ValueType, typename IndexType>
 class DummyLinOp
     : public gko::EnableLinOp<DummyLinOp<ValueType, IndexType>>,
       public gko::EnableCreateMethod<DummyLinOp<ValueType, IndexType>>,
-      public gko::ReadableFromMatrixData<ValueType, IndexType> {
+      public gko::ReadableFromMatrixData<ValueType, IndexType>,
+      public gko::WritableToMatrixData<ValueType, IndexType> {
     friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
@@ -271,6 +366,8 @@ public:
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
     void read(const mat_data &data) override { data_ = data; }
+
+    void write(mat_data &data) const override { data = data_; }
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
@@ -314,5 +411,36 @@ TEST(MtxReader, ReadsLinOpFromStream)
     ASSERT_EQ(v[4], tpl(1, 1, 5.0));
     ASSERT_EQ(v[5], tpl(1, 2, 0.0));
 }
+
+
+TEST(MtxReader, WritesLinOpToStream)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
+        iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    write(oss, lend(lin_op));
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array real general\n"
+              "2 3\n"
+              "1\n"
+              "0\n"
+              "3\n"
+              "5\n"
+              "2\n"
+              "0\n");
+}
+
 
 }  // namespace
