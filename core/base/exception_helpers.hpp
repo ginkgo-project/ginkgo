@@ -105,15 +105,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *@throw DimensionMismatch  if the number of rows of _op1 is different from the
  *                          number of columns of _op1.
  */
-#define ASSERT_IS_SQUARE_MATRIX(_op1)                                          \
-    if (::gko::detail::get_size(_op1).num_rows !=                              \
-        ::gko::detail::get_size(_op1).num_cols) {                              \
-        throw ::gko::DimensionMismatch(                                        \
-            __FILE__, __LINE__, __func__, #_op1,                               \
-            ::gko::detail::get_size(_op1).num_rows,                            \
-            ::gko::detail::get_size(_op1).num_cols, #_op1,                     \
-            ::gko::detail::get_size(_op1).num_rows,                            \
-            ::gko::detail::get_size(_op1).num_cols, "expected square matrix"); \
+#define ASSERT_IS_SQUARE_MATRIX(_op1)                                    \
+    if (::gko::detail::get_size(_op1)[0] !=                              \
+        ::gko::detail::get_size(_op1)[1]) {                              \
+        throw ::gko::DimensionMismatch(                                  \
+            __FILE__, __LINE__, __func__, #_op1,                         \
+            ::gko::detail::get_size(_op1)[0],                            \
+            ::gko::detail::get_size(_op1)[1], #_op1,                     \
+            ::gko::detail::get_size(_op1)[0],                            \
+            ::gko::detail::get_size(_op1)[1], "expected square matrix"); \
     }
 
 

@@ -122,8 +122,8 @@ protected:
 
     void make_symetric(Mtx *mtx)
     {
-        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
-            for (int j = i + 1; j < mtx->get_size().num_cols; ++j) {
+        for (int i = 0; i < mtx->get_size()[0]; ++i) {
+            for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
                 mtx->at(i, j) = mtx->at(j, i);
             }
         }
@@ -132,9 +132,9 @@ protected:
     void make_diag_dominant(Mtx *mtx)
     {
         using std::abs;
-        for (int i = 0; i < mtx->get_size().num_rows; ++i) {
+        for (int i = 0; i < mtx->get_size()[0]; ++i) {
             auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size().num_cols; ++j) {
+            for (int j = 0; j < mtx->get_size()[1]; ++j) {
                 sum += abs(mtx->at(i, j));
             }
             mtx->at(i, i) = sum;
@@ -180,12 +180,12 @@ TEST_F(Gmres, OmpGmresInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gmres::initialize(ref, b.get(), r.get(), z.get(),
-                                               p.get(), q.get(), prev_rho.get(),
-                                               rho.get(), stop_status.get());
-    gko::kernels::omp::gmres::initialize(omp, d_b.get(), d_r.get(), d_z.get(),
-                                         d_p.get(), d_q.get(), d_prev_rho.get(),
-                                         d_rho.get(), d_stop_status.get());
+    gko::kernels::reference::gmres::initialize_1(
+        ref, b.get(), r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
+        rho.get(), stop_status.get());
+    gko::kernels::omp::gmres::initialize_1(
+        omp, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
+        d_prev_rho.get(), d_rho.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_r, r, 1e-14);
     ASSERT_MTX_NEAR(d_z, z, 1e-14);

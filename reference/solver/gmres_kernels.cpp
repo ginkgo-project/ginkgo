@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 
 
+#include <iostream>
+
+
 #include "core/base/array.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
@@ -55,16 +58,16 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *b_norm,
                   Array<stopping_status> *stop_status)
 {
-    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+    for (size_type j = 0; j < b->get_size()[1]; ++j) {
         stop_status->get_data()[j].reset();
         b_norm->at(0, j) = zero<ValueType>();
-        for (size_type i = 0; i < b->get_size().num_rows; ++i) {
+        for (size_type i = 0; i < b->get_size()[0]; ++i) {
             b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
         }
         b_norm->at(0, j) = sqrt(b_norm->at(0, j));
     }
-    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < b->get_size()[0]; ++i) {
+        for (size_type j = 0; j < b->get_size()[1]; ++j) {
             r->at(i, j) = b->at(i, j);
             if (i == 0) {
                 e1->at(i, j) = one<ValueType>();
@@ -74,7 +77,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
     for (size_type i = 0; i < solver::default_max_num_iterations; ++i) {
-        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+        for (size_type j = 0; j < b->get_size()[1]; ++j) {
             sn->at(i, j) = zero<ValueType>();
             cs->at(i, j) = zero<ValueType>();
         }
@@ -90,21 +93,25 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *r_norm,
                   matrix::Dense<ValueType> *beta, AccessorType range_Q)
 {
-    for (size_type i = 0; i < r->get_size().num_cols; ++i) {
+    for (size_type i = 0; i < r->get_size()[1]; ++i) {
         r_norm->at(0, i) = 0;
-        for (size_type j = 0; j < r->get_size().num_rows; ++j) {
+        for (size_type j = 0; j < r->get_size()[0]; ++j) {
             r_norm->at(0, i) += r->at(i, j) * r->at(i, j);
         }
         r_norm->at(0, i) = sqrt(r_norm->at(0, i));
     }
-    for (size_type i = 0; i < r->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < r->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < r->get_size()[0]; ++i) {
+        for (size_type j = 0; j < r->get_size()[1]; ++j) {
+            range_Q(i, j) = r->at(i, j) / r_norm->at(0, j);
+        }
+    }
+    for (size_type i = 0; i < solver::default_max_num_iterations + 1; ++i) {
+        for (size_type j = 0; j < r->get_size()[1]; ++j) {
             if (i == 0) {
                 beta->at(i, j) = r_norm->at(0, j);
             } else {
                 beta->at(i, j) = zero<ValueType>();
             }
-            range_Q(i, j) = r->at(i, j) / r_norm->at(0, j);
         }
     }
 }
@@ -118,37 +125,40 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *sn,
             matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
             AccessorType range_Q, AccessorType range_H_k,
-            const size_type iter_id)
+            matrix::Dense<ValueType> *r_norm,
+            const matrix::Dense<ValueType> *b_norm, const size_type iter_id)
 {
     for (size_type k = 0; k < iter_id + 1; ++k) {
-        auto range_Q_i = range_Q(
-            span{0, q->get_size().num_rows},
-            span{q->get_size().num_cols * k, q->get_size().num_cols * (k + 1)});
-        for (size_type i = 0; i < q->get_size().num_cols; ++i) {
-            range_H_k(iter_id, i) = 0;
-            for (size_type j = 0; j < q->get_size().num_rows; ++j) {
-                range_H_k(k, i) += q->at(j, i) * range_Q_i(j, k);
+        for (size_type i = 0; i < q->get_size()[1]; ++i) {
+            range_H_k(k, i) = 0;
+            for (size_type j = 0; j < q->get_size()[0]; ++j) {
+                range_H_k(k, i) +=
+                    q->at(j, i) * range_Q(j, q->get_size()[1] * k + i);
             }
-            for (size_type j = 0; j < q->get_size().num_rows; ++j) {
-                q->at(j, i) -= range_H_k(k, i) * range_Q_i(j, k);
+            for (size_type j = 0; j < q->get_size()[0]; ++j) {
+                q->at(j, i) -=
+                    range_H_k(k, i) * range_Q(j, q->get_size()[1] * k + i);
             }
         }
     }
-    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+
+    for (size_type i = 0; i < q->get_size()[1]; ++i) {
         range_H_k(iter_id + 1, i) = 0;
-        for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+        for (size_type j = 0; j < q->get_size()[0]; ++j) {
             range_H_k(iter_id + 1, i) += q->at(j, i) * q->at(j, i);
         }
-        range_H_k(iter_id + 1, i) = sqrt(range_H_k(iter_id, i));
+        range_H_k(iter_id + 1, i) = sqrt(range_H_k(iter_id + 1, i));
     }
-    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
-        for (size_type j = 0; j < q->get_size().num_rows; ++j) {
+
+    for (size_type i = 0; i < q->get_size()[1]; ++i) {
+        for (size_type j = 0; j < q->get_size()[0]; ++j) {
             q->at(j, i) /= range_H_k(iter_id + 1, i);
+            range_Q(j, q->get_size()[1] * (iter_id + 1) + i) = q->at(j, i);
         }
     }
     // End of arnoldi
 
-    for (size_type i = 0; i < q->get_size().num_cols; ++i) {
+    for (size_type i = 0; i < q->get_size()[1]; ++i) {
         // Start apply givens rotation
         for (size_type j = 0; j < iter_id; ++j) {
             auto temp = cs->at(j, i) * range_H_k(j, i) +
@@ -176,6 +186,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
 
         beta->at(iter_id + 1, i) = -sn->at(iter_id, i) * beta->at(iter_id, i);
         beta->at(iter_id, i) = cs->at(iter_id, i) * beta->at(iter_id, i);
+        r_norm->at(0, i) = abs(beta->at(iter_id + 1, i)) / b_norm->at(0, i);
     }
 }
 
@@ -190,23 +201,22 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             AccessorType range_Q, matrix::Dense<ValueType> *x)
 {
     // Solve upper triangular.
-    for (size_type k = 0; k < beta->get_size().num_cols; ++k) {
-        for (size_type i = iter_num - 1; i >= 0; --i) {
+    for (size_type k = 0; k < beta->get_size()[1]; ++k) {
+        for (int i = iter_num - 1; i >= 0; --i) {
             auto temp = beta->at(i, k);
             for (size_type j = i + 1; j < iter_num; ++j) {
-                temp -= range_H(i, k * beta->get_size().num_cols + j) *
-                        beta->at(j, k);
+                temp -= range_H(i, k * beta->get_size()[1] + j) * y->at(j, k);
             }
-            y->at(i, k) = temp / range_H(i, k * beta->get_size().num_cols + i);
+            y->at(i, k) = temp / range_H(i, k * beta->get_size()[1] + i);
         }
     }
 
     // Solve x
-    for (size_type k = 0; k < x->get_size().num_cols; ++k) {
-        for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+    for (size_type k = 0; k < x->get_size()[1]; ++k) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
             for (size_type j = 0; j < iter_num; ++j) {
                 x->at(i, k) +=
-                    range_Q(i, j * x->get_size().num_cols + k) * y->at(j, k);
+                    range_Q(i, k * x->get_size()[1] + j) * y->at(j, k);
             }
         }
     }

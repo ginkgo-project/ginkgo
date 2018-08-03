@@ -65,7 +65,8 @@ namespace gmres {
                 matrix::Dense<_type> *q, matrix::Dense<_type> *sn,    \
                 matrix::Dense<_type> *cs, matrix::Dense<_type> *beta, \
                 _accessor range_Q, _accessor range_H_k,               \
-                const size_type iter_id)
+                matrix::Dense<_type> *r_norm,                         \
+                const matrix::Dense<_type> *b_norm, const size_type iter_id)
 
 
 #define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)            \

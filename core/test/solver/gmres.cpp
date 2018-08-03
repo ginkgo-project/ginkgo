@@ -82,10 +82,10 @@ protected:
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
-        ASSERT_EQ(m1->get_size().num_rows, m2->get_size().num_rows);
-        ASSERT_EQ(m1->get_size().num_cols, m2->get_size().num_cols);
-        for (gko::size_type i = 0; i < m1->get_size().num_rows; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size().num_cols; ++j) {
+        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
+        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
+        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
+            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
                 EXPECT_EQ(m1->at(i, j), m2->at(i, j));
             }
         }
@@ -101,7 +101,7 @@ TEST_F(Gmres, GmresFactoryKnowsItsExecutor)
 
 TEST_F(Gmres, GmresFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_size(), gko::dim(3, 3));
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
     auto gmres_solver = static_cast<Solver *>(solver.get());
     ASSERT_NE(gmres_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(gmres_solver->get_system_matrix(), mtx);
@@ -114,7 +114,7 @@ TEST_F(Gmres, CanBeCopied)
 
     copy->copy_from(solver.get());
 
-    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -126,7 +126,7 @@ TEST_F(Gmres, CanBeMoved)
 
     copy->copy_from(std::move(solver));
 
-    ASSERT_EQ(copy->get_size(), gko::dim(3, 3));
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
@@ -136,7 +136,7 @@ TEST_F(Gmres, CanBeCloned)
 {
     auto clone = solver->clone();
 
-    ASSERT_EQ(clone->get_size(), gko::dim(3, 3));
+    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
@@ -146,7 +146,7 @@ TEST_F(Gmres, CanBeCleared)
 {
     solver->clear();
 
-    ASSERT_EQ(solver->get_size(), gko::dim(0, 0));
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
@@ -175,7 +175,7 @@ TEST_F(Gmres, CanSetPreconditionerGenerator)
             .get());
 
     ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_size(), gko::dim(3, 3));
+    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 

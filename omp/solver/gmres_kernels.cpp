@@ -58,19 +58,6 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   Array<stopping_status> *stop_status)
 {
     NOT_IMPLEMENTED;
-    // #pragma omp parallel for
-    //     for (size_type j = 0; j < b->get_size().num_cols; ++j) {
-    //         rho->at(j) = zero<ValueType>();
-    //         prev_rho->at(j) = one<ValueType>();
-    //         stop_status->get_data()[j].reset();
-    //     }
-    // #pragma omp parallel for
-    //     for (size_type i = 0; i < b->get_size().num_rows; ++i) {
-    //         for (size_type j = 0; j < b->get_size().num_cols; ++j) {
-    //             r->at(i, j) = b->at(i, j);
-    //             z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
@@ -94,23 +81,10 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *sn,
             matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
             AccessorType range_Q, AccessorType range_H_k,
-            const size_type iter_id)
+            matrix::Dense<ValueType> *r_norm,
+            const matrix::Dense<ValueType> *b_norm, const size_type iter_id)
 {
     NOT_IMPLEMENTED;
-    // #pragma omp parallel for
-    //     for (size_type i = 0; i < p->get_size().num_rows; ++i) {
-    //         for (size_type j = 0; j < p->get_size().num_cols; ++j) {
-    //             if (stop_status->get_const_data()[j].has_stopped()) {
-    //                 continue;
-    //             }
-    //             if (prev_rho->at(j) == zero<ValueType>()) {
-    //                 p->at(i, j) = z->at(i, j);
-    //             } else {
-    //                 auto tmp = rho->at(j) / prev_rho->at(j);
-    //                 p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
@@ -124,19 +98,6 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             AccessorType range_Q, matrix::Dense<ValueType> *x)
 {
     NOT_IMPLEMENTED;
-    // #pragma omp parallel for
-    //     for (size_type i = 0; i < x->get_size().num_rows; ++i) {
-    //         for (size_type j = 0; j < x->get_size().num_cols; ++j) {
-    //             if (stop_status->get_const_data()[j].has_stopped()) {
-    //                 continue;
-    //             }
-    //             if (beta->at(j) != zero<ValueType>()) {
-    //                 auto tmp = rho->at(j) / beta->at(j);
-    //                 x->at(i, j) += tmp * p->at(i, j);
-    //                 r->at(i, j) -= tmp * q->at(i, j);
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(

@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cg.hpp>
+#include <core/solver/gmres.hpp>
 
 
 #include <gtest/gtest.h>
@@ -50,15 +50,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Cg : public ::testing::Test {
+class Gmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    Cg()
+    Gmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cg_factory(
-              gko::solver::Cg<>::Factory::create()
+          gmres_factory(
+              gko::solver::Gmres<>::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
                           .with_criteria(
@@ -75,15 +75,15 @@ protected:
                           .on_executor(exec))
                   .on_executor(exec)),
           mtx_big(gko::initialize<Mtx>(
-              {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
-               {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
-               {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
-               {-3139.5, 73.0, 2656.0, 6048.0, 665.0, -132.0},
-               {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
-               {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
+              {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
+               {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
+               {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
+               {-1907.1, 2106.6, 1026.0, 634.7, 194.6, -534.1},
+               {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
+               {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
               exec)),
-          cg_factory_big(
-              gko::solver::Cg<>::Factory::create()
+          gmres_factory_big(
+              gko::solver::Gmres<>::Factory::create()
                   .with_criterion(
                       gko::stop::Combined::Factory::create()
                           .with_criteria(gko::stop::Iteration::Factory::create()
@@ -100,26 +100,28 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::Cg<>::Factory> cg_factory;
-    std::unique_ptr<gko::solver::Cg<>::Factory> cg_factory_big;
+    std::unique_ptr<gko::solver::Gmres<>::Factory> gmres_factory;
+    std::unique_ptr<gko::solver::Gmres<>::Factory> gmres_factory_big;
 };
 
 
-TEST_F(Cg, SolvesStencilSystem)
+TEST_F(Gmres, SolvesStencilSystem)
 {
-    auto solver = cg_factory->generate(mtx);
+    auto solver = gmres_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
 
+    std::cout << "After apply" << std::endl;
+
     ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
 
-TEST_F(Cg, SolvesMultipleStencilSystems)
+TEST_F(Gmres, SolvesMultipleStencilSystems)
 {
-    auto solver = cg_factory->generate(mtx);
+    auto solver = gmres_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
 
@@ -129,9 +131,9 @@ TEST_F(Cg, SolvesMultipleStencilSystems)
 }
 
 
-TEST_F(Cg, SolvesStencilSystemUsingAdvancedApply)
+TEST_F(Gmres, SolvesStencilSystemUsingAdvancedApply)
 {
-    auto solver = cg_factory->generate(mtx);
+    auto solver = gmres_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
@@ -143,9 +145,9 @@ TEST_F(Cg, SolvesStencilSystemUsingAdvancedApply)
 }
 
 
-TEST_F(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TEST_F(Gmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    auto solver = cg_factory->generate(mtx);
+    auto solver = gmres_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
     auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
@@ -157,9 +159,9 @@ TEST_F(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Cg, SolvesBigDenseSystem1)
+TEST_F(Gmres, SolvesBigDenseSystem1)
 {
-    auto solver = cg_factory_big->generate(mtx_big);
+    auto solver = gmres_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
@@ -170,9 +172,9 @@ TEST_F(Cg, SolvesBigDenseSystem1)
 }
 
 
-TEST_F(Cg, SolvesBigDenseSystem2)
+TEST_F(Gmres, SolvesBigDenseSystem2)
 {
-    auto solver = cg_factory_big->generate(mtx_big);
+    auto solver = gmres_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
@@ -187,7 +189,7 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 {
     using std::abs;
     double norm = 0.0;
-    for (size_t i = 0; i < mat->get_size().num_rows; ++i) {
+    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
         double absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
@@ -195,9 +197,9 @@ double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
 }
 
 
-TEST_F(Cg, SolvesMultipleDenseSystemForDivergenceCheck)
+TEST_F(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
 {
-    auto solver = cg_factory_big->generate(mtx_big);
+    auto solver = gmres_factory_big->generate(mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
     auto b2 = gko::initialize<Mtx>(
@@ -206,9 +208,9 @@ TEST_F(Cg, SolvesMultipleDenseSystemForDivergenceCheck)
     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
     auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
-    auto bc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_rows, 2});
-    auto xc = Mtx::create(exec, gko::dim{mtx_big->get_size().num_cols, 2});
-    for (size_t i = 0; i < bc->get_size().num_rows; ++i) {
+    auto bc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[0], 2});
+    auto xc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[1], 2});
+    for (size_t i = 0; i < bc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
 
@@ -219,8 +221,8 @@ TEST_F(Cg, SolvesMultipleDenseSystemForDivergenceCheck)
     solver->apply(b1.get(), x1.get());
     solver->apply(b2.get(), x2.get());
     solver->apply(bc.get(), xc.get());
-    auto mergedRes = Mtx::create(exec, gko::dim{b1->get_size().num_rows, 2});
-    for (size_t i = 0; i < mergedRes->get_size().num_rows; ++i) {
+    auto mergedRes = Mtx::create(exec, gko::dim<2>{b1->get_size()[0], 2});
+    for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }
