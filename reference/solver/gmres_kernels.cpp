@@ -34,9 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 
 
-#include <iostream>
-
-
 #include "core/base/array.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/math.hpp"
