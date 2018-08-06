@@ -31,6 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <core/solver/gmres.cpp>
 #include <core/solver/gmres.hpp>
 
 
@@ -54,6 +55,7 @@ class Gmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using Solver = gko::solver::Gmres<>;
+    using Big_solver = gko::solver::Gmres<double, 128>;
 
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
@@ -72,13 +74,29 @@ protected:
                                                  .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
-          solver(gmres_factory->generate(mtx))
+          solver(gmres_factory->generate(mtx)),
+          gmres_big_factory(
+              Big_solver::Factory::create()
+                  .with_criterion(
+                      gko::stop::Combined::Factory::create()
+                          .with_criteria(gko::stop::Iteration::Factory::create()
+                                             .with_max_iters(128u)
+                                             .on_executor(exec),
+                                         gko::stop::ResidualNormReduction<>::
+                                             Factory::create()
+                                                 .with_reduction_factor(1e-6)
+                                                 .on_executor(exec))
+                          .on_executor(exec))
+                  .on_executor(exec)),
+          big_solver(gmres_big_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<Solver::Factory> gmres_factory;
     std::unique_ptr<gko::LinOp> solver;
+    std::unique_ptr<Big_solver::Factory> gmres_big_factory;
+    std::unique_ptr<gko::LinOp> big_solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {

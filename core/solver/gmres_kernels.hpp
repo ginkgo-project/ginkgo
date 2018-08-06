@@ -46,35 +46,38 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                          \
-    void initialize_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                      const matrix::Dense<_type> *b, matrix::Dense<_type> *r, \
-                      matrix::Dense<_type> *e1, matrix::Dense<_type> *sn,     \
-                      matrix::Dense<_type> *cs, matrix::Dense<_type> *b_norm, \
-                      Array<size_type> *iter_nums,                            \
-                      Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                         \
+    void initialize_1(                                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,         \
+        matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,    \
+        matrix::Dense<_type> *givens_cos, Array<size_type> *final_iter_nums, \
+        Array<stopping_status> *stop_status, const int max_iter)
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
-                      const matrix::Dense<_type> *r,               \
-                      matrix::Dense<_type> *r_norm,                \
-                      matrix::Dense<_type> *beta, _accessor range_Q)
+                      const matrix::Dense<_type> *residual,        \
+                      matrix::Dense<_type> *residual_norm,         \
+                      matrix::Dense<_type> *residual_norms,        \
+                      _accessor range_Krylov_bases, const int max_iter)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)                     \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *q, \
-        matrix::Dense<_type> *sn, matrix::Dense<_type> *cs,                   \
-        matrix::Dense<_type> *beta, _accessor range_Q, _accessor range_H_k,   \
-        matrix::Dense<_type> *r_norm, const matrix::Dense<_type> *b_norm,     \
+        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos,   \
+        matrix::Dense<_type> *residual_norm,                                  \
+        matrix::Dense<_type> *residual_norms, _accessor range_Krylov_bases,   \
+        _accessor range_Hessenberg_iter, const matrix::Dense<_type> *b_norm,  \
         const size_type iter_id, const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)                   \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
-                const matrix::Dense<_type> *beta, _accessor range_H,        \
-                const Array<size_type> *iter_nums, matrix::Dense<_type> *y, \
-                _accessor range_Q, matrix::Dense<_type> *x)
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)                 \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,              \
+                const matrix::Dense<_type> *residual_norms,               \
+                _accessor range_Krylov_bases, _accessor range_Hessenberg, \
+                matrix::Dense<_type> *y, matrix::Dense<_type> *x,         \
+                const Array<size_type> *final_iter_nums)
 
 
 #define DECLARE_ALL_AS_TEMPLATES                                    \

@@ -50,35 +50,30 @@ namespace gmres {
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
-                  matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
-                  matrix::Dense<ValueType> *b_norm, Array<size_type> *iter_nums,
-                  Array<stopping_status> *stop_status)
+                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<ValueType> *residual,
+                  matrix::Dense<ValueType> *givens_sin,
+                  matrix::Dense<ValueType> *givens_cos,
+                  Array<size_type> *final_iter_nums,
+                  Array<stopping_status> *stop_status, const int max_iter)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        stop_status->get_data()[j].reset();
-        iter_nums->get_data()[j] = 0;
+        // Calculate b norm
         b_norm->at(0, j) = zero<ValueType>();
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
         }
         b_norm->at(0, j) = sqrt(b_norm->at(0, j));
-    }
-    for (size_type i = 0; i < b->get_size()[0]; ++i) {
-        for (size_type j = 0; j < b->get_size()[1]; ++j) {
-            r->at(i, j) = b->at(i, j);
-            if (i == 0) {
-                e1->at(i, j) = one<ValueType>();
-            } else {
-                e1->at(i, j) = zero<ValueType>();
-            }
+
+        for (size_type i = 0; i < b->get_size()[0]; ++i) {
+            residual->at(i, j) = b->at(i, j);
         }
-    }
-    for (size_type i = 0; i < solver::default_max_num_iterations; ++i) {
-        for (size_type j = 0; j < b->get_size()[1]; ++j) {
-            sn->at(i, j) = zero<ValueType>();
-            cs->at(i, j) = zero<ValueType>();
+        for (size_type i = 0; i < max_iter; ++i) {
+            givens_sin->at(i, j) = zero<ValueType>();
+            givens_cos->at(i, j) = zero<ValueType>();
         }
+        final_iter_nums->get_data()[j] = 0;
+        stop_status->get_data()[j].reset();
     }
 }
 
@@ -87,29 +82,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 template <typename ValueType, typename AccessorType>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType> *r,
-                  matrix::Dense<ValueType> *r_norm,
-                  matrix::Dense<ValueType> *beta, AccessorType range_Q)
+                  const matrix::Dense<ValueType> *residual,
+                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<ValueType> *residual_norms,
+                  AccessorType range_Krylov_bases, const int max_iter)
 {
-    for (size_type i = 0; i < r->get_size()[1]; ++i) {
-        r_norm->at(0, i) = 0;
-        for (size_type j = 0; j < r->get_size()[0]; ++j) {
-            r_norm->at(0, i) += r->at(j, i) * r->at(j, i);
+    for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        // Calculate residual norm
+        residual_norm->at(0, j) = 0;
+        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
+            residual_norm->at(0, j) += residual->at(i, j) * residual->at(i, j);
         }
-        r_norm->at(0, i) = sqrt(r_norm->at(0, i));
-    }
-    for (size_type i = 0; i < r->get_size()[0]; ++i) {
-        for (size_type j = 0; j < r->get_size()[1]; ++j) {
-            range_Q(i, j) = r->at(i, j) / r_norm->at(0, j);
-        }
-    }
-    for (size_type i = 0; i < solver::default_max_num_iterations + 1; ++i) {
-        for (size_type j = 0; j < r->get_size()[1]; ++j) {
+        residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
+
+        for (size_type i = 0; i < max_iter + 1; ++i) {
             if (i == 0) {
-                beta->at(i, j) = r_norm->at(0, j);
+                residual_norms->at(i, j) = residual_norm->at(0, j);
             } else {
-                beta->at(i, j) = zero<ValueType>();
+                residual_norms->at(i, j) = zero<ValueType>();
             }
+        }
+        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
+            range_Krylov_bases(i, j) =
+                residual->at(i, j) / residual_norm->at(0, j);
         }
     }
 }
@@ -120,84 +115,81 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
 
 template <typename ValueType, typename AccessorType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *sn,
-            matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
-            AccessorType range_Q, AccessorType range_H_k,
-            matrix::Dense<ValueType> *r_norm,
+            matrix::Dense<ValueType> *Krylov_basis,
+            matrix::Dense<ValueType> *givens_sin,
+            matrix::Dense<ValueType> *givens_cos,
+            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<ValueType> *residual_norms,
+            AccessorType range_Krylov_bases, AccessorType range_Hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter_id,
             const Array<stopping_status> *stop_status)
 {
-    for (size_type k = 0; k < iter_id + 1; ++k) {
-        for (size_type i = 0; i < q->get_size()[1]; ++i) {
+    for (size_type i = 0; i < Krylov_basis->get_size()[1]; ++i) {
+        for (size_type k = 0; k < iter_id + 1; ++k) {
             if (stop_status->get_const_data()[i].has_stopped()) {
                 continue;
             }
-            range_H_k(k, i) = 0;
-            for (size_type j = 0; j < q->get_size()[0]; ++j) {
-                range_H_k(k, i) +=
-                    q->at(j, i) * range_Q(j, q->get_size()[1] * k + i);
+            range_Hessenberg_iter(k, i) = 0;
+            for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
+                range_Hessenberg_iter(k, i) +=
+                    Krylov_basis->at(j, i) *
+                    range_Krylov_bases(j, Krylov_basis->get_size()[1] * k + i);
             }
-            for (size_type j = 0; j < q->get_size()[0]; ++j) {
-                q->at(j, i) -=
-                    range_H_k(k, i) * range_Q(j, q->get_size()[1] * k + i);
+            for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
+                Krylov_basis->at(j, i) -=
+                    range_Hessenberg_iter(k, i) *
+                    range_Krylov_bases(j, Krylov_basis->get_size()[1] * k + i);
             }
         }
-    }
+        range_Hessenberg_iter(iter_id + 1, i) = 0;
+        for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
+            range_Hessenberg_iter(iter_id + 1, i) +=
+                Krylov_basis->at(j, i) * Krylov_basis->at(j, i);
+        }
+        range_Hessenberg_iter(iter_id + 1, i) =
+            sqrt(range_Hessenberg_iter(iter_id + 1, i));
+        for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
+            Krylov_basis->at(j, i) /= range_Hessenberg_iter(iter_id + 1, i);
+            range_Krylov_bases(j, Krylov_basis->get_size()[1] * (iter_id + 1) +
+                                      i) = Krylov_basis->at(j, i);
+        }
+        // End of arnoldi
 
-    for (size_type i = 0; i < q->get_size()[1]; ++i) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
-            continue;
-        }
-        range_H_k(iter_id + 1, i) = 0;
-        for (size_type j = 0; j < q->get_size()[0]; ++j) {
-            range_H_k(iter_id + 1, i) += q->at(j, i) * q->at(j, i);
-        }
-        range_H_k(iter_id + 1, i) = sqrt(range_H_k(iter_id + 1, i));
-    }
-
-    for (size_type i = 0; i < q->get_size()[1]; ++i) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
-            continue;
-        }
-        for (size_type j = 0; j < q->get_size()[0]; ++j) {
-            q->at(j, i) /= range_H_k(iter_id + 1, i);
-            range_Q(j, q->get_size()[1] * (iter_id + 1) + i) = q->at(j, i);
-        }
-    }
-    // End of arnoldi
-
-    for (size_type i = 0; i < q->get_size()[1]; ++i) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
-            continue;
-        }
         // Start apply givens rotation
         for (size_type j = 0; j < iter_id; ++j) {
-            auto temp = cs->at(j, i) * range_H_k(j, i) +
-                        sn->at(j, i) * range_H_k(j + 1, i);
-            range_H_k(j + 1, i) = -sn->at(j, i) * range_H_k(j, i) +
-                                  cs->at(j, i) * range_H_k(j + 1, i);
-            range_H_k(j, i) = temp;
+            auto temp = givens_cos->at(j, i) * range_Hessenberg_iter(j, i) +
+                        givens_sin->at(j, i) * range_Hessenberg_iter(j + 1, i);
+            range_Hessenberg_iter(j + 1, i) =
+                -givens_sin->at(j, i) * range_Hessenberg_iter(j, i) +
+                givens_cos->at(j, i) * range_Hessenberg_iter(j + 1, i);
+            range_Hessenberg_iter(j, i) = temp;
         }
-        if (range_H_k(iter_id, i) == zero<ValueType>()) {
-            cs->at(iter_id, i) = zero<ValueType>();
-            sn->at(iter_id, i) = one<ValueType>();
+        if (range_Hessenberg_iter(iter_id, i) == zero<ValueType>()) {
+            givens_cos->at(iter_id, i) = zero<ValueType>();
+            givens_sin->at(iter_id, i) = one<ValueType>();
         } else {
-            auto t =
-                sqrt(range_H_k(iter_id, i) * range_H_k(iter_id, i) +
-                     range_H_k(iter_id + 1, i) * range_H_k(iter_id + 1, i));
-            cs->at(iter_id, i) = abs(range_H_k(iter_id, i)) / t;
-            sn->at(iter_id, i) = cs->at(iter_id, i) *
-                                 range_H_k(iter_id + 1, i) /
-                                 range_H_k(iter_id, i);
+            auto t = sqrt(range_Hessenberg_iter(iter_id, i) *
+                              range_Hessenberg_iter(iter_id, i) +
+                          range_Hessenberg_iter(iter_id + 1, i) *
+                              range_Hessenberg_iter(iter_id + 1, i));
+            givens_cos->at(iter_id, i) =
+                abs(range_Hessenberg_iter(iter_id, i)) / t;
+            givens_sin->at(iter_id, i) = givens_cos->at(iter_id, i) *
+                                         range_Hessenberg_iter(iter_id + 1, i) /
+                                         range_Hessenberg_iter(iter_id, i);
         }
-        range_H_k(iter_id, i) = cs->at(iter_id, i) * range_H_k(iter_id, i) +
-                                sn->at(iter_id, i) * range_H_k(iter_id + 1, i);
-        range_H_k(iter_id + 1, i) = zero<ValueType>();
+        range_Hessenberg_iter(iter_id, i) =
+            givens_cos->at(iter_id, i) * range_Hessenberg_iter(iter_id, i) +
+            givens_sin->at(iter_id, i) * range_Hessenberg_iter(iter_id + 1, i);
+        range_Hessenberg_iter(iter_id + 1, i) = zero<ValueType>();
         // End apply givens rotation
 
-        beta->at(iter_id + 1, i) = -sn->at(iter_id, i) * beta->at(iter_id, i);
-        beta->at(iter_id, i) = cs->at(iter_id, i) * beta->at(iter_id, i);
-        r_norm->at(0, i) = abs(beta->at(iter_id + 1, i)) / b_norm->at(0, i);
+        residual_norms->at(iter_id + 1, i) =
+            -givens_sin->at(iter_id, i) * residual_norms->at(iter_id, i);
+        residual_norms->at(iter_id, i) =
+            givens_cos->at(iter_id, i) * residual_norms->at(iter_id, i);
+        residual_norm->at(0, i) =
+            abs(residual_norms->at(iter_id + 1, i)) / b_norm->at(0, i);
     }
 }
 
@@ -207,27 +199,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
 
 template <typename ValueType, typename AccessorType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *beta, AccessorType range_H,
-            const Array<size_type> *iter_nums, matrix::Dense<ValueType> *y,
-            AccessorType range_Q, matrix::Dense<ValueType> *x)
+            const matrix::Dense<ValueType> *residual_norms,
+            AccessorType range_Krylov_bases, AccessorType range_Hessenberg,
+            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+            const Array<size_type> *final_iter_nums)
 {
     // Solve upper triangular.
-    for (size_type k = 0; k < beta->get_size()[1]; ++k) {
-        for (int i = iter_nums->get_const_data()[k] - 1; i >= 0; --i) {
-            auto temp = beta->at(i, k);
-            for (size_type j = i + 1; j < iter_nums->get_const_data()[k]; ++j) {
-                temp -= range_H(i, j * beta->get_size()[1] + k) * y->at(j, k);
+    for (size_type k = 0; k < residual_norms->get_size()[1]; ++k) {
+        for (int i = final_iter_nums->get_const_data()[k] - 1; i >= 0; --i) {
+            auto temp = residual_norms->at(i, k);
+            for (size_type j = i + 1; j < final_iter_nums->get_const_data()[k];
+                 ++j) {
+                temp -=
+                    range_Hessenberg(i, j * residual_norms->get_size()[1] + k) *
+                    y->at(j, k);
             }
-            y->at(i, k) = temp / range_H(i, i * beta->get_size()[1] + k);
+            y->at(i, k) = temp / range_Hessenberg(
+                                     i, i * residual_norms->get_size()[1] + k);
         }
     }
 
     // Solve x
     for (size_type k = 0; k < x->get_size()[1]; ++k) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < iter_nums->get_const_data()[k]; ++j) {
-                x->at(i, k) +=
-                    range_Q(i, j * x->get_size()[1] + k) * y->at(j, k);
+            for (size_type j = 0; j < final_iter_nums->get_const_data()[k];
+                 ++j) {
+                x->at(i, k) += range_Krylov_bases(i, j * x->get_size()[1] + k) *
+                               y->at(j, k);
             }
         }
     }

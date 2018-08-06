@@ -77,8 +77,8 @@ struct TemplatedOperationDenseRange {
 }  // namespace
 
 
-template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType, int max_iter>
+void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
 {
     ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
@@ -96,31 +96,33 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto e1 = Vector::create_with_config_of(dense_x);
-    auto Q = Vector::create(exec, dim<2>{system_matrix_->get_size()[1],
-                                         (default_max_num_iterations + 1) *
-                                             dense_b->get_size()[1]});
-    auto H = Vector::create(
-        exec, dim<2>{default_max_num_iterations + 1,
-                     default_max_num_iterations * dense_b->get_size()[1]});
-    auto sn = Vector::create(
-        exec, dim<2>{default_max_num_iterations, dense_b->get_size()[1]});
-    auto cs = Vector::create(
-        exec, dim<2>{default_max_num_iterations, dense_b->get_size()[1]});
-    auto beta = Vector::create(
-        exec, dim<2>{default_max_num_iterations + 1, dense_b->get_size()[1]});
-    auto r_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto residual = Vector::create_with_config_of(dense_b);
+    // auto z = Vector::create_with_config_of(dense_b);
+    auto Krylov_bases =
+        Vector::create(exec, dim<2>{system_matrix_->get_size()[1],
+                                    (max_iter + 1) * dense_b->get_size()[1]});
+    auto Hessenberg = Vector::create(
+        exec, dim<2>{max_iter + 1, max_iter * dense_b->get_size()[1]});
+    auto givens_sin =
+        Vector::create(exec, dim<2>{max_iter, dense_b->get_size()[1]});
+    auto givens_cos =
+        Vector::create(exec, dim<2>{max_iter, dense_b->get_size()[1]});
+    auto residual_norms =
+        Vector::create(exec, dim<2>{max_iter + 1, dense_b->get_size()[1]});
+    auto residual_norm =
+        Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    Array<size_type> iter_nums(this->get_executor(), dense_b->get_size()[1]);
+    Array<size_type> final_iter_nums(this->get_executor(),
+                                     dense_b->get_size()[1]);
 
-    // Define range accessors for Q and H.
+    // Define range accessors for Krylov_bases and Hessenberg.
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
-    row_major_range range_Q{Q->get_values(), Q->get_size()[0], Q->get_size()[1],
-                            Q->get_stride()};
-    row_major_range range_H{H->get_values(), H->get_size()[0], H->get_size()[1],
-                            H->get_stride()};
+    row_major_range range_Krylov_bases{
+        Krylov_bases->get_values(), Krylov_bases->get_size()[0],
+        Krylov_bases->get_size()[1], Krylov_bases->get_stride()};
+    row_major_range range_Hessenberg{
+        Hessenberg->get_values(), Hessenberg->get_size()[0],
+        Hessenberg->get_size()[1], Hessenberg->get_stride()};
 
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
@@ -128,95 +130,102 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
-        dense_b, r.get(), e1.get(), sn.get(), cs.get(), b_norm.get(),
-        &iter_nums, &stop_status));
-    // r = dense_b
-    // sn = cs = 0
-    // e1 = {1, 0, ..., 0}
+        dense_b, b_norm.get(), residual.get(), givens_sin.get(),
+        givens_cos.get(), &final_iter_nums, &stop_status, max_iter));
+    // residual = dense_b
+    // givens_sin = givens_cos = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    // r = b - Ax
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
+                          residual.get());
+    // residual = b - Ax
 
     exec->run(
         TemplatedOperationRange<ValueType,
                                 range<accessor::row_major<ValueType, 2>>>::
-            make_initialize_2_operation(r.get(), r_norm.get(), beta.get(),
-                                        range_Q));
-    // beta = {r_norm, 0, ..., 0}
-    // Q(:, 1) = r / r_norm
+            make_initialize_2_operation(residual.get(), residual_norm.get(),
+                                        residual_norms.get(),
+                                        range_Krylov_bases, max_iter));
+    // residual_norms = {residual_norm, 0, ..., 0}
+    // Krylov_bases(:, 1) = residual / residual_norm
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        x, residual.get());
 
     size_type iter = 0;
-    for (; iter < default_max_num_iterations; ++iter) {
-        preconditioner_->apply(r.get(), z.get());
+    for (; iter < max_iter; ++iter) {
+        // preconditioner_->apply(residual.get(), z.get());
 
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual_norm(r_norm.get())
+                .residual_norm(residual_norm.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::converged>(iter + 1, r.get());
+            this->template log<log::Logger::converged>(iter + 1,
+                                                       residual.get());
             break;
         }
 
         for (int i = 0; i < dense_b->get_size()[1]; ++i) {
-            iter_nums.get_data()[i] +=
+            final_iter_nums.get_data()[i] +=
                 (1 - stop_status.get_const_data()[i].has_stopped());
         }
 
         // Start Arnoldi function
-        auto range_Q_k = range_Q(span{0, system_matrix_->get_size()[0]},
-                                 span{dense_b->get_size()[1] * iter,
-                                      dense_b->get_size()[1] * (iter + 1)});
-        auto range_H_k = range_H(span{0, iter + 2},
-                                 span{dense_b->get_size()[1] * iter,
-                                      dense_b->get_size()[1] * (iter + 1)});
-        auto q = Vector::create_with_config_of(dense_b);
+        auto range_Krylov_bases_iter =
+            range_Krylov_bases(span{0, system_matrix_->get_size()[0]},
+                               span{dense_b->get_size()[1] * iter,
+                                    dense_b->get_size()[1] * (iter + 1)});
+        auto range_Hessenberg_iter = range_Hessenberg(
+            span{0, iter + 2}, span{dense_b->get_size()[1] * iter,
+                                    dense_b->get_size()[1] * (iter + 1)});
+        auto next_Krylov_basis = Vector::create_with_config_of(dense_b);
 
         exec->run(TemplatedOperationDenseRange<
                   ValueType, range<accessor::row_major<ValueType, 2>>>::
                       make_simple_apply_operation(
                           as<matrix::Dense<ValueType>>(system_matrix_.get()),
-                          range_Q_k, q.get()));
+                          range_Krylov_bases_iter, next_Krylov_basis.get()));
 
         exec->run(
             TemplatedOperationRange<ValueType,
                                     range<accessor::row_major<ValueType, 2>>>::
-                make_step_1_operation(q.get(), sn.get(), cs.get(), beta.get(),
-                                      range_Q, range_H_k, r_norm.get(),
-                                      b_norm.get(), iter, &stop_status));
+                make_step_1_operation(next_Krylov_basis.get(), givens_sin.get(),
+                                      givens_cos.get(), residual_norm.get(),
+                                      residual_norms.get(), range_Krylov_bases,
+                                      range_Hessenberg_iter, b_norm.get(), iter,
+                                      &stop_status));
 
         this->template log<log::Logger::iteration_complete>(iter + 1);
     }
 
     // Solve x
-    auto y = Vector::create(
-        exec, dim<2>{default_max_num_iterations, dense_b->get_size()[1]});
-    auto range_Q_small = range_Q(span{0, system_matrix_->get_size()[0]},
-                                 span{0, dense_b->get_size()[1] * (iter + 1)});
-    auto range_H_small =
-        range_H(span{0, iter}, span{0, dense_b->get_size()[1] * (iter)});
+    auto y = Vector::create(exec, dim<2>{max_iter, dense_b->get_size()[1]});
+    auto range_Krylov_bases_small =
+        range_Krylov_bases(span{0, system_matrix_->get_size()[0]},
+                           span{0, dense_b->get_size()[1] * (iter + 1)});
+    auto range_Hessenberg_small = range_Hessenberg(
+        span{0, iter}, span{0, dense_b->get_size()[1] * (iter)});
 
     exec->run(
         TemplatedOperationRange<ValueType,
                                 range<accessor::row_major<ValueType, 2>>>::
-            make_step_2_operation(beta.get(), range_H_small, &iter_nums,
-                                  y.get(), range_Q_small, dense_x));
+            make_step_2_operation(
+                residual_norms.get(), range_Krylov_bases_small,
+                range_Hessenberg_small, y.get(), dense_x, &final_iter_nums));
 }
 
 
-template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                  const LinOp *beta, LinOp *x) const
+template <typename ValueType, int max_iter>
+void Gmres<ValueType, max_iter>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                            const LinOp *residual_norms,
+                                            LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
-    dense_x->scale(beta);
+    dense_x->scale(residual_norms);
     dense_x->add_scaled(alpha, x_clone.get());
 }
 
