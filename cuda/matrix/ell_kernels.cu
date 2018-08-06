@@ -53,26 +53,68 @@ constexpr int default_block_size = 512;
 namespace {
 
 
+template <typename ValueType, typename IndexType, typename Closure>
+__device__ void spmv_kernel(const size_type num_rows,
+                            const ValueType *__restrict__ val,
+                            const IndexType *__restrict__ col,
+                            const size_type stride,
+                            const size_type num_stored_elements_per_row,
+                            const ValueType *__restrict__ b,
+                            const size_type b_stride, ValueType *__restrict__ c,
+                            const size_type c_stride, Closure op)
+{
+    const auto tidx =
+        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_rows) {
+        ValueType temp = zero<ValueType>();
+        const auto column_id = blockIdx.y;
+        for (IndexType idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx * b_stride + column_id];
+            }
+        }
+        c[tidx * c_stride + column_id] =
+            op(temp, c[tidx * c_stride + column_id]);
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void spmv_kernel(
+__global__ __launch_bounds__(default_block_size) void abstract_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col, const size_type stride,
     const size_type num_stored_elements_per_row,
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride)
 {
-    const auto tidx =
-        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto column_id = blockIdx.y;
-    ValueType temp = zero<ValueType>();
-    IndexType ind = tidx;
-    const IndexType finish = ind + num_stored_elements_per_row * stride;
-    if (tidx < num_rows) {
-        for (; ind < finish; ind += stride) {
-            temp += val[ind] * b[col[ind] * b_stride + column_id];
-        }
-        c[tidx * c_stride + column_id] = temp;
-    }
+    spmv_kernel(num_rows, val, col, stride, num_stored_elements_per_row, b,
+                b_stride, c, c_stride,
+                [](const ValueType &x, const ValueType &y) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void abstract_spmv(
+    const size_type num_rows, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const size_type stride, const size_type num_stored_elements_per_row,
+    const ValueType *__restrict__ b, const size_type b_stride,
+    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    const ValueType alpha_val = alpha[0];
+    const ValueType beta_val = beta[0];
+    spmv_kernel(
+        num_rows, val, col, stride, num_stored_elements_per_row, b, b_stride, c,
+        c_stride,
+        [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
+            return alpha_val * x + beta_val * y;
+        });
 }
 
 
@@ -88,7 +130,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
                          b->get_size()[1], 1);
 
-    spmv_kernel<<<grid_size, block_size, 0, 0>>>(
+    abstract_spmv<<<grid_size, block_size, 0, 0>>>(
         a->get_size()[0], as_cuda_type(a->get_const_values()),
         a->get_const_col_idxs(), a->get_stride(),
         a->get_num_stored_elements_per_row(),
@@ -97,37 +139,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
-    const size_type num_rows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
-    const size_type c_stride)
-{
-    const auto tidx =
-        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto column_id = blockIdx.y;
-    ValueType temp = zero<ValueType>();
-    IndexType ind = tidx;
-    const IndexType finish = ind + num_stored_elements_per_row * stride;
-    if (tidx < num_rows) {
-        for (; ind < finish; ind += stride) {
-            temp += alpha[0] * val[ind] * b[col[ind] * b_stride + column_id];
-        }
-        c[tidx * c_stride + column_id] =
-            beta[0] * c[tidx * c_stride + column_id] + temp;
-    }
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -142,7 +153,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
                          b->get_size()[1], 1);
 
-    advanced_spmv_kernel<<<grid_size, block_size, 0, 0>>>(
+    abstract_spmv<<<grid_size, block_size, 0, 0>>>(
         a->get_size()[0], as_cuda_type(alpha->get_const_values()),
         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
         a->get_stride(), a->get_num_stored_elements_per_row(),
