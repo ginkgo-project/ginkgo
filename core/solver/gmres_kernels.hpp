@@ -62,14 +62,15 @@ namespace gmres {
                       _accessor range_Krylov_bases, const int max_iter)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)                     \
-    void step_1(                                                              \
-        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *q, \
-        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos,   \
-        matrix::Dense<_type> *residual_norm,                                  \
-        matrix::Dense<_type> *residual_norms, _accessor range_Krylov_bases,   \
-        _accessor range_Hessenberg_iter, const matrix::Dense<_type> *b_norm,  \
-        const size_type iter_id, const Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)                    \
+    void step_1(                                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        matrix::Dense<_type> *next_Krylov_basis,                             \
+        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos,  \
+        matrix::Dense<_type> *residual_norm,                                 \
+        matrix::Dense<_type> *residual_norms, _accessor range_Krylov_bases,  \
+        _accessor range_Hessenberg_iter, const matrix::Dense<_type> *b_norm, \
+        const size_type iter, const Array<stopping_status> *stop_status)
 
 
 #define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)                 \

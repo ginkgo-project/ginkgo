@@ -115,81 +115,100 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
 
 template <typename ValueType, typename AccessorType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *Krylov_basis,
+            matrix::Dense<ValueType> *next_Krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
             matrix::Dense<ValueType> *residual_norms,
             AccessorType range_Krylov_bases, AccessorType range_Hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, const size_type iter_id,
+            const matrix::Dense<ValueType> *b_norm, const size_type iter,
             const Array<stopping_status> *stop_status)
 {
-    for (size_type i = 0; i < Krylov_basis->get_size()[1]; ++i) {
-        for (size_type k = 0; k < iter_id + 1; ++k) {
+    for (size_type i = 0; i < next_Krylov_basis->get_size()[1]; ++i) {
+        for (size_type k = 0; k < iter + 1; ++k) {
             if (stop_status->get_const_data()[i].has_stopped()) {
                 continue;
             }
             range_Hessenberg_iter(k, i) = 0;
-            for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
+            for (size_type j = 0; j < next_Krylov_basis->get_size()[0]; ++j) {
                 range_Hessenberg_iter(k, i) +=
-                    Krylov_basis->at(j, i) *
-                    range_Krylov_bases(j, Krylov_basis->get_size()[1] * k + i);
+                    next_Krylov_basis->at(j, i) *
+                    range_Krylov_bases(
+                        j, next_Krylov_basis->get_size()[1] * k + i);
             }
-            for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
-                Krylov_basis->at(j, i) -=
+            for (size_type j = 0; j < next_Krylov_basis->get_size()[0]; ++j) {
+                next_Krylov_basis->at(j, i) -=
                     range_Hessenberg_iter(k, i) *
-                    range_Krylov_bases(j, Krylov_basis->get_size()[1] * k + i);
+                    range_Krylov_bases(
+                        j, next_Krylov_basis->get_size()[1] * k + i);
             }
         }
-        range_Hessenberg_iter(iter_id + 1, i) = 0;
-        for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
-            range_Hessenberg_iter(iter_id + 1, i) +=
-                Krylov_basis->at(j, i) * Krylov_basis->at(j, i);
+        // for i in 1:iter
+        //     Hessenberg(iter, i) = next_Krylov_basis' * Krylov_bases(:, i)
+        //     next_Krylov_basis  -= Hessenberg(iter, i) * Krylov_bases(:, i)
+        // end
+
+        range_Hessenberg_iter(iter + 1, i) = 0;
+        for (size_type j = 0; j < next_Krylov_basis->get_size()[0]; ++j) {
+            range_Hessenberg_iter(iter + 1, i) +=
+                next_Krylov_basis->at(j, i) * next_Krylov_basis->at(j, i);
         }
-        range_Hessenberg_iter(iter_id + 1, i) =
-            sqrt(range_Hessenberg_iter(iter_id + 1, i));
-        for (size_type j = 0; j < Krylov_basis->get_size()[0]; ++j) {
-            Krylov_basis->at(j, i) /= range_Hessenberg_iter(iter_id + 1, i);
-            range_Krylov_bases(j, Krylov_basis->get_size()[1] * (iter_id + 1) +
-                                      i) = Krylov_basis->at(j, i);
+        range_Hessenberg_iter(iter + 1, i) =
+            sqrt(range_Hessenberg_iter(iter + 1, i));
+        // Hessenberg(iter, iter + 1) = norm(next_Krylov_basis)
+        for (size_type j = 0; j < next_Krylov_basis->get_size()[0]; ++j) {
+            next_Krylov_basis->at(j, i) /= range_Hessenberg_iter(iter + 1, i);
+            range_Krylov_bases(
+                j, next_Krylov_basis->get_size()[1] * (iter + 1) + i) =
+                next_Krylov_basis->at(j, i);
         }
+        // next_Krylov_basis /= Hessenberg(iter, iter + 1)
         // End of arnoldi
 
         // Start apply givens rotation
-        for (size_type j = 0; j < iter_id; ++j) {
+        for (size_type j = 0; j < iter; ++j) {
             auto temp = givens_cos->at(j, i) * range_Hessenberg_iter(j, i) +
                         givens_sin->at(j, i) * range_Hessenberg_iter(j + 1, i);
             range_Hessenberg_iter(j + 1, i) =
                 -givens_sin->at(j, i) * range_Hessenberg_iter(j, i) +
                 givens_cos->at(j, i) * range_Hessenberg_iter(j + 1, i);
             range_Hessenberg_iter(j, i) = temp;
+            // temp                  =  cos(j)*Hessenberg(iter, j) +
+            //                          sin(j)*Hessenberg(iter, j+1)
+            // Hessenberg(iter, j+1) = -sin(j)*Hessenberg(iter, j) +
+            //                          cos(j)*Hessenberg(iter, j+1)
+            // Hessenberg(iter, j)   = temp;
         }
-        if (range_Hessenberg_iter(iter_id, i) == zero<ValueType>()) {
-            givens_cos->at(iter_id, i) = zero<ValueType>();
-            givens_sin->at(iter_id, i) = one<ValueType>();
+
+        // Calculate sin and cos
+        if (range_Hessenberg_iter(iter, i) == zero<ValueType>()) {
+            givens_cos->at(iter, i) = zero<ValueType>();
+            givens_sin->at(iter, i) = one<ValueType>();
         } else {
-            auto t = sqrt(range_Hessenberg_iter(iter_id, i) *
-                              range_Hessenberg_iter(iter_id, i) +
-                          range_Hessenberg_iter(iter_id + 1, i) *
-                              range_Hessenberg_iter(iter_id + 1, i));
-            givens_cos->at(iter_id, i) =
-                abs(range_Hessenberg_iter(iter_id, i)) / t;
-            givens_sin->at(iter_id, i) = givens_cos->at(iter_id, i) *
-                                         range_Hessenberg_iter(iter_id + 1, i) /
-                                         range_Hessenberg_iter(iter_id, i);
+            auto hypotenuse = sqrt(range_Hessenberg_iter(iter, i) *
+                                       range_Hessenberg_iter(iter, i) +
+                                   range_Hessenberg_iter(iter + 1, i) *
+                                       range_Hessenberg_iter(iter + 1, i));
+            givens_cos->at(iter, i) =
+                abs(range_Hessenberg_iter(iter, i)) / hypotenuse;
+            givens_sin->at(iter, i) = givens_cos->at(iter, i) *
+                                      range_Hessenberg_iter(iter + 1, i) /
+                                      range_Hessenberg_iter(iter, i);
         }
-        range_Hessenberg_iter(iter_id, i) =
-            givens_cos->at(iter_id, i) * range_Hessenberg_iter(iter_id, i) +
-            givens_sin->at(iter_id, i) * range_Hessenberg_iter(iter_id + 1, i);
-        range_Hessenberg_iter(iter_id + 1, i) = zero<ValueType>();
+
+        range_Hessenberg_iter(iter, i) =
+            givens_cos->at(iter, i) * range_Hessenberg_iter(iter, i) +
+            givens_sin->at(iter, i) * range_Hessenberg_iter(iter + 1, i);
+        range_Hessenberg_iter(iter + 1, i) = zero<ValueType>();
         // End apply givens rotation
 
-        residual_norms->at(iter_id + 1, i) =
-            -givens_sin->at(iter_id, i) * residual_norms->at(iter_id, i);
-        residual_norms->at(iter_id, i) =
-            givens_cos->at(iter_id, i) * residual_norms->at(iter_id, i);
+        // Calculate residual norm
+        residual_norms->at(iter + 1, i) =
+            -givens_sin->at(iter, i) * residual_norms->at(iter, i);
+        residual_norms->at(iter, i) =
+            givens_cos->at(iter, i) * residual_norms->at(iter, i);
         residual_norm->at(0, i) =
-            abs(residual_norms->at(iter_id + 1, i)) / b_norm->at(0, i);
+            abs(residual_norms->at(iter + 1, i)) / b_norm->at(0, i);
     }
 }
 

@@ -115,7 +115,7 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
 
-    // Define range accessors for Krylov_bases and Hessenberg.
+    // Define range accessors for Krylov_bases and Hessenberg matrices.
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
     row_major_range range_Krylov_bases{
         Krylov_bases->get_values(), Krylov_bases->get_size()[0],
@@ -127,17 +127,21 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
                                        dense_b->get_size()[1]);
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
+        x, residual.get());
 
-    // TODO: replace this with automatic merged kernel generator
+    // Initialization
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
         dense_b, b_norm.get(), residual.get(), givens_sin.get(),
         givens_cos.get(), &final_iter_nums, &stop_status, max_iter));
+    // b_norm = norm(b)
     // residual = dense_b
     // givens_sin = givens_cos = 0
-
+    // final_iter_nums = {0, ..., 0}
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
-    // residual = b - Ax
+    // residual = residual(b) - Ax
 
     exec->run(
         TemplatedOperationRange<ValueType,
@@ -145,12 +149,9 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
             make_initialize_2_operation(residual.get(), residual_norm.get(),
                                         residual_norms.get(),
                                         range_Krylov_bases, max_iter));
+    // residual_norm = norm(residual)
     // residual_norms = {residual_norm, 0, ..., 0}
     // Krylov_bases(:, 1) = residual / residual_norm
-
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, residual.get());
 
     size_type iter = 0;
     for (; iter < max_iter; ++iter) {
