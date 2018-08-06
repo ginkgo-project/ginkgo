@@ -423,10 +423,11 @@ public:
     template <typename T>
     T *alloc(size_type num_elems) const
     {
-        this->template log<log::Logger::allocation_started>(this, num_elems);
+        this->template log<log::Logger::allocation_started>(
+            this, num_elems * sizeof(T));
         T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
         this->template log<log::Logger::allocation_completed>(
-            this, num_elems, reinterpret_cast<uintptr>(allocated));
+            this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
         return allocated;
     }
 

@@ -48,9 +48,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace name_demangling {
+namespace detail {
+
 
 template <typename T>
-std::string get_name(const T &obj)
+std::string get_enclosing_scope_name(const T &)
+{
+#ifdef GKO_HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void *)>(
+            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name.substr(0, name.rfind(':') - 1);
+    else
+#endif  // GKO_HAVE_CXXABI_H
+        return std::string(typeid(T).name());
+}
+
+
+}  // namespace detail
+
+
+template <typename T>
+std::string get_dynamic_type(const T &obj)
 {
 #ifdef GKO_HAVE_CXXABI_H
     int status{};
@@ -60,10 +83,28 @@ std::string get_name(const T &obj)
             std::free)
             .get());
     if (!status)
-        return name.substr(0, name.rfind(' '));
+        return name;
     else
 #endif  // GKO_HAVE_CXXABI_H
         return std::string(typeid(obj).name());
+}
+
+
+template <typename T>
+std::string get_static_type(const T &)
+{
+#ifdef GKO_HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void *)>(
+            abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name;
+    else
+#endif  // GKO_HAVE_CXXABI_H
+        return std::string(typeid(T).name());
 }
 
 
@@ -80,7 +121,7 @@ std::string get_name(const T &obj)
  * @see C++11 documentation [type.info] and [expr.typeid]
  * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
-#define GKO_FUNCTION_NAME gko::name_demangling::get_name([] {})
+#define GKO_FUNCTION_NAME gko::name_demangling::get_enclosing_scope_name([] {})
 
 
 }  // namespace name_demangling

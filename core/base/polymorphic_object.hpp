@@ -107,12 +107,7 @@ public:
      */
     std::unique_ptr<PolymorphicObject> create_default() const
     {
-        this->template log<log::Logger::polymorphic_object_create_started>(
-            exec_.get(), this);
-        auto created = this->create_default(exec_);
-        this->template log<log::Logger::polymorphic_object_create_completed>(
-            exec_.get(), this, created.get());
-        return created;
+        return this->create_default(exec_);
     }
 
     /**

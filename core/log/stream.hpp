@@ -221,8 +221,8 @@ protected:
     std::string operation_name(const Operation *op) const
     {
         std::ostringstream oss;
-        oss << "Operation[" << name_demangling::get_name(*op) << ";" << op
-            << "]";
+        oss << "Operation[" << name_demangling::get_dynamic_type(*op) << ";"
+            << op << "]";
         return oss.str();
     }
 
@@ -236,8 +236,8 @@ protected:
     std::string executor_name(const Executor *exec) const
     {
         std::ostringstream oss;
-        oss << "Executor[" << name_demangling::get_name(*exec) << ";" << exec
-            << "]";
+        oss << "Executor[" << name_demangling::get_dynamic_type(*exec) << ";"
+            << exec << "]";
         return oss.str();
     }
 
@@ -265,8 +265,8 @@ protected:
     std::string po_name(const PolymorphicObject *po) const
     {
         std::ostringstream oss;
-        oss << "PolymorphicObject[" << name_demangling::get_name(*po) << ","
-            << po << "]";
+        oss << "PolymorphicObject[" << name_demangling::get_dynamic_type(*po)
+            << "," << po << "]";
         return oss.str();
     }
 
@@ -284,9 +284,9 @@ protected:
         // Only these can eventually be nullptr
         // due to residual_norm, etc
         if (linop == nullptr) {
-            oss << name_demangling::get_name(linop);
+            oss << name_demangling::get_dynamic_type(linop);
         } else {
-            oss << name_demangling::get_name(*linop);
+            oss << name_demangling::get_dynamic_type(*linop);
         }
         oss << "," << linop << "]";
         return oss.str();
@@ -302,8 +302,8 @@ protected:
     std::string linop_factory_name(const LinOpFactory *factory) const
     {
         std::ostringstream oss;
-        oss << "LinOpFactory[" << name_demangling::get_name(*factory) << ","
-            << factory << "]";
+        oss << "LinOpFactory[" << name_demangling::get_dynamic_type(*factory)
+            << "," << factory << "]";
         return oss.str();
     }
 
@@ -317,8 +317,8 @@ protected:
     std::string criterion_name(const stop::Criterion *criterion) const
     {
         std::ostringstream oss;
-        oss << "Criterion[" << name_demangling::get_name(*criterion) << ","
-            << criterion << "]";
+        oss << "Criterion[" << name_demangling::get_dynamic_type(*criterion)
+            << "," << criterion << "]";
         return oss.str();
     }
 

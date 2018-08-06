@@ -422,6 +422,23 @@ protected:
         : Logger(exec, enabled_events), max_storage_{max_storage}
     {}
 
+    /**
+     * Helper function which appends an object to a deque
+     *
+     * @tparam deque_type  the type of objects in the deque
+     *
+     * @param deque  the deque to append the object to
+     * @param object  the object to append
+     */
+    template <typename deque_type>
+    void append_deque(std::deque<deque_type> &deque, deque_type object) const
+    {
+        if (this->max_storage_ && deque.size() == this->max_storage_) {
+            deque.pop_front();
+        }
+        deque.push_back(std::move(object));
+    }
+
 private:
     mutable logged_data data_{};
     size_type max_storage_{};
