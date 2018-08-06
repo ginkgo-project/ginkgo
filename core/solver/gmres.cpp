@@ -97,7 +97,6 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    // auto z = Vector::create_with_config_of(dense_b);
     auto Krylov_bases =
         Vector::create(exec, dim<2>{system_matrix_->get_size()[1],
                                     (max_iter + 1) * dense_b->get_size()[1]});
@@ -155,8 +154,6 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
 
     size_type iter = 0;
     for (; iter < max_iter; ++iter) {
-        // preconditioner_->apply(residual.get(), z.get());
-
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual_norm(residual_norm.get())
@@ -172,7 +169,7 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
                 (1 - stop_status.get_const_data()[i].has_stopped());
         }
 
-        // Start Arnoldi function
+        // Do Arnoldi and givens rotation
         auto range_Krylov_bases_iter =
             range_Krylov_bases(span{0, system_matrix_->get_size()[0]},
                                span{dense_b->get_size()[1] * iter,
@@ -187,7 +184,7 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
                       make_simple_apply_operation(
                           as<matrix::Dense<ValueType>>(system_matrix_.get()),
                           range_Krylov_bases_iter, next_Krylov_basis.get()));
-
+        // next_Krylov_basis = A * Krylov_bases(:, iter)
         exec->run(
             TemplatedOperationRange<ValueType,
                                     range<accessor::row_major<ValueType, 2>>>::

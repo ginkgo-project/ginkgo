@@ -54,6 +54,7 @@ namespace gmres {
         matrix::Dense<_type> *givens_cos, Array<size_type> *final_iter_nums, \
         Array<stopping_status> *stop_status, const int max_iter)
 
+
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_type> *residual,        \
