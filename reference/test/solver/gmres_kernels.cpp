@@ -113,8 +113,6 @@ TEST_F(Gmres, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    std::cout << "After apply" << std::endl;
-
     ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
@@ -163,12 +161,12 @@ TEST_F(Gmres, SolvesBigDenseSystem1)
 {
     auto solver = gmres_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
-        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
+        {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}), 1e-10);
+    ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}), 1e-10);
 }
 
 
@@ -176,7 +174,8 @@ TEST_F(Gmres, SolvesBigDenseSystem2)
 {
     auto solver = gmres_factory_big->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
-        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());

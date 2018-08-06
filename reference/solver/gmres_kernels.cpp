@@ -55,11 +55,12 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *e1,
                   matrix::Dense<ValueType> *sn, matrix::Dense<ValueType> *cs,
-                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<ValueType> *b_norm, Array<size_type> *iter_nums,
                   Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         stop_status->get_data()[j].reset();
+        iter_nums->get_data()[j] = 0;
         b_norm->at(0, j) = zero<ValueType>();
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
@@ -96,7 +97,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < r->get_size()[1]; ++i) {
         r_norm->at(0, i) = 0;
         for (size_type j = 0; j < r->get_size()[0]; ++j) {
-            r_norm->at(0, i) += r->at(i, j) * r->at(i, j);
+            r_norm->at(0, i) += r->at(j, i) * r->at(j, i);
         }
         r_norm->at(0, i) = sqrt(r_norm->at(0, i));
     }
@@ -126,10 +127,14 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *cs, matrix::Dense<ValueType> *beta,
             AccessorType range_Q, AccessorType range_H_k,
             matrix::Dense<ValueType> *r_norm,
-            const matrix::Dense<ValueType> *b_norm, const size_type iter_id)
+            const matrix::Dense<ValueType> *b_norm, const size_type iter_id,
+            const Array<stopping_status> *stop_status)
 {
     for (size_type k = 0; k < iter_id + 1; ++k) {
         for (size_type i = 0; i < q->get_size()[1]; ++i) {
+            if (stop_status->get_const_data()[i].has_stopped()) {
+                continue;
+            }
             range_H_k(k, i) = 0;
             for (size_type j = 0; j < q->get_size()[0]; ++j) {
                 range_H_k(k, i) +=
@@ -143,6 +148,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < q->get_size()[1]; ++i) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            continue;
+        }
         range_H_k(iter_id + 1, i) = 0;
         for (size_type j = 0; j < q->get_size()[0]; ++j) {
             range_H_k(iter_id + 1, i) += q->at(j, i) * q->at(j, i);
@@ -151,6 +159,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < q->get_size()[1]; ++i) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            continue;
+        }
         for (size_type j = 0; j < q->get_size()[0]; ++j) {
             q->at(j, i) /= range_H_k(iter_id + 1, i);
             range_Q(j, q->get_size()[1] * (iter_id + 1) + i) = q->at(j, i);
@@ -159,6 +170,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     // End of arnoldi
 
     for (size_type i = 0; i < q->get_size()[1]; ++i) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            continue;
+        }
         // Start apply givens rotation
         for (size_type j = 0; j < iter_id; ++j) {
             auto temp = cs->at(j, i) * range_H_k(j, i) +
@@ -197,26 +211,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
 template <typename ValueType, typename AccessorType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *beta, AccessorType range_H,
-            const size_type iter_num, matrix::Dense<ValueType> *y,
+            const Array<size_type> *iter_nums, matrix::Dense<ValueType> *y,
             AccessorType range_Q, matrix::Dense<ValueType> *x)
 {
     // Solve upper triangular.
     for (size_type k = 0; k < beta->get_size()[1]; ++k) {
-        for (int i = iter_num - 1; i >= 0; --i) {
+        for (int i = iter_nums->get_const_data()[k] - 1; i >= 0; --i) {
             auto temp = beta->at(i, k);
-            for (size_type j = i + 1; j < iter_num; ++j) {
-                temp -= range_H(i, k * beta->get_size()[1] + j) * y->at(j, k);
+            for (size_type j = i + 1; j < iter_nums->get_const_data()[k]; ++j) {
+                temp -= range_H(i, j * beta->get_size()[1] + k) * y->at(j, k);
             }
-            y->at(i, k) = temp / range_H(i, k * beta->get_size()[1] + i);
+            y->at(i, k) = temp / range_H(i, i * beta->get_size()[1] + k);
         }
     }
 
     // Solve x
     for (size_type k = 0; k < x->get_size()[1]; ++k) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < iter_num; ++j) {
+            for (size_type j = 0; j < iter_nums->get_const_data()[k]; ++j) {
                 x->at(i, k) +=
-                    range_Q(i, k * x->get_size()[1] + j) * y->at(j, k);
+                    range_Q(i, j * x->get_size()[1] + k) * y->at(j, k);
             }
         }
     }

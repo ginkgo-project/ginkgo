@@ -116,6 +116,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec, dim<2>{default_max_num_iterations + 1, dense_b->get_size()[1]});
     auto r_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    Array<size_type> iter_nums(this->get_executor(), dense_b->get_size()[1]);
 
     // Define range accessors for Q and H.
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
@@ -124,6 +125,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     row_major_range range_H{H->get_values(), H->get_size()[0], H->get_size()[1],
                             H->get_stride()};
 
+    // std::cout << "Size of range_Q = " << range_Q.length(0) << " "
+    //           << range_Q.length(1) << std::endl;
+    // std::cout << "Size of range_H = " << range_H.length(0) << " "
+    //           << range_H.length(1) << std::endl;
+
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
                                        dense_b->get_size()[1]);
@@ -131,7 +137,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
         dense_b, r.get(), e1.get(), sn.get(), cs.get(), b_norm.get(),
-        &stop_status));
+        &iter_nums, &stop_status));
     // r = dense_b
     // sn = cs = 0
     // e1 = {1, 0, ..., 0}
@@ -154,6 +160,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     size_type iter = 0;
     for (; iter < default_max_num_iterations; ++iter) {
         preconditioner_->apply(r.get(), z.get());
+        // std::cout << "Iter = " << iter << std::endl;
 
         if (stop_criterion->update()
                 .num_iterations(iter)
@@ -161,9 +168,14 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             this->template log<log::Logger::converged>(iter + 1, r.get());
-            std::cout << "Stopping criterion stops at iter " << iter
-                      << std::endl;
+            // std::cout << "Stopping criterion stops at iter " << iter
+            //           << std::endl;
             break;
+        }
+
+        for (int i = 0; i < dense_b->get_size()[1]; ++i) {
+            iter_nums.get_data()[i] +=
+                (1 - stop_status.get_const_data()[i].has_stopped());
         }
 
         // Start Arnoldi function
@@ -175,18 +187,55 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                       dense_b->get_size()[1] * (iter + 1)});
         auto q = Vector::create_with_config_of(dense_b);
 
+        // std::cout << "b = " << std::endl;
+        // for (int i = 0; i < dense_b->get_size()[0]; ++i) {
+        //     for (int j = 0; j < dense_b->get_size()[1]; ++j) {
+        //         std::cout << dense_b->at(i, j) << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+
         exec->run(TemplatedOperationDenseRange<
                   ValueType, range<accessor::row_major<ValueType, 2>>>::
                       make_simple_apply_operation(
                           as<matrix::Dense<ValueType>>(system_matrix_.get()),
                           range_Q_k, q.get()));
 
+        // std::cout << "q = " << std::endl;
+        // for (int i = 0; i < q->get_size()[0]; ++i) {
+        //     for (int j = 0; j < q->get_size()[1]; ++j) {
+        //         std::cout << q->at(i, j) << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+
         exec->run(
             TemplatedOperationRange<ValueType,
                                     range<accessor::row_major<ValueType, 2>>>::
                 make_step_1_operation(q.get(), sn.get(), cs.get(), beta.get(),
                                       range_Q, range_H_k, r_norm.get(),
-                                      b_norm.get(), iter));
+                                      b_norm.get(), iter, &stop_status));
+        // std::cout << "Q = " << std::endl;
+        // for (int i = 0; i < dense_b->get_size()[0]; ++i) {
+        //     for (int j = 0; j < dense_b->get_size()[1] * (iter + 2); ++j) {
+        //         std::cout << range_Q(i, j) << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+        // std::cout << "H = " << std::endl;
+        // for (int i = 0; i < iter + 2; ++i) {
+        //     for (int j = 0; j < dense_b->get_size()[1] * (iter + 1); ++j) {
+        //         std::cout << range_H(i, j) << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+        // std::cout << "beta = " << std::endl;
+        // for (int i = 0; i < beta->get_size()[0]; ++i) {
+        //     for (int j = 0; j < beta->get_size()[1]; ++j) {
+        //         std::cout << beta->at(i, j) << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
 
         this->template log<log::Logger::iteration_complete>(iter + 1);
     }
@@ -199,16 +248,39 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto range_H_small =
         range_H(span{0, iter}, span{0, dense_b->get_size()[1] * (iter)});
 
+    // std::cout << "Size of range_H_small = " << range_H_small.length(0) << " "
+    //           << range_H_small.length(1) << std::endl;
+    // std::cout << "Size of range_Q_small = " << range_Q_small.length(0) << " "
+    //           << range_Q_small.length(1) << std::endl;
+
+    // std::cout << "range_Q_small = " << std::endl;
+    // for (int i = 0; i < range_Q_small.length(0); ++i) {
+    //     for (int j = 0; j < range_Q_small.length(1); ++j) {
+    //         std::cout << range_Q_small(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << "range_H_small = " << std::endl;
+    // for (int i = 0; i < range_H_small.length(0); ++i) {
+    //     for (int j = 0; j < range_H_small.length(1); ++j) {
+    //         std::cout << range_H_small(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
     exec->run(
         TemplatedOperationRange<ValueType,
                                 range<accessor::row_major<ValueType, 2>>>::
-            make_step_2_operation(beta.get(), range_H_small, iter, y.get(),
-                                  range_Q_small, dense_x));
+            make_step_2_operation(beta.get(), range_H_small, &iter_nums,
+                                  y.get(), range_Q_small, dense_x));
 
-    std::cout << "Print x:" << std::endl;
-    for (size_type i = 0; i < iter; ++i) {
-        std::cout << dense_x->at(i, 0) << std::endl;
-    }
+    // std::cout << "Print x:" << std::endl;
+    // for (int i = 0; i < dense_x->get_size()[0]; ++i) {
+    //     for (int j = 0; j < dense_x->get_size()[1]; ++j) {
+    //         std::cout << dense_x->at(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 

@@ -51,6 +51,7 @@ namespace gmres {
                       const matrix::Dense<_type> *b, matrix::Dense<_type> *r, \
                       matrix::Dense<_type> *e1, matrix::Dense<_type> *sn,     \
                       matrix::Dense<_type> *cs, matrix::Dense<_type> *b_norm, \
+                      Array<size_type> *iter_nums,                            \
                       Array<stopping_status> *stop_status)
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
@@ -60,19 +61,19 @@ namespace gmres {
                       matrix::Dense<_type> *beta, _accessor range_Q)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)             \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,          \
-                matrix::Dense<_type> *q, matrix::Dense<_type> *sn,    \
-                matrix::Dense<_type> *cs, matrix::Dense<_type> *beta, \
-                _accessor range_Q, _accessor range_H_k,               \
-                matrix::Dense<_type> *r_norm,                         \
-                const matrix::Dense<_type> *b_norm, const size_type iter_id)
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)                     \
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *q, \
+        matrix::Dense<_type> *sn, matrix::Dense<_type> *cs,                   \
+        matrix::Dense<_type> *beta, _accessor range_Q, _accessor range_H_k,   \
+        matrix::Dense<_type> *r_norm, const matrix::Dense<_type> *b_norm,     \
+        const size_type iter_id, const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)            \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,         \
-                const matrix::Dense<_type> *beta, _accessor range_H, \
-                const size_type iter_num, matrix::Dense<_type> *y,   \
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)                   \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
+                const matrix::Dense<_type> *beta, _accessor range_H,        \
+                const Array<size_type> *iter_nums, matrix::Dense<_type> *y, \
                 _accessor range_Q, matrix::Dense<_type> *x)
 
 
