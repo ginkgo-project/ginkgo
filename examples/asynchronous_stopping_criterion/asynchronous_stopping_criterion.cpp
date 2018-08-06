@@ -73,22 +73,21 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 #include <thread>
 
 
-namespace gko {
-namespace stop {
-
-
 /**
  * The ByInteraction class is a criterion which asks for user input to stop
  * the iteration process. Using this criterion is slightly more complex than the
  * other ones, because it is asynchronous therefore requires the use of threads.
  */
-class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
-    friend class EnablePolymorphicObject<ByInteraction, Criterion>;
+class ByInteraction
+    : public gko::EnablePolymorphicObject<ByInteraction, gko::stop::Criterion> {
+    friend class gko::EnablePolymorphicObject<ByInteraction,
+                                              gko::stop::Criterion>;
+    using Criterion = gko::stop::Criterion;
 
 public:
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override
+    bool check(gko::uint8 stoppingId, bool setFinalized,
+               gko::Array<gko::stopping_status> *stop_status, bool *one_changed,
+               const Criterion::Updater &) override
     {
         bool result = *(parameters_.stop_iteration_process);
         if (result) {
@@ -113,17 +112,14 @@ protected:
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
 
-    explicit ByInteraction(const Factory *factory, const CriterionArgs args)
+    explicit ByInteraction(const Factory *factory,
+                           const gko::stop::CriterionArgs args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {}
 };
-
-
-}  // namespace stop
-}  // namespace gko
 
 
 void run_solver(volatile bool *stop_iteration_process,
@@ -141,7 +137,7 @@ void run_solver(volatile bool *stop_iteration_process,
     // Create solver factory and solve system
     // TODO: add residual logging when available
     bicg::Factory::create()
-        .with_criterion(gko::stop::ByInteraction::Factory::create()
+        .with_criterion(ByInteraction::Factory::create()
                             .with_stop_iteration_process(stop_iteration_process)
                             .on_executor(exec))
         .on_executor(exec)
