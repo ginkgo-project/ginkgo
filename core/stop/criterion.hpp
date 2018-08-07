@@ -98,12 +98,13 @@ public:
                    Array<stopping_status> *stop_status, bool *one_changed) const
         {
             parent_->template log<log::Logger::criterion_check_started>(
-                parent_, stoppingId, setFinalized);
+                parent_, num_iterations_, residual_, residual_norm_, solution_,
+                stoppingId, setFinalized);
             auto converged = parent_->check(stoppingId, setFinalized,
                                             stop_status, one_changed, *this);
             parent_->template log<log::Logger::criterion_check_completed>(
-                parent_, stoppingId, setFinalized, stop_status, *one_changed,
-                converged);
+                parent_, num_iterations_, residual_, residual_norm_, solution_,
+                stoppingId, setFinalized, stop_status, *one_changed, converged);
             return converged;
         }
 

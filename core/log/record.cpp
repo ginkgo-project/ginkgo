@@ -232,27 +232,30 @@ void Record::on_linop_factory_generate_completed(const LinOpFactory *factory,
 }
 
 
-void Record::on_criterion_check_started(const stop::Criterion *criterion,
-                                        const uint8 &stoppingId,
-                                        const bool &setFinalized) const
+void Record::on_criterion_check_started(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized) const
 {
     append_deque(data_.criterion_check_started,
-                 (std::unique_ptr<criterion_data>(
-                     new criterion_data{criterion, stoppingId, setFinalized})));
+                 (std::unique_ptr<criterion_data>(new criterion_data{
+                     criterion, num_iterations, residual, residual_norm,
+                     solution, stopping_id, set_finalized})));
 }
 
 
-void Record::on_criterion_check_completed(const stop::Criterion *criterion,
-                                          const uint8 &stoppingId,
-                                          const bool &setFinalized,
-                                          const Array<stopping_status> *status,
-                                          const bool &oneChanged,
-                                          const bool &converged) const
+void Record::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &oneChanged,
+    const bool &converged) const
 {
-    append_deque(data_.criterion_check_completed,
-                 (std::unique_ptr<criterion_data>(
-                     new criterion_data{criterion, stoppingId, setFinalized,
-                                        status, oneChanged, converged})));
+    append_deque(
+        data_.criterion_check_completed,
+        (std::unique_ptr<criterion_data>(new criterion_data{
+            criterion, num_iterations, residual, residual_norm, solution,
+            stopping_id, set_finalized, status, oneChanged, converged})));
 }
 
 

@@ -132,175 +132,268 @@ public:                                                              \
     static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
 
     /**
-     * Executor's allocation started event. Parameters are the executor and
-     * number of bytes to allocate.
+     * Executor's allocation started event.
+     *
+     * @param exec  the executor used
+     * @param num_bytes  the number of bytes to allocate
      */
-    GKO_LOGGER_REGISTER_EVENT(0, allocation_started, const Executor *,
-                              const size_type &)
+    GKO_LOGGER_REGISTER_EVENT(0, allocation_started, const Executor *exec,
+                              const size_type &num_bytes)
 
     /**
-     * Executor's allocation completed event. Parameters are the executor,
-     * number of bytes allocated, memory location.
+     * Executor's allocation completed event.
+     *
+     * @param exec  the executor used
+     * @param num_bytes  the number of bytes allocated
+     * @param location  the address at which the data was allocated
      */
-    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed, const Executor *,
-                              const size_type &, const uintptr &)
+    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed, const Executor *exec,
+                              const size_type &num_bytes,
+                              const uintptr &location)
 
     /**
-     * Executor's free started event. Parameters are the executor and memory
-     * location.
+     * Executor's free started event.
+     *
+     * @param exec  the executor used
+     * @param location  the address at which the data will be freed
      */
-    GKO_LOGGER_REGISTER_EVENT(2, free_started, const Executor *,
-                              const uintptr &)
+    GKO_LOGGER_REGISTER_EVENT(2, free_started, const Executor *exec,
+                              const uintptr &location)
 
     /**
-     * Executor's free completed event. Parameters are the executor and memory
-     * location.
+     * Executor's free completed event.
+     *
+     * @param exec  the executor used
+     * @param location  the address at which the data was freed
      */
-    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const Executor *,
-                              const uintptr &)
+    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const Executor *exec,
+                              const uintptr &location)
 
     /**
-     * Executor's copy started event. Parameters are the executor from, the
-     * executor to, the location from, the, location to, the number of bytes.
+     * Executor's copy started event.
+
+     * @param exec_from  the executor to be copied from
+     * @param exec_to  the executor to be copied to
+     * @param loc_from  the address at which the data will be copied from
+     * @param loc_to  the address at which the data will be copied to
+     * @param num_bytes  the number of bytes to be copied
      */
-    GKO_LOGGER_REGISTER_EVENT(4, copy_started, const Executor *,
-                              const Executor *, const uintptr &,
-                              const uintptr &, const size_type &)
+    GKO_LOGGER_REGISTER_EVENT(4, copy_started, const Executor *exec_from,
+                              const Executor *exec_to, const uintptr &loc_from,
+                              const uintptr &loc_to, const size_type &num_bytes)
 
     /**
-     * Executor's copy completed event. Parameters are the executor from, the
-     * executor to, the location from, the, location to, the number of bytes.
+     * Executor's copy completed event.
+     *
+     * @param exec_from  the executor copied from
+     * @param exec_to  the executor copied to
+     * @param loc_from  the address at which the data was copied from
+     * @param loc_to  the address at which the data was copied to
+     * @param num_bytes  the number of bytes copied
      */
-    GKO_LOGGER_REGISTER_EVENT(5, copy_completed, const Executor *,
-                              const Executor *, const uintptr &,
-                              const uintptr &, const size_type &)
+    GKO_LOGGER_REGISTER_EVENT(5, copy_completed, const Executor *exec_from,
+                              const Executor *exec_to, const uintptr &loc_from,
+                              const uintptr &loc_to, const size_type &num_bytes)
 
     /**
-     * Executor's operation launched event (method run). Parameters are the
-     * executor and the Operation.
+     * Executor's operation launched event (method run).
+     *
+     * @param exec  the executor used
+     * @param op  the operation launched
      */
-    GKO_LOGGER_REGISTER_EVENT(6, operation_launched, const Executor *,
-                              const Operation *)
+    GKO_LOGGER_REGISTER_EVENT(6, operation_launched, const Executor *exec,
+                              const Operation *op)
 
     /**
-     * Executor's operation completed event (method run). Parameters are the
-     * executor and the Operation.
+     * Executor's operation completed event (method run).
+     *
+     * @param exec  the executor used
+     * @param op  the completed operation
      *
      * @note For the GPU, to be certain that the operation completed it is
      * required to call synchronize. This burden falls on the logger. Most of
      * the loggers will do lightweight logging, and therefore this operation for
      * the GPU just notes that the Operation has been sent to the GPU.
      */
-    GKO_LOGGER_REGISTER_EVENT(7, operation_completed, const Executor *,
-                              const Operation *)
+    GKO_LOGGER_REGISTER_EVENT(7, operation_completed, const Executor *exec,
+                              const Operation *op)
 
     /**
-     * PolymorphicObject's create started event. Parameters are the executor and
-     * the PolymorphicObject.
+     * PolymorphicObject's create started event.
+     *
+     * @param exec  the executor used
+     * @param po  the PolymorphicObject to be created
      */
     GKO_LOGGER_REGISTER_EVENT(8, polymorphic_object_create_started,
-                              const Executor *, const PolymorphicObject *)
+                              const Executor *exec, const PolymorphicObject *po)
 
     /**
-     * PolymorphicObject's create completed event. Parameters are the executor,
-     * the model PolymorphicObject and the output.
+     * PolymorphicObject's create completed event.
+     *
+     * @param exec  the executor used
+     * @param input  the PolymorphicObject used as model for the creation
+     * @param output  the PolymorphicObject which was created
      */
     GKO_LOGGER_REGISTER_EVENT(9, polymorphic_object_create_completed,
-                              const Executor *, const PolymorphicObject *,
-                              const PolymorphicObject *)
+                              const Executor *exec,
+                              const PolymorphicObject *input,
+                              const PolymorphicObject *output)
 
     /**
-     * PolymorphicObject's copy started event. Parameters are the Executor, the
-     * input PolymorphicObject and the output PolymorphicObject.
+     * PolymorphicObject's copy started event.
+     *
+     * @param exec  the executor used
+     * @param input  the PolymorphicObject to be copied from
+     * @param output  the PolymorphicObject to be copied to
      */
     GKO_LOGGER_REGISTER_EVENT(10, polymorphic_object_copy_started,
-                              const Executor *, const PolymorphicObject *,
-                              const PolymorphicObject *)
+                              const Executor *exec,
+                              const PolymorphicObject *input,
+                              const PolymorphicObject *output)
 
     /**
-     * PolymorphicObject's copy completed event. Parameters are the Executor,
-     * the input PolymorphicObject and the output PolymorphicObject.
+     * PolymorphicObject's copy completed event.
+     *
+     * @param exec  the executor used
+     * @param input  the PolymorphicObject to be copied from
+     * @param output  the PolymorphicObject to be copied to
      */
     GKO_LOGGER_REGISTER_EVENT(11, polymorphic_object_copy_completed,
-                              const Executor *, const PolymorphicObject *,
-                              const PolymorphicObject *)
+                              const Executor *exec,
+                              const PolymorphicObject *input,
+                              const PolymorphicObject *output)
 
     /**
-     * PolymorphicObject's deleted event. Parameters are the Executor and the
-     * deleted PolymorphicObject.
+     * PolymorphicObject's deleted event.
+
+     * @param exec  the executor used
+     * @param po  the PolymorphicObject to be deleted
      */
-    GKO_LOGGER_REGISTER_EVENT(12, polymorphic_object_deleted, const Executor *,
-                              const PolymorphicObject *)
+    GKO_LOGGER_REGISTER_EVENT(12, polymorphic_object_deleted,
+                              const Executor *exec, const PolymorphicObject *po)
 
     /**
-     * LinOp's apply started event. Parameters are the LinOp, b and X.
+     * LinOp's apply started event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp *,
-                              const LinOp *, const LinOp *)
+    GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp *A,
+                              const LinOp *b, const LinOp *x)
 
     /**
-     * LinOp's apply completed event. Parameters are the LinOp, b and x.
+     * LinOp's apply completed event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp *,
-                              const LinOp *, const LinOp *)
+    GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp *A,
+                              const LinOp *b, const LinOp *x)
 
     /**
-     * LinOp's advanced apply started event. Parameters are the LinOp, alpha,
-     * b, beta and x.
+     * LinOp's advanced apply started event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp *,
-                              const LinOp *, const LinOp *, const LinOp *,
-                              const LinOp *)
+    GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp *A,
+                              const LinOp *alpha, const LinOp *b,
+                              const LinOp *beta, const LinOp *x)
 
     /**
-     * LinOp's advanced apply completed event. Parameters are the LinOp, alpha,
-     * b, beta and x.
+     * LinOp's advanced apply completed event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(16, linop_advanced_apply_completed, const LinOp *,
-                              const LinOp *, const LinOp *, const LinOp *,
-                              const LinOp *)
+    GKO_LOGGER_REGISTER_EVENT(16, linop_advanced_apply_completed,
+                              const LinOp *A, const LinOp *alpha,
+                              const LinOp *b, const LinOp *beta, const LinOp *x)
 
     /**
-     * LinOp Factory's generate started event. Parameters are the LinOpFactory
-     * and the input operator.
+     * LinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the LinOp object used as input for the generation (usually
+     *               a system matrix)
      */
     GKO_LOGGER_REGISTER_EVENT(17, linop_factory_generate_started,
-                              const LinOpFactory *, const LinOp *)
+                              const LinOpFactory *factory, const LinOp *input)
 
     /**
-     * LinOp Factory's generate completed event. Parameters are the
-     * LinOpFactory, the input operator and the output operator.
+     * LinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the LinOp object used as input for the generation (usually
+     *               a system matrix)
+     * @param output  the generated LinOp object
      */
     GKO_LOGGER_REGISTER_EVENT(18, linop_factory_generate_completed,
-                              const LinOpFactory *, const LinOp *,
-                              const LinOp *)
+                              const LinOpFactory *factory, const LinOp *input,
+                              const LinOp *output)
 
     /**
-     * stop::Criterion's check started event. Parameters are the Criterion,
-     * the stoppingId, the finalized boolean.
+     * stop::Criterion's check started event.
+     *
+     * @param criterion  the criterion used
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param tau  the residual norm
+     * @param x  the solution
+     * @param stopping_id  the id of the stopping criterion
+     * @param set_finalized  whether this finalizes the iteration
      */
     GKO_LOGGER_REGISTER_EVENT(19, criterion_check_started,
-                              const stop::Criterion *, const uint8 &,
-                              const bool &)
+                              const stop::Criterion *criterion,
+                              const size_type &it, const LinOp *r,
+                              const LinOp *tau, const LinOp *x,
+                              const uint8 &stopping_id,
+                              const bool &set_finalized)
 
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
      * the stoppingId, the finalized boolean, the stopping status, plus the
      * output one_changed boolean and output all_converged boolean.
+     *
+     * @param criterion  the criterion used
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param tau  the residual norm
+     * @param x  the solution
+     * @param stopping_id  the id of the stopping criterion
+     * @param set_finalized  whether this finalizes the iteration
+     * @param status  the stopping status of the right hand sides
+     * @param one_changed  whether at least one right hand side converged or not
+     * @param all_converged  whether all right hand sides
      */
-    GKO_LOGGER_REGISTER_EVENT(20, criterion_check_completed,
-                              const stop::Criterion *, const uint8 &,
-                              const bool &, const Array<stopping_status> *,
-                              const bool &, const bool &)
+    GKO_LOGGER_REGISTER_EVENT(
+        20, criterion_check_completed, const stop::Criterion *criterion,
+        const size_type &it, const LinOp *r, const LinOp *tau, const LinOp *x,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged)
 
     /**
      * Register the `iteration_complete` event which logs every completed
-     * iterations. The parameters are the solver, the iteration count, the
-     * residual, the solution vector (optional), the residual norm (optional)
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
      */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp *,
-                              const size_type &, const LinOp *,
-                              const LinOp * = nullptr, const LinOp * = nullptr)
+    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp *solver,
+                              const size_type &it, const LinOp *r,
+                              const LinOp *x = nullptr,
+                              const LinOp *tau = nullptr)
 
 
 #undef GKO_LOGGER_REGISTER_EVENT
@@ -355,13 +448,14 @@ protected:
      *
      * @param enabled_events  the events enabled for this Logger. These can be
      *                        of the following form:
-     *                        1. `all_event_mask` which logs every event
+     *                        1. `all_event_mask` which logs every event;
      *                        2. an OR combination of masks, e.g.
-     *                           `iteration_complete_mask|apply_mask` which
-     *                            activates both of these events.
+     *                           `iteration_complete_mask|linop_apply_started_mask`
+     *                           which activates both of these events;
      *                        3. all events with exclusion through XOR, e.g.
-     *                           `all_event_mask^apply_mask` which logs every
-     *                           event except the apply event
+     *                           `all_event_mask^linop_apply_started_mask` which
+     *                           logs every event except linop's apply started
+     *                           event.
      */
     explicit Logger(std::shared_ptr<const gko::Executor> exec,
                     const mask_type &enabled_events = all_events_mask)

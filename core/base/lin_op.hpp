@@ -127,11 +127,8 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp>,
-              public log::EnableLogging<LinOp> {
+class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
-    using log::EnableLogging<LinOp>::log;
-    using log::EnableLogging<LinOp>::add_logger;
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
      *
@@ -362,7 +359,7 @@ public:
     {
         this->template log<log::Logger::linop_factory_generate_started>(
             this, input.get());
-        auto generated = this->generate_impl(input);
+        auto generated = AbstractFactory::generate(input);
         this->template log<log::Logger::linop_factory_generate_completed>(
             this, input.get(), generated.get());
         return generated;

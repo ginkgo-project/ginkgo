@@ -169,18 +169,38 @@ struct linop_factory_data {
     }
 };
 
-struct updater_data {
-    size_type num_iterations;
+
+/**
+ * Struct representing Criterion related data
+ */
+struct criterion_data {
+    const stop::Criterion *criterion;
+    const size_type num_iterations;
     std::unique_ptr<const LinOp> residual;
     std::unique_ptr<const LinOp> residual_norm;
     std::unique_ptr<const LinOp> solution;
+    const uint8 stopping_id;
+    const bool set_finalized;
+    const Array<stopping_status> *status;
+    const bool oneChanged;
+    const bool converged;
 
-    updater_data(const size_type &num_iterations, const LinOp *residual,
-                 const LinOp *residual_norm, const LinOp *solution)
-        : num_iterations{num_iterations},
+    criterion_data(const stop::Criterion *criterion,
+                   const size_type &num_iterations, const LinOp *residual,
+                   const LinOp *residual_norm, const LinOp *solution,
+                   const uint8 stopping_id, const bool set_finalized,
+                   const Array<stopping_status> *status = nullptr,
+                   const bool oneChanged = false, const bool converged = false)
+        : criterion{criterion},
+          num_iterations{num_iterations},
           residual{nullptr},
           residual_norm{nullptr},
-          solution{nullptr}
+          solution{nullptr},
+          stopping_id{stopping_id},
+          set_finalized{set_finalized},
+          status{status},
+          oneChanged{oneChanged},
+          converged{converged}
     {
         if (residual != nullptr) {
             this->residual = std::unique_ptr<const LinOp>(residual->clone());
@@ -195,38 +215,16 @@ struct updater_data {
     }
 };
 
-/**
- * Struct representing Criterion related data
- */
-struct criterion_data {
-    std::unique_ptr<const updater_data> updater;
-    const uint8 stoppingId;
-    const bool setFinalized;
-    const Array<stopping_status> *status;
-    const bool oneChanged;
-    const bool converged;
-
-    criterion_data(const stop::Criterion *criterion, const uint8 stoppingId,
-                   const bool setFinalized,
-                   const Array<stopping_status> *status = nullptr,
-                   const bool oneChanged = false, const bool converged = false)
-        : stoppingId{stoppingId},
-          setFinalized{setFinalized},
-          status{status},
-          oneChanged{oneChanged},
-          converged{converged}
-    {
-        const auto &updater = criterion->get_updater();
-        this->updater = std::unique_ptr<const updater_data>(
-            new updater_data{updater.num_iterations_, updater.residual_,
-                             updater.residual_norm_, updater.solution_});
-    }
-};
-
 
 /**
  * Record is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
+ *
+ * @note Please note that this logger can have significant memory and
+ * performance overhead. In particular, when logging events such as the `check`
+ * events, all parameters are cloned. If it is sufficient to clone one
+ * parameter, consider implementing a specific logger for this. In addition, it
+ * is advised to tune the history size in order to control memory overhead.
  */
 class Record : public Logger {
 public:
@@ -348,15 +346,19 @@ public:
 
     /* Criterion events */
     void on_criterion_check_started(const stop::Criterion *criterion,
-                                    const uint8 &stoppingId,
-                                    const bool &setFinalized) const override;
+                                    const size_type &num_iterations,
+                                    const LinOp *residual,
+                                    const LinOp *residual_norm,
+                                    const LinOp *solution,
+                                    const uint8 &stopping_id,
+                                    const bool &set_finalized) const override;
 
-    void on_criterion_check_completed(const stop::Criterion *criterion,
-                                      const uint8 &stoppingId,
-                                      const bool &setFinalized,
-                                      const Array<stopping_status> *status,
-                                      const bool &oneChanged,
-                                      const bool &converged) const override;
+    void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *residual_norm,
+        const LinOp *solution, const uint8 &stopping_id,
+        const bool &set_finalized, const Array<stopping_status> *status,
+        const bool &one_changed, const bool &all_converged) const override;
 
     /* Internal solver events */
     void on_iteration_complete(

@@ -135,15 +135,19 @@ public:
 
     /* Criterion events */
     void on_criterion_check_started(const stop::Criterion *criterion,
-                                    const uint8 &stoppingId,
-                                    const bool &setFinalized) const override;
+                                    const size_type &num_iterations,
+                                    const LinOp *residual,
+                                    const LinOp *residual_norm,
+                                    const LinOp *solution,
+                                    const uint8 &stopping_id,
+                                    const bool &set_finalized) const override;
 
-    void on_criterion_check_completed(const stop::Criterion *criterion,
-                                      const uint8 &stoppingId,
-                                      const bool &setFinalized,
-                                      const Array<stopping_status> *status,
-                                      const bool &oneChanged,
-                                      const bool &converged) const override;
+    void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *residual_norm,
+        const LinOp *solutino, const uint8 &stopping_id,
+        const bool &set_finalized, const Array<stopping_status> *status,
+        const bool &one_changed, const bool &all_converged) const override;
 
     /* Internal solver events */
     void on_iteration_complete(
@@ -197,130 +201,6 @@ protected:
         : Logger(exec, enabled_events), os_(os), verbose_(verbose)
     {}
 
-    /**
-     * Helper function which formats a number of bytes information.
-     *
-     * @param num_bytes  the number of bytes to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string bytes_name(const size_type &num_bytes) const
-    {
-        std::ostringstream oss;
-        oss << "Bytes[" << num_bytes << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::Operation information.
-     *
-     * @param op  the operation to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string operation_name(const Operation *op) const
-    {
-        std::ostringstream oss;
-        oss << "Operation[" << name_demangling::get_dynamic_type(*op) << ";"
-            << op << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::Executor information.
-     *
-     * @param exec  the executor to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string executor_name(const Executor *exec) const
-    {
-        std::ostringstream oss;
-        oss << "Executor[" << name_demangling::get_dynamic_type(*exec) << ";"
-            << exec << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a memory location information.
-     *
-     * @param location  the memory location to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string location_name(const uintptr &location) const
-    {
-        std::ostringstream oss;
-        oss << "Location[" << std::hex << "0x" << location << "]" << std::dec;
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::PolymorphicObject information.
-     *
-     * @param po  the PolymorphicObject to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string po_name(const PolymorphicObject *po) const
-    {
-        std::ostringstream oss;
-        oss << "PolymorphicObject[" << name_demangling::get_dynamic_type(*po)
-            << "," << po << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::LinOp information.
-     *
-     * @param linop  the LinOp to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string linop_name(const LinOp *linop) const
-    {
-        std::ostringstream oss;
-        oss << "LinOp[";
-        // Only these can eventually be nullptr
-        // due to residual_norm, etc
-        if (linop == nullptr) {
-            oss << name_demangling::get_dynamic_type(linop);
-        } else {
-            oss << name_demangling::get_dynamic_type(*linop);
-        }
-        oss << "," << linop << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::LinOpFactory information.
-     *
-     * @param op  the LinOpFactory to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string linop_factory_name(const LinOpFactory *factory) const
-    {
-        std::ostringstream oss;
-        oss << "LinOpFactory[" << name_demangling::get_dynamic_type(*factory)
-            << "," << factory << "]";
-        return oss.str();
-    }
-
-    /**
-     * Helper function which formats a gko::stop::Criterion information.
-     *
-     * @param op  the Criterion to print
-     *
-     * @return a properly formatted string containing the information
-     */
-    std::string criterion_name(const stop::Criterion *criterion) const
-    {
-        std::ostringstream oss;
-        oss << "Criterion[" << name_demangling::get_dynamic_type(*criterion)
-            << "," << criterion << "]";
-        return oss.str();
-    }
 
 private:
     std::ostream &os_;

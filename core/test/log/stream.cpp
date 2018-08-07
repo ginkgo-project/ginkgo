@@ -612,7 +612,8 @@ TEST(Stream, CatchesCriterionCheckStarted)
     true_in_stream << true;
 
     logger->on<gko::log::Logger::criterion_check_started>(
-        criterion.get(), RelativeStoppingId, true);
+        criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId,
+        true);
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "check started for");
@@ -640,7 +641,8 @@ TEST(Stream, CatchesCriterionCheckCompleted)
     true_in_stream << true;
 
     logger->on<gko::log::Logger::criterion_check_completed>(
-        criterion.get(), RelativeStoppingId, true, &stop_status, true, true);
+        criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
+        &stop_status, true, true);
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "check completed for");
@@ -671,7 +673,8 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
     stop_status.get_data()->clear();
     stop_status.get_data()->stop(RelativeStoppingId);
     logger->on<gko::log::Logger::criterion_check_completed>(
-        criterion.get(), RelativeStoppingId, true, &stop_status, true, true);
+        criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
+        &stop_status, true, true);
 
     auto os = out.str();
     ASSERT_STR_CONTAINS(os, "Stopped: " + true_in_stream.str());

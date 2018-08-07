@@ -451,12 +451,13 @@ TEST(Record, CatchesCriterionCheckStarted)
     constexpr gko::uint8 RelativeStoppingId{42};
 
     logger->on<gko::log::Logger::criterion_check_started>(
-        criterion.get(), RelativeStoppingId, true);
+        criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId,
+        true);
 
     auto &data = logger->get().criterion_check_started.back();
-    ASSERT_NE(data->updater, nullptr);
-    ASSERT_EQ(data->stoppingId, RelativeStoppingId);
-    ASSERT_EQ(data->setFinalized, true);
+    ASSERT_NE(data->criterion, nullptr);
+    ASSERT_EQ(data->stopping_id, RelativeStoppingId);
+    ASSERT_EQ(data->set_finalized, true);
     ASSERT_EQ(data->oneChanged, false);
     ASSERT_EQ(data->converged, false);
 }
@@ -475,14 +476,15 @@ TEST(Record, CatchesCriterionCheckCompleted)
     gko::Array<gko::stopping_status> stop_status(exec, 1);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
-        criterion.get(), RelativeStoppingId, true, &stop_status, true, true);
+        criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
+        &stop_status, true, true);
 
     stop_status.get_data()->clear();
     stop_status.get_data()->stop(RelativeStoppingId);
     auto &data = logger->get().criterion_check_completed.back();
-    ASSERT_NE(data->updater, nullptr);
-    ASSERT_EQ(data->stoppingId, RelativeStoppingId);
-    ASSERT_EQ(data->setFinalized, true);
+    ASSERT_NE(data->criterion, nullptr);
+    ASSERT_EQ(data->stopping_id, RelativeStoppingId);
+    ASSERT_EQ(data->set_finalized, true);
     ASSERT_EQ(data->status->get_const_data()->has_stopped(), true);
     ASSERT_EQ(data->status->get_const_data()->get_id(),
               stop_status.get_const_data()->get_id());
