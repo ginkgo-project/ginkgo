@@ -270,9 +270,6 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
 
 int main(int argc, char *argv[])
 {
-    // Print version information
-    std::cout << gko::version_info::get() << std::endl;
-
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
     std::string src_folder;
@@ -324,6 +321,17 @@ int main(int argc, char *argv[])
     if (format_list.size() == 0) {
         std::cout << "No available format" << std::endl;
         return 0;
+    }
+    if (matlab_format) {
+        std::cout << "legend_name = { ";
+        int n = format_list.size();
+        for (int i = 0; i < n; i++) {
+            if (i != 0) {
+                std::cout << ", ";
+            }
+            std::cout << "'" << format_list.at(i) << "'";
+        }
+        std::cout << " };" << std::endl;
     }
     // Set the testing setting
     const int warm_iter = 2;
