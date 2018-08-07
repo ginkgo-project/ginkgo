@@ -126,9 +126,6 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
                                        dense_b->get_size()[1]);
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, residual.get());
 
     // Initialization
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
@@ -151,6 +148,10 @@ void Gmres<ValueType, max_iter>::apply_impl(const LinOp *b, LinOp *x) const
     // residual_norm = norm(residual)
     // residual_norms = {residual_norm, 0, ..., 0}
     // Krylov_bases(:, 1) = residual / residual_norm
+
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
+        x, residual.get());
 
     size_type iter = 0;
     for (; iter < max_iter; ++iter) {
