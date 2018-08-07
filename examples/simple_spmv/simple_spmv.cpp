@@ -84,12 +84,13 @@ using coo = gko::matrix::Coo<double, gko::int32>;
 using ell = gko::matrix::Ell<double, gko::int32>;
 using hybrid = gko::matrix::Hybrid<double, gko::int32>;
 using csr = gko::matrix::Csr<double, gko::int32>;
+using cusp_csr = csr;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
 
 using duration_type = std::chrono::microseconds;
 
 
-class Csrmp : public gko::EnableCreateMethod<Csrmp> {
+class CuspCsrmp : public gko::EnableCreateMethod<CuspCsrmp> {
     using ValueType = double;
     using IndexType = gko::int32;
 
@@ -115,7 +116,7 @@ public:
         return csr_->get_num_stored_elements();
     }
 
-    Csrmp(std::shared_ptr<gko::Executor> exec)
+    CuspCsrmp(std::shared_ptr<gko::Executor> exec)
         : csr_(std::move(csr::create(exec))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
@@ -124,7 +125,7 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
     }
-    ~Csrmp()
+    ~CuspCsrmp()
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -136,6 +137,7 @@ private:
     cusparseMatDescr_t desc_;
     cusparseOperation_t trans_;
 };
+
 template <cusparseHybPartition_t Partition = CUSPARSE_HYB_PARTITION_AUTO,
           int Threshold = 0>
 class CuspHybrid
@@ -196,7 +198,7 @@ private:
 using cusp_hybrid = CuspHybrid<>;
 using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
-
+using cusp_csrmp = CuspCsrmp;
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
@@ -276,7 +278,8 @@ int main(int argc, char *argv[])
     std::string mtx_list;
     int device_id = 0;
     std::string allow_list(
-        "Coo;Csr;Ell;Hybrid;Hybrid20;Hybrid40;Hybrid60;Hybrid80;Sellp;Csrmp;"
+        "Coo;CuspCsr;Ell;Hybrid;Hybrid20;Hybrid40;Hybrid60;Hybrid80;Sellp;"
+        "CuspCsrmp;"
         "CuspHybrid;CuspCoo;CuspEll");
     std::vector<std::string> format_list;
     bool matlab_format;
@@ -378,9 +381,9 @@ int main(int argc, char *argv[])
             if (elem == "Coo") {
                 testing<coo>(exec, warm_iter, test_iter, data, lend(x), lend(y),
                              matlab_format);
-            } else if (elem == "Csr") {
-                testing<csr>(exec, warm_iter, test_iter, data, lend(x), lend(y),
-                             matlab_format);
+            } else if (elem == "CuspCsr") {
+                testing<cusp_csr>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format);
             } else if (elem == "Ell") {
                 testing<ell>(exec, warm_iter, test_iter, data, lend(x), lend(y),
                              matlab_format);
@@ -390,9 +393,9 @@ int main(int argc, char *argv[])
             } else if (elem == "Sellp") {
                 testing<sellp>(exec, warm_iter, test_iter, data, lend(x),
                                lend(y), matlab_format);
-            } else if (elem == "Csrmp") {
-                testing<Csrmp>(exec, warm_iter, test_iter, data, lend(x),
-                               lend(y), matlab_format);
+            } else if (elem == "CuspCsrmp") {
+                testing<cusp_csrmp>(exec, warm_iter, test_iter, data, lend(x),
+                                    lend(y), matlab_format);
             } else if (elem == "CuspHybrid") {
                 testing<cusp_hybrid>(exec, warm_iter, test_iter, data, lend(x),
                                      lend(y), matlab_format);
