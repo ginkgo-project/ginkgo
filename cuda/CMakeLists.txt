@@ -38,6 +38,7 @@ endif()
 # This is required by some examples such as cmake_matrix_format
 # which need the correct CMAKE_CUDA_FLAGS to be set
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
+set(cuda_version ${cuda_version} PARENT_SCOPE)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS cudart
