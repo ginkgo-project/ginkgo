@@ -62,7 +62,8 @@ namespace {
     }
 
 
-// this class encapsulates the complexity of reading matrix market format files
+// this class encapsulates the complexity of reading and writing matrix market
+// format files
 template <typename ValueType, typename IndexType>
 class mtx_io {
 public:
@@ -73,7 +74,7 @@ public:
         return instance;
     }
 
-    // reads the matrix from a stream
+    // reads a matrix from a stream
     matrix_data<ValueType, IndexType> read(std::istream &is) const
     {
         auto parsed_header = this->read_header(is);
@@ -84,6 +85,7 @@ public:
         return data;
     }
 
+    // writes a matrix to a stream
     void write(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
                const std::string &header) const
     {
@@ -96,8 +98,8 @@ public:
     }
 
 private:
-    // entry format hierarchy provides algorithms for reading a single entry of
-    // the matrix, depending on its storage scheme:
+    // entry format hierarchy provides algorithms for reading/writing a single
+    // entry of the matrix, depending on its storage scheme:
     struct entry_format {
         virtual ValueType read_entry(std::istream &is) const = 0;
         virtual void write_entry(std::ostream &os,
@@ -296,8 +298,9 @@ private:
     } hermitian_modifier{};
 
 
-    // the storage layout hierarchy implements algorithms for reading the matrix
-    // based on its storage layout (column-major dense or coordinate sparse)
+    // the storage layout hierarchy implements algorithms for reading/writing
+    // the matrix based on its storage layout (column-major dense or coordinate
+    // sparse)
     struct storage_layout {
         virtual matrix_data<ValueType, IndexType> read_data(
             std::istream &header, std::istream &content,
@@ -438,8 +441,8 @@ private:
                      {"coordinate", &coordinate_layout}}
     {}
 
-    // represents the parsed header, whose components can then be used to read
-    // the rest of the file
+    // represents the parsed header, whose components can then be used to
+    // read/write the rest of the file
     struct header_data {
         const entry_format *entry{};
         const storage_modifier *modifier{};
