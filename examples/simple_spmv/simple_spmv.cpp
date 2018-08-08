@@ -76,6 +76,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 #include "cuda_runtime.h"
 #include "cusparse.h"
 
+
 // Some shortcuts
 using vec = gko::matrix::Dense<double>;
 using mtx = gko::matrix_data<double, gko::int32>;
@@ -138,6 +139,74 @@ private:
     cusparseOperation_t trans_;
 };
 
+class CuspCsrEx : public gko::EnableCreateMethod<CuspCsrEx> {
+    using ValueType = double;
+    using IndexType = gko::int32;
+
+public:
+    void read(const mtx &data)
+    {
+        csr_->read(data);
+        size_t buffer_size;
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
+            handle_, CUSPARSE_ALG_MERGE_PATH, trans_, csr_->get_size()[0],
+            csr_->get_size()[1], csr_->get_num_stored_elements(), &alpha,
+            CUDA_R_64F, desc_, csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), nullptr,
+            CUDA_R_64F, &beta, CUDA_R_64F, nullptr, CUDA_R_64F, CUDA_R_64F,
+            &buffer_size));
+        ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
+    }
+    void apply(const gko::LinOp *b, gko::LinOp *x) const
+    {
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
+            handle_, CUSPARSE_ALG_MERGE_PATH, trans_, csr_->get_size()[0],
+            csr_->get_size()[1], csr_->get_num_stored_elements(), &alpha,
+            CUDA_R_64F, desc_, csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
+            CUDA_R_64F, &beta, CUDA_R_64F, dx, CUDA_R_64F, CUDA_R_64F,
+            buffer_));
+    }
+    gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+    CuspCsrEx(std::shared_ptr<gko::Executor> exec)
+        : csr_(std::move(csr::create(exec))),
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
+    }
+    ~CuspCsrEx()
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
+        ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+    }
+
+private:
+    std::shared_ptr<csr> csr_;
+    cusparseHandle_t handle_;
+    cusparseMatDescr_t desc_;
+    cusparseOperation_t trans_;
+    void *buffer_;
+};
+
+
 template <cusparseHybPartition_t Partition = CUSPARSE_HYB_PARTITION_AUTO,
           int Threshold = 0>
 class CuspHybrid
@@ -199,6 +268,7 @@ using cusp_hybrid = CuspHybrid<>;
 using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_csrmp = CuspCsrmp;
+using cusp_csrex = CuspCsrEx;
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
@@ -277,10 +347,10 @@ int main(int argc, char *argv[])
     std::string src_folder;
     std::string mtx_list;
     int device_id = 0;
-    std::string allow_list(
-        "Coo;CuspCsr;Ell;Hybrid;Hybrid20;Hybrid40;Hybrid60;Hybrid80;Sellp;"
-        "CuspCsrmp;"
-        "CuspHybrid;CuspCoo;CuspEll");
+    std::vector<std::string> allow_list{
+        "Coo",       "CuspCsr",    "Ell",      "Hybrid", "Hybrid20",
+        "Hybrid40",  "Hybrid60",   "Hybrid80", "Sellp",  "CuspCsrex",
+        "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll"};
     std::vector<std::string> format_list;
     bool matlab_format;
     if (argc >= 5) {
@@ -315,7 +385,8 @@ int main(int argc, char *argv[])
     cusparseHandle_t handle;
     cusparseCreate(&handle);
     for (int i = 5; i < argc; i++) {
-        if (allow_list.find(argv[i]) != std::string::npos) {
+        if (find(allow_list.begin(), allow_list.end(), std::string(argv[i])) !=
+            allow_list.end()) {
             format_list.emplace_back(std::string(argv[i]));
         } else {
             std::cout << "Unknown format " << argv[i] << std::endl;
@@ -421,6 +492,9 @@ int main(int argc, char *argv[])
                 testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
                                 lend(y), matlab_format,
                                 std::make_shared<hybrid::imbalance_limit>(0.8));
+            } else if (elem == "CuspCsrex") {
+                testing<cusp_csrex>(exec, warm_iter, test_iter, data, lend(x),
+                                    lend(y), matlab_format);
             }
         }
         std::cout << std::endl;

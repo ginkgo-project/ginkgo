@@ -62,7 +62,10 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 
 void *OmpExecutor::raw_alloc(size_type num_bytes) const
 {
-    return ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    auto tmp = ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    // touch ram
+    std::memset(tmp, 0, num_bytes);
+    return tmp;
 }
 
 
