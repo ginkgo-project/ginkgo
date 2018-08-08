@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
-#include <core/base/mtx_reader.hpp>
 
 
 namespace {
