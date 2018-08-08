@@ -137,13 +137,7 @@ public:
      *
      * @return the updater object
      */
-    Updater &update()
-    {
-        last_updater.reset(new Updater{this});
-        return *(last_updater.get());
-    }
-
-    const Updater &get_updater() const { return *last_updater.get(); }
+    Updater update() { return {this}; }
 
     /**
      * This checks whether convergence was reached for a certain criterion.
@@ -178,12 +172,7 @@ protected:
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<Criterion>(exec)
-    {
-        this->last_updater = std::unique_ptr<Updater>(new Updater{this});
-    }
-
-private:
-    std::unique_ptr<Updater> last_updater;
+    {}
 };
 
 
