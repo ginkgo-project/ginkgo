@@ -192,7 +192,7 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
         #ifdef ALLOWMP   
-        cusparseAlgMode_t algmode_ = CUSPARSE_ALG_MERGE_PATH);
+        cusparseAlgMode_t algmode_ = CUSPARSE_ALG_MERGE_PATH;
         #endif
     }
     ~CuspCsrEx()
