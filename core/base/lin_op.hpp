@@ -348,11 +348,8 @@ private:
  * ```
  */
 class LinOpFactory
-    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>>,
-      public log::EnableLogging<LinOpFactory> {
+    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
 public:
-    using log::EnableLogging<LinOpFactory>::log;
-    using log::EnableLogging<LinOpFactory>::add_logger;
     using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
 
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
