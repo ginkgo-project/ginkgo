@@ -269,13 +269,15 @@ using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_csrmp = CuspCsrmp;
 using cusp_csrex = CuspCsrEx;
+
+
 template <typename VecType>
 void generate_rhs(VecType *rhs)
 {
     auto values = rhs->get_values();
     for (gko::size_type row = 0; row < rhs->get_size()[0]; row++) {
         for (gko::size_type col = 0; col < rhs->get_size()[1]; col++) {
-            rhs->at(row, col) = static_cast<double>(row) / col;
+            rhs->at(row, col) = 1/static_cast<double>(row + col + 1);
         }
     }
 }
@@ -299,7 +301,6 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         output(0, -1, matlab_format);
         return;
     }
-
     auto dx = vec::create(exec);
     auto dy = vec::create(exec);
     try {
