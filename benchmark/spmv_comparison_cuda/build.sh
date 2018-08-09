@@ -32,6 +32,6 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/simple_spmv \
-    ${THIS_DIR}/simple_spmv.cpp -I${THIS_DIR}/../.. -L${THIS_DIR} \
+${CXX} -std=c++11 -o ${THIS_DIR}/spmv_comparison_cuda \
+    ${THIS_DIR}/spmv_comparison_cuda.cpp -I${THIS_DIR}/../.. -L${THIS_DIR} \
     ${LINK_FLAGS}

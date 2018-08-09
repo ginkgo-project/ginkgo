@@ -10,6 +10,7 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
+option(BUILD_BENCHMARK "Build Ginkgo's benchmark" ON)
 option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
@@ -67,6 +68,10 @@ ginkgo_install()
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(BUILD_BENCHMARK)
+    add_subdirectory(benchmark)
 endif()
 
 if(DEVEL_TOOLS)
