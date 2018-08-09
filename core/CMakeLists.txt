@@ -2,9 +2,9 @@ set(SOURCES
     base/executor.cpp
     base/mtx_io.cpp
     base/version.cpp
-    log/stream.cpp
     log/logger.cpp
     log/record.cpp
+    log/stream.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp

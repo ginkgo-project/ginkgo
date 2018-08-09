@@ -35,12 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
 
 
+#include <gtest/gtest.h>
 #include <cmath>
 #include <cstdlib>
 #include <initializer_list>
-
-
-#include <gtest/gtest.h>
+#include <string>
 
 
 #include "core/base/math.hpp"
@@ -167,6 +166,22 @@ template <typename MatrixData1, typename MatrixData2>
 }
 
 
+::testing::AssertionResult str_contains_impl(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &string1, const std::string &string2)
+{
+    if (string1.find(string2) != std::string::npos) {
+        return ::testing::AssertionSuccess();
+    } else {
+        auto fail = ::testing::AssertionFailure();
+        fail << "expression " << first_expression << " which is " << string1
+             << " does not contain string from expression " << second_expression
+             << " which is " << string2 << "\n";
+        return fail;
+    }
+}
+
+
 template <typename T>
 struct remove_container_impl {
     using type = T;
@@ -262,6 +277,31 @@ template <typename LinOp1, typename T>
 }
 
 
+/**
+ * This is a gtest predicate which checks if one string is contained in another.
+ *
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT2` as follows:
+ *
+ * ```
+ * // Check if first contains second
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::string_contains,
+ *                     first, second);
+ * ```
+ *
+ * @see ASSERT_STRING_CONTAINS
+ */
+::testing::AssertionResult str_contains(const std::string &first_expression,
+                                        const std::string &second_expression,
+                                        const std::string &string1,
+                                        const std::string &string2)
+{
+    return detail::str_contains_impl(first_expression, second_expression,
+                                     string1, string2);
+}
+
+
 namespace detail {
 
 
@@ -344,6 +384,22 @@ T plain_ptr(T ptr)
         using ::gko::test::assertions::detail::plain_ptr;              \
         EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near,    \
                             plain_ptr(_mtx1), plain_ptr(_mtx2), _tol); \
+    }
+
+
+/**
+ * Checks if one substring can be found inside a bigger string
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::str_contains().
+ *
+ * @param _str1  the main string
+ * @param _mtx2  the substring to find
+ */
+#define ASSERT_STR_CONTAINS(_str1, _str2)                                 \
+    {                                                                     \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::str_contains, _str1, \
+                            _str2);                                       \
     }
 
 

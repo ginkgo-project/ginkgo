@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
 #include "core/stop/criterion.hpp"
 
@@ -58,11 +59,14 @@ namespace solver {
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Cgs : public EnableLinOp<Cgs<ValueType>> {
+class Cgs : public EnableLinOp<Cgs<ValueType>>,
+            public log::EnableLogging<Cgs<ValueType>> {
     friend class EnableLinOp<Cgs>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
 
 public:
+    using log::EnableLogging<Cgs<ValueType>>::log;
+    using log::EnableLogging<Cgs<ValueType>>::add_logger;
     using value_type = ValueType;
 
     /**

@@ -61,7 +61,8 @@ namespace detail {
 
 
 template <typename T>
-struct pointee_impl {};
+struct pointee_impl {
+};
 
 template <typename T>
 struct pointee_impl<T *> {
@@ -83,11 +84,13 @@ using pointee = typename pointee_impl<typename std::decay<T>::type>::type;
 
 
 template <typename T, typename = void>
-struct is_clonable_impl : std::false_type {};
+struct is_clonable_impl : std::false_type {
+};
 
 template <typename T>
 struct is_clonable_impl<T, xstd::void_t<decltype(std::declval<T>().clone())>>
-    : std::true_type {};
+    : std::true_type {
+};
 
 template <typename T>
 constexpr bool is_clonable()
@@ -97,13 +100,15 @@ constexpr bool is_clonable()
 
 
 template <typename T, typename = void>
-struct is_clonable_to_impl : std::false_type {};
+struct is_clonable_to_impl : std::false_type {
+};
 
 template <typename T>
 struct is_clonable_to_impl<
     T, xstd::void_t<decltype(std::declval<T>().clone(
            std::declval<std::shared_ptr<const Executor>>()))>>
-    : std::true_type {};
+    : std::true_type {
+};
 
 template <typename T>
 constexpr bool is_clonable_to()
@@ -113,13 +118,16 @@ constexpr bool is_clonable_to()
 
 
 template <typename T>
-struct have_ownership_impl : std::false_type {};
+struct have_ownership_impl : std::false_type {
+};
 
 template <typename T>
-struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {};
+struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {
+};
 
 template <typename T>
-struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
+struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {
+};
 
 template <typename T>
 constexpr bool have_ownership()
@@ -333,7 +341,7 @@ public:
      *
      * @param ptr  pointer to the object being deleted
      */
-    void operator()(pointer ptr) const noexcept {}
+    void operator()(pointer) const noexcept {}
 };
 
 // a specialization for arrays
@@ -342,7 +350,7 @@ class null_deleter<T[]> {
 public:
     using pointer = T[];
 
-    void operator()(pointer ptr) const noexcept {}
+    void operator()(pointer) const noexcept {}
 };
 
 

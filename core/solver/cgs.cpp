@@ -147,6 +147,8 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         swap(rho_prev, rho);
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get(), dense_x);
         iter++;
     }
 }

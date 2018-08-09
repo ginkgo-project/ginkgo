@@ -72,6 +72,22 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver_logging
 #include <string>
 
 
+namespace {
+
+
+void print_vector(const std::string &name, const gko::matrix::Dense<> *vec)
+{
+    std::cout << name << " = [" << std::endl;
+    for (int i = 0; i < vec->get_size()[0]; ++i) {
+        std::cout << "    " << vec->at(i, 0) << std::endl;
+    }
+    std::cout << "];" << std::endl;
+}
+
+
+}  // namespace
+
+
 int main(int argc, char *argv[])
 {
     // Some shortcuts
@@ -101,6 +117,24 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
+    // Let's declare a logger which prints to std::cout instead of printing to a
+    // file We log all events except for all linop factory and polymorphic
+    // object events There events masks are group of events which are provided
+    // for convenience.
+    std::shared_ptr<gko::log::Stream<>> stream_logger =
+        gko::log::Stream<>::create(
+            exec,
+            gko::log::Logger::all_events_mask ^
+                gko::log::Logger::linop_factory_events_mask ^
+                gko::log::Logger::polymorphic_object_events_mask,
+            std::cout);
+
+    // Add stream_logger to the executor
+    exec->add_logger(stream_logger);
+
+    // Add stream_logger to the criterion
+    // criterion->add_logger(stream_logger);
+
     // Generate solver
     auto solver_gen =
         cg::Factory::create()
@@ -126,27 +160,35 @@ int main(int argc, char *argv[])
     solver->add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, filestream));
 
-    // Another logger which prints to std::cout instead of printing to a file
-    // We log all events except for apply.
-    solver->add_logger(gko::log::Stream<>::create(
-        exec, gko::log::Logger::all_events_mask ^ gko::log::Logger::apply_mask,
-        std::cout));
+    solver->add_logger(stream_logger);
 
     // Add another logger which puts all the data in an object, we can later
-    // retrieve this object in our code
-    std::shared_ptr<gko::log::Record> record_logger =
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask);
+    // retrieve this object in our code. Here we only have want LinOp, Executor
+    // and last iteration completed events.
+    std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
+        exec, gko::log::Logger::linop_events_mask |
+                  gko::log::Logger::executor_events_mask |
+                  gko::log::Logger::iteration_complete_mask);
     solver->add_logger(record_logger);
+    exec->add_logger(record_logger);
 
     // Solve system
     solver->apply(lend(b), lend(x));
 
-    // Finally, get the data from `record_logger` and print an element
-    auto residual = record_logger->get().residuals.back().get();
+    // Finally, get some data from `record_logger` and print the last memory
+    // location copied
+    auto &last_copy = record_logger->get().copy_completed.back();
+    std::cout << std::hex << "Last memory copied was of size "
+              << std::get<0>(*last_copy).num_bytes << " FROM executor "
+              << std::get<0>(*last_copy).exec << " pointer "
+              << std::get<0>(*last_copy).location << " TO executor "
+              << std::get<1>(*last_copy).exec << " pointer "
+              << std::get<1>(*last_copy).location << std::endl;
+    // Also print the residual of the last iteration completed
+    auto residual =
+        record_logger->get().iteration_completed.back()->residual.get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
-    // Set precision as needed for output
-    std::cout << std::scientific << std::setprecision(4);
-    std::cout << "Residual(1) : " << residual_d->at(1) << std::endl;
+    print_vector("Residual", residual_d);
 
     // Print solution
     std::cout << "Solution (x): \n";

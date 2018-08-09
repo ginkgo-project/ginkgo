@@ -139,6 +139,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get());
         iter++;
         auto all_converged =
             stop_criterion->update()
@@ -167,6 +169,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get(), dense_x);
         iter++;
     }
 }  // namespace solver
