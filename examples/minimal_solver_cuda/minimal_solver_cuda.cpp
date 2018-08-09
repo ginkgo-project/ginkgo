@@ -52,14 +52,14 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -std=c++11 -o minimalistic_solver minimalistic_solver.cpp -I../.. \
+c++ -std=c++11 -o minimal_solver_cuda minimal_solver_cuda.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./minimalistic_solver
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./minimal_solver_cuda
 
 *****************************<COMPILATION>**********************************/
 
@@ -67,14 +67,14 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./minimalistic_solver
 This is a minimal example that solves a system with Ginkgo. The matrix, right
 hand side and initial guess are read from standard input, and the result is
 written to standard output. The system matrix is stored in CSR format, and the
-system solved using the CG method, preconditioned with the Block-Jacobi
+system solved using the CG method, preconditioned with the block-Jacobi
 preconditioner. All computations are done on the GPU.
 
 The easiest way to use the example data from the data/ folder is to concatenate
-the matrix, the right hand side, and the initial solution (in that exact order),
-and pipe the result to the minimalistic_solver executable:
+the matrix, the right hand side and the initial solution (in that exact order),
+and pipe the result to the minimal_solver_cuda executable:
 
-cat data/A.mtx data/b.mtx data/x0.mtx | ./minimalistic_solver
+cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda
 
 *****************************<DECSRIPTION>**********************************/
 

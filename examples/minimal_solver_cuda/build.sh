@@ -32,6 +32,6 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/minimalistic_solver \
-    ${THIS_DIR}/minimalistic_solver.cpp \
+${CXX} -std=c++11 -o ${THIS_DIR}/minimal_solver_cuda \
+    ${THIS_DIR}/minimal_solver_cuda.cpp \
     -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
