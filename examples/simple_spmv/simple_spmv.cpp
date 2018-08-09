@@ -66,29 +66,22 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
 #include <include/ginkgo.hpp>
 
+
 #include <chrono>
 #include <exception>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
-
-#include "cuda_runtime.h"
-#include "cusparse.h"
+#include <cuda_runtime.h>
+#include <cusparse.h>
 
 
 // Some shortcuts
 using vec = gko::matrix::Dense<double>;
 using mtx = gko::matrix_data<double, gko::int32>;
-
-using coo = gko::matrix::Coo<double, gko::int32>;
-using ell = gko::matrix::Ell<double, gko::int32>;
-using hybrid = gko::matrix::Hybrid<double, gko::int32>;
-using csr = gko::matrix::Csr<double, gko::int32>;
-using cusp_csr = csr;
-using sellp = gko::matrix::Sellp<double, gko::int32>;
-
 using duration_type = std::chrono::microseconds;
+using csr = gko::matrix::Csr<double, gko::int32>;
 
 
 class CuspCsrmp : public gko::EnableCreateMethod<CuspCsrmp> {
@@ -271,11 +264,18 @@ private:
     cusparseOperation_t trans_;
     cusparseHybMat_t hyb_;
 };
-using cusp_hybrid = CuspHybrid<>;
+
+// set matrix shortcuts
+using coo = gko::matrix::Coo<double, gko::int32>;
+using ell = gko::matrix::Ell<double, gko::int32>;
+using hybrid = gko::matrix::Hybrid<double, gko::int32>;
+using sellp = gko::matrix::Sellp<double, gko::int32>;
 using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
-using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
-using cusp_csrmp = CuspCsrmp;
+using cusp_csr = csr;
 using cusp_csrex = CuspCsrEx;
+using cusp_csrmp = CuspCsrmp;
+using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
+using cusp_hybrid = CuspHybrid<>;
 
 
 template <typename VecType>
