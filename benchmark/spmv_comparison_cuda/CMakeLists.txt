@@ -3,6 +3,7 @@ if (BUILD_CUDA)
     target_link_libraries(spmv_comparison_cuda ginkgo ${CUDA_RUNTIME_LIBS}
         ${CUBLAS} ${CUSPARSE})
     target_include_directories(spmv_comparison_cuda PRIVATE ${PROJECT_SOURCE_DIR})
+    target_include_directories(spmv_comparison_cuda SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
     if(cuda_version GREATER_EQUAL "92")
         add_definitions(-DALLOWMP)
     endif()

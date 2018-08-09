@@ -49,6 +49,7 @@ namespace ell {
 
 constexpr int default_block_size = 512;
 
+
 namespace {
 
 
