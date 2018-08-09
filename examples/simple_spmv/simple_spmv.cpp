@@ -91,7 +91,6 @@ using sellp = gko::matrix::Sellp<double, gko::int32>;
 using duration_type = std::chrono::microseconds;
 
 
-
 class CuspCsrmp : public gko::EnableCreateMethod<CuspCsrmp> {
     using ValueType = double;
     using IndexType = gko::int32;
@@ -151,15 +150,15 @@ public:
         size_t buffer_size;
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
-        
+
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
-            handle_, algmode_, trans_, csr_->get_size()[0],
-            csr_->get_size()[1], csr_->get_num_stored_elements(), &alpha,
-            CUDA_R_64F, desc_, csr_->get_const_values(), CUDA_R_64F,
-            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), nullptr,
-            CUDA_R_64F, &beta, CUDA_R_64F, nullptr, CUDA_R_64F, CUDA_R_64F,
-            &buffer_size));
+            handle_, algmode_, trans_, csr_->get_size()[0], csr_->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F, desc_,
+            csr_->get_const_values(), CUDA_R_64F, csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), nullptr, CUDA_R_64F, &beta, CUDA_R_64F,
+            nullptr, CUDA_R_64F, CUDA_R_64F, &buffer_size));
         ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
+        set_buffer_ = true;
     }
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
@@ -170,12 +169,11 @@ public:
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
-            handle_, algmode_, trans_, csr_->get_size()[0],
-            csr_->get_size()[1], csr_->get_num_stored_elements(), &alpha,
-            CUDA_R_64F, desc_, csr_->get_const_values(), CUDA_R_64F,
-            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            CUDA_R_64F, &beta, CUDA_R_64F, dx, CUDA_R_64F, CUDA_R_64F,
-            buffer_));
+            handle_, algmode_, trans_, csr_->get_size()[0], csr_->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F, desc_,
+            csr_->get_const_values(), CUDA_R_64F, csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, CUDA_R_64F, &beta, CUDA_R_64F, dx,
+            CUDA_R_64F, CUDA_R_64F, buffer_));
     }
     gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
     gko::size_type get_num_stored_elements() const noexcept
@@ -185,21 +183,24 @@ public:
 
     CuspCsrEx(std::shared_ptr<gko::Executor> exec)
         : csr_(std::move(csr::create(exec))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
+          set_buffer_(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
-        #ifdef ALLOWMP   
+#ifdef ALLOWMP
         cusparseAlgMode_t algmode_ = CUSPARSE_ALG_MERGE_PATH;
-        #endif
+#endif
     }
     ~CuspCsrEx()
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
-        ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+        if (set_buffer_) {
+            ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+        }
     }
 
 private:
@@ -209,6 +210,7 @@ private:
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
     void *buffer_;
+    bool set_buffer_;
 };
 
 
@@ -282,7 +284,7 @@ void generate_rhs(VecType *rhs)
     auto values = rhs->get_values();
     for (gko::size_type row = 0; row < rhs->get_size()[0]; row++) {
         for (gko::size_type col = 0; col < rhs->get_size()[1]; col++) {
-            rhs->at(row, col) = 1/static_cast<double>(row + col + 1);
+            rhs->at(row, col) = 1 / static_cast<double>(row + col + 1);
         }
     }
 }
