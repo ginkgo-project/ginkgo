@@ -7,5 +7,6 @@ var searchData=
   ['installation_20instructions',['Installation instructions',['../install.html',1,'']]],
   ['is_5ffinalized',['is_finalized',['../classgko_1_1stopping__status.html#a7c8b094d37449098ca4ddb1f4bbf10bd',1,'gko::stopping_status']]],
   ['is_5fvalid',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]],
-  ['iteration',['Iteration',['../classgko_1_1stop_1_1Iteration.html',1,'gko::stop']]]
+  ['iteration',['Iteration',['../classgko_1_1stop_1_1Iteration.html',1,'gko::stop']]],
+  ['iteration_5fcomplete_5fdata',['iteration_complete_data',['../structgko_1_1log_1_1iteration__complete__data.html',1,'gko::log']]]
 ];

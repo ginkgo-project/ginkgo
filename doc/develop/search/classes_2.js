@@ -39,6 +39,7 @@ var searchData=
   ['copy_5fback_5fdeleter',['copy_back_deleter',['../classgko_1_1copy__back__deleter.html',1,'gko']]],
   ['copy_5fback_5fdeleter_3c_20const_20t_20_3e',['copy_back_deleter&lt; const T &gt;',['../classgko_1_1copy__back__deleter_3_01const_01T_01_4.html',1,'gko']]],
   ['criterion',['Criterion',['../classgko_1_1stop_1_1Criterion.html',1,'gko::stop']]],
+  ['criterion_5fdata',['criterion_data',['../structgko_1_1log_1_1criterion__data.html',1,'gko::log']]],
   ['criterionargs',['CriterionArgs',['../structgko_1_1stop_1_1CriterionArgs.html',1,'gko::stop']]],
   ['csr',['Csr',['../classgko_1_1matrix_1_1Csr.html',1,'gko::matrix']]],
   ['cublaserror',['CublasError',['../classgko_1_1CublasError.html',1,'gko']]],
