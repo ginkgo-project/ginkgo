@@ -90,7 +90,7 @@ protected:
     {}
 
     explicit ResidualNormReduction(const Factory *factory,
-                                   const CriterionArgs args)
+                                   const CriterionArgs &args)
         : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
