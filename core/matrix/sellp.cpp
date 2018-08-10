@@ -162,6 +162,10 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Create an SELL-P format matrix based on the sizes.
     auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
                              slice_size, stride_factor, total_cols);
+    if (this->get_executor() != this->get_executor()->get_master()) {
+        Sellp::create(this->get_executor()->get_master(), data.size, slice_size,
+                      stride_factor, total_cols);
+    }
 
     // Get slice length, slice set, matrix values and column indexes.
     index_type slice_set = 0;

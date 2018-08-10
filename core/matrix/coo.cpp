@@ -176,6 +176,9 @@ void Coo<ValueType, IndexType>::read(const mat_data &data)
         nnz += (elem.value != zero<ValueType>());
     }
     auto tmp = Coo::create(this->get_executor()->get_master(), data.size, nnz);
+    if (this->get_executor() != this->get_executor()->get_master()) {
+        Coo::create(this->get_executor(), data.size, nnz);
+    }
     size_type elt = 0;
     for (const auto &elem : data.nonzeros) {
         auto val = elem.value;
