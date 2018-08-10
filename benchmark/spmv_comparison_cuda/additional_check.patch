@@ -1,0 +1,81 @@
+diff -Naur ginkgo/core/matrix/coo.cpp ginkgo_addition/core/matrix/coo.cpp
+--- ginkgo/core/matrix/coo.cpp	2018-08-10 16:39:58.000000000 +0200
++++ ginkgo_addition/core/matrix/coo.cpp	2018-08-10 00:19:04.000000000 +0200
+@@ -176,6 +176,9 @@
+         nnz += (elem.value != zero<ValueType>());
+     }
+     auto tmp = Coo::create(this->get_executor()->get_master(), data.size, nnz);
++    if (this->get_executor() != this->get_executor()->get_master()) {
++        Coo::create(this->get_executor(), data.size, nnz);
++    }
+     size_type elt = 0;
+     for (const auto &elem : data.nonzeros) {
+         auto val = elem.value;
+diff -Naur ginkgo/core/matrix/csr.cpp ginkgo_addition/core/matrix/csr.cpp
+--- ginkgo/core/matrix/csr.cpp	2018-08-10 16:39:53.000000000 +0200
++++ ginkgo_addition/core/matrix/csr.cpp	2018-08-10 00:20:46.000000000 +0200
+@@ -156,6 +156,9 @@
+         nnz += (elem.value != zero<ValueType>());
+     }
+     auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz);
++    if (this->get_executor() != this->get_executor()->get_master()) {
++        Csr::create(this->get_executor(), data.size, nnz);
++    }
+     size_type ind = 0;
+     size_type cur_ptr = 0;
+     tmp->get_row_ptrs()[0] = cur_ptr;
+diff -Naur ginkgo/core/matrix/dense.cpp ginkgo_addition/core/matrix/dense.cpp
+--- ginkgo/core/matrix/dense.cpp	2018-08-10 16:39:49.000000000 +0200
++++ ginkgo_addition/core/matrix/dense.cpp	2018-08-10 00:23:03.000000000 +0200
+@@ -508,6 +508,9 @@
+ inline void read_impl(MatrixType *mtx, const MatrixData &data)
+ {
+     auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
++    if (mtx->get_executor() != mtx->get_executor()->get_master()) {
++        MatrixType::create(mtx->get_executor(), data.size);
++    }
+     size_type ind = 0;
+     for (size_type row = 0; row < data.size[0]; ++row) {
+         for (size_type col = 0; col < data.size[1]; ++col) {
+diff -Naur ginkgo/core/matrix/ell.cpp ginkgo_addition/core/matrix/ell.cpp
+--- ginkgo/core/matrix/ell.cpp	2018-08-10 16:39:45.000000000 +0200
++++ ginkgo_addition/core/matrix/ell.cpp	2018-08-10 10:31:18.000000000 +0200
+@@ -133,6 +133,10 @@
+     // Create an ELLPACK format matrix based on the sizes.
+     auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
+                            num_stored_elements_per_row, data.size[0]);
++    if (this->get_executor() != this->get_executor()->get_master()) {
++        Ell::create(this->get_executor(), data.size,
++                    num_stored_elements_per_row, data.size[0]);
++    }
+ 
+     // Get values and column indexes.
+     size_type ind = 0;
+diff -Naur ginkgo/core/matrix/hybrid.cpp ginkgo_addition/core/matrix/hybrid.cpp
+--- ginkgo/core/matrix/hybrid.cpp	2018-08-10 16:40:04.000000000 +0200
++++ ginkgo_addition/core/matrix/hybrid.cpp	2018-08-10 10:31:36.000000000 +0200
+@@ -136,6 +136,10 @@
+ 
+     auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
+                               ell_lim, data.size[0], coo_lim);
++    if (this->get_executor() != this->get_executor()->get_master()) {
++        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
++                       data.size[0], coo_lim);
++    }
+ 
+     // Get values and column indexes.
+     size_type ind = 0;
+diff -Naur ginkgo/core/matrix/sellp.cpp ginkgo_addition/core/matrix/sellp.cpp
+--- ginkgo/core/matrix/sellp.cpp	2018-08-10 16:40:28.000000000 +0200
++++ ginkgo_addition/core/matrix/sellp.cpp	2018-08-10 10:31:55.000000000 +0200
+@@ -162,6 +162,10 @@
+     // Create an SELL-P format matrix based on the sizes.
+     auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
+                              slice_size, stride_factor, total_cols);
++    if (this->get_executor() != this->get_executor()->get_master()) {
++        Sellp::create(this->get_executor()->get_master(), data.size, slice_size,
++                      stride_factor, total_cols);
++    }
+ 
+     // Get slice length, slice set, matrix values and column indexes.
+     index_type slice_set = 0;

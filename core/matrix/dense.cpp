@@ -508,9 +508,6 @@ template <typename MatrixType, typename MatrixData>
 inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
     auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
-    if (mtx->get_executor() != mtx->get_executor()->get_master()) {
-        MatrixType::create(mtx->get_executor(), data.size);
-    }
     size_type ind = 0;
     for (size_type row = 0; row < data.size[0]; ++row) {
         for (size_type col = 0; col < data.size[1]; ++col) {

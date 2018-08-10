@@ -133,10 +133,6 @@ void Ell<ValueType, IndexType>::read(const mat_data &data)
     // Create an ELLPACK format matrix based on the sizes.
     auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
                            num_stored_elements_per_row, data.size[0]);
-    if (this->get_executor() != this->get_executor()->get_master()) {
-        Ell::create(this->get_executor(), data.size,
-                    num_stored_elements_per_row, data.size[0]);
-    }
 
     // Get values and column indexes.
     size_type ind = 0;

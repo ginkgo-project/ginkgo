@@ -136,10 +136,6 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
 
     auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
                               ell_lim, data.size[0], coo_lim);
-    if (this->get_executor() != this->get_executor()->get_master()) {
-        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
-                       data.size[0], coo_lim);
-    }
 
     // Get values and column indexes.
     size_type ind = 0;

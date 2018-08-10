@@ -61,20 +61,24 @@ Now you should be able to run the program using:
 
 env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
+If you want to check cuda memory first before setting value in the function
+`read`, you can use additional_check.patch:
+
+patch -d /path/to/gingko -p1 < additional_check.patch
 *****************************<COMPILATION>**********************************/
 
 
 #include <include/ginkgo.hpp>
 
 
+#include <cuda_runtime.h>
+#include <cusparse.h>
 #include <chrono>
 #include <exception>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
-#include <cuda_runtime.h>
-#include <cusparse.h>
 
 
 // Some shortcuts
