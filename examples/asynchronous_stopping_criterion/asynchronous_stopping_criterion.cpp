@@ -113,7 +113,7 @@ protected:
     {}
 
     explicit ByInteraction(const Factory *factory,
-                           const gko::stop::CriterionArgs args)
+                           const gko::stop::CriterionArgs &args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),
