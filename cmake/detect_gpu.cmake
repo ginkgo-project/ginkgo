@@ -166,6 +166,7 @@ endfunction()
 function(ginkgo_select_nvcc_arch_flags architecture_list out_variable)
     if(CMAKE_CUDA_COMPILER_VERSION MATCHES "([0-9]+).([0-9]+).(.*)")
         set(cuda_version ${CMAKE_MATCH_1}${CMAKE_MATCH_2})
+        set(cuda_version ${cuda_version} PARENT_SCOPE)
     else()
         message(FATAL_ERROR "Do not extract CUDA_COMPILER_VERSION:
                              ${CMAKE_CUDA_COMPILER_VERSION}")
