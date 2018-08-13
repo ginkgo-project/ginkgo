@@ -359,13 +359,14 @@ int main(int argc, char *argv[])
     std::string src_folder;
     std::string mtx_list;
     int device_id = 0;
+    int nrhs = 1;
     std::vector<std::string> allow_list{
         "Coo",       "CuspCsr",    "Ell",      "Hybrid", "Hybrid20",
         "Hybrid40",  "Hybrid60",   "Hybrid80", "Sellp",  "CuspCsrex",
         "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll"};
     std::vector<std::string> format_list;
     bool matlab_format;
-    if (argc >= 5) {
+    if (argc >= 6) {
         device_id = std::atoi(argv[1]);
         if (std::string(argv[2]) == "matlab") {
             matlab_format = true;
@@ -374,11 +375,13 @@ int main(int argc, char *argv[])
         }
         src_folder = argv[3];
         mtx_list = argv[4];
+        nrhs = std::atoi(argv[5]);
     } else {
-        std::cerr << "Usage: " << argv[0]
-                  << "device_id format src_folder mtx_list testing_format1 "
-                     "testing_format2 ..."
-                  << std::endl;
+        std::cerr
+            << "Usage: " << argv[0] << " "
+            << "device_id format src_folder mtx_list num_rhs testing_format1 "
+               "testing_format2 ..."
+            << std::endl;
         std::exit(-1);
     }
     if (gko::CudaExecutor::get_num_devices() == 0) {
@@ -396,7 +399,7 @@ int main(int argc, char *argv[])
     }
     cusparseHandle_t handle;
     cusparseCreate(&handle);
-    for (int i = 5; i < argc; i++) {
+    for (int i = 6; i < argc; i++) {
         if (find(allow_list.begin(), allow_list.end(), std::string(argv[i])) !=
             allow_list.end()) {
             format_list.emplace_back(std::string(argv[i]));
@@ -456,8 +459,20 @@ int main(int argc, char *argv[])
         std::string sep(matlab_format ? " " : ", ");
         std::cout << data.size[0] << sep << data.size[1] << sep
                   << data.nonzeros.size();
-        auto x = vec::create(exec->get_master(), gko::dim<2>{data.size[1], 1});
-        auto y = vec::create(exec->get_master(), gko::dim<2>{data.size[0], 1});
+        auto x =
+            vec::create(exec->get_master(), gko::dim<2>{data.size[1], nrhs});
+        auto y =
+            vec::create(exec->get_master(), gko::dim<2>{data.size[0], nrhs});
+        try {
+            vec::create(exec, gko::dim<2>{data.size[0] + data.size[1], nrhs});
+        } catch (...) {
+            // check GPU memory
+            for (const auto &elem : format_list) {
+                output(0, -4, matlab_format);
+            }
+            std::cout << std::endl;
+            continue;
+        }
         generate_rhs(lend(x));
         generate_rhs(lend(y));
         for (const auto &elem : format_list) {
