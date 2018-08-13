@@ -178,8 +178,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
         residual_norms.get(), Krylov_bases_small.get(), Hessenberg_small.get(),
         y.get(), dense_x, &final_iter_nums));
-    // if (size_type parameter_.max_iter) {
-    // }
 }
 
 
