@@ -52,15 +52,12 @@ constexpr int default_max_iter_num = 100;
 
 
 /**
- * CG or the conjugate gradient method is an iterative type Krylov subspace
- * method which is suitable for symmetric positive definite methods.
- *
- * Though this method performs very well for symmetric positive definite
- * matrices, it is in general not suitable for general matrices.
+ * GMRES or the generalized minimal residual method is an iterative type Krylov
+ * subspace method which is suitable for nonsymmetric linear systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of CG are merged
- * into 2 separate steps.
+ * use of data locality. The inner operations in one iteration of GMRES are
+ * merged into 2 separate steps.
  *
  * @tparam ValueType  precision of matrix elements
  */
