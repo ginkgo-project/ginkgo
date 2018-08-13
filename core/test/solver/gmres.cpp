@@ -60,7 +60,7 @@ protected:
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+              {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
               Solver::Factory::create()
                   .with_criterion(

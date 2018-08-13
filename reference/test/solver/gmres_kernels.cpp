@@ -56,7 +56,7 @@ protected:
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+              {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
               gko::solver::Gmres<>::Factory::create()
                   .with_criterion(
@@ -108,7 +108,7 @@ protected:
 TEST_F(Gmres, SolvesStencilSystem)
 {
     auto solver = gmres_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
@@ -120,7 +120,7 @@ TEST_F(Gmres, SolvesStencilSystem)
 TEST_F(Gmres, SolvesMultipleStencilSystems)
 {
     auto solver = gmres_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
+    auto b = gko::initialize<Mtx>({{13.0, 6.0}, {7.0, 4.0}, {1.0, 1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
 
     solver->apply(b.get(), x.get());
@@ -134,7 +134,7 @@ TEST_F(Gmres, SolvesStencilSystemUsingAdvancedApply)
     auto solver = gmres_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
@@ -148,7 +148,7 @@ TEST_F(Gmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
     auto solver = gmres_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
+    auto b = gko::initialize<Mtx>({{13.0, 6.0}, {7.0, 4.0}, {1.0, 1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
