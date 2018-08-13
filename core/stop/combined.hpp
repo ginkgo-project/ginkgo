@@ -80,7 +80,7 @@ protected:
         : EnablePolymorphicObject<Combined, Criterion>(std::move(exec))
     {}
 
-    explicit Combined(const Factory *factory, const CriterionArgs args)
+    explicit Combined(const Factory *factory, const CriterionArgs &args)
         : EnablePolymorphicObject<Combined, Criterion>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {

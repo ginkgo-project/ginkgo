@@ -52,76 +52,61 @@ to this directory.
 
 Then compile the file with the following command line:
 
-c++ -O3 -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
+c++ -std=c++11 -o minimal_solver_cuda minimal_solver_cuda.cpp -I../.. \
     -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
 
 (if ginkgo was built in debug mode, append 'd' to every library name)
 
 Now you should be able to run the program using:
 
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
+env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./minimal_solver_cuda
 
 *****************************<COMPILATION>**********************************/
 
+/*****************************<DECSRIPTION>***********************************
+This is a minimal example that solves a system with Ginkgo. The matrix, right
+hand side and initial guess are read from standard input, and the result is
+written to standard output. The system matrix is stored in CSR format, and the
+system solved using the CG method, preconditioned with the block-Jacobi
+preconditioner. All computations are done on the GPU.
 
-#include <include/ginkgo.hpp>
+The easiest way to use the example data from the data/ folder is to concatenate
+the matrix, the right hand side and the initial solution (in that exact order),
+and pipe the result to the minimal_solver_cuda executable:
 
+cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda
 
-#include <chrono>
-#include <cmath>
+*****************************<DECSRIPTION>**********************************/
+
+#include <ginkgo.hpp>
 #include <iostream>
 
-
-[[noreturn]] void print_usage_and_exit(const char *name) {
-    std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
-    std::exit(-1);
-}
-
-
-int main(int argc, char *argv[])
+int main()
 {
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Dense<>;
-    using cg = gko::solver::Cg<>;
-
-    long unsigned num_iters = 1000000;
-    if (argc > 2) {
-        print_usage_and_exit(argv[0]);
-    }
-    if (argc == 2) {
-        num_iters = std::atol(argv[1]);
-        if (num_iters == 0) {
-            print_usage_and_exit(argv[0]);
-        }
-    }
-
-    std::cout << gko::version_info::get() << std::endl;
-
-    auto exec = gko::ReferenceExecutor::create();
-
-    auto cg_factory =
-        cg::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create()
-                                .with_max_iters(num_iters)
-                                .on_executor(exec))
+    // Instantiate a CUDA executor
+    auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    // Read data
+    auto A = gko::read<gko::matrix::Csr<>>(std::cin, exec);
+    auto b = gko::read<gko::matrix::Dense<>>(std::cin, exec);
+    auto x = gko::read<gko::matrix::Dense<>>(std::cin, exec);
+    // Create the solver
+    auto solver =
+        gko::solver::Cg<>::Factory::create()
+            .with_preconditioner(
+                gko::preconditioner::BlockJacobiFactory<>::create(exec, 32))
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(20u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-15)
+                            .on_executor(exec))
+                    .on_executor(exec))
             .on_executor(exec);
-    auto A = gko::initialize<mtx>({1.0}, exec);
-    auto b = gko::initialize<vec>({std::nan("")}, exec);
-    auto x = gko::initialize<vec>({0.0}, exec);
-
-    auto tic = std::chrono::system_clock::now();
-
-    auto solver = cg_factory->generate(gko::give(A));
-    solver->apply(lend(x), lend(b));
-    exec->synchronize();
-
-    auto tac = std::chrono::system_clock::now();
-
-    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
-    std::cout << "Running " << num_iters
-              << " iterations of the CG solver took a total of "
-              << 1.0 * time.count() / std::nano::den << " seconds." << std::endl
-              << "\tAverage library overhead:     "
-              << 1.0 * time.count() / num_iters << " [nanoseconds / iteration]"
-              << std::endl;
+    // Solve system
+    solver->generate(give(A))->apply(lend(b), lend(x));
+    // Write result
+    write(std::cout, lend(x));
 }

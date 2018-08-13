@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_MTX_READER_HPP_
-#define GKO_CORE_BASE_MTX_READER_HPP_
+#ifndef GKO_CORE_BASE_MTX_IO_HPP_
+#define GKO_CORE_BASE_MTX_IO_HPP_
 
 
 #include <istream>
@@ -63,10 +63,45 @@ matrix_data<ValueType, IndexType> read_raw(std::istream &is);
 
 
 /**
+ * Specifies the layout type when writing data in matrix market format.
+ */
+enum class layout_type {
+    /**
+     * The matrix should be written as dense matrix in column-major order.
+     */
+    array,
+    /**
+     * The matrix should be written as a sparse matrix in coordinate format.
+     */
+    coordinate
+};
+
+
+/**
+ * Writes a matrix_data structure to a stream in matrix market format.
+ *
+ * @tparam ValueType  type of matrix values
+ * @tparam IndexType  type of matrix indexes
+ *
+ * @param os  output stream where the data is to be written
+ * @param data  the matrix data to write
+ * @param layout  the layout used in the output
+ *
+ * @note This is an advanced routine that writes the raw matrix data structure.
+ *       If you are trying to write an existing matrix, consider using
+ *       gko::write instead.
+ */
+template <typename ValueType, typename IndexType>
+void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
+               layout_type layout = layout_type::array);
+
+
+/**
  * Reads a matrix stored in matrix market format from an input stream.
  *
  * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
  *                     matrix once it's been read from disk.
+ * @tparam StreamType  type of stream used to write the data to
  * @tparam MatrixArgs  additional argument types passed to MatrixType
  *                     constructor
  *
@@ -85,7 +120,30 @@ inline std::unique_ptr<MatrixType> read(StreamType &&is, MatrixArgs &&... args)
 }
 
 
+/**
+ * Reads a matrix stored in matrix market format from an input stream.
+ *
+ * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
+ *                     matrix once it's been read from disk.
+ * @tparam StreamType  type of stream used to write the data to
+ *
+ * @param os  output stream where the data is to be written
+ * @param matrix  the matrix to write
+ * @param layout  the layout used in the output
+ */
+template <typename MatrixType, typename StreamType>
+inline void write(StreamType &&os, MatrixType *matrix,
+                  layout_type layout = layout_type::array)
+{
+    matrix_data<typename MatrixType::value_type,
+                typename MatrixType::index_type>
+        data{};
+    matrix->write(data);
+    write_raw(os, data, layout);
+}
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_MTX_READER_HPP_
+#endif  // GKO_CORE_BASE_MTX_IO_HPP_

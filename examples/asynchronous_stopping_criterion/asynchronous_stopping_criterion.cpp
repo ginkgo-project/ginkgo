@@ -73,22 +73,21 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 #include <thread>
 
 
-namespace gko {
-namespace stop {
-
-
 /**
  * The ByInteraction class is a criterion which asks for user input to stop
  * the iteration process. Using this criterion is slightly more complex than the
  * other ones, because it is asynchronous therefore requires the use of threads.
  */
-class ByInteraction : public EnablePolymorphicObject<ByInteraction, Criterion> {
-    friend class EnablePolymorphicObject<ByInteraction, Criterion>;
+class ByInteraction
+    : public gko::EnablePolymorphicObject<ByInteraction, gko::stop::Criterion> {
+    friend class gko::EnablePolymorphicObject<ByInteraction,
+                                              gko::stop::Criterion>;
+    using Criterion = gko::stop::Criterion;
 
 public:
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override
+    bool check(gko::uint8 stoppingId, bool setFinalized,
+               gko::Array<gko::stopping_status> *stop_status, bool *one_changed,
+               const Criterion::Updater &) override
     {
         bool result = *(parameters_.stop_iteration_process);
         if (result) {
@@ -113,7 +112,8 @@ protected:
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
 
-    explicit ByInteraction(const Factory *factory, const CriterionArgs args)
+    explicit ByInteraction(const Factory *factory,
+                           const gko::stop::CriterionArgs &args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),
@@ -122,58 +122,53 @@ protected:
 };
 
 
-}  // namespace stop
-}  // namespace gko
-
-
 void run_solver(volatile bool *stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
+    // Some shortcuts
     using mtx = gko::matrix::Csr<>;
     using vec = gko::matrix::Dense<>;
     using bicg = gko::solver::Bicgstab<>;
 
     // Read Data
-    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    // TODO: add residual logging when available
-    bicg::Factory::create()
-        .with_criterion(gko::stop::ByInteraction::Factory::create()
-                            .with_stop_iteration_process(stop_iteration_process)
-                            .on_executor(exec))
-        .on_executor(exec)
-        ->generate(A)
-        ->apply(gko::lend(b), gko::lend(x));
+    auto solver = bicg::Factory::create()
+                      .with_criterion(ByInteraction::Factory::create()
+                                          .with_stop_iteration_process(
+                                              stop_iteration_process)
+                                          .on_executor(exec))
+                      .on_executor(exec)
+                      ->generate(A);
+    solver->add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
+    solver->apply(lend(b), lend(x));
 
     std::cout << "Solver stopped" << std::endl;
 
-
-    // Print result
-    auto h_x = gko::clone(exec->get_master(), x);
-    std::cout << "x = [" << std::endl;
-    for (int i = 0; i < h_x->get_size()[0]; ++i) {
-        std::cout << "    " << h_x->at(i, 0) << std::endl;
-    }
-    std::cout << "];" << std::endl;
+    // Print solution
+    std::cout << "Solution (x): \n";
+    write(std::cout, lend(x));
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_dot(gko::lend(b), gko::lend(res));
+    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
+    b->compute_dot(lend(b), lend(res));
 
-    auto h_res = gko::clone(exec->get_master(), res);
-    std::cout << "res = " << std::sqrt(h_res->at(0, 0)) << ";" << std::endl;
+    std::cout << "Squared residual norm (r^T r): \n";
+    write(std::cout, lend(res));
 }
 
 
 int main(int argc, char *argv[])
 {
-    // Some shortcuts
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
 
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
@@ -197,6 +192,7 @@ int main(int argc, char *argv[])
 
     // Look for an input command "stop" in the console, which sets the boolean
     // to true
+    std::cout << "Type 'stop' to stop the iteration process" << std::endl;
     std::string command;
     while (std::cin >> command) {
         if (command == "stop") {

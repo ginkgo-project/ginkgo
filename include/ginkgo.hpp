@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/matrix_data.hpp"
-#include "core/base/mtx_reader.hpp"
+#include "core/base/mtx_io.hpp"
 #include "core/base/polymorphic_object.hpp"
 #include "core/base/range.hpp"
 #include "core/base/range_accessors.hpp"
@@ -59,6 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
 #include "core/matrix/identity.hpp"
+#include "core/matrix/sellp.hpp"
 
 #include "core/preconditioner/block_jacobi.hpp"
 

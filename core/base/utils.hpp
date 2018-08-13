@@ -333,7 +333,7 @@ public:
      *
      * @param ptr  pointer to the object being deleted
      */
-    void operator()(pointer ptr) const noexcept {}
+    void operator()(pointer) const noexcept {}
 };
 
 // a specialization for arrays
@@ -342,7 +342,7 @@ class null_deleter<T[]> {
 public:
     using pointer = T[];
 
-    void operator()(pointer ptr) const noexcept {}
+    void operator()(pointer) const noexcept {}
 };
 
 
