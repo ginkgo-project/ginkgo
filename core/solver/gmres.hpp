@@ -71,6 +71,8 @@ class Gmres : public EnableLinOp<Gmres<ValueType>>,
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
+    using log::EnableLogging<Gmres<ValueType>>::log;
+    using log::EnableLogging<Gmres<ValueType>>::add_logger;
     using value_type = ValueType;
 
     /**

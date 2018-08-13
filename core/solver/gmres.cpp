@@ -70,9 +70,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
-    this->template log<log::Logger::apply>(GKO_FUNCTION_NAME);
-
-    using std::swap;
     using Vector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
@@ -139,8 +136,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .residual_norm(residual_norm.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::converged>(iter + 1,
-                                                       residual.get());
             break;
         }
 
@@ -167,7 +162,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             residual_norm.get(), residual_norms.get(), Krylov_bases.get(),
             Hessenberg_iter.get(), b_norm.get(), iter, &stop_status));
 
-        this->template log<log::Logger::iteration_complete>(iter + 1);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter + 1, residual.get(), dense_x);
     }
 
     // Solve x
@@ -182,6 +178,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
         residual_norms.get(), Krylov_bases_small.get(), Hessenberg_small.get(),
         y.get(), dense_x, &final_iter_nums));
+    // if (size_type parameter_.max_iter) {
+    // }
 }
 
 
