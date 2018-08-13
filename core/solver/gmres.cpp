@@ -45,8 +45,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 
-#include <iostream>
-
 
 namespace gko {
 namespace solver {
@@ -163,6 +161,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         system_matrix_->apply(Krylov_bases_iter.get(), next_Krylov_basis.get());
         // next_Krylov_basis = A * Krylov_bases(:, iter)
+
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             next_Krylov_basis.get(), givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norms.get(), Krylov_bases.get(),
