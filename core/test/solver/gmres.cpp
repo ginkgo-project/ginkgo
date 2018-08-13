@@ -55,7 +55,7 @@ class Gmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using Solver = gko::solver::Gmres<>;
-    using Big_solver = gko::solver::Gmres<double, 128>;
+    using Big_solver = gko::solver::Gmres<double>;
 
     Gmres()
         : exec(gko::ReferenceExecutor::create()),

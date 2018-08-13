@@ -48,6 +48,9 @@ namespace gko {
 namespace solver {
 
 
+constexpr int default_max_iter_num = 100;
+
+
 /**
  * CG or the conjugate gradient method is an iterative type Krylov subspace
  * method which is suitable for symmetric positive definite methods.
@@ -61,9 +64,9 @@ namespace solver {
  *
  * @tparam ValueType  precision of matrix elements
  */
-template <typename ValueType = default_precision, int max_iter = 64>
-class Gmres : public EnableLinOp<Gmres<ValueType, max_iter>>,
-              public log::EnableLogging<Gmres<ValueType, max_iter>> {
+template <typename ValueType = default_precision>
+class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public log::EnableLogging<Gmres<ValueType>> {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 

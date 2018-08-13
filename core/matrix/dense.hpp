@@ -118,6 +118,8 @@ public:
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
 
+    using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
+
     /**
      * Creates a Dense matrix with the configuration of another Dense matrix.
      *
@@ -300,6 +302,43 @@ public:
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
+    /**
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     * @param stride   stride of the new submatrix.
+     */
+    std::unique_ptr<Dense> create_submatrix(const span &rows,
+                                            const span &columns,
+                                            const size_type stride)
+    {
+        row_major_range range_this{this->get_values(), this->get_size()[0],
+                                   this->get_size()[1], this->get_stride()};
+        auto range_result = range_this(rows, columns);
+        auto result = Dense::create(
+            this->get_executor(),
+            dim<2>{range_result.length(0), range_result.length(1)},
+            Array<ValueType>::view(
+                this->get_executor(),
+                range_result.length(0) * range_this.length(1),
+                range_result->data),
+            stride);
+        return result;
+    }
+
+    /*
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     */
+    std::unique_ptr<Dense> create_submatrix(const span &rows,
+                                            const span &columns)
+    {
+        return create_submatrix(rows, columns, this->get_size()[1]);
+    }
+
 protected:
     /**
      * Creates an uninitialized Dense matrix of the specified size.
@@ -373,7 +412,7 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
-};
+};  // namespace matrix
 
 
 }  // namespace matrix

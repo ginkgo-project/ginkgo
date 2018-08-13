@@ -55,42 +55,45 @@ namespace gmres {
         Array<stopping_status> *stop_status, const int max_iter)
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type, _accessor)    \
+#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_type> *residual,        \
                       matrix::Dense<_type> *residual_norm,         \
                       matrix::Dense<_type> *residual_norms,        \
-                      _accessor range_Krylov_bases, const int max_iter)
+                      matrix::Dense<_type> *Krylov_bases, const int max_iter)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type, _accessor)                    \
-    void step_1(                                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        matrix::Dense<_type> *next_Krylov_basis,                             \
-        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos,  \
-        matrix::Dense<_type> *residual_norm,                                 \
-        matrix::Dense<_type> *residual_norms, _accessor range_Krylov_bases,  \
-        _accessor range_Hessenberg_iter, const matrix::Dense<_type> *b_norm, \
-        const size_type iter, const Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                            \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,              \
+                matrix::Dense<_type> *next_Krylov_basis,                  \
+                matrix::Dense<_type> *givens_sin,                         \
+                matrix::Dense<_type> *givens_cos,                         \
+                matrix::Dense<_type> *residual_norm,                      \
+                matrix::Dense<_type> *residual_norms,                     \
+                matrix::Dense<_type> *Krylov_bases,                       \
+                matrix::Dense<_type> *Hessenberg_iter,                    \
+                const matrix::Dense<_type> *b_norm, const size_type iter, \
+                const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type, _accessor)                 \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,              \
-                const matrix::Dense<_type> *residual_norms,               \
-                _accessor range_Krylov_bases, _accessor range_Hessenberg, \
-                matrix::Dense<_type> *y, matrix::Dense<_type> *x,         \
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                             \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,               \
+                const matrix::Dense<_type> *residual_norms,                \
+                matrix::Dense<_type> *Krylov_bases,                        \
+                matrix::Dense<_type> *Hessenberg, matrix::Dense<_type> *y, \
+                matrix::Dense<_type> *x,                                   \
                 const Array<size_type> *final_iter_nums)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                                    \
-    template <typename ValueType>                                   \
-    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType);               \
-    template <typename ValueType, typename AccessorType>            \
-    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType, AccessorType); \
-    template <typename ValueType, typename AccessorType>            \
-    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType, AccessorType);       \
-    template <typename ValueType, typename AccessorType>            \
-    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType, AccessorType)
+#define DECLARE_ALL_AS_TEMPLATES                      \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType); \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(ValueType); \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_STEP_1_KERNEL(ValueType);       \
+    template <typename ValueType>                     \
+    GKO_DECLARE_GMRES_STEP_2_KERNEL(ValueType)
 
 
 }  // namespace gmres

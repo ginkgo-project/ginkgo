@@ -52,64 +52,6 @@ namespace reference {
 namespace dense {
 
 
-template <typename ValueType, typename AccessorType>
-void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType> *a, AccessorType b,
-                  matrix::Dense<ValueType> *c)
-{
-    for (size_type row = 0; row < c->get_size()[0]; ++row) {
-        for (size_type col = 0; col < c->get_size()[1]; ++col) {
-            c->at(row, col) = zero<ValueType>();
-        }
-    }
-
-    for (size_type row = 0; row < c->get_size()[0]; ++row) {
-        for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) += a->at(row, inner) * b(inner, col);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_RANGE_KERNEL);
-
-
-template <typename ValueType, typename AccessorType>
-void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *a, AccessorType b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
-{
-    if (beta->at(0, 0) != zero<ValueType>()) {
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= beta->at(0, 0);
-            }
-        }
-    } else {
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= zero<ValueType>();
-            }
-        }
-    }
-
-    for (size_type row = 0; row < c->get_size()[0]; ++row) {
-        for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) +=
-                    alpha->at(0, 0) * a->at(row, inner) * b(inner, col);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_DENSE_APPLY_RANGE_KERNEL);
-
-
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *a,

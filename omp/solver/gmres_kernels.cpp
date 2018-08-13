@@ -65,50 +65,49 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType, typename AccessorType>
+template <typename ValueType>
 void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
-                  AccessorType range_Krylov_bases, const int max_iter)
+                  matrix::Dense<ValueType> *Krylov_bases, const int max_iter)
 {
     NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType, typename AccessorType>
+template <typename ValueType>
 void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *next_Krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
             matrix::Dense<ValueType> *residual_norms,
-            AccessorType range_Krylov_bases, AccessorType range_Hessenberg_iter,
+            matrix::Dense<ValueType> *Krylov_bases,
+            matrix::Dense<ValueType> *Hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
             const Array<stopping_status> *stop_status)
 {
     NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename AccessorType>
+template <typename ValueType>
 void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *residual_norms,
-            AccessorType range_Krylov_bases, AccessorType range_Hessenberg,
-            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *Krylov_bases,
+            matrix::Dense<ValueType> *Hessenberg, matrix::Dense<ValueType> *y,
+            matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums)
 {
     NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_GMRES_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace gmres

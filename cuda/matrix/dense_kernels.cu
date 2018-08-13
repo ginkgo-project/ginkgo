@@ -50,31 +50,6 @@ namespace dense {
 constexpr auto default_block_size = 512;
 
 
-template <typename ValueType, typename AccessorType>
-void simple_apply(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *a, AccessorType b,
-                  matrix::Dense<ValueType> *c)
-{
-    NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_RANGE_KERNEL);
-
-
-template <typename ValueType, typename AccessorType>
-void apply(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *a, AccessorType b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
-{
-    NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(
-    GKO_DECLARE_DENSE_APPLY_RANGE_KERNEL);
-
-
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *a,

@@ -193,17 +193,6 @@ constexpr size_type byte_size = CHAR_BIT;
 
 
 /**
- *define typenames for row_major accessor
- */
-#define row_major_float range<accessor::row_major<float, 2>>
-#define row_major_double range<accessor::row_major<double, 2>>
-#define row_major_complex_float \
-    range<accessor::row_major<std::complex<float>, 2>>
-#define row_major_complex_double \
-    range<accessor::row_major<std::complex<double>, 2>>
-
-
-/**
  * Instantiates a template for each value and index type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
@@ -220,22 +209,6 @@ constexpr size_type byte_size = CHAR_BIT;
     template _macro(double, int64);                           \
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
-
-
-/**
- *Instantiates a template for each value and accessor type compiled by
- Ginkgo.
- *
- *@param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take two arguments, which are replaced by the
- *                value and index types.
- */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_ACCESSOR_TYPE(_macro)   \
-    template _macro(float, row_major_float);                       \
-    template _macro(double, row_major_double);                     \
-    template _macro(std::complex<float>, row_major_complex_float); \
-    template _macro(std::complex<double>, row_major_complex_double)
 
 
 }  // namespace gko
