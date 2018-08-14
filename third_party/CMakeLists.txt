@@ -8,3 +8,7 @@ if(DEVEL_TOOLS)
     set(GCF_IGNORE_LIST "third_party" CACHE STRING "Ignore directories for GCF")
     add_subdirectory(git-cmake-format)
 endif()
+
+if(BUILD_EXAMPLES OR BUILD_BENCHMARK)
+    add_subdirectory(gflags)
+endif()
