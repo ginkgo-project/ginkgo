@@ -82,11 +82,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    auto Krylov_bases = Vector::create(
+    auto krylov_bases = Vector::create(
         exec,
         dim<2>{system_matrix_->get_size()[1],
                (solver::default_max_iter_num + 1) * dense_b->get_size()[1]});
-    auto Hessenberg = Vector::create(
+    auto next_krylov_basis = Vector::create_with_config_of(dense_b);
+    auto hessenberg = Vector::create(
         exec, dim<2>{solver::default_max_iter_num + 1,
                      solver::default_max_iter_num * dense_b->get_size()[1]});
     auto givens_sin = Vector::create(
@@ -120,15 +121,16 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
         residual.get(), residual_norm.get(), residual_norms.get(),
-        Krylov_bases.get(), solver::default_max_iter_num));
+        krylov_bases.get(), solver::default_max_iter_num));
     // residual_norm = norm(residual)
     // residual_norms = {residual_norm, 0, ..., 0}
-    // Krylov_bases(:, 1) = residual / residual_norm
+    // krylov_bases(:, 1) = residual / residual_norm
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
+    // TODO: implement GMRES(k) and add preconditioner
     size_type iter = 0;
     for (; iter < solver::default_max_iter_num; ++iter) {
         if (stop_criterion->update()
@@ -145,22 +147,43 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         // Do Arnoldi and givens rotation
-        auto Krylov_bases_iter = Krylov_bases->create_submatrix(
+        auto krylov_bases_iter = krylov_bases->create_submatrix(
             span{0, system_matrix_->get_size()[0]},
             span{dense_b->get_size()[1] * iter,
                  dense_b->get_size()[1] * (iter + 1)});
-        auto Hessenberg_iter = Hessenberg->create_submatrix(
+        auto hessenberg_iter = hessenberg->create_submatrix(
             span{0, iter + 2}, span{dense_b->get_size()[1] * iter,
                                     dense_b->get_size()[1] * (iter + 1)});
-        auto next_Krylov_basis = Vector::create_with_config_of(dense_b);
 
-        system_matrix_->apply(Krylov_bases_iter.get(), next_Krylov_basis.get());
-        // next_Krylov_basis = A * Krylov_bases(:, iter)
+        // Start of arnoldi
+        system_matrix_->apply(krylov_bases_iter.get(), next_krylov_basis.get());
+        // next_krylov_basis = A * krylov_bases(:, iter)
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            next_Krylov_basis.get(), givens_sin.get(), givens_cos.get(),
-            residual_norm.get(), residual_norms.get(), Krylov_bases.get(),
-            Hessenberg_iter.get(), b_norm.get(), iter, &stop_status));
+            next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+            residual_norm.get(), residual_norms.get(), krylov_bases.get(),
+            hessenberg_iter.get(), b_norm.get(), iter, &stop_status));
+        // for i in 0:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+        // next_krylov_basis /= hessenberg(iter, iter + 1)
+        // End of arnoldi
+        // Start apply givens rotation
+        // for j in 0:iter
+        //     temp             =  cos(j)*hessenberg(j) +
+        //                         sin(j)*hessenberg(j+1)
+        //     hessenberg(j+1)  = -sin(j)*hessenberg(j) +
+        //                         cos(j)*hessenberg(j+1)
+        //     hessenberg(j)    =  temp;
+        // end
+        // Calculate sin and cos
+        // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
+        //                      sin(iter)*hessenberg(iter)
+        // hessenberg(iter+1) = 0
+        // End apply givens rotation
+        // Calculate residual norm
 
         this->template log<log::Logger::iteration_complete>(
             this, iter + 1, residual.get(), dense_x);
@@ -169,15 +192,19 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // Solve x
     auto y = Vector::create(
         exec, dim<2>{solver::default_max_iter_num, dense_b->get_size()[1]});
-    auto Krylov_bases_small = Krylov_bases->create_submatrix(
+    auto krylov_bases_small = krylov_bases->create_submatrix(
         span{0, system_matrix_->get_size()[0]},
         span{0, dense_b->get_size()[1] * (iter + 1)});
-    auto Hessenberg_small = Hessenberg->create_submatrix(
+    auto hessenberg_small = hessenberg->create_submatrix(
         span{0, iter}, span{0, dense_b->get_size()[1] * (iter)});
 
     exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-        residual_norms.get(), Krylov_bases_small.get(), Hessenberg_small.get(),
+        residual_norms.get(), krylov_bases_small.get(), hessenberg_small.get(),
         y.get(), dense_x, &final_iter_nums));
+    // Solve upper triangular.
+    // y = hessenberg \ residual_norms
+    // Solve x
+    // x = x + krylov_bases * y
 }
 
 

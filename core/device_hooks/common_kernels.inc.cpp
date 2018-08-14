@@ -197,9 +197,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 }  // namespace cg
 
 
-// TODO (script): adapt this block as needed
-
-
 namespace fcg {
 
 

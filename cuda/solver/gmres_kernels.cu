@@ -67,7 +67,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
-                  matrix::Dense<ValueType> *Krylov_bases, const int max_iter)
+                  matrix::Dense<ValueType> *krylov_bases, const int max_iter)
 {
     NOT_IMPLEMENTED;
 }
@@ -77,13 +77,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
-            matrix::Dense<ValueType> *next_Krylov_basis,
+            matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
             matrix::Dense<ValueType> *residual_norms,
-            matrix::Dense<ValueType> *Krylov_bases,
-            matrix::Dense<ValueType> *Hessenberg_iter,
+            matrix::Dense<ValueType> *krylov_bases,
+            matrix::Dense<ValueType> *hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
             const Array<stopping_status> *stop_status)
 {
@@ -96,8 +96,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 template <typename ValueType>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norms,
-            matrix::Dense<ValueType> *Krylov_bases,
-            matrix::Dense<ValueType> *Hessenberg, matrix::Dense<ValueType> *y,
+            matrix::Dense<ValueType> *krylov_bases,
+            matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums)
 {

@@ -304,6 +304,9 @@ public:
 
     /**
      * Create a submatrix from the original matrix.
+     * Warning: defining stride for this create_submatrix method might cause
+     * wrong memory access. Better use the create_submatrix(rows, columns)
+     * method instead.
      *
      * @param rows     row span
      * @param columns  column span
@@ -316,7 +319,7 @@ public:
         row_major_range range_this{this->get_values(), this->get_size()[0],
                                    this->get_size()[1], this->get_stride()};
         auto range_result = range_this(rows, columns);
-        auto result = Dense::create(
+        return Dense::create(
             this->get_executor(),
             dim<2>{range_result.length(0), range_result.length(1)},
             Array<ValueType>::view(
@@ -324,7 +327,6 @@ public:
                 range_result.length(0) * range_this.length(1),
                 range_result->data),
             stride);
-        return result;
     }
 
     /*

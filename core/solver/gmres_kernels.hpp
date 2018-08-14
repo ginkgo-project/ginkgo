@@ -60,18 +60,18 @@ namespace gmres {
                       const matrix::Dense<_type> *residual,        \
                       matrix::Dense<_type> *residual_norm,         \
                       matrix::Dense<_type> *residual_norms,        \
-                      matrix::Dense<_type> *Krylov_bases, const int max_iter)
+                      matrix::Dense<_type> *krylov_bases, const int max_iter)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                            \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,              \
-                matrix::Dense<_type> *next_Krylov_basis,                  \
+                matrix::Dense<_type> *next_krylov_basis,                  \
                 matrix::Dense<_type> *givens_sin,                         \
                 matrix::Dense<_type> *givens_cos,                         \
                 matrix::Dense<_type> *residual_norm,                      \
                 matrix::Dense<_type> *residual_norms,                     \
-                matrix::Dense<_type> *Krylov_bases,                       \
-                matrix::Dense<_type> *Hessenberg_iter,                    \
+                matrix::Dense<_type> *krylov_bases,                       \
+                matrix::Dense<_type> *hessenberg_iter,                    \
                 const matrix::Dense<_type> *b_norm, const size_type iter, \
                 const Array<stopping_status> *stop_status)
 
@@ -79,8 +79,8 @@ namespace gmres {
 #define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                             \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,               \
                 const matrix::Dense<_type> *residual_norms,                \
-                matrix::Dense<_type> *Krylov_bases,                        \
-                matrix::Dense<_type> *Hessenberg, matrix::Dense<_type> *y, \
+                matrix::Dense<_type> *krylov_bases,                        \
+                matrix::Dense<_type> *hessenberg, matrix::Dense<_type> *y, \
                 matrix::Dense<_type> *x,                                   \
                 const Array<size_type> *final_iter_nums)
 
