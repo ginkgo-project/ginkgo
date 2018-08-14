@@ -1,10 +1,14 @@
 ![Ginkgo](/assets/logo.png)
 
-Ginkgo is a numerical linear algebra library targeting manycore architectures.
+Ginkgo is a high-performance linear algebra library for manycore systems, with a
+focus on sparse solution of linear systems. It is implemented using modern C++
+(you will need at least C++11 compliant compiler to build it), with GPU kernels
+implemented in CUDA.
 
 
 Prerequisites
 -------------
+
 
 ### Linux
 
@@ -27,11 +31,6 @@ In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
-*   __NOTE:__ If you want to use _clang_ as your compiler and develop Ginkgo,
-    you'll currently need two versions _clang_: _clang 4.0.0_ or older, as this
-    is this version supporetd by the CUDA 9.1 toolkit, and _clang 5.0.1_ or
-    newer, which will not be used for compilation, but only provide the
-    _clang-format_ utility
 
 
 ### Mac OS
@@ -118,10 +117,10 @@ Ginkgo adds the following additional switches to control what is being built:
     `Auto` will automatically detect the present CUDA-enabled GPU 
     architectures in the system.
     `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
-    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE` are
-    placeholders that should be replaced with compute and code numbers (e.g.
-    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
-    with `70`. `MaxPTX` will select the latest architecture supported by the
+    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE`
+    are placeholders that should be replaced with compute and code numbers (e.g.
+    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced with
+    `70`. `MaxPTX` will select the latest architecture supported by the
     compiler. `Off` will not select any architectures and compile with NVCC's
     default settings. Default is `Auto`.
 
@@ -175,3 +174,7 @@ make install
 If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your
 user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
+
+### Licensing
+
+Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for details.
