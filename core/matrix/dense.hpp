@@ -338,7 +338,7 @@ public:
     std::unique_ptr<Dense> create_submatrix(const span &rows,
                                             const span &columns)
     {
-        return create_submatrix(rows, columns, this->get_size()[1]);
+        return create_submatrix(rows, columns, this->get_stride());
     }
 
 protected:
