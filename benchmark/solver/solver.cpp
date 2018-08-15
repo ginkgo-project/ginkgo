@@ -40,6 +40,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gflags/gflags.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
+
+
+// rapidjson wrapper for cin and cout
+rapidjson::IStreamWrapper jcin(std::cin);
+rapidjson::OStreamWrapper jcout(std::cout);
+
+
+// config validation
+void print_config_error_and_exit()
+{
+    std::cerr << "Input has tobe a JSON array of matrix configurations:"
+              << "[\n    { \"filename\": my_file.mtx, \"format\": coo },"
+              << "\n    {\"filename\": my_file2.mtx, \"format\": csr }"
+              << "\n]" << std::endl;
+    exit(1);
+}
+
+
+void validate_option_object(const rapidjson::Value &value)
+{
+    if (!value.IsObject() || !value.HasMember("format") ||
+        !value["format"].IsString() || !value.HasMember("filename") ||
+        !value["filename"].IsString()) {
+        print_config_error_and_exit();
+    }
+}
 
 
 // Command-line arguments
@@ -74,6 +104,87 @@ bool validate_executor(const char *flag_name, const std::string &value)
 DEFINE_validator(executor, validate_executor);
 
 
+// matrix format mapping
+template <typename MatrixType>
+std::unique_ptr<gko::LinOp> read_matrix(
+    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value &options)
+{
+    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
+                                 std::move(exec));
+}
+
+const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
+                                std::shared_ptr<const gko::Executor>,
+                                const rapidjson::Value &)>>
+    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
+                   {"coo", read_matrix<gko::matrix::Coo<>>},
+                   {"ell", read_matrix<gko::matrix::Ell<>>},
+                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
+                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
+
+
+std::unique_ptr<gko::matrix::Dense<>> create_rhs(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto rhs = gko::matrix::Dense<>::create(exec);
+    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}, 1.0));
+    return rhs;
+}
+
+std::unique_ptr<gko::matrix::Dense<>> create_initial_guess(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto rhs = gko::matrix::Dense<>::create(exec);
+    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}));
+    return rhs;
+}
+
+void solve_system(std::shared_ptr<const gko::Executor> exec,
+                  const rapidjson::Value &test_case)
+{
+    validate_option_object(test_case);
+
+    rapidjson::Writer<rapidjson::OStreamWrapper> writer(jcout);
+    std::cout << "Running test case: ";
+    test_case.Accept(writer);
+    std::cout << std::endl;
+
+    auto system_matrix = share(
+        matrix_factory.at(test_case["format"].GetString())(exec, test_case));
+    auto b = create_rhs(exec, system_matrix->get_size()[0]);
+    auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
+
+    std::cout << "Matrix is of size (" << system_matrix->get_size()[0] << ", "
+              << system_matrix->get_size()[1] << ")" << std::endl;
+
+    exec->synchronize();
+    auto tic = std::chrono::system_clock::now();
+
+    auto solver =
+        gko::solver::Cg<>::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(FLAGS_rel_res_goal)
+                            .on_executor(exec),
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(FLAGS_max_iters)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            .on_executor(exec);
+
+    solver->generate(system_matrix)->apply(lend(b), lend(x));
+
+    exec->synchronize();
+    auto tac = std::chrono::system_clock::now();
+
+    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
+
+    std::cout << "Time: " << time.count() << std::endl;
+};
+
+
 int main(int argc, char *argv[])
 {
     gflags::SetUsageMessage("Usage: " + std::string(argv[0]) + " [options]");
@@ -87,4 +198,14 @@ int main(int argc, char *argv[])
               << std::endl;
 
     auto exec = executor_factory.at(FLAGS_executor)();
+
+    rapidjson::Document config;
+    config.ParseStream(jcin);
+
+    if (!config.IsArray()) {
+        print_config_error_and_exit();
+    }
+    for (auto &test_case : config.GetArray()) {
+        solve_system(exec, test_case);
+    }
 }
