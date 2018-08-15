@@ -98,6 +98,7 @@ class CuspCsrmp : public gko::EnableCreateMethod<CuspCsrmp> {
 
 public:
     void read(const mtx &data) { csr_->read(data); }
+
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
         auto dense_b = gko::as<vec>(b);
@@ -112,7 +113,9 @@ public:
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
             csr_->get_const_col_idxs(), db, &beta, dx));
     }
+
     gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+
     gko::size_type get_num_stored_elements() const noexcept
     {
         return csr_->get_num_stored_elements();
@@ -127,7 +130,8 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
     }
-    ~CuspCsrmp()
+
+    ~CuspCsrmp() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -146,6 +150,7 @@ class CuspCsrmm : public gko::EnableCreateMethod<CuspCsrmm> {
 
 public:
     void read(const mtx &data) { csr_->read(data); }
+
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
         auto dense_b = gko::as<vec>(b);
@@ -162,7 +167,9 @@ public:
             csr_->get_const_col_idxs(), db, dense_b->get_size()[0], &beta, dx,
             dense_x->get_size()[0]));
     }
+
     gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+
     gko::size_type get_num_stored_elements() const noexcept
     {
         return csr_->get_num_stored_elements();
@@ -177,7 +184,8 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
     }
-    ~CuspCsrmm()
+
+    ~CuspCsrmm() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -212,6 +220,7 @@ public:
         ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
         set_buffer_ = true;
     }
+
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
         auto dense_b = gko::as<vec>(b);
@@ -227,7 +236,9 @@ public:
             csr_->get_const_col_idxs(), db, CUDA_R_64F, &beta, CUDA_R_64F, dx,
             CUDA_R_64F, CUDA_R_64F, buffer_));
     }
+
     gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+
     gko::size_type get_num_stored_elements() const noexcept
     {
         return csr_->get_num_stored_elements();
@@ -246,7 +257,8 @@ public:
         cusparseAlgMode_t algmode_ = CUSPARSE_ALG_MERGE_PATH;
 #endif
     }
-    ~CuspCsrEx()
+
+    ~CuspCsrEx() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -275,6 +287,7 @@ class CuspHybrid
 
 public:
     gko::dim<2> size;
+
     void read(const mtx &data)
     {
         auto t_csr = csr::create(exec_);
@@ -286,6 +299,7 @@ public:
             t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
             Threshold, Partition));
     }
+
     void apply(const gko::LinOp *b, gko::LinOp *x) const
     {
         auto dense_b = gko::as<vec>(b);
@@ -297,7 +311,9 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDhybmv(handle_, trans_, &alpha, desc_,
                                                  hyb_, db, &beta, dx));
     }
+
     gko::dim<2> get_size() const noexcept { return size; }
+
     gko::size_type get_num_stored_elements() const noexcept { return 0; }
 
     CuspHybrid(std::shared_ptr<gko::Executor> exec)
@@ -309,7 +325,8 @@ public:
         ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
     }
-    ~CuspHybrid()
+
+    ~CuspHybrid() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
