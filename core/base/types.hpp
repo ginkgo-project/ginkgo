@@ -216,6 +216,7 @@ constexpr size_type byte_size = CHAR_BIT;
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
 
+
 }  // namespace gko
 
 

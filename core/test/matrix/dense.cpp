@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
+#include <core/base/range.hpp>
 
 
 namespace {
@@ -254,6 +255,28 @@ TEST_F(Dense, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[3], tpl(1, 0, 1.5));
     EXPECT_EQ(data.nonzeros[4], tpl(1, 1, 2.5));
     EXPECT_EQ(data.nonzeros[5], tpl(1, 2, 3.5));
+}
+
+
+TEST_F(Dense, CanCreateSubmatrix)
+{
+    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2});
+
+    EXPECT_EQ(submtx->at(0, 0), 2.0);
+    EXPECT_EQ(submtx->at(0, 1), 3.0);
+    EXPECT_EQ(submtx->at(1, 0), 2.5);
+    EXPECT_EQ(submtx->at(1, 1), 3.5);
+}
+
+
+TEST_F(Dense, CanCreateSubmatrixWithStride)
+{
+    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
+
+    EXPECT_EQ(submtx->at(0, 0), 2.0);
+    EXPECT_EQ(submtx->at(0, 1), 3.0);
+    EXPECT_EQ(submtx->at(1, 0), 1.5);
+    EXPECT_EQ(submtx->at(1, 1), 2.5);
 }
 
 

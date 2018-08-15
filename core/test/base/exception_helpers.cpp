@@ -88,6 +88,19 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)
+{
+    ASSERT_NO_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));
+}
+
+
+TEST(AssertIsSquareMatrix, ThrowsWhenIsNotSquareMatrix)
+{
+    ASSERT_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 4)),
+                 gko::DimensionMismatch);
+}
+
+
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
     ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(5, 6)));

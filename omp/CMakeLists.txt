@@ -11,6 +11,7 @@ set(SOURCES
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
+    solver/gmres_kernels.cpp
     stop/criterion_kernels.cpp
     stop/residual_norm_reduction_kernels.cpp)
 

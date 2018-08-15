@@ -17,6 +17,7 @@ set(SOURCES
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
+    solver/gmres.cpp
     stop/combined.cpp
     stop/criterion.cpp
     stop/iteration.cpp

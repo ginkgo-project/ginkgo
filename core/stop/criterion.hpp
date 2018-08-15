@@ -108,9 +108,9 @@ public:
             return converged;
         }
 
-            /**
-             * Helper macro to add parameters and setters to updater
-             */
+        /**
+         * Helper macro to add parameters and setters to updater
+         */
 #define GKO_UPDATER_REGISTER_PARAMETER(_type, _name) \
     const Updater &_name(_type const &value) const   \
     {                                                \
