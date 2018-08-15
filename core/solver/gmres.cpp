@@ -117,7 +117,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // final_iter_nums = {0, ..., 0}
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
-    // residual = residual(b) - Ax
+    // residual = residual - Ax
 
     exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
         residual.get(), residual_norm.get(), residual_norms.get(),
