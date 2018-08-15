@@ -47,6 +47,182 @@ namespace reference {
 namespace gmres {
 
 
+namespace {
+
+
+template <typename ValueType>
+void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
+                    matrix::Dense<ValueType> *krylov_bases,
+                    matrix::Dense<ValueType> *hessenberg_iter,
+                    const size_type iter, const stopping_status *stop_status)
+{
+    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+        for (size_type k = 0; k < iter + 1; ++k) {
+            hessenberg_iter->at(k, i) = 0;
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                hessenberg_iter->at(k, i) +=
+                    next_krylov_basis->at(j, i) *
+                    krylov_bases->at(j,
+                                     next_krylov_basis->get_size()[1] * k + i);
+            }
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                next_krylov_basis->at(j, i) -=
+                    hessenberg_iter->at(k, i) *
+                    krylov_bases->at(j,
+                                     next_krylov_basis->get_size()[1] * k + i);
+            }
+        }
+        // for i in 1:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+
+        hessenberg_iter->at(iter + 1, i) = 0;
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            hessenberg_iter->at(iter + 1, i) +=
+                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+        }
+        hessenberg_iter->at(iter + 1, i) =
+            sqrt(hessenberg_iter->at(iter + 1, i));
+        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
+            krylov_bases->at(j, next_krylov_basis->get_size()[1] * (iter + 1) +
+                                    i) = next_krylov_basis->at(j, i);
+        }
+        // next_krylov_basis /= hessenberg(iter, iter + 1)
+        // End of arnoldi
+    }
+}
+
+
+template <typename ValueType>
+void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
+                           matrix::Dense<ValueType> *givens_cos,
+                           matrix::Dense<ValueType> *hessenberg_iter,
+                           const size_type iter, const size_type rhs)
+{
+    if (hessenberg_iter->at(iter, rhs) == zero<ValueType>()) {
+        givens_cos->at(iter, rhs) = zero<ValueType>();
+        givens_sin->at(iter, rhs) = one<ValueType>();
+    } else {
+        auto hypotenuse = sqrt(hessenberg_iter->at(iter, rhs) *
+                                   hessenberg_iter->at(iter, rhs) +
+                               hessenberg_iter->at(iter + 1, rhs) *
+                                   hessenberg_iter->at(iter + 1, rhs));
+        givens_cos->at(iter, rhs) =
+            abs(hessenberg_iter->at(iter, rhs)) / hypotenuse;
+        givens_sin->at(iter, rhs) = givens_cos->at(iter, rhs) *
+                                    hessenberg_iter->at(iter + 1, rhs) /
+                                    hessenberg_iter->at(iter, rhs);
+    }
+}
+
+
+template <typename ValueType>
+void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
+                     matrix::Dense<ValueType> *givens_sin,
+                     matrix::Dense<ValueType> *givens_cos,
+                     matrix::Dense<ValueType> *hessenberg_iter,
+                     const size_type iter, const stopping_status *stop_status)
+{
+    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+        for (size_type j = 0; j < iter; ++j) {
+            auto temp = givens_cos->at(j, i) * hessenberg_iter->at(j, i) +
+                        givens_sin->at(j, i) * hessenberg_iter->at(j + 1, i);
+            hessenberg_iter->at(j + 1, i) =
+                -givens_sin->at(j, i) * hessenberg_iter->at(j, i) +
+                givens_cos->at(j, i) * hessenberg_iter->at(j + 1, i);
+            hessenberg_iter->at(j, i) = temp;
+            // temp             =  cos(j)*hessenberg(j) +
+            //                     sin(j)*hessenberg(j+1)
+            // hessenberg(j+1)  = -sin(j)*hessenberg(j) +
+            //                     cos(j)*hessenberg(j+1)
+            // hessenberg(j)    =  temp;
+        }
+
+        calculate_sin_and_cos(givens_sin, givens_cos, hessenberg_iter, iter, i);
+
+        hessenberg_iter->at(iter, i) =
+            givens_cos->at(iter, i) * hessenberg_iter->at(iter, i) +
+            givens_sin->at(iter, i) * hessenberg_iter->at(iter + 1, i);
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
+        // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
+        //                      sin(iter)*hessenberg(iter)
+        // hessenberg(iter+1) = 0
+    }
+}
+
+
+template <typename ValueType>
+void calculate_next_residual_norm(matrix::Dense<ValueType> *givens_sin,
+                                  matrix::Dense<ValueType> *givens_cos,
+                                  matrix::Dense<ValueType> *residual_norm,
+                                  matrix::Dense<ValueType> *residual_norms,
+                                  const matrix::Dense<ValueType> *b_norm,
+                                  const size_type iter,
+                                  const stopping_status *stop_status)
+{
+    for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+        residual_norms->at(iter + 1, i) =
+            -givens_sin->at(iter, i) * residual_norms->at(iter, i);
+        residual_norms->at(iter, i) =
+            givens_cos->at(iter, i) * residual_norms->at(iter, i);
+        residual_norm->at(0, i) =
+            abs(residual_norms->at(iter + 1, i)) / b_norm->at(0, i);
+    }
+}
+
+
+template <typename ValueType>
+void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
+                            matrix::Dense<ValueType> *hessenberg,
+                            matrix::Dense<ValueType> *y,
+                            const size_type *final_iter_nums)
+{
+    for (size_type k = 0; k < residual_norms->get_size()[1]; ++k) {
+        for (int i = final_iter_nums[k] - 1; i >= 0; --i) {
+            auto temp = residual_norms->at(i, k);
+            for (size_type j = i + 1; j < final_iter_nums[k]; ++j) {
+                temp -=
+                    hessenberg->at(i, j * residual_norms->get_size()[1] + k) *
+                    y->at(j, k);
+            }
+            y->at(i, k) =
+                temp / hessenberg->at(i, i * residual_norms->get_size()[1] + k);
+        }
+    }
+}
+
+
+template <typename ValueType>
+void solve_x(matrix::Dense<ValueType> *krylov_bases,
+             matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+             const size_type *final_iter_nums)
+{
+    for (size_type k = 0; k < x->get_size()[1]; ++k) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < final_iter_nums[k]; ++j) {
+                x->at(i, k) +=
+                    krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
@@ -124,94 +300,13 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
             const Array<stopping_status> *stop_status)
 {
-    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
-        for (size_type k = 0; k < iter + 1; ++k) {
-            if (stop_status->get_const_data()[i].has_stopped()) {
-                continue;
-            }
-            hessenberg_iter->at(k, i) = 0;
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) *
-                    krylov_bases->at(j,
-                                     next_krylov_basis->get_size()[1] * k + i);
-            }
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) *
-                    krylov_bases->at(j,
-                                     next_krylov_basis->get_size()[1] * k + i);
-            }
-        }
-        // for i in 1:iter
-        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
-        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
-        // end
-
-        hessenberg_iter->at(iter + 1, i) = 0;
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            hessenberg_iter->at(iter + 1, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
-        }
-        hessenberg_iter->at(iter + 1, i) =
-            sqrt(hessenberg_iter->at(iter + 1, i));
-        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases->at(j, next_krylov_basis->get_size()[1] * (iter + 1) +
-                                    i) = next_krylov_basis->at(j, i);
-        }
-        // next_krylov_basis /= hessenberg(iter, iter + 1)
-        // End of arnoldi
-
-        // Start apply givens rotation
-        for (size_type j = 0; j < iter; ++j) {
-            auto temp = givens_cos->at(j, i) * hessenberg_iter->at(j, i) +
-                        givens_sin->at(j, i) * hessenberg_iter->at(j + 1, i);
-            hessenberg_iter->at(j + 1, i) =
-                -givens_sin->at(j, i) * hessenberg_iter->at(j, i) +
-                givens_cos->at(j, i) * hessenberg_iter->at(j + 1, i);
-            hessenberg_iter->at(j, i) = temp;
-            // temp             =  cos(j)*hessenberg(j) +
-            //                     sin(j)*hessenberg(j+1)
-            // hessenberg(j+1)  = -sin(j)*hessenberg(j) +
-            //                     cos(j)*hessenberg(j+1)
-            // hessenberg(j)    =  temp;
-        }
-
-        // Calculate sin and cos
-        if (hessenberg_iter->at(iter, i) == zero<ValueType>()) {
-            givens_cos->at(iter, i) = zero<ValueType>();
-            givens_sin->at(iter, i) = one<ValueType>();
-        } else {
-            auto hypotenuse = sqrt(hessenberg_iter->at(iter, i) *
-                                       hessenberg_iter->at(iter, i) +
-                                   hessenberg_iter->at(iter + 1, i) *
-                                       hessenberg_iter->at(iter + 1, i));
-            givens_cos->at(iter, i) =
-                abs(hessenberg_iter->at(iter, i)) / hypotenuse;
-            givens_sin->at(iter, i) = givens_cos->at(iter, i) *
-                                      hessenberg_iter->at(iter + 1, i) /
-                                      hessenberg_iter->at(iter, i);
-        }
-
-        hessenberg_iter->at(iter, i) =
-            givens_cos->at(iter, i) * hessenberg_iter->at(iter, i) +
-            givens_sin->at(iter, i) * hessenberg_iter->at(iter + 1, i);
-        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
-        // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
-        //                      sin(iter)*hessenberg(iter)
-        // hessenberg(iter+1) = 0
-        // End apply givens rotation
-
-        // Calculate residual norm
-        residual_norms->at(iter + 1, i) =
-            -givens_sin->at(iter, i) * residual_norms->at(iter, i);
-        residual_norms->at(iter, i) =
-            givens_cos->at(iter, i) * residual_norms->at(iter, i);
-        residual_norm->at(0, i) =
-            abs(residual_norms->at(iter + 1, i)) / b_norm->at(0, i);
-    }
+    finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
+                   stop_status->get_const_data());
+    givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
+                    iter, stop_status->get_const_data());
+    calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
+                                 residual_norms, b_norm, iter,
+                                 stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
@@ -225,31 +320,9 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums)
 {
-    // Solve upper triangular.
-    for (size_type k = 0; k < residual_norms->get_size()[1]; ++k) {
-        for (int i = final_iter_nums->get_const_data()[k] - 1; i >= 0; --i) {
-            auto temp = residual_norms->at(i, k);
-            for (size_type j = i + 1; j < final_iter_nums->get_const_data()[k];
-                 ++j) {
-                temp -=
-                    hessenberg->at(i, j * residual_norms->get_size()[1] + k) *
-                    y->at(j, k);
-            }
-            y->at(i, k) =
-                temp / hessenberg->at(i, i * residual_norms->get_size()[1] + k);
-        }
-    }
-
-    // Solve x
-    for (size_type k = 0; k < x->get_size()[1]; ++k) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < final_iter_nums->get_const_data()[k];
-                 ++j) {
-                x->at(i, k) +=
-                    krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
-            }
-        }
-    }
+    solve_upper_triangular(residual_norms, hessenberg, y,
+                           final_iter_nums->get_const_data());
+    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
