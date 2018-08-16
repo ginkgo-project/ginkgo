@@ -35,37 +35,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <map>
+#include <random>
+#include <sstream>
 
 
 #include <gflags/gflags.h>
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 
 
-// rapidjson wrapper for cin and cout
-rapidjson::IStreamWrapper jcin(std::cin);
-rapidjson::OStreamWrapper jcout(std::cout);
+// some Ginkgo shortcuts
+using vector = gko::matrix::Dense<>;
+
+
+// helper for writing out rapidjson Values
+std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
+{
+    rapidjson::OStreamWrapper jos(os);
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
+    value.Accept(writer);
+    return os;
+}
 
 
 // config validation
 void print_config_error_and_exit()
 {
-    std::cerr << "Input has tobe a JSON array of matrix configurations:"
-              << "[\n    { \"filename\": my_file.mtx, \"format\": coo },"
-              << "\n    {\"filename\": my_file2.mtx, \"format\": csr }"
-              << "\n]" << std::endl;
+    std::cerr
+        << "Input has to be a JSON array of matrix configurations:"
+        << "[\n    { \"filename\": my_file.mtx,  \"optimal_format\": coo },"
+        << "\n    { \"filename\": my_file2.mtx, \"optimal_format\": csr }"
+        << "\n]" << std::endl;
     exit(1);
 }
 
 
 void validate_option_object(const rapidjson::Value &value)
 {
-    if (!value.IsObject() || !value.HasMember("format") ||
-        !value["format"].IsString() || !value.HasMember("filename") ||
+    if (!value.IsObject() || !value.HasMember("optimal_format") ||
+        !value["optimal_format"].IsString() || !value.HasMember("filename") ||
         !value["filename"].IsString()) {
         print_config_error_and_exit();
     }
@@ -95,13 +108,36 @@ DEFINE_string(
 bool validate_executor(const char *flag_name, const std::string &value)
 {
     if (executor_factory.count(value) == 0) {
-        std::cout << "Wrong argument for flag --" << flag_name << ": " << value
+        std::cerr << "Wrong argument for flag --" << flag_name << ": " << value
                   << "\nHas to be one of: reference, omp, cuda" << std::endl;
         return false;
     }
     return true;
 };
 DEFINE_validator(executor, validate_executor);
+
+DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
+
+
+void initialize_argument_parsing(int *argc, char **argv[])
+{
+    std::ostringstream doc;
+    doc << "A benchmark for measuring performance of Ginkgo's solvers.\n"
+        << "Usage: " << (*argv)[0] << "[options]\n"
+        << "  The standard input should contain a list of test cases as a JSON"
+        << "  array of objects:"
+        << "[\n"
+        << "    { \"filename\": my_file.mtx,  \"optimal_format\": coo },\n"
+        << "    { \"filename\": my_file2.mtx, \"optimal_format\": csr }\n"
+        << "]\n\n"
+        << "\"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
+        << "\"hybrid\", \"sellp\"" << std::endl;
+    gflags::SetUsageMessage(doc.str());
+    std::ostringstream ver;
+    ver << gko::version_info::get();
+    gflags::SetVersionString(ver.str());
+    gflags::ParseCommandLineFlags(argc, argv, true);
+}
 
 
 // matrix format mapping
@@ -123,40 +159,72 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                    {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 
-std::unique_ptr<gko::matrix::Dense<>> create_rhs(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+// system solution
+template <typename RandomEngine>
+std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
+                                   RandomEngine &engine, gko::size_type size)
 {
-    auto rhs = gko::matrix::Dense<>::create(exec);
-    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}, 1.0));
+    auto rhs = vector::create(exec);
+    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1},
+                                 std::uniform_real_distribution<>(-1.0, 1.0),
+                                 engine));
     return rhs;
 }
 
-std::unique_ptr<gko::matrix::Dense<>> create_initial_guess(
+
+std::unique_ptr<vector> create_initial_guess(
     std::shared_ptr<const gko::Executor> exec, gko::size_type size)
 {
-    auto rhs = gko::matrix::Dense<>::create(exec);
+    auto rhs = vector::create(exec);
     rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}));
     return rhs;
 }
 
-void solve_system(std::shared_ptr<const gko::Executor> exec,
-                  const rapidjson::Value &test_case)
+
+double compute_residual_norm(const gko::LinOp *system_matrix, const vector *b,
+                             const vector *x)
 {
+    auto exec = system_matrix->get_executor();
+    auto one = gko::initialize<vector>({1.0}, exec);
+    auto neg_one = gko::initialize<vector>({-1.0}, exec);
+    auto res_norm = gko::initialize<vector>({0.0}, exec);
+    auto res = clone(b);
+    system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
+    res->compute_dot(lend(res), lend(res_norm));
+    return clone(res_norm->get_executor()->get_master(), res_norm)->at(0, 0);
+}
+
+
+double compute_rhs_norm(const vector *b)
+{
+    auto exec = b->get_executor();
+    auto b_norm = gko::initialize<vector>({0.0}, exec);
+    b->compute_dot(lend(b), lend(b_norm));
+    return clone(exec->get_master(), b_norm)->at(0, 0);
+};
+
+
+template <typename RandomEngine, typename Allocator>
+void solve_system(std::shared_ptr<const gko::Executor> exec,
+                  rapidjson::Value &test_case, Allocator &allocator,
+                  RandomEngine &rhs_engine)
+{
+    // set up benchmark
     validate_option_object(test_case);
 
-    rapidjson::Writer<rapidjson::OStreamWrapper> writer(jcout);
-    std::cout << "Running test case: ";
-    test_case.Accept(writer);
-    std::cout << std::endl;
+    std::clog << "Running test case: " << test_case << std::endl;
 
-    auto system_matrix = share(
-        matrix_factory.at(test_case["format"].GetString())(exec, test_case));
-    auto b = create_rhs(exec, system_matrix->get_size()[0]);
+    auto system_matrix = share(matrix_factory.at(
+        test_case["optimal_format"].GetString())(exec, test_case));
+    auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
     auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
 
-    std::cout << "Matrix is of size (" << system_matrix->get_size()[0] << ", "
+    std::clog << "Matrix is of size (" << system_matrix->get_size()[0] << ", "
               << system_matrix->get_size()[1] << ")" << std::endl;
 
+    // TODO: slow run, with logger, to get per-iteration residual info
+
+    // timed run
     exec->synchronize();
     auto tic = std::chrono::system_clock::now();
 
@@ -179,33 +247,60 @@ void solve_system(std::shared_ptr<const gko::Executor> exec,
     exec->synchronize();
     auto tac = std::chrono::system_clock::now();
 
+    // compute and write benchmark data
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
+    auto residual =
+        compute_residual_norm(lend(system_matrix), lend(b), lend(x));
+    auto rhs_norm = compute_rhs_norm(lend(b));
 
-    std::cout << "Time: " << time.count() << std::endl;
+    test_case.AddMember("cg_time", time.count(), allocator);
+    test_case.AddMember("cg_completed", true, allocator);
+    test_case.AddMember("cg_residual_norm", residual, allocator);
+    test_case.AddMember("cg_rhs_norm", rhs_norm, allocator);
 };
 
 
 int main(int argc, char *argv[])
 {
-    gflags::SetUsageMessage("Usage: " + std::string(argv[0]) + " [options]");
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    auto format_stream = [](std::ostream &os) {
+        os << std::scientific << std::setprecision(16);
+    };
+    format_stream(std::cout);
+    format_stream(std::cerr);
+    format_stream(std::clog);
 
-    std::cerr << gko::version_info::get() << std::endl
+    initialize_argument_parsing(&argc, &argv);
+
+    std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
               << ")" << std::endl
               << "Running CG with " << FLAGS_max_iters
               << " iterations and residual goal of " << FLAGS_rel_res_goal
+              << std::endl
+              << "The random seed for right hand sides is " << FLAGS_rhs_seed
               << std::endl;
 
     auto exec = executor_factory.at(FLAGS_executor)();
 
-    rapidjson::Document config;
-    config.ParseStream(jcin);
-
-    if (!config.IsArray()) {
+    rapidjson::IStreamWrapper jcin(std::cin);
+    rapidjson::Document test_cases;
+    test_cases.ParseStream(jcin);
+    if (!test_cases.IsArray()) {
         print_config_error_and_exit();
     }
-    for (auto &test_case : config.GetArray()) {
-        solve_system(exec, test_case);
+
+    std::ranlux24 rhs_engine(FLAGS_rhs_seed);
+    auto &allocator = test_cases.GetAllocator();
+
+    for (auto &test_case : test_cases.GetArray()) {
+        try {
+            solve_system(exec, test_case, allocator, rhs_engine);
+        } catch (std::exception &e) {
+            test_case.AddMember("cg_completed", false, allocator);
+            std::cerr << "Error when processing test case " << test_case << "\n"
+                      << "what(): " << e.what() << std::endl;
+        }
+        std::clog << "Current state:" << std::endl << test_cases << std::endl;
     }
+    std::cout << test_cases;
 }
