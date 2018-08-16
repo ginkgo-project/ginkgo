@@ -90,6 +90,8 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `ON`
 *   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
+*   `-DBUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
+    (will download gflags and rapidjson), default is `ON`
 *   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`

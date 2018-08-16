@@ -256,28 +256,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
          }}};
 
 
-// system solution
-template <typename RandomEngine>
-std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
-                                   RandomEngine &engine, gko::size_type size)
-{
-    auto rhs = vector::create(exec);
-    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1},
-                                 std::uniform_real_distribution<>(-1.0, 1.0),
-                                 engine));
-    return rhs;
-}
-
-
-std::unique_ptr<vector> create_initial_guess(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-{
-    auto rhs = vector::create(exec);
-    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}));
-    return rhs;
-}
-
-
+// utilities for computing norms and residuals
 double get_norm(const vector *norm)
 {
     return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
@@ -305,6 +284,28 @@ double compute_residual_norm(const gko::LinOp *system_matrix, const vector *b,
 }
 
 
+// system solution
+template <typename RandomEngine>
+std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
+                                   RandomEngine &engine, gko::size_type size)
+{
+    auto rhs = vector::create(exec);
+    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1},
+                                 std::uniform_real_distribution<>(-1.0, 1.0),
+                                 engine));
+    return rhs;
+}
+
+
+std::unique_ptr<vector> create_initial_guess(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto rhs = vector::create(exec);
+    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}));
+    return rhs;
+}
+
+
 template <typename RandomEngine, typename Allocator>
 void solve_system(const char *solver_name,
                   std::shared_ptr<const gko::Executor> exec,
@@ -314,7 +315,7 @@ void solve_system(const char *solver_name,
     if (!FLAGS_overwrite && test_case.HasMember(solver_name)) {
         return;
     }
-    // slow run, gets the recurrent and true residuals of each iteration
+
     add_or_set_member(test_case, solver_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
     add_or_set_member(test_case[solver_name], "recurrent_residuals",
@@ -330,7 +331,6 @@ void solve_system(const char *solver_name,
             const gko::LinOp *residual, const gko::LinOp *solution,
             const gko::LinOp *residual_norm) const override
         {
-            std::clog << "Iteration complete" << std::endl;
             if (residual_norm) {
                 rec_res_norms.PushBack(get_norm(gko::as<vector>(residual_norm)),
                                        alloc);
@@ -369,6 +369,7 @@ void solve_system(const char *solver_name,
     };
 
     if (FLAGS_detailed) {
+        // slow run, gets the recurrent and true residuals of each iteration
         auto x_clone = clone(x);
 
         auto solver =
