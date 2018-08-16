@@ -3,6 +3,7 @@ if(WIN32)
 else()
     cmake_minimum_required(VERSION 3.8)
 endif()
+
 project(Ginkgo LANGUAGES CXX VERSION 0.0.0)
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
