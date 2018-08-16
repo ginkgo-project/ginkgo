@@ -48,7 +48,7 @@ namespace gko {
 namespace solver {
 
 
-constexpr int default_max_iter_num = 100;
+constexpr size_type default_max_iter_num = 100u;
 
 
 /**
@@ -105,6 +105,11 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+        /**
+         * krylov dimension factory.
+         */
+        size_type GKO_FACTORY_PARAMETER(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
 
@@ -137,12 +142,18 @@ protected:
         } else {
             NOT_SUPPORTED(nullptr);
         }
+        if (parameters_.krylov_dim) {
+            krylov_dim_ = parameters_.krylov_dim;
+        } else {
+            krylov_dim_ = default_max_iter_num;
+        }
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
+    size_type krylov_dim_;
 };
 
 
