@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <include/ginkgo.hpp>
 
 
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <iomanip>
@@ -73,13 +74,26 @@ void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
     if (object.HasMember(name)) {
         object[name] = std::forward<T>(value);
     } else {
-        object.AddMember(name, std::forward<T>(value),
+        object.AddMember(rapidjson::Value::StringRefType(name),
+                         std::forward<T>(value),
                          std::forward<Allocator>(allocator));
     }
 }
 
 
-// config validation
+// helper for splitting a comma-separated list into vector of strings
+std::vector<std::string> split(const std::string &s, char delimiter)
+{
+    std::istringstream iss(s);
+    std::vector<std::string> tokens;
+    for (std::string token; std::getline(iss, token, delimiter);
+         tokens.push_back(token))
+        ;
+    return tokens;
+}
+
+
+// input validation
 void print_config_error_and_exit()
 {
     std::cerr
@@ -109,33 +123,17 @@ DEFINE_uint32(max_iters, 1000,
 
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-    executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
-             return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
-         }}};
-
 DEFINE_string(
     executor, "reference",
     "The executor used to run the solver, one of: reference, omp, cuda");
 
-bool validate_executor(const char *flag_name, const std::string &value)
-{
-    if (executor_factory.count(value) == 0) {
-        std::cerr << "Wrong argument for flag --" << flag_name << ": " << value
-                  << "\nHas to be one of: reference, omp, cuda" << std::endl;
-        return false;
-    }
-    return true;
-};
-DEFINE_validator(executor, validate_executor);
+DEFINE_string(solvers, "cg",
+              "A comma-separated list of solvers to run."
+              "Supported values are: cg, bicgstab, cgs, fcg");
 
 DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
 
-DEFINE_bool(overwrite, true,
+DEFINE_bool(overwrite, false,
             "If true, overwrites existing results with new ones");
 
 DEFINE_string(backup, "",
@@ -152,15 +150,23 @@ void initialize_argument_parsing(int *argc, char **argv[])
 {
     std::ostringstream doc;
     doc << "A benchmark for measuring performance of Ginkgo's solvers.\n"
-        << "Usage: " << (*argv)[0] << "[options]\n"
-        << "  The standard input should contain a list of test cases as a JSON"
-        << "  array of objects:"
-        << "[\n"
-        << "    { \"filename\": my_file.mtx,  \"optimal_format\": coo },\n"
-        << "    { \"filename\": my_file2.mtx, \"optimal_format\": csr }\n"
-        << "]\n\n"
-        << "\"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
-        << "\"hybrid\", \"sellp\"" << std::endl;
+        << "Usage: " << (*argv)[0] << " [options]\n"
+        << "  The standard input should contain a list of test cases as a JSON "
+        << "array of objects:\n"
+        << "  [\n"
+        << "    { \"filename\": \"my_file.mtx\",  \"optimal_format\": coo },\n"
+        << "    { \"filename\": \"my_file2.mtx\", \"optimal_format\": csr }\n"
+        << "  ]\n\n"
+        << "  \"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
+        << "\"hybrid\", \"sellp\"\n\n"
+        << "  The results are written on standard output, in the same format,\n"
+        << "  but with test cases extended to include an additional member \n"
+        << "  object for each solver run in the benchmark.\n"
+        << "  If run with a --backup flag, an intermediate result is written \n"
+        << "  to a file in the same format. The backup file can be used as \n"
+        << "  input \n to this test suite, and the benchmarking will \n"
+        << "  continue from the point where the backup file was created.";
+
     gflags::SetUsageMessage(doc.str());
     std::ostringstream ver;
     ver << gko::version_info::get();
@@ -206,6 +212,44 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                    {"ell", read_matrix<gko::matrix::Ell<>>},
                    {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
                    {"sellp", read_matrix<gko::matrix::Sellp<>>}};
+
+
+// solver mapping
+template <typename SolverType>
+std::unique_ptr<gko::LinOpFactory> create_solver(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return SolverType::Factory::create()
+        .with_criterion(
+            gko::stop::Combined::Factory::create()
+                .with_criteria(
+                    gko::stop::ResidualNormReduction<>::Factory::create()
+                        .with_reduction_factor(FLAGS_rel_res_goal)
+                        .on_executor(exec),
+                    gko::stop::Iteration::Factory::create()
+                        .with_max_iters(FLAGS_max_iters)
+                        .on_executor(exec))
+                .on_executor(exec))
+        .on_executor(exec);
+}
+
+const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
+                                std::shared_ptr<const gko::Executor> exec)>>
+    solver_factory{{"cg", create_solver<gko::solver::Cg<>>},
+                   {"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+                   {"cgs", create_solver<gko::solver::Cgs<>>},
+                   {"fcg", create_solver<gko::solver::Fcg<>>}};
+
+
+// executor mapping
+const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+    executor_factory{
+        {"reference", [] { return gko::ReferenceExecutor::create(); }},
+        {"omp", [] { return gko::OmpExecutor::create(); }},
+        {"cuda", [] {
+             return gko::CudaExecutor::create(FLAGS_device_id,
+                                              gko::OmpExecutor::create());
+         }}};
 
 
 // system solution
@@ -254,46 +298,24 @@ double compute_rhs_norm(const vector *b)
 
 
 template <typename RandomEngine, typename Allocator>
-void solve_system(std::shared_ptr<const gko::Executor> exec,
-                  rapidjson::Value &test_case, Allocator &allocator,
-                  RandomEngine &rhs_engine)
-{
-    if (!FLAGS_overwrite && test_case.HasMember("cg")) {
+void solve_system(const char *solver_name,
+                  std::shared_ptr<const gko::Executor> exec,
+                  std::shared_ptr<const gko::LinOp> system_matrix,
+                  const vector *b, const vector *x, rapidjson::Value &test_case,
+                  Allocator &allocator, RandomEngine &rhs_engine) try {
+    if (!FLAGS_overwrite && test_case.HasMember(solver_name)) {
         return;
     }
-    // set up benchmark
-    validate_option_object(test_case);
-    std::clog << "Running test case: " << test_case << std::endl;
+    // TODO: slow run, to get residuals for each iteration
 
-    auto system_matrix = share(matrix_factory.at(
-        test_case["optimal_format"].GetString())(exec, test_case));
-    auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
-    auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
-
-    std::clog << "Matrix is of size (" << system_matrix->get_size()[0] << ", "
-              << system_matrix->get_size()[1] << ")" << std::endl;
-
-    // TODO: slow run, with logger, to get per-iteration residual info
+    auto x_clone = clone(x);
 
     // timed run
     exec->synchronize();
     auto tic = std::chrono::system_clock::now();
 
-    auto solver =
-        gko::solver::Cg<>::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(FLAGS_rel_res_goal)
-                            .on_executor(exec),
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(FLAGS_max_iters)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
-
-    solver->generate(system_matrix)->apply(lend(b), lend(x));
+    auto solver = solver_factory.at(solver_name)(exec);
+    solver->generate(system_matrix)->apply(lend(b), lend(x_clone));
 
     exec->synchronize();
     auto tac = std::chrono::system_clock::now();
@@ -301,39 +323,38 @@ void solve_system(std::shared_ptr<const gko::Executor> exec,
     // compute and write benchmark data
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
     auto residual =
-        compute_residual_norm(lend(system_matrix), lend(b), lend(x));
+        compute_residual_norm(lend(system_matrix), lend(b), lend(x_clone));
     auto rhs_norm = compute_rhs_norm(lend(b));
 
-    add_or_set_member(test_case, "cg", rapidjson::Value(rapidjson::kObjectType),
+    add_or_set_member(test_case, solver_name,
+                      rapidjson::Value(rapidjson::kObjectType), allocator);
+    add_or_set_member(test_case[solver_name], "time", time.count(), allocator);
+    add_or_set_member(test_case[solver_name], "completed", true, allocator);
+    add_or_set_member(test_case[solver_name], "residual_norm", residual,
                       allocator);
-    add_or_set_member(test_case["cg"], "time", time.count(), allocator);
-    add_or_set_member(test_case["cg"], "completed", true, allocator);
-    add_or_set_member(test_case["cg"], "residual_norm", residual, allocator);
-    add_or_set_member(test_case["cg"], "rhs_norm", rhs_norm, allocator);
-};
+    add_or_set_member(test_case[solver_name], "rhs_norm", rhs_norm, allocator);
+} catch (std::exception e) {
+    add_or_set_member(test_case[solver_name], "completed", false, allocator);
+    std::cerr << "Error when processing test case " << test_case << "\n"
+              << "what(): " << e.what() << std::endl;
+}
 
 
 int main(int argc, char *argv[])
 {
-    auto format_stream = [](std::ostream &os) {
-        os << std::scientific << std::setprecision(16);
-    };
-    format_stream(std::cout);
-    format_stream(std::cerr);
-    format_stream(std::clog);
-
     initialize_argument_parsing(&argc, &argv);
 
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
               << ")" << std::endl
-              << "Running CG with " << FLAGS_max_iters
+              << "Running " << FLAGS_solvers << " with " << FLAGS_max_iters
               << " iterations and residual goal of " << FLAGS_rel_res_goal
               << std::endl
               << "The random seed for right hand sides is " << FLAGS_rhs_seed
               << std::endl;
 
     auto exec = executor_factory.at(FLAGS_executor)();
+    auto solvers = split(FLAGS_solvers, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
@@ -345,16 +366,37 @@ int main(int argc, char *argv[])
     std::ranlux24 rhs_engine(FLAGS_rhs_seed);
     auto &allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
-        try {
-            solve_system(exec, test_case, allocator, rhs_engine);
+    for (auto &test_case : test_cases.GetArray()) try {
+            // set up benchmark
+            validate_option_object(test_case);
+            if (!FLAGS_overwrite &&
+                all_of(begin(solvers), end(solvers),
+                       [&test_case](const std::string &s) {
+                           return test_case.HasMember(s.c_str());
+                       })) {
+                continue;
+            }
+            std::clog << "Running test case: " << test_case << std::endl;
+
+            auto system_matrix = share(matrix_factory.at(
+                test_case["optimal_format"].GetString())(exec, test_case));
+            auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
+            auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
+
+            std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
+                      << ", " << system_matrix->get_size()[1] << ")"
+                      << std::endl;
+            for (const auto &solver_name : solvers) {
+                solve_system(solver_name.c_str(), exec, system_matrix, lend(b),
+                             lend(x), test_case, allocator, rhs_engine);
+                std::clog << "Current state:" << std::endl
+                          << test_cases << std::endl;
+                backup_results(test_cases);
+            }
         } catch (std::exception &e) {
-            test_case.AddMember("cg_completed", false, allocator);
-            std::cerr << "Error when processing test case " << test_case << "\n"
-                      << "what(): " << e.what() << std::endl;
+            std::cerr << "Error setting up solver, what(): " << e.what()
+                      << std::endl;
         }
-        std::clog << "Current state:" << std::endl << test_cases << std::endl;
-        backup_results(test_cases);
-    }
+
     std::cout << test_cases;
 }
