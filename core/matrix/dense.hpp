@@ -57,6 +57,9 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType, typename IndexType>
+class Csri;
+
+template <typename ValueType, typename IndexType>
 class Ell;
 
 template <typename ValueType, typename IndexType>
@@ -85,6 +88,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
               public ConvertibleTo<Csr<ValueType, int64>>,
+              public ConvertibleTo<Csri<ValueType, int32>>,
+              public ConvertibleTo<Csri<ValueType, int64>>,
               public ConvertibleTo<Ell<ValueType, int32>>,
               public ConvertibleTo<Ell<ValueType, int64>>,
               public ConvertibleTo<Hybrid<ValueType, int32>>,
@@ -102,6 +107,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Csri<ValueType, int32>;
+    friend class Csri<ValueType, int64>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
     friend class Hybrid<ValueType, int32>;
@@ -146,6 +153,14 @@ public:
     void convert_to(Csr<ValueType, int64> *result) const override;
 
     void move_to(Csr<ValueType, int64> *result) override;
+
+    void convert_to(Csri<ValueType, int32> *result) const override;
+
+    void move_to(Csri<ValueType, int32> *result) override;
+
+    void convert_to(Csri<ValueType, int64> *result) const override;
+
+    void move_to(Csri<ValueType, int64> *result) override;
 
     void convert_to(Ell<ValueType, int32> *result) const override;
 

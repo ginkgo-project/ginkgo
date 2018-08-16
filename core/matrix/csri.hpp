@@ -170,7 +170,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_srow() const noexcept
+    const index_type *get_const_srow() const noexcept
     {
         return srow_.get_const_data();
     }
@@ -231,13 +231,18 @@ protected:
     void make_srow()
     {
         auto nwarps = srow_.get_num_elems();
+
         if (nwarps > 0) {
-            auto srow = this->get_srow();
+            Array<index_type> srow_host(this->get_executor()->get_master());
+            srow_host = srow_;
+            auto srow = srow_host.get_data();
+            Array<index_type> row_ptrs_host(this->get_executor()->get_master());
+            row_ptrs_host = row_ptrs_;
+            auto row_ptrs = row_ptrs_host.get_const_data();
             for (size_type i = 0; i < nwarps; i++) {
                 srow[i] = 0;
             }
             auto num_elems = values_.get_num_elems();
-            auto row_ptrs = this->get_row_ptrs();
             for (size_type i = 0; i < this->get_size()[0]; i++) {
                 auto bucket =
                     ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
@@ -250,6 +255,8 @@ protected:
             for (size_type i = 1; i < nwarps; i++) {
                 srow[i] += srow[i - 1];
             }
+            row_ptrs_ = row_ptrs_host;
+            srow_ = srow_host;
         }
     }
 

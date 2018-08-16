@@ -74,8 +74,10 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
+        auto s = m->get_const_srow();
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
+        ASSERT_EQ(m->get_nwarps(), 2);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
         EXPECT_EQ(r[2], 4);
@@ -87,6 +89,7 @@ protected:
         EXPECT_EQ(v[1], 3.0);
         EXPECT_EQ(v[2], 2.0);
         EXPECT_EQ(v[3], 5.0);
+        EXPECT_EQ(s[0], 0);
     }
 
     void assert_empty(const Mtx *m)
@@ -96,6 +99,7 @@ protected:
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(m->get_const_srow(), nullptr);
     }
 };
 
@@ -104,6 +108,7 @@ TEST_F(Csri, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx->get_nwarps(), 2);
 }
 
 
@@ -160,7 +165,7 @@ TEST_F(Csri, CanBeCleared)
 
 TEST_F(Csri, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    auto m = Mtx::create(exec, 2);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
