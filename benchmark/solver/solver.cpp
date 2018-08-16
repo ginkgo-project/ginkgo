@@ -63,6 +63,20 @@ std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 }
 
 
+// helper for setting rapidjson object members
+template <typename T, typename NameType, typename Allocator>
+void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
+                       Allocator &&allocator)
+{
+    if (object.HasMember(name)) {
+        object[name] = std::forward<T>(value);
+    } else {
+        object.AddMember(name, std::forward<T>(value),
+                         std::forward<Allocator>(allocator));
+    }
+}
+
+
 // config validation
 void print_config_error_and_exit()
 {
@@ -211,7 +225,6 @@ void solve_system(std::shared_ptr<const gko::Executor> exec,
 {
     // set up benchmark
     validate_option_object(test_case);
-
     std::clog << "Running test case: " << test_case << std::endl;
 
     auto system_matrix = share(matrix_factory.at(
@@ -253,10 +266,12 @@ void solve_system(std::shared_ptr<const gko::Executor> exec,
         compute_residual_norm(lend(system_matrix), lend(b), lend(x));
     auto rhs_norm = compute_rhs_norm(lend(b));
 
-    test_case.AddMember("cg_time", time.count(), allocator);
-    test_case.AddMember("cg_completed", true, allocator);
-    test_case.AddMember("cg_residual_norm", residual, allocator);
-    test_case.AddMember("cg_rhs_norm", rhs_norm, allocator);
+    add_or_set_member(test_case, "cg", rapidjson::Value(rapidjson::kObjectType),
+                      allocator);
+    add_or_set_member(test_case["cg"], "time", time.count(), allocator);
+    add_or_set_member(test_case["cg"], "completed", true, allocator);
+    add_or_set_member(test_case["cg"], "residual_norm", residual, allocator);
+    add_or_set_member(test_case["cg"], "rhs_norm", rhs_norm, allocator);
 };
 
 
