@@ -46,11 +46,12 @@ protected:
 
     Csri()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Csri<>::create(exec, gko::dim<2>{2, 3}, 4))
+          mtx(gko::matrix::Csri<>::create(exec, 2, gko::dim<2>{2, 3}, 4))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        Mtx::index_type *s = mtx->get_srow();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -62,6 +63,7 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
+        s[0] = 0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -113,23 +115,6 @@ TEST_F(Csri, CanBeEmpty)
     auto mtx = Mtx::create(exec);
 
     assert_empty(mtx.get());
-}
-
-
-TEST_F(Csri, CanBeCreatedFromExistingData)
-{
-    double values[] = {1.0, 2.0, 3.0, 4.0};
-    gko::int32 col_idxs[] = {0, 1, 1, 0};
-    gko::int32 row_ptrs[] = {0, 2, 3, 4};
-
-    auto mtx = gko::matrix::Csri<>::create(
-        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 4, values),
-        gko::Array<gko::int32>::view(exec, 4, col_idxs),
-        gko::Array<gko::int32>::view(exec, 4, row_ptrs));
-
-    ASSERT_EQ(mtx->get_const_values(), values);
-    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
-    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
 }
 
 

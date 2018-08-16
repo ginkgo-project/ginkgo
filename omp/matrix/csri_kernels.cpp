@@ -182,55 +182,6 @@ inline void convert_csri_to_csc(size_type num_rows, const IndexType *row_ptrs,
 }
 
 
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
-                             matrix::Csri<ValueType, IndexType> *trans,
-                             const matrix::Csri<ValueType, IndexType> *orig,
-                             UnaryOperator op)
-{
-    auto trans_row_ptrs = trans->get_row_ptrs();
-    auto orig_row_ptrs = orig->get_const_row_ptrs();
-    auto trans_col_idxs = trans->get_col_idxs();
-    auto orig_col_idxs = orig->get_const_col_idxs();
-    auto trans_vals = trans->get_values();
-    auto orig_vals = orig->get_const_values();
-
-    auto orig_num_cols = orig->get_size()[1];
-    auto orig_num_rows = orig->get_size()[0];
-    auto orig_nnz = orig_row_ptrs[orig_num_rows];
-
-    trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
-
-    convert_csri_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
-                       trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
-}
-
-
-template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const OmpExecutor> exec,
-               matrix::Csri<ValueType, IndexType> *trans,
-               const matrix::Csri<ValueType, IndexType> *orig)
-{
-    transpose_and_transform(exec, trans, orig,
-                            [](const ValueType x) { return x; });
-}
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSRI_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csri<ValueType, IndexType> *trans,
-                    const matrix::Csri<ValueType, IndexType> *orig)
-{
-    transpose_and_transform(exec, trans, orig,
-                            [](const ValueType x) { return conj(x); });
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL);
-
 }  // namespace csri
 }  // namespace omp
 }  // namespace kernels

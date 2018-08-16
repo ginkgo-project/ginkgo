@@ -148,28 +148,4 @@ TEST_F(Csri, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Csri, TransposeIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto trans = mtx->transpose();
-    auto d_trans = dmtx->transpose();
-
-    ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
-                    static_cast<Mtx *>(trans.get()), 0.0);
-}
-
-
-TEST_F(Csri, ConjugateTransposeIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto trans = complex_mtx->conj_transpose();
-    auto d_trans = complex_dmtx->conj_transpose();
-
-    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                    static_cast<ComplexMtx *>(trans.get()), 0.0);
-}
-
-
 }  // namespace

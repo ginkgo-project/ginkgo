@@ -56,10 +56,9 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(advanced_spmv, csri::advanced_spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_row_ptrs_to_idxs,
                            csri::convert_row_ptrs_to_idxs<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, csri::convert_to_dense<TplArgs...>);
+    GKO_REGISTER_OPERATION(convert_to_dense,
+                           csri::convert_to_dense<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_dense, csri::move_to_dense<TplArgs...>);
-    GKO_REGISTER_OPERATION(transpose, csri::transpose<TplArgs...>);
-    GKO_REGISTER_OPERATION(conj_transpose, csri::conj_transpose<TplArgs...>);
 };
 
 
@@ -78,7 +77,7 @@ void Csri<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType, typename IndexType>
 void Csri<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta, LinOp *x) const
+                                            const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
@@ -89,8 +88,8 @@ void Csri<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Coo<ValueType, IndexType>> Csri<ValueType, IndexType>::make_coo()
-    const
+std::unique_ptr<Coo<ValueType, IndexType>>
+Csri<ValueType, IndexType>::make_coo() const
 {
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
@@ -155,7 +154,8 @@ void Csri<ValueType, IndexType>::read(const mat_data &data)
     for (const auto &elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    auto tmp = Csri::create(this->get_executor()->get_master(), data.size, nnz);
+    auto tmp = Csri::create(this->get_executor()->get_master(),
+                            this->get_nwarps(), data.size, nnz);
     size_type ind = 0;
     size_type cur_ptr = 0;
     tmp->get_row_ptrs()[0] = cur_ptr;
@@ -173,6 +173,7 @@ void Csri<ValueType, IndexType>::read(const mat_data &data)
         }
         tmp->get_row_ptrs()[row + 1] = cur_ptr;
     }
+    tmp->make_srow();
     tmp->move_to(this);
 }
 
@@ -203,35 +204,8 @@ void Csri<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csri<ValueType, IndexType>::transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Csri::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
-            trans_cpy.get(), this));
-    return std::move(trans_cpy);
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Csri<ValueType, IndexType>::conj_transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Csri::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
-            trans_cpy.get(), this));
-    return std::move(trans_cpy);
-}
-
-
-#define DECLARE_CSRI_MATRIX(ValueType, IndexType) class Csri<ValueType, IndexType>
+#define DECLARE_CSRI_MATRIX(ValueType, IndexType) \
+    class Csri<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_CSRI_MATRIX);
 #undef DECLARE_CSRI_MATRIX
 

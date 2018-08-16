@@ -73,8 +73,7 @@ class Csri : public EnableLinOp<Csri<ValueType, IndexType>>,
              public ConvertibleTo<Dense<ValueType>>,
              public ConvertibleTo<Coo<ValueType, IndexType>>,
              public ReadableFromMatrixData<ValueType, IndexType>,
-             public WritableToMatrixData<ValueType, IndexType>,
-             public Transposable {
+             public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Csri>;
     friend class EnablePolymorphicObject<Csri, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -99,10 +98,6 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns the values of the matrix.
@@ -162,6 +157,32 @@ public:
     }
 
     /**
+     * Returns the starting rows.
+     *
+     * @return the starting rows.
+     */
+    index_type *get_srow() noexcept { return srow_.get_data(); }
+
+    /**
+     * @copydoc Csri::get_srow()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const index_type *get_srow() const noexcept
+    {
+        return srow_.get_const_data();
+    }
+
+    /**
+     * Returns the number of the warps
+     *
+     * @return the number of the warps
+     */
+    size_type get_nwarps() const noexcept { return nwarps_; }
+
+    /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
@@ -187,7 +208,8 @@ protected:
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0)),
           nwarps_(nwarps),
-          srow_(exec, min(ceildiv(num_nozeros, warp_size), nwarps))
+          srow_(exec, min(ceildiv(num_nonzeros, warp_size),
+                          static_cast<int64_t>(nwarps)))
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -203,6 +225,33 @@ protected:
      */
     std::unique_ptr<Coo<ValueType, IndexType>> make_coo() const;
 
+    /**
+     * Compute srow, it should be run after setting value.
+     */
+    void make_srow()
+    {
+        auto nwarps = srow_.get_num_elems();
+        if (nwarps > 0) {
+            auto srow = this->get_srow();
+            for (size_type i = 0; i < nwarps; i++) {
+                srow[i] = 0;
+            }
+            auto num_elems = values_.get_num_elems();
+            auto row_ptrs = this->get_row_ptrs();
+            for (size_type i = 0; i < this->get_size()[0]; i++) {
+                auto bucket =
+                    ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
+                            ceildiv(num_elems, warp_size));
+                if (bucket < nwarps) {
+                    srow[bucket]++;
+                }
+            }
+            // find starting row for thread i
+            for (size_type i = 1; i < nwarps; i++) {
+                srow[i] += srow[i - 1];
+            }
+        }
+    }
 
 private:
     Array<value_type> values_;
