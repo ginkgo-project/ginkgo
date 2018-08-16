@@ -34,12 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <include/ginkgo.hpp>
 
 
+#include <array>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <random>
 #include <sstream>
+#include <string>
 
 
 #include <gflags/gflags.h>
@@ -119,6 +121,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
 DEFINE_string(
     executor, "reference",
     "The executor used to run the solver, one of: reference, omp, cuda");
+
 bool validate_executor(const char *flag_name, const std::string &value)
 {
     if (executor_factory.count(value) == 0) {
@@ -132,6 +135,18 @@ DEFINE_validator(executor, validate_executor);
 
 DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
 
+DEFINE_bool(overwrite, true,
+            "If true, overwrites existing results with new ones");
+
+DEFINE_string(backup, "",
+              "If set, the value is used as a file path of a backup"
+              " file where results are written after each test");
+
+DEFINE_string(double_buffer, "",
+              "If --backup is set, this variable can be set"
+              " to nonempty string to enable double"
+              " buffering of backup files, in case of a"
+              " crash when overwriting the backup");
 
 void initialize_argument_parsing(int *argc, char **argv[])
 {
@@ -151,6 +166,26 @@ void initialize_argument_parsing(int *argc, char **argv[])
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+}
+
+
+// backup generation
+void backup_results(rapidjson::Document &results)
+{
+    static int next = 0;
+    static auto filenames = []() -> std::array<std::string, 2> {
+        if (FLAGS_double_buffer.size() > 0) {
+            return {FLAGS_backup, FLAGS_double_buffer};
+        } else {
+            return {FLAGS_backup, FLAGS_backup};
+        }
+    }();
+    if (FLAGS_backup.size() == 0) {
+        return;
+    }
+    std::ofstream ofs(filenames[next]);
+    ofs << results;
+    next = 1 - next;
 }
 
 
@@ -223,6 +258,9 @@ void solve_system(std::shared_ptr<const gko::Executor> exec,
                   rapidjson::Value &test_case, Allocator &allocator,
                   RandomEngine &rhs_engine)
 {
+    if (!FLAGS_overwrite && test_case.HasMember("cg")) {
+        return;
+    }
     // set up benchmark
     validate_option_object(test_case);
     std::clog << "Running test case: " << test_case << std::endl;
@@ -316,6 +354,7 @@ int main(int argc, char *argv[])
                       << "what(): " << e.what() << std::endl;
         }
         std::clog << "Current state:" << std::endl << test_cases << std::endl;
+        backup_results(test_cases);
     }
     std::cout << test_cases;
 }
