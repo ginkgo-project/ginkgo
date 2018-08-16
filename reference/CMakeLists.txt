@@ -2,6 +2,7 @@ set(SOURCES
     base/version.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
+    matrix/csri_kernels.cpp
     matrix/dense_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp

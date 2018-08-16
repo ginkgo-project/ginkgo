@@ -7,6 +7,7 @@ set(SOURCES
     log/stream.cpp
     matrix/coo.cpp
     matrix/csr.cpp
+    matrix/csri.cpp
     matrix/dense.cpp
     matrix/ell.cpp
     matrix/hybrid.cpp

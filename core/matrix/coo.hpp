@@ -47,6 +47,10 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 
+template <typename ValueType, typename IndexType>
+class Csri;
+
+
 template <typename ValueType>
 class Dense;
 
@@ -72,6 +76,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
+    friend class Csri<ValueType, IndexType>;
     friend class Dense<ValueType>;
 
 public:

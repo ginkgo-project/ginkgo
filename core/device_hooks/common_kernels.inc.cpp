@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csri_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -350,6 +351,53 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace csr
+
+
+namespace csri {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSRI_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSRI_ADVANCED_SPMV_KERNEL);
+
+template <typename IndexType>
+GKO_DECLARE_CSRI_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSRI_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSRI_CONVERT_TO_DENSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSRI_MOVE_TO_DENSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_TRANSPOSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSRI_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
+NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL);
+
+
+}  // namespace csri
 
 
 namespace coo {
