@@ -61,14 +61,11 @@ namespace solver {
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
-                 public log::EnableLogging<Bicgstab<ValueType>> {
+class Bicgstab : public EnableLinOp<Bicgstab<ValueType>> {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 
 public:
-    using log::EnableLogging<Bicgstab<ValueType>>::log;
-    using log::EnableLogging<Bicgstab<ValueType>>::add_logger;
     using value_type = ValueType;
 
     /**
