@@ -198,4 +198,27 @@ TEST_F(Gmres, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Gmres, CanSetKrylovDim)
+{
+    auto gmres_factory =
+        Solver::Factory::create()
+            .with_krylov_dim(4u)
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(4u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-6)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            .on_executor(exec);
+    auto solver = gmres_factory->generate(mtx);
+    auto krylov_dim = solver->get_krylov_dim();
+
+    ASSERT_EQ(krylov_dim, 4);
+}
+
+
 }  // namespace

@@ -48,7 +48,7 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_max_iter_num = 100u;
+constexpr size_type default_krylov_dim = 100u;
 
 
 /**
@@ -91,6 +91,13 @@ public:
     {
         return preconditioner_;
     }
+
+    /**
+     * Returns the krylov dimension.
+     *
+     * @return the krylov dimension
+     */
+    size_type get_krylov_dim() const { return krylov_dim_; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -145,7 +152,7 @@ protected:
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
         } else {
-            krylov_dim_ = default_max_iter_num;
+            krylov_dim_ = default_krylov_dim;
         }
     }
 

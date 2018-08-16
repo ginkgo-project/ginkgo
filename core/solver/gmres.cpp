@@ -83,19 +83,17 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
     auto krylov_bases = Vector::create(
-        exec,
-        dim<2>{system_matrix_->get_size()[1],
-               (solver::default_max_iter_num + 1) * dense_b->get_size()[1]});
+        exec, dim<2>{system_matrix_->get_size()[1],
+                     (krylov_dim_ + 1) * dense_b->get_size()[1]});
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(
-        exec, dim<2>{solver::default_max_iter_num + 1,
-                     solver::default_max_iter_num * dense_b->get_size()[1]});
-    auto givens_sin = Vector::create(
-        exec, dim<2>{solver::default_max_iter_num, dense_b->get_size()[1]});
-    auto givens_cos = Vector::create(
-        exec, dim<2>{solver::default_max_iter_num, dense_b->get_size()[1]});
-    auto residual_norms = Vector::create(
-        exec, dim<2>{solver::default_max_iter_num + 1, dense_b->get_size()[1]});
+        exec, dim<2>{krylov_dim_ + 1, krylov_dim_ * dense_b->get_size()[1]});
+    auto givens_sin =
+        Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+    auto givens_cos =
+        Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+    auto residual_norms =
+        Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
         Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
@@ -109,8 +107,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // Initialization
     exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
         dense_b, b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), &final_iter_nums, &stop_status,
-        solver::default_max_iter_num));
+        givens_cos.get(), &final_iter_nums, &stop_status, krylov_dim_));
     // b_norm = norm(b)
     // residual = dense_b
     // givens_sin = givens_cos = 0
@@ -121,7 +118,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
         residual.get(), residual_norm.get(), residual_norms.get(),
-        krylov_bases.get(), solver::default_max_iter_num));
+        krylov_bases.get(), krylov_dim_));
     // residual_norm = norm(residual)
     // residual_norms = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
@@ -132,7 +129,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // TODO: implement GMRES(k) and add preconditioner
     size_type iter = 0;
-    for (; iter < solver::default_max_iter_num; ++iter) {
+    for (; iter < krylov_dim_; ++iter) {
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual_norm(residual_norm.get())
@@ -190,8 +187,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     }
 
     // Solve x
-    auto y = Vector::create(
-        exec, dim<2>{solver::default_max_iter_num, dense_b->get_size()[1]});
+    auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
     auto krylov_bases_small = krylov_bases->create_submatrix(
         span{0, system_matrix_->get_size()[0]},
         span{0, dense_b->get_size()[1] * (iter + 1)});
