@@ -146,6 +146,10 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_bool(detailed, true,
+            "If set, runs the solver a second time, calculating the recurrent "
+            "and true residual norms after each iteration");
+
 void initialize_argument_parsing(int *argc, char **argv[])
 {
     std::ostringstream doc;
@@ -274,27 +278,31 @@ std::unique_ptr<vector> create_initial_guess(
 }
 
 
+double get_norm(const vector *norm)
+{
+    return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+}
+
+
+double compute_norm(const vector *b)
+{
+    auto exec = b->get_executor();
+    auto b_norm = gko::initialize<vector>({0.0}, exec);
+    b->compute_dot(lend(b), lend(b_norm));
+    return get_norm(lend(b_norm));
+}
+
+
 double compute_residual_norm(const gko::LinOp *system_matrix, const vector *b,
                              const vector *x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vector>({1.0}, exec);
     auto neg_one = gko::initialize<vector>({-1.0}, exec);
-    auto res_norm = gko::initialize<vector>({0.0}, exec);
     auto res = clone(b);
     system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    res->compute_dot(lend(res), lend(res_norm));
-    return clone(res_norm->get_executor()->get_master(), res_norm)->at(0, 0);
+    return compute_norm(lend(res));
 }
-
-
-double compute_rhs_norm(const vector *b)
-{
-    auto exec = b->get_executor();
-    auto b_norm = gko::initialize<vector>({0.0}, exec);
-    b->compute_dot(lend(b), lend(b_norm));
-    return clone(exec->get_master(), b_norm)->at(0, 0);
-};
 
 
 template <typename RandomEngine, typename Allocator>
@@ -306,33 +314,97 @@ void solve_system(const char *solver_name,
     if (!FLAGS_overwrite && test_case.HasMember(solver_name)) {
         return;
     }
-    // TODO: slow run, to get residuals for each iteration
-
-    auto x_clone = clone(x);
-
-    // timed run
-    exec->synchronize();
-    auto tic = std::chrono::system_clock::now();
-
-    auto solver = solver_factory.at(solver_name)(exec);
-    solver->generate(system_matrix)->apply(lend(b), lend(x_clone));
-
-    exec->synchronize();
-    auto tac = std::chrono::system_clock::now();
-
-    // compute and write benchmark data
-    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
-    auto residual =
-        compute_residual_norm(lend(system_matrix), lend(b), lend(x_clone));
-    auto rhs_norm = compute_rhs_norm(lend(b));
-
+    // slow run, gets the recurrent and true residuals of each iteration
     add_or_set_member(test_case, solver_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(test_case[solver_name], "time", time.count(), allocator);
-    add_or_set_member(test_case[solver_name], "completed", true, allocator);
-    add_or_set_member(test_case[solver_name], "residual_norm", residual,
-                      allocator);
+    add_or_set_member(test_case[solver_name], "recurrent_residuals",
+                      rapidjson::Value(rapidjson::kArrayType), allocator);
+    add_or_set_member(test_case[solver_name], "true_residuals",
+                      rapidjson::Value(rapidjson::kArrayType), allocator);
+    auto rhs_norm = compute_norm(lend(b));
     add_or_set_member(test_case[solver_name], "rhs_norm", rhs_norm, allocator);
+
+    struct logger : gko::log::Logger {
+        void on_iteration_complete(
+            const gko::LinOp *, const gko::size_type &,
+            const gko::LinOp *residual, const gko::LinOp *solution,
+            const gko::LinOp *residual_norm) const override
+        {
+            std::clog << "Iteration complete" << std::endl;
+            if (residual_norm) {
+                rec_res_norms.PushBack(get_norm(gko::as<vector>(residual_norm)),
+                                       alloc);
+            } else {
+                rec_res_norms.PushBack(compute_norm(gko::as<vector>(residual)),
+                                       alloc);
+            }
+            if (solution) {
+                true_res_norms.PushBack(
+                    compute_residual_norm(matrix, b, gko::as<vector>(solution)),
+                    alloc);
+            } else {
+                true_res_norms.PushBack(-1.0, alloc);
+            }
+        }
+
+        logger(std::shared_ptr<const gko::Executor> exec,
+               const gko::LinOp *matrix, const vector *b,
+               rapidjson::Value &rec_res_norms,
+               rapidjson::Value &true_res_norms, Allocator &alloc)
+            : gko::log::Logger(
+                  exec /*, gko::log::Logger::iteration_complete_mask*/),
+              matrix{matrix},
+              b{b},
+              rec_res_norms{rec_res_norms},
+              true_res_norms{true_res_norms},
+              alloc{alloc}
+        {}
+
+    private:
+        const gko::LinOp *matrix;
+        const vector *b;
+        rapidjson::Value &rec_res_norms;
+        rapidjson::Value &true_res_norms;
+        Allocator &alloc;
+    };
+
+    if (FLAGS_detailed) {
+        auto x_clone = clone(x);
+
+        auto solver =
+            solver_factory.at(solver_name)(exec)->generate(system_matrix);
+        solver->add_logger(std::make_shared<logger>(
+            exec, lend(system_matrix), b,
+            test_case[solver_name]["recurrent_residuals"],
+            test_case[solver_name]["true_residuals"], allocator));
+        solver->apply(lend(b), lend(x_clone));
+    }
+
+    // timed run
+    {
+        auto x_clone = clone(x);
+
+        exec->synchronize();
+        auto tic = std::chrono::system_clock::now();
+
+        auto solver = solver_factory.at(solver_name)(exec);
+        solver->generate(system_matrix)->apply(lend(b), lend(x_clone));
+
+        exec->synchronize();
+        auto tac = std::chrono::system_clock::now();
+
+        auto time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
+        auto residual =
+            compute_residual_norm(lend(system_matrix), lend(b), lend(x_clone));
+        add_or_set_member(test_case[solver_name], "time", time.count(),
+                          allocator);
+        add_or_set_member(test_case[solver_name], "residual_norm", residual,
+                          allocator);
+    }
+
+    // compute and write benchmark data
+    add_or_set_member(test_case[solver_name], "completed", true, allocator);
 } catch (std::exception e) {
     add_or_set_member(test_case[solver_name], "completed", false, allocator);
     std::cerr << "Error when processing test case " << test_case << "\n"
