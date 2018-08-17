@@ -31,46 +31,6 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
-
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
-
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
-
-If you want to check cuda memory first before setting value in the function
-`read`, you can use additional_check.patch:
-
-patch -d /path/to/gingko -p1 < additional_check.patch
-
-The output format only support matlab and csv.
-The output filename will be `output_prefix`_n`nrhs`.ext
-ext is .m for matlab, and .csv for csv.
-*****************************<COMPILATION>**********************************/
-
 
 #include <include/ginkgo.hpp>
 
@@ -89,7 +49,7 @@ ext is .m for matlab, and .csv for csv.
 #include <random>
 #include <sstream>
 #include <string>
-
+#include <typeinfo>
 
 #include <gflags/gflags.h>
 #include <rapidjson/document.h>
@@ -165,10 +125,10 @@ DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
 
 DEFINE_string(
     executor, "reference",
-    "The executor used to run the solver, one of: reference, omp, cuda");
+    "The executor used to run the spmv, one of: reference, omp, cuda");
 
 DEFINE_string(formats, "coo",
-              "A comma-separated list of solvers to run."
+              "A comma-separated list of formats to run."
               "Supported values are: coo, csr, ell, sellp, hybrid");
 
 DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
@@ -204,8 +164,6 @@ void initialize_argument_parsing(int *argc, char **argv[])
         << "    { \"filename\": \"my_file.mtx\"},\n"
         << "    { \"filename\": \"my_file2.mtx\"}\n"
         << "  ]\n\n"
-        << "  \"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
-        << "\"hybrid\", \"sellp\"\n\n"
         << "  The results are written on standard output, in the same format,\n"
         << "  but with test cases extended to include an additional member \n"
         << "  object for each spmv run in the benchmark.\n"
@@ -393,10 +351,35 @@ int main(int argc, char *argv[])
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
+            std::string best_format("none");
+            double best_performace(0);
+            for (const auto &format_name : formats) {
+                if (test_case[format_name.c_str()]["completed"].GetBool()) {
+                    if (best_format == "none") {
+                        best_format = format_name;
+                        best_performace =
+                            test_case[format_name.c_str()]["time(ns)"]
+                                .GetDouble();
+                    } else {
+                        auto performance =
+                            test_case[format_name.c_str()]["time(ns)"]
+                                .GetDouble();
+                        if (performance < best_performace) {
+                            best_format = format_name;
+                            best_performace = performance;
+                        }
+                    }
+                }
+            }
+            add_or_set_member(
+                test_case, "optimal_format",
+                rapidjson::Value(best_format.c_str(), allocator).Move(),
+                allocator);
         } catch (std::exception &e) {
-            std::cerr << "Error setting up solver, what(): " << e.what()
+            std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
         }
+
 
     std::cout << test_cases;
 }
