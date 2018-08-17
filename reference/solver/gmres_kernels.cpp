@@ -230,8 +230,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
-                  Array<size_type> *final_iter_nums,
-                  Array<stopping_status> *stop_status, const int max_iter)
+                  Array<stopping_status> *stop_status, const int krylov_dim)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
@@ -244,11 +243,10 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             residual->at(i, j) = b->at(i, j);
         }
-        for (size_type i = 0; i < max_iter; ++i) {
+        for (size_type i = 0; i < krylov_dim; ++i) {
             givens_sin->at(i, j) = zero<ValueType>();
             givens_cos->at(i, j) = zero<ValueType>();
         }
-        final_iter_nums->get_data()[j] = 0;
         stop_status->get_data()[j].reset();
     }
 }
@@ -261,7 +259,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
-                  matrix::Dense<ValueType> *krylov_bases, const int max_iter)
+                  matrix::Dense<ValueType> *krylov_bases,
+                  Array<size_type> *final_iter_nums, const int krylov_dim)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -271,7 +270,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
 
-        for (size_type i = 0; i < max_iter + 1; ++i) {
+        for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
                 residual_norms->at(i, j) = residual_norm->at(0, j);
             } else {
@@ -282,6 +281,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             krylov_bases->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
         }
+        final_iter_nums->get_data()[j] = 0;
     }
 }
 

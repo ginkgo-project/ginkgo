@@ -46,13 +46,13 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                         \
-    void initialize_1(                                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,         \
-        matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,    \
-        matrix::Dense<_type> *givens_cos, Array<size_type> *final_iter_nums, \
-        Array<stopping_status> *stop_status, const int max_iter)
+#define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                           \
+    void initialize_1(                                                         \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,           \
+        matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
+        matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
+        const int krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
@@ -60,7 +60,8 @@ namespace gmres {
                       const matrix::Dense<_type> *residual,        \
                       matrix::Dense<_type> *residual_norm,         \
                       matrix::Dense<_type> *residual_norms,        \
-                      matrix::Dense<_type> *krylov_bases, const int max_iter)
+                      matrix::Dense<_type> *krylov_bases,          \
+                      Array<size_type> *final_iter_nums, const int krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                            \
