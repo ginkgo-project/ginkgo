@@ -35,8 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <include/ginkgo.hpp>
 
 
-#include <cuda_runtime.h>
-#include <cusparse.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
