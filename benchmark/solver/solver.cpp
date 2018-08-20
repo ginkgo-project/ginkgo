@@ -98,8 +98,8 @@ void print_config_error_and_exit()
 {
     std::cerr
         << "Input has to be a JSON array of matrix configurations:"
-        << "[\n    { \"filename\": my_file.mtx,  \"optimal_format\": coo },"
-        << "\n    { \"filename\": my_file2.mtx, \"optimal_format\": csr }"
+        << "[\n    { \"filename\": \"my_file.mtx\",  \"optimal_format\": \"coo\" },"
+        << "\n    { \"filename\": \"my_file2.mtx\", \"optimal_format\": \"csr\" }"
         << "\n]" << std::endl;
     exit(1);
 }
