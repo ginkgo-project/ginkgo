@@ -276,7 +276,7 @@ void spmv_system(const char *format_name,
         auto toc = std::chrono::system_clock::now();
         time += std::chrono::duration_cast<duration_type>(toc - tic);
     }
-    add_or_set_member(test_case[format_name], "time(ns)",
+    add_or_set_member(test_case[format_name], "time",
                       static_cast<double>(time.count()) / run_iter, allocator);
 
     // compute and write benchmark data
@@ -358,11 +358,11 @@ int main(int argc, char *argv[])
                     if (best_format == "none") {
                         best_format = format_name;
                         best_performace =
-                            test_case[format_name.c_str()]["time(ns)"]
+                            test_case[format_name.c_str()]["time"]
                                 .GetDouble();
                     } else {
                         auto performance =
-                            test_case[format_name.c_str()]["time(ns)"]
+                            test_case[format_name.c_str()]["time"]
                                 .GetDouble();
                         if (performance < best_performace) {
                             best_format = format_name;
