@@ -293,4 +293,32 @@ TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
 }
 
 
+TEST_F(Gmres, SolvesWithPreconditioner)
+{
+    auto gmres_factory_preconditioner =
+        gko::solver::Gmres<>::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(100u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-15)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            .with_preconditioner(
+                gko::solver::Gmres<>::Factory::create().on_executor(exec))
+            .on_executor(exec);
+    auto solver = gmres_factory_preconditioner->generate(mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}), 1e-10);
+}
+
+
 }  // namespace
