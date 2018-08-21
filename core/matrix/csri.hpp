@@ -176,11 +176,21 @@ public:
     }
 
     /**
-     * Returns the number of the warps
+     * Returns the number of the warps (settings)
      *
-     * @return the number of the warps
+     * @return the number of the warps (settings)
      */
     size_type get_nwarps() const noexcept { return nwarps_; }
+
+    /**
+     * Returns the number of the srow stored elements (involved warps)
+     *
+     * @return the number of the srow stored elements (involved warps)
+     */
+    size_type get_num_srow_elements() const noexcept
+    {
+        return srow_.get_num_elems();
+    }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -197,11 +207,22 @@ protected:
      * Creates an uninitialized CSRI matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
+     * @param nwarps the number of warps
+     */
+    Csri(std::shared_ptr<const Executor> exec, size_type nwarps)
+        : Csri(std::move(exec), dim<2>{}, {}, nwarps)
+    {}
+
+    /**
+     * Creates an uninitialized CSRI matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
+     * @param nwarps the number of warps
      */
-    Csri(std::shared_ptr<const Executor> exec, size_type nwarps = {},
-         const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+    Csri(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
+         size_type num_nonzeros = {}, size_type nwarps = {})
         : EnableLinOp<Csri>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),

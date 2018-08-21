@@ -267,10 +267,9 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid(ceildiv(c_size, default_block_size));
     const dim3 block(default_block_size);
     set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
+
     auto a_size = a->get_num_stored_elements();
-    auto nwarps =
-        static_cast<size_type>(min(ceildiv(a_size, cuda_config::warp_size),
-                                   static_cast<int64_t>(a->get_nwarps())));
+    auto nwarps = a->get_num_srow_elements();
 
     if (nwarps > 0) {
         const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
@@ -296,12 +295,11 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    matrix::Dense<ValueType> *c)
 {
     dense::scale(exec, beta, c);
-    auto nnz = a->get_num_stored_elements();
 
+    auto nnz = a->get_num_stored_elements();
     auto a_size = a->get_num_stored_elements();
-    auto nwarps =
-        static_cast<size_type>(min(ceildiv(a_size, cuda_config::warp_size),
-                                   static_cast<int64_t>(a->get_nwarps())));
+    auto nwarps = a->get_num_srow_elements();
+
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);

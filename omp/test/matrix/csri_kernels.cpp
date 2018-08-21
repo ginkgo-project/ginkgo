@@ -83,17 +83,17 @@ protected:
 
     void set_up_apply_data()
     {
-        mtx = Mtx::create(ref);
+        mtx = Mtx::create(ref, 32);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        complex_mtx = ComplexMtx::create(ref);
+        complex_mtx = ComplexMtx::create(ref, 32);
         complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
         expected = gen_mtx<Vec>(532, 1, 1);
         y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
+        dmtx = Mtx::create(omp, 32);
         dmtx->copy_from(mtx.get());
-        complex_dmtx = ComplexMtx::create(omp);
+        complex_dmtx = ComplexMtx::create(omp, 32);
         complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(omp);
         dresult->copy_from(expected.get());

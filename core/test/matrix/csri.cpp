@@ -46,7 +46,7 @@ protected:
 
     Csri()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Csri<>::create(exec, 2, gko::dim<2>{2, 3}, 4))
+          mtx(gko::matrix::Csri<>::create(exec, gko::dim<2>{2, 3}, 4, 2))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
