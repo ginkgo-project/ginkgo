@@ -258,6 +258,7 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
 
 }  // namespace
 
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Csri<ValueType, IndexType> *a,
@@ -296,7 +297,6 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 {
     dense::scale(exec, beta, c);
 
-    auto nnz = a->get_num_stored_elements();
     auto a_size = a->get_num_stored_elements();
     auto nwarps = a->get_num_srow_elements();
 

@@ -45,58 +45,58 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSRI_SPMV_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Csri<ValueType, IndexType> *a,  \
+              const matrix::Csri<ValueType, IndexType> *a, \
               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_CSRI_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::Dense<ValueType> *alpha,       \
-                       const matrix::Csri<ValueType, IndexType> *a,  \
+                       const matrix::Csri<ValueType, IndexType> *a, \
                        const matrix::Dense<ValueType> *b,           \
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_CSRI_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType)             \
+#define GKO_DECLARE_CSRI_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType)            \
     void convert_row_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec, \
                                   const IndexType *ptrs, size_type num_rows,   \
                                   IndexType *idxs)
 
-#define GKO_DECLARE_CSRI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Csri<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSRI_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_MOVE_TO_DENSE_KERNEL(ValueType, IndexType) \
     void move_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                        matrix::Dense<ValueType> *result,            \
                        matrix::Csri<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSRI_TRANSPOSE_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_TRANSPOSE_KERNEL(ValueType, IndexType) \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                   matrix::Csri<ValueType, IndexType> *trans,    \
+                   matrix::Csri<ValueType, IndexType> *trans,   \
                    const matrix::Csri<ValueType, IndexType> *orig)
 
-#define GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)  \
+#define GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType) \
     void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csri<ValueType, IndexType> *trans,    \
+                        matrix::Csri<ValueType, IndexType> *trans,   \
                         const matrix::Csri<ValueType, IndexType> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                   \
-    template <typename ValueType, typename IndexType>              \
+#define DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename IndexType>                                  \
+    template <typename IndexType>                                   \
     GKO_DECLARE_CSRI_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType);    \
-    template <typename ValueType, typename IndexType>              \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>              \
+    template <typename ValueType, typename IndexType>               \
     GKO_DECLARE_CSRI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
