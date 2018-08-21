@@ -62,6 +62,30 @@ struct TemplatedOperation {
 };
 
 
+template <typename ValueType>
+void apply_preconditioner(const LinOp *preconditioner,
+                          matrix::Dense<ValueType> *krylov_bases,
+                          const size_type iter, const size_type num_rhs)
+{
+    auto target_basis = krylov_bases->create_submatrix(
+        span{0, krylov_bases->get_size()[0]},
+        span{iter * num_rhs, (iter + 1) * num_rhs});
+    auto after_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(target_basis.get());
+
+    // Apply preconditioner
+    preconditioner->apply(target_basis.get(), after_preconditioner.get());
+
+    // Copy back
+    for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
+        for (size_type j = 0; j < num_rhs; ++j) {
+            krylov_bases->at(i, iter * num_rhs + j) =
+                after_preconditioner->at(i, j);
+        }
+    }
+}
+
+
 }  // namespace
 
 
@@ -138,6 +162,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
+        apply_preconditioner(preconditioner_.get(), krylov_bases.get(),
+                             restart_iter, dense_b->get_size()[1]);
 
         if (restart_iter == krylov_dim_) {
             // Restart
