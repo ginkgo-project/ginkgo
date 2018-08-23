@@ -65,24 +65,16 @@ struct TemplatedOperation {
 template <typename ValueType>
 void apply_preconditioner(const LinOp *preconditioner,
                           matrix::Dense<ValueType> *krylov_bases,
-                          const size_type iter, const size_type num_rhs)
+                          matrix::Dense<ValueType> *preconditioned_vector,
+                          const size_type iter)
 {
     auto target_basis = krylov_bases->create_submatrix(
         span{0, krylov_bases->get_size()[0]},
-        span{iter * num_rhs, (iter + 1) * num_rhs});
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(target_basis.get());
+        span{iter * preconditioned_vector->get_size()[1],
+             (iter + 1) * preconditioned_vector->get_size()[1]});
 
     // Apply preconditioner
-    preconditioner->apply(target_basis.get(), after_preconditioner.get());
-
-    // Copy back
-    for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
-        for (size_type j = 0; j < num_rhs; ++j) {
-            krylov_bases->at(i, iter * num_rhs + j) =
-                after_preconditioner->at(i, j);
-        }
-    }
+    preconditioner->apply(target_basis.get(), preconditioned_vector);
 }
 
 
@@ -110,6 +102,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec, dim<2>{system_matrix_->get_size()[1],
                      (krylov_dim_ + 1) * dense_b->get_size()[1]});
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
+    auto preconditioned_vector = Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(
         exec, dim<2>{krylov_dim_ + 1, krylov_dim_ * dense_b->get_size()[1]});
     auto givens_sin =
@@ -152,28 +145,24 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
-    // TODO: implement GMRES(k) and add preconditioner
     size_type total_iter = 0, restart_iter = 0;
     while (true) {
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual_norm(residual_norm.get())
-                .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        apply_preconditioner(preconditioner_.get(), krylov_bases.get(),
-                             restart_iter, dense_b->get_size()[1]);
 
         if (restart_iter == krylov_dim_) {
             // Restart
             exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
                 residual_norms.get(), krylov_bases.get(), hessenberg.get(),
-                y.get(), dense_x, &final_iter_nums));
+                y.get(), dense_x, &final_iter_nums, preconditioner_.get()));
             // Solve upper triangular.
             // y = hessenberg \ residual_norms
             // Solve x
-            // x = x + krylov_bases * y
+            // x = x + preconditioner_ * krylov_bases * y
             residual->copy_from(dense_b);
             // residual = dense_b
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
@@ -190,24 +179,26 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             restart_iter = 0;
         }
 
+        apply_preconditioner(preconditioner_.get(), krylov_bases.get(),
+                             preconditioned_vector.get(), restart_iter);
+        // preconditioned_vector = preconditioner_ *
+        //                         krylov_bases(:, restart_iter)
+
         for (int i = 0; i < dense_b->get_size()[1]; ++i) {
             final_iter_nums.get_data()[i] +=
                 (1 - stop_status.get_const_data()[i].has_stopped());
         }
 
         // Do Arnoldi and givens rotation
-        auto krylov_bases_iter = krylov_bases->create_submatrix(
-            span{0, system_matrix_->get_size()[0]},
-            span{dense_b->get_size()[1] * restart_iter,
-                 dense_b->get_size()[1] * (restart_iter + 1)});
         auto hessenberg_iter = hessenberg->create_submatrix(
             span{0, restart_iter + 2},
             span{dense_b->get_size()[1] * restart_iter,
                  dense_b->get_size()[1] * (restart_iter + 1)});
 
         // Start of arnoldi
-        system_matrix_->apply(krylov_bases_iter.get(), next_krylov_basis.get());
-        // next_krylov_basis = A * krylov_bases(:, restart_iter)
+        system_matrix_->apply(preconditioned_vector.get(),
+                              next_krylov_basis.get());
+        // next_krylov_basis = A * preconditioned_vector
 
         exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
             next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
@@ -253,11 +244,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
         residual_norms.get(), krylov_bases_small.get(), hessenberg_small.get(),
-        y.get(), dense_x, &final_iter_nums));
+        y.get(), dense_x, &final_iter_nums, preconditioner_.get()));
     // Solve upper triangular.
     // y = hessenberg \ residual_norms
     // Solve x
-    // x = x + krylov_bases * y
+    // x = x + preconditioner_ * krylov_bases * y
 }
 
 

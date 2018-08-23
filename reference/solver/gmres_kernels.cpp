@@ -207,14 +207,25 @@ void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
 template <typename ValueType>
 void solve_x(matrix::Dense<ValueType> *krylov_bases,
              matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             const size_type *final_iter_nums)
+             const size_type *final_iter_nums, const LinOp *preconditioner)
 {
+    auto before_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+    auto after_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+
     for (size_type k = 0; k < x->get_size()[1]; ++k) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
-                x->at(i, k) +=
+                before_preconditioner->at(i, k) +=
                     krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
             }
+        }
+        preconditioner->apply(before_preconditioner.get(),
+                              after_preconditioner.get());
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            x->at(i, k) += after_preconditioner->at(i, k);
         }
     }
 }
@@ -318,11 +329,13 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums)
+            const Array<size_type> *final_iter_nums,
+            const LinOp *preconditioner)
 {
     solve_upper_triangular(residual_norms, hessenberg, y,
                            final_iter_nums->get_const_data());
-    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data());
+    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data(),
+            preconditioner);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

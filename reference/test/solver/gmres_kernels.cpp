@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/preconditioner/block_jacobi.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
 #include <core/stop/residual_norm_reduction.hpp>
@@ -308,16 +309,17 @@ TEST_F(Gmres, SolvesWithPreconditioner)
                             .on_executor(exec))
                     .on_executor(exec))
             .with_preconditioner(
-                gko::solver::Gmres<>::Factory::create().on_executor(exec))
+                gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
             .on_executor(exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
-        {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15}, exec);
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}), 1e-10);
+    ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
 }
 
 
