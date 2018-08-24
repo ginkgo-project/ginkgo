@@ -301,7 +301,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     auto nwarps = a->get_num_srow_elements();
 
     if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+        int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
         const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
         const dim3 csri_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         abstract_spmv<<<csri_grid, csri_block>>>(
