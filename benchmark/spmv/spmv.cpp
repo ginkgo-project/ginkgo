@@ -245,8 +245,9 @@ void spmv_system(const char *format_name,
                  std::shared_ptr<const gko::Executor> exec,
                  const gko::matrix_data<> &data, const vector *b,
                  const vector *x, const unsigned int warm_iter,
-                 const unsigned int run_iter, rapidjson::Value &spmv_case,
+                 const unsigned int run_iter, rapidjson::Value &test_case,
                  Allocator &allocator, RandomEngine &rhs_engine) try {
+    auto &spmv_case = test_case["spmv"];
     if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;
     }
@@ -280,8 +281,9 @@ void spmv_system(const char *format_name,
     // compute and write benchmark data
     add_or_set_member(spmv_case[format_name], "completed", true, allocator);
 } catch (std::exception e) {
-    add_or_set_member(spmv_case[format_name], "completed", false, allocator);
-    std::cerr << "Error when processing test case " << spmv_case << "\n"
+    add_or_set_member(test_case["spmv"][format_name], "completed", false,
+                      allocator);
+    std::cerr << "Error when processing test case " << test_case << "\n"
               << "what(): " << e.what() << std::endl;
 }
 
@@ -343,7 +345,7 @@ int main(int argc, char *argv[])
             auto run_iter = FLAGS_run_iter;
             for (const auto &format_name : formats) {
                 spmv_system(format_name.c_str(), exec, data, lend(b), lend(x),
-                            warm_iter, run_iter, spmv_case, allocator,
+                            warm_iter, run_iter, test_case, allocator,
                             rhs_engine);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
