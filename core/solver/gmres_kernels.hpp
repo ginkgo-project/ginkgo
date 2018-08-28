@@ -52,7 +52,7 @@ namespace gmres {
         const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,           \
         matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
         matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
-        const int krylov_dim)
+        const size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)               \
@@ -61,7 +61,8 @@ namespace gmres {
                       matrix::Dense<_type> *residual_norm,         \
                       matrix::Dense<_type> *residual_norms,        \
                       matrix::Dense<_type> *krylov_bases,          \
-                      Array<size_type> *final_iter_nums, const int krylov_dim)
+                      Array<size_type> *final_iter_nums,           \
+                      const size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                            \
