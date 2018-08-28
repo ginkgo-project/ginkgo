@@ -295,9 +295,12 @@ fineci-benchmark-build:
     - scp ${!tmp_user}@${!tmp_name}:ginkgo/build/benchmark/data.tar.gz .
     - tar -xzf data.tar.gz --strip-components=1
     - rm data.tar.gz
+    - ./build-list . >list.json
+    - ./agregate <list.json >agregate.json
     - git add -A
     - git diff --quiet HEAD ||
-      (git commit -m "Add ${EXECUTOR} benchmark results from ${CURRENT_SHA}"
+      (git commit -m
+         "Benchmark ${EXECUTOR} of ginkgo-project/ginkgo@${CURRENT_SHA}"
        && git push)
   dependencies: []
   only:
