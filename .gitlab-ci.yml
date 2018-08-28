@@ -6,7 +6,7 @@ stages:
   - test
   - deploy
   - benchmark-build
-  - benchmark-gpu
+  - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
 
@@ -236,22 +236,24 @@ gh-pages:
 benchmark-build:
   stage: benchmark-build
   variables:
+    <<: *default_variables
     BENCHMARK_SERVER: FINECI
     BUILD_TYPE: Release
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
     BENCHMARK_REPO: https://github.com/ginkgo-project/ginkgo-data.git
-    <<: *default_variables
   before_script: *default_benchmark_before_script
   script:
     - |
       ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' << EOT
         set -xe
         rm -rf ginkgo
-        git clone ${PUBLIC_REPO}
-        mkdir ginkgo/build
-        cd ginkgo/build
+        git clone ${PUBLIC_REPO} ginkgo
+        cd ginkgo
+        git checkout ${CI_COMMIT_SHA}
+        mkdir build
+        cd build
         cmake3 .. -DCMAKE_C_COMPILER=${C_COMPILER} \\
                   -DCMAKE_CXX_COMPILER=${CXX_COMPILER} \\
                   -DCMAKE_CUDA_COMPILER=/usr/local/cuda-9.2/bin/nvcc \\
@@ -259,9 +261,10 @@ benchmark-build:
                   -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} \\
                   -DDEVEL_TOOLS=OFF -DBUILD_REFERENCE=${BUILD_REFERENCE} \\
                   -DBUILD_OMP=${BUILD_OMP} -DBUILD_CUDA=${BUILD_CUDA} \\
-                  -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARK=ON
+                  -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARKS=ON
         make -j$(grep 'core id' /proc/cpuinfo | sort -u | wc -l)
       EOT
+  dependencies: []
   only:
     refs:
       - develop
@@ -276,12 +279,13 @@ benchmark-build:
   before_script: *default_benchmark_before_script
   script:
     - |
-      ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' << EOT
+      ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' \
+            >results.json << EOT
         set -xe
         cd ginkgo/build/benchmark
         make ${EXECUTOR}_benchmark
         tar -czf data.tar.gz results
-      EOT > results.json
+      EOT
     - export CURRENT_SHA="$(git rev-parse --short HEAD)"
     - git clone ${BENCHMARK_REPO} data-repo
     - cd data-repo/data/
@@ -292,6 +296,7 @@ benchmark-build:
     - git diff --quiet HEAD ||
       (git commit -m "Add ${EXECUTOR} benchmark results from ${CURRENT_SHA}"
        && git push)
+  dependencies: []
   only:
     refs:
       - develop
@@ -300,32 +305,32 @@ benchmark-build:
     variables:
       - $PUBLIC_CI_TAG
 
-benchmark-gpu:
-  stage: benchmark-gpu
+benchmark-cuda:
+  stage: benchmark-cuda
   variables:
-    BENCHMARK_SERVER: FINECI
-    EXECUTOR: gpu
-    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: https://github.com/ginkgo-project/ginkgo-data.git
     <<: *default_variables
+    BENCHMARK_SERVER: FINECI
+    EXECUTOR: cuda
+    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
   <<: *default_benchmark
 
 benchmark-omp:
   stage: benchmark-omp
   variables:
+    <<: *default_variables
     BENCHMARK_SERVER: FINECI
     EXECUTOR: omp
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: https://github.com/ginkgo-project/ginkgo-data.git
-    <<: *default_variables
+    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
   <<: *default_benchmark
 
 benchmark-reference:
   stage: benchmark-reference
   variables:
+    <<: *default_variables
     BENCHMARK_SERVER: FINECI
     EXECUTOR: reference
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: https://github.com/ginkgo-project/ginkgo-data.git
-    <<: *default_variables
+    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
   <<: *default_benchmark

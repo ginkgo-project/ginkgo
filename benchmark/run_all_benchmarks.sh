@@ -15,7 +15,7 @@ for (( i=1; i <= ${NUM_PROBLEMS}; ++i )); do
     RESULT_FILE="$(${SSGET} -i $i -pgroup)/$(${SSGET} -i $i -pname).json"
     mkdir -p "${RESULT_DIR}/$(dirname ${RESULT_FILE})"
     INPUT=$(${SSGET} -i $i -e)
-    cat >"${RESULT_DIR}/$(dirname ${RESULT_FILE})" << EOT
+    cat >"${RESULT_DIR}/${RESULT_FILE}" << EOT
 [
     {
         "filename": "${INPUT}",
@@ -28,7 +28,7 @@ EOT
                 --backup="${RESULT_DIR}/${RESULT_FILE}.bkp" \
                 --double_buffer="${RESULT_DIR}/${RESULT_FILE}.bkp2" \
                 --formats="coo,csr,ell,sellp,hybrid" \
-                <input.json >"${RESULT_DIR}/${RESULT_FILE}"
+                <"${RESULT_DIR}/${RESULT_FILE}.imd" >"${RESULT_DIR}/${RESULT_FILE}"
 
     if [ "${BENCHMARK}" != "solver" -o \
          "$(${SSGET} -i $i -prows)" = "$(${SSGET} -i $i -pcols)" ]; then
