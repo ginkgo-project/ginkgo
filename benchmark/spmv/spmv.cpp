@@ -245,13 +245,13 @@ void spmv_system(const char *format_name,
                  std::shared_ptr<const gko::Executor> exec,
                  const gko::matrix_data<> &data, const vector *b,
                  const vector *x, const unsigned int warm_iter,
-                 const unsigned int run_iter, rapidjson::Value &test_case,
+                 const unsigned int run_iter, rapidjson::Value &spmv_case,
                  Allocator &allocator, RandomEngine &rhs_engine) try {
-    if (!FLAGS_overwrite && test_case.HasMember(format_name)) {
+    if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;
     }
 
-    add_or_set_member(test_case, format_name,
+    add_or_set_member(spmv_case, format_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
     auto system_matrix = share(matrix_factory.at(format_name)(exec, data));
 
@@ -274,14 +274,14 @@ void spmv_system(const char *format_name,
         auto toc = std::chrono::system_clock::now();
         time += std::chrono::duration_cast<duration_type>(toc - tic);
     }
-    add_or_set_member(test_case[format_name], "time",
+    add_or_set_member(spmv_case[format_name], "time",
                       static_cast<double>(time.count()) / run_iter, allocator);
 
     // compute and write benchmark data
-    add_or_set_member(test_case[format_name], "completed", true, allocator);
+    add_or_set_member(spmv_case[format_name], "completed", true, allocator);
 } catch (std::exception e) {
-    add_or_set_member(test_case[format_name], "completed", false, allocator);
-    std::cerr << "Error when processing test case " << test_case << "\n"
+    add_or_set_member(spmv_case[format_name], "completed", false, allocator);
+    std::cerr << "Error when processing test case " << spmv_case << "\n"
               << "what(): " << e.what() << std::endl;
 }
 
@@ -317,10 +317,14 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) try {
             // set up benchmark
             validate_option_object(test_case);
+            add_or_set_member(test_case, "spmv",
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+            auto &spmv_case = test_case["spmv"];
             if (!FLAGS_overwrite &&
                 all_of(begin(formats), end(formats),
-                       [&test_case](const std::string &s) {
-                           return test_case.HasMember(s.c_str());
+                       [&spmv_case](const std::string &s) {
+                           return spmv_case.HasMember(s.c_str());
                        })) {
                 continue;
             }
@@ -333,17 +337,13 @@ int main(int argc, char *argv[])
                 create_rhs(exec, rhs_engine, gko::dim<2>{data.size[1], nrhs});
             auto x =
                 create_rhs(exec, rhs_engine, gko::dim<2>{data.size[0], nrhs});
-            add_or_set_member(test_case, "num_rows", data.size[0], allocator);
-            add_or_set_member(test_case, "num_cols", data.size[1], allocator);
-            add_or_set_member(test_case, "num_nonzeros", data.nonzeros.size(),
-                              allocator);
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << ")" << std::endl;
             auto warm_iter = FLAGS_warm_iter;
             auto run_iter = FLAGS_run_iter;
             for (const auto &format_name : formats) {
                 spmv_system(format_name.c_str(), exec, data, lend(b), lend(x),
-                            warm_iter, run_iter, test_case, allocator,
+                            warm_iter, run_iter, spmv_case, allocator,
                             rhs_engine);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
@@ -352,16 +352,14 @@ int main(int argc, char *argv[])
             std::string best_format("none");
             double best_performace(0);
             for (const auto &format_name : formats) {
-                if (test_case[format_name.c_str()]["completed"].GetBool()) {
+                if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
                     if (best_format == "none") {
                         best_format = format_name;
                         best_performace =
-                            test_case[format_name.c_str()]["time"]
-                                .GetDouble();
+                            spmv_case[format_name.c_str()]["time"].GetDouble();
                     } else {
                         auto performance =
-                            test_case[format_name.c_str()]["time"]
-                                .GetDouble();
+                            spmv_case[format_name.c_str()]["time"].GetDouble();
                         if (performance < best_performace) {
                             best_format = format_name;
                             best_performace = performance;
@@ -370,7 +368,7 @@ int main(int argc, char *argv[])
                 }
             }
             add_or_set_member(
-                test_case, "optimal_format",
+                spmv_case, "optimal_format",
                 rapidjson::Value(best_format.c_str(), allocator).Move(),
                 allocator);
         } catch (std::exception &e) {
