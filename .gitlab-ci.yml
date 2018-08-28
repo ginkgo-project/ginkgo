@@ -283,7 +283,7 @@ benchmark-build:
             >results.json << EOT
         set -xe
         cd ginkgo/build/benchmark
-        make ${EXECUTOR}_benchmark
+        SYSTEM_NAME=${SYSTEM_NAME} make ${EXECUTOR}_benchmark
         tar -czf data.tar.gz results
       EOT
     - export CURRENT_SHA="$(git rev-parse --short HEAD)"
