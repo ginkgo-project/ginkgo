@@ -54,6 +54,8 @@ stages:
   artifacts:
     paths:
       - build/
+  except:
+      - schedules
 
 .test_template: &default_test
   stage: test
@@ -61,6 +63,8 @@ stages:
   script:
     - cd ${CI_JOB_NAME/test/build}
     - make test
+  except:
+      - schedules
 
 sync:
   stage: sync
@@ -78,6 +82,8 @@ sync:
   only:
     - master
     - develop
+  except:
+    - schedules
 
 # Build jobs
 build/gcc/core/debug:
@@ -211,6 +217,8 @@ gh-pages:
       - develop
     variables:
       - $PUBLIC_CI_TAG
+  except:
+      - schedules
 
 
 # Benchmark build
@@ -267,9 +275,7 @@ benchmark-build:
   dependencies: []
   only:
     refs:
-      - develop
-      - master
-      - ci_benchmark_integration
+      - schedules
     variables:
       - $PUBLIC_CI_TAG
 
@@ -299,12 +305,9 @@ benchmark-build:
   dependencies: []
   only:
     refs:
-      - develop
-      - master
-      - ci_benchmark_integration
+      - schedules
     variables:
       - $PUBLIC_CI_TAG
-  when: manual
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
