@@ -87,6 +87,110 @@ public:
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
 
+    class strategy_type {
+    public:
+        strategy_type(std::string name) : name_(name) {}
+
+        std::string get_name() { return name_; }
+
+        virtual void process(const Array<index_type> &mtx_row_ptrs,
+                             Array<index_type> *mtx_srow) = 0;
+
+        virtual int64_t clac_size(int64_t nnz) = 0;
+
+    private:
+        std::string name_;
+    };
+
+    class simple : public strategy_type {
+    public:
+        simple() : strategy_type("simple") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {}
+
+        int64_t clac_size(int64_t nnz) { return 0; }
+    };
+
+    class merge_path : public strategy_type {
+    public:
+        merge_path() : strategy_type("merge_path") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {}
+
+        int64_t clac_size(int64_t nnz) { return 0; }
+    };
+
+    class load_balance : public strategy_type {
+    public:
+        load_balance()
+            : load_balance(std::move(
+                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
+        {}
+
+        load_balance(std::shared_ptr<const CudaExecutor> exec)
+            : load_balance(exec->get_num_warps())
+        {}
+
+        load_balance(int64_t nwarps)
+            : nwarps_(nwarps), strategy_type("load_balance")
+        {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {
+            constexpr uint32 warp_size = 32;
+            auto nwarps = mtx_srow->get_num_elems();
+
+            if (nwarps > 0) {
+                auto exec = mtx_srow->get_executor()->get_master();
+                Array<index_type> srow_host(exec);
+                srow_host = *mtx_srow;
+                auto srow = srow_host.get_data();
+                Array<index_type> row_ptrs_host(exec);
+                row_ptrs_host = mtx_row_ptrs;
+                auto row_ptrs = row_ptrs_host.get_const_data();
+                for (size_type i = 0; i < nwarps; i++) {
+                    srow[i] = 0;
+                }
+                auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+                auto num_elems = row_ptrs[num_rows];
+                for (size_type i = 0; i < num_rows; i++) {
+                    auto bucket =
+                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
+                                ceildiv(num_elems, warp_size));
+                    if (bucket < nwarps) {
+                        srow[bucket]++;
+                    }
+                }
+                // find starting row for thread i
+                for (size_type i = 1; i < nwarps; i++) {
+                    srow[i] += srow[i - 1];
+                }
+                *mtx_srow = srow_host;
+            }
+        }
+
+        int64_t clac_size(int64_t nnz)
+        {
+            constexpr uint32 warp_size = 32;
+            int multiple = 8;
+            if (nnz >= 2000000) {
+                multiple = 128;
+            } else if (nnz >= 200000) {
+                multiple = 32;
+            }
+            auto nwarps = nwarps_ * multiple;
+            return min(ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps));
+        }
+
+    private:
+        int64_t nwarps_;
+    };
+
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
@@ -180,7 +284,7 @@ public:
      *
      * @return the number of the warps (settings)
      */
-    size_type get_nwarps() const noexcept { return nwarps_; }
+    // size_type get_nwarps() const noexcept { return nwarps_; }
 
     /**
      * Returns the number of the srow stored elements (involved warps)
@@ -202,6 +306,11 @@ public:
         return values_.get_num_elems();
     }
 
+    std::shared_ptr<strategy_type> get_strategy() const noexcept
+    {
+        return strategy_;
+    }
+
 protected:
     /**
      * Creates an uninitialized CSRI matrix of the specified size.
@@ -209,8 +318,9 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param nwarps the number of warps
      */
-    Csri(std::shared_ptr<const Executor> exec, size_type nwarps)
-        : Csri(std::move(exec), dim<2>{}, {}, nwarps)
+    Csri(std::shared_ptr<const Executor> exec,
+         std::shared_ptr<strategy_type> strategy)
+        : Csri(std::move(exec), dim<2>{}, {}, std::move(strategy))
     {}
 
     /**
@@ -222,15 +332,16 @@ protected:
      * @param nwarps the number of warps
      */
     Csri(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
-         size_type num_nonzeros = {}, size_type nwarps = {})
+         size_type num_nonzeros = {},
+         std::shared_ptr<strategy_type> strategy =
+             std::make_shared<load_balance>())
         : EnableLinOp<Csri>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0)),
-          nwarps_(nwarps),
-          srow_(exec, min(ceildiv(num_nonzeros, warp_size),
-                          static_cast<int64_t>(nwarps)))
+          strategy_(std::move(strategy)),
+          srow_(exec, strategy->clac_size(num_nonzeros))
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -249,44 +360,14 @@ protected:
     /**
      * Compute srow, it should be run after setting value.
      */
-    void make_srow()
-    {
-        auto nwarps = srow_.get_num_elems();
-
-        if (nwarps > 0) {
-            Array<index_type> srow_host(this->get_executor()->get_master());
-            srow_host = srow_;
-            auto srow = srow_host.get_data();
-            Array<index_type> row_ptrs_host(this->get_executor()->get_master());
-            row_ptrs_host = row_ptrs_;
-            auto row_ptrs = row_ptrs_host.get_const_data();
-            for (size_type i = 0; i < nwarps; i++) {
-                srow[i] = 0;
-            }
-            auto num_elems = values_.get_num_elems();
-            for (size_type i = 0; i < this->get_size()[0]; i++) {
-                auto bucket =
-                    ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
-                            ceildiv(num_elems, warp_size));
-                if (bucket < nwarps) {
-                    srow[bucket]++;
-                }
-            }
-            // find starting row for thread i
-            for (size_type i = 1; i < nwarps; i++) {
-                srow[i] += srow[i - 1];
-            }
-            row_ptrs_ = row_ptrs_host;
-            srow_ = srow_host;
-        }
-    }
+    void make_srow() { strategy_->process(row_ptrs_, &srow_); }
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
-    size_type nwarps_;
+    std::shared_ptr<strategy_type> strategy_;
 };
 
 

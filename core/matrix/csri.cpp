@@ -154,8 +154,8 @@ void Csri<ValueType, IndexType>::read(const mat_data &data)
     for (const auto &elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    auto tmp = Csri::create(this->get_executor()->get_master(), data.size, nnz,
-                            this->get_nwarps());
+    auto tmp =
+        Csri::create(this->get_executor()->get_master(), data.size, nnz, this->get_strategy());
     size_type ind = 0;
     size_type cur_ptr = 0;
     tmp->get_row_ptrs()[0] = cur_ptr;

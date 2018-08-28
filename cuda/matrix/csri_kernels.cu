@@ -264,23 +264,26 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Csri<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto c_size = c->get_num_stored_elements();
-    const dim3 grid(ceildiv(c_size, default_block_size));
-    const dim3 block(default_block_size);
-    set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
+    if (a->get_strategy()->get_name() == "load_balance") {
+        auto c_size = c->get_num_stored_elements();
+        const dim3 grid(ceildiv(c_size, default_block_size));
+        const dim3 block(default_block_size);
+        set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
 
-    auto a_size = a->get_num_stored_elements();
-    auto nwarps = a->get_num_srow_elements();
+        auto a_size = a->get_num_stored_elements();
+        auto nwarps = a->get_num_srow_elements();
 
-    if (nwarps > 0) {
-        const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 csri_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
-        abstract_spmv<<<csri_grid, csri_block>>>(
-            nwarps, a->get_size()[0], as_cuda_type(a->get_const_values()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            as_cuda_type(a->get_const_srow()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
+        if (nwarps > 0) {
+            const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
+                                 b->get_size()[1]);
+            abstract_spmv<<<csri_grid, csri_block>>>(
+                nwarps, a->get_size()[0], as_cuda_type(a->get_const_values()),
+                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(a->get_const_srow()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
+        }
     }
 }
 
@@ -295,22 +298,26 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    dense::scale(exec, beta, c);
+    if (a->get_strategy()->get_name() == "load_balance") {
+        dense::scale(exec, beta, c);
 
-    auto a_size = a->get_num_stored_elements();
-    auto nwarps = a->get_num_srow_elements();
+        auto a_size = a->get_num_stored_elements();
+        auto nwarps = a->get_num_srow_elements();
 
-    if (nwarps > 0) {
-        int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
-        const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
-        const dim3 csri_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
-        abstract_spmv<<<csri_grid, csri_block>>>(
-            nwarps, a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_ptrs()),
-            as_cuda_type(a->get_const_srow()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
+        if (nwarps > 0) {
+            int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
+            const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
+                                 b->get_size()[1]);
+            abstract_spmv<<<csri_grid, csri_block>>>(
+                nwarps, a->get_size()[0],
+                as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(a->get_const_srow()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
+        }
     }
 }
 

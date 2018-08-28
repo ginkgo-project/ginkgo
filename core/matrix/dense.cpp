@@ -165,7 +165,7 @@ inline void conversion_helper(Csri<ValueType, IndexType> *result,
     exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
         source, &num_stored_nonzeros));
     auto tmp = Csri<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, result->get_nwarps());
+        exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }

@@ -778,6 +778,16 @@ public:
      */
     int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
 
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        constexpr uint32 warp_size = 32;
+        auto warps_per_sm = num_cores_per_sm_ / warp_size;
+        return num_multiprocessor_ * warps_per_sm;
+    }
+
 protected:
     void set_gpu_property();
 

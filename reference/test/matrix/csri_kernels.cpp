@@ -56,7 +56,8 @@ protected:
 
     Csri()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4, 2))
+          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
+                          std::make_shared<Mtx::load_balance>(2)))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
