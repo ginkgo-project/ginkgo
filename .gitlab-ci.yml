@@ -241,7 +241,7 @@ gh-pages:
   - git config --global user.name "${BOT_USER}"
   - git config --global user.email "${BOT_EMAIL}"
 
-benchmark-build:
+fineci-benchmark-build:
   stage: benchmark-build
   variables:
     <<: *default_variables
@@ -274,10 +274,7 @@ benchmark-build:
       EOT
   dependencies: []
   only:
-    refs:
-      - schedules
-    variables:
-      - $PUBLIC_CI_TAG
+    - schedules
 
 
 # Benchmark runs
@@ -304,10 +301,7 @@ benchmark-build:
        && git push)
   dependencies: []
   only:
-    refs:
-      - schedules
-    variables:
-      - $PUBLIC_CI_TAG
+    - schedules
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
