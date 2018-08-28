@@ -305,7 +305,7 @@ benchmark-build:
     variables:
       - $PUBLIC_CI_TAG
 
-benchmark-cuda:
+fineci-benchmark-cuda:
   stage: benchmark-cuda
   variables:
     <<: *default_variables
@@ -313,9 +313,10 @@ benchmark-cuda:
     EXECUTOR: cuda
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+    SYSTEM_NAME: K20Xm
   <<: *default_benchmark
 
-benchmark-omp:
+fineci-benchmark-omp:
   stage: benchmark-omp
   variables:
     <<: *default_variables
@@ -323,9 +324,10 @@ benchmark-omp:
     EXECUTOR: omp
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+    SYSTEM_NAME: E5-2670
   <<: *default_benchmark
 
-benchmark-reference:
+fineci-benchmark-reference:
   stage: benchmark-reference
   variables:
     <<: *default_variables
@@ -333,4 +335,5 @@ benchmark-reference:
     EXECUTOR: reference
     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+    SYSTEM_NAME: E5-2670
   <<: *default_benchmark
