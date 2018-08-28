@@ -241,7 +241,8 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, const int krylov_dim)
+                  Array<stopping_status> *stop_status,
+                  const size_type krylov_dim)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
@@ -271,7 +272,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, const int krylov_dim)
+                  Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
