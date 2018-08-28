@@ -18,7 +18,7 @@ function (add_benchmark_target executor)
     add_custom_target(${executor}_benchmark)
     add_custom_command(
         TARGET ${executor}_benchmark POST_BUILD
-        COMMAND bash run_all_benchmarks.sh ${executor}
+        COMMAND bash run_all_benchmarks.sh ${executor} >/dev/null
         DEPENDS make_run_all_benchmarks
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
