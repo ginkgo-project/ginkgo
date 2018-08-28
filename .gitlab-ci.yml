@@ -304,6 +304,7 @@ benchmark-build:
       - ci_benchmark_integration
     variables:
       - $PUBLIC_CI_TAG
+  when: manual
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
