@@ -255,6 +255,104 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
     }
 }
 
+template <typename IndexType>
+__device__ void merge_path_search(const IndexType diagonal,
+                                  const IndexType a_len, const IndexType b_len,
+                                  const IndexType *__restrict__ a,
+                                  IndexType *__restrict__ x,
+                                  IndexType *__restrict__ y)
+{
+    auto x_min = max(diagonal - b_len, zero<IndexType>());
+    auto x_max = min(diagonal, a_len);
+    while (x_min < x_max) {
+        auto pivot = (x_min + x_max) >> 1;
+        if (a[pivot] <= diagonal - pivot - 1) {
+            x_min = pivot + 1;
+        } else {
+            x_max = pivot;
+        }
+    }
+    *x = min(x_min, a_len);
+    *y = diagonal - x_min;
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(cuda_config::warp_size) void reduce(
+    const size_type nwarps, const ValueType *__restrict__ last_val,
+    const IndexType *__restrict__ last_row, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    const auto len = ceildiv(nwarps, cuda_config::warp_size);
+    const size_type start = len * threadIdx.x;
+    const size_type end = (threadIdx.x == cuda_config::warp_size - 1)
+                              ? nwarps
+                              : (threadIdx.x + 1) * len;
+    auto temp_val = last_val[start];
+    auto temp_row = last_row[start];
+    for (size_type i = start + 1; i < end; i++) {
+        if (last_row[i] != temp_row) {
+            c[temp_row] += temp_val;
+            temp_row = last_row[i];
+            temp_val = last_val[i];
+        } else {
+            temp_val += last_val[i];
+        }
+    }
+    bool is_first_in_segment = true;
+    segment_scan(temp_row, &temp_val, &is_first_in_segment);
+    if (is_first_in_segment) {
+        c[temp_row] += temp_val;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
+    const IndexType num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride,
+    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out)
+{
+    const IndexType tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const IndexType num_threads = blockDim.x * gridDim.x;
+    const auto *row_end_ptrs = row_ptrs + 1;
+    const auto nnz = row_ptrs[num_rows];
+    const IndexType num_merge_items = num_rows + nnz;
+    const IndexType items_per_thread = ceildiv(num_merge_items, num_threads);
+
+    IndexType diagonal = min(items_per_thread * tid, num_merge_items);
+    IndexType diagonal_end = min(diagonal + items_per_thread, num_merge_items);
+    IndexType start_x;
+    IndexType start_y;
+    IndexType end_x;
+    IndexType end_y;
+    merge_path_search(diagonal, num_rows, nnz, row_end_ptrs, &start_x,
+                      &start_y);
+    merge_path_search(diagonal_end, num_rows, nnz, row_end_ptrs, &end_x,
+                      &end_y);
+
+    ValueType value = zero<ValueType>();
+    for (IndexType i = 0; i < items_per_thread; i++) {
+        if (start_y < row_end_ptrs[start_x]) {
+            value += val[start_y] * b[col_idxs[start_y]];
+            start_y++;
+        } else {
+            c[start_x] = value;
+            value = zero<ValueType>();
+            start_x++;
+        }
+    }
+
+    for (; start_y < end_y; start_y++) {
+        value += val[start_y] * b[col_idxs[start_y]];
+    }
+    row_out[tid] = end_x;
+    val_out[tid] = value;
+}
+
 
 }  // namespace
 
@@ -284,6 +382,26 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
         }
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        const IndexType num_item = 8;
+        const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+        const IndexType grid_num = ceildiv(total, spmv_block_size * num_item);
+        const dim3 grid(grid_num);
+        const dim3 block(spmv_block_size);
+        Array<IndexType> row_out(exec, grid_num * spmv_block_size);
+        Array<ValueType> val_out(exec, grid_num * spmv_block_size);
+        merge_path_spmv<<<grid, block>>>(
+            static_cast<IndexType>(a->get_size()[0]),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(a->get_const_srow()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride(),
+            as_cuda_type(row_out.get_data()), as_cuda_type(val_out.get_data()));
+        reduce<<<1, 32>>>(static_cast<size_type>(grid_num * spmv_block_size),
+                          as_cuda_type(val_out.get_data()),
+                          as_cuda_type(row_out.get_data()),
+                          as_cuda_type(c->get_values()), c->get_stride());
     }
 }
 
