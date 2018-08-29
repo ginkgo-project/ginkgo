@@ -52,6 +52,9 @@ namespace gmres {
 constexpr int default_block_size = 512;
 
 
+namespace {
+
+
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -84,6 +87,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_1_kernel(
 }
 
 
+}  // namespace
+
+
 template <typename ValueType>
 void initialize_1(
     std::shared_ptr<const CudaExecutor> exec, const matrix::Dense<ValueType> *b,
@@ -92,8 +98,8 @@ void initialize_1(
     Array<stopping_status> *stop_status, const size_type krylov_dim)
 {
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(b->get_size()[0], default_block_size),
-                         b->get_size()[1], 1);
+    const dim3 grid_size(
+        ceildiv(b->get_size()[0], default_block_size) * b->get_size()[1], 1, 1);
     initialize_1_kernel<<<grid_size, block_size, 0, 0>>>(
         b->get_size()[0], b->get_size()[1], b->get_stride(), krylov_dim,
         as_cuda_type(b->get_const_values()), as_cuda_type(b_norm->get_values()),
@@ -106,6 +112,47 @@ void initialize_1(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
+namespace {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void initialize_2_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type krylov_dim, const ValueType *__restrict__ residual,
+    ValueType *__restrict__ residual_norm,
+    ValueType *__restrict__ residual_norms,
+    ValueType *__restrict__ krylov_bases,
+    size_type *__restrict__ final_iter_nums)
+{
+    const auto idx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (idx < (krylov_dim + 1) * num_cols) {
+        residual_norms[idx] = 0;
+    }
+
+    if (idx < num_cols) {
+        residual_norm[idx] = zero<ValueType>();
+        // TODO: implement reduction for residual_norm
+        for (size_type i = 0; i < num_rows; ++i) {
+            residual_norm[idx] +=
+                residual[i * stride + idx] * residual[i * stride + idx];
+        }
+        residual_norm[idx] = sqrt(residual_norm[idx]);
+        final_iter_nums[idx] = 0;
+        residual_norms[idx] = residual_norm[idx];
+    }
+
+    if (idx < num_rows * stride) {
+        krylov_bases[idx] =
+            residual[idx] / residual_norm[ceildiv(idx, stride) - 1];
+    }
+}
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
@@ -114,7 +161,19 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
-    NOT_IMPLEMENTED;
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(krylov_bases->get_size()[0], default_block_size) *
+            krylov_bases->get_size()[1],
+        1, 1);
+    initialize_2_kernel<<<grid_size, block_size, 0, 0>>>(
+        krylov_bases->get_size()[0], krylov_bases->get_size()[1],
+        krylov_bases->get_stride(), krylov_dim,
+        as_cuda_type(residual->get_const_values()),
+        as_cuda_type(residual_norm->get_values()),
+        as_cuda_type(residual_norms->get_values()),
+        as_cuda_type(krylov_bases->get_values()),
+        as_cuda_type(final_iter_nums->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
