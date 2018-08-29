@@ -30,6 +30,7 @@ stages:
 .before_script_git_template: &git_before_script
   - pacman-db-upgrade
   - pacman --noconfirm -Syu openssh git ${EXTRA_PACKAGES}
+    # set up identities
   - eval $(ssh-agent -s)
   - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
   - mkdir -p ~/.ssh
@@ -193,6 +194,7 @@ gh-pages:
     EXTRA_PACKAGES: cmake doxygen python
   before_script: *git_before_script
   script:
+    # build docs
     - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -202,6 +204,7 @@ gh-pages:
         -DBUILD_DOC=ON
     - make usr
     - popd
+    # publish it
     - git clone ${PUBLIC_REPO} -b gh-pages gh-pages-repo
     - rm -rf gh-pages-repo/doc/develop
     - mkdir -p gh-pages-repo/doc
@@ -225,6 +228,7 @@ gh-pages:
 .benchmark_before_script_template: &default_benchmark_before_script
   - pacman-db-upgrade
   - pacman --noconfirm -Syu openssh git cmake python ${EXTRA_PACKAGES}
+  # set up identities
   - eval $(ssh-agent -s)
   - tmp_key=${BENCHMARK_SERVER}_SSH_KEY
   - echo "${!tmp_key}" | tr -d '\r' | ssh-add - >/dev/null
@@ -281,6 +285,7 @@ fineci-benchmark-build:
 .benchmark_template: &default_benchmark
   before_script: *default_benchmark_before_script
   script:
+    # run benchmarks
     - |
       ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' \
             >results.json << EOT
@@ -289,6 +294,7 @@ fineci-benchmark-build:
         SYSTEM_NAME=${SYSTEM_NAME} make ${EXECUTOR}_benchmark
         tar -czf data.tar.gz results
       EOT
+    # publish them
     - export CURRENT_SHA="$(git rev-parse --short HEAD)"
     - git clone ${BENCHMARK_REPO} data-repo
     - cd data-repo/data/
