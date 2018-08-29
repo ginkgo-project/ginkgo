@@ -1,7 +1,7 @@
 # This is just an example of the CMakeLists.txt file that can be used after the
 # correct version of deal.ii has been installed.
 cmake_minimum_required(VERSION 3.8)
-project(OPTI_SCHWARZ LANGUAGES CXX)
+project(DEAL_II_EXAMPLE LANGUAGES CXX)
 
 find_package(MPI REQUIRED)
 
