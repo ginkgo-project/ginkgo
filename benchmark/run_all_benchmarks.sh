@@ -3,9 +3,6 @@ EXECUTOR=$1
 SSGET=ssget
 NUM_PROBLEMS=$(${SSGET} -n)
 
-# remove in production mode
-NUM_PROBLEMS=2
-
 
 keep_latest() {
     RESULT=$1
