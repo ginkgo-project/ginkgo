@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void OmpExecutor::free(void *ptr) const noexcept { std::free(ptr); }
+void OmpExecutor::raw_free(void *ptr) const noexcept { std::free(ptr); }
 
 
 std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
