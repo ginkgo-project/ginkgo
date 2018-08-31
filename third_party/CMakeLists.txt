@@ -9,7 +9,7 @@ if(DEVEL_TOOLS)
     add_subdirectory(git-cmake-format)
 endif()
 
-if(BUILD_BENCHMARK)
+if(BUILD_BENCHMARKS)
     add_subdirectory(gflags)
     add_subdirectory(rapidjson)
 endif()
