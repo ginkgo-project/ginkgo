@@ -53,7 +53,7 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
     NOT_COMPILED(cuda);
 
 
-void CudaExecutor::free(void *ptr) const noexcept
+void CudaExecutor::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have

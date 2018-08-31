@@ -240,9 +240,11 @@ std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
 }
 
 
+std::map<gko::uintptr, gko::size_type> storage;
+
+
 template <typename RandomEngine, typename Allocator>
-void spmv_system(const char *format_name,
-                 std::shared_ptr<const gko::Executor> exec,
+void spmv_system(const char *format_name, std::shared_ptr<gko::Executor> exec,
                  const gko::matrix_data<> &data, const vector *b,
                  const vector *x, const unsigned int warm_iter,
                  const unsigned int run_iter, rapidjson::Value &test_case,
@@ -254,8 +256,50 @@ void spmv_system(const char *format_name,
 
     add_or_set_member(spmv_case, format_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
-    auto system_matrix = share(matrix_factory.at(format_name)(exec, data));
 
+    struct logger : gko::log::Logger {
+        using Executor = gko::Executor;
+        using uintptr = gko::uintptr;
+        using size_type = gko::size_type;
+
+        void on_allocation_completed(const Executor *exec,
+                                     const size_type &num_bytes,
+                                     const uintptr &location) const override
+        {
+            if (onoff_) {
+                storage[location] = num_bytes;
+            }
+        }
+        void on_free_completed(const Executor *exec,
+                               const uintptr &location) const override
+        {
+            if (onoff_) {
+                storage[location] = 0;
+            }
+        }
+        void output(rapidjson::Value &output, Allocator &allocator)
+        {
+            size_type total(0);
+            for (auto it = storage.begin(); it != storage.end(); it++) {
+                total += it->second;
+            }
+            add_or_set_member(output, "storage", total, allocator);
+            onoff_ = false;
+        }
+        logger(std::shared_ptr<const gko::Executor> exec)
+            : gko::log::Logger(exec), onoff_(true)
+        {
+            storage.clear();
+        }
+
+    private:
+        bool onoff_;
+    };
+
+    auto logger_item = std::make_shared<logger>(exec);
+    exec->add_logger(logger_item);
+    auto system_matrix = share(matrix_factory.at(format_name)(exec, data));
+    logger_item->output(spmv_case[format_name], allocator);
     // warm run
     for (unsigned i = 0; i < warm_iter; i++) {
         auto x_clone = clone(x);

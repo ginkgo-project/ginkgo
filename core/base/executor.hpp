@@ -438,7 +438,14 @@ public:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void free(void *ptr) const noexcept = 0;
+    void free(void *ptr) const noexcept
+    {
+        this->template log<log::Logger::free_started>(
+            this, reinterpret_cast<uintptr>(ptr));
+        this->raw_free(ptr);
+        this->template log<log::Logger::free_completed>(
+            this, reinterpret_cast<uintptr>(ptr));
+    }
 
     /**
      * Copies data from another Executor.
@@ -492,6 +499,15 @@ protected:
      * @return raw pointer to allocated memory
      */
     virtual void *raw_alloc(size_type size) const = 0;
+
+    /**
+     * Frees memory previously allocated with Executor::alloc().
+     *
+     * If `ptr` is a `nullptr`, the function has no effect.
+     *
+     * @param ptr  pointer to the allocated memory block
+     */
+    virtual void raw_free(void *ptr) const noexcept = 0;
 
     /**
      * Copies raw data from another Executor.
@@ -671,8 +687,6 @@ public:
         return std::shared_ptr<OmpExecutor>(new OmpExecutor());
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -683,6 +697,8 @@ protected:
     OmpExecutor() = default;
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
@@ -748,8 +764,6 @@ public:
             new CudaExecutor(device_id, std::move(master)));
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -791,6 +805,8 @@ protected:
     }
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
