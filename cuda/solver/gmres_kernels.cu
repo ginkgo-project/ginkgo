@@ -179,6 +179,52 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
+namespace {
+
+
+template <typename ValueType>
+__device__ void finish_arnoldi(ValueType *next_krylov_basis,
+                               ValueType *krylov_bases,
+                               ValueType *hessenberg_iter, iter,
+                               const stopping_status *stop_status)
+{}
+
+
+template <typename ValueType>
+__device__ void givens_rotation(ValueType *next_krylov_basis,
+                                ValueType *givens_sin, ValueType *givens_cos,
+                                ValueType *hessenberg_iter, size_type iter,
+                                stopping_status *stop_status)
+{}
+
+
+template <typename ValueType>
+__device__ void calculate_next_residual_norm(ValueType *givens_sin,
+                                             ValueType *givens_cos,
+                                             ValueType *residual_norm,
+                                             ValueType *residual_norms,
+                                             ValueType *b_norm, size_type iter,
+                                             stopping_status *stop_status)
+{}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void step_1_kernel(
+    size_type num_rows, size_type num_cols, size_type stride, size_type iter,
+    ValueType *__restrict__ next_krylov_basis,
+    ValueType *__restrict__ givens_sin, ValueType *__restrict__ givens_cos,
+    ValueType *__restrict__ residual_norm,
+    ValueType *__restrict__ residual_norms,
+    ValueType *__restrict__ krylov_bases,
+    ValueType *__restrict__ hessenberg_iter,
+    const ValueType *__restrict__ b_norm,
+    const stopping_status *__restrict__ stop_status)
+{}
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
