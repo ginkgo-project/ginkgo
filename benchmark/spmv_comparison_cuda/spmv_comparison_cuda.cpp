@@ -343,6 +343,7 @@ private:
 
 // set matrix shortcuts
 using coo = gko::matrix::Coo<double, gko::int32>;
+using csri = gko::matrix::Csri<double, gko::int32>;
 using ell = gko::matrix::Ell<double, gko::int32>;
 using hybrid = gko::matrix::Hybrid<double, gko::int32>;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
@@ -442,7 +443,7 @@ std::vector<int> split_string(const std::string &str, const char &sep)
 int main(int argc, char *argv[])
 {
     // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
+    std::shared_ptr<gko::CudaExecutor> exec;
     std::string src_folder;
     std::string mtx_list;
     std::vector<int> nrhs_list;
@@ -451,7 +452,8 @@ int main(int argc, char *argv[])
     std::vector<std::string> allow_spmv_list{
         "Coo",       "CuspCsr",    "Ell",      "Hybrid",  "Hybrid20",
         "Hybrid40",  "Hybrid60",   "Hybrid80", "Sellp",   "CuspCsrex",
-        "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll", "CuspCsrmm"};
+        "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll", "CuspCsrmm",
+        "Csri",      "Csrm"};
     std::vector<std::string> allow_spmm_list{
         "Coo",      "Ell",      "Hybrid", "Hybrid20", "Hybrid40",
         "Hybrid60", "Hybrid80", "Sellp",  "CuspCsrmm"};
@@ -660,6 +662,14 @@ int main(int argc, char *argv[])
                     testing<cusp_csrmm>(exec, warm_iter, test_iter, data,
                                         lend(x), lend(y), matlab_format,
                                         out_fd.at(i));
+                } else if (elem == "Csri") {
+                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  std::make_shared<csri::load_balance>(exec));
+                } else if (elem == "Csrm") {
+                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  std::make_shared<csri::merge_path>());
                 }
             }
             out_fd.at(i) << std::endl;

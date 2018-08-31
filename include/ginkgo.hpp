@@ -55,6 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
+#include "core/matrix/csri.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
