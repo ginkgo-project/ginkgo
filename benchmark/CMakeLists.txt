@@ -3,6 +3,8 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "Ginko is not being built in \"Release\" mode, benchmark performance "
         "will be affected")
 endif()
+
+add_subdirectory(matrix_statistics)
 add_subdirectory(solver)
 add_subdirectory(spmv)
 add_subdirectory(spmv_comparison_cuda)

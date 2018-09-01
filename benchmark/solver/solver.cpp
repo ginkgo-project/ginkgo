@@ -98,10 +98,10 @@ void print_config_error_and_exit()
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\",  \"spmv\": { "
-                 "\"optimal_format\": coo } },\n"
-              << "    { \"filename\": \"my_file2.mtx\", \"spmv\": { "
-                 "\"optimal_format\": csr } }\n"
+              << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" } },\n"
+              << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
     exit(1);
 }
@@ -109,10 +109,10 @@ void print_config_error_and_exit()
 
 void validate_option_object(const rapidjson::Value &value)
 {
-    if (!value.IsObject() || !value.HasMember("spmv") ||
-        !value["spmv"].HasMember("optimal_format") ||
-        !value["spmv"]["optimal_format"].IsString() ||
-        !value.HasMember("filename") || !value["filename"].IsString()) {
+    if (!value.IsObject() || !value.HasMember("optimal") ||
+        !value["optimal"].HasMember("spmv") ||
+        !value["optimal"]["spmv"].IsString() || !value.HasMember("filename") ||
+        !value["filename"].IsString()) {
         print_config_error_and_exit();
     }
 }
@@ -161,10 +161,10 @@ void initialize_argument_parsing(int *argc, char **argv[])
         << "  The standard input should contain a list of test cases as a JSON "
         << "array of objects:\n"
         << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\",  \"spmv\": { "
-           "\"optimal_format\": coo } },\n"
-        << "    { \"filename\": \"my_file2.mtx\", \"spmv\": { "
-           "\"optimal_format\": csr } }\n"
+        << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" } },\n"
+        << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" } }\n"
         << "  ]\n\n"
         << "  \"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
         << "\"hybrid\", \"sellp\"\n\n"
@@ -450,9 +450,11 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) try {
             // set up benchmark
             validate_option_object(test_case);
-            add_or_set_member(test_case, "solver",
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
+            if (!test_case.HasMember("solver")) {
+                test_case.AddMember("solver",
+                                    rapidjson::Value(rapidjson::kObjectType),
+                                    allocator);
+            }
             auto &solver_case = test_case["solver"];
             if (!FLAGS_overwrite &&
                 all_of(begin(solvers), end(solvers),
@@ -464,8 +466,7 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             auto system_matrix = share(matrix_factory.at(
-                test_case["spmv"]["optimal_format"].GetString())(exec,
-                                                                 test_case));
+                test_case["optimal"]["spmv"].GetString())(exec, test_case));
             auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
             auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
 
