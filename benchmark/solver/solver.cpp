@@ -450,9 +450,11 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) try {
             // set up benchmark
             validate_option_object(test_case);
-            add_or_set_member(test_case, "solver",
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
+            if (!test_case.HasMember("solver")) {
+                test_case.AddMember("solver",
+                                    rapidjson::Value(rapidjson::kObjectType),
+                                    allocator);
+            }
             auto &solver_case = test_case["solver"];
             if (!FLAGS_overwrite &&
                 all_of(begin(solvers), end(solvers),
@@ -464,8 +466,7 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             auto system_matrix = share(matrix_factory.at(
-                test_case["spmv"]["optimal_format"].GetString())(exec,
-                                                                 test_case));
+                test_case["optimal"]["spmv"].GetString())(exec, test_case));
             auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
             auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
 

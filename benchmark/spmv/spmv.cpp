@@ -363,9 +363,11 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) try {
             // set up benchmark
             validate_option_object(test_case);
-            add_or_set_member(test_case, "spmv",
-                              rapidjson::Value(rapidjson::kObjectType),
-                              allocator);
+            if (!test_case.HasMember("spmv")) {
+                test_case.AddMember("spmv",
+                                    rapidjson::Value(rapidjson::kObjectType),
+                                    allocator);
+            }
             auto &spmv_case = test_case["spmv"];
             if (!FLAGS_overwrite &&
                 all_of(begin(formats), end(formats),
@@ -413,8 +415,13 @@ int main(int argc, char *argv[])
                     }
                 }
             }
+            if (!test_case.HasMember("optimal")) {
+                test_case.AddMember("optimal",
+                                    rapidjson::Value(rapidjson::kObjectType),
+                                    allocator);
+            }
             add_or_set_member(
-                spmv_case, "optimal_format",
+                test_case["optimal"], "spmv",
                 rapidjson::Value(best_format.c_str(), allocator).Move(),
                 allocator);
         } catch (std::exception &e) {
