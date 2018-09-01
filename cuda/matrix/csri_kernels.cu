@@ -60,8 +60,7 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-                                             const IndexType ind,
+__device__ __forceinline__ bool segment_scan(const IndexType ind,
                                              ValueType *val)
 {
     bool head = true;
@@ -146,6 +145,16 @@ __device__ __forceinline__ void process_window(
 }
 
 
+template <typename IndexType>
+__device__ __forceinline__ IndexType get_warp_start_idx(size_type nwarps,
+                                                        IndexType nnz,
+                                                        IndexType warp_idx)
+{
+    const auto cache_lines = ceildiv(nnz, cuda_config::warp_size);
+    return (warp_idx * cache_lines / nwarps) * cuda_config::warp_size;
+}
+
+
 /**
  * The device function of CSRI spmv
  *
@@ -171,24 +180,21 @@ __device__ void spmv_kernel(const size_type nwarps, const size_type num_rows,
                             const size_type b_stride, ValueType *__restrict__ c,
                             const size_type c_stride, Closure scale)
 {
-    const auto warp_idx =
-        static_cast<size_type>(blockIdx.x) * blockDim.y + threadIdx.y;
+    const IndexType warp_idx = blockIdx.x * blockDim.y + threadIdx.y;
     if (warp_idx >= nwarps) {
         return;
     }
-    const auto data_size = row_ptrs[num_rows];
-    const auto num_lines = ceildiv(data_size, nwarps * cuda_config::warp_size);
+    const IndexType data_size = row_ptrs[num_rows];
     ValueType temp_val = zero<ValueType>();
 
-    const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
-                           blockDim.y * num_lines +
-                       threadIdx.y * blockDim.x * num_lines;
+    const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
+    const IndexType end =
+        min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
+            static_cast<IndexType>(ceildiv(data_size, cuda_config::warp_size) *
+                                   cuda_config::warp_size));
     const IndexType column_id = blockIdx.y;
-    auto num = min((data_size > start) *
-                       ceildiv(data_size - start, cuda_config::warp_size),
-                   num_lines);
     const IndexType ind_start = start + threadIdx.x;
-    const IndexType ind_end = ind_start + (num - 2) * cuda_config::warp_size;
+    const IndexType ind_end = end - 2 * cuda_config::warp_size;
     auto row = srow[warp_idx];
     auto row_end = row_ptrs[row + 1];
     auto nrow = row;
@@ -202,15 +208,14 @@ __device__ void spmv_kernel(const size_type nwarps, const size_type num_rows,
                                      col_idxs, row_ptrs, srow, b, b_stride, c,
                                      c_stride, scale);
     }
-    if (num > 1) {
-        ind = ind_end;
+    if (ind < end - cuda_config::warp_size) {
         process_window<true, false>(num_rows, data_size, ind, column_id, &row,
                                     &row_end, &nrow, &nrow_end, &temp_val, val,
                                     col_idxs, row_ptrs, srow, b, b_stride, c,
                                     c_stride, scale);
+        ind += cuda_config::warp_size;
     }
-    if (num > 0) {
-        ind = ind_end + cuda::cuda_config::warp_size;
+    if (ind < end) {
         process_window<true, true>(num_rows, data_size, ind, column_id, &row,
                                    &row_end, &nrow, &nrow_end, &temp_val, val,
                                    col_idxs, row_ptrs, srow, b, b_stride, c,
@@ -379,7 +384,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
 
         auto a_size = a->get_num_stored_elements();
-        auto nwarps = a->get_num_srow_elements();
+        const size_type nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
@@ -429,7 +434,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         dense::scale(exec, beta, c);
 
         auto a_size = a->get_num_stored_elements();
-        auto nwarps = a->get_num_srow_elements();
+        const size_type nwarps = a->get_num_srow_elements();
 
         if (nwarps > 0) {
             int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
