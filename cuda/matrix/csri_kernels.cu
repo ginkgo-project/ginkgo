@@ -60,9 +60,11 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
-                                             bool *head)
+__device__ __forceinline__ bool segment_scan(
+                                             const IndexType ind,
+                                             ValueType *val)
 {
+    bool head = true;
 #pragma unroll
     for (int i = 1; i < cuda_config::warp_size; i <<= 1) {
         const IndexType add_ind = warp::shuffle_up(ind, i);
@@ -70,7 +72,7 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
         if (threadIdx.x >= i && add_ind == ind) {
             add_val = *val;
             if (i == 1) {
-                *head = false;
+                head = false;
             }
         }
         add_val = warp::shuffle_down(add_val, i);
@@ -78,6 +80,7 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
             *val += add_val;
         }
     }
+    return head;
 }
 
 
@@ -115,7 +118,7 @@ __device__ __forceinline__ void process_window(
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride, Closure scale)
 {
-    if (!overflow || ind < data_size) {
+    if (!last || ind < data_size) {
         *temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
     }
     const auto curr_row = *row;
@@ -127,15 +130,17 @@ __device__ __forceinline__ void process_window(
     }
     // segmented scan
     if (last || warp::any(curr_row != *row)) {
-        bool is_first_in_segment = true;
-        segment_scan(curr_row, temp_val, &is_first_in_segment);
-        if (is_first_in_segment) {
+        bool force_write = last | (curr_row != *row);
+        bool need_write = segment_scan(curr_row, temp_val);
+        if (need_write && force_write) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(*temp_val));
         }
         if (!last) {
             *nrow = warp::shuffle(*row, cuda_config::warp_size - 1);
             *nrow_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
-            *temp_val = zero<ValueType>();
+            if (!need_write || force_write) {
+                *temp_val = zero<ValueType>();
+            }
         }
     }
 }
@@ -300,8 +305,7 @@ __global__ __launch_bounds__(cuda_config::warp_size) void reduce(
             temp_val += last_val[i];
         }
     }
-    bool is_first_in_segment = true;
-    segment_scan(temp_row, &temp_val, &is_first_in_segment);
+    bool is_first_in_segment = segment_scan(temp_row, &temp_val);
     if (is_first_in_segment) {
         c[temp_row] += temp_val;
     }
@@ -376,7 +380,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
         auto a_size = a->get_num_stored_elements();
         auto nwarps = a->get_num_srow_elements();
-
         if (nwarps > 0) {
             const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
