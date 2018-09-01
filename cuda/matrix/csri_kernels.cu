@@ -262,8 +262,8 @@ __device__ void merge_path_search(const IndexType diagonal,
                                   IndexType *__restrict__ x,
                                   IndexType *__restrict__ y)
 {
-    auto x_min = max(diagonal - b_len, zero<IndexType>());
-    auto x_max = min(diagonal, a_len);
+    auto x_min = max(diagonal - b_len - 1, zero<IndexType>());
+    auto x_max = min(diagonal, a_len - 1);
     while (x_min < x_max) {
         auto pivot = (x_min + x_max) >> 1;
         if (a[pivot] <= diagonal - pivot - 1) {
@@ -272,7 +272,8 @@ __device__ void merge_path_search(const IndexType diagonal,
             x_max = pivot;
         }
     }
-    *x = min(x_min, a_len);
+
+    *x = min(x_min, a_len - 1);
     *y = diagonal - x_min;
 }
 
@@ -283,14 +284,14 @@ __global__ __launch_bounds__(cuda_config::warp_size) void reduce(
     const IndexType *__restrict__ last_row, ValueType *__restrict__ c,
     const size_type c_stride)
 {
-    const auto len = ceildiv(nwarps, cuda_config::warp_size);
-    const size_type start = len * threadIdx.x;
-    const size_type end = (threadIdx.x == cuda_config::warp_size - 1)
-                              ? nwarps
-                              : (threadIdx.x + 1) * len;
+    const auto len = nwarps / cuda_config::warp_size;
+    const auto res = nwarps % cuda_config::warp_size;
+    const IndexType start =
+        (threadIdx.x < res) ? (len + 1) * threadIdx.x : len * threadIdx.x + res;
+    const IndexType end = (threadIdx.x < res) ? start + len + 1 : start + len;
     auto temp_val = last_val[start];
     auto temp_row = last_row[start];
-    for (size_type i = start + 1; i < end; i++) {
+    for (IndexType i = start + 1; i < end; i++) {
         if (last_row[i] != temp_row) {
             c[temp_row] += temp_val;
             temp_row = last_row[i];
@@ -307,7 +308,7 @@ __global__ __launch_bounds__(cuda_config::warp_size) void reduce(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <int items_per_thread, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     const IndexType num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
@@ -317,11 +318,17 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     IndexType *__restrict__ row_out, ValueType *__restrict__ val_out)
 {
     const IndexType tid = blockDim.x * blockIdx.x + threadIdx.x;
-    const IndexType num_threads = blockDim.x * gridDim.x;
+    // const IndexType num_threads = blockDim.x * gridDim.x;
     const auto *row_end_ptrs = row_ptrs + 1;
     const auto nnz = row_ptrs[num_rows];
     const IndexType num_merge_items = num_rows + nnz;
-    const IndexType items_per_thread = ceildiv(num_merge_items, num_threads);
+    // const IndexType items_per_thread = ceildiv(num_merge_items, num_threads);
+    if (tid * items_per_thread >= num_merge_items) {
+        row_out[tid] = num_rows - 1;
+        val_out[tid] = zero<ValueType>();
+        return;
+    }
+
 
     IndexType diagonal = min(items_per_thread * tid, num_merge_items);
     IndexType diagonal_end = min(diagonal + items_per_thread, num_merge_items);
@@ -335,19 +342,18 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
                       &end_y);
 
     ValueType value = zero<ValueType>();
+#pragma unroll
     for (IndexType i = 0; i < items_per_thread; i++) {
-        if (start_y < row_end_ptrs[start_x]) {
-            value += val[start_y] * b[col_idxs[start_y]];
-            start_y++;
-        } else {
-            c[start_x] = value;
-            value = zero<ValueType>();
-            start_x++;
+        if (tid * items_per_thread + i < num_merge_items) {
+            if (start_y < row_end_ptrs[start_x]) {
+                value += val[start_y] * b[col_idxs[start_y]];
+                start_y++;
+            } else {
+                c[start_x] = value;
+                value = zero<ValueType>();
+                start_x++;
+            }
         }
-    }
-
-    for (; start_y < end_y; start_y++) {
-        value += val[start_y] * b[col_idxs[start_y]];
     }
     row_out[tid] = end_x;
     val_out[tid] = value;
@@ -383,14 +389,14 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_values()), c->get_stride());
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        const IndexType num_item = 8;
+        const int num_item = 8;
         const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
         const IndexType grid_num = ceildiv(total, spmv_block_size * num_item);
         const dim3 grid(grid_num);
         const dim3 block(spmv_block_size);
         Array<IndexType> row_out(exec, grid_num * spmv_block_size);
         Array<ValueType> val_out(exec, grid_num * spmv_block_size);
-        merge_path_spmv<<<grid, block>>>(
+        merge_path_spmv<num_item><<<grid, block>>>(
             static_cast<IndexType>(a->get_size()[0]),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
             as_cuda_type(a->get_const_row_ptrs()),
