@@ -98,10 +98,10 @@ void print_config_error_and_exit()
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\",  \"spmv\": { "
-                 "\"optimal_format\": coo } },\n"
-              << "    { \"filename\": \"my_file2.mtx\", \"spmv\": { "
-                 "\"optimal_format\": csr } }\n"
+              << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" } },\n"
+              << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
     exit(1);
 }
@@ -109,10 +109,10 @@ void print_config_error_and_exit()
 
 void validate_option_object(const rapidjson::Value &value)
 {
-    if (!value.IsObject() || !value.HasMember("spmv") ||
-        !value["spmv"].HasMember("optimal_format") ||
-        !value["spmv"]["optimal_format"].IsString() ||
-        !value.HasMember("filename") || !value["filename"].IsString()) {
+    if (!value.IsObject() || !value.HasMember("optimal") ||
+        !value["optimal"].HasMember("spmv") ||
+        !value["optimal"]["spmv"].IsString() || !value.HasMember("filename") ||
+        !value["filename"].IsString()) {
         print_config_error_and_exit();
     }
 }
@@ -161,10 +161,10 @@ void initialize_argument_parsing(int *argc, char **argv[])
         << "  The standard input should contain a list of test cases as a JSON "
         << "array of objects:\n"
         << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\",  \"spmv\": { "
-           "\"optimal_format\": coo } },\n"
-        << "    { \"filename\": \"my_file2.mtx\", \"spmv\": { "
-           "\"optimal_format\": csr } }\n"
+        << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" } },\n"
+        << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" } }\n"
         << "  ]\n\n"
         << "  \"optimal_format\" can be one of: \"csr\", \"coo\", \"ell\","
         << "\"hybrid\", \"sellp\"\n\n"

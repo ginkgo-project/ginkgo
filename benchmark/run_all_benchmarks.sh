@@ -99,7 +99,7 @@ for (( i=1; i <= ${NUM_PROBLEMS}; ++i )); do
     run_spmv_benchmarks ${RESULT_FILE}
 
     if [ "${BENCHMARK}" != "solver" -o \
-         "$(${SSGET} -i $i -prows)" = "$(${SSGET} -i $i -pcols)" ]; then
+         "$(${SSGET} -i $i -prows)" != "$(${SSGET} -i $i -pcols)" ]; then
         ${SSGET} -i $i -c >/dev/null
         continue
     fi

@@ -389,41 +389,35 @@ int main(int argc, char *argv[])
                       << data.size[1] << ")" << std::endl;
             auto warm_iter = FLAGS_warm_iter;
             auto run_iter = FLAGS_run_iter;
+            std::string best_format("none");
+            auto best_performance = 0.0;
+            if (!test_case.HasMember("optimal")) {
+                test_case.AddMember("optimal",
+                                    rapidjson::Value(rapidjson::kObjectType),
+                                    allocator);
+            }
             for (const auto &format_name : formats) {
                 spmv_system(format_name.c_str(), exec, data, lend(b), lend(x),
                             warm_iter, run_iter, test_case, allocator,
                             rhs_engine);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
-                backup_results(test_cases);
-            }
-            std::string best_format("none");
-            double best_performace(0);
-            for (const auto &format_name : formats) {
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
-                    if (best_format == "none") {
+                    auto performance =
+                        spmv_case[format_name.c_str()]["time"].GetDouble();
+                    if (best_format == "none" ||
+                        performance < best_performance) {
                         best_format = format_name;
-                        best_performace =
-                            spmv_case[format_name.c_str()]["time"].GetDouble();
-                    } else {
-                        auto performance =
-                            spmv_case[format_name.c_str()]["time"].GetDouble();
-                        if (performance < best_performace) {
-                            best_format = format_name;
-                            best_performace = performance;
-                        }
+                        best_performance = performance;
+                        add_or_set_member(
+                            test_case["optimal"], "spmv",
+                            rapidjson::Value(best_format.c_str(), allocator)
+                                .Move(),
+                            allocator);
                     }
                 }
+                backup_results(test_cases);
             }
-            if (!test_case.HasMember("optimal")) {
-                test_case.AddMember("optimal",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            add_or_set_member(
-                test_case["optimal"], "spmv",
-                rapidjson::Value(best_format.c_str(), allocator).Move(),
-                allocator);
         } catch (std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
