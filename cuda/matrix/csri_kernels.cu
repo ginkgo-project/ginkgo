@@ -109,16 +109,11 @@ template <bool overflow, typename IndexType>
 __device__ __forceinline__ void find_next_row(
     const size_type num_rows, const size_type data_size, const IndexType ind,
     IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    const IndexType row_predict, const IndexType row_predict_end,
     const IndexType *__restrict__ row_ptr)
 {
     if (!overflow || ind < data_size) {
-        if (ind >= *row_end) {
-            *row = row_predict;
-            *row_end = row_predict_end;
-            while (ind >= *row_end) {
-                *row_end = row_ptr[++*row + 1];
-            }
+        while (ind >= *row_end) {
+            *row_end = row_ptr[++*row + 1];
         }
     } else {
         *row = num_rows - 1;
@@ -131,10 +126,10 @@ template <bool overflow, bool last, typename ValueType, typename IndexType,
           typename Closure>
 __device__ __forceinline__ void process_window(
     const size_type num_rows, const size_type data_size, const IndexType ind,
-    const IndexType column_id, IndexType *__restrict__ row,
-    IndexType *__restrict__ row_end, IndexType *__restrict__ nrow,
-    IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const IndexType column_id, IndexType *__restrict__ curr_row,
+    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
+    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride, Closure scale)
@@ -142,23 +137,24 @@ __device__ __forceinline__ void process_window(
     if (!last || ind < data_size) {
         *temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
     }
-    const auto curr_row = *row;
     if (!last) {
         find_next_row<overflow>(
             num_rows, data_size,
             static_cast<IndexType>(ind + cuda_config::warp_size), row, row_end,
-            *nrow, *nrow_end, row_ptrs);
+            row_ptrs);
     }
     // segmented scan
-    if (last || warp::any(curr_row != *row)) {
-        bool force_write = last | (curr_row != *row);
-        bool need_write = segment_scan(curr_row, temp_val);
+    if (last || warp::any(*curr_row != *row)) {
+        bool force_write = last ? last : (*curr_row != *row);
+        bool need_write = segment_scan(*curr_row, temp_val);
         if (need_write && force_write) {
-            atomic_add(&(c[curr_row * c_stride + column_id]), scale(*temp_val));
+            atomic_add(&(c[*curr_row * c_stride + column_id]),
+                       scale(*temp_val));
         }
         if (!last) {
-            *nrow = warp::shuffle(*row, cuda_config::warp_size - 1);
-            *nrow_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
+            *curr_row = *row;
+            *row = warp::shuffle(*row, cuda_config::warp_size - 1);
+            *row_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
             if (!need_write || force_write) {
                 *temp_val = zero<ValueType>();
             }
@@ -169,10 +165,11 @@ __device__ __forceinline__ void process_window(
 
 template <typename IndexType>
 __device__ __forceinline__ IndexType get_warp_start_idx(size_type nwarps,
-                                                        IndexType nnz,
+                                                        size_type nnz,
                                                         IndexType warp_idx)
 {
-    const auto cache_lines = ceildiv(nnz, cuda_config::warp_size);
+    const auto cache_lines =
+        ceildiv(static_cast<IndexType>(nnz), cuda_config::warp_size);
     return (warp_idx * cache_lines / nwarps) * cuda_config::warp_size;
 }
 
@@ -193,20 +190,17 @@ __device__ __forceinline__ IndexType get_warp_start_idx(size_type nwarps,
  * @param scale  the function on the added value
  */
 template <typename ValueType, typename IndexType, typename Closure>
-__device__ void spmv_kernel(const size_type nwarps, const size_type num_rows,
-                            const ValueType *__restrict__ val,
-                            const IndexType *__restrict__ col_idxs,
-                            const IndexType *__restrict__ row_ptrs,
-                            const IndexType *__restrict__ srow,
-                            const ValueType *__restrict__ b,
-                            const size_type b_stride, ValueType *__restrict__ c,
-                            const size_type c_stride, Closure scale)
+__device__ void spmv_kernel(
+    const size_type nwarps, const size_type num_rows, const size_type data_size,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
 {
     const IndexType warp_idx = blockIdx.x * blockDim.y + threadIdx.y;
     if (warp_idx >= nwarps) {
         return;
     }
-    const IndexType data_size = row_ptrs[num_rows];
     ValueType temp_val = zero<ValueType>();
 
     const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
@@ -219,27 +213,25 @@ __device__ void spmv_kernel(const size_type nwarps, const size_type num_rows,
     const IndexType ind_end = end - 2 * cuda_config::warp_size;
     auto row = srow[warp_idx];
     auto row_end = row_ptrs[row + 1];
-    auto nrow = row;
-    auto nrow_end = row_end;
     IndexType ind = ind_start;
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
-                        nrow_end, row_ptrs);
+    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, row_ptrs);
+    auto curr_row = row;
     for (; ind < ind_end; ind += cuda_config::warp_size) {
-        process_window<false, false>(num_rows, data_size, ind, column_id, &row,
-                                     &row_end, &nrow, &nrow_end, &temp_val, val,
+        process_window<false, false>(num_rows, data_size, ind, column_id,
+                                     &curr_row, &row, &row_end, &temp_val, val,
                                      col_idxs, row_ptrs, srow, b, b_stride, c,
                                      c_stride, scale);
     }
     if (ind < end - cuda_config::warp_size) {
-        process_window<true, false>(num_rows, data_size, ind, column_id, &row,
-                                    &row_end, &nrow, &nrow_end, &temp_val, val,
+        process_window<true, false>(num_rows, data_size, ind, column_id,
+                                    &curr_row, &row, &row_end, &temp_val, val,
                                     col_idxs, row_ptrs, srow, b, b_stride, c,
                                     c_stride, scale);
         ind += cuda_config::warp_size;
     }
     if (ind < end) {
-        process_window<true, true>(num_rows, data_size, ind, column_id, &row,
-                                   &row_end, &nrow, &nrow_end, &temp_val, val,
+        process_window<true, true>(num_rows, data_size, ind, column_id,
+                                   &curr_row, &row, &row_end, &temp_val, val,
                                    col_idxs, row_ptrs, srow, b, b_stride, c,
                                    c_stride, scale);
     }
@@ -248,20 +240,20 @@ __device__ void spmv_kernel(const size_type nwarps, const size_type num_rows,
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nwarps, const size_type num_rows,
+    const size_type nwarps, const size_type num_rows, const size_type data_size,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride)
 {
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [](const ValueType &x) { return x; });
+    spmv_kernel(nwarps, num_rows, data_size, val, col_idxs, row_ptrs, srow, b,
+                b_stride, c, c_stride, [](const ValueType &x) { return x; });
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nwarps, const size_type num_rows,
+    const size_type nwarps, const size_type num_rows, const size_type data_size,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
@@ -269,8 +261,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     ValueType *__restrict__ c, const size_type c_stride)
 {
     ValueType scale_factor = alpha[0];
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [&scale_factor](const ValueType &x) {
+    spmv_kernel(nwarps, num_rows, data_size, val, col_idxs, row_ptrs, srow, b,
+                b_stride, c, c_stride, [&scale_factor](const ValueType &x) {
                     return scale_factor * x;
                 });
 }
@@ -422,8 +414,9 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
                                  b->get_size()[1]);
             abstract_spmv<<<csri_grid, csri_block>>>(
-                nwarps, a->get_size()[0], as_cuda_type(a->get_const_values()),
-                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+                nwarps, a->get_size()[0], a_size,
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
@@ -474,7 +467,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
                                  b->get_size()[1]);
             abstract_spmv<<<csri_grid, csri_block>>>(
-                nwarps, a->get_size()[0],
+                nwarps, a->get_size()[0], a_size,
                 as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
