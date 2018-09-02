@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/shuffle.cuh"
 #include "cuda/components/synchronization.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -80,6 +81,27 @@ __device__ __forceinline__ bool segment_scan(const IndexType ind,
         }
     }
     return head;
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ bool block_segment_scan_reverse(
+    const IndexType *__restrict__ ind, ValueType *__restrict__ val)
+{
+    bool last = true;
+    const auto reg_ind = ind[threadIdx.x];
+#pragma unroll
+    for (int i = 1; i < spmv_block_size; i <<= 1) {
+        if (i == 1 && threadIdx.x < spmv_block_size - 1 &&
+            reg_ind == ind[threadIdx.x + 1]) {
+            last = false;
+        }
+        if (threadIdx.x >= i && reg_ind == ind[threadIdx.x - i]) {
+            val[threadIdx.x] += val[threadIdx.x - i];
+        }
+        block::synchronize();
+    }
+
+    return last;
 }
 
 
@@ -333,8 +355,6 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     const IndexType num_merge_items = num_rows + nnz;
     // const IndexType items_per_thread = ceildiv(num_merge_items, num_threads);
     if (tid * items_per_thread >= num_merge_items) {
-        row_out[tid] = num_rows - 1;
-        val_out[tid] = zero<ValueType>();
         return;
     }
 
@@ -351,9 +371,10 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
                       &end_y);
 
     ValueType value = zero<ValueType>();
+    const auto num = num_merge_items - tid * items_per_thread;
 #pragma unroll
     for (IndexType i = 0; i < items_per_thread; i++) {
-        if (tid * items_per_thread + i < num_merge_items) {
+        if (i < num) {
             if (start_y < row_end_ptrs[start_x]) {
                 value += val[start_y] * b[col_idxs[start_y]];
                 start_y++;
@@ -364,8 +385,19 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
             }
         }
     }
-    row_out[tid] = end_x;
-    val_out[tid] = value;
+    __shared__ UninitializedArray<ValueType, spmv_block_size> tmp_val;
+    __shared__ UninitializedArray<IndexType, spmv_block_size> tmp_ind;
+    tmp_val[threadIdx.x] = value;
+    tmp_ind[threadIdx.x] = end_x;
+    block::synchronize();
+    bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
+                                           static_cast<ValueType *>(tmp_val));
+    if (threadIdx.x == spmv_block_size - 1) {
+        row_out[blockIdx.x] = end_x;
+        val_out[blockIdx.x] = tmp_val[threadIdx.x];
+    } else if (last) {
+        c[end_x] += tmp_val[threadIdx.x];
+    }
 }
 
 
@@ -397,13 +429,13 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_values()), c->get_stride());
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        const int num_item = 8;
+        const int num_item = 16;
         const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
         const IndexType grid_num = ceildiv(total, spmv_block_size * num_item);
         const dim3 grid(grid_num);
         const dim3 block(spmv_block_size);
-        Array<IndexType> row_out(exec, grid_num * spmv_block_size);
-        Array<ValueType> val_out(exec, grid_num * spmv_block_size);
+        Array<IndexType> row_out(exec, grid_num);
+        Array<ValueType> val_out(exec, grid_num);
         merge_path_spmv<num_item><<<grid, block>>>(
             static_cast<IndexType>(a->get_size()[0]),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -412,7 +444,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(c->get_values()), c->get_stride(),
             as_cuda_type(row_out.get_data()), as_cuda_type(val_out.get_data()));
-        reduce<<<1, 32>>>(static_cast<size_type>(grid_num * spmv_block_size),
+        reduce<<<1, 32>>>(static_cast<size_type>(grid_num),
                           as_cuda_type(val_out.get_data()),
                           as_cuda_type(row_out.get_data()),
                           as_cuda_type(c->get_values()), c->get_stride());
