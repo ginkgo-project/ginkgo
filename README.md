@@ -6,6 +6,16 @@ focus on sparse solution of linear systems. It is implemented using modern C++
 implemented in CUDA.
 
 
+Performance
+-----------
+
+An extensive database of up-to-date benchmark results is available in the
+[performance data reposotiry](https://github.com/ginkgo-project/ginkgo-data).
+Visualizations of the database can be interactively generated using the
+[Ginkgo Benchmark Explorer web application](https://ginkgo-project.github.io/ginkgo-benchmark-explorer).
+The benchmark results are automatically updated using the CI system to always
+reflect the current state of the library.
+
 Prerequisites
 -------------
 
@@ -162,7 +172,6 @@ run the following from the build folder:
 ```
 
 where `path/to/test` is the path returned by `make test`.
-
 
 ### Installing Ginkgo
 
