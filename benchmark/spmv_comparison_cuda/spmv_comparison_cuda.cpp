@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
         "Coo",       "CuspCsr",    "Ell",      "Hybrid",  "Hybrid20",
         "Hybrid40",  "Hybrid60",   "Hybrid80", "Sellp",   "CuspCsrex",
         "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll", "CuspCsrmm",
-        "Csri",      "Csrm"};
+        "Csri",      "Csrm", "Csrc"};
     std::vector<std::string> allow_spmm_list{
         "Coo",      "Ell",      "Hybrid", "Hybrid20", "Hybrid40",
         "Hybrid60", "Hybrid80", "Sellp",  "CuspCsrmm"};
@@ -726,6 +726,11 @@ int main(int argc, char *argv[])
                                   lend(y), matlab_format, out_fd.at(i),
                                   lend(answer),
                                   std::make_shared<csri::merge_path>());
+                } else if (elem == "Csrc") {
+                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  lend(answer),
+                                  std::make_shared<csri::classical>());
                 }
             }
             out_fd.at(i) << std::endl;

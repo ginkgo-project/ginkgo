@@ -82,26 +82,16 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy)
     {
-        mtx = Mtx::create(ref, std::make_shared<Mtx::load_balance>(32));
-        mtx2 = Mtx::create(ref, std::make_shared<Mtx::merge_path>());
+        mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        mtx2->copy_from(gen_mtx<Vec>(532, 231, 1));
-        complex_mtx = ComplexMtx::create(
-            ref, std::make_shared<ComplexMtx::load_balance>(32));
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
         expected = gen_mtx<Vec>(532, 1, 1);
         y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(cuda, std::make_shared<Mtx::load_balance>(32));
-        dmtx2 = Mtx::create(cuda, std::make_shared<Mtx::merge_path>());
+        dmtx = Mtx::create(cuda, strategy);
         dmtx->copy_from(mtx.get());
-        dmtx2->copy_from(mtx2.get());
-        complex_dmtx = ComplexMtx::create(
-            cuda, std::make_shared<ComplexMtx::load_balance>(32));
-        complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());
         dy = Vec::create(cuda);
@@ -118,16 +108,12 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Mtx> mtx2;
-    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<Mtx> dmtx2;
-    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -135,9 +121,9 @@ protected:
 };
 
 
-TEST_F(Csri, SimpleApplyIsEquivalentToRef)
+TEST_F(Csri, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -148,7 +134,7 @@ TEST_F(Csri, SimpleApplyIsEquivalentToRef)
 
 TEST_F(Csri, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -159,10 +145,21 @@ TEST_F(Csri, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Csri, SimpleApplyIsEquivalentToRefWithMergePath)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
 
-    mtx2->apply(y.get(), expected.get());
-    dmtx2->apply(dy.get(), dresult.get());
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csri, SimpleApplyIsEquivalentToRefWithClassical)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

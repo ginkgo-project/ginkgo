@@ -102,9 +102,9 @@ public:
         std::string name_;
     };
 
-    class simple : public strategy_type {
+    class classical : public strategy_type {
     public:
-        simple() : strategy_type("simple") {}
+        classical() : strategy_type("classical") {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow)
