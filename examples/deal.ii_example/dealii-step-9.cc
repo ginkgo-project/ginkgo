@@ -17,6 +17,16 @@
  * Author: Wolfgang Bangerth, University of Heidelberg, 2000
  */
 
+/* ---------------------------------------------------------------------
+ *
+ * This file has been taken verbatim from the deal.ii (version 9.0)
+ * examples directory and modified.
+ *
+ * This example aims to demonstrate the ease with which Ginkgo can
+ * be interfaced with other libraries. The only modification/ addition
+ * has been to the AdvectionProblem::solve () function.
+ *
+ */
 
 // Just as in previous examples, we have to include several files of which the
 // meaning has already been discussed:
@@ -801,12 +811,11 @@ void AdvectionProblem<dim>::copy_local_to_global(
     }
 }
 
-
 // Following is the function that solves the linear system of equations. As
 // the system is no more symmetric positive definite as in all the previous
 // examples, we can't use the Conjugate Gradients method anymore. Rather, we
 // use a solver that is tailored to nonsymmetric systems like the one at
-// hand, the BiCGStab method. As preconditioner, we use the Jacobi method.
+// hand, the BiCGStab method. As preconditioner, we use the Block Jacobi method.
 template <int dim>
 void AdvectionProblem<dim>::solve()
 {
@@ -822,15 +831,13 @@ void AdvectionProblem<dim>::solve()
     // Some shortcuts: A vector is a Dense matrix with co-dimension 1.
     // The matrix is setup in CSR. But various formats can be used. Look at
     // Ginkgo's documentation.
-    // The solver being used is Bicgstab as the matrix is not SPD and a block
-    // jacobi preconditioner is used to accelerate the convergence of the
-    // bicgstab iterative method.
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using bicgstab = gko::solver::Bicgstab<>;
     using bj = gko::preconditioner::BlockJacobiFactory<>;
     using val_array = gko::Array<double>;
-    // Where the code is to be executed. Cn be changed to `omp` or `cuda` to
+
+    // Where the code is to be executed. Can be changed to `omp` or `cuda` to
     // run on multiple threads or on gpu's
     std::shared_ptr<gko::Executor> exec = gko::ReferenceExecutor::create();
 
@@ -869,7 +876,7 @@ void AdvectionProblem<dim>::solve()
 
     // Ginkgo solve
     // The stopping criteria is set at maximum iterations of 1000 and a
-    // reduction factor od 1e-12. For other options, refer to Ginkgo's
+    // reduction factor of 1e-12. For other options, refer to Ginkgo's
     // documentation.
     auto solver_gen =
         bicgstab::Factory::create()

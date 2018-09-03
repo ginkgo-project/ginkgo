@@ -51,3 +51,8 @@ include/config.hpp
 
 #other
 diff.patch
+GRTAGS
+GSYMS
+GTAGS
+GPATH
+.gitignore
