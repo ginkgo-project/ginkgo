@@ -108,9 +108,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="memTemplItemLeft" align="right" valign="top">T *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687">alloc</a> (size_type num_elems) const</td></tr>
 <tr class="memdesc:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocates memory in this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#a5a216c2b1f7ceb8a0190c08941c1c687">More...</a><br /></td></tr>
 <tr class="separator:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abcca3fc0cad7ac9edb95eb77ae0819bc"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#abcca3fc0cad7ac9edb95eb77ae0819bc">free</a> (void *ptr) const noexcept=0</td></tr>
-<tr class="memdesc:abcca3fc0cad7ac9edb95eb77ae0819bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees memory previously allocated with <a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687" title="Allocates memory in this Executor. ">Executor::alloc()</a>.  <a href="#abcca3fc0cad7ac9edb95eb77ae0819bc">More...</a><br /></td></tr>
-<tr class="separator:abcca3fc0cad7ac9edb95eb77ae0819bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0befe43d21c93e199d1620eaae4ccc0c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a0befe43d21c93e199d1620eaae4ccc0c">free</a> (void *ptr) const noexcept</td></tr>
+<tr class="memdesc:a0befe43d21c93e199d1620eaae4ccc0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees memory previously allocated with <a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687" title="Allocates memory in this Executor. ">Executor::alloc()</a>.  <a href="#a0befe43d21c93e199d1620eaae4ccc0c">More...</a><br /></td></tr>
+<tr class="separator:a0befe43d21c93e199d1620eaae4ccc0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adf7573e4a7e267fcb821eb9049a1054f"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:adf7573e4a7e267fcb821eb9049a1054f"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#adf7573e4a7e267fcb821eb9049a1054f">copy_from</a> (const <a class="el" href="classgko_1_1Executor.html">Executor</a> *src_exec, size_type num_elems, const T *src_ptr, T *dest_ptr) const</td></tr>
 <tr class="memdesc:adf7573e4a7e267fcb821eb9049a1054f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copies data from another <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#adf7573e4a7e267fcb821eb9049a1054f">More...</a><br /></td></tr>
@@ -254,8 +254,8 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="abcca3fc0cad7ac9edb95eb77ae0819bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abcca3fc0cad7ac9edb95eb77ae0819bc">&#9670;&nbsp;</a></span>free()</h2>
+<a id="a0befe43d21c93e199d1620eaae4ccc0c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0befe43d21c93e199d1620eaae4ccc0c">&#9670;&nbsp;</a></span>free()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -264,7 +264,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void gko::Executor::free </td>
+          <td class="memname">void gko::Executor::free </td>
           <td>(</td>
           <td class="paramtype">void *&#160;</td>
           <td class="paramname"><em>ptr</em></td><td>)</td>
@@ -273,7 +273,7 @@ template&lt;typename T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -286,8 +286,6 @@ template&lt;typename T &gt; </div>
   </table>
   </dd>
 </dl>
-
-<p>Implemented in <a class="el" href="classgko_1_1CudaExecutor.html#ae7758eb5c7f97924b34abfd3943039d5">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1OmpExecutor.html#aedd32edc693f3b12e738193b18cfe845">gko::OmpExecutor</a>.</p>
 
 </div>
 </div>
@@ -438,7 +436,7 @@ template&lt;typename ClosureOmp , typename ClosureCuda &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (32dfa05)</a></li>
+<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (62cc749)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

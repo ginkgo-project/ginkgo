@@ -85,9 +85,6 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ae7758eb5c7f97924b34abfd3943039d5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#ae7758eb5c7f97924b34abfd3943039d5">free</a> (void *ptr) const noexcept override</td></tr>
-<tr class="memdesc:ae7758eb5c7f97924b34abfd3943039d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees memory previously allocated with <a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687" title="Allocates memory in this Executor. ">Executor::alloc()</a>.  <a href="#ae7758eb5c7f97924b34abfd3943039d5">More...</a><br /></td></tr>
-<tr class="separator:ae7758eb5c7f97924b34abfd3943039d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6466705137b8ac3974734837c7730d74"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a6466705137b8ac3974734837c7730d74">get_master</a> () noexcept override</td></tr>
 <tr class="memdesc:a6466705137b8ac3974734837c7730d74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the master <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU). ...">OmpExecutor</a> of this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#a6466705137b8ac3974734837c7730d74">More...</a><br /></td></tr>
 <tr class="separator:a6466705137b8ac3974734837c7730d74"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -175,43 +172,6 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>ExecutorBase&lt; Cud
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a id="ae7758eb5c7f97924b34abfd3943039d5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae7758eb5c7f97924b34abfd3943039d5">&#9670;&nbsp;</a></span>free()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void gko::CudaExecutor::free </td>
-          <td>(</td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>ptr</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Frees memory previously allocated with <a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687" title="Allocates memory in this Executor. ">Executor::alloc()</a>. </p>
-<p>If <code>ptr</code> is a <code>nullptr</code>, the function has no effect.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">ptr</td><td>pointer to the allocated memory block </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p>Implements <a class="el" href="classgko_1_1Executor.html#abcca3fc0cad7ac9edb95eb77ae0819bc">gko::Executor</a>.</p>
 
 </div>
 </div>
@@ -316,8 +276,8 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>ExecutorBase&lt; Cud
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (32dfa05)</a></li>
-<li>core/device_hooks/cuda_hooks.cpp (0cd1243)</li>
+<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (62cc749)</a></li>
+<li>core/device_hooks/cuda_hooks.cpp (62cc749)</li>
 <li>core/devices/cuda/executor.cpp (348bed6)</li>
 </ul>
 </div><!-- contents -->
