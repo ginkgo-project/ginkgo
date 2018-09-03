@@ -12,7 +12,7 @@ Performance
 An extensive database of up-to-date benchmark results is available in the
 [performance data reposotiry](https://github.com/ginkgo-project/ginkgo-data).
 Visualizations of the database can be interactively generated using the
-[Ginkgo Benchmark Explorer web application](https://ginkgo-project.github.io/ginkgo-benchmark-explorer).
+[Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
 The benchmark results are automatically updated using the CI system to always
 reflect the current state of the library.
 
