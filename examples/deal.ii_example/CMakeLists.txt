@@ -20,7 +20,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_definitions(-DOMPI_SKIP_MPICXX)
 
-add_executable(${PROJECT_NAME} ${SOURCE}/step-9.cc)
+add_executable(${PROJECT_NAME} ${SOURCE}/dealii-step-9.cc)
 
 target_link_libraries(${PROJECT_NAME}
     ${MPI_C_LIBRARIES} ${GINKGO_LIB_DIR}/libginkgo.so ${GINKGO_LIB_DIR}/libginkgo_omp.so ${GINKGO_LIB_DIR}/libginkgo_cuda.so ${GINKGO_LIB_DIR}/libginkgo_reference.so )
