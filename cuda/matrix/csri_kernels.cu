@@ -128,19 +128,20 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void
 warp_atomic_add(
         bool force_write,
         ValueType * __restrict__ val,
         IndexType ind,
-        ValueType * __restrict__ out)
+        ValueType * __restrict__ out
+        , Closure scale)
 {
     // do a local scan to avoid atomic collisions
     const bool need_write =
         segment_scan(ind, val);
     if (need_write && force_write) {
-        atomic_add(out + ind, *val);
+        atomic_add(out + ind, scale(*val));
     }
     if (!need_write || force_write) {
         *val = zero<ValueType>();
@@ -163,7 +164,7 @@ __device__ __forceinline__ void process_window(
                         *nrow_end, row_ptrs);
     // segmented scan
     if (warp::any(curr_row != *row)) {
-        warp_atomic_add(curr_row != *row, temp_val, curr_row, c);
+        warp_atomic_add(curr_row != *row, temp_val, curr_row, c, scale);
         *nrow = warp::shuffle(*row, cuda_config::warp_size - 1);
         *nrow_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
     }
@@ -234,7 +235,7 @@ __device__ __forceinline__ void spmv_kernel(
     process_window<true>(num_rows, data_size, ind, &row, &row_end, &nrow,
                          &nrow_end, &temp_val, val, col_idxs, row_ptrs, b, c,
                          scale);
-    warp_atomic_add(true, &temp_val, row, c);
+    warp_atomic_add(true, &temp_val, row, c, scale);
 }
 
 
@@ -485,11 +486,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
-        auto a_size = a->get_num_stored_elements();
         const IndexType nwarps = a->get_num_srow_elements();
 
         if (nwarps > 0) {
-            int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
             const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 csri_grid(ceildiv(nwarps, warps_in_block));
             abstract_spmv<<<csri_grid, csri_block>>>(
