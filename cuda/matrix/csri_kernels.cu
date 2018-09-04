@@ -55,6 +55,7 @@ namespace csri {
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
+constexpr int classical_block_size = 64;
 
 
 namespace {
@@ -107,14 +108,19 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
 
 template <bool overflow, typename IndexType>
 __device__ __forceinline__ void find_next_row(
-    const size_type num_rows, const size_type data_size, const IndexType ind,
+    const IndexType num_rows, const IndexType data_size, const IndexType ind,
     IndexType *__restrict__ row, IndexType *__restrict__ row_end,
+    const IndexType row_predict, const IndexType row_predict_end,
     const IndexType *__restrict__ row_ptr)
 {
     if (!overflow || ind < data_size) {
-        while (ind >= *row_end) {
-            *row_end = row_ptr[++*row + 1];
+        if (ind >= *row_end) {
+            *row = row_predict;
+            *row_end = row_predict_end;
+            for (; ind >= *row_end; *row_end = row_ptr[++*row + 1])
+                ;
         }
+
     } else {
         *row = num_rows - 1;
         *row_end = data_size;
@@ -122,54 +128,59 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <bool overflow, bool last, typename ValueType, typename IndexType,
-          typename Closure>
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void
+warp_atomic_add(
+        bool force_write,
+        ValueType * __restrict__ val,
+        IndexType ind,
+        ValueType * __restrict__ out)
+{
+    // do a local scan to avoid atomic collisions
+    const bool need_write =
+        segment_scan(ind, val);
+    if (need_write && force_write) {
+        atomic_add(out + ind, *val);
+    }
+    if (!need_write || force_write) {
+        *val = zero<ValueType>();
+    }
+}
+
+
+template <bool last, typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void process_window(
-    const size_type num_rows, const size_type data_size, const IndexType ind,
-    const IndexType column_id, IndexType *__restrict__ curr_row,
+    const IndexType num_rows, const IndexType data_size, const IndexType ind,
     IndexType *__restrict__ row, IndexType *__restrict__ row_end,
+    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
     ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
+    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
+    ValueType *__restrict__ c, Closure scale)
 {
-    if (!last || ind < data_size) {
-        *temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
-    }
-    if (!last) {
-        find_next_row<overflow>(
-            num_rows, data_size,
-            static_cast<IndexType>(ind + cuda_config::warp_size), row, row_end,
-            row_ptrs);
-    }
+    const IndexType curr_row = *row;
+    find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
+                        *nrow_end, row_ptrs);
     // segmented scan
-    if (last || warp::any(*curr_row != *row)) {
-        bool force_write = last ? last : (*curr_row != *row);
-        bool need_write = segment_scan(*curr_row, temp_val);
-        if (need_write && force_write) {
-            atomic_add(&(c[*curr_row * c_stride + column_id]),
-                       scale(*temp_val));
-        }
-        if (!last) {
-            *curr_row = *row;
-            *row = warp::shuffle(*row, cuda_config::warp_size - 1);
-            *row_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
-            if (!need_write || force_write) {
-                *temp_val = zero<ValueType>();
-            }
-        }
+    if (warp::any(curr_row != *row)) {
+        warp_atomic_add(curr_row != *row, temp_val, curr_row, c);
+        *nrow = warp::shuffle(*row, cuda_config::warp_size - 1);
+        *nrow_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
+    }
+
+    if (!last || ind < data_size) {
+        const auto col = col_idxs[ind];
+        *temp_val += val[ind] * b[col];
     }
 }
 
 
 template <typename IndexType>
-__device__ __forceinline__ IndexType get_warp_start_idx(size_type nwarps,
-                                                        size_type nnz,
+__device__ __forceinline__ IndexType get_warp_start_idx(IndexType nwarps,
+                                                        IndexType nnz,
                                                         IndexType warp_idx)
 {
-    const auto cache_lines =
-        ceildiv(static_cast<IndexType>(nnz), cuda_config::warp_size);
+    const auto cache_lines = ceildiv(nnz, cuda_config::warp_size);
     return (warp_idx * cache_lines / nwarps) * cuda_config::warp_size;
 }
 
@@ -190,81 +201,67 @@ __device__ __forceinline__ IndexType get_warp_start_idx(size_type nwarps,
  * @param scale  the function on the added value
  */
 template <typename ValueType, typename IndexType, typename Closure>
-__device__ void spmv_kernel(
-    const size_type nwarps, const size_type num_rows, const size_type data_size,
+__device__ __forceinline__ void spmv_kernel(
+    const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
+    const ValueType *__restrict__ b, ValueType *__restrict__ c, Closure scale)
 {
-    const IndexType warp_idx = blockIdx.x * blockDim.y + threadIdx.y;
+    const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
     if (warp_idx >= nwarps) {
         return;
     }
-    ValueType temp_val = zero<ValueType>();
-
+    const IndexType data_size = row_ptrs[num_rows];
     const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
     const IndexType end =
         min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
             static_cast<IndexType>(ceildiv(data_size, cuda_config::warp_size) *
                                    cuda_config::warp_size));
-    const IndexType column_id = blockIdx.y;
-    const IndexType ind_start = start + threadIdx.x;
-    const IndexType ind_end = end - 2 * cuda_config::warp_size;
     auto row = srow[warp_idx];
     auto row_end = row_ptrs[row + 1];
-    IndexType ind = ind_start;
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, row_ptrs);
-    auto curr_row = row;
+    auto nrow = row;
+    auto nrow_end = row_end;
+    ValueType temp_val = zero<ValueType>();
+    IndexType ind = start + threadIdx.x;
+    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
+                        nrow_end, row_ptrs);
+    const IndexType ind_end = end - cuda_config::warp_size;
     for (; ind < ind_end; ind += cuda_config::warp_size) {
-        process_window<false, false>(num_rows, data_size, ind, column_id,
-                                     &curr_row, &row, &row_end, &temp_val, val,
-                                     col_idxs, row_ptrs, srow, b, b_stride, c,
-                                     c_stride, scale);
+        process_window<false>(num_rows, data_size, ind, &row, &row_end, &nrow,
+                              &nrow_end, &temp_val, val, col_idxs, row_ptrs, b,
+                              c, scale);
     }
-    if (ind < end - cuda_config::warp_size) {
-        process_window<true, false>(num_rows, data_size, ind, column_id,
-                                    &curr_row, &row, &row_end, &temp_val, val,
-                                    col_idxs, row_ptrs, srow, b, b_stride, c,
-                                    c_stride, scale);
-        ind += cuda_config::warp_size;
-    }
-    if (ind < end) {
-        process_window<true, true>(num_rows, data_size, ind, column_id,
-                                   &curr_row, &row, &row_end, &temp_val, val,
-                                   col_idxs, row_ptrs, srow, b, b_stride, c,
-                                   c_stride, scale);
-    }
+    process_window<true>(num_rows, data_size, ind, &row, &row_end, &nrow,
+                         &nrow_end, &temp_val, val, col_idxs, row_ptrs, b, c,
+                         scale);
+    warp_atomic_add(true, &temp_val, row, c);
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nwarps, const size_type num_rows, const size_type data_size,
+    const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
+    const ValueType *__restrict__ b, ValueType *__restrict__ c)
 {
-    spmv_kernel(nwarps, num_rows, data_size, val, col_idxs, row_ptrs, srow, b,
-                b_stride, c, c_stride, [](const ValueType &x) { return x; });
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+                [](const ValueType &x) { return x; });
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nwarps, const size_type num_rows, const size_type data_size,
+    const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
+    const ValueType *__restrict__ b, ValueType *__restrict__ c)
 {
     ValueType scale_factor = alpha[0];
-    spmv_kernel(nwarps, num_rows, data_size, val, col_idxs, row_ptrs, srow, b,
-                b_stride, c, c_stride, [&scale_factor](const ValueType &x) {
-                    return scale_factor * x;
-                });
+    spmv_kernel(
+        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+        [&scale_factor](const ValueType &x) { return scale_factor * x; });
 }
 
 
@@ -394,7 +391,7 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void classical_spmv(
+__global__ __launch_bounds__(64) void classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
@@ -425,24 +422,24 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        auto c_size = c->get_num_stored_elements();
-        const dim3 grid(ceildiv(c_size, default_block_size));
-        const dim3 block(default_block_size);
-        set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
-
-        auto a_size = a->get_num_stored_elements();
-        const size_type nwarps = a->get_num_srow_elements();
+        // auto c_size = c->get_num_stored_elements();
+        // const dim3 grid(ceildiv(c_size, default_block_size));
+        // const dim3 block(default_block_size);
+        // set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
+        ASSERT_NO_CUDA_ERRORS(
+            cudaMemset(c->get_values(), 0,
+                       c->get_num_stored_elements() * sizeof(ValueType)));
+        const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
-                                 b->get_size()[1]);
+            const dim3 csri_grid(ceildiv(nwarps, warps_in_block));
             abstract_spmv<<<csri_grid, csri_block>>>(
-                nwarps, a->get_size()[0], a_size,
+                nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
+                as_cuda_type(b->get_const_values()),
+                as_cuda_type(c->get_values()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         const int num_item = 16;
@@ -465,10 +462,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                           as_cuda_type(row_out.get_data()),
                           as_cuda_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "classical") {
-        const IndexType grid_num = ceildiv(a->get_size()[0], spmv_block_size);
-        const dim3 grid(grid_num);
-        const dim3 block(spmv_block_size);
-        classical_spmv<<<grid, block>>>(
+        classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
+                         classical_block_size>>>(
             a->get_size()[0], as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -491,21 +486,20 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         dense::scale(exec, beta, c);
 
         auto a_size = a->get_num_stored_elements();
-        const size_type nwarps = a->get_num_srow_elements();
+        const IndexType nwarps = a->get_num_srow_elements();
 
         if (nwarps > 0) {
             int num_lines = ceildiv(a_size, nwarps * cuda_config::warp_size);
             const dim3 csri_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csri_grid(ceildiv(nwarps, warps_in_block),
-                                 b->get_size()[1]);
+            const dim3 csri_grid(ceildiv(nwarps, warps_in_block));
             abstract_spmv<<<csri_grid, csri_block>>>(
-                nwarps, a->get_size()[0], a_size,
+                nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
+                as_cuda_type(b->get_const_values()),
+                as_cuda_type(c->get_values()));
         }
     }
 }
