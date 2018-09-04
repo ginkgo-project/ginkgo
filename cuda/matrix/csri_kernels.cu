@@ -56,33 +56,42 @@ constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
 constexpr int classical_block_size = 64;
+constexpr int wsize = cuda_config::warp_size;
 
 
 namespace {
 
 
+template <typename T>
+__host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
+{
+    return (nom + denom - 1ll) / denom;
+}
+
+
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ bool segment_scan(const IndexType ind,
-                                             ValueType *val)
+                                             ValueType *__restrict__ val)
 {
     bool head = true;
 #pragma unroll
-    for (int i = 1; i < cuda_config::warp_size; i <<= 1) {
+    for (int i = 1; i < wsize; i <<= 1) {
         const IndexType add_ind = warp::shuffle_up(ind, i);
         ValueType add_val = zero<ValueType>();
-        if (threadIdx.x >= i && add_ind == ind) {
+        if (add_ind == ind && threadIdx.x >= i) {
             add_val = *val;
             if (i == 1) {
                 head = false;
             }
         }
         add_val = warp::shuffle_down(add_val, i);
-        if (threadIdx.x < cuda_config::warp_size - i) {
+        if (threadIdx.x < wsize - i) {
             *val += add_val;
         }
     }
     return head;
 }
+
 
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ bool block_segment_scan_reverse(
@@ -128,18 +137,16 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
-__device__ __forceinline__ void
-warp_atomic_add(
-        bool force_write,
-        ValueType * __restrict__ val,
-        IndexType ind,
-        ValueType * __restrict__ out
-        , Closure scale)
+template <bool clean = true, typename ValueType, typename IndexType,
+          typename Closure>
+__device__ __forceinline__ void warp_atomic_add(bool force_write,
+                                                ValueType *__restrict__ val,
+                                                IndexType ind,
+                                                ValueType *__restrict__ out,
+                                                Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write =
-        segment_scan(ind, val);
+    const bool need_write = segment_scan(ind, val);
     if (need_write && force_write) {
         atomic_add(out + ind, scale(*val));
     }
@@ -165,8 +172,8 @@ __device__ __forceinline__ void process_window(
     // segmented scan
     if (warp::any(curr_row != *row)) {
         warp_atomic_add(curr_row != *row, temp_val, curr_row, c, scale);
-        *nrow = warp::shuffle(*row, cuda_config::warp_size - 1);
-        *nrow_end = warp::shuffle(*row_end, cuda_config::warp_size - 1);
+        *nrow = warp::shuffle(*row, wsize - 1);
+        *nrow_end = warp::shuffle(*row_end, wsize - 1);
     }
 
     if (!last || ind < data_size) {
@@ -177,12 +184,11 @@ __device__ __forceinline__ void process_window(
 
 
 template <typename IndexType>
-__device__ __forceinline__ IndexType get_warp_start_idx(IndexType nwarps,
-                                                        IndexType nnz,
-                                                        IndexType warp_idx)
+__device__ __forceinline__ IndexType get_warp_start_idx(
+    const IndexType nwarps, const IndexType nnz, const IndexType warp_idx)
 {
-    const auto cache_lines = ceildiv(nnz, cuda_config::warp_size);
-    return (warp_idx * cache_lines / nwarps) * cuda_config::warp_size;
+    const long long cache_lines = ceildivT<IndexType>(nnz, wsize);
+    return (warp_idx * cache_lines / nwarps) * wsize;
 }
 
 
@@ -216,8 +222,7 @@ __device__ __forceinline__ void spmv_kernel(
     const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
     const IndexType end =
         min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
-            static_cast<IndexType>(ceildiv(data_size, cuda_config::warp_size) *
-                                   cuda_config::warp_size));
+            ceildivT<IndexType>(data_size, wsize) * wsize);
     auto row = srow[warp_idx];
     auto row_end = row_ptrs[row + 1];
     auto nrow = row;
@@ -226,8 +231,8 @@ __device__ __forceinline__ void spmv_kernel(
     IndexType ind = start + threadIdx.x;
     find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
                         nrow_end, row_ptrs);
-    const IndexType ind_end = end - cuda_config::warp_size;
-    for (; ind < ind_end; ind += cuda_config::warp_size) {
+    const IndexType ind_end = end - wsize;
+    for (; ind < ind_end; ind += wsize) {
         process_window<false>(num_rows, data_size, ind, &row, &row_end, &nrow,
                               &nrow_end, &temp_val, val, col_idxs, row_ptrs, b,
                               c, scale);
@@ -276,6 +281,7 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
         val[ind] = zero<ValueType>();
     }
 }
+
 
 template <typename IndexType>
 __device__ void merge_path_search(const IndexType diagonal,
@@ -423,10 +429,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        // auto c_size = c->get_num_stored_elements();
-        // const dim3 grid(ceildiv(c_size, default_block_size));
-        // const dim3 block(default_block_size);
-        // set_zero<<<grid, block>>>(c_size, as_cuda_type(c->get_values()));
         ASSERT_NO_CUDA_ERRORS(
             cudaMemset(c->get_values(), 0,
                        c->get_num_stored_elements() * sizeof(ValueType)));
