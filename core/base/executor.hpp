@@ -788,6 +788,16 @@ public:
         return num_multiprocessor_ * warps_per_sm;
     }
 
+    /**
+     * Get the major verion of compute capability.
+     */
+    int get_major_version() const noexcept { return major_; }
+
+    /**
+     * Get the minor verion of compute capability.
+     */
+    int get_minor_version() const noexcept { return minor_; }
+
 protected:
     void set_gpu_property();
 
@@ -795,7 +805,9 @@ protected:
         : device_id_(device_id),
           master_(master),
           num_cores_per_sm_(0),
-          num_multiprocessor_(0)
+          num_multiprocessor_(0),
+          major_(0),
+          minor_(0)
     {
         this->set_gpu_property();
     }
@@ -809,6 +821,8 @@ private:
     std::shared_ptr<Executor> master_;
     int num_cores_per_sm_;
     int num_multiprocessor_;
+    int major_;
+    int minor_;
 };
 
 
