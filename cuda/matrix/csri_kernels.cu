@@ -140,8 +140,7 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <bool clean = true, typename ValueType, typename IndexType,
-          typename Closure>
+template <typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void warp_atomic_add(bool force_write,
                                                 ValueType *__restrict__ val,
                                                 IndexType ind,
@@ -195,21 +194,6 @@ __device__ __forceinline__ IndexType get_warp_start_idx(
 }
 
 
-/**
- * The device function of CSRI spmv
- *
- * @param nwarps  the number of warps
- * @param num_rows  the number of rows
- * @param val  the value array of the matrix
- * @param col_idxs  the column index array of the matrix
- * @param row_ptrs  the row pointer array of the matrix
- * @param srow  the starting row index array of the matrix
- * @param b  the input dense vector
- * @param b_stride  the stride of the input dense vector
- * @param c  the output dense vector
- * @param c_stride  the stride of the output dense vector
- * @param scale  the function on the added value
- */
 template <typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void spmv_kernel(
     const IndexType nwarps, const IndexType num_rows,
@@ -382,10 +366,10 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     const auto nnz = row_ptrs[num_rows];
     const IndexType num_merge_items = num_rows + nnz;
     const auto block_items = spmv_block_size * items_per_thread;
-    __shared__ IndexType shared_row_ptrs[block_items + 1];
-    IndexType diagonal =
+    __shared__ IndexType shared_row_ptrs[block_items];
+    const IndexType diagonal =
         min(static_cast<IndexType>(block_items * blockIdx.x), num_merge_items);
-    IndexType diagonal_end = min(diagonal + block_items, num_merge_items);
+    const IndexType diagonal_end = min(diagonal + block_items, num_merge_items);
     IndexType block_start_x;
     IndexType block_start_y;
     IndexType end_x;
@@ -397,7 +381,7 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     const IndexType block_num_rows = end_x - block_start_x;
     const IndexType block_num_nonzeros = end_y - block_start_y;
     for (int i = threadIdx.x;
-         i <= block_num_rows && block_start_x + i < num_rows;
+         i < block_num_rows && block_start_x + i < num_rows;
          i += spmv_block_size) {
         shared_row_ptrs[i] = row_end_ptrs[block_start_x + i];
     }
@@ -415,7 +399,7 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
         const IndexType ind = block_start_y + start_y;
         const IndexType row_i = block_start_x + start_x;
         if (row_i < num_rows) {
-            if (ind < shared_row_ptrs[start_x]) {
+            if (start_x == block_num_rows || ind < shared_row_ptrs[start_x]) {
                 value += val[ind] * b[col_idxs[ind]];
                 start_y++;
             } else {
@@ -432,10 +416,8 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = block_start_x + start_x;
     __syncthreads();
-    block::synchronize();
     bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
                                            static_cast<ValueType *>(tmp_val));
-    __syncthreads();
     if (threadIdx.x == spmv_block_size - 1) {
         row_out[blockIdx.x] = min(end_x, num_rows - 1);
         val_out[blockIdx.x] = tmp_val[threadIdx.x];
@@ -493,22 +475,42 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_values()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        const int version = exec->get_major_version();
+        const int version = exec->get_major_version()
+                            << 4 + exec->get_minor_version();
+        // 128 threads/block the number of items per threads
+        // 3.0 3.5: 6
+        // 3.7: 14
+        // 5.0, 5.3, 6.0, 6.2: 8
+        // 5.2, 6.1, 7.0: 12
         int num_item = 6;
-        if (version == 6) {
+        switch (version) {
+        case 0x50:
+        case 0x53:
+        case 0x60:
+        case 0x62:
             num_item = 8;
-        } else if (version == 7) {
+            break;
+        case 0x52:
+        case 0x61:
+        case 0x70:
             num_item = 12;
+            break;
+        case 0x37:
+            num_item = 14;
         }
+        // The calculation is based on size(IndexType) = 4
+        constexpr int index_scale = sizeof(IndexType) / 4;
+        const int items_per_thread = num_item / index_scale;
 
         const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
-        const IndexType grid_num = ceildiv(total, spmv_block_size * num_item);
+        const IndexType grid_num =
+            ceildiv(total, spmv_block_size * items_per_thread);
         const dim3 grid(grid_num);
         const dim3 block(spmv_block_size);
         Array<IndexType> row_out(exec, grid_num);
         Array<ValueType> val_out(exec, grid_num);
-        if (version == 6) {
-            merge_path_spmv<7><<<grid, block>>>(
+        if (num_item == 6) {
+            merge_path_spmv<6 / index_scale><<<grid, block>>>(
                 static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
@@ -517,8 +519,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_values()), c->get_stride(),
                 as_cuda_type(row_out.get_data()),
                 as_cuda_type(val_out.get_data()));
-        } else if (version == 7) {
-            merge_path_spmv<11><<<grid, block>>>(
+        } else if (num_item == 8) {
+            merge_path_spmv<8 / index_scale><<<grid, block>>>(
                 static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
@@ -527,8 +529,18 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_values()), c->get_stride(),
                 as_cuda_type(row_out.get_data()),
                 as_cuda_type(val_out.get_data()));
-        } else {
-            merge_path_spmv<6><<<grid, block>>>(
+        } else if (num_item == 12) {
+            merge_path_spmv<12 / index_scale><<<grid, block>>>(
+                static_cast<IndexType>(a->get_size()[0]),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(a->get_const_srow()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride(),
+                as_cuda_type(row_out.get_data()),
+                as_cuda_type(val_out.get_data()));
+        } else if (num_item == 14) {
+            merge_path_spmv<14 / index_scale><<<grid, block>>>(
                 static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
