@@ -291,28 +291,6 @@ __forceinline__ __device__ void merge_path_search(
     *y = diagonal - x_min;
 }
 
-template <typename IndexType>
-__device__ void merge_path_search(const IndexType diagonal,
-                                  const IndexType a_len, const IndexType b_len,
-                                  const IndexType *__restrict__ a,
-                                  IndexType *__restrict__ x,
-                                  IndexType *__restrict__ y)
-{
-    auto x_min = max(diagonal - b_len, zero<IndexType>());
-    auto x_max = min(diagonal, a_len);
-    while (x_min < x_max) {
-        auto pivot = (x_min + x_max) >> 1;
-        if (a[pivot] <= diagonal - pivot - 1) {
-            x_min = pivot + 1;
-        } else {
-            x_max = pivot;
-        }
-    }
-
-    *x = min(x_min, a_len);
-    *y = diagonal - x_min;
-}
-
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void reduce(
@@ -374,10 +352,10 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     IndexType block_start_y;
     IndexType end_x;
     IndexType end_y;
-    merge_path_search(diagonal, num_rows, nnz, row_end_ptrs, &block_start_x,
-                      &block_start_y);
-    merge_path_search(diagonal_end, num_rows, nnz, row_end_ptrs, &end_x,
-                      &end_y);
+    merge_path_search(diagonal, num_rows, nnz, row_end_ptrs, zero<IndexType>(),
+                      &block_start_x, &block_start_y);
+    merge_path_search(diagonal_end, num_rows, nnz, row_end_ptrs,
+                      zero<IndexType>(), &end_x, &end_y);
     const IndexType block_num_rows = end_x - block_start_x;
     const IndexType block_num_nonzeros = end_y - block_start_y;
     for (int i = threadIdx.x;
