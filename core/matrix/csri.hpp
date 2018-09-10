@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_CSRI_HPP_
 
 
+#include <algorithm>
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 
@@ -87,7 +88,11 @@ public:
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
 
+    class automatical;
+
     class strategy_type {
+        friend class automatical;
+
     public:
         strategy_type(std::string name) : name_(name) {}
 
@@ -96,7 +101,10 @@ public:
         virtual void process(const Array<index_type> &mtx_row_ptrs,
                              Array<index_type> *mtx_srow) = 0;
 
-        virtual int64_t clac_size(int64_t nnz) = 0;
+        virtual int64_t clac_size(const int64_t nnz) = 0;
+
+    protected:
+        void set_name(std::string name) { name_ = name; }
 
     private:
         std::string name_;
@@ -110,7 +118,7 @@ public:
                      Array<index_type> *mtx_srow)
         {}
 
-        int64_t clac_size(int64_t nnz) { return 0; }
+        int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
     class merge_path : public strategy_type {
@@ -121,7 +129,7 @@ public:
                      Array<index_type> *mtx_srow)
         {}
 
-        int64_t clac_size(int64_t nnz) { return 0; }
+        int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
     class load_balance : public strategy_type {
@@ -174,7 +182,7 @@ public:
             }
         }
 
-        int64_t clac_size(int64_t nnz)
+        int64_t clac_size(const int64_t nnz)
         {
             constexpr uint32 warp_size = 32;
             int multiple = 8;
@@ -185,6 +193,62 @@ public:
             }
             auto nwarps = nwarps_ * multiple;
             return min(ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps));
+        }
+
+    private:
+        int64_t nwarps_;
+    };
+
+    class automatical : public strategy_type {
+    public:
+        automatical()
+            : automatical(std::move(
+                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
+        {}
+
+        automatical(std::shared_ptr<const CudaExecutor> exec)
+            : automatical(exec->get_num_warps())
+        {}
+
+        automatical(int64_t nwarps)
+            : nwarps_(nwarps), strategy_type("automatical")
+        {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {
+            // if the number of stored elements per row is larger than 1e6 or
+            // the maximum number of stored elements per row is larger than
+            // 64, use load_balance otherwise use classical
+            const auto num = mtx_row_ptrs.get_num_elems();
+            Array<index_type> host_row_ptrs(
+                mtx_row_ptrs.get_executor()->get_master());
+            host_row_ptrs = mtx_row_ptrs;
+            const auto row_val = host_row_ptrs.get_const_data();
+            if (row_val[num] > 1e6) {
+                std::make_shared<load_balance>(nwarps_)->process(host_row_ptrs,
+                                                                 mtx_srow);
+                this->set_name("load_balance");
+            } else {
+                index_type maxnum = 0;
+                for (index_type i = 1; i < num; i++) {
+                    maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
+                }
+                if (maxnum > 64) {
+                    std::make_shared<load_balance>(nwarps_)->process(
+                        host_row_ptrs, mtx_srow);
+                    this->set_name("load_balance");
+                } else {
+                    std::make_shared<classical>()->process(host_row_ptrs,
+                                                           mtx_srow);
+                    this->set_name("classical");
+                }
+            }
+        }
+
+        int64_t clac_size(const int64_t nnz)
+        {
+            return std::make_shared<load_balance>(nwarps_)->clac_size(nnz);
         }
 
     private:
@@ -280,13 +344,6 @@ public:
     }
 
     /**
-     * Returns the number of the warps (settings)
-     *
-     * @return the number of the warps (settings)
-     */
-    // size_type get_nwarps() const noexcept { return nwarps_; }
-
-    /**
      * Returns the number of the srow stored elements (involved warps)
      *
      * @return the number of the srow stored elements (involved warps)
@@ -316,7 +373,7 @@ protected:
      * Creates an uninitialized CSRI matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param nwarps the number of warps
+     * @param strategy  the strategy of CSR
      */
     Csri(std::shared_ptr<const Executor> exec,
          std::shared_ptr<strategy_type> strategy)
@@ -329,12 +386,12 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param nwarps the number of warps
+     * @param strategy  the strategy of CSR
      */
     Csri(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
          size_type num_nonzeros = {},
          std::shared_ptr<strategy_type> strategy =
-             std::make_shared<load_balance>())
+             std::make_shared<automatical>())
         : EnableLinOp<Csri>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),

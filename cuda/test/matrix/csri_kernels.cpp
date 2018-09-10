@@ -165,4 +165,15 @@ TEST_F(Csri, SimpleApplyIsEquivalentToRefWithClassical)
 }
 
 
+TEST_F(Csri, SimpleApplyIsEquivalentToRefWithAutomatical)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 }  // namespace
