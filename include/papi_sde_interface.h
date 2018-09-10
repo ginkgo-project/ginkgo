@@ -1,6 +1,7 @@
 #ifndef PAPI_SDE_INTERFACE_H
 #define PAPI_SDE_INTERFACE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define PAPI_SDE_RO 0x00

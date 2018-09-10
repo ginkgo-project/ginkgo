@@ -62,10 +62,10 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 #     4. Copy the previous header to an include path in your system
 find_library(GKO_PAPI_LIB papi)
 if (GKO_PAPI_LIB)
-  include (CheckSymbolExists)
+  include (CheckCXXSymbolExists)
 
   SET(CMAKE_REQUIRED_LIBRARIES ${GKO_PAPI_LIB})
-  check_symbol_exists(papi_sde_init papi_sde_interface.h GKO_HAVE_PAPI_SDE)
+  check_cxx_symbol_exists(papi_sde_init papi_sde_interface.h GKO_HAVE_PAPI_SDE)
   unset(CMAKE_REQUIRED_LIBRARIES)
 
   if (GKO_HAVE_PAPI_SDE)
