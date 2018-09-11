@@ -337,6 +337,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
         TemplatedOperationCsr<ValueType, int32>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -348,6 +349,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
         TemplatedOperationCsr<ValueType, int32>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -359,6 +361,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
         TemplatedOperationCsr<ValueType, int64>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -370,6 +373,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
         TemplatedOperationCsr<ValueType, int64>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
