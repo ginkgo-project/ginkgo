@@ -41,7 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
-#include "core/matrix/csri.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
@@ -87,13 +86,6 @@ template <typename... TplArgs>
 struct TemplatedOperationCsr {
     GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_csr, dense::move_to_csr<TplArgs...>);
-};
-
-
-template <typename... TplArgs>
-struct TemplatedOperationCsri {
-    GKO_REGISTER_OPERATION(convert_to_csri, dense::convert_to_csri<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_csri, dense::move_to_csri<TplArgs...>);
 };
 
 
@@ -149,23 +141,6 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
         source, &num_stored_nonzeros));
     auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_size(),
                                                  num_stored_nonzeros);
-    exec->run(op(tmp.get(), source));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Csri<ValueType, IndexType> *result,
-                              MatrixType *source, const OperationType &op)
-{
-    auto exec = source->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(TemplatedOperation<ValueType>::make_count_nonzeros_operation(
-        source, &num_stored_nonzeros));
-    auto tmp = Csri<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -398,54 +373,6 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
         TemplatedOperationCsr<ValueType, int64>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
-    result->make_srow();
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Csri<ValueType, int32> *result) const
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsri<ValueType, int32>::
-            template make_convert_to_csri_operation<decltype(result),
-                                                    const Dense<ValueType> *&>);
-    result->make_srow();
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Csri<ValueType, int32> *result)
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsri<ValueType, int32>::
-            template make_move_to_csri_operation<decltype(result),
-                                                 Dense<ValueType> *&>);
-    result->make_srow();
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::convert_to(Csri<ValueType, int64> *result) const
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsri<ValueType, int64>::
-            template make_convert_to_csri_operation<decltype(result),
-                                                    const Dense<ValueType> *&>);
-    result->make_srow();
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::move_to(Csri<ValueType, int64> *result)
-{
-    conversion_helper(
-        result, this,
-        TemplatedOperationCsri<ValueType, int64>::
-            template make_move_to_csri_operation<decltype(result),
-                                                 Dense<ValueType> *&>);
     result->make_srow();
 }
 

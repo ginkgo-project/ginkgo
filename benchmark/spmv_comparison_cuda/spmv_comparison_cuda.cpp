@@ -395,7 +395,6 @@ private:
 
 // set matrix shortcuts
 using coo = gko::matrix::Coo<double, gko::int32>;
-using csri = gko::matrix::Csri<double, gko::int32>;
 using ell = gko::matrix::Ell<double, gko::int32>;
 using hybrid = gko::matrix::Hybrid<double, gko::int32>;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
@@ -769,25 +768,25 @@ int main(int argc, char *argv[])
                                         lend(x), lend(y), matlab_format,
                                         out_fd.at(i), lend(answer));
                 } else if (elem == "Csri") {
-                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
                                   lend(y), matlab_format, out_fd.at(i),
                                   lend(answer),
-                                  std::make_shared<csri::load_balance>(exec));
+                                  std::make_shared<csr::load_balance>(exec));
                 } else if (elem == "Csrm") {
-                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
                                   lend(y), matlab_format, out_fd.at(i),
                                   lend(answer),
-                                  std::make_shared<csri::merge_path>());
+                                  std::make_shared<csr::merge_path>());
                 } else if (elem == "Csrc") {
-                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
                                   lend(y), matlab_format, out_fd.at(i),
                                   lend(answer),
-                                  std::make_shared<csri::classical>());
+                                  std::make_shared<csr::classical>());
                 } else if (elem == "Csr") {
-                    testing<csri>(exec, warm_iter, test_iter, data, lend(x),
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
                                   lend(y), matlab_format, out_fd.at(i),
                                   lend(answer),
-                                  std::make_shared<csri::automatical>(exec));
+                                  std::make_shared<csr::automatical>(exec));
                 }
             }
             out_fd.at(i) << std::endl;

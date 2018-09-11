@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/range_accessors.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/csr.hpp"
-#include "core/matrix/csri.hpp"
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
 #include "core/matrix/sellp.hpp"
@@ -247,50 +246,6 @@ void move_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csri(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Csri<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
-{
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_stored_elements();
-
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    size_type cur_ptr = 0;
-    row_ptrs[0] = cur_ptr;
-    for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto val = source->at(row, col);
-            if (val != zero<ValueType>()) {
-                col_idxs[cur_ptr] = col;
-                values[cur_ptr] = val;
-                ++cur_ptr;
-            }
-        }
-        row_ptrs[row + 1] = cur_ptr;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_CSRI_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_csri(std::shared_ptr<const ReferenceExecutor> exec,
-                 matrix::Csri<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    reference::dense::convert_to_csri(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_CSRI_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

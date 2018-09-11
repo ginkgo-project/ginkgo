@@ -333,7 +333,7 @@ public:
     index_type *get_srow() noexcept { return srow_.get_data(); }
 
     /**
-     * @copydoc Csri::get_srow()
+     * @copydoc Csr::get_srow()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,

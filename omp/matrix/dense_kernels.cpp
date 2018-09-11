@@ -208,24 +208,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csri(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csri<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_CSRI_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_csri(std::shared_ptr<const OmpExecutor> exec,
-                 matrix::Csri<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_CSRI_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Ell<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source) NOT_IMPLEMENTED;

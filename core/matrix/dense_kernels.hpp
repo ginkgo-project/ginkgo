@@ -84,16 +84,6 @@ namespace kernels {
                      matrix::Csr<_type, _prec> *other,            \
                      const matrix::Dense<_type> *source)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSRI_KERNEL(_type, _prec)        \
-    void convert_to_csri(std::shared_ptr<const DefaultExecutor> exec, \
-                         matrix::Csri<_type, _prec> *other,           \
-                         const matrix::Dense<_type> *source)
-
-#define GKO_DECLARE_DENSE_MOVE_TO_CSRI_KERNEL(_type, _prec)        \
-    void move_to_csri(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Csri<_type, _prec> *other,           \
-                      const matrix::Dense<_type> *source)
-
 #define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(_type, _prec)        \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
                         matrix::Ell<_type, _prec> *other,            \
@@ -170,10 +160,6 @@ namespace kernels {
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_CSRI_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_MOVE_TO_CSRI_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                 \
