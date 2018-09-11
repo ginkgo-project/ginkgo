@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/exception.hpp>
 #include <core/base/executor.hpp>
 #include <core/matrix/dense.hpp>
+#include <core/preconditioner/block_jacobi.hpp>
 #include <core/stop/combined.hpp>
 #include <core/stop/iteration.hpp>
 #include <core/stop/residual_norm_reduction.hpp>
@@ -94,11 +95,19 @@ protected:
                                                  .with_reduction_factor(1e-15)
                                                  .on_executor(exec))
                           .on_executor(exec))
-                  .on_executor(exec))
+                  .on_executor(exec)),
+          mtx_medium(
+              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
+                                    {7.70, -77.00, 3.30, -149.20, 74.80},
+                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
+                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
+                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
+                                   exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<gko::solver::Gmres<>::Factory> gmres_factory;
     std::unique_ptr<gko::solver::Gmres<>::Factory> gmres_factory_big;
@@ -255,6 +264,62 @@ TEST_F(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
     ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
+}
+
+
+TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
+{
+    auto gmres_factory_restart =
+        gko::solver::Gmres<>::Factory::create()
+            .with_krylov_dim(4u)
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(200u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-15)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            .on_executor(exec);
+    auto solver = gmres_factory_restart->generate(mtx_medium);
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}), 1e-5);
+}
+
+
+TEST_F(Gmres, SolvesWithPreconditioner)
+{
+    auto gmres_factory_preconditioner =
+        gko::solver::Gmres<>::Factory::create()
+            .with_criterion(
+                gko::stop::Combined::Factory::create()
+                    .with_criteria(
+                        gko::stop::Iteration::Factory::create()
+                            .with_max_iters(100u)
+                            .on_executor(exec),
+                        gko::stop::ResidualNormReduction<>::Factory::create()
+                            .with_reduction_factor(1e-15)
+                            .on_executor(exec))
+                    .on_executor(exec))
+            .with_preconditioner(
+                gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
+            .on_executor(exec);
+    auto solver = gmres_factory_preconditioner->generate(mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
 }
 
 

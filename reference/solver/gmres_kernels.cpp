@@ -207,14 +207,25 @@ void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
 template <typename ValueType>
 void solve_x(matrix::Dense<ValueType> *krylov_bases,
              matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             const size_type *final_iter_nums)
+             const size_type *final_iter_nums, const LinOp *preconditioner)
 {
+    auto before_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+    auto after_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+
     for (size_type k = 0; k < x->get_size()[1]; ++k) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
-                x->at(i, k) +=
+                before_preconditioner->at(i, k) +=
                     krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
             }
+        }
+        preconditioner->apply(before_preconditioner.get(),
+                              after_preconditioner.get());
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            x->at(i, k) += after_preconditioner->at(i, k);
         }
     }
 }
@@ -230,8 +241,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
-                  Array<size_type> *final_iter_nums,
-                  Array<stopping_status> *stop_status, const int max_iter)
+                  Array<stopping_status> *stop_status, const int krylov_dim)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
@@ -244,11 +254,10 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             residual->at(i, j) = b->at(i, j);
         }
-        for (size_type i = 0; i < max_iter; ++i) {
+        for (size_type i = 0; i < krylov_dim; ++i) {
             givens_sin->at(i, j) = zero<ValueType>();
             givens_cos->at(i, j) = zero<ValueType>();
         }
-        final_iter_nums->get_data()[j] = 0;
         stop_status->get_data()[j].reset();
     }
 }
@@ -261,7 +270,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
-                  matrix::Dense<ValueType> *krylov_bases, const int max_iter)
+                  matrix::Dense<ValueType> *krylov_bases,
+                  Array<size_type> *final_iter_nums, const int krylov_dim)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -271,7 +281,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
 
-        for (size_type i = 0; i < max_iter + 1; ++i) {
+        for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
                 residual_norms->at(i, j) = residual_norm->at(0, j);
             } else {
@@ -282,6 +292,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             krylov_bases->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
         }
+        final_iter_nums->get_data()[j] = 0;
     }
 }
 
@@ -318,11 +329,13 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums)
+            const Array<size_type> *final_iter_nums,
+            const LinOp *preconditioner)
 {
     solve_upper_triangular(residual_norms, hessenberg, y,
                            final_iter_nums->get_const_data());
-    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data());
+    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data(),
+            preconditioner);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
