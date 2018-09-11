@@ -183,7 +183,7 @@ TEST_F(Csr, CanBeCleared)
 
 TEST_F(Csr, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    auto m = Mtx::create(exec, std::make_shared<Mtx::load_balance>(2));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
