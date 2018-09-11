@@ -122,7 +122,7 @@ public:
     }
 
     CuspCsrmp(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -132,6 +132,58 @@ public:
     }
 
     ~CuspCsrmp() noexcept(false)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
+    }
+
+private:
+    std::shared_ptr<csr> csr_;
+    cusparseHandle_t handle_;
+    cusparseMatDescr_t desc_;
+    cusparseOperation_t trans_;
+};
+
+class CuspCsr : public gko::EnableCreateMethod<CuspCsr> {
+    using ValueType = double;
+    using IndexType = gko::int32;
+
+public:
+    void read(const mtx &data) { csr_->read(data); }
+
+    void apply(const gko::LinOp *b, gko::LinOp *x) const
+    {
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
+            handle_, trans_, csr_->get_size()[0], csr_->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, desc_,
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx));
+    }
+
+    gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+    CuspCsr(std::shared_ptr<gko::Executor> exec)
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
+    }
+
+    ~CuspCsr() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -176,7 +228,7 @@ public:
     }
 
     CuspCsrmm(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -245,7 +297,7 @@ public:
     }
 
     CuspCsrEx(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           set_buffer_(false)
     {
@@ -290,7 +342,7 @@ public:
 
     void read(const mtx &data)
     {
-        auto t_csr = csr::create(exec_);
+        auto t_csr = csr::create(exec_, std::make_shared<csr::classical>());
         t_csr->read(data);
         size[0] = t_csr->get_size()[0];
         size[1] = t_csr->get_size()[1];
@@ -348,7 +400,7 @@ using ell = gko::matrix::Ell<double, gko::int32>;
 using hybrid = gko::matrix::Hybrid<double, gko::int32>;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
 using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
-using cusp_csr = csr;
+using cusp_csr = CuspCsr;
 using cusp_csrex = CuspCsrEx;
 using cusp_csrmp = CuspCsrmp;
 using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
