@@ -113,6 +113,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a5b09b13c4d6ec7c8dbed903c58a620d6"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Gmres.html#a5b09b13c4d6ec7c8dbed903c58a620d6">get_preconditioner</a> () const</td></tr>
 <tr class="memdesc:a5b09b13c4d6ec7c8dbed903c58a620d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the preconditioner operator used by the solver.  <a href="#a5b09b13c4d6ec7c8dbed903c58a620d6">More...</a><br /></td></tr>
 <tr class="separator:a5b09b13c4d6ec7c8dbed903c58a620d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a808fe82cdd1e988667a89d6982e740"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Gmres.html#a3a808fe82cdd1e988667a89d6982e740">get_krylov_dim</a> () const</td></tr>
+<tr class="memdesc:a3a808fe82cdd1e988667a89d6982e740"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the krylov dimension.  <a href="#a3a808fe82cdd1e988667a89d6982e740">More...</a><br /></td></tr>
+<tr class="separator:a3a808fe82cdd1e988667a89d6982e740"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a54a7453e1f9106f5b6d4373ecd1a493f"><td class="memItemLeft" align="right" valign="top"><a id="a54a7453e1f9106f5b6d4373ecd1a493f"></a>
 const <a class="el" href="structgko_1_1solver_1_1Gmres_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a54a7453e1f9106f5b6d4373ecd1a493f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -255,6 +258,28 @@ class gko::solver::Gmres&lt; ValueType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a3a808fe82cdd1e988667a89d6982e740"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3a808fe82cdd1e988667a89d6982e740">&#9670;&nbsp;</a></span>get_krylov_dim()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">size_type <a class="el" href="classgko_1_1solver_1_1Gmres.html">gko::solver::Gmres</a>&lt; ValueType &gt;::get_krylov_dim </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns the krylov dimension. </p>
+<dl class="section return"><dt>Returns</dt><dd>the krylov dimension </dd></dl>
+
+</div>
+</div>
 <a id="a5b09b13c4d6ec7c8dbed903c58a620d6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5b09b13c4d6ec7c8dbed903c58a620d6">&#9670;&nbsp;</a></span>get_preconditioner()</h2>
 
@@ -300,8 +325,8 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/solver/<a class="el" href="gmres_8hpp_source.html">gmres.hpp (165b531)</a></li>
-<li>core/solver/gmres.cpp (41508bb)</li>
+<li>core/solver/<a class="el" href="gmres_8hpp_source.html">gmres.hpp (dfcfb7f)</a></li>
+<li>core/solver/gmres.cpp (8c8e595)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
