@@ -305,10 +305,10 @@ struct mock_free : T {
     mock_free(Params &&... params) : T(std::forward<Params>(params)...)
     {}
 
-    void free(void *ptr) const noexcept override
+    void raw_free(void *ptr) const noexcept override
     {
         called_free = true;
-        T::free(ptr);
+        T::raw_free(ptr);
     }
 
     mutable bool called_free{false};

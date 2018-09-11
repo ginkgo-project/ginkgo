@@ -6,6 +6,16 @@ focus on sparse solution of linear systems. It is implemented using modern C++
 implemented in CUDA.
 
 
+Performance
+-----------
+
+An extensive database of up-to-date benchmark results is available in the
+[performance data reposotiry](https://github.com/ginkgo-project/ginkgo-data).
+Visualizations of the database can be interactively generated using the
+[Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
+The benchmark results are automatically updated using the CI system to always
+reflect the current state of the library.
+
 Prerequisites
 -------------
 
@@ -90,6 +100,8 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `ON`
 *   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
+*   `-DBUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
+    (will download gflags and rapidjson), default is `ON`
 *   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`
@@ -160,7 +172,6 @@ run the following from the build folder:
 ```
 
 where `path/to/test` is the path returned by `make test`.
-
 
 ### Installing Ginkgo
 
