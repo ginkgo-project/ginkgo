@@ -5,6 +5,7 @@ var searchData=
   ['max_5fblock_5fsize',['max_block_size',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a41e62ed6df95087024217c1295010861',1,'gko::kernels::cuda::cuda_config']]],
   ['max_5fiters',['max_iters',['../structgko_1_1stop_1_1Iteration_1_1parameters__type.html#a7daf7ecb5cf107b9e7444b0898f691c4',1,'gko::stop::Iteration::parameters_type']]],
   ['max_5foperaton',['max_operaton',['../structgko_1_1accessor_1_1max__operaton.html',1,'gko::accessor']]],
+  ['merge_5fpath',['merge_path',['../classgko_1_1matrix_1_1Csr_1_1merge__path.html',1,'gko::matrix::Csr']]],
   ['min_5foperaton',['min_operaton',['../structgko_1_1accessor_1_1min__operaton.html',1,'gko::accessor']]],
   ['min_5fwarps_5fper_5fblock',['min_warps_per_block',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a4b717d114681aa2bd96accc2e935cfae',1,'gko::kernels::cuda::cuda_config']]],
   ['minor',['minor',['../structgko_1_1version.html#abb548e6dca39e0a3718ecf13cafbba36',1,'gko::version']]],

@@ -11,6 +11,7 @@ var searchData=
   ['linop_5ffactory_5fdata',['linop_factory_data',['../structgko_1_1log_1_1linop__factory__data.html',1,'gko::log']]],
   ['linop_5ffactory_5fevents_5fmask',['linop_factory_events_mask',['../classgko_1_1log_1_1Logger.html#a9441c99bbb78b62354b4cc1bcc5885ae',1,'gko::log::Logger']]],
   ['linopfactory',['LinOpFactory',['../classgko_1_1LinOpFactory.html',1,'gko']]],
+  ['load_5fbalance',['load_balance',['../classgko_1_1matrix_1_1Csr_1_1load__balance.html',1,'gko::matrix::Csr']]],
   ['loggable',['Loggable',['../classgko_1_1log_1_1Loggable.html',1,'gko::log']]],
   ['logged_5fdata',['logged_data',['../structgko_1_1log_1_1Record_1_1logged__data.html',1,'gko::log::Record']]],
   ['logger',['Logger',['../classgko_1_1log_1_1Logger.html',1,'gko::log']]],

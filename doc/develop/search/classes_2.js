@@ -2,6 +2,7 @@ var searchData=
 [
   ['cg',['Cg',['../classgko_1_1solver_1_1Cg.html',1,'gko::solver']]],
   ['cgs',['Cgs',['../classgko_1_1solver_1_1Cgs.html',1,'gko::solver']]],
+  ['classical',['classical',['../classgko_1_1matrix_1_1Csr_1_1classical.html',1,'gko::matrix::Csr']]],
   ['column_5flimit',['column_limit',['../classgko_1_1matrix_1_1Hybrid_1_1column__limit.html',1,'gko::matrix::Hybrid']]],
   ['combined',['Combined',['../classgko_1_1stop_1_1Combined.html',1,'gko::stop']]],
   ['compile_5fint_5flist',['compile_int_list',['../structgko_1_1syn_1_1compile__int__list.html',1,'gko::syn']]],
@@ -47,5 +48,6 @@ var searchData=
   ['cuda_5fconfig',['cuda_config',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html',1,'gko::kernels::cuda']]],
   ['cudaerror',['CudaError',['../classgko_1_1CudaError.html',1,'gko']]],
   ['cudaexecutor',['CudaExecutor',['../classgko_1_1CudaExecutor.html',1,'gko']]],
+  ['cusparse',['cusparse',['../classgko_1_1matrix_1_1Csr_1_1cusparse.html',1,'gko::matrix::Csr']]],
   ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko']]]
 ];

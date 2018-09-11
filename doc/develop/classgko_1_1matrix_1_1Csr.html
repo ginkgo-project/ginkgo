@@ -69,6 +69,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#friends">Friends</a> &#124;
@@ -83,6 +84,21 @@ $(function() {
 
 <p><code>#include &lt;<a class="el" href="csr_8hpp_source.html">core/matrix/csr.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html">automatical</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html">classical</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1cusparse.html">cusparse</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html">load_balance</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1merge__path.html">merge_path</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">strategy_type</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:ae9e0b5332427a9a5a782aab4b6e2b60e"><td class="memItemLeft" align="right" valign="top"><a id="ae9e0b5332427a9a5a782aab4b6e2b60e"></a>
@@ -155,9 +171,21 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a50c9ce521649450d7ae5ff488e42c190"><td class="memItemLeft" align="right" valign="top">const index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a50c9ce521649450d7ae5ff488e42c190">get_const_row_ptrs</a> () const noexcept</td></tr>
 <tr class="memdesc:a50c9ce521649450d7ae5ff488e42c190"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the row pointers of the matrix.  <a href="#a50c9ce521649450d7ae5ff488e42c190">More...</a><br /></td></tr>
 <tr class="separator:a50c9ce521649450d7ae5ff488e42c190"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a919fb1efdcbde6fba7eb18bdc39ba46a"><td class="memItemLeft" align="right" valign="top">index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a919fb1efdcbde6fba7eb18bdc39ba46a">get_srow</a> () noexcept</td></tr>
+<tr class="memdesc:a919fb1efdcbde6fba7eb18bdc39ba46a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the starting rows.  <a href="#a919fb1efdcbde6fba7eb18bdc39ba46a">More...</a><br /></td></tr>
+<tr class="separator:a919fb1efdcbde6fba7eb18bdc39ba46a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac046f27c47848bf31c9234567661ef48"><td class="memItemLeft" align="right" valign="top">const index_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ac046f27c47848bf31c9234567661ef48">get_const_srow</a> () const noexcept</td></tr>
+<tr class="memdesc:ac046f27c47848bf31c9234567661ef48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the starting rows.  <a href="#ac046f27c47848bf31c9234567661ef48">More...</a><br /></td></tr>
+<tr class="separator:ac046f27c47848bf31c9234567661ef48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b8c25c2fb1bbea62a3afdec8f8340c5"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a5b8c25c2fb1bbea62a3afdec8f8340c5">get_num_srow_elements</a> () const noexcept</td></tr>
+<tr class="memdesc:a5b8c25c2fb1bbea62a3afdec8f8340c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of the srow stored elements (involved warps)  <a href="#a5b8c25c2fb1bbea62a3afdec8f8340c5">More...</a><br /></td></tr>
+<tr class="separator:a5b8c25c2fb1bbea62a3afdec8f8340c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab70c085fc3df11a4ed9fe74b40844c5c"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ab70c085fc3df11a4ed9fe74b40844c5c">get_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:ab70c085fc3df11a4ed9fe74b40844c5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the matrix.  <a href="#ab70c085fc3df11a4ed9fe74b40844c5c">More...</a><br /></td></tr>
 <tr class="separator:ab70c085fc3df11a4ed9fe74b40844c5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada0db14e65dfe027f483dc449f704a7e"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ada0db14e65dfe027f483dc449f704a7e">get_strategy</a> () const noexcept</td></tr>
+<tr class="memdesc:ada0db14e65dfe027f483dc449f704a7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the strategy.  <a href="#ada0db14e65dfe027f483dc449f704a7e">More...</a><br /></td></tr>
+<tr class="separator:ada0db14e65dfe027f483dc449f704a7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableLinOp"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableLinOp')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp&lt; Csr&lt; ValueType, IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a28a3c32ed2934695b46969533db050da inherit pub_methods_classgko_1_1EnableLinOp"><td class="memItemLeft" align="right" valign="top"><a id="a28a3c32ed2934695b46969533db050da"></a>
 const Csr&lt; ValueType, IndexType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *x) const</td></tr>
@@ -451,6 +479,39 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 </div>
 </div>
+<a id="ac046f27c47848bf31c9234567661ef48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac046f27c47848bf31c9234567661ef48">&#9670;&nbsp;</a></span>get_const_srow()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const index_type* <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::get_const_srow </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the starting rows. </p>
+<dl class="section return"><dt>Returns</dt><dd>the starting rows.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This is the constant version of the function, which can be significantly more memory efficient than the non-constant version, so always prefer this version. </dd></dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1Array.html#a5a46e0920b649cdb062f5e415922d1aa">gko::Array&lt; ValueType &gt;::get_const_data()</a>.</p>
+
+</div>
+</div>
 <a id="a1801347665214bbefc837b44ba0695ff"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1801347665214bbefc837b44ba0695ff">&#9670;&nbsp;</a></span>get_const_values()</h2>
 
@@ -481,6 +542,38 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <dl class="section note"><dt>Note</dt><dd>This is the constant version of the function, which can be significantly more memory efficient than the non-constant version, so always prefer this version. </dd></dl>
 
 <p class="reference">References <a class="el" href="classgko_1_1Array.html#a5a46e0920b649cdb062f5e415922d1aa">gko::Array&lt; ValueType &gt;::get_const_data()</a>.</p>
+
+</div>
+</div>
+<a id="a5b8c25c2fb1bbea62a3afdec8f8340c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b8c25c2fb1bbea62a3afdec8f8340c5">&#9670;&nbsp;</a></span>get_num_srow_elements()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_type <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::get_num_srow_elements </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of the srow stored elements (involved warps) </p>
+<dl class="section return"><dt>Returns</dt><dd>the number of the srow stored elements (involved warps) </dd></dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">gko::Array&lt; ValueType &gt;::get_num_elems()</a>.</p>
 
 </div>
 </div>
@@ -545,6 +638,68 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <dl class="section return"><dt>Returns</dt><dd>the row pointers of the matrix. </dd></dl>
 
 <p class="reference">References <a class="el" href="classgko_1_1Array.html#a9acf29878703bb8767e3cea2ba499dae">gko::Array&lt; ValueType &gt;::get_data()</a>.</p>
+
+</div>
+</div>
+<a id="a919fb1efdcbde6fba7eb18bdc39ba46a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a919fb1efdcbde6fba7eb18bdc39ba46a">&#9670;&nbsp;</a></span>get_srow()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">index_type* <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::get_srow </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the starting rows. </p>
+<dl class="section return"><dt>Returns</dt><dd>the starting rows. </dd></dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1Array.html#a9acf29878703bb8767e3cea2ba499dae">gko::Array&lt; ValueType &gt;::get_data()</a>.</p>
+
+</div>
+</div>
+<a id="ada0db14e65dfe027f483dc449f704a7e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ada0db14e65dfe027f483dc449f704a7e">&#9670;&nbsp;</a></span>get_strategy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">strategy_type</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::get_strategy </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the strategy. </p>
+<dl class="section return"><dt>Returns</dt><dd>the strategy </dd></dl>
 
 </div>
 </div>
@@ -690,8 +845,8 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (f877ff6)</a></li>
-<li>core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (f877ff6)</a></li>
-<li>core/matrix/csr.cpp (f877ff6)</li>
+<li>core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (36dda8f)</a></li>
+<li>core/matrix/csr.cpp (36dda8f)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

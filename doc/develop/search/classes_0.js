@@ -14,5 +14,6 @@ var searchData=
   ['array_3c_20size_5ftype_20_3e',['Array&lt; size_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20typename_20generated_5ftype_3a_3aprecision_20_3e',['Array&lt; typename generated_type::precision &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20value_5ftype_20_3e',['Array&lt; value_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
-  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]]
+  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]],
+  ['automatical',['automatical',['../classgko_1_1matrix_1_1Csr_1_1automatical.html',1,'gko::matrix::Csr']]]
 ];

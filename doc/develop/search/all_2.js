@@ -3,6 +3,7 @@ var searchData=
   ['cg',['Cg',['../classgko_1_1solver_1_1Cg.html',1,'gko::solver']]],
   ['cgs',['Cgs',['../classgko_1_1solver_1_1Cgs.html',1,'gko::solver']]],
   ['check',['check',['../classgko_1_1stop_1_1Criterion_1_1Updater.html#a45c08cadb75dbab3af4f52ce0684714d',1,'gko::stop::Criterion::Updater::check()'],['../classgko_1_1stop_1_1Criterion.html#ad441c91b231ef5a1c8c646bbd496affd',1,'gko::stop::Criterion::check()']]],
+  ['classical',['classical',['../classgko_1_1matrix_1_1Csr_1_1classical.html',1,'gko::matrix::Csr']]],
   ['clear',['clear',['../classgko_1_1Array.html#a64f7e9f19c4e8cff8adb402da70476c3',1,'gko::Array::clear()'],['../classgko_1_1PolymorphicObject.html#a8bb6f9995e8166099ca3ecab51d98df5',1,'gko::PolymorphicObject::clear()']]],
   ['clone',['clone',['../classgko_1_1PolymorphicObject.html#ada90b9acf2e6b3201a9b2e09ac56217f',1,'gko::PolymorphicObject::clone(std::shared_ptr&lt; const Executor &gt; exec) const'],['../classgko_1_1PolymorphicObject.html#a298c488bcb1906877a3584d88713ba81',1,'gko::PolymorphicObject::clone() const']]],
   ['col_5fat',['col_at',['../classgko_1_1matrix_1_1Ell.html#a1ef17227a6de85a1c12ebc106abbfc32',1,'gko::matrix::Ell::col_at(size_type row, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Ell.html#a1ac1702011ead4e56857de130b4a5301',1,'gko::matrix::Ell::col_at(size_type row, size_type idx) const noexcept'],['../classgko_1_1matrix_1_1Sellp.html#a994af14832dbc9ff70e431f6c11a1d52',1,'gko::matrix::Sellp::col_at(size_type row, size_type slice_set, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Sellp.html#a5fb397d1dc15063dc4dc78bb9d9b4f72',1,'gko::matrix::Sellp::col_at(size_type row, size_type slice_set, size_type idx) const noexcept']]],
@@ -70,5 +71,6 @@ var searchData=
   ['cuda_5fversion',['cuda_version',['../classgko_1_1version__info.html#a75d283ac87b2f80abdc48fa48b3a5d51',1,'gko::version_info']]],
   ['cudaerror',['CudaError',['../classgko_1_1CudaError.html',1,'gko::CudaError'],['../classgko_1_1CudaError.html#aa4f4d466d2ccdb9da5e331d8dad92d39',1,'gko::CudaError::CudaError()']]],
   ['cudaexecutor',['CudaExecutor',['../classgko_1_1CudaExecutor.html',1,'gko']]],
+  ['cusparse',['cusparse',['../classgko_1_1matrix_1_1Csr_1_1cusparse.html',1,'gko::matrix::Csr']]],
   ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko::CusparseError'],['../classgko_1_1CusparseError.html#ad51ca5caecfc2e41bd06c779d2ca57ae',1,'gko::CusparseError::CusparseError()']]]
 ];
