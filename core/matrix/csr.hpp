@@ -129,6 +129,17 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    class cusparse : public strategy_type {
+    public:
+        cusparse() : strategy_type("cusparse") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {}
+
+        int64_t clac_size(const int64_t nnz) { return 0; }
+    };
+
     class load_balance : public strategy_type {
     public:
         load_balance()

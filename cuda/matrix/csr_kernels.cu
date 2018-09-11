@@ -540,6 +540,31 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(c->get_values()), c->get_stride());
+    } else if (a->get_strategy()->get_name() == "cusparse") {
+        if (cusparse::is_supported<ValueType, IndexType>::value) {
+            // TODO: add implementation for int64 and multiple RHS
+            auto handle = cusparse::init();
+            auto descr = cusparse::create_mat_descr();
+            ASSERT_NO_CUSPARSE_ERRORS(
+                cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+
+            auto row_ptrs = a->get_const_row_ptrs();
+            auto col_idxs = a->get_const_col_idxs();
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+
+            cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                           a->get_size()[0], a->get_size()[1],
+                           a->get_num_stored_elements(), &alpha, descr,
+                           a->get_const_values(), row_ptrs, col_idxs,
+                           b->get_const_values(), &beta, c->get_values());
+
+            cusparse::destroy(descr);
+            cusparse::destroy(handle);
+        } else {
+            NOT_IMPLEMENTED;
+        }
     }
 }
 
@@ -570,6 +595,29 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()),
                 as_cuda_type(c->get_values()));
+        }
+    } else if (a->get_strategy()->get_name() == "cusparse") {
+        if (cusparse::is_supported<ValueType, IndexType>::value) {
+            // TODO: add implementation for int64 and multiple RHS
+            auto handle = cusparse::init();
+            auto descr = cusparse::create_mat_descr();
+
+            auto row_ptrs = a->get_const_row_ptrs();
+            auto col_idxs = a->get_const_col_idxs();
+
+            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+
+            cusparse::spmv(
+                handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                a->get_size()[1], a->get_num_stored_elements(),
+                alpha->get_const_values(), descr, a->get_const_values(),
+                row_ptrs, col_idxs, b->get_const_values(),
+                beta->get_const_values(), c->get_values());
+
+            cusparse::destroy(descr);
+            cusparse::destroy(handle);
+        } else {
+            NOT_IMPLEMENTED;
         }
     }
 }
