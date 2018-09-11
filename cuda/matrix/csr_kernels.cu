@@ -563,7 +563,13 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             cusparse::destroy(descr);
             cusparse::destroy(handle);
         } else {
-            NOT_IMPLEMENTED;
+            // use classical implementation
+            classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
+                             classical_block_size>>>(
+                a->get_size()[0], as_cuda_type(a->get_const_values()),
+                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
         }
     }
 }
