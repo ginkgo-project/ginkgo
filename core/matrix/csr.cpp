@@ -155,7 +155,8 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
     for (const auto &elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
-    auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz);
+    auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz,
+                           this->get_strategy());
     size_type ind = 0;
     size_type cur_ptr = 0;
     tmp->get_row_ptrs()[0] = cur_ptr;
@@ -173,6 +174,7 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
         }
         tmp->get_row_ptrs()[row + 1] = cur_ptr;
     }
+    tmp->make_srow();
     tmp->move_to(this);
 }
 
@@ -207,12 +209,14 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = Csr::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
+    auto trans_cpy =
+        Csr::create(exec, gko::transpose(this->get_size()),
+                    this->get_num_stored_elements(), this->get_strategy());
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
             trans_cpy.get(), this));
+    trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
 
@@ -221,12 +225,14 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy = Csr::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
+    auto trans_cpy =
+        Csr::create(exec, gko::transpose(this->get_size()),
+                    this->get_num_stored_elements(), this->get_strategy());
 
     exec->run(
         TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
             trans_cpy.get(), this));
+    trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
 

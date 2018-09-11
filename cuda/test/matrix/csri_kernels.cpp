@@ -53,8 +53,6 @@ class Csri : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csri<>;
     using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Csri<std::complex<double>>;
 
     Csri() : rand_engine(42) {}
 

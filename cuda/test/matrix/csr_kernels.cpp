@@ -82,20 +82,16 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy)
     {
-        mtx = Mtx::create(ref);
+        mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        complex_mtx = ComplexMtx::create(ref);
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
         expected = gen_mtx<Vec>(532, 1, 1);
         y = gen_mtx<Vec>(231, 1, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(cuda);
+        dmtx = Mtx::create(cuda, strategy);
         dmtx->copy_from(mtx.get());
-        complex_dmtx = ComplexMtx::create(cuda);
-        complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());
         dy = Vec::create(cuda);
@@ -104,6 +100,15 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Vec::create(cuda);
         dbeta->copy_from(beta.get());
+    }
+
+    void set_up_apply_complex_data(
+        std::shared_ptr<ComplexMtx::strategy_type> strategy)
+    {
+        complex_mtx = ComplexMtx::create(ref, strategy);
+        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
+        complex_dmtx = ComplexMtx::create(cuda, strategy);
+        complex_dmtx->copy_from(complex_mtx.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -127,9 +132,9 @@ protected:
 };
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRef)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -138,9 +143,9 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -149,9 +154,42 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
 
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
@@ -163,7 +201,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
 TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(32));
 
     auto trans = complex_mtx->conj_transpose();
     auto d_trans = complex_dmtx->conj_transpose();
