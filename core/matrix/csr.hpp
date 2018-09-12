@@ -406,8 +406,7 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy =
-            std::make_shared<automatical>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
@@ -441,8 +440,7 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-        std::shared_ptr<strategy_type> strategy =
-            std::make_shared<automatical>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
