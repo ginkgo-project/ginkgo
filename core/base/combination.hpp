@@ -38,13 +38,114 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 
 
+#include <vector>
+
+
 namespace gko {
 
 
-class Combination : public gko::EnableLinOp<Combination>,
-                    public gko::EnableCreateMethod<Combination> {
-public:
+/**
+ * The Combination class can be used to construct a linear combination of
+ * multiple linear operators `c1 * op1 + c2 * op2 + ... + ck * opk`.
+ */
+class Combination : public EnableLinOp<Combination>,
+                    public EnableCreateMethod<Combination> {
+    friend class EnablePolymorphicObject<Combination, LinOp>;
+    friend class EnableCreateMethod<Combination>;
+
+protected:
+    /**
+     * Creates an empty linear combination (0x0 operator).
+     *
+     * @param exec  Executor associated to the linear combination
+     */
+    explicit Combination(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Combination>(exec)
+    {}
+
+    /**
+     * Creates a linear combination of operators using the specified list of
+     * coefficients and operators.
+     *
+     * @tparam CoefficientIterator  a class representing iterators over the
+     *                              coefficients of the linear combination
+     * @tparam OperatorIterator  a class representing iterators over the
+     *                           operators of the linear combination
+     *
+     * @param coefficient_begin  iterator pointing to the first coefficient
+     * @param coefficient_end  iterator pointing behind the last coefficient
+     * @param operator_begin  iterator pointing to the first operator
+     * @param operator_end  iterator pointing behind the last operator
+     */
+    template <
+        typename CoefficientIterator, typename OperatorIterator,
+        typename = xstd::void_t<
+            typename std::iterator_traits<
+                CoefficientIterator>::iterator_category,
+            typename std::iterator_traits<OperatorIterator>::iterator_category>>
+    explicit Combination(CoefficientIterator coefficient_begin,
+                         CoefficientIterator coefficient_end,
+                         OperatorIterator operator_begin,
+                         OperatorIterator operator_end)
+        : EnableLinOp<Combination>(
+              first_or_throw(operator_begin, operator_end)->get_executor()),
+          coefficients_(coefficient_begin, coefficient_end),
+          operators_(operator_begin, operator_end)
+    {
+        for (const auto &c : coefficients_) {
+            ASSERT_EQUAL_DIMENSIONS(c, dim<2>(1, 1));
+        }
+        this->set_size(operators_[0]->get_size());
+        for (const auto &o : operators_) {
+            ASSERT_EQUAL_DIMENSIONS(o, this->get_size());
+        }
+    }
+
+    /**
+     * Creates a linear combination of operators using the specified list of
+     * coefficients and operators.
+     *
+     * @tparam Rest  types of trailing parameters
+     *
+     * @param coefficients  the first coefficient
+     * @param operators  the first operator
+     * @param rest  other coefficient and operators (interleaved)
+     */
+    template <typename... Rest>
+    explicit Combination(std::shared_ptr<const LinOp> coef,
+                         std::shared_ptr<const LinOp> oper, Rest &&... rest)
+        : Combination(std::forward<Rest>(rest)...)
+    {
+        ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
+        coefficients_.insert(begin(coefficients_), coef);
+        operators_.insert(begin(operators_), oper);
+    }
+
+    explicit Combination(std::shared_ptr<const LinOp> coef,
+                         std::shared_ptr<const LinOp> oper)
+        : EnableLinOp<Combination>(oper->get_executor(), oper->get_size()),
+          coefficients_{coef},
+          operators_{oper}
+    {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
 private:
+    template <typename Iterator>
+    auto first_or_throw(Iterator begin, Iterator end) -> decltype(*begin)
+    {
+        if (begin == end) {
+            throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
+        }
+        return *begin;
+    }
+
+    std::vector<std::shared_ptr<const LinOp>> coefficients_;
+    std::vector<std::shared_ptr<const LinOp>> operators_;
 };
 
 

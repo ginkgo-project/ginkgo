@@ -34,4 +34,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/combination.hpp"
 
 
-namespace gko {}  // namespace gko
+namespace gko {
+
+
+void Combination::apply_impl(const LinOp *b, LinOp *x) const
+{
+    // TODO
+}
+
+
+void Combination::apply_impl(const LinOp *alpha, const LinOp *b,
+                             const LinOp *beta, LinOp *x) const
+{
+    // TODO
+}
+
+
+}  // namespace gko
