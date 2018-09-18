@@ -34,20 +34,63 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/combination.hpp"
 
 
+#include "core/matrix/dense.hpp"
+
+
 namespace gko {
+namespace {
 
 
-void Combination::apply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType>
+inline void initialize_scalars(std::shared_ptr<const Executor> exec,
+                               std::unique_ptr<LinOp> &zero,
+                               std::unique_ptr<LinOp> &one)
 {
-    // TODO
+    if (zero == nullptr) {
+        zero = initialize<matrix::Dense<ValueType>>({gko::zero<ValueType>()},
+                                                    exec);
+    }
+    if (one == nullptr) {
+        one =
+            initialize<matrix::Dense<ValueType>>({gko::one<ValueType>()}, exec);
+    }
 }
 
 
-void Combination::apply_impl(const LinOp *alpha, const LinOp *b,
-                             const LinOp *beta, LinOp *x) const
+}  // namespace
+
+
+template <typename ValueType>
+void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // TODO
+    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
+                                  cache_.one);
+    operators_[0]->apply(lend(coefficients_[0]), b, lend(cache_.zero), x);
+    for (size_type i = 1; i < operators_.size(); ++i) {
+        operators_[i]->apply(lend(coefficients_[i]), b, lend(cache_.one), x);
+    }
 }
+
+
+template <typename ValueType>
+void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                        const LinOp *beta, LinOp *x) const
+{
+    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
+                                  cache_.one);
+    if (cache_.intermediate_x == nullptr ||
+        cache_.intermediate_x->get_size() != x->get_size()) {
+        cache_.intermediate_x = clone(x);
+    }
+    this->apply_impl(b, lend(cache_.intermediate_x));
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, lend(cache_.intermediate_x));
+}
+
+
+#define DECLARE_COMBINATION(_type) class Combination<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_COMBINATION);
 
 
 }  // namespace gko

@@ -40,62 +40,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <core/matrix/dense.hpp>
+#include <core/test/utils/assertions.hpp>
+
+
 namespace {
-
-
-struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
-    DummyOperator(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyOperator>(exec, gko::dim<2>{1, 1})
-    {}
-
-    void apply_impl(const LinOp *b, LinOp *x) const override {}
-
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
-    {}
-};
 
 
 class Combination : public ::testing::Test {
 protected:
+    using mtx = gko::matrix::Dense<>;
+
     Combination()
         : exec{gko::ReferenceExecutor::create()},
-          operators{std::make_shared<DummyOperator>(exec),
-                    std::make_shared<DummyOperator>(exec)},
-          coefficients{std::make_shared<DummyOperator>(exec),
-                       std::make_shared<DummyOperator>(exec)}
+          coefficients{gko::initialize<mtx>({1}, exec),
+                       gko::initialize<mtx>({2}, exec)},
+          operators{gko::initialize<mtx>({{2.0, 3.0}, {1.0, 4.0}}, exec),
+                    gko::initialize<mtx>({{3.0, 2.0}, {2.0, 0.0}}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::vector<std::shared_ptr<gko::LinOp>> operators;
     std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
 
-TEST_F(Combination, CanBeEmpty)
+TEST_F(Combination, AppliesToVector)
 {
-    auto cmb = gko::Combination<>::create(exec);
-
-    ASSERT_EQ(cmb->get_size(), gko::dim<2>(0, 0));
-}
-
-
-TEST_F(Combination, CanCreateFromIterators)
-{
-    auto cmb =
-        gko::Combination<>::create(begin(coefficients), end(coefficients),
-                                   begin(operators), end(operators));
-
-    ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
-}
-
-
-TEST_F(Combination, CanCreateFromList)
-{
+    /*
+        cmb = [ 8 7 ]
+              [ 5 4 ]
+    */
     auto cmb = gko::Combination<>::create(coefficients[0], operators[0],
                                           coefficients[1], operators[1]);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
 
-    ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
+    cmb->apply(lend(x), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({22.0, 13.0}), 1e-15);
+}
+
+
+TEST_F(Combination, AppliesLinearCombinationToVector)
+{
+    /*
+        cmb = [ 8 7 ]
+              [ 5 4 ]
+    */
+    auto cmb = gko::Combination<>::create(coefficients[0], operators[0],
+                                          coefficients[1], operators[1]);
+    auto alpha = gko::initialize<mtx>({3.0}, exec);
+    auto beta = gko::initialize<mtx>({-1.0}, exec);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
+
+    cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({65.0, 37.0}), 1e-15);
 }
 
 

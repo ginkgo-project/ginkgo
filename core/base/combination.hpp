@@ -47,11 +47,17 @@ namespace gko {
 /**
  * The Combination class can be used to construct a linear combination of
  * multiple linear operators `c1 * op1 + c2 * op2 + ... + ck * opk`.
+ *
+ * @tparam ValueType  precision of input and result vectors
  */
-class Combination : public EnableLinOp<Combination>,
-                    public EnableCreateMethod<Combination> {
+template <typename ValueType = default_precision>
+class Combination : public EnableLinOp<Combination<ValueType>>,
+                    public EnableCreateMethod<Combination<ValueType>> {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
+
+public:
+    using value_type = ValueType;
 
 protected:
     /**
@@ -146,6 +152,16 @@ private:
 
     std::vector<std::shared_ptr<const LinOp>> coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
+
+    mutable struct cache_struct {
+        cache_struct() = default;
+        cache_struct(const cache_struct &other) {}
+        cache_struct &operator=(const cache_struct &other) { return *this; }
+
+        std::unique_ptr<LinOp> zero;
+        std::unique_ptr<LinOp> one;
+        std::unique_ptr<LinOp> intermediate_x;
+    } cache_;
 };
 
 
