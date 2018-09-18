@@ -1,5 +1,6 @@
 create_test(abstract_factory)
 create_test(array)
+create_test(combination)
 create_test(dim)
 create_test(exception)
 create_test(exception_helpers)
