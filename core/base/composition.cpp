@@ -94,8 +94,8 @@ void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define DECLARE_COMBINATION(_type) class Composition<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_COMBINATION);
+#define DECLARE_COMPOSITION(_type) class Composition<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_COMPOSITION);
 
 
 }  // namespace gko

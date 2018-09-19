@@ -31,14 +31,14 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_COMBINATION_HPP_
-#define GKO_CORE_BASE_COMBINATION_HPP_
-
-
-#include "core/base/lin_op.hpp"
+#ifndef GKO_CORE_BASE_COMPOSITION_HPP_
+#define GKO_CORE_BASE_COMPOSITION_HPP_
 
 
 #include <vector>
+
+
+#include "core/base/lin_op.hpp"
 
 
 namespace gko {
@@ -156,4 +156,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_COMBINATION_HPP_
+#endif  // GKO_CORE_BASE_COMPOSITION_HPP_
