@@ -110,6 +110,14 @@ protected:
                                    operators_.back()->get_size()[1]});
     }
 
+    /**
+     * Creates a composition of operators using the specified list of operators.
+     *
+     * @param oper  the first operator
+     *
+     * @note this is the base case of the template constructor
+     *       Composition(std::shared_ptr<const LinOp>, Rest &&...)
+     */
     explicit Composition(std::shared_ptr<const LinOp> oper)
         : EnableLinOp<Composition>(oper->get_executor(), oper->get_size()),
           operators_{oper}
@@ -130,17 +138,17 @@ private:
         return *begin;
     }
 
-    std::vector<std::shared_ptr<const LinOp>> coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
+    // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
         cache_struct() = default;
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &other) { return *this; }
 
-        std::unique_ptr<LinOp> zero;
-        std::unique_ptr<LinOp> one;
-        std::unique_ptr<LinOp> intermediate_x;
+        // TODO: reduce the amount of intermediate vectors we need (careful --
+        //       not all of them are of the same size)
+        std::vector<std::unique_ptr<LinOp>> intermediate;
     } cache_;
 };
 

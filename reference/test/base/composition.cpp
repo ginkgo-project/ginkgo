@@ -34,10 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/composition.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <vector>
+
+
+#include <gtest/gtest.h>
 
 
 #include <core/matrix/dense.hpp>
@@ -69,7 +69,6 @@ TEST_F(Composition, AppliesToVector)
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    /*
     auto cmp = gko::Composition<>::create(operators[0], operators[1]);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
@@ -77,7 +76,6 @@ TEST_F(Composition, AppliesToVector)
     cmp->apply(lend(x), lend(res));
 
     ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
-    */
 }
 
 
@@ -87,7 +85,6 @@ TEST_F(Composition, AppliesLinearCombinationToVector)
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    /*
     auto cmp = gko::Composition<>::create(operators[0], operators[1]);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
@@ -97,7 +94,6 @@ TEST_F(Composition, AppliesLinearCombinationToVector)
     cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
     ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
-    */
 }
 
 

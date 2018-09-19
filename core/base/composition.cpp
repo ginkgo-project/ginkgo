@@ -41,19 +41,29 @@ namespace gko {
 namespace {
 
 
-template <typename ValueType>
-inline void initialize_scalars(std::shared_ptr<const Executor> exec,
-                               std::unique_ptr<LinOp> &zero,
-                               std::unique_ptr<LinOp> &one)
+template <typename ValueType, typename OpIterator, typename VecIterator>
+inline void allocate_vectors(OpIterator begin, OpIterator end, VecIterator res)
 {
-    if (zero == nullptr) {
-        zero = initialize<matrix::Dense<ValueType>>({gko::zero<ValueType>()},
-                                                    exec);
+    for (auto it = begin; it != end; ++it, ++res) {
+        if (*res != nullptr && (*res)->get_size()[0] == (*it)->get_size()[0]) {
+            continue;
+        }
+        *res = matrix::Dense<ValueType>::create(
+            (*it)->get_executor(), gko::dim<2>{(*it)->get_size()[0], 1});
     }
-    if (one == nullptr) {
-        one =
-            initialize<matrix::Dense<ValueType>>({gko::one<ValueType>()}, exec);
+}
+
+
+inline const LinOp *apply_inner_operators(
+    const std::vector<std::shared_ptr<const LinOp>> &operators,
+    const std::vector<std::unique_ptr<LinOp>> &intermediate, const LinOp *rhs)
+{
+    for (auto i = operators.size() - 1; i > 0u; --i) {
+        auto solution = lend(intermediate[i - 1]);
+        operators[i]->apply(rhs, solution);
+        rhs = solution;
     }
+    return rhs;
 }
 
 
@@ -63,12 +73,11 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
 template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
-                                  cache_.one);
-    operators_[0]->apply(lend(coefficients_[0]), b, lend(cache_.zero), x);
-    for (size_type i = 1; i < operators_.size(); ++i) {
-        operators_[i]->apply(lend(coefficients_[i]), b, lend(cache_.one), x);
-    }
+    cache_.intermediate.resize(operators_.size() - 1);
+    allocate_vectors<ValueType>(begin(operators_) + 1, end(operators_),
+                                begin(cache_.intermediate));
+    operators_[0]->apply(
+        apply_inner_operators(operators_, cache_.intermediate, b), x);
 }
 
 
@@ -76,16 +85,12 @@ template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                         const LinOp *beta, LinOp *x) const
 {
-    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
-                                  cache_.one);
-    if (cache_.intermediate_x == nullptr ||
-        cache_.intermediate_x->get_size() != x->get_size()) {
-        cache_.intermediate_x = clone(x);
-    }
-    this->apply_impl(b, lend(cache_.intermediate_x));
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, lend(cache_.intermediate_x));
+    cache_.intermediate.resize(operators_.size() - 1);
+    allocate_vectors<ValueType>(begin(operators_) + 1, end(operators_),
+                                begin(cache_.intermediate));
+    operators_[0]->apply(
+        alpha, apply_inner_operators(operators_, cache_.intermediate, b), beta,
+        x);
 }
 
 
