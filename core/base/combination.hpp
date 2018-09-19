@@ -35,10 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_COMBINATION_HPP_
 
 
-#include "core/base/lin_op.hpp"
-
-
 #include <vector>
+
+
+#include "core/base/lin_op.hpp"
 
 
 namespace gko {
@@ -113,8 +113,8 @@ protected:
      *
      * @tparam Rest  types of trailing parameters
      *
-     * @param coefficients  the first coefficient
-     * @param operators  the first operator
+     * @param coef  the first coefficient
+     * @param oper  the first operator
      * @param rest  other coefficient and operators (interleaved)
      */
     template <typename... Rest>
@@ -128,6 +128,19 @@ protected:
         operators_.insert(begin(operators_), oper);
     }
 
+    /**
+     * Creates a linear combination of operators using the specified list of
+     * coefficients and operators.
+     *
+     * @tparam Rest  types of trailing parameters
+     *
+     * @param coef  the first coefficient
+     * @param oper  the first operator
+     *
+     * @note this is the base case of the template constructor
+     *       Combination(std::shared_ptr<const LinOp>, std::shared_ptr<const
+     *       LinOp>, Rest &&...)
+     */
     explicit Combination(std::shared_ptr<const LinOp> coef,
                          std::shared_ptr<const LinOp> oper)
         : EnableLinOp<Combination>(oper->get_executor(), oper->get_size()),
@@ -153,6 +166,7 @@ private:
     std::vector<std::shared_ptr<const LinOp>> coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
+    // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
         cache_struct() = default;
         cache_struct(const cache_struct &other) {}

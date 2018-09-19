@@ -34,10 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/combination.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <vector>
+
+
+#include <gtest/gtest.h>
 
 
 namespace {

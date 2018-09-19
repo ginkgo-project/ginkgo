@@ -76,8 +76,6 @@ template <typename ValueType>
 void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                         const LinOp *beta, LinOp *x) const
 {
-    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
-                                  cache_.one);
     if (cache_.intermediate_x == nullptr ||
         cache_.intermediate_x->get_size() != x->get_size()) {
         cache_.intermediate_x = clone(x);
