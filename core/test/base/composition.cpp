@@ -37,4 +37,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-namespace {}  // namespace
+#include <vector>
+
+
+namespace {
+
+
+struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
+    DummyOperator(std::shared_ptr<const gko::Executor> exec,
+                  gko::dim<2> size = {})
+        : gko::EnableLinOp<DummyOperator>(exec, size)
+    {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override {}
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override
+    {}
+};
+
+
+class Composition : public ::testing::Test {
+protected:
+    Composition()
+        : exec{gko::ReferenceExecutor::create()},
+          operators{std::make_shared<DummyOperator>(exec, gko::dim<2>{2, 1}),
+                    std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 3})}
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::vector<std::shared_ptr<gko::LinOp>> operators;
+};
+
+
+TEST_F(Composition, CanBeEmpty)
+{
+    auto cmp = gko::Composition<>::create(exec);
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
+}
+
+
+TEST_F(Composition, CanCreateFromIterators)
+{
+    auto cmp = gko::Composition<>::create(begin(operators), end(operators));
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+}
+
+
+TEST_F(Composition, CanCreateFromList)
+{
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+}
+
+
+}  // namespace

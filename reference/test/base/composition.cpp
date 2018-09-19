@@ -37,4 +37,68 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-namespace {}  // namespace
+#include <vector>
+
+
+#include <core/matrix/dense.hpp>
+#include <core/test/utils/assertions.hpp>
+
+
+namespace {
+
+
+class Composition : public ::testing::Test {
+protected:
+    using mtx = gko::matrix::Dense<>;
+
+    Composition()
+        : exec{gko::ReferenceExecutor::create()},
+          operators{gko::initialize<mtx>({2.0, 1.0}, exec),
+                    gko::initialize<mtx>({{3.0, 2.0}}, exec)}
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<gko::LinOp>> operators;
+};
+
+
+TEST_F(Composition, AppliesToVector)
+{
+    /*
+        cmp = [ 2 ] * [ 3 2 ]
+              [ 1 ]
+    */
+    /*
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
+    */
+}
+
+
+TEST_F(Composition, AppliesLinearCombinationToVector)
+{
+    /*
+        cmp = [ 2 ] * [ 3 2 ]
+              [ 1 ]
+    */
+    /*
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+    auto alpha = gko::initialize<mtx>({3.0}, exec);
+    auto beta = gko::initialize<mtx>({-1.0}, exec);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
+    */
+}
+
+
+}  // namespace

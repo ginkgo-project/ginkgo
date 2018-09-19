@@ -31,24 +31,121 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_COMPOSITION_HPP_
-#define GKO_CORE_BASE_COMPOSITION_HPP_
+#ifndef GKO_CORE_BASE_COMBINATION_HPP_
+#define GKO_CORE_BASE_COMBINATION_HPP_
 
 
 #include "core/base/lin_op.hpp"
 
 
+#include <vector>
+
+
 namespace gko {
 
 
-class Combination : public gko::EnableLinOp<Combination>,
-                    public gko::EnableCreateMethod<Combination> {
+/**
+ * The Composition class can be used to compose linear operators `op1, op2, ...,
+ * opn` and obtain the operator `op1 * op2 * ... * opn`.
+ *
+ * @tparam ValueType  precision of input and result vectors
+ */
+template <typename ValueType = default_precision>
+class Composition : public EnableLinOp<Composition<ValueType>>,
+                    public EnableCreateMethod<Composition<ValueType>> {
+    friend class EnablePolymorphicObject<Composition, LinOp>;
+    friend class EnableCreateMethod<Composition>;
+
 public:
+    using value_type = ValueType;
+
+protected:
+    /**
+     * Creates an empty operator composition (0x0 operator).
+     *
+     * @param exec  Executor associated to the composition
+     */
+    explicit Composition(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Composition>(exec)
+    {}
+
+    /**
+     * Creates a composition of operators using the operators in a range.
+     *
+     * @tparam Iterator  a class representing iterators over the
+     *                  perators of the linear combination
+     *
+     * @param begin  iterator pointing to the first operator
+     * @param end  iterator pointing behind the last operator
+     */
+    template <typename Iterator,
+              typename = xstd::void_t<
+                  typename std::iterator_traits<Iterator>::iterator_category>>
+    explicit Composition(Iterator begin, Iterator end)
+        : EnableLinOp<Composition>(first_or_throw(begin, end)->get_executor()),
+          operators_(begin, end)
+    {
+        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
+                                   operators_.back()->get_size()[1]});
+        for (size_type i = 1; i < operators_.size(); ++i) {
+            ASSERT_CONFORMANT(operators_[i - 1], operators_[i]);
+        }
+    }
+
+    /**
+     * Creates a composition of operators using the specified list of operators.
+     *
+     * @tparam Rest  types of trailing parameters
+     *
+     * @param oper  the first operator
+     * @param rest  remainging operators
+     */
+    template <typename... Rest>
+    explicit Composition(std::shared_ptr<const LinOp> oper, Rest &&... rest)
+        : Composition(std::forward<Rest>(rest)...)
+    {
+        ASSERT_CONFORMANT(oper, operators_[0]);
+        operators_.insert(begin(operators_), oper);
+        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
+                                   operators_.back()->get_size()[1]});
+    }
+
+    explicit Composition(std::shared_ptr<const LinOp> oper)
+        : EnableLinOp<Composition>(oper->get_executor(), oper->get_size()),
+          operators_{oper}
+    {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
 private:
+    template <typename Iterator>
+    auto first_or_throw(Iterator begin, Iterator end) -> decltype(*begin)
+    {
+        if (begin == end) {
+            throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
+        }
+        return *begin;
+    }
+
+    std::vector<std::shared_ptr<const LinOp>> coefficients_;
+    std::vector<std::shared_ptr<const LinOp>> operators_;
+
+    mutable struct cache_struct {
+        cache_struct() = default;
+        cache_struct(const cache_struct &other) {}
+        cache_struct &operator=(const cache_struct &other) { return *this; }
+
+        std::unique_ptr<LinOp> zero;
+        std::unique_ptr<LinOp> one;
+        std::unique_ptr<LinOp> intermediate_x;
+    } cache_;
 };
 
 
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_COMPOSITION_HPP_
+#endif  // GKO_CORE_BASE_COMBINATION_HPP_
