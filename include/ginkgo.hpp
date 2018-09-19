@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/abstract_factory.hpp"
 #include "core/base/array.hpp"
+#include "core/base/combination.hpp"
 #include "core/base/exception.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
