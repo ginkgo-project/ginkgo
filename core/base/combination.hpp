@@ -59,6 +59,28 @@ class Combination : public EnableLinOp<Combination<ValueType>>,
 public:
     using value_type = ValueType;
 
+    /**
+     * Returns a list of coefficients of the combination.
+     *
+     * @return a list of coefficients
+     */
+    const std::vector<std::shared_ptr<const LinOp>> &get_coefficients() const
+        noexcept
+    {
+        return coefficients_;
+    }
+
+    /**
+     * Returns a list of operators of the combination.
+     *
+     * @return a list of operators
+     */
+    const std::vector<std::shared_ptr<const LinOp>> &get_operators() const
+        noexcept
+    {
+        return operators_;
+    }
+
 protected:
     /**
      * Creates an empty linear combination (0x0 operator).
@@ -93,8 +115,12 @@ protected:
                          CoefficientIterator coefficient_end,
                          OperatorIterator operator_begin,
                          OperatorIterator operator_end)
-        : EnableLinOp<Combination>(
-              first_or_throw(operator_begin, operator_end)->get_executor()),
+        : EnableLinOp<Combination>([&] {
+              if (operator_begin == operator_end) {
+                  throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
+              }
+              return (*operator_begin)->get_executor();
+          }()),
           coefficients_(coefficient_begin, coefficient_end),
           operators_(operator_begin, operator_end)
     {
@@ -154,15 +180,6 @@ protected:
                     LinOp *x) const override;
 
 private:
-    template <typename Iterator>
-    auto first_or_throw(Iterator begin, Iterator end) -> decltype(*begin)
-    {
-        if (begin == end) {
-            throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
-        }
-        return *begin;
-    }
-
     std::vector<std::shared_ptr<const LinOp>> coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
