@@ -31,50 +31,67 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include <core/base/composition.hpp>
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/combination.hpp"
-#include "core/base/composition.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include <vector>
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <gtest/gtest.h>
+
+
+namespace {
+
+
+struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
+    DummyOperator(std::shared_ptr<const gko::Executor> exec,
+                  gko::dim<2> size = {})
+        : gko::EnableLinOp<DummyOperator>(exec, size)
+    {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override {}
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override
+    {}
+};
+
+
+class Composition : public ::testing::Test {
+protected:
+    Composition()
+        : exec{gko::ReferenceExecutor::create()},
+          operators{std::make_shared<DummyOperator>(exec, gko::dim<2>{2, 1}),
+                    std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 3})}
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::vector<std::shared_ptr<gko::LinOp>> operators;
+};
+
+
+TEST_F(Composition, CanBeEmpty)
+{
+    auto cmp = gko::Composition<>::create(exec);
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
+}
+
+
+TEST_F(Composition, CanCreateFromIterators)
+{
+    auto cmp = gko::Composition<>::create(begin(operators), end(operators));
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+}
+
+
+TEST_F(Composition, CanCreateFromList)
+{
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+
+    ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+}
+
+
+}  // namespace

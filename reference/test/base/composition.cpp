@@ -31,50 +31,70 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include <core/base/composition.hpp>
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/combination.hpp"
-#include "core/base/composition.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
-
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include <vector>
 
 
-#endif  // GKO_GINKGO_HPP_
+#include <gtest/gtest.h>
+
+
+#include <core/matrix/dense.hpp>
+#include <core/test/utils/assertions.hpp>
+
+
+namespace {
+
+
+class Composition : public ::testing::Test {
+protected:
+    using mtx = gko::matrix::Dense<>;
+
+    Composition()
+        : exec{gko::ReferenceExecutor::create()},
+          operators{gko::initialize<mtx>({2.0, 1.0}, exec),
+                    gko::initialize<mtx>({{3.0, 2.0}}, exec)}
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<gko::LinOp>> operators;
+};
+
+
+TEST_F(Composition, AppliesToVector)
+{
+    /*
+        cmp = [ 2 ] * [ 3 2 ]
+              [ 1 ]
+    */
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
+}
+
+
+TEST_F(Composition, AppliesLinearCombinationToVector)
+{
+    /*
+        cmp = [ 2 ] * [ 3 2 ]
+              [ 1 ]
+    */
+    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+    auto alpha = gko::initialize<mtx>({3.0}, exec);
+    auto beta = gko::initialize<mtx>({-1.0}, exec);
+    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
+}
+
+
+}  // namespace

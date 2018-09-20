@@ -1,5 +1,6 @@
 set(SOURCES
     base/combination.cpp
+    base/composition.cpp
     base/executor.cpp
     base/mtx_io.cpp
     base/version.cpp
