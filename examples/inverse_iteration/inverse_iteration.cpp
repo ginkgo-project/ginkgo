@@ -87,6 +87,7 @@ for i = 0 .. max_iterations:
 
 
 #include <cmath>
+#include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -96,14 +97,19 @@ for i = 0 .. max_iterations:
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using solver_type = gko::solver::Bicgstab<>;
+    using precision = std::complex<double>;
+    using real_precision = double;
+    using vec = gko::matrix::Dense<precision>;
+    using mtx = gko::matrix::Csr<precision>;
+    using solver_type = gko::solver::Bicgstab<precision>;
+
+    using std::abs;
+    using std::sqrt;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    std::cout << std::scientific << std::setprecision(8);
+    std::cout << std::scientific << std::setprecision(8) << std::showpos;
 
     // Figure out where to run the code
     std::shared_ptr<gko::Executor> exec;
@@ -123,12 +129,12 @@ int main(int argc, char *argv[])
 
     // linear system solver parameters
     auto system_max_iterations = 100u;
-    auto system_residual_goal = 1e-16;
+    auto system_residual_goal = real_precision{1e-16};
 
     // eigensolver parameters
     auto max_iterations = 20u;
-    auto residual_goal = 1e-8;
-    auto z = 20.0;
+    auto residual_goal = real_precision{1e-8};
+    auto z = precision{20.0, 2.0};
 
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -137,13 +143,13 @@ int main(int argc, char *argv[])
     // - we avoid duplicating memory by not storing both A and A - zI, but
     //   compute A - zI on the fly by using Ginkgo's utilities for creating
     //   linear combinations of operators
-    auto one = share(gko::initialize<vec>({1.0}, exec));
-    auto neg_one = share(gko::initialize<vec>({-1.0}, exec));
+    auto one = share(gko::initialize<vec>({precision{1.0}}, exec));
+    auto neg_one = share(gko::initialize<vec>({-precision{1.0}}, exec));
     auto neg_z = gko::initialize<vec>({-z}, exec);
 
-    auto system_matrix = share(gko::Combination<>::create(
+    auto system_matrix = share(gko::Combination<precision>::create(
         one, A, gko::initialize<vec>({-z}, exec),
-        gko::matrix::Identity<>::create(exec, A->get_size()[0])));
+        gko::matrix::Identity<precision>::create(exec, A->get_size()[0])));
 
     // Generate solver operator  (A - zI)^-1
     auto solver =
@@ -154,7 +160,8 @@ int main(int argc, char *argv[])
                         gko::stop::Iteration::Factory::create()
                             .with_max_iters(system_max_iterations)
                             .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
+                        gko::stop::ResidualNormReduction<
+                            precision>::Factory::create()
                             .with_reduction_factor(system_residual_goal)
                             .on_executor(exec))
                     .on_executor(exec))
@@ -168,7 +175,7 @@ int main(int argc, char *argv[])
         auto work = vec::create(this_exec, gko::dim<2>{A->get_size()[0], 1});
         const auto n = work->get_size()[0];
         for (int i = 0; i < n; ++i) {
-            work->get_values()[i] = 1.0 / std::sqrt(n);
+            work->get_values()[i] = precision{1.0} / sqrt(n);
         }
         return clone(exec, work);
     }();
@@ -185,12 +192,12 @@ int main(int argc, char *argv[])
         system_matrix->apply(lend(one), lend(y), lend(neg_one), lend(x));
         x->compute_dot(lend(x), lend(norm));
         std::cout << "\"system_residual\": "
-                  << std::sqrt(clone(this_exec, norm)->get_values()[0]) << ", ";
+                  << sqrt(clone(this_exec, norm)->get_values()[0]) << ", ";
         x->copy_from(lend(y));
         // x = y / || y ||
         x->compute_dot(lend(x), lend(norm));
         inv_norm->get_values()[0] =
-            1 / std::sqrt(clone(this_exec, norm)->get_values()[0]);
+            precision{1.0} / sqrt(clone(this_exec, norm)->get_values()[0]);
         x->scale(lend(clone(exec, inv_norm)));
         // g = x^* A x
         A->apply(lend(x), lend(tmp));
@@ -201,10 +208,9 @@ int main(int argc, char *argv[])
         auto v = gko::initialize<vec>({-g_val}, exec);
         tmp->add_scaled(lend(v), lend(x));
         tmp->compute_dot(lend(tmp), lend(norm));
-        auto res_val =
-            std::sqrt(clone(exec->get_master(), norm)->get_values()[0]);
+        auto res_val = sqrt(clone(exec->get_master(), norm)->get_values()[0]);
         std::cout << "\"residual\": " << res_val / g_val << " }," << std::endl;
-        if (res_val < residual_goal * g_val) {
+        if (abs(res_val) < residual_goal * abs(g_val)) {
             break;
         }
     }
