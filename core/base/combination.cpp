@@ -31,49 +31,64 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
-
-
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
 #include "core/base/combination.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
 
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
 
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
-
-#include "core/preconditioner/block_jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace {
+
+
+template <typename ValueType>
+inline void initialize_scalars(std::shared_ptr<const Executor> exec,
+                               std::unique_ptr<LinOp> &zero,
+                               std::unique_ptr<LinOp> &one)
+{
+    if (zero == nullptr) {
+        zero = initialize<matrix::Dense<ValueType>>({gko::zero<ValueType>()},
+                                                    exec);
+    }
+    if (one == nullptr) {
+        one =
+            initialize<matrix::Dense<ValueType>>({gko::one<ValueType>()}, exec);
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+{
+    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
+                                  cache_.one);
+    operators_[0]->apply(lend(coefficients_[0]), b, lend(cache_.zero), x);
+    for (size_type i = 1; i < operators_.size(); ++i) {
+        operators_[i]->apply(lend(coefficients_[i]), b, lend(cache_.one), x);
+    }
+}
+
+
+template <typename ValueType>
+void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                        const LinOp *beta, LinOp *x) const
+{
+    if (cache_.intermediate_x == nullptr ||
+        cache_.intermediate_x->get_size() != x->get_size()) {
+        cache_.intermediate_x = clone(x);
+    }
+    this->apply_impl(b, lend(cache_.intermediate_x));
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, lend(cache_.intermediate_x));
+}
+
+
+#define DECLARE_COMBINATION(_type) class Combination<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_COMBINATION);
+
+
+}  // namespace gko
