@@ -77,6 +77,8 @@ TEST_F(Combination, CanBeEmpty)
     auto cmb = gko::Combination<>::create(exec);
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(cmb->get_coefficients().size(), 0);
+    ASSERT_EQ(cmb->get_operators().size(), 0);
 }
 
 
@@ -87,6 +89,12 @@ TEST_F(Combination, CanCreateFromIterators)
                                    begin(operators), end(operators));
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(cmb->get_coefficients().size(), 2);
+    ASSERT_EQ(cmb->get_operators().size(), 2);
+    ASSERT_EQ(cmb->get_coefficients()[0], coefficients[0]);
+    ASSERT_EQ(cmb->get_operators()[0], operators[0]);
+    ASSERT_EQ(cmb->get_coefficients()[1], coefficients[1]);
+    ASSERT_EQ(cmb->get_operators()[1], operators[1]);
 }
 
 
@@ -96,6 +104,12 @@ TEST_F(Combination, CanCreateFromList)
                                           coefficients[1], operators[1]);
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(cmb->get_coefficients().size(), 2);
+    ASSERT_EQ(cmb->get_operators().size(), 2);
+    ASSERT_EQ(cmb->get_coefficients()[0], coefficients[0]);
+    ASSERT_EQ(cmb->get_operators()[0], operators[0]);
+    ASSERT_EQ(cmb->get_coefficients()[1], coefficients[1]);
+    ASSERT_EQ(cmb->get_operators()[1], operators[1]);
 }
 
 

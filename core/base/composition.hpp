@@ -59,6 +59,17 @@ class Composition : public EnableLinOp<Composition<ValueType>>,
 public:
     using value_type = ValueType;
 
+    /**
+     * Returns a list of operators of the composition.
+     *
+     * @return a list of operators
+     */
+    const std::vector<std::shared_ptr<const LinOp>> &get_operators() const
+        noexcept
+    {
+        return operators_;
+    }
+
 protected:
     /**
      * Creates an empty operator composition (0x0 operator).
@@ -82,7 +93,12 @@ protected:
               typename = xstd::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
-        : EnableLinOp<Composition>(first_or_throw(begin, end)->get_executor()),
+        : EnableLinOp<Composition>([&] {
+              if (begin == end) {
+                  throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
+              }
+              return (*begin)->get_executor();
+          }()),
           operators_(begin, end)
     {
         this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
@@ -129,15 +145,6 @@ protected:
                     LinOp *x) const override;
 
 private:
-    template <typename Iterator>
-    auto first_or_throw(Iterator begin, Iterator end) -> decltype(*begin)
-    {
-        if (begin == end) {
-            throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
-        }
-        return *begin;
-    }
-
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
     // TODO: solve race conditions when multithreading

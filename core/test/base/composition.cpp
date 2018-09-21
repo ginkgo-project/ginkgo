@@ -75,6 +75,7 @@ TEST_F(Composition, CanBeEmpty)
     auto cmp = gko::Composition<>::create(exec);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(cmp->get_operators().size(), 0);
 }
 
 
@@ -83,6 +84,9 @@ TEST_F(Composition, CanCreateFromIterators)
     auto cmp = gko::Composition<>::create(begin(operators), end(operators));
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(cmp->get_operators().size(), 2);
+    ASSERT_EQ(cmp->get_operators()[0], operators[0]);
+    ASSERT_EQ(cmp->get_operators()[1], operators[1]);
 }
 
 
@@ -91,6 +95,9 @@ TEST_F(Composition, CanCreateFromList)
     auto cmp = gko::Composition<>::create(operators[0], operators[1]);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(cmp->get_operators().size(), 2);
+    ASSERT_EQ(cmp->get_operators()[0], operators[0]);
+    ASSERT_EQ(cmp->get_operators()[1], operators[1]);
 }
 
 
