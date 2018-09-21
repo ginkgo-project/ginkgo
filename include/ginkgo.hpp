@@ -69,6 +69,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg.hpp"
 #include "core/solver/cgs.hpp"
 #include "core/solver/fcg.hpp"
+#include "core/solver/gmres.hpp"
 
 #include "core/stop/combined.hpp"
 #include "core/stop/iteration.hpp"
