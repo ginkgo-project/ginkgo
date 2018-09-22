@@ -62,28 +62,29 @@ namespace warp {
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, int subwarp_size, typename ValueType>
-__device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
+template <int max_problem_size, typename Group, typename ValueType>
+__device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
+                                                             int32 key_row,
                                                              int32 key_col,
                                                              ValueType *row)
 {
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
-    auto key_col_elem = shuffle(row[key_col], key_row, subwarp_size);
+    // static_assert(max_problem_size <= subwarp_size,
+    //              "max_problem_size cannot be larger than subwarp_size");
+    auto key_col_elem = group.shfl(row[key_col], key_row);
     if (key_col_elem == zero<ValueType>()) {
         // TODO: implement error handling for GPUs to be able to properly
         //       report it here
         return;
     }
-    if (threadIdx.x == key_row) {
+    if (group.thread_rank() == key_row) {
         key_col_elem = one<ValueType>() / key_col_elem;
     } else {
         key_col_elem = -row[key_col] / key_col_elem;
     }
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
-        const auto key_row_elem = shuffle(row[i], key_row, subwarp_size);
-        if (threadIdx.x == key_row) {
+        const auto key_row_elem = group.shfl(row[i], key_row);
+        if (group.thread_rank() == key_row) {
             row[i] = zero<ValueType>();
         }
         row[i] += key_col_elem * key_row_elem;
@@ -125,32 +126,32 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(int32 key_row,
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, int subwarp_size, typename ValueType>
-__device__ __forceinline__ void invert_block(uint32 problem_size,
+template <int max_problem_size, typename Group, typename ValueType>
+__device__ __forceinline__ void invert_block(const Group &group,
+                                             uint32 problem_size,
                                              ValueType *__restrict__ row,
                                              uint32 &__restrict__ perm,
                                              uint32 &__restrict__ trans_perm)
 {
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
+    // static_assert(max_problem_size <= subwarp_size,
+    //               "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
-    auto pivoted = threadIdx.x >= problem_size;
+    auto pivoted = group.thread_rank() >= problem_size;
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
         }
-        const auto piv = choose_pivot<subwarp_size>(row[i], pivoted);
-        if (threadIdx.x == piv) {
+        const auto piv = choose_pivot(group, row[i], pivoted);
+        if (group.thread_rank() == piv) {
             perm = i;
             pivoted = true;
         }
-        if (threadIdx.x == i) {
+        if (group.thread_rank() == i) {
             trans_perm = piv;
         }
-        apply_gauss_jordan_transform<max_problem_size, subwarp_size>(piv, i,
-                                                                     row);
+        apply_gauss_jordan_transform<max_problem_size>(group, piv, i, row);
     }
 }
 
@@ -184,21 +185,21 @@ __device__ __forceinline__ void invert_block(uint32 problem_size,
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, int subwarp_size, typename ValueType>
+template <int max_problem_size, typename Group, typename ValueType>
 __device__ __forceinline__ void copy_matrix(
-    uint32 problem_size, const ValueType *__restrict__ source_row,
-    uint32 increment, uint32 row_perm, uint32 col_perm,
-    ValueType *__restrict__ destination, size_type stride)
+    const Group &group, uint32 problem_size,
+    const ValueType *__restrict__ source_row, uint32 increment, uint32 row_perm,
+    uint32 col_perm, ValueType *__restrict__ destination, size_type stride)
 {
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
+    // static_assert(max_problem_size <= subwarp_size,
+    //              "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
         }
-        const auto idx = warp::shuffle(col_perm, i, subwarp_size);
+        const auto idx = group.shfl(col_perm, i);
         if (threadIdx.x < problem_size) {
             destination[idx * stride + row_perm] = source_row[i * increment];
         }
@@ -233,14 +234,14 @@ __device__ __forceinline__ void copy_matrix(
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, int subwarp_size, typename ValueType>
+template <int max_problem_size, typename Group, typename ValueType>
 __device__ __forceinline__ void multiply_transposed_vec(
-    uint32 problem_size, const ValueType &__restrict__ vec,
+    const Group &group, uint32 problem_size, const ValueType &__restrict__ vec,
     const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
     ValueType *__restrict__ res, uint32 res_increment)
 {
-    static_assert(max_problem_size <= subwarp_size,
-                  "max_problem_size cannot be larger than subwarp_size");
+    // static_assert(max_problem_size <= subwarp_size,
+    //               "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<ValueType>();
 #pragma unroll
@@ -248,12 +249,12 @@ __device__ __forceinline__ void multiply_transposed_vec(
         if (i >= problem_size) {
             break;
         }
-        if (threadIdx.x < problem_size) {
+        if (group.thread_rank() < problem_size) {
             mtx_elem = mtx_row[i * mtx_increment];
         }
-        const auto out = reduce<subwarp_size>(
-            mtx_elem * vec, [](ValueType x, ValueType y) { return x + y; });
-        if (threadIdx.x == 0) {
+        const auto out = reduce(group, mtx_elem * vec,
+                                [](ValueType x, ValueType y) { return x + y; });
+        if (group.thread_rank() == 0) {
             res[i * res_increment] = out;
         }
     }

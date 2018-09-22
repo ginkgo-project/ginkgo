@@ -131,14 +131,16 @@ public:
     using Group::shfl_up;
     using Group::shfl_xor;
 
-#define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                  \
-    template <typename ValueType>                                          \
-    __device__ __forceinline__ ValueType _name(const ValueType &var,       \
-                                               SelectorType selector)      \
-    {                                                                      \
-        return shuffle_impl(                                               \
-            [this](int32 v, SelectorType s) { return this->_name(v, s); }, \
-            var, selector);                                                \
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
+    template <typename ValueType>                                           \
+    __device__ __forceinline__ ValueType _name(const ValueType &var,        \
+                                               SelectorType selector) const \
+    {                                                                       \
+        return shuffle_impl(                                                \
+            [this](int32 v, SelectorType s) {                               \
+                return static_cast<const Group *>(this)->_name(v, s);       \
+            },                                                              \
+            var, selector);                                                 \
     }
 
     GKO_ENABLE_SHUFFLE_OPERATION(shfl, int32)
@@ -152,7 +154,7 @@ private:
     template <typename ShuffleOperator, typename ValueType,
               typename SelectorType>
     static __device__ __forceinline__ ValueType shuffle_impl(
-        ShuffleOperator shufle, const ValueType &var, SelectorType selector)
+        ShuffleOperator shuffle, const ValueType &var, SelectorType selector)
     {
         static_assert(sizeof(ValueType) % sizeof(int32) == 0,
                       "Unable to shuffle sizes which are not 4-byte multiples");
