@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/shuffle.cuh"
 #include "cuda/components/synchronization.cuh"
 #include "cuda/components/thread_ids.cuh"
