@@ -38,7 +38,75 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cooperative_groups.h>
 
 
+#include "core/base/std_extensions.hpp"
+
+
 namespace gko {
+
+
+/**
+ * Ginkgo uses cooperative groups introduced in CUDA 9.0 to handle communication
+ * among the threads.
+ *
+ * However, CUDA's implementation of cooperative groups is still quite limited
+ * in functionality, and some parts are not supported on all hardware
+ * interesting for Ginkgo. For this reason, Ginkgo exposes only a part of the
+ * original functionality, and possibly extends it if it is required. Thus,
+ * developers should include and use this header and the gko::group namespace
+ * instead of the standard cooperative_groups.h header. The interface exposed
+ * by Ginkgo's implementation is equivalent to the standard interface, with some
+ * useful extensions.
+ *
+ * A cooperative group (both from standard CUDA and from Ginkgo) is not a
+ * specific type, but a concept. That is, any type  satisfying the interface
+ * imposed by the cooperative groups API is considered a cooperative
+ * group (a.k.a. "duck typing"). To maximize the generality of components than
+ * need cooperative groups, instead of creating the group manually, consider
+ * requesting one as an input parameter. Make sure its type is a template
+ * parameter to maximize the set of groups for which your algorithm can be
+ * invoked. To maximize the amount of contexts in which your algorithm can be
+ * called and avoid hidden requirements, do not depend on a specific setup of
+ * kernel launch parameters (i.e. grid dimensions and block dimensions).
+ * Instead, use the thread_rank() method of the group to distinguish between
+ * distinct threads of a group.
+ *
+ * The original CUDA implementation does not provide ways to verify if a certain
+ * type represents a cooperative group. Ginkgo's implementation provides
+ * metafunctions which do that. Additionally, not all cooperative groups have
+ * equivalent functionality, so Ginkgo splits the cooperative group concept into
+ * three sub-concepts which describe what functionality is available. Here is a
+ * list of concepts and their interfaces:
+ *
+ * ```c++
+ * concept Group {
+ *   unsigned size() const;
+ *   unsigned thread_rank() const;
+ * };
+ *
+ * concept SynchronizableGroup : Group {
+ *   void sync();
+ * };
+ *
+ * concept CommunicatorGroup : SynchronizableGroup {
+ *   template <typename T>
+ *   T shfl(T var, int srcLane);
+ *   T shfl_up(T var, unsigned delta);
+ *   T shfl_down(T var, unsigned delta);
+ *   T shfl_xor(T var, int laneMask);
+ *   int all(int predicate);
+ *   int any(int predicate);
+ *   unsigned ballot(int predicate);
+ *
+ *   // for compute capability >= 7.0
+ *   unsigned match_any(T value);
+ *   unsigned match_all(T value);
+ * };
+ * ```
+ *
+ * To check if a group T satisfies one of the concepts, one can use the
+ * metafunctions is_group<T>::value, is_synchronizable_group<T>::value and
+ * is_communicator_group<T>::value.
+ */
 namespace group {
 
 
@@ -47,6 +115,54 @@ namespace group {
 
 
 // define new or modify existing groups here
+
+// metafunctions
+
+
+namespace detail {
+
+
+template <typename T>
+struct is_group_impl : std::false_type {
+    void test() { bla(this); }
+};
+
+
+template <typename T>
+struct is_synchronizable_group_impl : std::false_type {
+    void test() { bla(this); }
+};
+
+
+template <typename T>
+struct is_communicator_group_impl : std::true_type {
+    void test() { bla(this); }
+};
+
+}  // namespace detail
+
+
+/**
+ * Check if T is a Group.
+ */
+template <typename T>
+using is_group = detail::is_group_impl<xstd::decay_t<T>>;
+
+
+/**
+ * Check if T is a SynchronizableGroup.
+ */
+template <typename T>
+using is_synchronizable_group =
+    detail::is_synchronizable_group_impl<xstd::decay_t<T>>;
+
+
+/**
+ * Check if T is a CommunicatorGroup.
+ */
+template <typename T>
+using is_communicator_group =
+    detail::is_communicator_group_impl<xstd::decay_t<T>>;
 
 
 // types
@@ -72,6 +188,10 @@ using cooperative_groups::thread_group;
 // }
 // operator=
 // thread_group(__internal::groupType type)
+namespace detail {
+template <>
+struct is_group_impl<thread_group> : std::true_type {};
+}  // namespace detail
 
 
 // using cooperative_groups::grid_group;
@@ -85,6 +205,8 @@ using cooperative_groups::thread_group;
 // unsigned size() const
 // unsigned thread_rank() const
 // dim3 group_dim() const
+// template <>
+// struct is_group_impl<grid_group> : std::true_type {};
 
 
 using cooperative_groups::thread_block;
@@ -97,6 +219,12 @@ using cooperative_groups::thread_block;
 // dim3 group_index() const
 // dim3 thread_index() const
 // dim3 group_dim() const
+namespace detail {
+template <>
+struct is_group_impl<thread_block> : std::true_type {};
+template <>
+struct is_synchronizable_group_impl<thread_block> : std::true_type {};
+}  // namespace detail
 
 
 // Probably don't use it, implementation is incomplete
@@ -117,6 +245,15 @@ using cooperative_groups::coalesced_group;
 // c.c. 7.0 and higher
 // unsigned match_any(T) const
 // unsigned match_all(T) const
+namespace detail {
+template <>
+struct is_group_impl<coalesced_group> : std::true_type {};
+template <>
+struct is_synchronizable_group_impl<coalesced_group> : std::true_type {};
+// some bugs, and incomplete interface, so not a communicator group for now
+// template <>
+// struct is_communicator_group_impl<coalesced_group> : std::true_type {};
+}  // namespace detail
 
 
 namespace detail {
@@ -174,9 +311,16 @@ private:
 }  // namespace detail
 
 
+// implementing this as a using directive messes up with SFINAE for some reason,
+// probably a bug in NVCC
 template <size_type Size>
-using thread_block_tile = detail::enable_extended_shuffle<
-    cooperative_groups::thread_block_tile<Size>>;
+struct thread_block_tile : detail::enable_extended_shuffle<
+                               cooperative_groups::thread_block_tile<Size>> {
+    using detail::enable_extended_shuffle<
+        cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
+};
+
+
 // inherits thread_group
 //
 // public API:
@@ -194,6 +338,23 @@ using thread_block_tile = detail::enable_extended_shuffle<
 // c.c. 7.0 and higher
 // unsigned match_any(T) const
 // unsigned match_all(T) const
+namespace detail {
+// struct is_group_impl<thread_block_tile<16>> : std::true_type {};
+template <size_type Size>
+struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
+template <size_type Size>
+struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
+};
+template <size_type Size>
+struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
+// make sure CUDA group is recognized whenever possible
+template <size_type Size>
+struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
+    : std::true_type {};
+template <size_type Size>
+struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
+    : std::true_type {};
+}  // namespace detail
 
 
 // top-level functions

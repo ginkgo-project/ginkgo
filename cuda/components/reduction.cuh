@@ -60,9 +60,9 @@ namespace cuda {
  *       Otherwise, the correct value is returned only to the thread with
  *       subwarp index 0.
  */
-template <typename Group, typename ValueType, typename Operator,
-          typename = xstd::void_t<decltype(std::declval<Group>().shfl_xor(
-              std::declval<ValueType>(), std::declval<int32>()))>>
+template <
+    typename Group, typename ValueType, typename Operator,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ ValueType reduce(const Group &group,
                                             ValueType local_data,
                                             Operator reduce_op = Operator{})
@@ -85,9 +85,9 @@ __device__ __forceinline__ ValueType reduce(const Group &group,
  * Only the values from threads which set `is_pivoted` to `false` will be
  * considered.
  */
-template <typename Group, typename ValueType,
-          typename = xstd::void_t<decltype(std::declval<Group>().shfl(
-              std::declval<ValueType>(), std::declval<int32>()))>>
+template <
+    typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ int choose_pivot(const Group &group,
                                             ValueType local_data,
                                             bool is_pivoted)

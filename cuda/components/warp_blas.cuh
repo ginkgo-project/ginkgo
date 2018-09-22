@@ -62,14 +62,14 @@ namespace warp {
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, typename Group, typename ValueType>
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
                                                              int32 key_row,
                                                              int32 key_col,
                                                              ValueType *row)
 {
-    // static_assert(max_problem_size <= subwarp_size,
-    //              "max_problem_size cannot be larger than subwarp_size");
     auto key_col_elem = group.shfl(row[key_col], key_row);
     if (key_col_elem == zero<ValueType>()) {
         // TODO: implement error handling for GPUs to be able to properly
@@ -126,15 +126,15 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, typename Group, typename ValueType>
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void invert_block(const Group &group,
                                              uint32 problem_size,
                                              ValueType *__restrict__ row,
                                              uint32 &__restrict__ perm,
                                              uint32 &__restrict__ trans_perm)
 {
-    // static_assert(max_problem_size <= subwarp_size,
-    //               "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
     auto pivoted = group.thread_rank() >= problem_size;
@@ -185,14 +185,14 @@ __device__ __forceinline__ void invert_block(const Group &group,
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, typename Group, typename ValueType>
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void copy_matrix(
     const Group &group, uint32 problem_size,
     const ValueType *__restrict__ source_row, uint32 increment, uint32 row_perm,
     uint32 col_perm, ValueType *__restrict__ destination, size_type stride)
 {
-    // static_assert(max_problem_size <= subwarp_size,
-    //              "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
@@ -234,14 +234,14 @@ __device__ __forceinline__ void copy_matrix(
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_problem_size, typename Group, typename ValueType>
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_transposed_vec(
     const Group &group, uint32 problem_size, const ValueType &__restrict__ vec,
     const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
     ValueType *__restrict__ res, uint32 res_increment)
 {
-    // static_assert(max_problem_size <= subwarp_size,
-    //               "max_problem_size cannot be larger than subwarp_size");
     GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<ValueType>();
 #pragma unroll
