@@ -229,9 +229,8 @@ __global__ __launch_bounds__(block_size) void compute_partial_dot(
     __shared__ UninitializedArray<ValueType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
-    block::reduce<block_size, cuda_config::warp_size>(
-        static_cast<ValueType *>(tmp_work),
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+    reduce(group::this_thread_block(), static_cast<ValueType *>(tmp_work),
+           [](const ValueType &x, const ValueType &y) { return x + y; });
 
     if (local_id == 0) {
         work[thread::get_block_id()] = tmp_work[0];
@@ -252,9 +251,8 @@ __global__ __launch_bounds__(block_size) void finalize_dot_computation(
     __shared__ UninitializedArray<ValueType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
-    block::reduce<block_size, cuda_config::warp_size>(
-        static_cast<ValueType *>(tmp_work),
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+    reduce(group::this_thread_block(), static_cast<ValueType *>(tmp_work),
+           [](const ValueType &x, const ValueType &y) { return x + y; });
 
     if (local_id == 0) {
         *result = tmp_work[0];

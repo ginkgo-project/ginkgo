@@ -37,8 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/std_extensions.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/shuffle.cuh"
-#include "cuda/components/synchronization.cuh"
 #include "cuda/components/thread_ids.cuh"
 
 
@@ -108,9 +106,6 @@ __device__ __forceinline__ int choose_pivot(const Group &group,
 }
 
 
-namespace block {
-
-
 /**
  * @internal
  *
@@ -121,37 +116,34 @@ namespace block {
  * as to store the return value - which is stored in the 0-th position of the
  * array.
  */
-template <size_type block_size, int32 subwarp_size, typename ValueType,
-          typename Operator>
-__device__ void reduce(ValueType *data, Operator reduce_op = Operator{})
+template <
+    typename Group, typename ValueType, typename Operator,
+    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+__device__ void reduce(const Group &group, ValueType *data,
+                       Operator reduce_op = Operator{})
 {
-    const auto local_id = thread::get_local_thread_id<subwarp_size>();
+    const auto local_id = group.thread_rank();
 
 #pragma unroll
-    for (int k = block_size / 2; k >= cuda_config::warp_size; k /= 2) {
-        block::synchronize();
+    for (int k = group.size() / 2; k >= cuda_config::warp_size; k /= 2) {
+        group.sync();
         if (local_id < k) {
             data[local_id] = reduce_op(data[local_id], data[local_id + k]);
         }
     }
 
-    if (local_id >= cuda_config::warp_size) {
+    const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
+    const auto warp_id = group.thread_rank() / warp.size();
+    if (warp_id > 0) {
         return;
     }
-    auto result = data[local_id];
-    // TODO: implement function-level launch configuration to use warp::reduce
-#pragma unroll
-    for (int bitmask = 1; bitmask < cuda_config::warp_size; bitmask <<= 1) {
-        result = reduce_op(result, warp::shuffle_xor(result, bitmask));
-    }
-
-    if (local_id == 0) {
+    auto result = reduce(warp, data[warp.thread_rank()], reduce_op);
+    if (warp.thread_rank() == 0) {
         data[0] = result;
     }
 }
 
 
-}  // namespace block
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

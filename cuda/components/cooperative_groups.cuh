@@ -319,8 +319,6 @@ struct thread_block_tile : detail::enable_extended_shuffle<
     using detail::enable_extended_shuffle<
         cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
 };
-
-
 // inherits thread_group
 //
 // public API:
@@ -338,6 +336,7 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 // c.c. 7.0 and higher
 // unsigned match_any(T) const
 // unsigned match_all(T) const
+
 namespace detail {
 // struct is_group_impl<thread_block_tile<16>> : std::true_type {};
 template <size_type Size>
