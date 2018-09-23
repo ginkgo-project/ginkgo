@@ -45,7 +45,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-namespace warp {
 
 
 /**
@@ -53,14 +52,10 @@ namespace warp {
  *
  * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
  * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using
- * `subwarp_size` threads (restrictions from `cuda::warp::reduce` apply, and
- * `max_problem_size` must not be greater than `subwarp_size`.
- * Each thread contributes one `row` of the matrix, and the routine uses warp
- * shuffles to exchange data between rows. The transform is performed by using
- * the `key_row`-th row and `key_col`-th column of the matrix.
- *
- * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
+ * usinge the thread group `group.  Each thread contributes one `row` of the
+ * matrix, and the routine uses warp shuffles to exchange data between rows. The
+ * transform is performed by using the `key_row`-th row and `key_col`-th column
+ * of the matrix.
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
@@ -105,26 +100,23 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
  * \f$ A^{-1} = P X P \f$, where \f$ X \f$ is the returned matrix). These
  * permutation matrices are returned compressed as vectors `perm` and
  * `trans_perm`, respectively. `i`-th value of each of the vectors is returned
- * to sub-warp thread with index `i`.
+ * to thread of the group with rank `i`.
  *
  * @tparam max_problem_size  the maximum problem size that will be passed to the
  *                           inversion routine (a tighter bound results in
  *                           faster code
- * @tparam subwarp_size  the size of the sub-warp used to invert the block,
- *                       cannot be smaller than `max_problem_size`
+ * @tparam Group  type of the group of threads
  * @tparam ValueType  type of values stored in the matrix
  *
+ * @param group  the group of threads which participate in the inversion
  * @param problem_size  the actual size of the matrix (cannot be larger than
  *                      max_problem_size)
- * @param row  a pointer to the matrix row (i-th thread in the subwarp should
+ * @param row  a pointer to the matrix row (i-th thread in the group should
  *             pass the pointer to the i-th row), has to have at least
  *             max_problem_size elements
  * @param perm  a value to hold an element of permutation matrix \f$ P \f$
  * @param trans_perm  a value to hold an element of permutation matrix \f$ P^T
  * \f$
- *
- * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
@@ -164,10 +156,10 @@ __device__ __forceinline__ void invert_block(const Group &group,
  * Optionally permutes rows and columns of the matrix in the process.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
- *                          (`max_problem_size <= subwarp_size`)
- * @tparam subwarp_size  size of the sub-warp used to store the matrix
+ * @tparam Group  type of the group of threads
  * @tparam ValueType  type of values stored in the matrix
  *
+ * @param group  group of threads participating in the copy
  * @param problem_size  actual size of the matrix
  *                      (`problem_size <= max_problem_size`)
  * @param source_row  pointer to memory used to store a row of the source matrix
@@ -181,9 +173,6 @@ __device__ __forceinline__ void invert_block(const Group &group,
  * @param destination  pointer to memory where the result will be stored
  *                     (all threads supply the same value)
  * @param stride  offset between two consecutive rows of the matrix
- *
- * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
@@ -200,7 +189,7 @@ __device__ __forceinline__ void copy_matrix(
             break;
         }
         const auto idx = group.shfl(col_perm, i);
-        if (threadIdx.x < problem_size) {
+        if (group.thread_rank() < problem_size) {
             destination[idx * stride + row_perm] = source_row[i * increment];
         }
     }
@@ -215,10 +204,10 @@ __device__ __forceinline__ void copy_matrix(
  * In mathematical terms, performs the operation \f$ res^T = vec^T \cdot mtx\f$.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
- *                          (`max_problem_size <= subwarp_size`)
- * @tparam subwarp_size  size of the sub-warp used to store the matrix
+ * @tparam Group  type of the group of threads
  * @tparam ValueType  type of values stored in matrix and vectors
  *
+ * @param group  group of threads participating in the operation
  * @param problem_size  actual size of the matrix
  *                      (`problem_size <= max_problem_size`)
  * @param vec  input vector to multiply (thread `i` supplies the `i`-th value of
@@ -228,11 +217,8 @@ __device__ __forceinline__ void copy_matrix(
  *                    `i`-th row of the matrix
  * @param mtx_increment  offset between two consecutive elements of the row
  * @param res  pointer to a block of memory where the result will be written
- *             (only thread 0 of the subwarp has to supply a valid value)
+ *             (only thread 0 of the group has to supply a valid value)
  * @param mtx_increment  offset between two consecutive elements of the result
- *
- * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
@@ -261,7 +247,6 @@ __device__ __forceinline__ void multiply_transposed_vec(
 }
 
 
-}  // namespace warp
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

@@ -78,8 +78,7 @@ __device__ __forceinline__ ValueType reduce(const Group &group,
  * @internal
  *
  * Returns the index of the thread that has the element with the largest
- * magnitude among all the threads in the sub-warp of `subwarp_size` threads.
- * Restrictions on subwarp_size from warp::reduce apply.
+ * magnitude among all the threads in the group.
  * Only the values from threads which set `is_pivoted` to `false` will be
  * considered.
  */

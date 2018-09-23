@@ -42,7 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-namespace device {
 namespace csr {
 
 /**
@@ -52,27 +51,27 @@ namespace csr {
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
 template <
-    int max_block_size, int subwarp_size, int warps_per_block, typename Group,
-    typename ValueType, typename IndexType,
+    int max_block_size, int warps_per_block, typename Group, typename ValueType,
+    typename IndexType,
     typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ __forceinline__ void extract_transposed_diag_blocks(
-    const Group &group, const IndexType *__restrict__ row_ptrs,
+    const Group &group, int processed_blocks,
+    const IndexType *__restrict__ row_ptrs,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values,
     const IndexType *__restrict__ block_ptrs, size_type num_blocks,
     ValueType *__restrict__ block_row, int increment,
     ValueType *__restrict__ workspace)
 {
-    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
-    const int tid = threadIdx.y * subwarp_size + threadIdx.x;
+    const int tid = threadIdx.y * blockDim.x + threadIdx.x;
     const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
-    auto bid =
-        static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
-        threadIdx.z * blocks_per_warp;
+    auto bid = static_cast<size_type>(blockIdx.x) * warps_per_block *
+                   processed_blocks +
+               threadIdx.z * processed_blocks;
     auto bstart = block_ptrs[bid];
     IndexType bsize = 0;
 #pragma unroll
-    for (int b = 0; b < blocks_per_warp; ++b, ++bid) {
+    for (int b = 0; b < processed_blocks; ++b, ++bid) {
         if (bid >= num_blocks) {
             break;
         }
@@ -109,7 +108,6 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
 
 
 }  // namespace csr
-}  // namespace device
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

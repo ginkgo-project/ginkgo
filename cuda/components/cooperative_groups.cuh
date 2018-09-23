@@ -120,10 +120,9 @@ namespace group {
 
 
 // See <CUDA directory>/include/cooperative_groups.h for documentation and
-// implementation.
+// implementation of the original CUDA cooperative groups API. You can use this
+// file to define new or modify existing groups.
 
-
-// define new or modify existing groups here
 
 // metafunctions
 
@@ -132,21 +131,15 @@ namespace detail {
 
 
 template <typename T>
-struct is_group_impl : std::false_type {
-    void test() { bla(this); }
-};
+struct is_group_impl : std::false_type {};
 
 
 template <typename T>
-struct is_synchronizable_group_impl : std::false_type {
-    void test() { bla(this); }
-};
+struct is_synchronizable_group_impl : std::false_type {};
 
 
 template <typename T>
-struct is_communicator_group_impl : std::true_type {
-    void test() { bla(this); }
-};
+struct is_communicator_group_impl : std::true_type {};
 
 }  // namespace detail
 
@@ -197,16 +190,18 @@ using cooperative_groups::thread_group;
 // }
 // operator=
 // thread_group(__internal::groupType type)
+
 namespace detail {
 template <>
 struct is_group_impl<thread_group> : std::true_type {};
 }  // namespace detail
 
 
+// Do not use grid_group. Need to launch kernels with cuLaunchCooperativeKernel
+// for this to work, and the device has to support it. It's not available on
+// some older hardware we're trying to support.
+//
 // using cooperative_groups::grid_group;
-// Do not use this. Need to launch kernels with cuLaunchCooperativeKernel for
-// this to work, and the device has to support it. It's not available on some
-// older hardware we're trying to support.
 // public API:
 // grid_group()
 // bool is_valid() const
@@ -214,8 +209,11 @@ struct is_group_impl<thread_group> : std::true_type {};
 // unsigned size() const
 // unsigned thread_rank() const
 // dim3 group_dim() const
+//
+// namespace detail {
 // template <>
 // struct is_group_impl<grid_group> : std::true_type {};
+// }  // namespace detail
 
 
 using cooperative_groups::thread_block;
@@ -228,6 +226,7 @@ using cooperative_groups::thread_block;
 // dim3 group_index() const
 // dim3 thread_index() const
 // dim3 group_dim() const
+
 namespace detail {
 template <>
 struct is_group_impl<thread_block> : std::true_type {};
@@ -236,7 +235,8 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
 }  // namespace detail
 
 
-// Probably don't use it, implementation is incomplete
+// You probably don't want to use it, the implementation is incomplete and
+// buggy.
 using cooperative_groups::coalesced_group;
 // inherits thread_group
 //
@@ -254,6 +254,7 @@ using cooperative_groups::coalesced_group;
 // c.c. 7.0 and higher
 // unsigned match_any(T) const
 // unsigned match_all(T) const
+
 namespace detail {
 template <>
 struct is_group_impl<coalesced_group> : std::true_type {};
@@ -266,6 +267,7 @@ struct is_synchronizable_group_impl<coalesced_group> : std::true_type {};
 
 
 namespace detail {
+
 
 // Adds generalized shuffles that support any type to the group.
 template <typename Group>
@@ -283,7 +285,7 @@ public:
                                                SelectorType selector) const \
     {                                                                       \
         return shuffle_impl(                                                \
-            [this](int32 v, SelectorType s) {                               \
+            [this](uint32 v, SelectorType s) {                              \
                 return static_cast<const Group *>(this)->_name(v, s);       \
             },                                                              \
             var, selector);                                                 \
@@ -299,18 +301,19 @@ public:
 private:
     template <typename ShuffleOperator, typename ValueType,
               typename SelectorType>
-    static __device__ __forceinline__ ValueType shuffle_impl(
-        ShuffleOperator shuffle, const ValueType &var, SelectorType selector)
+    static __device__ __forceinline__ ValueType
+    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType &var,
+                 SelectorType selector)
     {
-        static_assert(sizeof(ValueType) % sizeof(int32) == 0,
+        static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
                       "Unable to shuffle sizes which are not 4-byte multiples");
-        constexpr auto value_size = sizeof(ValueType) / sizeof(int32);
+        constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
         ValueType result;
-        auto var_array = reinterpret_cast<const int32 *>(&var);
-        auto result_array = reinterpret_cast<int32 *>(&result);
+        auto var_array = reinterpret_cast<const uint32 *>(&var);
+        auto result_array = reinterpret_cast<uint32 *>(&result);
 #pragma unroll
         for (std::size_t i = 0; i < value_size; ++i) {
-            result_array[i] = shuffle(var_array[i], selector);
+            result_array[i] = intrinsic_shuffle(var_array[i], selector);
         }
         return result;
     }
@@ -320,8 +323,8 @@ private:
 }  // namespace detail
 
 
-// implementing this as a using directive messes up with SFINAE for some reason,
-// probably a bug in NVCC
+// Implementing this as a using directive messes up with SFINAE for some reason,
+// probably a bug in NVCC. If it is a complete type, everything works fine.
 template <size_type Size>
 struct thread_block_tile : detail::enable_extended_shuffle<
                                cooperative_groups::thread_block_tile<Size>> {
@@ -343,11 +346,10 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 // unsigned ballot(int) const
 //
 // c.c. 7.0 and higher
-// unsigned match_any(T) const
-// unsigned match_all(T) const
+// unsigned match_any(T) const  // TODO: implement for all types
+// unsigned match_all(T) const  // TODO: implement for all types
 
 namespace detail {
-// struct is_group_impl<thread_block_tile<16>> : std::true_type {};
 template <size_type Size>
 struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
 template <size_type Size>
@@ -355,7 +357,7 @@ struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
 };
 template <size_type Size>
 struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
-// make sure CUDA group is recognized whenever possible
+// make sure the original CUDA group is recognized whenever possible
 template <size_type Size>
 struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
     : std::true_type {};
@@ -366,22 +368,39 @@ struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
 
 
 // top-level functions
+
+
 // thread_group this_thread()
 using cooperative_groups::this_thread;
+
+
+// Not using this, as grid_group is not universally supported.
 // grid_group this_grid()
 // using cooperative_groups::this_grid;
+
+
 // thread_block this_thread_block()
 using cooperative_groups::this_thread_block;
+
+
 // coalesced_group coalesced_threads()
 using cooperative_groups::coalesced_threads;
+
+
 // void sync(group)
 using cooperative_groups::sync;
+
+
 // unsigned thread_rank(group)
 using cooperative_groups::thread_rank;
+
+
 // unsigned group_size(group)
 using cooperative_groups::group_size;
 
 
+// Need to implement our own tiled_partition functions to make sure they return
+// our extended version of the thread_block_tile in the templated case.
 template <typename Group>
 __device__ __forceinline__ auto tiled_partition(const Group &g)
     -> decltype(cooperative_groups::tiled_partition(g))

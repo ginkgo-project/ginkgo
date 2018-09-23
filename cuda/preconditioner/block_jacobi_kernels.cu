@@ -63,21 +63,21 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
-    const auto subwarp = group::tiled_partition<subwarp_size>(block);
     ValueType row[max_block_size];
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
-    device::csr::extract_transposed_diag_blocks<max_block_size, subwarp_size,
-                                                warps_per_block>(
-        block, row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
+    csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
+        block, cuda_config::warp_size / subwarp_size, row_ptrs, col_idxs,
+        values, block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
+    const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
         const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
         auto perm = subwarp.thread_rank();
         auto trans_perm = subwarp.thread_rank();
-        warp::invert_block<max_block_size>(subwarp, block_size, row, perm,
-                                           trans_perm);
-        warp::copy_matrix<max_block_size>(
+        invert_block<max_block_size>(subwarp, block_size, row, perm,
+                                     trans_perm);
+        copy_matrix<max_block_size>(
             subwarp, block_size, row, 1, perm, trans_perm,
             block_data + (block_ptrs[block_id] * stride), stride);
     }
@@ -104,7 +104,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     if (subwarp.thread_rank() < block_size) {
         v = b[(block_ptrs[block_id] + subwarp.thread_rank()) * b_stride];
     }
-    warp::multiply_transposed_vec<max_block_size>(
+    multiply_transposed_vec<max_block_size>(
         subwarp, block_size, v,
         blocks + block_ptrs[block_id] * stride + subwarp.thread_rank(), stride,
         x + block_ptrs[block_id] * x_stride, x_stride);
