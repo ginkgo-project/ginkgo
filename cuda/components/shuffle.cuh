@@ -49,6 +49,12 @@ namespace warp {
 namespace detail {
 
 
+#define GKO_DEPRECATION_NOTICE                                                \
+    GKO_DEPRECATED(                                                           \
+        "The shuffle API is deprecated as it may trigger incorrect behavior " \
+        "on the Volta and later architectures. Please use the cooperative "   \
+        "groups API available in cuda/components/cooperative_groups.cuh")
+
 template <typename ShuffleOperator, typename ValueType, typename SelectorType>
 __device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
                                                   const ValueType &var,
@@ -75,19 +81,19 @@ __device__ __forceinline__ ValueType shuffle_impl(ShuffleOperator shuffle,
 #if __CUDACC_VER_MAJOR__ < 9
 
 
-#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType) \
-    template <typename ValueType>                                     \
-    __device__ __forceinline__ ValueType _name(                       \
-        const ValueType &var, SelectorType selector,                  \
-        int32 width = cuda_config::warp_size,                         \
-        uint32 mask = cuda_config::full_lane_mask)                    \
-    {                                                                 \
-        GKO_ASSERT(mask == cuda_config::full_lane_mask);              \
-        return detail::shuffle_impl(                                  \
-            [](uint32 m, int32 v, SelectorType s, int32 w) {          \
-                return _intrinsic(v, s, w);                           \
-            },                                                        \
-            var, selector, width, mask);                              \
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)  \
+    template <typename ValueType>                                      \
+    GKO_DEPRECATION_NOTICE __device__ __forceinline__ ValueType _name( \
+        const ValueType &var, SelectorType selector,                   \
+        int32 width = cuda_config::warp_size,                          \
+        uint32 mask = cuda_config::full_lane_mask)                     \
+    {                                                                  \
+        GKO_ASSERT(mask == cuda_config::full_lane_mask);               \
+        return detail::shuffle_impl(                                   \
+            [](uint32 m, int32 v, SelectorType s, int32 w) {           \
+                return _intrinsic(v, s, w);                            \
+            },                                                         \
+            var, selector, width, mask);                               \
     }
 
 GKO_ENABLE_SHUFFLE_OPERATION(shuffle, __shfl, int32);
@@ -103,7 +109,7 @@ GKO_ENABLE_SHUFFLE_OPERATION(shuffle_xor, __shfl_xor, int32);
 
 #define GKO_ENABLE_SHUFFLE_OPERATION(_name, _intrinsic, SelectorType)   \
     template <typename ValueType>                                       \
-    __device__ __forceinline__ ValueType _name(                         \
+    GKO_DEPRECATION_NOTICE __device__ __forceinline__ ValueType _name(  \
         const ValueType &var, SelectorType selector,                    \
         int32 width = cuda_config::warp_size,                           \
         uint32 mask = cuda_config::full_lane_mask)                      \
@@ -129,6 +135,9 @@ GKO_ENABLE_SHUFFLE_OPERATION(shuffle_xor, __shfl_xor_sync, int32);
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#undef GKO_DEPRECATION_NOTICE
 
 
 #endif  // GKO_CUDA_COMPONENTS_SHUFFLE_CUH_

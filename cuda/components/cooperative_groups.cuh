@@ -106,6 +106,15 @@ namespace gko {
  * To check if a group T satisfies one of the concepts, one can use the
  * metafunctions is_group<T>::value, is_synchronizable_group<T>::value and
  * is_communicator_group<T>::value.
+ *
+ * @note If you were referred to this file by the deprecation notices on
+ *       Ginkgo's synchronization or shuffle API, please note that the current
+ *       implementation of cooperative groups contains only a subset of
+ *       functionalities provided by those APIs. If you need more functionality,
+ *       please add the appropriate implementations to existing cooperative
+ *       groups, or create new groups if the existing groups do not cover your
+ *       use-case. For an example, see the enable_extended_shuffle mixin, which
+ *       adds extended shuffles support to built-in CUDA cooperative groups.
  */
 namespace group {
 

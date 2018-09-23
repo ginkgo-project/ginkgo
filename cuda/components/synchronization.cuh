@@ -47,9 +47,18 @@ namespace cuda {
 namespace warp {
 
 
+#define GKO_DEPRECATION_NOTICE                                               \
+    GKO_DEPRECATED(                                                          \
+        "The synchronization API is deprecated as it may trigger incorrect " \
+        "behavior on the Volta and later architectures. Please use the "     \
+        "cooperative groups API available in "                               \
+        "cuda/components/cooperative_groups.cuh")
+
+
 #if __CUDACC_VER_MAJOR__ < 9
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ uint32 active_mask()
 {
     // all threads are always active in CUDA < 9
@@ -57,6 +66,7 @@ __device__ __forceinline__ uint32 active_mask()
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void synchronize(
     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -65,6 +75,7 @@ __device__ __forceinline__ void synchronize(
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool any(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -73,6 +84,7 @@ __device__ __forceinline__ bool any(bool predicate,
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool all(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -81,6 +93,7 @@ __device__ __forceinline__ bool all(bool predicate,
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ int32
 count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
@@ -89,6 +102,7 @@ count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ uint32
 ballot(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
@@ -100,9 +114,11 @@ ballot(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 #else  // __CUDACC_VER_MAJOR__ < 9
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool active_mask() { return __activemask(); }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void synchronize(
     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -110,6 +126,7 @@ __device__ __forceinline__ void synchronize(
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool any(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -117,6 +134,7 @@ __device__ __forceinline__ bool any(bool predicate,
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool all(bool predicate,
                                     uint32 mask = cuda_config::full_lane_mask)
 {
@@ -124,6 +142,7 @@ __device__ __forceinline__ bool all(bool predicate,
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ int32
 count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
@@ -131,6 +150,7 @@ count(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ uint32
 ballot(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 {
@@ -147,24 +167,29 @@ ballot(bool predicate, uint32 mask = cuda_config::full_lane_mask)
 namespace block {
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void fence() { __threadfence_block(); }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void synchronize() { __syncthreads(); }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool any(bool predicate)
 {
     return __syncthreads_or(predicate);
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ bool all(bool predicate)
 {
     return __syncthreads_and(predicate);
 }
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ int32 count(bool predicate)
 {
     return __syncthreads_count(predicate);
@@ -177,6 +202,7 @@ __device__ __forceinline__ int32 count(bool predicate)
 namespace device {
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void fence() { __threadfence(); }
 
 
@@ -186,6 +212,7 @@ __device__ __forceinline__ void fence() { __threadfence(); }
 namespace system {
 
 
+GKO_DEPRECATION_NOTICE
 __device__ __forceinline__ void fence() { __threadfence_system(); }
 
 
@@ -193,6 +220,9 @@ __device__ __forceinline__ void fence() { __threadfence_system(); }
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#undef GKO_DEPRECATION_NOTICE
 
 
 #endif  // GKO_CUDA_COMPONENTS_SYNCHRONIZATION_CUH_
