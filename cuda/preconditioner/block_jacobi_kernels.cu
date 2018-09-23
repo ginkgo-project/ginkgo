@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/diagonal_block_manipulation.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -61,14 +62,14 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
-    const auto subwarp =
-        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto block = group::this_thread_block();
+    const auto subwarp = group::tiled_partition<subwarp_size>(block);
     ValueType row[max_block_size];
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
     device::csr::extract_transposed_diag_blocks<max_block_size, subwarp_size,
                                                 warps_per_block>(
-        row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
+        block, row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
     if (block_id < num_blocks) {
         const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
@@ -183,6 +184,8 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
     const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
     const auto local_tid = threadIdx.x % cuda_config::warp_size;
     const auto warp_id = global_tid / cuda_config::warp_size;
+    const auto warp = group::tiled_partition<cuda_config::warp_size>(
+        group::this_thread_block());
 
     if (warp_id >= num_rows - 1) {
         return;
@@ -208,7 +211,7 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
         auto this_col = (curr_row_start + j < next_row_start)
                             ? col_idx[next_row_start + j]
                             : 0;
-        if (warp::any(prev_col != this_col)) {
+        if (warp.any(prev_col != this_col)) {
             matching_next_row[warp_id] = false;
             return;
         }

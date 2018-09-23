@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_CUH_
 
 
-#include "cuda/components/shuffle.cuh"
-#include "cuda/components/synchronization.cuh"
+#include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 
 
 namespace gko {
@@ -51,10 +51,12 @@ namespace csr {
  * @note assumes that block dimensions are in "standard format":
  *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
  */
-template <int max_block_size, int subwarp_size, int warps_per_block,
-          typename ValueType, typename IndexType>
+template <
+    int max_block_size, int subwarp_size, int warps_per_block, typename Group,
+    typename ValueType, typename IndexType,
+    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ __forceinline__ void extract_transposed_diag_blocks(
-    const IndexType *__restrict__ row_ptrs,
+    const Group &group, const IndexType *__restrict__ row_ptrs,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values,
     const IndexType *__restrict__ block_ptrs, size_type num_blocks,
@@ -63,6 +65,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
 {
     constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
     const int tid = threadIdx.y * subwarp_size + threadIdx.x;
+    const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
     auto bid =
         static_cast<size_type>(blockIdx.x) * warps_per_block * blocks_per_warp +
         threadIdx.z * blocks_per_warp;
@@ -96,7 +99,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
                     workspace[col] = values[j];
                 }
             }
-            warp::synchronize();
+            warp.sync();
             if (threadIdx.y == b && threadIdx.x < bsize) {
                 block_row[i * increment] = workspace[threadIdx.x];
             }
