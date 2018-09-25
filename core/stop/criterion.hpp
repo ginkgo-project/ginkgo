@@ -142,11 +142,44 @@ public:
      *
      * @returns whether convergence was completely reached
      */
-    virtual bool check(uint8 stoppingId, bool setFinalized,
-                       Array<stopping_status> *stop_status, bool *one_changed,
-                       const Updater &updater) = 0;
+    bool check(uint8 stoppingId, bool setFinalized,
+               Array<stopping_status> *stop_status, bool *one_changed,
+               const Updater &updater)
+    {
+        this->template log<log::Logger::criterion_check_started>(
+            this, updater.num_iterations_, updater.residual_,
+            updater.residual_norm_, updater.solution_, stoppingId,
+            setFinalized);
+        auto all_converged = this->check_impl(
+            stoppingId, setFinalized, stop_status, one_changed, updater);
+        this->template log<log::Logger::criterion_check_completed>(
+            this, updater.num_iterations_, updater.residual_,
+            updater.residual_norm_, updater.solution_, stoppingId, setFinalized,
+            stop_status, *one_changed, all_converged);
+        return all_converged;
+    }
 
 protected:
+    /**
+     * Implementers of Criterion should override this function instead
+     * of check(uint8, bool, Array<stopping_status>*, bool*, const Updater&).
+     *
+     * This checks whether convergence was reached for a certain criterion.
+     * The actual implantation of the criterion goes here.
+     *
+     * @param stoppingId  id of the stopping criterion
+     * @param setFinalized  Controls if the current version should count as
+     *                      finalized or not
+     * @param stop_status  status of the stopping criterion
+     * @param one_changed  indicates if one vector's status changed
+     * @param updater  the Updater object containing all the information
+     *
+     * @returns whether convergence was completely reached
+     */
+    virtual bool check_impl(uint8 stoppingId, bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            bool *one_changed, const Updater &updater) = 0;
+
     /**
      * This is a helper function which properly sets all elements of the
      * stopping_status to converged. This is used in stopping criteria such as

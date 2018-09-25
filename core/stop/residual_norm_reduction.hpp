@@ -68,10 +68,6 @@ class ResidualNormReduction
 public:
     using Vector = matrix::Dense<ValueType>;
 
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Criterion::Updater &) override;
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -84,6 +80,10 @@ public:
                                  Factory);
 
 protected:
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    Array<stopping_status> *stop_status, bool *one_changed,
+                    const Criterion::Updater &) override;
+
     explicit ResidualNormReduction(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
               std::move(exec))

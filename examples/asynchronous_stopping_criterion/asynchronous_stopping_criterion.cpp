@@ -85,18 +85,6 @@ class ByInteraction
     using Criterion = gko::stop::Criterion;
 
 public:
-    bool check(gko::uint8 stoppingId, bool setFinalized,
-               gko::Array<gko::stopping_status> *stop_status, bool *one_changed,
-               const Criterion::Updater &) override
-    {
-        bool result = *(parameters_.stop_iteration_process);
-        if (result) {
-            this->set_all_statuses(stoppingId, setFinalized, stop_status);
-            *one_changed = true;
-        }
-        return result;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -108,6 +96,18 @@ public:
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
 
 protected:
+    bool check_impl(gko::uint8 stoppingId, bool setFinalized,
+                    gko::Array<gko::stopping_status> *stop_status,
+                    bool *one_changed, const Criterion::Updater &) override
+    {
+        bool result = *(parameters_.stop_iteration_process);
+        if (result) {
+            this->set_all_statuses(stoppingId, setFinalized, stop_status);
+            *one_changed = true;
+        }
+        return result;
+    }
+
     explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}

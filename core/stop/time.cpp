@@ -39,22 +39,15 @@ namespace gko {
 namespace stop {
 
 
-bool Time::check(uint8 stoppingId, bool setFinalized,
-                 Array<stopping_status> *stop_status, bool *one_changed,
-                 const Updater &updater)
+bool Time::check_impl(uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status, bool *one_changed,
+                      const Updater &updater)
 {
-    this->template log<log::Logger::criterion_check_started>(
-        this, updater.num_iterations_, updater.residual_,
-        updater.residual_norm_, updater.solution_, stoppingId, setFinalized);
     bool result = clock::now() - start_ >= time_limit_;
     if (result) {
         this->set_all_statuses(stoppingId, setFinalized, stop_status);
         *one_changed = true;
     }
-    this->template log<log::Logger::criterion_check_completed>(
-        this, updater.num_iterations_, updater.residual_,
-        updater.residual_norm_, updater.solution_, stoppingId, setFinalized,
-        stop_status, *one_changed, result);
     return result;
 }
 
