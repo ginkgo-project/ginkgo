@@ -38,21 +38,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
+#include <core/matrix/dense.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/test/utils/assertions.hpp>
 
 
 namespace {
 
 
-TEST(Record, CanGetData)
+TEST(Record, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<>::create(
-        exec, gko::log::Logger::iteration_complete_mask);
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion = gko::stop::Iteration::Factory::create()
+                         .with_max_iters(3u)
+                         .on_executor(exec)
+                         ->generate(nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    using Mtx = gko::matrix::Dense<>;
+    auto residual = gko::initialize<Mtx>({1.0, 1.0, 1.0}, exec);
+    auto solution = gko::initialize<Mtx>({2, -1.0, 0.0}, exec);
 
-    ASSERT_EQ(logger->get_num_iterations(), 0);
-    ASSERT_EQ(logger->get_residual(), nullptr);
-    ASSERT_EQ(logger->get_residual_norm(), nullptr);
-    ASSERT_EQ(logger->get_solution(), nullptr);
+    logger->on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 1, residual.get(), nullptr, solution.get(),
+        RelativeStoppingId, true, &stop_status, true, true);
+
+    ASSERT_EQ(logger->get_num_iterations(), 1);
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()), l({1.0, 1.0, 1.0}),
+                    0.0);
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_solution()), l({2.0, -1.0, 0.0}),
+                    0.0);
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}), 0.0);
 }
 
 
