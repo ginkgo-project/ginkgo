@@ -43,6 +43,9 @@ bool Combined::check(uint8 stoppingId, bool setFinalized,
                      Array<stopping_status> *stop_status, bool *one_changed,
                      const Updater &updater)
 {
+    this->template log<log::Logger::criterion_check_started>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.solution_, stoppingId, setFinalized);
     bool one_converged = false;
     gko::uint8 ids{1};
     *one_changed = false;
@@ -56,6 +59,10 @@ bool Combined::check(uint8 stoppingId, bool setFinalized,
         }
         ids++;
     }
+    this->template log<log::Logger::criterion_check_completed>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.solution_, stoppingId, setFinalized,
+        stop_status, *one_changed, one_converged);
     return one_converged;
 }
 

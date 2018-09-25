@@ -87,7 +87,11 @@ public:
     template <typename... Args>
     std::unique_ptr<AbstractProductType> generate(Args &&... args) const
     {
-        return this->generate_impl({std::forward<Args>(args)...});
+        auto product = this->generate_impl({std::forward<Args>(args)...});
+        for (auto logger : this->loggers_) {
+            product->add_logger(logger);
+        }
+        return product;
     }
 
 protected:
@@ -122,6 +126,10 @@ protected:
  * constructor. The factory also supports parameters by using the
  * `ParametersType` structure, which is defined by the user.
  *
+ * Note: it is supposed that both factories and products have access to logging
+ * facilities, either through `PolymorphicObject` or through direct use of the
+ * `EnableLogging` mixin.
+ *
  * For a simple example, see IntFactory in
  * `core/test/base/abstract_factory.cpp`.
  *
@@ -153,8 +161,12 @@ public:
     template <typename... Args>
     std::unique_ptr<ProductType> generate(Args &&... args) const
     {
-        return std::unique_ptr<ProductType>(static_cast<ProductType *>(
+        auto product = std::unique_ptr<ProductType>(static_cast<ProductType *>(
             this->generate_impl({std::forward<Args>(args)...}).release()));
+        for (auto logger : this->loggers_) {
+            product->add_logger(logger);
+        }
+        return product;
     }
 
     /**

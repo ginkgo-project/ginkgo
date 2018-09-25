@@ -56,12 +56,8 @@ namespace stop {
  * Note that depending on the criterion, convergence may not have happened after
  * stopping.
  */
-class Criterion : public EnableAbstractPolymorphicObject<Criterion>,
-                  log::EnableLogging<Criterion> {
+class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
-    using log::EnableLogging<Criterion>::log;
-    using log::EnableLogging<Criterion>::add_logger;
-
     /**
      * The Updater class serves for convenient argument passing to the
      * Criterion's check function. The pattern used is a Builder, except Updater
@@ -97,14 +93,8 @@ public:
         bool check(uint8 stoppingId, bool setFinalized,
                    Array<stopping_status> *stop_status, bool *one_changed) const
         {
-            parent_->template log<log::Logger::criterion_check_started>(
-                parent_, num_iterations_, residual_, residual_norm_, solution_,
-                stoppingId, setFinalized);
             auto converged = parent_->check(stoppingId, setFinalized,
                                             stop_status, one_changed, *this);
-            parent_->template log<log::Logger::criterion_check_completed>(
-                parent_, num_iterations_, residual_, residual_norm_, solution_,
-                stoppingId, setFinalized, stop_status, *one_changed, converged);
             return converged;
         }
 

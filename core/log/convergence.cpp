@@ -31,62 +31,52 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/abstract_factory.hpp>
+
+#include "core/log/convergence.hpp"
 
 
-#include <gtest/gtest.h>
+#include "core/base/array.hpp"
+#include "core/stop/criterion.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
-namespace {
+namespace gko {
+namespace log {
 
 
-struct IntFactory;
-struct MyInt;
-
-
-struct parameters_type
-    : gko::enable_parameters_type<parameters_type, IntFactory> {
-    int coefficient{5};
-};
-
-
-using base = gko::AbstractFactory<MyInt, int>;
-
-
-struct IntFactory
-    : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
-    friend class gko::enable_parameters_type<parameters_type, IntFactory>;
-    friend class gko::EnablePolymorphicObject<IntFactory, base>;
-    using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
-                                    base>::EnableDefaultFactory;
-};
-
-struct MyInt : gko::log::EnableLogging<MyInt> {
-    MyInt(const IntFactory *factory, int orig_value)
-        : value{orig_value * factory->get_parameters().coefficient}
-    {}
-    int value;
-};
-
-
-TEST(EnableDefaultFactory, StoresParameters)
+template <typename ValueType>
+void Convergence<ValueType>::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &oneChanged,
+    const bool &converged) const
 {
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
-
-    ASSERT_EQ(fact->get_parameters().coefficient, 5);
+    if (converged) {
+        this->num_iterations_ = num_iterations;
+        if (residual != nullptr) {
+            this->residual_.reset(residual->clone().release());
+        }
+        if (solution != nullptr) {
+            this->solution_.reset(solution->clone().release());
+        }
+        if (residual_norm != nullptr) {
+            this->residual_norm_.reset(residual_norm->clone().release());
+        } else if (residual != nullptr) {
+            using Vector = matrix::Dense<ValueType>;
+            this->residual_norm_ = Vector::create(
+                residual->get_executor(), dim<2>{1, residual->get_size()[1]});
+            auto dense_r = as<Vector>(residual);
+            dense_r->compute_dot(dense_r, this->residual_norm_.get());
+        }
+    }
 }
 
 
-TEST(EnableDefaultFactory, GeneratesProduct)
-{
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
-
-    auto prod = fact->generate(3);
-
-    ASSERT_EQ(prod->value, 15);
-}
+#define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
+#undef GKO_DECLARE_CONVERGENCE
 
 
-}  // namespace
+}  // namespace log
+}  // namespace gko

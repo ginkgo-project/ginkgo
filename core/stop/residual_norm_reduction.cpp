@@ -57,6 +57,9 @@ bool ResidualNormReduction<ValueType>::check(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
+    this->template log<log::Logger::criterion_check_started>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.solution_, stoppingId, setFinalized);
     std::unique_ptr<Vector> u_dense_tau;
     const Vector *dense_tau;
     if (updater.residual_norm_ != nullptr) {
@@ -76,6 +79,10 @@ bool ResidualNormReduction<ValueType>::check(
             dense_tau, starting_tau_.get(), parameters_.reduction_factor,
             stoppingId, setFinalized, stop_status, &all_converged,
             one_changed));
+    this->template log<log::Logger::criterion_check_completed>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.solution_, stoppingId, setFinalized,
+        stop_status, *one_changed, all_converged);
     return all_converged;
 }
 
