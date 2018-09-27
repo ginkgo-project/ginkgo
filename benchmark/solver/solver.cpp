@@ -272,7 +272,7 @@ double compute_norm(const vector *b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<vector>({0.0}, exec);
-    b->compute_dot(lend(b), lend(b_norm));
+    b->compute_norm2(lend(b_norm));
     return get_norm(lend(b_norm));
 }
 

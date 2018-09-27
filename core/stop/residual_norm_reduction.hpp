@@ -103,7 +103,7 @@ protected:
         starting_tau_ =
             Vector::create(factory->get_executor(),
                            dim<2>{1, args.initial_residual->get_size()[1]});
-        dense_r->compute_dot(dense_r, starting_tau_.get());
+        dense_r->compute_norm2(starting_tau_.get());
     }
 
 private:
