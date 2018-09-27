@@ -160,7 +160,7 @@ void run_solver(volatile bool *stop_iteration_process,
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
-    std::cout << "Squared residual norm (r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, lend(res));
 }
 

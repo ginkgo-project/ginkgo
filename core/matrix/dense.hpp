@@ -303,10 +303,10 @@ public:
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
 
     /**
-     * Computes the norm 2 of this matrix.
+     * Computes the Euclidian (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
-     *                (the number of column in the vector must match the number
+     *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
     virtual void compute_norm2(LinOp *result) const;
