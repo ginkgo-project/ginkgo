@@ -228,6 +228,17 @@ TEST_F(Dense, MultipleVectorCudaComputeDotIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, CudaComputeNorm2IsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->compute_norm2(expected.get());
+    dx->compute_norm2(dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Dense, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();

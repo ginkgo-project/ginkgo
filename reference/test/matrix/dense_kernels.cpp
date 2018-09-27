@@ -234,6 +234,18 @@ TEST_F(Dense, ComputesDot)
 }
 
 
+TEST_F(Dense, ComputesNorm2)
+{
+    auto mtx(gko::initialize<Mtx>({{1.0, 0.0}, {2.0, 3.0}, {2.0, 4.0}}, exec));
+    auto result = gko::matrix::Dense<>::create(exec, gko::dim<2>{1, 2});
+
+    mtx->compute_norm2(result.get());
+
+    EXPECT_EQ(result->at(0, 0), 3.0);
+    EXPECT_EQ(result->at(0, 1), 5.0);
+}
+
+
 TEST_F(Dense, ComputDotFailsOnWrongInputSize)
 {
     auto result = gko::matrix::Dense<>::create(exec, gko::dim<2>{1, 3});
