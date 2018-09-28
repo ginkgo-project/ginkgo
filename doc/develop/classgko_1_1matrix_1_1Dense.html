@@ -263,6 +263,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>write</b> (<a class="
 <tr class="memitem:acb568ff44addb095b82bbd2fbe704761"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#acb568ff44addb095b82bbd2fbe704761">compute_dot</a> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *result) const</td></tr>
 <tr class="memdesc:acb568ff44addb095b82bbd2fbe704761"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the column-wise dot product of this matrix and <code>b</code>.  <a href="#acb568ff44addb095b82bbd2fbe704761">More...</a><br /></td></tr>
 <tr class="separator:acb568ff44addb095b82bbd2fbe704761"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97fd354c4a26814586cd256b5f0d7bea"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a97fd354c4a26814586cd256b5f0d7bea">compute_norm2</a> (<a class="el" href="classgko_1_1LinOp.html">LinOp</a> *result) const</td></tr>
+<tr class="memdesc:a97fd354c4a26814586cd256b5f0d7bea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the Euclidian (L^2) norm of this matrix.  <a href="#a97fd354c4a26814586cd256b5f0d7bea">More...</a><br /></td></tr>
+<tr class="separator:a97fd354c4a26814586cd256b5f0d7bea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad606073cc426e9164bb2445354f22366"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">create_submatrix</a> (const <a class="el" href="structgko_1_1span.html">span</a> &amp;rows, const <a class="el" href="structgko_1_1span.html">span</a> &amp;columns, const size_type stride)</td></tr>
 <tr class="memdesc:ad606073cc426e9164bb2445354f22366"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a submatrix from the original matrix.  <a href="#ad606073cc426e9164bb2445354f22366">More...</a><br /></td></tr>
 <tr class="separator:ad606073cc426e9164bb2445354f22366"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -805,6 +808,42 @@ template&lt;typename ValueType &gt; </div>
 
 </div>
 </div>
+<a id="a97fd354c4a26814586cd256b5f0d7bea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97fd354c4a26814586cd256b5f0d7bea">&#9670;&nbsp;</a></span>compute_norm2()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::compute_norm2 </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classgko_1_1LinOp.html">LinOp</a> *&#160;</td>
+          <td class="paramname"><em>result</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Computes the Euclidian (L^2) norm of this matrix. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">result</td><td>a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix. ">Dense</a> row vector, used to store the norm (the number of columns in the vector must match the number of columns of this) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="ac0ae2a7dcb94eb0b32e494c970d1fc7c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac0ae2a7dcb94eb0b32e494c970d1fc7c">&#9670;&nbsp;</a></span>conj_transpose()</h2>
 
@@ -1125,8 +1164,8 @@ template&lt;typename ValueType &gt; </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (f877ff6)</a></li>
-<li>core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (0450bd1)</a></li>
-<li>core/matrix/dense.cpp (36dda8f)</li>
+<li>core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (ea6f926)</a></li>
+<li>core/matrix/dense.cpp (c5e03a4)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
