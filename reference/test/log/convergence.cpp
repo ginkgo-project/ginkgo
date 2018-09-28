@@ -58,7 +58,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     using Mtx = gko::matrix::Dense<>;
-    auto residual = gko::initialize<Mtx>({1.0, 1.0, 1.0}, exec);
+    auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
     auto solution = gko::initialize<Mtx>({2, -1.0, 0.0}, exec);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
@@ -66,7 +66,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
         RelativeStoppingId, true, &stop_status, true, true);
 
     ASSERT_EQ(logger->get_num_iterations(), 1);
-    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()), l({1.0, 1.0, 1.0}),
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()), l({1.0, 2.0, 2.0}),
                     0.0);
     ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_solution()), l({2.0, -1.0, 0.0}),
                     0.0);

@@ -67,7 +67,7 @@ void Convergence<ValueType>::on_criterion_check_completed(
             this->residual_norm_ = Vector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
             auto dense_r = as<Vector>(residual);
-            dense_r->compute_dot(dense_r, this->residual_norm_.get());
+            dense_r->compute_norm2(this->residual_norm_.get());
         }
     }
 }
