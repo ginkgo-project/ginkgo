@@ -309,6 +309,48 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void compute_sqrt(
+    size_type num_cols, ValueType *__restrict__ work)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if (tidx < num_cols) {
+        work[tidx] = sqrt(abs(work[tidx]));
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType>
+void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
+                   const matrix::Dense<ValueType> *x,
+                   matrix::Dense<ValueType> *result)
+{
+    if (cublas::is_supported<ValueType>::value) {
+        auto handle = cublas::init();
+        cublas::norm2(handle, result->get_size()[1], result->get_values(),
+                      result->get_stride(), result->get_values());
+        cublas::destroy(handle);
+    } else {
+        compute_dot(exec, x, x, result);
+        const dim3 block_size(default_block_size, 1, 1);
+        const dim3 grid_size(ceildiv(result->get_size()[1], block_size.x), 1,
+                             1);
+        kernel::compute_sqrt<<<grid_size, block_size, 0, 0>>>(
+            result->get_size()[1], as_cuda_type(result->get_values()));
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *result,

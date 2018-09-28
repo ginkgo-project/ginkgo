@@ -178,12 +178,12 @@ int main(int argc, char *argv[])
     // Finally, get some data from `record_logger` and print the last memory
     // location copied
     auto &last_copy = record_logger->get().copy_completed.back();
-    std::cout << std::hex << "Last memory copied was of size "
+    std::cout << "Last memory copied was of size " << std::hex
               << std::get<0>(*last_copy).num_bytes << " FROM executor "
               << std::get<0>(*last_copy).exec << " pointer "
               << std::get<0>(*last_copy).location << " TO executor "
               << std::get<1>(*last_copy).exec << " pointer "
-              << std::get<1>(*last_copy).location << std::endl;
+              << std::get<1>(*last_copy).location << std::dec << std::endl;
     // Also print the residual of the last iteration completed
     auto residual =
         record_logger->get().iteration_completed.back()->residual.get();
@@ -199,8 +199,8 @@ int main(int argc, char *argv[])
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_dot(lend(b), lend(res));
+    b->compute_norm2(lend(res));
 
-    std::cout << "Squared residual norm (r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, lend(res));
 }

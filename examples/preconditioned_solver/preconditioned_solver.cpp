@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_dot(lend(b), lend(res));
+    b->compute_norm2(lend(res));
 
-    std::cout << "Squared residual norm (r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, lend(res));
 }

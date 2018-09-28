@@ -182,6 +182,24 @@ BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 #undef BIND_CUBLAS_DOT
 
 
+#define BIND_CUBLAS_NORM2(ValueType, ResultType, CublasName)                   \
+    inline void norm2(cublasHandle_t handle, int n, const ValueType *x,        \
+                      int incx, ResultType *result)                            \
+    {                                                                          \
+        ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x), incx, \
+                                           as_culibs_type(result)));           \
+    }
+
+BIND_CUBLAS_NORM2(float, float, cublasSnrm2);
+BIND_CUBLAS_NORM2(double, double, cublasDnrm2);
+BIND_CUBLAS_NORM2(std::complex<float>, float, cublasScnrm2);
+BIND_CUBLAS_NORM2(std::complex<double>, double, cublasDznrm2);
+template <typename ValueType, typename ResultType>
+BIND_CUBLAS_NORM2(ValueType, ResultType, detail::not_implemented);
+
+#undef BIND_CUBLAS_NORM2
+
+
 inline cublasHandle_t init()
 {
     cublasHandle_t handle;

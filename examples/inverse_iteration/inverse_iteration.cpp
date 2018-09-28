@@ -190,14 +190,14 @@ int main(int argc, char *argv[])
         // (A - zI)y = x
         solver->apply(lend(x), lend(y));
         system_matrix->apply(lend(one), lend(y), lend(neg_one), lend(x));
-        x->compute_dot(lend(x), lend(norm));
+        x->compute_norm2(lend(norm));
         std::cout << "\"system_residual\": "
-                  << sqrt(clone(this_exec, norm)->get_values()[0]) << ", ";
+                  << clone(this_exec, norm)->get_values()[0] << ", ";
         x->copy_from(lend(y));
         // x = y / || y ||
-        x->compute_dot(lend(x), lend(norm));
+        x->compute_norm2(lend(norm));
         inv_norm->get_values()[0] =
-            precision{1.0} / sqrt(clone(this_exec, norm)->get_values()[0]);
+            precision{1.0} / clone(this_exec, norm)->get_values()[0];
         x->scale(lend(clone(exec, inv_norm)));
         // g = x^* A x
         A->apply(lend(x), lend(tmp));
@@ -207,8 +207,8 @@ int main(int argc, char *argv[])
         // ||Ax - gx|| < tol * g
         auto v = gko::initialize<vec>({-g_val}, exec);
         tmp->add_scaled(lend(v), lend(x));
-        tmp->compute_dot(lend(tmp), lend(norm));
-        auto res_val = sqrt(clone(exec->get_master(), norm)->get_values()[0]);
+        tmp->compute_norm2(lend(norm));
+        auto res_val = clone(exec->get_master(), norm)->get_values()[0];
         std::cout << "\"residual\": " << res_val / g_val << " }," << std::endl;
         if (abs(res_val) < residual_goal * abs(g_val)) {
             break;
