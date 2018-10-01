@@ -18,17 +18,13 @@ set(SOURCES
     stop/residual_norm_reduction_kernels.cu)
 
 enable_language(CUDA)
-include(../cmake/detect_gpu.cmake)
+include(${CAS_SOURCE})
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 if(SET_CUDA_HOST_COMPILER)
     set(CMAKE_CUDA_FLAGS
         "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
 endif()
-# setting nvcc arch flags
-ginkgo_select_nvcc_arch_flags("${CUDA_ARCHITECTURES}" NVCC_FLAGS_EXTRA)
-message(STATUS "Added CUDA NVCC flags for: ${NVCC_FLAGS_EXTRA_readable}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${NVCC_FLAGS_EXTRA}")
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
 # merged at commit ed12b3df5d26
 if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
@@ -58,6 +54,10 @@ target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS}
     ${CUSPARSE})
+cas_target_cuda_architectures(ginkgo_cuda
+    ARCHITECTURES ${CUDA_ARCHITECTURES}
+    UNSUPPORTED "20" "21")
+
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
 

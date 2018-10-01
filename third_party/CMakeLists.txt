@@ -1,5 +1,7 @@
 include(package_loader.cmake)
 
+add_subdirectory(CudaArchitectureSelector)
+
 if(BUILD_TESTS)
     add_subdirectory(gtest)
 endif()
