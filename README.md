@@ -130,7 +130,10 @@ Ginkgo adds the following additional switches to control what is being built:
     all architectures of that particular NVIDIA GPU generation. `COMPUTE` and
     `CODE` are placeholders that should be replaced with compute and code
     numbers (e.g.  for `compute_70` and `sm_70` `COMPUTE` and `CODE` should be
-    replaced with `70`. Default is `Auto`.
+    replaced with `70`. Default is `Auto`.  For a more detailed explanation of
+    this option see the
+    [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
+    section in the documentation of the CudaArchitectureSelector CMake module.
 
 For example, to build everything (in debug mode), use:
 
