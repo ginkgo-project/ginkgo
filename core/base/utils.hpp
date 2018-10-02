@@ -495,6 +495,14 @@ temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
 #endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
 
 
+// handled deprecated notices correctly on different systems
+#if defined(_WIN32)
+#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#endif  // defined(_WIN32)
+
+
 }  // namespace gko
 
 
