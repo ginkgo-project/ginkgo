@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['value_5ftype',['value_type',['../classgko_1_1Array.html#ad40c95e429262175cae51bcabd291a5b',1,'gko::Array::value_type()'],['../classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba',1,'gko::accessor::row_major::value_type()']]],
-  ['view_5fdeleter',['view_deleter',['../classgko_1_1Array.html#af870dd6ab4ad4f7e0e20471cb17f4ad1',1,'gko::Array']]]
+  ['is_5fcommunicator_5fgroup',['is_communicator_group',['../namespacegko_1_1group.html#addf474918615ebe6e1d269c4201a7ec0',1,'gko::group']]],
+  ['is_5fgroup',['is_group',['../namespacegko_1_1group.html#a7e4e58fa4fb3143c46991f7fa92d1d52',1,'gko::group']]],
+  ['is_5fsynchronizable_5fgroup',['is_synchronizable_group',['../namespacegko_1_1group.html#aa7317cbcf683eab2cd6f7243c5b4fc45',1,'gko::group']]]
 ];

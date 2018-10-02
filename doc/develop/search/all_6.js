@@ -72,5 +72,6 @@ var searchData=
   ['get_5fvalues',['get_values',['../classgko_1_1matrix_1_1Coo.html#a1ce59517b8d6a8eeaacfed2b19d4057a',1,'gko::matrix::Coo::get_values()'],['../classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83',1,'gko::matrix::Csr::get_values()'],['../classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9',1,'gko::matrix::Dense::get_values()'],['../classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d',1,'gko::matrix::Ell::get_values()'],['../classgko_1_1matrix_1_1Sellp.html#ac9afd5f8000da345844ccb22b599acf7',1,'gko::matrix::Sellp::get_values()']]],
   ['gmres',['Gmres',['../classgko_1_1solver_1_1Gmres.html',1,'gko::solver']]],
   ['greater',['greater',['../structgko_1_1accessor_1_1greater.html',1,'gko::accessor']]],
-  ['greater_5for_5fequal',['greater_or_equal',['../structgko_1_1accessor_1_1greater__or__equal.html',1,'gko::accessor']]]
+  ['greater_5for_5fequal',['greater_or_equal',['../structgko_1_1accessor_1_1greater__or__equal.html',1,'gko::accessor']]],
+  ['group',['group',['../namespacegko_1_1group.html',1,'gko']]]
 ];
