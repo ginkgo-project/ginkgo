@@ -44,7 +44,7 @@ endif()
 
 # Find important header files, store the definitions in include/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
-include (CheckIncludeFileCXX)
+include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
