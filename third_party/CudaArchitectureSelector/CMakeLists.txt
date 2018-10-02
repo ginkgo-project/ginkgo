@@ -1,3 +1,4 @@
 load_git_package(CudaArchitectureSelector
     "https://github.com/ginkgo-project/CudaArchitectureSelector.git"
-    "75760e4f8e51fc74fc973f8364bf0ce3b0a34fc0")
+    "a4c3c1e97e862ca0c0f1c5d6b096cbfcc1b96fcb")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)

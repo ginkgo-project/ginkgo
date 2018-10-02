@@ -15,3 +15,5 @@ if(BUILD_BENCHMARKS)
     add_subdirectory(gflags)
     add_subdirectory(rapidjson)
 endif()
+
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)

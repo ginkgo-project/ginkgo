@@ -18,7 +18,7 @@ set(SOURCES
     stop/residual_norm_reduction_kernels.cu)
 
 enable_language(CUDA)
-include(${CAS_SOURCE})
+include(CudaArchitectureSelector)
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 if(SET_CUDA_HOST_COMPILER)
