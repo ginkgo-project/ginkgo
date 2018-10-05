@@ -293,7 +293,8 @@ public:
     virtual void add_scaled(const LinOp *alpha, const LinOp *b);
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`.
+     * Computes the column-wise dot product of this matrix and `b`. The
+     * conjugate of this is taken.
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
