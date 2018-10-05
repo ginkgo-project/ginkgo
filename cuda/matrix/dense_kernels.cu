@@ -334,7 +334,9 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
         auto handle = cublas::init();
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             cublas::norm2(handle, x->get_size()[0], x->get_const_values() + col,
-                          x->get_stride(), result->get_values() + col);
+                          x->get_stride(),
+                          reinterpret_cast<remove_complex<ValueType> *>(
+                              result->get_values() + col));
         }
         cublas::destroy(handle);
     } else {
