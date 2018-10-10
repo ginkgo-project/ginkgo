@@ -9,6 +9,7 @@ stages:
   - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
+  - on-failure
 
 # Templates with reasonable defaults for builds and tests
 .variables_template: &default_variables
@@ -323,24 +324,33 @@ fineci-benchmark-cuda:
     SYSTEM_NAME: K20Xm
   <<: *default_benchmark
 
-fineci-benchmark-omp:
-  stage: benchmark-omp
-  variables:
-    <<: *default_variables
-    BENCHMARK_SERVER: FINECI
-    EXECUTOR: omp
-    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
-    SYSTEM_NAME: E5-2670
-  <<: *default_benchmark
+# fineci-benchmark-omp:
+#   stage: benchmark-omp
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: omp
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
 
-fineci-benchmark-reference:
-  stage: benchmark-reference
-  variables:
-    <<: *default_variables
-    BENCHMARK_SERVER: FINECI
-    EXECUTOR: reference
-    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
-    SYSTEM_NAME: E5-2670
-  <<: *default_benchmark
+# fineci-benchmark-reference:
+#   stage: benchmark-reference
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: reference
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
+
+new-issue-on-failure:
+  stage: on-failure
+  script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels"
+  when: on_failure
+  only:
+    refs:
+      - develop
+      - master
