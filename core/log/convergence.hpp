@@ -117,13 +117,6 @@ public:
         return residual_norm_.get();
     }
 
-    /**
-     * Returns the solution
-     *
-     * @return the solution
-     */
-    const LinOp *get_solution() const noexcept { return solution_.get(); }
-
 protected:
     /**
      * Creates a Convergence logger.
@@ -142,7 +135,6 @@ private:
     mutable size_type num_iterations_{};
     mutable std::unique_ptr<LinOp> residual_{};
     mutable std::unique_ptr<LinOp> residual_norm_{};
-    mutable std::unique_ptr<LinOp> solution_{};
 };
 
 

@@ -57,9 +57,6 @@ void Convergence<ValueType>::on_criterion_check_completed(
         if (residual != nullptr) {
             this->residual_.reset(residual->clone().release());
         }
-        if (solution != nullptr) {
-            this->solution_.reset(solution->clone().release());
-        }
         if (residual_norm != nullptr) {
             this->residual_norm_.reset(residual_norm->clone().release());
         } else if (residual != nullptr) {

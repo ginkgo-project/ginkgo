@@ -52,7 +52,6 @@ TEST(Record, CanGetData)
     ASSERT_EQ(logger->get_num_iterations(), 0);
     ASSERT_EQ(logger->get_residual(), nullptr);
     ASSERT_EQ(logger->get_residual_norm(), nullptr);
-    ASSERT_EQ(logger->get_solution(), nullptr);
 }
 
 
