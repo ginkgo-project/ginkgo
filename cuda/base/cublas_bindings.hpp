@@ -39,7 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -182,20 +184,33 @@ BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 #undef BIND_CUBLAS_DOT
 
 
-#define BIND_CUBLAS_NORM2(ValueType, ResultType, CublasName)                   \
+#define BIND_CUBLAS_COMPLEX_NORM2(ValueType, CublasName)                \
+    inline void norm2(cublasHandle_t handle, int n, const ValueType *x, \
+                      int incx, ValueType *result)                      \
+    {                                                                   \
+        zero_array(n, result);                                          \
+        ASSERT_NO_CUBLAS_ERRORS(                                        \
+            CublasName(handle, n, as_culibs_type(x), incx,              \
+                       reinterpret_cast<remove_complex<ValueType> *>(   \
+                           as_culibs_type(result))));                   \
+    }
+
+
+#define BIND_CUBLAS_NORM2(ValueType, CublasName)                               \
     inline void norm2(cublasHandle_t handle, int n, const ValueType *x,        \
-                      int incx, ResultType *result)                            \
+                      int incx, ValueType *result)                             \
     {                                                                          \
         ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x), incx, \
                                            as_culibs_type(result)));           \
     }
 
-BIND_CUBLAS_NORM2(float, float, cublasSnrm2);
-BIND_CUBLAS_NORM2(double, double, cublasDnrm2);
-BIND_CUBLAS_NORM2(std::complex<float>, float, cublasScnrm2);
-BIND_CUBLAS_NORM2(std::complex<double>, double, cublasDznrm2);
-template <typename ValueType, typename ResultType>
-BIND_CUBLAS_NORM2(ValueType, ResultType, detail::not_implemented);
+
+BIND_CUBLAS_NORM2(float, cublasSnrm2);
+BIND_CUBLAS_NORM2(double, cublasDnrm2);
+BIND_CUBLAS_COMPLEX_NORM2(std::complex<float>, cublasScnrm2);
+BIND_CUBLAS_COMPLEX_NORM2(std::complex<double>, cublasDznrm2);
+template <typename ValueType>
+BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 
 #undef BIND_CUBLAS_NORM2
 
