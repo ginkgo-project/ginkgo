@@ -48,33 +48,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Sellp<>::create(exec, gko::dim<2>{2, 3}, 3))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        gko::size_type *l = mtx->get_slice_lengths();
-        gko::size_type *s = mtx->get_slice_sets();
-        l[0] = gko::matrix::default_stride_factor *
-               gko::ceildiv(3, gko::matrix::default_stride_factor);
-        s[0] = 0;
-        s[1] = l[0];
-        c[0] = 0;
-        c[1] = 1;
-        c[gko::matrix::default_slice_size] = 1;
-        c[gko::matrix::default_slice_size + 1] = 0;
-        c[2 * gko::matrix::default_slice_size] = 2;
-        c[2 * gko::matrix::default_slice_size + 1] = 0;
-        v[0] = 1.0;
-        v[1] = 5.0;
-        v[gko::matrix::default_slice_size] = 3.0;
-        v[gko::matrix::default_slice_size + 1] = 0.0;
-        v[2 * gko::matrix::default_slice_size] = 2.0;
-        v[2 * gko::matrix::default_slice_size + 1] = 0.0;
-        for (int i = 3; i < l[0]; i++) {
-            for (int j = 0; j < 2; j++) {
-                c[i * gko::matrix::default_slice_size + j] =
-                    c[2 * gko::matrix::default_slice_size + j];
-                v[i * gko::matrix::default_slice_size + j] = 0;
-            }
-        }
+        mtx->read(
+            {{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
     }
 
     std::shared_ptr<const gko::Executor> exec;

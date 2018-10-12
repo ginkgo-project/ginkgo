@@ -4,7 +4,7 @@ else()
     cmake_minimum_required(VERSION 3.8)
 endif()
 
-project(Ginkgo LANGUAGES CXX VERSION 0.0.0)
+project(Ginkgo LANGUAGES C CXX VERSION 0.0.0)
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -17,7 +17,6 @@ option(BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(SET_CUDA_HOST_COMPILER "Propagate selected C++ compiler to CUDA" OFF)
 option(SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" ON)
 set(CUDA_ARCHITECTURES "Auto" CACHE STRING
@@ -31,13 +30,14 @@ if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
     set(BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
 
-if(BUILD_CUDA)
-endif()
-
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(BUILD_TESTS)
+    set(MEMORYCHECK_SUPPRESSIONS_FILE
+        "${PROJECT_SOURCE_DIR}/dev_tools/valgrind/suppressions.supp"
+        CACHE FILEPATH "" FORCE)
+    include(CTest)
     enable_testing()
 endif()
 
