@@ -36,12 +36,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/abstract_factory.hpp"
+#include "core/base/dim.hpp"
 #include "core/base/exception_helpers.hpp"
 #include "core/base/matrix_data.hpp"
 #include "core/base/polymorphic_object.hpp"
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
+#include "core/log/logger.hpp"
 
 
 #include <memory>
@@ -139,22 +141,26 @@ public:
      */
     LinOp *apply(const LinOp *b, LinOp *x)
     {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
 
     /**
-     * @copydoc apply(cost LinOp *, LinOp *)
+     * @copydoc apply(const LinOp *, LinOp *)
      */
     const LinOp *apply(const LinOp *b, LinOp *x) const
     {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return this;
     }
 
@@ -171,27 +177,35 @@ public:
     LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                  LinOp *x)
     {
+        this->template log<log::Logger::linop_advanced_apply_started>(
+            this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
         return this;
     }
 
     /**
-     * @copydoc apply(const LinOp *, cost LinOp *, const LinOp *, LinOp *)
+     * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
     const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                        LinOp *x) const
     {
+        this->template log<log::Logger::linop_advanced_apply_started>(
+            this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
         return this;
     }
 
@@ -200,7 +214,7 @@ public:
      *
      * @return size of the operator
      */
-    const dim &get_size() const noexcept { return size_; }
+    const dim<2> &get_size() const noexcept { return size_; }
 
 protected:
     /**
@@ -210,7 +224,7 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim &size = dim{})
+                   const dim<2> &size = dim<2>{})
         : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
     {}
 
@@ -219,7 +233,7 @@ protected:
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim &value) noexcept { size_ = value; }
+    void set_size(const dim<2> &value) noexcept { size_ = value; }
 
     /**
      * Implementers of LinOp should override this function instead
@@ -272,12 +286,12 @@ protected:
                                          const LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        ASSERT_EQUAL_DIMENSIONS(alpha, dim(1, 1));
-        ASSERT_EQUAL_DIMENSIONS(beta, dim(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
 
 private:
-    dim size_{};
+    dim<2> size_{};
 };
 
 
@@ -333,7 +347,21 @@ private:
  * cg->apply(gko::lend(b), gko::lend(x));
  * ```
  */
-using LinOpFactory = AbstractFactory<LinOp, std::shared_ptr<const LinOp>>;
+class LinOpFactory
+    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
+public:
+    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
+
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
+    {
+        this->template log<log::Logger::linop_factory_generate_started>(
+            this, input.get());
+        auto generated = AbstractFactory::generate(input);
+        this->template log<log::Logger::linop_factory_generate_completed>(
+            this, input.get(), generated.get());
+        return generated;
+    }
+};
 
 
 /**

@@ -5,11 +5,13 @@ set(SOURCES
     matrix/dense_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
+    matrix/sellp_kernels.cpp
     preconditioner/block_jacobi_kernels.cpp
     solver/bicgstab_kernels.cpp
-    solver/fcg_kernels.cpp
-    solver/cgs_kernels.cpp
     solver/cg_kernels.cpp
+    solver/cgs_kernels.cpp
+    solver/fcg_kernels.cpp
+    solver/gmres_kernels.cpp
     stop/criterion_kernels.cpp
     stop/residual_norm_reduction_kernels.cpp)
 

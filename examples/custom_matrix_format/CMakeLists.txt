@@ -1,5 +1,7 @@
 if (BUILD_CUDA AND BUILD_OMP)
     enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     add_executable(custom_matrix_format
         custom_matrix_format.cpp
         stencil_kernel.cu)

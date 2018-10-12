@@ -260,9 +260,9 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim &size = dim{})
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
         : Sellp(std::move(exec), size,
-                ceildiv(size.num_rows, default_slice_size) * size.num_cols)
+                ceildiv(size[0], default_slice_size) * size[1])
     {}
 
     /**
@@ -273,7 +273,7 @@ protected:
      * @param size  size of the matrix
      * @param total_cols   number of the sum of all cols in every slice.
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim &size,
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type total_cols)
         : Sellp(std::move(exec), size, default_slice_size,
                 default_stride_factor, total_cols)
@@ -289,17 +289,15 @@ protected:
      *                        should be multiples of the stride_factor)
      * @param total_cols   number of the sum of all cols in every slice.
      */
-    Sellp(std::shared_ptr<const Executor> exec, const dim &size,
+    Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type slice_size, size_type stride_factor, size_type total_cols)
         : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
-          slice_lengths_(exec, (size.num_rows == 0)
-                                   ? 0
-                                   : ceildiv(size.num_rows, slice_size)),
-          slice_sets_(exec, (size.num_rows == 0)
-                                ? 0
-                                : ceildiv(size.num_rows, slice_size) + 1),
+          slice_lengths_(exec,
+                         (size[0] == 0) ? 0 : ceildiv(size[0], slice_size)),
+          slice_sets_(exec,
+                      (size[0] == 0) ? 0 : ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
           stride_factor_(stride_factor),
           total_cols_(total_cols)

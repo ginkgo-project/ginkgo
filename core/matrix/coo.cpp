@@ -58,6 +58,8 @@ template <typename... TplArgs>
 struct TemplatedOperation {
     GKO_REGISTER_OPERATION(spmv, coo::spmv<TplArgs...>);
     GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
+    GKO_REGISTER_OPERATION(spmv2, coo::spmv2<TplArgs...>);
+    GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs,
                            coo::convert_row_idxs_to_ptrs<TplArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense<TplArgs...>);
@@ -92,6 +94,27 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
+{
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_spmv2_operation(
+            this, as<Dense>(b), as<Dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
+                                            LinOp *x) const
+{
+    using Dense = Dense<ValueType>;
+    this->get_executor()->run(
+        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv2_operation(
+            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
     const
 {
@@ -100,7 +123,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
     exec->run(
         TemplatedOperation<IndexType>::make_convert_row_idxs_to_ptrs_operation(
             this->get_const_row_idxs(), this->get_num_stored_elements(),
-            tmp->get_row_ptrs(), this->get_size().num_rows + 1));
+            tmp->get_row_ptrs(), this->get_size()[0] + 1));
     return tmp;
 }
 

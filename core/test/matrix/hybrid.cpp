@@ -37,9 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/mtx_reader.hpp>
-
-
 namespace {
 
 
@@ -49,7 +46,7 @@ protected:
 
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Hybrid<>::create(exec, gko::dim{2, 3}, 2, 2, 1))
+          mtx(gko::matrix::Hybrid<>::create(exec, gko::dim<2>{2, 3}, 2, 2, 1))
     {
         Mtx::value_type *v = mtx->get_ell_values();
         Mtx::index_type *c = mtx->get_ell_col_idxs();
@@ -75,7 +72,7 @@ protected:
         auto c = m->get_const_ell_col_idxs();
         auto n = m->get_ell_num_stored_elements_per_row();
         auto p = m->get_ell_stride();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
         ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
         EXPECT_EQ(n, 2);
@@ -95,7 +92,7 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_ell_values(), nullptr);
         ASSERT_EQ(m->get_const_ell_col_idxs(), nullptr);
@@ -110,7 +107,7 @@ protected:
 
 TEST_F(Hybrid, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_ell_num_stored_elements(), 4);
     ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 2);
     ASSERT_EQ(mtx->get_ell_stride(), 2);
@@ -184,7 +181,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataAutomatically)
     auto c = m->get_const_ell_col_idxs();
     auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
-    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 6);
     ASSERT_EQ(m->get_coo_num_stored_elements(), 0);
     EXPECT_EQ(n, 3);
@@ -234,7 +231,7 @@ TEST_F(Hybrid, CanBeReadFromMatrixDataByPercent40)
     auto c = m->get_const_ell_col_idxs();
     auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
-    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
     EXPECT_EQ(n, 1);
     EXPECT_EQ(p, 2);
@@ -263,7 +260,7 @@ TEST_F(Hybrid, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

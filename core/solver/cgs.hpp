@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
 #include "core/stop/criterion.hpp"
 
@@ -123,7 +124,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_);
         } else {
             preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size().num_rows);
+                this->get_executor(), this->get_size()[0]);
         }
         if (parameters_.criterion) {
             stop_criterion_factory_ = std::move(parameters_.criterion);

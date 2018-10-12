@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/executor.hpp>
-#include <core/base/mtx_reader.hpp>
+#include <core/base/range.hpp>
 
 
 namespace {
@@ -55,7 +55,7 @@ protected:
 
     static void assert_equal_to_original_mtx(gko::matrix::Dense<> *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_stride(), 4);
         ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
         EXPECT_EQ(m->at(0, 0), 1.0);
@@ -68,7 +68,7 @@ protected:
 
     static void assert_empty(gko::matrix::Dense<> *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
@@ -93,9 +93,9 @@ TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
 
 TEST_F(Dense, CanBeConstructedWithSize)
 {
-    auto m = gko::matrix::Dense<>::create(exec, gko::dim{2, 3});
+    auto m = gko::matrix::Dense<>::create(exec, gko::dim<2>{2, 3});
 
-    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 3);
     ASSERT_EQ(m->get_num_stored_elements(), 6);
 }
@@ -103,9 +103,9 @@ TEST_F(Dense, CanBeConstructedWithSize)
 
 TEST_F(Dense, CanBeConstructedWithSizeAndStride)
 {
-    auto m = gko::matrix::Dense<>::create(exec, gko::dim{2, 3}, 4);
+    auto m = gko::matrix::Dense<>::create(exec, gko::dim<2>{2, 3}, 4);
 
-    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 4);
     ASSERT_EQ(m->get_num_stored_elements(), 8);
 }
@@ -121,7 +121,7 @@ TEST_F(Dense, CanBeConstructedFromExistingData)
     // clang-format on
 
     auto m = gko::matrix::Dense<>::create(
-        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 9, data), 3);
+        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), 6.0);
@@ -138,7 +138,7 @@ TEST_F(Dense, CanBeListConstructed)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>({1.0, 2.0}, exec);
 
-    ASSERT_EQ(m->get_size(), gko::dim(2, 1));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 2);
     EXPECT_EQ(m->at(0), 1);
     EXPECT_EQ(m->at(1), 2);
@@ -148,7 +148,7 @@ TEST_F(Dense, CanBeListConstructed)
 TEST_F(Dense, CanBeListConstructedWithstride)
 {
     auto m = gko::initialize<gko::matrix::Dense<>>(2, {1.0, 2.0}, exec);
-    ASSERT_EQ(m->get_size(), gko::dim(2, 1));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -160,7 +160,7 @@ TEST_F(Dense, CanBeDoubleListConstructed)
     auto m = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
-    ASSERT_EQ(m->get_size(), gko::dim(3, 2));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -175,7 +175,7 @@ TEST_F(Dense, CanBeDoubleListConstructedWithstride)
     auto m = gko::initialize<gko::matrix::Dense<>>(
         4, {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
 
-    ASSERT_EQ(m->get_size(), gko::dim(3, 2));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 12);
     EXPECT_EQ(m->at(0), 1.0);
     EXPECT_EQ(m->at(1), 2.0);
@@ -229,7 +229,7 @@ TEST_F(Dense, CanBeReadFromMatrixData)
                                 {1, 1, 5.0},
                                 {1, 2, 0.0}}});
 
-    ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
     EXPECT_EQ(m->at(0, 0), 1.0);
     EXPECT_EQ(m->at(1, 0), 0.0);
@@ -247,7 +247,7 @@ TEST_F(Dense, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 6);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 2.0));
@@ -255,6 +255,28 @@ TEST_F(Dense, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[3], tpl(1, 0, 1.5));
     EXPECT_EQ(data.nonzeros[4], tpl(1, 1, 2.5));
     EXPECT_EQ(data.nonzeros[5], tpl(1, 2, 3.5));
+}
+
+
+TEST_F(Dense, CanCreateSubmatrix)
+{
+    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2});
+
+    EXPECT_EQ(submtx->at(0, 0), 2.0);
+    EXPECT_EQ(submtx->at(0, 1), 3.0);
+    EXPECT_EQ(submtx->at(1, 0), 2.5);
+    EXPECT_EQ(submtx->at(1, 1), 3.5);
+}
+
+
+TEST_F(Dense, CanCreateSubmatrixWithStride)
+{
+    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
+
+    EXPECT_EQ(submtx->at(0, 0), 2.0);
+    EXPECT_EQ(submtx->at(0, 1), 3.0);
+    EXPECT_EQ(submtx->at(1, 0), 1.5);
+    EXPECT_EQ(submtx->at(1, 1), 2.5);
 }
 
 

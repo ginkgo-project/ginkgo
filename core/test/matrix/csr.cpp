@@ -37,9 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/mtx_reader.hpp>
-
-
 namespace {
 
 
@@ -49,11 +46,14 @@ protected:
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim{2, 3}, 4))
+          mtx(gko::matrix::Csr<>::create(
+              exec, gko::dim<2>{2, 3}, 4,
+              std::make_shared<Mtx::load_balance>(2)))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        Mtx::index_type *s = mtx->get_srow();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -65,6 +65,7 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
+        s[0] = 0;
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -75,7 +76,8 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        auto s = m->get_const_srow();
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
@@ -88,22 +90,24 @@ protected:
         EXPECT_EQ(v[1], 3.0);
         EXPECT_EQ(v[2], 2.0);
         EXPECT_EQ(v[3], 5.0);
+        EXPECT_EQ(s[0], 0);
     }
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim(0, 0));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(m->get_const_srow(), nullptr);
     }
 };
 
 
 TEST_F(Csr, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim(2, 3));
+    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
 }
 
@@ -124,15 +128,16 @@ TEST_F(Csr, CanBeCreatedFromExistingData)
     double values[] = {1.0, 2.0, 3.0, 4.0};
     gko::int32 col_idxs[] = {0, 1, 1, 0};
     gko::int32 row_ptrs[] = {0, 2, 3, 4};
-
     auto mtx = gko::matrix::Csr<>::create(
-        exec, gko::dim{3, 2}, gko::Array<double>::view(exec, 4, values),
+        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 4, values),
         gko::Array<gko::int32>::view(exec, 4, col_idxs),
-        gko::Array<gko::int32>::view(exec, 4, row_ptrs));
-
+        gko::Array<gko::int32>::view(exec, 4, row_ptrs),
+        std::make_shared<Mtx::load_balance>(2));
+    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_srow()[0], 0);
 }
 
 
@@ -178,7 +183,7 @@ TEST_F(Csr, CanBeCleared)
 
 TEST_F(Csr, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    auto m = Mtx::create(exec, std::make_shared<Mtx::load_balance>(2));
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -198,7 +203,7 @@ TEST_F(Csr, GeneratesCorrectMatrixData)
 
     mtx->write(data);
 
-    ASSERT_EQ(data.size, gko::dim(2, 3));
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));

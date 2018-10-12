@@ -108,6 +108,12 @@ using uint32 = std::uint32_t;
 using uint64 = std::uint64_t;
 
 
+/**
+ *
+ */
+using uintptr = std::uintptr_t;
+
+
 class half;
 
 
@@ -145,107 +151,6 @@ using default_precision = double;
  * Number of bits in a byte
  */
 constexpr size_type byte_size = CHAR_BIT;
-
-
-/**
- * A type representing the dimensions of a linear operator.
- */
-struct dim {
-    /**
-     * Creates a dimension object with both rows and columns set to the same
-     * value.
-     *
-     * @param size  the number of rows and columns
-     */
-    GKO_ATTRIBUTES explicit dim(size_type size = {}) : dim(size, size) {}
-
-    /**
-     * Creates a dimension object with the specified number of rows and columns.
-     *
-     * @param nrows  the number of rows
-     * @param ncols  the number of columsn
-     */
-    GKO_ATTRIBUTES dim(size_type nrows, size_type ncols)
-        : num_rows{nrows}, num_cols{ncols}
-    {}
-
-    /**
-     * Checks if both dimensions are greater than 0.
-     *
-     * @return true if and only if both dimensions are greater than 9.
-     */
-    GKO_ATTRIBUTES operator bool() const
-    {
-        return num_rows > 0 && num_cols > 0;
-    };
-
-    /**
-     * Number of rows of the operator.
-     *
-     * In other words, the dimension of its codomain.
-     */
-    size_type num_rows;
-
-    /**
-     * Number of columns of the operator.
-     *
-     * In other words, the dimension of its domain.
-     */
-    size_type num_cols;
-};
-
-
-/**
- * Checks if two dim objects are equal.
- *
- * @param x  first object
- * @param y  second object
- *
- * @return true if and only if both the number of rows and the number of columns
- *         of both objects match.
- */
-GKO_ATTRIBUTES GKO_INLINE bool operator==(const dim &x, const dim &y)
-{
-    return x.num_rows == y.num_rows && x.num_cols == y.num_cols;
-}
-
-
-/**
- * Checks if two dim objects are different.
- *
- * @param x  first object
- * @param y  second object
- *
- * @return `!(x == y)`
- */
-GKO_ATTRIBUTES GKO_INLINE bool operator!=(const dim &x, const dim &y)
-{
-    return !(x == y);
-}
-
-
-/**
- * Multiplies two dim objects.
- *
- * @param x  first object
- * @param y  second object
- *
- * @return a dim object representing the size of the tensor product `x * y`
- */
-GKO_ATTRIBUTES GKO_INLINE dim operator*(const dim &x, const dim &y)
-{
-    return dim{x.num_rows * y.num_rows, x.num_cols * y.num_cols};
-}
-
-/**
- * Returns a dim object with num_rows and num_columns values swapped.
- *
- * @return a dim object with num_rows and num_columns values swapped.
- */
-GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
-{
-    return {dimensions.num_cols, dimensions.num_rows};
-}
 
 
 /**
@@ -310,6 +215,7 @@ GKO_ATTRIBUTES GKO_INLINE dim transpose(const dim &dimensions) noexcept
     template _macro(double, int64);                           \
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
+
 
 }  // namespace gko
 

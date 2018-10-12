@@ -35,12 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
 
 
+#include <gtest/gtest.h>
 #include <cmath>
 #include <cstdlib>
 #include <initializer_list>
-
-
-#include <gtest/gtest.h>
+#include <string>
 
 
 #include "core/base/math.hpp"
@@ -70,9 +69,9 @@ template <typename Ostream, typename MatrixData>
 void print_matrix(Ostream &os, const MatrixData &data)
 {
     auto it = begin(data.nonzeros);
-    for (size_type row = 0; row < data.size.num_rows; ++row) {
+    for (size_type row = 0; row < data.size[0]; ++row) {
         os << "\t";
-        for (size_type col = 0; col < data.size.num_cols; ++col) {
+        for (size_type col = 0; col < data.size[1]; ++col) {
             os << get_next_value(it, end(data.nonzeros), row, col) << "\t";
         }
         os << "\n";
@@ -87,9 +86,9 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
     using real_vt = remove_complex<typename MatrixData2::value_type>;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
-    for (size_type row = 0; row < first.size.num_rows; ++row) {
+    for (size_type row = 0; row < first.size[0]; ++row) {
         os << "\t";
-        for (size_type col = 0; col < first.size.num_cols; ++col) {
+        for (size_type col = 0; col < first.size[1]; ++col) {
             auto r = get_next_value(first_it, end(first.nonzeros), row, col);
             auto e = get_next_value(second_it, end(second.nonzeros), row, col);
             auto m =
@@ -113,8 +112,8 @@ double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
     double second_norm = 0.0;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
-    for (size_type row = 0; row < first.size.num_rows; ++row) {
-        for (size_type col = 0; col < first.size.num_cols; ++col) {
+    for (size_type row = 0; row < first.size[0]; ++row) {
+        for (size_type col = 0; col < first.size[1]; ++col) {
             const auto first_val =
                 get_next_value(first_it, end(first.nonzeros), row, col);
             const auto second_val =
@@ -137,14 +136,14 @@ template <typename MatrixData1, typename MatrixData2>
     const std::string &tolerance_expression, const MatrixData1 &first,
     const MatrixData2 &second, double tolerance)
 {
-    auto num_rows = first.size.num_rows;
-    auto num_cols = first.size.num_cols;
-    if (num_rows != second.size.num_rows || num_cols != second.size.num_cols) {
+    auto num_rows = first.size[0];
+    auto num_cols = first.size[1];
+    if (num_rows != second.size[0] || num_cols != second.size[1]) {
         return ::testing::AssertionFailure()
                << "Expected matrices of equal size\n\t" << first_expression
                << " is of size [" << num_rows << " x " << num_cols << "]\n\t"
-               << second_expression << " is of size [" << second.size.num_rows
-               << " x " << second.size.num_cols << "]";
+               << second_expression << " is of size [" << second.size[0]
+               << " x " << second.size[1] << "]";
     }
 
     auto err = detail::get_relative_error(first, second);
@@ -162,6 +161,22 @@ template <typename MatrixData1, typename MatrixData2>
         detail::print_matrix(fail, second);
         fail << "component-wise relative error is:\n";
         detail::print_componentwise_error(fail, first, second);
+        return fail;
+    }
+}
+
+
+::testing::AssertionResult str_contains_impl(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &string1, const std::string &string2)
+{
+    if (string1.find(string2) != std::string::npos) {
+        return ::testing::AssertionSuccess();
+    } else {
+        auto fail = ::testing::AssertionFailure();
+        fail << "expression " << first_expression << " which is " << string1
+             << " does not contain string from expression " << second_expression
+             << " which is " << string2 << "\n";
         return fail;
     }
 }
@@ -262,6 +277,31 @@ template <typename LinOp1, typename T>
 }
 
 
+/**
+ * This is a gtest predicate which checks if one string is contained in another.
+ *
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT2` as follows:
+ *
+ * ```
+ * // Check if first contains second
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::string_contains,
+ *                     first, second);
+ * ```
+ *
+ * @see ASSERT_STRING_CONTAINS
+ */
+::testing::AssertionResult str_contains(const std::string &first_expression,
+                                        const std::string &second_expression,
+                                        const std::string &string1,
+                                        const std::string &string2)
+{
+    return detail::str_contains_impl(first_expression, second_expression,
+                                     string1, string2);
+}
+
+
 namespace detail {
 
 
@@ -344,6 +384,22 @@ T plain_ptr(T ptr)
         using ::gko::test::assertions::detail::plain_ptr;              \
         EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near,    \
                             plain_ptr(_mtx1), plain_ptr(_mtx2), _tol); \
+    }
+
+
+/**
+ * Checks if one substring can be found inside a bigger string
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::str_contains().
+ *
+ * @param _str1  the main string
+ * @param _mtx2  the substring to find
+ */
+#define ASSERT_STR_CONTAINS(_str1, _str2)                                 \
+    {                                                                     \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::str_contains, _str1, \
+                            _str2);                                       \
     }
 
 

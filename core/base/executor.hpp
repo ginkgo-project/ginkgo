@@ -35,12 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_EXECUTOR_HPP_
 
 
-#include "core/base/types.hpp"
-
-
 #include <memory>
 #include <tuple>
 #include <type_traits>
+
+
+#include "core/base/types.hpp"
+#include "core/log/logger.hpp"
 
 
 namespace gko {
@@ -371,7 +372,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  * not required by the user. Nevertheless, this feature should be taken into
  * account when considering performance implications of using such operations.
  */
-class Executor {
+class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
@@ -422,7 +423,12 @@ public:
     template <typename T>
     T *alloc(size_type num_elems) const
     {
-        return static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
+        this->template log<log::Logger::allocation_started>(
+            this, num_elems * sizeof(T));
+        T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
+        this->template log<log::Logger::allocation_completed>(
+            this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
+        return allocated;
     }
 
     /**
@@ -432,7 +438,14 @@ public:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void free(void *ptr) const noexcept = 0;
+    void free(void *ptr) const noexcept
+    {
+        this->template log<log::Logger::free_started>(
+            this, reinterpret_cast<uintptr>(ptr));
+        this->raw_free(ptr);
+        this->template log<log::Logger::free_completed>(
+            this, reinterpret_cast<uintptr>(ptr));
+    }
 
     /**
      * Copies data from another Executor.
@@ -450,7 +463,13 @@ public:
     void copy_from(const Executor *src_exec, size_type num_elems,
                    const T *src_ptr, T *dest_ptr) const
     {
+        this->template log<log::Logger::copy_started>(
+            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
         this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
+        this->template log<log::Logger::copy_completed>(
+            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
     }
 
     /**
@@ -480,6 +499,15 @@ protected:
      * @return raw pointer to allocated memory
      */
     virtual void *raw_alloc(size_type size) const = 0;
+
+    /**
+     * Frees memory previously allocated with Executor::alloc().
+     *
+     * If `ptr` is a `nullptr`, the function has no effect.
+     *
+     * @param ptr  pointer to the allocated memory block
+     */
+    virtual void raw_free(void *ptr) const noexcept = 0;
 
     /**
      * Copies raw data from another Executor.
@@ -609,7 +637,9 @@ class ExecutorBase : public Executor {
 public:
     void run(const Operation &op) const override
     {
+        this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
+        this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 protected:
@@ -657,8 +687,6 @@ public:
         return std::shared_ptr<OmpExecutor>(new OmpExecutor());
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -669,6 +697,8 @@ protected:
     OmpExecutor() = default;
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
@@ -694,8 +724,10 @@ public:
 
     void run(const Operation &op) const override
     {
+        this->template log<log::Logger::operation_launched>(this, &op);
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
+        this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 protected:
@@ -732,8 +764,6 @@ public:
             new CudaExecutor(device_id, std::move(master)));
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -752,18 +782,63 @@ public:
      */
     static int get_num_devices();
 
+    /**
+     * Get the number of cores per SM of this executor.
+     */
+    int get_num_cores_per_sm() const noexcept { return num_cores_per_sm_; }
+
+    /**
+     * Get the number of multiprocessor of this executor.
+     */
+    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        constexpr uint32 warp_size = 32;
+        auto warps_per_sm = num_cores_per_sm_ / warp_size;
+        return num_multiprocessor_ * warps_per_sm;
+    }
+
+    /**
+     * Get the major verion of compute capability.
+     */
+    int get_major_version() const noexcept { return major_; }
+
+    /**
+     * Get the minor verion of compute capability.
+     */
+    int get_minor_version() const noexcept { return minor_; }
+
 protected:
+    void set_gpu_property();
+
     CudaExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id), master_(master)
-    {}
+        : device_id_(device_id),
+          master_(master),
+          num_cores_per_sm_(0),
+          num_multiprocessor_(0),
+          major_(0),
+          minor_(0)
+    {
+        this->set_gpu_property();
+    }
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
 private:
     int device_id_;
     std::shared_ptr<Executor> master_;
+    int num_cores_per_sm_;
+    int num_multiprocessor_;
+    int major_;
+    int minor_;
 };
 
 

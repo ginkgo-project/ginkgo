@@ -42,7 +42,6 @@ namespace {
 
 void not_implemented_func() NOT_IMPLEMENTED;
 
-
 TEST(NotImplemented, ThrowsWhenUsed)
 {
     ASSERT_THROW(not_implemented_func(), gko::NotImplemented);
@@ -51,7 +50,6 @@ TEST(NotImplemented, ThrowsWhenUsed)
 
 void not_compiled_func() NOT_COMPILED(omp);
 
-
 TEST(NotCompiled, ThrowsWhenUsed)
 {
     ASSERT_THROW(not_compiled_func(), gko::NotCompiled);
@@ -59,7 +57,6 @@ TEST(NotCompiled, ThrowsWhenUsed)
 
 
 void does_not_support_int() { throw NOT_SUPPORTED(int); }
-
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
@@ -91,54 +88,68 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)
+{
+    ASSERT_NO_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));
+}
+
+
+TEST(AssertIsSquareMatrix, ThrowsWhenIsNotSquareMatrix)
+{
+    ASSERT_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 4)),
+                 gko::DimensionMismatch);
+}
+
+
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
-    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::dim(3, 5), gko::dim(5, 6)));
+    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertConformant, ThrowsWhenNotConformant)
 {
-    ASSERT_THROW(ASSERT_CONFORMANT(gko::dim(3, 5), gko::dim(7, 3)),
+    ASSERT_THROW(ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualRows, DoesNotThrowWhenEqualRowSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::dim(5, 3), gko::dim(5, 6)));
+    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::dim<2>(5, 3), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualRows, ThrowsWhenDifferentRowSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::dim(3, 5), gko::dim(7, 3)),
+    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualCols, DoesNotThrowWhenEqualColSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::dim(3, 6), gko::dim(5, 6)));
+    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::dim<2>(3, 6), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualCols, ThrowsWhenDifferentColSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::dim(3, 5), gko::dim(7, 3)),
+    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualDimensions, DoesNotThrowWhenEqualDimensions)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim(5, 6), gko::dim(5, 6)));
+    ASSERT_NO_THROW(
+        ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(5, 6), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
 {
-    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim(3, 5), gko::dim(7, 5)),
+    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(3, 5), gko::dim<2>(7, 5)),
                  gko::DimensionMismatch);
 }
 
@@ -161,19 +172,18 @@ TEST(EnsureInBounds, DoesNotThrowWhenInBounds)
     ASSERT_NO_THROW(ENSURE_IN_BOUNDS(9, 10));
 }
 
+
 TEST(EnsureInBounds, ThrowWhenOutOfBounds)
 {
     ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
 }
 
-void func_with_file_error()
-{
-    throw FILE_ERROR("my_file.txt", "error message");
-}
 
-TEST(FileError, ThrowsFileErrorException)
+void func_with_stream_error() { throw STREAM_ERROR("error message"); }
+
+TEST(StreamError, ThrowsStreamErrorException)
 {
-    ASSERT_THROW(func_with_file_error(), gko::FileError);
+    ASSERT_THROW(func_with_stream_error(), gko::StreamError);
 }
 
 

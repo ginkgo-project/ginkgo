@@ -1,10 +1,12 @@
 set(SOURCES
+    base/combination.cpp
+    base/composition.cpp
     base/executor.cpp
-    base/mtx_reader.cpp
+    base/mtx_io.cpp
     base/version.cpp
-    log/stream.cpp
     log/logger.cpp
     log/record.cpp
+    log/stream.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -17,6 +19,7 @@ set(SOURCES
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
+    solver/gmres.cpp
     stop/combined.cpp
     stop/criterion.cpp
     stop/iteration.cpp
@@ -27,16 +30,12 @@ set(SOURCES
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
-if(BUILD_SHARED_LIBS)
-    set_property(TARGET mmio PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
 add_library(ginkgo ${SOURCES})
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference
-    PRIVATE mmio)
+    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference)
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 

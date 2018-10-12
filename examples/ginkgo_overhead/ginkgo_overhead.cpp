@@ -72,8 +72,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
 #include <iostream>
 
 
-[[noreturn]] void print_usage_and_exit(const char *name)
-{
+[[noreturn]] void print_usage_and_exit(const char *name) {
     std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
     std::exit(-1);
 }
@@ -113,7 +112,7 @@ int main(int argc, char *argv[])
     auto tic = std::chrono::system_clock::now();
 
     auto solver = cg_factory->generate(gko::give(A));
-    solver->apply(gko::lend(x), gko::lend(b));
+    solver->apply(lend(x), lend(b));
     exec->synchronize();
 
     auto tac = std::chrono::system_clock::now();

@@ -64,8 +64,6 @@ struct TemplatedOperation {
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->template log<log::Logger::apply>(GKO_FUNCTION_NAME);
-
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
 
@@ -83,14 +81,14 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto p = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
+    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size().num_cols);
+                                       dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -116,7 +114,6 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::converged>(iter + 1, r.get());
             break;
         }
 
@@ -133,7 +130,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + tmp * p
         // r = r - tmp * q
         swap(prev_rho, rho);
-        this->template log<log::Logger::iteration_complete>(iter + 1);
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get(), dense_x);
         iter++;
     }
 }

@@ -88,9 +88,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto ell_mtx = this->get_ell();
     auto coo_mtx = this->get_coo();
     ell_mtx->apply(b, x);
-    auto alpha = initialize<Dense<ValueType>>({1.0}, this->get_executor());
-    auto beta = initialize<Dense<ValueType>>({1.0}, this->get_executor());
-    coo_mtx->apply(alpha.get(), b, beta.get(), x);
+    coo_mtx->apply2(b, x);
 }
 
 
@@ -102,9 +100,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     auto ell_mtx = this->get_ell();
     auto coo_mtx = this->get_coo();
     ell_mtx->apply(alpha, b, beta, x);
-    auto one =
-        initialize<gko::matrix::Dense<ValueType>>({1.0}, this->get_executor());
-    coo_mtx->apply(alpha, b, one.get(), x);
+    coo_mtx->apply2(alpha, b, x);
 }
 
 
@@ -134,13 +130,12 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
     // calculate coo storage
     size_type ell_lim = zero<size_type>();
     size_type coo_lim = zero<size_type>();
-    Array<size_type> row_nnz(this->get_executor()->get_master(),
-                             data.size.num_rows);
+    Array<size_type> row_nnz(this->get_executor()->get_master(), data.size[0]);
     get_each_row_nnz(data, row_nnz);
     strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
 
     auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
-                              ell_lim, data.size.num_rows, coo_lim);
+                              ell_lim, data.size[0], coo_lim);
 
     // Get values and column indexes.
     size_type ind = 0;
@@ -149,7 +144,7 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
     auto coo_col_idxs = tmp->get_coo_col_idxs();
     auto coo_row_idxs = tmp->get_coo_row_idxs();
     size_type coo_ind = 0;
-    for (size_type row = 0; row < data.size.num_rows; row++) {
+    for (size_type row = 0; row < data.size[0]; row++) {
         size_type col = 0;
 
         // ell_part
@@ -198,7 +193,7 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
     auto coo_vals = tmp->get_const_coo_values();
     auto coo_col_idxs = tmp->get_const_coo_col_idxs();
     auto coo_row_idxs = tmp->get_const_coo_row_idxs();
-    for (size_type row = 0; row < tmp->get_size().num_rows; ++row) {
+    for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
         for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row();
              ++i) {
             const auto val = tmp->ell_val_at(row, i);

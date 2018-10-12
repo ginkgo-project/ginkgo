@@ -3,6 +3,7 @@ if(WIN32)
 else()
     cmake_minimum_required(VERSION 3.8)
 endif()
+
 project(Ginkgo LANGUAGES CXX VERSION 0.0.0)
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
@@ -10,6 +11,7 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 option(DEVEL_TOOLS "Add development tools to the build system" ON)
 option(BUILD_TESTS "Generate build files for unit tests" ON)
 option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
+option(BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
 option(BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
@@ -25,7 +27,7 @@ include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 
 if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
-    message("BUILD_TESTS is ON, enabling BUILD_REFERENCE")
+    message(STATUS "BUILD_TESTS is ON, enabling BUILD_REFERENCE")
     set(BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
 
@@ -42,7 +44,7 @@ endif()
 
 # Find important header files, store the definitions in include/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
-include (CheckIncludeFileCXX)
+include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
@@ -50,6 +52,14 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
+  DESTINATION "include/"
+  FILES_MATCHING PATTERN "*.hpp"
+  )
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
+  DESTINATION "include/"
+  FILES_MATCHING PATTERN "*.hpp"
+  )
 
 add_subdirectory(third_party)    # Third-party tools and libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
@@ -67,6 +77,10 @@ ginkgo_install()
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(BUILD_BENCHMARKS)
+    add_subdirectory(benchmark)
 endif()
 
 if(DEVEL_TOOLS)

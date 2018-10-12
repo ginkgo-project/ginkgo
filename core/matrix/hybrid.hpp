@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/mtx_reader.hpp"
 #include "core/matrix/coo.hpp"
 #include "core/matrix/ell.hpp"
 
@@ -489,6 +488,24 @@ public:
         return strategy_;
     }
 
+    /**
+     * Copies data from another Hybrid.
+     *
+     * @param other  the Hybrid to copy from
+     *
+     * @return this
+     */
+    Hybrid &operator=(const Hybrid &other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        EnableLinOp<Hybrid<ValueType, IndexType>>::operator=(other);
+        this->coo_->copy_from(other.get_coo());
+        this->ell_->copy_from(other.get_ell());
+        return *this;
+    }
+
 protected:
     /**
      * Creates an uninitialized Hybrid matrix of specified method.
@@ -501,7 +518,7 @@ protected:
     Hybrid(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), dim{}, std::move(strategy))
+        : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
     {}
 
     /**
@@ -514,9 +531,9 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim &size,
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, size.num_cols, std::move(strategy))
+        : Hybrid(std::move(exec), size, size[1], std::move(strategy))
     {}
 
     /**
@@ -530,11 +547,11 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim &size,
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
         size_type num_stored_elements_per_row,
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row,
-                 size.num_rows, {}, std::move(strategy))
+        : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0],
+                 {}, std::move(strategy))
     {}
 
     /**
@@ -547,7 +564,7 @@ protected:
      * @param stride  stride of the rows
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim &size,
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2> &size,
            size_type num_stored_elements_per_row, size_type stride,
            std::shared_ptr<strategy_type> strategy)
         : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
@@ -566,7 +583,7 @@ protected:
      * @param strategy  strategy of deciding the Hybrid config
      */
     Hybrid(
-        std::shared_ptr<const Executor> exec, const dim &size,
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
         size_type num_stored_elements_per_row, size_type stride,
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())

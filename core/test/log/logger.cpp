@@ -49,7 +49,11 @@ constexpr int num_iters = 10;
 struct DummyLoggedClass : gko::log::EnableLogging<DummyLoggedClass> {
     int get_num_loggers() { return loggers_.size(); }
 
-    void apply() { this->log<gko::log::Logger::iteration_complete>(num_iters); }
+    void apply()
+    {
+        this->log<gko::log::Logger::iteration_complete>(
+            nullptr, num_iters, nullptr, nullptr, nullptr);
+    }
 };
 
 
@@ -79,18 +83,19 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 }
 
 
-struct DummyLogger
-    : gko::EnablePolymorphicObject<DummyLogger, gko::log::Logger> {
+struct DummyLogger : gko::log::Logger {
     using Logger = gko::log::Logger;
 
     explicit DummyLogger(
         std::shared_ptr<const gko::Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask)
-        : EnablePolymorphicObject<DummyLogger, Logger>(exec, enabled_events)
+        : Logger(exec, enabled_events)
     {}
 
     void on_iteration_complete(
-        const gko::size_type &num_iterations) const override
+        const gko::LinOp *solver, const gko::size_type &num_iterations,
+        const gko::LinOp *residual, const gko::LinOp *solution = nullptr,
+        const gko::LinOp *residual_norm = nullptr) const override
     {
         this->num_iterations_ = num_iterations;
     }

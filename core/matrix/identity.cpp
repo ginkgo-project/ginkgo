@@ -66,7 +66,7 @@ std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
 {
     ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_size().num_rows);
+                                       base->get_size()[0]);
 }
 
 

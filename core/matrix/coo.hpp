@@ -165,6 +165,71 @@ public:
         return values_.get_num_elems();
     }
 
+    /**
+     * Applies Coo matrix axpy to a vector (or a sequence of vectors).
+     *
+     * Performs the operation x = Coo * b + x
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     *
+     * @return this
+     */
+    LinOp *apply2(const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply2_impl(make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
+        return this;
+    }
+
+    /**
+     * @copydoc apply2(cost LinOp *, LinOp *)
+     */
+    const LinOp *apply2(const LinOp *b, LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->apply2_impl(make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
+        return this;
+    }
+
+    /**
+     * Performs the operation x = alpha * Coo * b + x.
+     *
+     * @param alpha  scaling of the result of Coo * b
+     * @param b  vector(s) on which the operator is applied
+     * @param x  output vector(s)
+     *
+     * @return this
+     */
+    LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x)
+    {
+        this->validate_application_parameters(b, x);
+        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        auto exec = this->get_executor();
+        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
+        return this;
+    }
+
+    /**
+     * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
+     */
+    const LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x) const
+    {
+        this->validate_application_parameters(b, x);
+        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        auto exec = this->get_executor();
+        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get(),
+                          make_temporary_clone(exec, x).get());
+        return this;
+    }
+
 protected:
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -173,7 +238,7 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Coo(std::shared_ptr<const Executor> exec, const dim &size = dim{},
+    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Coo>(exec, size),
           values_(exec, num_nonzeros),
@@ -203,7 +268,7 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowIdxsArray>
-    Coo(std::shared_ptr<const Executor> exec, const dim &size,
+    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowIdxsArray &&row_idxs)
         : EnableLinOp<Coo>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -220,6 +285,10 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    void apply2_impl(const LinOp *b, LinOp *x) const;
+
+    void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
 
     /**
      * Simple helper function to factorize conversion code of COO matrix to CSR.

@@ -72,7 +72,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_size().num_cols;
+    size_type num_vectors = dense_b->get_size()[1];
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -86,7 +86,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto v_hat = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, dim{1, dense_b->get_size().num_cols});
+    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = Vector::create_with_config_of(alpha.get());
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto rho_prev = Vector::create_with_config_of(alpha.get());
@@ -94,7 +94,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size().num_cols);
+                                       dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
@@ -147,6 +147,8 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         swap(rho_prev, rho);
+        this->template log<log::Logger::iteration_complete>(this, iter + 1,
+                                                            r.get(), dense_x);
         iter++;
     }
 }

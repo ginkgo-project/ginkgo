@@ -90,7 +90,7 @@ protected:
     {}
 
     explicit ResidualNormReduction(const Factory *factory,
-                                   const CriterionArgs args)
+                                   const CriterionArgs &args)
         : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
@@ -102,8 +102,8 @@ protected:
         auto dense_r = as<Vector>(args.initial_residual);
         starting_tau_ =
             Vector::create(factory->get_executor(),
-                           dim{1, args.initial_residual->get_size().num_cols});
-        dense_r->compute_dot(dense_r, starting_tau_.get());
+                           dim<2>{1, args.initial_residual->get_size()[1]});
+        dense_r->compute_norm2(starting_tau_.get());
     }
 
 private:

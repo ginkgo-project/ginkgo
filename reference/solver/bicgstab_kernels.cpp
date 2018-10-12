@@ -58,7 +58,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *omega,
                 Array<stopping_status> *stop_status)
 {
-    for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+    for (size_type j = 0; j < b->get_size()[1]; ++j) {
         rho->at(j) = one<ValueType>();
         prev_rho->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
@@ -67,8 +67,8 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         omega->at(j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
-    for (size_type i = 0; i < b->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < b->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < b->get_size()[0]; ++i) {
+        for (size_type j = 0; j < b->get_size()[1]; ++j) {
             r->at(i, j) = b->at(i, j);
             rr->at(i, j) = zero<ValueType>();
             z->at(i, j) = zero<ValueType>();
@@ -94,8 +94,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *omega,
             const Array<stopping_status> *stop_status)
 {
-    for (size_type i = 0; i < p->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < p->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < p->get_size()[0]; ++i) {
+        for (size_type j = 0; j < p->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
@@ -123,8 +123,8 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *beta,
             const Array<stopping_status> *stop_status)
 {
-    for (size_type i = 0; i < s->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < s->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < s->get_size()[0]; ++i) {
+        for (size_type j = 0; j < s->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
@@ -151,7 +151,7 @@ void step_3(
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
     matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
-    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
@@ -161,8 +161,8 @@ void step_3(
             omega->at(j) = zero<ValueType>();
         }
     }
-    for (size_type i = 0; i < x->get_size().num_rows; ++i) {
-        for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
@@ -182,10 +182,10 @@ void finalize(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Dense<ValueType> *alpha,
               Array<stopping_status> *stop_status)
 {
-    for (size_type j = 0; j < x->get_size().num_cols; ++j) {
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped() &&
             !stop_status->get_const_data()[j].is_finalized()) {
-            for (size_type i = 0; i < x->get_size().num_rows; ++i) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
                 x->at(i, j) += alpha->at(j) * y->at(i, j);
                 stop_status->get_data()[j].finalize();
             }

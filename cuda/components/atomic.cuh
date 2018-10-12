@@ -48,10 +48,11 @@ __forceinline__ __device__ void atomic_add(T *, T)
 }
 
 
-#define GKO_BIND_ATOMIC_ADD(ValueType)                                         \
-    __forceinline__ __device__ void atomic_add(ValueType *addr, ValueType val) \
-    {                                                                          \
-        atomicAdd(addr, val);                                                  \
+#define GKO_BIND_ATOMIC_ADD(ValueType)                                       \
+    __forceinline__ __device__ void atomic_add(ValueType *__restrict__ addr, \
+                                               ValueType val)                \
+    {                                                                        \
+        atomicAdd(addr, val);                                                \
     }
 
 GKO_BIND_ATOMIC_ADD(int);
@@ -64,14 +65,20 @@ GKO_BIND_ATOMIC_ADD(float);
     (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 
 
-__forceinline__ __device__ void atomic_add(double *addr, double val)
+// the function is copied from CUDA 9.2 documentation
+__forceinline__ __device__ void atomic_add(double *__restrict__ addr,
+                                           double val)
 {
-    double old = *addr, assumed;
+    unsigned long long int *address_as_ull = (unsigned long long int *)addr;
+    unsigned long long int old = *address_as_ull, assumed;
     do {
         assumed = old;
-        old = __longlong_as_double(atomicCAS(
-            (unsigned long long int *)addr, __double_as_longlong(assumed),
-            __double_as_longlong(val + assumed)));
+        old = atomicCAS(
+            address_as_ull, assumed,
+            __double_as_longlong(val + __longlong_as_double(assumed)));
+
+        // Note: uses integer comparison to avoid hang in case of NaN (since NaN
+        // != NaN)
     } while (assumed != old);
 }
 
@@ -93,8 +100,8 @@ GKO_BIND_ATOMIC_ADD(double);
  *
  * @note It is not 'real' complex<float> atomic add opeartion
  */
-__forceinline__ __device__ void atomic_add(thrust::complex<float> *address,
-                                           thrust::complex<float> val)
+__forceinline__ __device__ void atomic_add(
+    thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
 {
     cuComplex *cuaddr = reinterpret_cast<cuComplex *>(address);
     // Separate to real part and imag part
@@ -107,8 +114,8 @@ __forceinline__ __device__ void atomic_add(thrust::complex<float> *address,
  *
  * @note It is not 'real' complex<double> atomic add opeartion
  */
-__forceinline__ __device__ void atomic_add(thrust::complex<double> *address,
-                                           thrust::complex<double> val)
+__forceinline__ __device__ void atomic_add(
+    thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
 {
     cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
     // Separate to real part and imag part

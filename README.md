@@ -1,10 +1,24 @@
 ![Ginkgo](/assets/logo.png)
 
-Ginkgo is a numerical linear algebra library targeting manycore architectures.
+Ginkgo is a high-performance linear algebra library for manycore systems, with a
+focus on sparse solution of linear systems. It is implemented using modern C++
+(you will need at least C++11 compliant compiler to build it), with GPU kernels
+implemented in CUDA.
 
+
+Performance
+-----------
+
+An extensive database of up-to-date benchmark results is available in the
+[performance data reposotiry](https://github.com/ginkgo-project/ginkgo-data).
+Visualizations of the database can be interactively generated using the
+[Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
+The benchmark results are automatically updated using the CI system to always
+reflect the current state of the library.
 
 Prerequisites
 -------------
+
 
 ### Linux
 
@@ -27,11 +41,6 @@ In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
-*   __NOTE:__ If you want to use _clang_ as your compiler and develop Ginkgo,
-    you'll currently need two versions _clang_: _clang 4.0.0_ or older, as this
-    is this version supporetd by the CUDA 9.1 toolkit, and _clang 5.0.1_ or
-    newer, which will not be used for compilation, but only provide the
-    _clang-format_ utility
 
 
 ### Mac OS
@@ -91,6 +100,8 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `ON`
 *   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
+*   `-DBUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
+    (will download gflags and rapidjson), default is `ON`
 *   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, usefull for testing, default os `OFF`
@@ -112,18 +123,17 @@ Ginkgo adds the following additional switches to control what is being built:
 
     *   `Auto`
     *   `Kepler`, `Maxwell`, `Pascal`, `Volta`
-    *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
-    *   `Off`
+    *   `CODE`, `CODE(COMPUTE)`, `(COMPUTE)`
 
-    `Auto` will automatically detect the present CUDA-enabled GPU 
-    architectures in the system.
-    `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
-    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE` are
-    placeholders that should be replaced with compute and code numbers (e.g.
-    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced
-    with `70`. `MaxPTX` will select the latest architecture supported by the
-    compiler. `Off` will not select any architectures and compile with NVCC's
-    default settings. Default is `Auto`.
+    `Auto` will automatically detect the present CUDA-enabled GPU architectures
+    in the system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for
+    all architectures of that particular NVIDIA GPU generation. `COMPUTE` and
+    `CODE` are placeholders that should be replaced with compute and code
+    numbers (e.g.  for `compute_70` and `sm_70` `COMPUTE` and `CODE` should be
+    replaced with `70`. Default is `Auto`.  For a more detailed explanation of
+    this option see the
+    [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
+    section in the documentation of the CudaArchitectureSelector CMake module.
 
 For example, to build everything (in debug mode), use:
 
@@ -162,7 +172,6 @@ run the following from the build folder:
 
 where `path/to/test` is the path returned by `make test`.
 
-
 ### Installing Ginkgo
 
 To install Ginkgo into the specified folder, execute the following command in
@@ -175,3 +184,7 @@ make install
 If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your
 user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
+
+### Licensing
+
+Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for details.

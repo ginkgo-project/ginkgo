@@ -66,7 +66,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        ASSERT_EQ(m->get_size(), gko::dim(2, 3));
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
@@ -133,7 +133,7 @@ TEST_F(Coo, MovesToDense)
 TEST_F(Coo, AppliesToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim{2, 1});
+    auto y = Vec::create(exec, gko::dim<2>{2, 1});
 
     mtx->apply(x.get(), y.get());
 
@@ -149,7 +149,7 @@ TEST_F(Coo, AppliesToDenseMatrix)
          {1.0, -1.5},
          {4.0, 2.5}}, exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim{2, 2});
+    auto y = Vec::create(exec, gko::dim<2>{2, 2});
 
     mtx->apply(x.get(), y.get());
 
@@ -200,8 +200,8 @@ TEST_F(Coo, AppliesLinearCombinationToDenseMatrix)
 
 TEST_F(Coo, ApplyFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim{2});
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -209,8 +209,8 @@ TEST_F(Coo, ApplyFailsOnWrongInnerDimension)
 
 TEST_F(Coo, ApplyFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim{3, 2});
-    auto y = Vec::create(exec, gko::dim{3, 2});
+    auto x = Vec::create(exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(exec, gko::dim<2>{3, 2});
 
     ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
@@ -218,10 +218,104 @@ TEST_F(Coo, ApplyFailsOnWrongNumberOfRows)
 
 TEST_F(Coo, ApplyFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim{3});
-    auto y = Vec::create(exec, gko::dim{2});
+    auto x = Vec::create(exec, gko::dim<2>{3});
+    auto y = Vec::create(exec, gko::dim<2>{2});
 
     ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Coo, AppliesAddToDenseVector)
+{
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = gko::initialize<Vec>({2.0, 1.0}, exec);
+    mtx->apply2(x.get(), y.get());
+
+    ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
+}
+
+
+TEST_F(Coo, AppliesAddToDenseMatrix)
+{
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>(
+        {{1.0, 0.5},
+         {2.0, -1.5}}, exec);
+    // clang-format on
+
+    mtx->apply2(x.get(), y.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(y,
+                    l({{14.0,  4.0},
+                       { 7.0, -9.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, AppliesLinearCombinationAddToDenseVector)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+
+    mtx->apply2(alpha.get(), x.get(), y.get());
+
+    ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
+}
+
+
+TEST_F(Coo, AppliesLinearCombinationAddToDenseMatrix)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {{2.0, 3.0},
+         {1.0, -1.5},
+         {4.0, 2.5}}, exec);
+    auto y = gko::initialize<Vec>(
+        {{1.0, 0.5},
+         {2.0, -1.5}}, exec);
+    // clang-format on
+
+    mtx->apply2(alpha.get(), x.get(), y.get());
+
+    // clang-format off
+    ASSERT_MTX_NEAR(y,
+                    l({{-12.0, -3.0},
+                       { -3.0,  6.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Coo, ApplyAddFailsOnWrongInnerDimension)
+{
+    auto x = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(exec, gko::dim<2>{2});
+
+    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Coo, ApplyAddFailsOnWrongNumberOfRows)
+{
+    auto x = Vec::create(exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+
+    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TEST_F(Coo, ApplyAddFailsOnWrongNumberOfCols)
+{
+    auto x = Vec::create(exec, gko::dim<2>{3});
+    auto y = Vec::create(exec, gko::dim<2>{2});
+
+    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 

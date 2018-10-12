@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/ell.hpp"
 #include "core/matrix/hybrid.hpp"
+#include "core/matrix/sellp.hpp"
 
 
 #include <algorithm>
@@ -63,11 +64,14 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(scale, dense::scale<ValueType>);
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
+    GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
     GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                            dense::calculate_max_nnz_per_row<ValueType>);
     GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                            dense::calculate_nonzeros_per_row<ValueType>);
+    GKO_REGISTER_OPERATION(calculate_total_cols,
+                           dense::calculate_total_cols<ValueType>);
     GKO_REGISTER_OPERATION(transpose, dense::transpose<ValueType>);
     GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose<ValueType>);
 };
@@ -98,6 +102,14 @@ struct TemplatedOperationHybrid {
     GKO_REGISTER_OPERATION(convert_to_hybrid,
                            dense::convert_to_hybrid<TplArgs...>);
     GKO_REGISTER_OPERATION(move_to_hybrid, dense::move_to_hybrid<TplArgs...>);
+};
+
+
+template <typename... TplArgs>
+struct TemplatedOperationSellp {
+    GKO_REGISTER_OPERATION(convert_to_sellp,
+                           dense::convert_to_sellp<TplArgs...>);
+    GKO_REGISTER_OPERATION(move_to_sellp, dense::move_to_sellp<TplArgs...>);
 };
 
 
@@ -147,8 +159,7 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
             source, &num_stored_elements_per_row));
     const auto max_nnz_per_row = std::max(
         result->get_num_stored_elements_per_row(), num_stored_elements_per_row);
-    const auto stride =
-        std::max(result->get_stride(), source->get_size().num_rows);
+    const auto stride = std::max(result->get_stride(), source->get_size()[0]);
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
                                                  max_nnz_per_row, stride);
     exec->run(op(tmp.get(), source));
@@ -162,7 +173,7 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
-    Array<size_type> row_nnz(exec, source->get_size().num_rows);
+    Array<size_type> row_nnz(exec, source->get_size()[0]);
     exec->run(TemplatedOperation<
               ValueType>::make_calculate_nonzeros_per_row_operation(source,
                                                                     &row_nnz));
@@ -172,12 +183,36 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     const auto max_nnz_per_row =
         std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
     const auto stride =
-        std::max(result->get_ell_stride(), source->get_size().num_rows);
+        std::max(result->get_ell_stride(), source->get_size()[0]);
     const auto coo_nnz =
         std::max(result->get_coo_num_stored_elements(), coo_lim);
     auto tmp = Hybrid<ValueType, IndexType>::create(
         exec, source->get_size(), max_nnz_per_row, stride, coo_nnz,
         result->get_strategy());
+    exec->run(op(tmp.get(), source));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Sellp<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? default_stride_factor
+                                   : result->get_stride_factor();
+    size_type total_columns = 0;
+    exec->run(
+        TemplatedOperation<ValueType>::make_calculate_total_cols_operation(
+            source, &total_columns, stride_factor));
+    const auto total_cols = std::max(result->get_total_cols(), total_columns);
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? default_slice_size
+                                : result->get_slice_size();
+    auto tmp = Sellp<ValueType, IndexType>::create(
+        exec, source->get_size(), slice_size, stride_factor, total_cols);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -209,8 +244,8 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 template <typename ValueType>
 void Dense<ValueType>::scale(const LinOp *alpha)
 {
-    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
-    if (alpha->get_size().num_cols != 1) {
+    ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -224,8 +259,8 @@ void Dense<ValueType>::scale(const LinOp *alpha)
 template <typename ValueType>
 void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
 {
-    ASSERT_EQUAL_ROWS(alpha, dim(1, 1));
-    if (alpha->get_size().num_cols != 1) {
+    ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
         // different alpha for each column
         ASSERT_EQUAL_COLS(this, alpha);
     }
@@ -242,12 +277,23 @@ template <typename ValueType>
 void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     ASSERT_EQUAL_DIMENSIONS(this, b);
-    ASSERT_EQUAL_DIMENSIONS(result, dim(1, this->get_size().num_cols));
+    ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (b->get_executor() != exec || result->get_executor() != exec)
         NOT_IMPLEMENTED;
     exec->run(TemplatedOperation<ValueType>::make_compute_dot_operation(
         this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(result)));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2(LinOp *result) const
+{
+    ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (result->get_executor() != exec) NOT_IMPLEMENTED;
+    exec->run(TemplatedOperation<ValueType>::make_compute_norm2_operation(
+        as<Dense<ValueType>>(this), as<Dense<ValueType>>(result)));
 }
 
 
@@ -303,6 +349,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
         TemplatedOperationCsr<ValueType, int32>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -314,6 +361,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
         TemplatedOperationCsr<ValueType, int32>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -325,6 +373,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
         TemplatedOperationCsr<ValueType, int64>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -336,6 +385,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
         TemplatedOperationCsr<ValueType, int64>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -425,6 +475,48 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int64> *result)
 }
 
 
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int32>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int32>::
+            template make_move_to_sellp_operation<decltype(result),
+                                                  Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
+{
+    conversion_helper(result, this,
+                      TemplatedOperationSellp<ValueType, int64>::
+                          template make_convert_to_sellp_operation<
+                              decltype(result), const Dense<ValueType> *&>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
+{
+    conversion_helper(
+        result, this,
+        TemplatedOperationSellp<ValueType, int64>::
+            template make_move_to_sellp_operation<decltype(result),
+                                                  Dense<ValueType> *&>);
+}
+
+
 namespace {
 
 
@@ -433,8 +525,8 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
     auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
     size_type ind = 0;
-    for (size_type row = 0; row < data.size.num_rows; ++row) {
-        for (size_type col = 0; col < data.size.num_cols; ++col) {
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        for (size_type col = 0; col < data.size[1]; ++col) {
             if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
                 data.nonzeros[ind].column == col) {
                 tmp->at(row, col) = data.nonzeros[ind].value;
@@ -482,8 +574,8 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
 
     data = {mtx->get_size(), {}};
 
-    for (size_type row = 0; row < data.size.num_rows; ++row) {
-        for (size_type col = 0; col < data.size.num_cols; ++col) {
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        for (size_type col = 0; col < data.size[1]; ++col) {
             if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
                 data.nonzeros.emplace_back(row, col, tmp->at(row, col));
             }

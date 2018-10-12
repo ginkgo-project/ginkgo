@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
-#include "core/base/mtx_reader.hpp"
 
 
 namespace gko {
@@ -52,8 +51,8 @@ class Dense;
  * ELL is a matrix format where stride with explicit zeros is used such that
  * all rows have the same number of stored elements. The number of elements
  * stored in each row is the largest number of nonzero elements in any of the
- * rows (obtainable through get_num_stored_elements_per_row() method). This removes
- * the need of a row pointer like in the CSR format, and allows for SIMD
+ * rows (obtainable through get_num_stored_elements_per_row() method). This
+ * removes the need of a row pointer like in the CSR format, and allows for SIMD
  * processing of the distinct rows. For efficient processing, the nonzero
  * elements and the corresponding column indices are stored in column-major
  * fashion. The columns are padded to the length by user-defined stride
@@ -204,13 +203,14 @@ protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
      *    (The stride is set to the number of rows of the matrix.
-     *     The num_stored_elements_per_row is set to the number of cols of the matrix.)
+     *     The num_stored_elements_per_row is set to the number of cols of the
+     * matrix.)
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim &size = dim{})
-        : Ell(std::move(exec), size, size.num_cols)
+    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
+        : Ell(std::move(exec), size, size[1])
     {}
 
     /**
@@ -222,9 +222,9 @@ protected:
      * @param num_stored_elements_per_row   the number of stored elements per
      *                                      row
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
         size_type num_stored_elements_per_row)
-        : Ell(std::move(exec), size, num_stored_elements_per_row, size.num_rows)
+        : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
     {}
 
     /**
@@ -236,7 +236,7 @@ protected:
      *                                      row
      * @param stride                stride of the rows
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_(exec, stride * num_stored_elements_per_row),
@@ -267,7 +267,7 @@ protected:
      *       array data will not be used in the matrix.
      */
     template <typename ValuesArray, typename ColIdxsArray>
-    Ell(std::shared_ptr<const Executor> exec, const dim &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),

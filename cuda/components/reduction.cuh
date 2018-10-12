@@ -35,39 +35,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
-#include "cuda/components/shuffle.cuh"
-#include "cuda/components/synchronization.cuh"
+#include "core/base/std_extensions.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-namespace warp {
 
 
 /**
  * @internal
  *
- * Computes a reduction using the binary operation `reduce_op` on a sub-warp of
- * `subwarp_size` threads. The `subwarp_size` must be a power of 2, and not
- * larger than cuda_config::warp_size.
- * Each thread contributes with one element `local_data`. The local thread
- * element is always passed as the first parameter to the `reduce_op`.
+ * Computes a reduction using the binary operation `reduce_op` on a group
+ * `group`. Each thread contributes with one element `local_data`. The local
+ * thread element is always passed as the first parameter to the `reduce_op`.
  * The function returns the result of the reduction on all threads.
  *
  * @note The function is guarantied to return the correct value on all threads
  *       only if `reduce_op` is commutative (in addition to being associative).
  *       Otherwise, the correct value is returned only to the thread with
- *       subwarp index 0. Use warp::shuffle to exchange it with other threads.
+ *       subwarp index 0.
  */
-template <int32 subwarp_size, typename ValueType, typename Operator>
-__device__ __forceinline__ ValueType reduce(ValueType local_data,
+template <
+    typename Group, typename ValueType, typename Operator,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ ValueType reduce(const Group &group,
+                                            ValueType local_data,
                                             Operator reduce_op = Operator{})
 {
 #pragma unroll
-    for (int32 bitmask = 1; bitmask < subwarp_size; bitmask <<= 1) {
-        const auto remote_data = shuffle_xor(local_data, bitmask, subwarp_size);
+    for (int32 bitmask = 1; bitmask < group.size(); bitmask <<= 1) {
+        const auto remote_data = group.shfl_xor(local_data, bitmask);
         local_data = reduce_op(local_data, remote_data);
     }
     return local_data;
@@ -78,20 +78,22 @@ __device__ __forceinline__ ValueType reduce(ValueType local_data,
  * @internal
  *
  * Returns the index of the thread that has the element with the largest
- * magnitude among all the threads in the sub-warp of `subwarp_size` threads.
- * Restrictions on subwarp_size from warp::reduce apply.
+ * magnitude among all the threads in the group.
  * Only the values from threads which set `is_pivoted` to `false` will be
  * considered.
  */
-template <int32 subwarp_size, typename ValueType>
-__device__ __forceinline__ int choose_pivot(ValueType local_data,
+template <
+    typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ int choose_pivot(const Group &group,
+                                            ValueType local_data,
                                             bool is_pivoted)
 {
     using real = remove_complex<ValueType>;
     real lmag = is_pivoted ? -one<real>() : abs(local_data);
     const auto pivot =
-        reduce<subwarp_size>(threadIdx.x, [&](int lidx, int ridx) {
-            const auto rmag = shuffle(lmag, ridx, subwarp_size);
+        reduce(group, group.thread_rank(), [&](int lidx, int ridx) {
+            const auto rmag = group.shfl(lmag, ridx);
             if (rmag > lmag) {
                 lmag = rmag;
                 lidx = ridx;
@@ -99,14 +101,8 @@ __device__ __forceinline__ int choose_pivot(ValueType local_data,
             return lidx;
         });
     // pivot operator not commutative, make sure everyone has the same pivot
-    return shuffle(pivot, 0, subwarp_size);
+    return group.shfl(pivot, 0);
 }
-
-
-}  // namespace warp
-
-
-namespace block {
 
 
 /**
@@ -119,37 +115,34 @@ namespace block {
  * as to store the return value - which is stored in the 0-th position of the
  * array.
  */
-template <size_type block_size, int32 subwarp_size, typename ValueType,
-          typename Operator>
-__device__ void reduce(ValueType *data, Operator reduce_op = Operator{})
+template <
+    typename Group, typename ValueType, typename Operator,
+    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+__device__ void reduce(const Group &group, ValueType *data,
+                       Operator reduce_op = Operator{})
 {
-    const auto local_id = thread::get_local_thread_id<subwarp_size>();
+    const auto local_id = group.thread_rank();
 
 #pragma unroll
-    for (int k = block_size / 2; k >= cuda_config::warp_size; k /= 2) {
-        block::synchronize();
+    for (int k = group.size() / 2; k >= cuda_config::warp_size; k /= 2) {
+        group.sync();
         if (local_id < k) {
             data[local_id] = reduce_op(data[local_id], data[local_id + k]);
         }
     }
 
-    if (local_id >= cuda_config::warp_size) {
+    const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
+    const auto warp_id = group.thread_rank() / warp.size();
+    if (warp_id > 0) {
         return;
     }
-    auto result = data[local_id];
-    // TODO: implement function-level launch configuration to use warp::reduce
-#pragma unroll
-    for (int bitmask = 1; bitmask < cuda_config::warp_size; bitmask <<= 1) {
-        result = reduce_op(result, warp::shuffle_xor(result, bitmask));
-    }
-
-    if (local_id == 0) {
+    auto result = reduce(warp, data[warp.thread_rank()], reduce_op);
+    if (warp.thread_rank() == 0) {
         data[0] = result;
     }
 }
 
 
-}  // namespace block
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
