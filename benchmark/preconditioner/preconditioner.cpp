@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <map>
 #include <random>
+#include <regex>
 #include <sstream>
 #include <string>
 
@@ -74,9 +75,8 @@ void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
     if (object.HasMember(name)) {
         object[name] = std::forward<T>(value);
     } else {
-        object.AddMember(rapidjson::Value::StringRefType(name),
-                         std::forward<T>(value),
-                         std::forward<Allocator>(allocator));
+        auto n = rapidjson::Value(name, allocator);
+        object.AddMember(n, std::forward<T>(value), allocator);
     }
 }
 
@@ -126,6 +126,10 @@ DEFINE_uint32(max_block_size, 32,
 DEFINE_string(
     executor, "reference",
     "The executor used to run the solver, one of: reference, omp, cuda");
+
+DEFINE_uint32(warm_iter, 2, "The number of warm-up iteration");
+
+DEFINE_uint32(run_iter, 10, "The number of running iteration");
 
 DEFINE_string(matrix_format, "csr", "The format in which to read the matrix");
 
@@ -266,9 +270,21 @@ std::unique_ptr<vector> create_initial_guess(
 }
 
 
+std::string extract_operation_name(const gko::Operation *op)
+{
+    auto full_name = gko::name_demangling::get_dynamic_type(*op);
+    std::smatch match{};
+    if (regex_match(full_name, match, std::regex(".*::(.*)_operation.*"))) {
+        return match[1];
+    } else {
+        return full_name;
+    }
+}
+
+
 template <typename Allocator>
 void run_preconditioner(const char *precond_name,
-                        std::shared_ptr<const gko::Executor> exec,
+                        std::shared_ptr<gko::Executor> exec,
                         std::shared_ptr<const gko::LinOp> system_matrix,
                         const vector *b, const vector *x,
                         rapidjson::Value &test_case, Allocator &allocator) try {
@@ -288,63 +304,49 @@ void run_preconditioner(const char *precond_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
     }
 
-    /*
     struct logger : gko::log::Logger {
-        void on_iteration_complete(
-            const gko::LinOp *, const gko::size_type &,
-            const gko::LinOp *residual, const gko::LinOp *solution,
-            const gko::LinOp *residual_norm) const override
+        void on_operation_launched(const gko::Executor *exec,
+                                   const gko::Operation *op) const override
         {
-            if (residual_norm) {
-                rec_res_norms.PushBack(get_norm(gko::as<vector>(residual_norm)),
-                                       alloc);
-            } else {
-                rec_res_norms.PushBack(compute_norm(gko::as<vector>(residual)),
-                                       alloc);
-            }
-            if (solution) {
-                true_res_norms.PushBack(
-                    compute_residual_norm(matrix, b, gko::as<vector>(solution)),
+            const auto name = extract_operation_name(op);
+            exec->synchronize();
+            start[name] = std::chrono::system_clock::now();
+        }
+
+        void on_operation_completed(const gko::Executor *exec,
+                                    const gko::Operation *op) const override
+        {
+            exec->synchronize();
+            const auto end = std::chrono::system_clock::now();
+
+            const auto name = extract_operation_name(op);
+            total[name] += end - start[name];
+        }
+
+        void write_data(rapidjson::Value &object, Allocator &alloc,
+                        gko::uint32 repetitions)
+        {
+            for (const auto &entry : total) {
+                add_or_set_member(
+                    object, entry.first.c_str(),
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        entry.second)
+                            .count() /
+                        repetitions,
                     alloc);
-            } else {
-                true_res_norms.PushBack(-1.0, alloc);
             }
         }
 
-        logger(std::shared_ptr<const gko::Executor> exec,
-               const gko::LinOp *matrix, const vector *b,
-               rapidjson::Value &rec_res_norms,
-               rapidjson::Value &true_res_norms, Allocator &alloc)
-            : gko::log::Logger(exec),
-              matrix{matrix},
-              b{b},
-              rec_res_norms{rec_res_norms},
-              true_res_norms{true_res_norms},
-              alloc{alloc}
+        logger(std::shared_ptr<const gko::Executor> exec)
+            : gko::log::Logger(exec)
         {}
 
     private:
-        const gko::LinOp *matrix;
-        const vector *b;
-        rapidjson::Value &rec_res_norms;
-        rapidjson::Value &true_res_norms;
-        Allocator &alloc;
-    };*/
-
-    if (FLAGS_detailed) {
-        // slow run, times each component separately
-        /*
-        auto x_clone = clone(x);
-
-        auto solver =
-            solver_factory.at(solver_name)(exec)->generate(system_matrix);
-        solver->add_logger(std::make_shared<logger>(
-            exec, lend(system_matrix), b,
-            solver_case[solver_name]["recurrent_residuals"],
-            solver_case[solver_name]["true_residuals"], allocator));
-        solver->apply(lend(b), lend(x_clone));
-        */
-    }
+        mutable std::map<std::string, std::chrono::system_clock::time_point>
+            start;
+        mutable std::map<std::string, std::chrono::system_clock::duration>
+            total;
+    };
 
     // timed run
     {
@@ -352,31 +354,72 @@ void run_preconditioner(const char *precond_name,
 
         auto precond = precond_factory.at(precond_name)(exec);
 
+        for (auto i = 0u; i < FLAGS_warm_iter; ++i) {
+            precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
+        }
+
         exec->synchronize();
         auto g_tic = std::chrono::system_clock::now();
 
-        auto precond_op = precond->generate(system_matrix);
+        std::unique_ptr<gko::LinOp> precond_op;
+        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+            precond_op = precond->generate(system_matrix);
+        }
 
         exec->synchronize();
         auto g_tac = std::chrono::system_clock::now();
 
         auto generate_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac - g_tic);
+            std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
+                                                                 g_tic) /
+            FLAGS_run_iter;
         add_or_set_member(precond_object[precond_name]["generate"], "time",
                           generate_time.count(), allocator);
 
         exec->synchronize();
         auto a_tic = std::chrono::system_clock::now();
 
-        precond_op->apply(lend(b), lend(x_clone));
+        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+            precond_op->apply(lend(b), lend(x_clone));
+        }
 
         exec->synchronize();
         auto a_tac = std::chrono::system_clock::now();
 
-        auto apply_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac - a_tic);
+        auto apply_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              a_tac - a_tic) /
+                          FLAGS_run_iter;
         add_or_set_member(precond_object[precond_name]["apply"], "time",
                           apply_time.count(), allocator);
+    }
+
+    if (FLAGS_detailed) {
+        // slow run, times each component separately
+        auto x_clone = clone(x);
+        auto precond = precond_factory.at(precond_name)(exec);
+
+        auto gen_logger = std::make_shared<logger>(exec);
+        exec->add_logger(gen_logger);
+        std::unique_ptr<gko::LinOp> precond_op;
+        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+            precond_op = precond->generate(system_matrix);
+        }
+        exec->remove_logger(gko::lend(gen_logger));
+
+        gen_logger->write_data(
+            precond_object[precond_name]["generate"]["components"], allocator,
+            FLAGS_run_iter);
+
+        auto apply_logger = std::make_shared<logger>(exec);
+        exec->add_logger(apply_logger);
+        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+            precond_op->apply(lend(b), lend(x_clone));
+        }
+        exec->remove_logger(gko::lend(apply_logger));
+
+        apply_logger->write_data(
+            precond_object[precond_name]["apply"]["components"], allocator,
+            FLAGS_run_iter);
     }
 
     add_or_set_member(precond_object[precond_name], "completed", true,
