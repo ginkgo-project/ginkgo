@@ -440,7 +440,7 @@ public:                                                              \
      * Bitset Mask which activates all criterion events
      */
     static constexpr mask_type criterion_events_mask =
-        criterion_check_started_mask ^ criterion_check_completed_mask;
+        criterion_check_started_mask | criterion_check_completed_mask;
 
 protected:
     /**

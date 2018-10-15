@@ -31,34 +31,44 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "core/stop/combined.hpp"
-
-
-namespace gko {
-namespace stop {
+#include <core/log/convergence.hpp>
 
 
-bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          Array<stopping_status> *stop_status,
-                          bool *one_changed, const Updater &updater)
+#include <gtest/gtest.h>
+
+
+#include <core/base/executor.hpp>
+#include <core/matrix/dense.hpp>
+#include <core/stop/iteration.hpp>
+#include <core/test/utils/assertions.hpp>
+
+
+namespace {
+
+
+TEST(Record, CatchesCriterionCheckCompleted)
 {
-    bool one_converged = false;
-    gko::uint8 ids{1};
-    *one_changed = false;
-    for (auto &c : criteria_) {
-        bool local_one_changed = false;
-        one_converged |= c->check(ids, setFinalized, stop_status,
-                                  &local_one_changed, updater);
-        *one_changed |= local_one_changed;
-        if (one_converged) {
-            break;
-        }
-        ids++;
-    }
-    return one_converged;
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Convergence<>::create(
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion = gko::stop::Iteration::Factory::create()
+                         .with_max_iters(3u)
+                         .on_executor(exec)
+                         ->generate(nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    using Mtx = gko::matrix::Dense<>;
+    auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
+
+    logger->on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 1, residual.get(), nullptr, nullptr,
+        RelativeStoppingId, true, &stop_status, true, true);
+
+    ASSERT_EQ(logger->get_num_iterations(), 1);
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()), l({1.0, 2.0, 2.0}),
+                    0.0);
+    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}), 0.0);
 }
 
 
-}  // namespace stop
-}  // namespace gko
+}  // namespace

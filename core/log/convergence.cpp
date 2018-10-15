@@ -32,33 +32,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/combined.hpp"
+#include "core/log/convergence.hpp"
+
+
+#include "core/base/array.hpp"
+#include "core/stop/criterion.hpp"
+#include "core/stop/stopping_status.hpp"
 
 
 namespace gko {
-namespace stop {
+namespace log {
 
 
-bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          Array<stopping_status> *stop_status,
-                          bool *one_changed, const Updater &updater)
+template <typename ValueType>
+void Convergence<ValueType>::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &oneChanged,
+    const bool &converged) const
 {
-    bool one_converged = false;
-    gko::uint8 ids{1};
-    *one_changed = false;
-    for (auto &c : criteria_) {
-        bool local_one_changed = false;
-        one_converged |= c->check(ids, setFinalized, stop_status,
-                                  &local_one_changed, updater);
-        *one_changed |= local_one_changed;
-        if (one_converged) {
-            break;
+    if (converged) {
+        this->num_iterations_ = num_iterations;
+        if (residual != nullptr) {
+            this->residual_.reset(residual->clone().release());
         }
-        ids++;
+        if (residual_norm != nullptr) {
+            this->residual_norm_.reset(residual_norm->clone().release());
+        } else if (residual != nullptr) {
+            using Vector = matrix::Dense<ValueType>;
+            this->residual_norm_ = Vector::create(
+                residual->get_executor(), dim<2>{1, residual->get_size()[1]});
+            auto dense_r = as<Vector>(residual);
+            dense_r->compute_norm2(this->residual_norm_.get());
+        }
     }
-    return one_converged;
 }
 
 
-}  // namespace stop
+#define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
+#undef GKO_DECLARE_CONVERGENCE
+
+
+}  // namespace log
 }  // namespace gko

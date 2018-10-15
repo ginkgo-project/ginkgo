@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/base/executor.hpp>
 #include <core/base/utils.hpp>
 #include <core/solver/bicgstab.hpp>
+#include <core/stop/iteration.hpp>
 #include <core/test/utils/assertions.hpp>
 
 

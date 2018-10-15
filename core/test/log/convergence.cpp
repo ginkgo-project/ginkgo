@@ -31,34 +31,28 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "core/stop/combined.hpp"
-
-
-namespace gko {
-namespace stop {
+#include <core/log/convergence.hpp>
 
 
-bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          Array<stopping_status> *stop_status,
-                          bool *one_changed, const Updater &updater)
+#include <gtest/gtest.h>
+
+
+#include <core/base/executor.hpp>
+
+
+namespace {
+
+
+TEST(Record, CanGetData)
 {
-    bool one_converged = false;
-    gko::uint8 ids{1};
-    *one_changed = false;
-    for (auto &c : criteria_) {
-        bool local_one_changed = false;
-        one_converged |= c->check(ids, setFinalized, stop_status,
-                                  &local_one_changed, updater);
-        *one_changed |= local_one_changed;
-        if (one_converged) {
-            break;
-        }
-        ids++;
-    }
-    return one_converged;
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Convergence<>::create(
+        exec, gko::log::Logger::iteration_complete_mask);
+
+    ASSERT_EQ(logger->get_num_iterations(), 0);
+    ASSERT_EQ(logger->get_residual(), nullptr);
+    ASSERT_EQ(logger->get_residual_norm(), nullptr);
 }
 
 
-}  // namespace stop
-}  // namespace gko
+}  // namespace

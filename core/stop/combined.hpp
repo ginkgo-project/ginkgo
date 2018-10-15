@@ -55,10 +55,6 @@ class Combined : public EnablePolymorphicObject<Combined, Criterion> {
     friend class EnablePolymorphicObject<Combined, Criterion>;
 
 public:
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override;
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -76,6 +72,10 @@ public:
     GKO_ENABLE_CRITERION_FACTORY(Combined, parameters, Factory);
 
 protected:
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    Array<stopping_status> *stop_status, bool *one_changed,
+                    const Updater &) override;
+
     explicit Combined(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Combined, Criterion>(std::move(exec))
     {}

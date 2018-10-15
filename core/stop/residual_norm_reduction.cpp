@@ -53,7 +53,7 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-bool ResidualNormReduction<ValueType>::check(
+bool ResidualNormReduction<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
