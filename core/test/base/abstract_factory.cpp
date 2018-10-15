@@ -61,7 +61,7 @@ struct IntFactory
                                     base>::EnableDefaultFactory;
 };
 
-struct MyInt : gko::log::EnableLogging<MyInt> {
+struct MyInt {
     MyInt(const IntFactory *factory, int orig_value)
         : value{orig_value * factory->get_parameters().coefficient}
     {}

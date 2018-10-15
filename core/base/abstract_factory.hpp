@@ -126,10 +126,6 @@ protected:
  * constructor. The factory also supports parameters by using the
  * `ParametersType` structure, which is defined by the user.
  *
- * Note: it is supposed that both factories and products have access to logging
- * facilities, either through `PolymorphicObject` or through direct use of the
- * `EnableLogging` mixin.
- *
  * For a simple example, see IntFactory in
  * `core/test/base/abstract_factory.cpp`.
  *
@@ -163,9 +159,7 @@ public:
     {
         auto product = std::unique_ptr<ProductType>(static_cast<ProductType *>(
             this->generate_impl({std::forward<Args>(args)...}).release()));
-        for (auto logger : this->loggers_) {
-            product->add_logger(logger);
-        }
+        propagate_loggers<ConcreteFactory, ProductType>(product.get());
         return product;
     }
 
@@ -194,6 +188,40 @@ public:
     static parameters_type create() { return {}; }
 
 protected:
+    /**
+     * Automatically propagate loggers from the factory to the product. Use
+     * `std::enable_if(...)` to ensure both TheType and TheFactory have logging
+     * facilities in this case.
+     *
+     * @param product  the product to add loggers to
+     */
+    template <typename TheFactory, typename TheType>
+    typename std::enable_if<
+        std::is_base_of<log::Loggable, TheType>::value &&
+            std::is_base_of<log::Loggable, TheFactory>::value,
+        void>::type
+    propagate_loggers(TheType *product) const
+    {
+        for (auto logger : this->loggers_) {
+            product->add_logger(logger);
+        }
+    }
+
+    /**
+     * Automatically propagate loggers from the factory to the product. Use
+     * `std::enable_if(...)` to ensure either TheType or TheFactory do not have
+     * logging facilities in this case.
+     *
+     * @param product  the product to *not* add loggers to
+     */
+    template <typename TheFactory, typename TheType>
+    typename std::enable_if<
+        not std::is_base_of<log::Loggable, TheType>::value ||
+            not std::is_base_of<log::Loggable, TheFactory>::value,
+        void>::type
+    propagate_loggers(TheType *product) const
+    {}
+
     /**
      * Creates a new factory using the specified executor and parameters.
      *
