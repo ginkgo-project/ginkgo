@@ -66,7 +66,6 @@ var searchData=
   ['enablelinop_3c_20identity_3c_20valuetype_20_3e_20_3e',['EnableLinOp&lt; Identity&lt; ValueType &gt; &gt;',['../classgko_1_1EnableLinOp.html',1,'gko']]],
   ['enablelinop_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['EnableLinOp&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1EnableLinOp.html',1,'gko']]],
   ['enablelogging',['EnableLogging',['../classgko_1_1log_1_1EnableLogging.html',1,'gko::log']]],
-  ['enablelogging_3c_20criterion_20_3e',['EnableLogging&lt; Criterion &gt;',['../classgko_1_1log_1_1EnableLogging.html',1,'gko::log']]],
   ['enablelogging_3c_20executor_20_3e',['EnableLogging&lt; Executor &gt;',['../classgko_1_1log_1_1EnableLogging.html',1,'gko::log']]],
   ['enablelogging_3c_20gmres_3c_20valuetype_20_3e_20_3e',['EnableLogging&lt; Gmres&lt; ValueType &gt; &gt;',['../classgko_1_1log_1_1EnableLogging.html',1,'gko::log']]],
   ['enablelogging_3c_20polymorphicobject_20_3e',['EnableLogging&lt; PolymorphicObject &gt;',['../classgko_1_1log_1_1EnableLogging.html',1,'gko::log']]],

@@ -10,6 +10,7 @@ var searchData=
   ['compile_5ftype_5flist',['compile_type_list',['../structgko_1_1syn_1_1compile__type__list.html',1,'gko::syn']]],
   ['composition',['Composition',['../classgko_1_1Composition.html',1,'gko']]],
   ['conj_5foperaton',['conj_operaton',['../structgko_1_1accessor_1_1conj__operaton.html',1,'gko::accessor']]],
+  ['convergence',['Convergence',['../classgko_1_1log_1_1Convergence.html',1,'gko::log']]],
   ['convertibleto',['ConvertibleTo',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20adaptiveblockjacobi_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; AdaptiveBlockJacobi&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20bicgstab_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Bicgstab&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],

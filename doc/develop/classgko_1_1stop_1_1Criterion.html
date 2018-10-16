@@ -93,9 +93,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a47e22c46eaa742d709dcbf0d26d93e6c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1stop_1_1Criterion_1_1Updater.html">Updater</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Criterion.html#a47e22c46eaa742d709dcbf0d26d93e6c">update</a> ()</td></tr>
 <tr class="memdesc:a47e22c46eaa742d709dcbf0d26d93e6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the updater object.  <a href="#a47e22c46eaa742d709dcbf0d26d93e6c">More...</a><br /></td></tr>
 <tr class="separator:a47e22c46eaa742d709dcbf0d26d93e6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad441c91b231ef5a1c8c646bbd496affd"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Criterion.html#ad441c91b231ef5a1c8c646bbd496affd">check</a> (uint8 stoppingId, bool setFinalized, <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &gt; *stop_status, bool *one_changed, const <a class="el" href="classgko_1_1stop_1_1Criterion_1_1Updater.html">Updater</a> &amp;updater)=0</td></tr>
-<tr class="memdesc:ad441c91b231ef5a1c8c646bbd496affd"><td class="mdescLeft">&#160;</td><td class="mdescRight">This checks whether convergence was reached for a certain criterion.  <a href="#ad441c91b231ef5a1c8c646bbd496affd">More...</a><br /></td></tr>
-<tr class="separator:ad441c91b231ef5a1c8c646bbd496affd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64634d8f02b439e5d8e6125fb996600d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Criterion.html#a64634d8f02b439e5d8e6125fb996600d">check</a> (uint8 stoppingId, bool setFinalized, <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &gt; *stop_status, bool *one_changed, const <a class="el" href="classgko_1_1stop_1_1Criterion_1_1Updater.html">Updater</a> &amp;updater)</td></tr>
+<tr class="memdesc:a64634d8f02b439e5d8e6125fb996600d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This checks whether convergence was reached for a certain criterion.  <a href="#a64634d8f02b439e5d8e6125fb996600d">More...</a><br /></td></tr>
+<tr class="separator:a64634d8f02b439e5d8e6125fb996600d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbstractPolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject&lt; Criterion &gt;</a></td></tr>
 <tr class="memitem:afe4ec718648d83a9558d3857814c9b9a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="afe4ec718648d83a9558d3857814c9b9a"></a>
 std::unique_ptr&lt; Criterion &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
@@ -156,17 +156,14 @@ Criterion *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</
 <p>It contains a factory to instantiate criteria. It is up to each specific stopping criterion to decide what to do with the data that is passed to it.</p>
 <p>Note that depending on the criterion, convergence may not have happened after stopping. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="ad441c91b231ef5a1c8c646bbd496affd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad441c91b231ef5a1c8c646bbd496affd">&#9670;&nbsp;</a></span>check()</h2>
+<a id="a64634d8f02b439e5d8e6125fb996600d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64634d8f02b439e5d8e6125fb996600d">&#9670;&nbsp;</a></span>check()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual bool gko::stop::Criterion::check </td>
+          <td class="memname">bool gko::stop::Criterion::check </td>
           <td>(</td>
           <td class="paramtype">uint8&#160;</td>
           <td class="paramname"><em>stoppingId</em>, </td>
@@ -201,11 +198,6 @@ Criterion *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</
           <td></td><td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>This checks whether convergence was reached for a certain criterion. </p>
@@ -247,7 +239,7 @@ Criterion *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/stop/<a class="el" href="criterion_8hpp_source.html">criterion.hpp (0890799)</a></li>
+<li>core/stop/<a class="el" href="criterion_8hpp_source.html">criterion.hpp (05eb9cd)</a></li>
 <li>core/stop/criterion.cpp (9993f3d)</li>
 </ul>
 </div><!-- contents -->

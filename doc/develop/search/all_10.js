@@ -11,7 +11,7 @@ var searchData=
   ['squared_5fnorm_5foperaton',['squared_norm_operaton',['../structgko_1_1accessor_1_1squared__norm__operaton.html',1,'gko::accessor']]],
   ['stop',['stop',['../classgko_1_1stopping__status.html#a5ade76be357b9813c017558a5f728659',1,'gko::stopping_status']]],
   ['stopping_5fstatus',['stopping_status',['../classgko_1_1stopping__status.html',1,'gko']]],
-  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Csr_1_1strategy__type.html',1,'gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301',1,'gko::matrix::Hybrid::strategy_type::strategy_type()']]],
+  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Csr_1_1strategy__type.html',1,'gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301',1,'gko::matrix::Hybrid::strategy_type::strategy_type()']]],
   ['stream',['Stream',['../classgko_1_1log_1_1Stream.html',1,'gko::log']]],
   ['streamerror',['StreamError',['../classgko_1_1StreamError.html',1,'gko::StreamError'],['../classgko_1_1StreamError.html#a511af28ae0b5a98998ef96f21cf1863e',1,'gko::StreamError::StreamError()']]],
   ['stride',['stride',['../classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316',1,'gko::accessor::row_major']]],
