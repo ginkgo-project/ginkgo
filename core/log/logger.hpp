@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_LOGGER_HPP_
 
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -42,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/std_extensions.hpp"
 #include "core/base/types.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -478,10 +480,22 @@ public:
     virtual ~Loggable() = default;
 
     /**
-     * Adds a Logger object to log events to.
-     * @param logger  a shared_ptr to the logger object
+     * Adds a new logger to the list of subscribed loggers.
+     *
+     * @param logger  the logger to add
      */
     virtual void add_logger(std::shared_ptr<const Logger> logger) = 0;
+
+    /**
+     * Removes a logger from the list of subscribed loggers.
+     *
+     * @param logger the logger to remove
+     *
+     * @note The comparison is done using the logger's object unique identity.
+     *       Thus, two loggers constructed in the same way are not considered
+     *       equal.
+     */
+    virtual void remove_logger(const Logger *logger) = 0;
 };
 
 
@@ -503,6 +517,20 @@ public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
         loggers_.push_back(logger);
+    }
+
+    void remove_logger(const Logger *logger) override
+    {
+        auto idx = find_if(begin(loggers_), end(loggers_),
+                           [&logger](std::shared_ptr<const Logger> l) {
+                               return lend(l) == logger;
+                           });
+        if (idx != end(loggers_)) {
+            loggers_.erase(idx);
+        } else {
+            throw OutOfBoundsError(__FILE__, __LINE__, loggers_.size(),
+                                   loggers_.size());
+        }
     }
 
 protected:
