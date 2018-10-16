@@ -282,6 +282,24 @@ std::string extract_operation_name(const gko::Operation *op)
 }
 
 
+std::string encode_parameters(const char *precond_name)
+{
+    static std::map<std::string, std::string (*)()> encoder{
+        {"jacobi",
+         [] {
+             std::ostringstream oss;
+             oss << "jacobi-" << FLAGS_max_block_size;
+             return oss.str();
+         }},
+        {"adaptive-jacobi", [] {
+             std::ostringstream oss;
+             oss << "adaptive-jacobi-" << FLAGS_max_block_size;
+             return oss.str();
+         }}};
+    return encoder[precond_name]();
+}
+
+
 template <typename Allocator>
 void run_preconditioner(const char *precond_name,
                         std::shared_ptr<gko::Executor> exec,
@@ -289,18 +307,22 @@ void run_preconditioner(const char *precond_name,
                         const vector *b, const vector *x,
                         rapidjson::Value &test_case, Allocator &allocator) try {
     auto &precond_object = test_case["preconditioner"];
-    if (!FLAGS_overwrite && precond_object.HasMember(precond_name)) {
+    auto encoded_name = encode_parameters(precond_name);
+
+    if (!FLAGS_overwrite && precond_object.HasMember(encoded_name.c_str())) {
         return;
     }
 
-    add_or_set_member(precond_object, precond_name,
+    add_or_set_member(precond_object, encoded_name.c_str(),
                       rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(precond_object[precond_name], "generate",
+    auto &this_precond_data = precond_object[encoded_name.c_str()];
+
+    add_or_set_member(this_precond_data, "generate",
                       rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(precond_object[precond_name], "apply",
+    add_or_set_member(this_precond_data, "apply",
                       rapidjson::Value(rapidjson::kObjectType), allocator);
     for (auto stage : {"generate", "apply"}) {
-        add_or_set_member(precond_object[precond_name][stage], "components",
+        add_or_set_member(this_precond_data[stage], "components",
                           rapidjson::Value(rapidjson::kObjectType), allocator);
     }
 
@@ -373,7 +395,7 @@ void run_preconditioner(const char *precond_name,
             std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                  g_tic) /
             FLAGS_run_iter;
-        add_or_set_member(precond_object[precond_name]["generate"], "time",
+        add_or_set_member(this_precond_data["generate"], "time",
                           generate_time.count(), allocator);
 
         exec->synchronize();
@@ -389,7 +411,7 @@ void run_preconditioner(const char *precond_name,
         auto apply_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               a_tac - a_tic) /
                           FLAGS_run_iter;
-        add_or_set_member(precond_object[precond_name]["apply"], "time",
+        add_or_set_member(this_precond_data["apply"], "time",
                           apply_time.count(), allocator);
     }
 
@@ -406,9 +428,8 @@ void run_preconditioner(const char *precond_name,
         }
         exec->remove_logger(gko::lend(gen_logger));
 
-        gen_logger->write_data(
-            precond_object[precond_name]["generate"]["components"], allocator,
-            FLAGS_run_iter);
+        gen_logger->write_data(this_precond_data["generate"]["components"],
+                               allocator, FLAGS_run_iter);
 
         auto apply_logger = std::make_shared<logger>(exec);
         exec->add_logger(apply_logger);
@@ -417,16 +438,17 @@ void run_preconditioner(const char *precond_name,
         }
         exec->remove_logger(gko::lend(apply_logger));
 
-        apply_logger->write_data(
-            precond_object[precond_name]["apply"]["components"], allocator,
-            FLAGS_run_iter);
+        apply_logger->write_data(this_precond_data["apply"]["components"],
+                                 allocator, FLAGS_run_iter);
     }
 
-    add_or_set_member(precond_object[precond_name], "completed", true,
-                      allocator);
+    add_or_set_member(this_precond_data, "completed", true, allocator);
 } catch (std::exception e) {
-    add_or_set_member(test_case["preconditioner"][precond_name], "completed",
-                      false, allocator);
+    auto encoded_name = encode_parameters(precond_name);
+    add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
+                      rapidjson::Value(rapidjson::kObjectType), allocator);
+    add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
+                      "completed", false, allocator);
     std::cerr << "Error when processing test case " << test_case << "\n"
               << "what(): " << e.what() << std::endl;
 }
