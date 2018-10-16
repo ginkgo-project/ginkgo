@@ -251,13 +251,23 @@ protected:
         for (int i = 0; i < a->get_num_blocks(); ++i) {
             ASSERT_EQ(b_prec_a[i], b_prec_b[i]);
             ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
-            // TODO: take into account different precisions
-            assert_same_block(
-                b_ptr_a[i + 1] - b_ptr_a[i],
-                a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
-                a->get_stride(),
-                b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
-                b->get_stride());
+            if (b_prec_a[i] == Bj::single_precision) {
+                assert_same_block(
+                    b_ptr_a[i + 1] - b_ptr_a[i],
+                    reinterpret_cast<const float *>(
+                        a->get_const_blocks() + b_ptr_a[i] * a->get_stride()),
+                    a->get_stride(),
+                    reinterpret_cast<const float *>(
+                        b->get_const_blocks() + b_ptr_b[i] * b->get_stride()),
+                    b->get_stride());
+            } else {
+                assert_same_block(
+                    b_ptr_a[i + 1] - b_ptr_a[i],
+                    a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
+                    a->get_stride(),
+                    b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
+                    b->get_stride());
+            }
         }
     }
 };

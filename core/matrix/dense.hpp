@@ -329,12 +329,14 @@ public:
         row_major_range range_this{this->get_values(), this->get_size()[0],
                                    this->get_size()[1], this->get_stride()};
         auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
         return Dense::create(
             this->get_executor(),
             dim<2>{range_result.length(0), range_result.length(1)},
             Array<ValueType>::view(
                 this->get_executor(),
-                range_result.length(0) * range_this.length(1),
+                range_result.length(0) * range_this.length(1) - columns.begin,
                 range_result->data),
             stride);
     }
