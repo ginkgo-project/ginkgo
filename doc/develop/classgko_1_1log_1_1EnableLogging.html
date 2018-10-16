@@ -84,8 +84,11 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a7b3493c14a37b4d46487d9c636d784f2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">add_logger</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1log_1_1Logger.html">Logger</a> &gt; logger) override</td></tr>
-<tr class="memdesc:a7b3493c14a37b4d46487d9c636d784f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a <a class="el" href="classgko_1_1log_1_1Logger.html" title="The Logger class represents a simple Logger object. ">Logger</a> object to log events to.  <a href="#a7b3493c14a37b4d46487d9c636d784f2">More...</a><br /></td></tr>
+<tr class="memdesc:a7b3493c14a37b4d46487d9c636d784f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a new logger to the list of subscribed loggers.  <a href="#a7b3493c14a37b4d46487d9c636d784f2">More...</a><br /></td></tr>
 <tr class="separator:a7b3493c14a37b4d46487d9c636d784f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba5317f8a03956a61d770e9b07fc65cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">remove_logger</a> (const <a class="el" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger) override</td></tr>
+<tr class="memdesc:aba5317f8a03956a61d770e9b07fc65cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes a logger from the list of subscribed loggers.  <a href="#aba5317f8a03956a61d770e9b07fc65cc">More...</a><br /></td></tr>
+<tr class="separator:aba5317f8a03956a61d770e9b07fc65cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename ConcreteLoggable, typename PolymorphicBase = Loggable&gt;<br />
@@ -127,10 +130,10 @@ template&lt;typename ConcreteLoggable, typename PolymorphicBase = Loggable&gt; <
 </table>
 </div><div class="memdoc">
 
-<p>Adds a <a class="el" href="classgko_1_1log_1_1Logger.html" title="The Logger class represents a simple Logger object. ">Logger</a> object to log events to. </p>
+<p>Adds a new logger to the list of subscribed loggers. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">logger</td><td>a shared_ptr to the logger object </td></tr>
+    <tr><td class="paramname">logger</td><td>the logger to add </td></tr>
   </table>
   </dd>
 </dl>
@@ -139,8 +142,47 @@ template&lt;typename ConcreteLoggable, typename PolymorphicBase = Loggable&gt; <
 
 </div>
 </div>
+<a id="aba5317f8a03956a61d770e9b07fc65cc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba5317f8a03956a61d770e9b07fc65cc">&#9670;&nbsp;</a></span>remove_logger()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ConcreteLoggable, typename PolymorphicBase = Loggable&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1log_1_1EnableLogging.html">gko::log::EnableLogging</a>&lt; ConcreteLoggable, PolymorphicBase &gt;::remove_logger </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1log_1_1Logger.html">Logger</a> *&#160;</td>
+          <td class="paramname"><em>logger</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Removes a logger from the list of subscribed loggers. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">logger</td><td>the logger to remove</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>The comparison is done using the logger's object unique identity. Thus, two loggers constructed in the same way are not considered equal. </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1log_1_1Loggable.html#a5de4092a74cf04f30f13636d49aaec8b">gko::log::Loggable</a>.</p>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>core/log/<a class="el" href="logger_8hpp_source.html">logger.hpp (dd9d518)</a></li>
+<li>core/log/<a class="el" href="logger_8hpp_source.html">logger.hpp (bae75a8)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
