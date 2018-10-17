@@ -116,7 +116,7 @@ clang++ --version
 
 In addition, it can be useful to test the CUDA and OpenMP functionality, for
 this purpose a short C-program can be created such as:
-```C
+```c++
 	 #include <cuda.h>
 	 #include <omp.h>
 	 #define SOME_LIMIT 10000
