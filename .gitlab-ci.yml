@@ -83,22 +83,6 @@ sync:
     - schedules
 
 # Build jobs
-build/cuda90/gcc/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-
-build/cuda90/clang/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-
 build/cuda90/gcc/all/debug:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39
@@ -121,22 +105,6 @@ build/cuda90/clang/all/debug:
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
 # cuda 9.1 and friends
-build/cuda91/gcc/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-
-build/cuda91/clang/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-
 build/cuda91/gcc/all/debug:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
@@ -157,24 +125,7 @@ build/cuda91/clang/all/debug:
     BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
-
 # cuda 9.2 and friends
-build/cuda92/gcc/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-
-build/cuda92/clang/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-
 build/cuda92/gcc/all/debug:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
@@ -196,22 +147,6 @@ build/cuda92/clang/all/debug:
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
 # cuda 10.0 and friends
-build/cuda100/gcc/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-
-build/cuda100/clang/core/debug:
-  <<: *default_build
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-
 build/cuda100/gcc/all/debug:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
@@ -255,18 +190,6 @@ build/nocuda/gcc/omp/debug:
 
 
 # Test jobs
-test/cuda90/gcc/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  dependencies:
-    - build/cuda90/gcc/core/debug
-
-test/cuda90/clang/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  dependencies:
-    - build/cuda90/clang/core/debug
-
 test/cuda90/gcc/all/debug:
   <<: *default_test
   image: localhost:5000/gko-cuda90-gnu5-llvm39
@@ -280,18 +203,6 @@ test/cuda90/clang/all/debug:
     - build/cuda90/clang/all/debug
 
 # cuda 9.1 and friends
-test/cuda91/gcc/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  dependencies:
-    - build/cuda91/gcc/core/debug
-
-test/cuda91/clang/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  dependencies:
-    - build/cuda91/clang/core/debug
-
 test/cuda91/gcc/all/debug:
   <<: *default_test
   image: localhost:5000/gko-cuda91-gnu6-llvm40
@@ -305,18 +216,6 @@ test/cuda91/clang/all/debug:
     - build/cuda91/clang/all/debug
 
 # cuda 9.2 and friends
-test/cuda92/gcc/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  dependencies:
-    - build/cuda92/gcc/core/debug
-
-test/cuda92/clang/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  dependencies:
-    - build/cuda92/clang/core/debug
-
 test/cuda92/gcc/all/debug:
   <<: *default_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50
@@ -330,18 +229,6 @@ test/cuda92/clang/all/debug:
     - build/cuda92/clang/all/debug
 
 # cuda 10.0 and friends
-test/cuda100/gcc/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  dependencies:
-    - build/cuda100/gcc/core/debug
-
-test/cuda100/clang/core/debug:
-  <<: *default_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  dependencies:
-    - build/cuda100/clang/core/debug
-
 test/cuda100/gcc/all/debug:
   <<: *default_test
   image: localhost:5000/gko-cuda100-gnu7-llvm60
