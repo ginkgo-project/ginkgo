@@ -195,7 +195,6 @@ build/cuda92/clang/all/debug:
     BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
-
 # cuda 10.0 and friends
 build/cuda100/gcc/core/debug:
   <<: *default_build
@@ -232,6 +231,27 @@ build/cuda100/clang/all/debug:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: *cuda_flags
+
+# no cuda but latest gcc and "soon" clang 7
+build/nocuda/gcc/core/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_REFERENCE: "off"
+
+build/nocuda/gcc/reference/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+
+build/nocuda/gcc/omp/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
 
 
 # Test jobs
@@ -333,6 +353,25 @@ test/cuda100/clang/all/debug:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   dependencies:
     - build/cuda100/clang/all/debug
+
+# no cuda but latest gcc and "soon" clang 7
+test/nocuda/gcc/core/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/core/debug
+
+test/nocuda/gcc/reference/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/reference/debug
+
+test/nocuda/gcc/omp/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/omp/debug
 
 
 # Deploy documentation to github-pages
