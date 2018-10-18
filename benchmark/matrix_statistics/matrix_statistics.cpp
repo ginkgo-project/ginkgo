@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 
@@ -56,7 +57,9 @@ std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 {
     rapidjson::OStreamWrapper jos(os);
     rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
-    value.Accept(writer);
+    if (!value.Accept(writer)) {
+        throw std::runtime_error("Error writing data");
+    }
     return os;
 }
 
@@ -211,6 +214,9 @@ void compute_summary(const std::vector<gko::size_type> &dist,
 double compute_moment(int degree, const std::vector<gko::size_type> &dist,
                       double center = 0.0, double normalization = 1.0)
 {
+    if (normalization == 0.0) {
+        return 0.0;
+    }
     auto moment = 0.0;
     for (const auto &x : dist) {
         moment += std::pow(x - center, degree);
