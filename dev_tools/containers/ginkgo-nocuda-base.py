@@ -1,13 +1,12 @@
 """
-Ginkgo Base image without CUDA
+Ginkgo Base image
 Contents:
-    Ubuntu 16.04 base
 	GNU compilers version set by the user
 	LLVM/Clang version set by the user
 	OpenMP latest apt version for Clang+OpenMP
 	Python 2 and 3 (upstream)
 	cmake (upstream)
-	build-essential, git, openssh, doxygen (upstream)
+	build-essential, git, openssh, doxygen, curl latest apt version
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
 
@@ -18,7 +17,7 @@ Stage0.baseimage('ubuntu:16.04')
 # Setup extra tools
 Stage0 += python()
 Stage0 += cmake(eula=True)
-Stage0 += apt_get(ospackages=['build-essential', 'git', 'openssh-client', 'doxygen'])
+Stage0 += apt_get(ospackages=['build-essential', 'git', 'openssh-client', 'doxygen', 'curl'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '8')

@@ -426,3 +426,4 @@ new-issue-on-failure:
     refs:
       - develop
       - master
+  dependencies: []
