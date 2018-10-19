@@ -1,0 +1,32 @@
+digraph "Graphical Class Hierarchy"
+{
+ // INTERACTIVE_SVG=YES
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Criterion",height=0.2,width=0.4,color="grey75", fillcolor="white", style="filled"];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="gko::EnableAbstractPolymorphic\lObject\< Combined, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="gko::EnablePolymorphicObject\l\< Combined, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicObject.html"];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="gko::stop::Combined",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1stop_1_1Combined.html",tooltip="The Combined class is used to combine multiple criterions together through an OR operation. "];
+  Node1 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="gko::EnableAbstractPolymorphic\lObject\< Iteration, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node5 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="gko::EnablePolymorphicObject\l\< Iteration, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicObject.html"];
+  Node6 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="gko::stop::Iteration",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1stop_1_1Iteration.html",tooltip="The Iteration class is a stopping criterion which stops the iteration process after a preset number o..."];
+  Node1 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="gko::EnableAbstractPolymorphic\lObject\< ResidualNormReduction\l\< ValueType \>, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node8 -> Node9 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="gko::EnablePolymorphicObject\l\< ResidualNormReduction\<\l ValueType \>, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicObject.html"];
+  Node9 -> Node10 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="gko::stop::ResidualNormReduction\l\< ValueType \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1stop_1_1ResidualNormReduction.html",tooltip="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re..."];
+  Node1 -> Node11 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="gko::EnableAbstractPolymorphic\lObject\< Time, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node11 -> Node12 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="gko::EnablePolymorphicObject\l\< Time, Criterion \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicObject.html"];
+  Node12 -> Node13 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="gko::stop::Time",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1stop_1_1Time.html",tooltip="The Time class is a stopping criterion which stops the iteration process after a certain amout of tim..."];
+}

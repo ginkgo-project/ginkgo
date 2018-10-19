@@ -1,0 +1,13 @@
+digraph "gko::log::polymorphic_object_data"
+{
+ // INTERACTIVE_SVG=YES
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="gko::log::polymorphic\l_object_data",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node2 -> Node1 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" exec" ,fontname="Helvetica"];
+  Node2 [label="gko::Executor",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1Executor.html",tooltip="The first step in using the Ginkgo library consists of creating an executor. "];
+  Node3 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="gko::log::EnableLogging\l\< Executor \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1log_1_1EnableLogging.html"];
+  Node4 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="gko::log::Loggable",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1log_1_1Loggable.html",tooltip="Loggable class is an interface which should be implemented by classes wanting to support logging..."];
+}

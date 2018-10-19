@@ -1,0 +1,31 @@
+digraph "gko::solver::Gmres&lt; ValueType &gt;"
+{
+ // INTERACTIVE_SVG=YES
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="gko::solver::Gmres\l\< ValueType \>",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node2 -> Node1 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="gko::EnableLinOp\< Gmres\l\< ValueType \> \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableLinOp.html"];
+  Node3 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="gko::EnablePolymorphicObject\l\< Gmres\< ValueType \>, LinOp \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicObject.html"];
+  Node4 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="gko::EnableAbstractPolymorphic\lObject\< Gmres\< ValueType\l \>, LinOp \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node5 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="gko::LinOp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1LinOp.html",tooltip="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. "];
+  Node6 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="gko::EnableAbstractPolymorphic\lObject\< LinOp \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnableAbstractPolymorphicObject.html"];
+  Node7 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="gko::PolymorphicObject",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1PolymorphicObject.html",tooltip="A PolymorphicObject is the abstract base for all \"heavy\" objects in Ginkgo that behave polymorphicall..."];
+  Node8 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="gko::log::EnableLogging\l\< PolymorphicObject \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1log_1_1EnableLogging.html"];
+  Node9 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="gko::log::Loggable",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1log_1_1Loggable.html",tooltip="Loggable class is an interface which should be implemented by classes wanting to support logging..."];
+  Node10 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="gko::EnablePolymorphicAssignment\l\< Gmres\< ValueType \> \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1EnablePolymorphicAssignment.html"];
+  Node11 -> Node10 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="gko::ConvertibleTo\l\< Gmres\< ValueType \> \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1ConvertibleTo.html"];
+  Node12 -> Node1 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="gko::log::EnableLogging\l\< Gmres\< ValueType \> \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1log_1_1EnableLogging.html"];
+  Node9 -> Node12 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

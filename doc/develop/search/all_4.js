@@ -122,11 +122,13 @@ var searchData=
   ['end',['end',['../structgko_1_1span.html#af68200dea4456e1bd3511c3b14bc2886',1,'gko::span']]],
   ['ensure_5frow_5fmajor_5forder',['ensure_row_major_order',['../structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8',1,'gko::matrix_data']]],
   ['equal',['equal',['../structgko_1_1accessor_1_1equal.html',1,'gko::accessor']]],
-  ['error',['Error',['../classgko_1_1Error.html',1,'gko::Error'],['../classgko_1_1Error.html#a750493241a840d96cafbf9c84cfd4f52',1,'gko::Error::Error()']]],
+  ['error',['Error',['../classgko_1_1Error.html#a750493241a840d96cafbf9c84cfd4f52',1,'gko::Error']]],
+  ['error',['Error',['../classgko_1_1Error.html',1,'gko']]],
   ['event_5fcount_5fmax',['event_count_max',['../classgko_1_1log_1_1Logger.html#a8794cd4bf2fd4d24ba9879bdca884dab',1,'gko::log::Logger']]],
   ['executor',['Executor',['../classgko_1_1Executor.html',1,'gko']]],
   ['executor_5fdata',['executor_data',['../structgko_1_1log_1_1executor__data.html',1,'gko::log']]],
-  ['executor_5fdeleter',['executor_deleter',['../classgko_1_1executor__deleter.html',1,'gko::executor_deleter&lt; T &gt;'],['../classgko_1_1executor__deleter.html#a260f79ed87560fefc48d52b072bbb776',1,'gko::executor_deleter::executor_deleter()']]],
+  ['executor_5fdeleter',['executor_deleter',['../classgko_1_1executor__deleter.html',1,'gko']]],
+  ['executor_5fdeleter',['executor_deleter',['../classgko_1_1executor__deleter.html#a260f79ed87560fefc48d52b072bbb776',1,'gko::executor_deleter']]],
   ['executor_5fdeleter_3c_20t_5b_5d_3e',['executor_deleter&lt; T[]&gt;',['../classgko_1_1executor__deleter_3_01T[]_4.html',1,'gko']]],
   ['executor_5fevents_5fmask',['executor_events_mask',['../classgko_1_1log_1_1Logger.html#a1309f06423135e6d540e9f3993320eb3',1,'gko::log::Logger']]]
 ];

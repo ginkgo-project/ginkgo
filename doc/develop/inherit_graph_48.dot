@@ -1,0 +1,8 @@
+digraph "Graphical Class Hierarchy"
+{
+ // INTERACTIVE_SVG=YES
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="gko::enable_parameters\l_type\< ConcreteParametersType,\l Factory \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1enable__parameters__type.html",tooltip="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..."];
+}
