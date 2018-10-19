@@ -21,7 +21,8 @@ RUN apt-get update -y && \
         build-essential \
         git \
         openssh-client \
-        doxygen && \
+        doxygen \
+        curl && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler

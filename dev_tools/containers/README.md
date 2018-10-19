@@ -45,7 +45,7 @@ packages:
 + OpenMP
 + Python 2 and 3
 + cmake
-+ git, openssh, doxygen (these are required for some synchronization or
++ git, openssh, doxygen, curl (these are required for some synchronization or
   documentation building jobs)
 
 ### CUDA recipes
