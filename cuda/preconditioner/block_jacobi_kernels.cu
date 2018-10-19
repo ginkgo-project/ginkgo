@@ -37,8 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/exception_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/diagonal_block_manipulation.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -62,23 +60,21 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
-    const auto block = group::this_thread_block();
     ValueType row[max_block_size];
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
-    csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
-        block, cuda_config::warp_size / subwarp_size, row_ptrs, col_idxs,
-        values, block_ptrs, num_blocks, row, 1,
+    device::csr::extract_transposed_diag_blocks<max_block_size, subwarp_size,
+                                                warps_per_block>(
+        row_ptrs, col_idxs, values, block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
-    const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
         const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
-        auto perm = subwarp.thread_rank();
-        auto trans_perm = subwarp.thread_rank();
-        invert_block<max_block_size>(subwarp, block_size, row, perm,
-                                     trans_perm);
-        copy_matrix<max_block_size>(
-            subwarp, block_size, row, 1, perm, trans_perm,
+        auto perm = threadIdx.x;
+        auto trans_perm = threadIdx.x;
+        warp::invert_block<max_block_size, subwarp_size>(block_size, row, perm,
+                                                         trans_perm);
+        warp::copy_matrix<max_block_size, subwarp_size>(
+            block_size, row, 1, perm, trans_perm,
             block_data + (block_ptrs[block_id] * stride), stride);
     }
 }
@@ -94,20 +90,17 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
-    const auto subwarp =
-        group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (block_id >= num_blocks) {
         return;
     }
     const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
     ValueType v = zero<ValueType>();
-    if (subwarp.thread_rank() < block_size) {
-        v = b[(block_ptrs[block_id] + subwarp.thread_rank()) * b_stride];
+    if (threadIdx.x < block_size) {
+        v = b[(block_ptrs[block_id] + threadIdx.x) * b_stride];
     }
-    multiply_transposed_vec<max_block_size>(
-        subwarp, block_size, v,
-        blocks + block_ptrs[block_id] * stride + subwarp.thread_rank(), stride,
-        x + block_ptrs[block_id] * x_stride, x_stride);
+    warp::multiply_transposed_vec<max_block_size, subwarp_size>(
+        block_size, v, blocks + block_ptrs[block_id] * stride + threadIdx.x,
+        stride, x + block_ptrs[block_id] * x_stride, x_stride);
 }
 
 
@@ -117,9 +110,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 
 namespace {
 
-
 constexpr int default_block_size = 32;
-
 
 constexpr int get_larger_power(int value, int guess = 1)
 {
@@ -184,8 +175,6 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
     const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
     const auto local_tid = threadIdx.x % cuda_config::warp_size;
     const auto warp_id = global_tid / cuda_config::warp_size;
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(
-        group::this_thread_block());
 
     if (warp_id >= num_rows - 1) {
         return;
@@ -211,7 +200,7 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
         auto this_col = (curr_row_start + j < next_row_start)
                             ? col_idx[next_row_start + j]
                             : 0;
-        if (warp.any(prev_col != this_col)) {
+        if (warp::any(prev_col != this_col)) {
             matching_next_row[warp_id] = false;
             return;
         }
