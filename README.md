@@ -10,7 +10,7 @@ Performance
 -----------
 
 An extensive database of up-to-date benchmark results is available in the
-[performance data reposotiry](https://github.com/ginkgo-project/ginkgo-data).
+[performance data repository](https://github.com/ginkgo-project/ginkgo-data).
 Visualizations of the database can be interactively generated using the
 [Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
 The benchmark results are automatically updated using the CI system to always
@@ -60,6 +60,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
