@@ -56,22 +56,20 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 #         + ./configure --with-components=sde
 #         + make -j$(nproc)
 #         + (sudo) make install
-#     3. Edit <path-to-papi>/src/components/sde/interface/papi_sde_interface.h
-#           and add: `extern "C" {}` around the whole function definitions
-#           to disable C++ name mangling
+#     3. Add stdlib.h to the papi_sde_include.h header
 #     4. Copy the previous header to an include path in your system
 find_library(GKO_PAPI_LIB papi)
 if (GKO_PAPI_LIB)
   include (CheckCXXSymbolExists)
 
-  SET(CMAKE_REQUIRED_LIBRARIES ${GKO_PAPI_LIB})
+  set(CMAKE_REQUIRED_LIBRARIES ${GKO_PAPI_LIB})
   check_cxx_symbol_exists(papi_sde_init papi_sde_interface.h GKO_HAVE_PAPI_SDE)
   unset(CMAKE_REQUIRED_LIBRARIES)
 
   if (GKO_HAVE_PAPI_SDE)
     set(GKO_PAPI_SDE_LIB ${GKO_PAPI_LIB})
-  endif(GKO_HAVE_PAPI_SDE)
-endif(GKO_PAPI_LIB)
+  endif()
+endif()
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)

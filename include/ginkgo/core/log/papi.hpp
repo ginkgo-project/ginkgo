@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cstddef>
+#include <iostream>
 #include <map>
 
 
@@ -172,30 +173,45 @@ public:
         unregister_queue(copy_completed_to, "copy_completed_to");
         unregister_queue(operation_launched, "operation_launched");
         unregister_queue(operation_completed, "operation_completed");
-        unregister_queue(po_create_started, "po_create_started");
-        unregister_queue(po_create_completed, "po_create_completed");
-        unregister_queue(po_copy_started, "po_copy_started");
-        unregister_queue(po_copy_completed, "po_copy_completed");
-        unregister_queue(po_deleted, "po_deleted");
-        unregister_queue(factory_generate_started, "factory_generate_started");
-        unregister_queue(factory_generate_completed,
-                         "factory_generate_completed");
-        unregister_queue(apply_started, "apply_started");
-        unregister_queue(apply_completed, "apply_completed");
-        unregister_queue(advanced_apply_started, "advanced_apply_started");
-        unregister_queue(advanced_apply_completed, "advanced_apply_completed");
+        unregister_queue(polymorphic_object_create_started,
+                         "polymorphic_object_create_started");
+        unregister_queue(polymorphic_object_create_completed,
+                         "polymorphic_object_create_completed");
+        unregister_queue(polymorphic_object_copy_started,
+                         "polymorphic_object_copy_started");
+        unregister_queue(polymorphic_object_copy_completed,
+                         "polymorphic_object_copy_completed");
+        unregister_queue(polymorphic_object_deleted,
+                         "polymorphic_object_deleted");
+        unregister_queue(linop_factory_generate_started,
+                         "linop_factory_generate_started");
+        unregister_queue(linop_factory_generate_completed,
+                         "linop_factory_generate_completed");
+        unregister_queue(linop_apply_started, "linop_apply_started");
+        unregister_queue(linop_apply_completed, "linop_apply_completed");
+        unregister_queue(linop_advanced_apply_started,
+                         "linop_advanced_apply_started");
+        unregister_queue(linop_advanced_apply_completed,
+                         "linop_advanced_apply_completed");
         unregister_queue(criterion_check_completed,
                          "criterion_check_completed");
         unregister_queue(iteration_complete, "iteration_complete");
     }
 
+    const std::string get_handle_name() { return name; }
 
 protected:
     explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type &enabled_events = Logger::all_events_mask)
         : Logger(exec, enabled_events)
-    {}
+    {
+        std::ostringstream os;
+        os << "ginkgo" << logger_count;
+        name = os.str();
+        papi_handle = papi_sde_init(name.c_str());
+        logger_count++;
+    }
 
 private:
     template <typename T>
@@ -209,9 +225,9 @@ private:
         queue.clear();
     }
 
-    template <typename T>
-    void add_to_map(const T *ptr, std::map<std::uintptr_t, size_type> &map,
-                    const char *name) const
+    template <typename T, typename U>
+    U &add_to_map(const T *ptr, std::map<std::uintptr_t, U> &map,
+                  const char *name) const
     {
         const auto tmp = reinterpret_cast<uintptr>(ptr);
         if (map.find(tmp) == map.end()) {
@@ -225,7 +241,7 @@ private:
                                       PAPI_SDE_RO | PAPI_SDE_INSTANT,
                                       PAPI_SDE_long_long, &value);
         }
-        value++;
+        return map[tmp];
     }
 
     mutable std::map<std::uintptr_t, size_type> allocation_started;
@@ -240,27 +256,33 @@ private:
     mutable std::map<std::uintptr_t, size_type> operation_launched;
     mutable std::map<std::uintptr_t, size_type> operation_completed;
 
-    mutable std::map<std::uintptr_t, size_type> po_create_started;
-    mutable std::map<std::uintptr_t, size_type> po_create_completed;
-    mutable std::map<std::uintptr_t, size_type> po_copy_started;
-    mutable std::map<std::uintptr_t, size_type> po_copy_completed;
-    mutable std::map<std::uintptr_t, size_type> po_deleted;
+    mutable std::map<std::uintptr_t, size_type>
+        polymorphic_object_create_started;
+    mutable std::map<std::uintptr_t, size_type>
+        polymorphic_object_create_completed;
+    mutable std::map<std::uintptr_t, size_type> polymorphic_object_copy_started;
+    mutable std::map<std::uintptr_t, size_type>
+        polymorphic_object_copy_completed;
+    mutable std::map<std::uintptr_t, size_type> polymorphic_object_deleted;
 
-    mutable std::map<std::uintptr_t, size_type> factory_generate_started;
-    mutable std::map<std::uintptr_t, size_type> factory_generate_completed;
+    mutable std::map<std::uintptr_t, size_type> linop_factory_generate_started;
+    mutable std::map<std::uintptr_t, size_type>
+        linop_factory_generate_completed;
 
-    mutable std::map<std::uintptr_t, size_type> apply_started;
-    mutable std::map<std::uintptr_t, size_type> apply_completed;
-    mutable std::map<std::uintptr_t, size_type> advanced_apply_started;
-    mutable std::map<std::uintptr_t, size_type> advanced_apply_completed;
+    mutable std::map<std::uintptr_t, size_type> linop_apply_started;
+    mutable std::map<std::uintptr_t, size_type> linop_apply_completed;
+    mutable std::map<std::uintptr_t, size_type> linop_advanced_apply_started;
+    mutable std::map<std::uintptr_t, size_type> linop_advanced_apply_completed;
 
-    mutable std::map<std::uintptr_t, double> criterion_check_completed;
+    mutable std::map<std::uintptr_t, void *> criterion_check_completed;
 
     mutable std::map<std::uintptr_t, size_type> iteration_complete;
 
     static size_type logger_count;
 
-    const papi_handle_t papi_handle = papi_sde_init("ginkgo" + logger_count++);
+    std::string name = std::string("ginkgo");
+    papi_handle_t papi_handle;
+    // const papi_handle_t papi_handle = papi_sde_init("gko");
 };
 
 
