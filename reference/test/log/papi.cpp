@@ -127,7 +127,7 @@ TEST_F(Papi, CatchesCriterionCheckCompleted)
         criterion.get(), 0, nullptr, residual_norm.get(), nullptr, 0, false,
         nullptr, false, false);
 
-    // How do I access the record?
+    // TODO:  How do I access the record?
 }
 
 
