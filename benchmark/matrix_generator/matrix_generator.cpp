@@ -85,7 +85,8 @@ auto input_format =
     "        \"num_blocks\": <num-blocks>,\n"
     "        \"block_size\": <block-size>\n"
     "      }\n"
-    "    }\n"
+    "    },\n"
+    "    ...\n"
     "  ]\n"
     "  <output-file> is a string specifying a path to the output file\n"
     "  <matrix-type> is a string specifying the type of matrix to generate,\n"
@@ -129,9 +130,9 @@ void initialize_argument_parsing(int *argc, char **argv[])
     std::ostringstream doc;
     doc << "A utility that generates various types of matrices.\n"
         << "Usage: " << (*argv)[0] << " [options]\n"
-        << "  The standard input should contain a list of matrix\n"
-        << "  configurations in the following format:" << input_format
-        << std::endl;
+        << "  The standard input should contain a JSON array of matrix\n"
+        << "  configurations in the following format:\n"
+        << input_format << std::endl;
 
     gflags::SetUsageMessage(doc.str());
     std::ostringstream ver;
