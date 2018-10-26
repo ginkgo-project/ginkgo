@@ -215,7 +215,7 @@ the following shorthand can also be used:
 make benchmark VARIABLE="value" ...
 ```
 
-A combinaion of the above approaches is also possible (e.g. it may be useful to
+A combination of the above approaches is also possible (e.g. it may be useful to
 `export` the `SYSTEM_NAME` variable, and specify the others at every benchmark
 run).
 
@@ -228,7 +228,9 @@ Supported environment variables are described in the following list:
     *   `solver` - Runs the solver benchmarks on the SuiteSparse collection.
                 The matrix format is determined by running the `spmv` benchmarks
                 first, and using the fastest format determined by that
-                benchmark.
+                benchmark. The maximum number of iterations for the iterative
+                solvers is set to 10,000 and the requested residual reduction
+                factor to 1e-6.
     *   `preconditioner` - Runs the preconditioner benchmarks on artificially
                 generated block-diagonal matrices.
 *   `DRY_RUN={true, false}` - If set to `true`, prepares the system for the
@@ -238,8 +240,8 @@ Supported environment variables are described in the following list:
 *   `EXECUTOR={reference,cuda,omp}` - The executor used for running the
     benchmarks. Default is `cuda`.
 *   `SEGMENTS=<N>` - Splits the benchmark suite into `<N>` segments. This option
-    is usefull for running the benchmarks on an HPC system with a batch
-    scheduler, as it enables partitioning of the benchmark suite and runing it
+    is useful for running the benchmarks on an HPC system with a batch
+    scheduler, as it enables partitioning of the benchmark suite and running it
     concurrently on multiple nodes of the system. If specified, `SEGMENT_ID`
     also has to be set. Default is `1`.
 *   `SEGMENT_ID=<I>` - used in combination with the `SEGMENTS` variable. `<I>`
@@ -247,7 +249,7 @@ Supported environment variables are described in the following list:
     segment of the benchmark suite will be run. Default is `1`.
 *   `SYSTEM_NAME=<name>` - the name of the system where the benchmarks are being
     run. This option only changes the directory where the benchmark results are
-    stored. It can be used to avoid overwritting the benchmarks if multiple
+    stored. It can be used to avoid overwriting the benchmarks if multiple
     systems share the same filesystem, or when copying the results between
     systems. Default is `unknown`.
 
