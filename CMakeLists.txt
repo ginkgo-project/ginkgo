@@ -72,19 +72,12 @@ if (GKO_PAPI_LIB)
 endif()
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
+
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
-  DESTINATION "include/"
-  FILES_MATCHING PATTERN "*.hpp"
-  )
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
-  DESTINATION "include/"
-  FILES_MATCHING PATTERN "*.hpp"
-  )
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
   DESTINATION "include"

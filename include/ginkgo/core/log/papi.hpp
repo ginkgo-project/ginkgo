@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 
 
+#include <papi.h>
 #include <papi_sde_interface.h>
 
 
@@ -55,6 +56,21 @@ namespace log {
  * Papi is a Logger which logs every event to the PAPI software. Thanks to this
  * logger, applications which interface with PAPI can access Ginkgo internal
  * data through PAPI.
+ * For an example of usage, see examples/papi_logging/papi_logging.cpp
+ *
+ * The logged values for each event are the following:
+ * + all allocation events: number of bytes per executor
+ * + all free events: number of calls per executor
+ * + copy_started: number of bytes per executor from (to), in
+ *   copy_started_from (respectively copy_started_to).
+ * + copy_completed: number of bytes per executor from (to), in
+ *   copy_completed_from (respectively copy_completed_to).
+ * + all polymorphic objects and operation events: number of calls per executor
+ * + all apply events: number of calls per LinOp (argument "A").
+ * + all factory events: number of calls per factory
+ * + criterion_check_completed event: the residual norm is stored in a record
+ *   (per criterion)
+ * + iteration_complete event: the number of iteration is counted (per solver)
  *
  * @tparam ValueType  the type of values stored in the class (e.g. residuals)
  */
@@ -160,7 +176,17 @@ public:
         return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
     }
 
+    /**
+     * Returns the unique name of this logger, which can be used in the
+     * PAPI_read() call.
+     *
+     * @return the unique name of this logger
+     */
+    const std::string get_handle_name() const { return name; }
 
+    /**
+     * Properly free all the per event data.
+     */
     ~Papi()
     {
         unregister_queue(allocation_started, "allocation_started");
@@ -198,8 +224,6 @@ public:
         unregister_queue(iteration_complete, "iteration_complete");
     }
 
-    const std::string get_handle_name() { return name; }
-
 protected:
     explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
@@ -217,10 +241,13 @@ private:
     template <typename T>
     void unregister_queue(std::map<std::uintptr_t, T> &queue, const char *name)
     {
-        for (auto e : queue) {
-            std::ostringstream oss;
-            oss << name << "::" << e.first;
-            papi_sde_unregister_counter(this->papi_handle, oss.str().c_str());
+        if (PAPI_is_initialized()) {
+            for (auto e : queue) {
+                std::ostringstream oss;
+                oss << name << "::" << e.first;
+                papi_sde_unregister_counter(this->papi_handle,
+                                            oss.str().c_str());
+            }
         }
         queue.clear();
     }
@@ -282,7 +309,6 @@ private:
 
     std::string name = std::string("ginkgo");
     papi_handle_t papi_handle;
-    // const papi_handle_t papi_handle = papi_sde_init("gko");
 };
 
 
