@@ -54,10 +54,6 @@ class Time : public EnablePolymorphicObject<Time, Criterion> {
 public:
     using clock = std::chrono::system_clock;
 
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &) override;
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -69,6 +65,10 @@ public:
     GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
 
 protected:
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    Array<stopping_status> *stop_status, bool *one_changed,
+                    const Updater &) override;
+
     explicit Time(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Time, Criterion>(std::move(exec))
     {}

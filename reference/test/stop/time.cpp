@@ -81,6 +81,7 @@ TEST_F(Time, WaitsTillTime)
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
 
     std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));

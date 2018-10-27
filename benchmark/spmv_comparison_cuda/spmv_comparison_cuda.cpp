@@ -84,7 +84,7 @@ ext is .m for matlab, and .csv for csv.
 #include <random>
 #include <string>
 
-
+// #define CHECK
 // Some shortcuts
 using vec = gko::matrix::Dense<double>;
 using mtx = gko::matrix_data<double, gko::int32>;
@@ -122,7 +122,7 @@ public:
     }
 
     CuspCsrmp(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -132,6 +132,58 @@ public:
     }
 
     ~CuspCsrmp() noexcept(false)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
+    }
+
+private:
+    std::shared_ptr<csr> csr_;
+    cusparseHandle_t handle_;
+    cusparseMatDescr_t desc_;
+    cusparseOperation_t trans_;
+};
+
+class CuspCsr : public gko::EnableCreateMethod<CuspCsr> {
+    using ValueType = double;
+    using IndexType = gko::int32;
+
+public:
+    void read(const mtx &data) { csr_->read(data); }
+
+    void apply(const gko::LinOp *b, gko::LinOp *x) const
+    {
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        auto alpha = gko::one<ValueType>();
+        auto beta = gko::zero<ValueType>();
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
+            handle_, trans_, csr_->get_size()[0], csr_->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, desc_,
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx));
+    }
+
+    gko::dim<2> get_size() const noexcept { return csr_->get_size(); }
+
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+    CuspCsr(std::shared_ptr<gko::Executor> exec)
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
+        ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&desc_));
+        ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle_, CUSPARSE_POINTER_MODE_HOST));
+    }
+
+    ~CuspCsr() noexcept(false)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle_));
         ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(desc_));
@@ -176,7 +228,7 @@ public:
     }
 
     CuspCsrmm(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -245,7 +297,7 @@ public:
     }
 
     CuspCsrEx(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec))),
+        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           set_buffer_(false)
     {
@@ -290,7 +342,7 @@ public:
 
     void read(const mtx &data)
     {
-        auto t_csr = csr::create(exec_);
+        auto t_csr = csr::create(exec_, std::make_shared<csr::classical>());
         t_csr->read(data);
         size[0] = t_csr->get_size()[0];
         size[1] = t_csr->get_size()[1];
@@ -347,7 +399,7 @@ using ell = gko::matrix::Ell<double, gko::int32>;
 using hybrid = gko::matrix::Hybrid<double, gko::int32>;
 using sellp = gko::matrix::Sellp<double, gko::int32>;
 using cusp_coo = CuspHybrid<CUSPARSE_HYB_PARTITION_USER, 0>;
-using cusp_csr = csr;
+using cusp_csr = CuspCsr;
 using cusp_csrex = CuspCsrEx;
 using cusp_csrmp = CuspCsrmp;
 using cusp_ell = CuspHybrid<CUSPARSE_HYB_PARTITION_MAX, 0>;
@@ -355,15 +407,14 @@ using cusp_hybrid = CuspHybrid<>;
 using cusp_csrmm = CuspCsrmm;
 
 
-template <typename VecType>
-void generate_rhs(VecType *rhs)
+template <typename RandomEngine>
+std::unique_ptr<vec> create_rhs(std::shared_ptr<const gko::Executor> exec,
+                                RandomEngine &engine, gko::dim<2> dimension)
 {
-    auto values = rhs->get_values();
-    for (gko::size_type row = 0; row < rhs->get_size()[0]; row++) {
-        for (gko::size_type col = 0; col < rhs->get_size()[1]; col++) {
-            rhs->at(row, col) = 1 / static_cast<double>(row + col + 1);
-        }
-    }
+    auto rhs = vec::create(exec);
+    rhs->read(gko::matrix_data<>(
+        dimension, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    return rhs;
 }
 
 void output(const gko::size_type num, const double val, bool matlab_format,
@@ -373,10 +424,11 @@ void output(const gko::size_type num, const double val, bool matlab_format,
     out << sep << num << sep << val;
 }
 
-template <typename MatrixType, typename... MatrixArgs>
+template <typename MatrixType, bool saved = false, typename... MatrixArgs>
 void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
              const int test_iter, const mtx &data, vec *x, vec *y,
-             bool matlab_format, std::ofstream &out, MatrixArgs &&... args)
+             bool matlab_format, std::ofstream &out, vec *verified,
+             MatrixArgs &&... args)
 {
     auto A = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     try {
@@ -425,6 +477,39 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
     output(A->get_num_stored_elements(),
            static_cast<double>(duration.count()) / test_iter, matlab_format,
            out);
+#ifdef CHECK
+    if (saved) {
+        verified->copy_from(dy.get());
+        exec->synchronize();
+        std::cerr << "Check" << std::endl;
+    } else {
+        auto hy = vec::create(exec->get_master());
+        hy->copy_from(dy.get());
+        exec->synchronize();
+        gko::size_type num(0);
+        auto res = new double[hy->get_size()[1]];
+        auto norm = new double[hy->get_size()[1]];
+        for (int j = 0; j < hy->get_size()[1]; j++) {
+            res[j] = 0;
+            norm[j] = 0;
+        }
+        for (int i = 0; i < hy->get_size()[0]; i++) {
+            for (int j = 0; j < hy->get_size()[1]; j++) {
+                res[j] += (hy->at(i, j) - verified->at(i, j)) *
+                          (hy->at(i, j) - verified->at(i, j));
+                norm[j] += verified->at(i, j) * verified->at(i, j);
+            }
+        }
+        for (int j = 0; j < hy->get_size()[1]; j++) {
+            if (std::sqrt(res[j] / norm[j]) > 1e-14) {
+                num++;
+            }
+        }
+        delete[] res;
+        delete[] norm;
+        std::cerr << "failed num = " << num << std::endl;
+    }
+#endif
 }
 
 std::vector<int> split_string(const std::string &str, const char &sep)
@@ -442,7 +527,7 @@ std::vector<int> split_string(const std::string &str, const char &sep)
 int main(int argc, char *argv[])
 {
     // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
+    std::shared_ptr<gko::CudaExecutor> exec;
     std::string src_folder;
     std::string mtx_list;
     std::vector<int> nrhs_list;
@@ -451,7 +536,8 @@ int main(int argc, char *argv[])
     std::vector<std::string> allow_spmv_list{
         "Coo",       "CuspCsr",    "Ell",      "Hybrid",  "Hybrid20",
         "Hybrid40",  "Hybrid60",   "Hybrid80", "Sellp",   "CuspCsrex",
-        "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll", "CuspCsrmm"};
+        "CuspCsrmp", "CuspHybrid", "CuspCoo",  "CuspEll", "CuspCsrmm",
+        "Csri",      "Csrm",       "Csrc",     "Csr"};
     std::vector<std::string> allow_spmm_list{
         "Coo",      "Ell",      "Hybrid", "Hybrid20", "Hybrid40",
         "Hybrid60", "Hybrid80", "Sellp",  "CuspCsrmm"};
@@ -503,6 +589,9 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
+#ifdef CHECK
+    format_list.emplace_back("Answer");
+#endif
     for (int i = 7; i < argc; i++) {
         if (find(allow_list.begin(), allow_list.end(), std::string(argv[i])) !=
             allow_list.end()) {
@@ -585,10 +674,9 @@ int main(int argc, char *argv[])
             int nrhs = nrhs_list.at(i);
             out_fd.at(i) << data.size[0] << sep << data.size[1] << sep
                          << data.nonzeros.size();
-            auto x = vec::create(exec->get_master(),
-                                 gko::dim<2>{data.size[1], nrhs});
-            auto y = vec::create(exec->get_master(),
-                                 gko::dim<2>{data.size[0], nrhs});
+            std::ranlux24 rhs_engine(1234);
+            auto answer = vec::create(exec->get_master(),
+                                      gko::dim<2>{data.size[0], nrhs});
             try {
                 vec::create(exec,
                             gko::dim<2>{data.size[0] + data.size[1], nrhs});
@@ -600,66 +688,105 @@ int main(int argc, char *argv[])
                 out_fd.at(i) << std::endl;
                 continue;
             }
-            generate_rhs(lend(x));
-            generate_rhs(lend(y));
+            auto x = create_rhs(exec->get_master(), rhs_engine,
+                                gko::dim<2>{data.size[1], nrhs});
+            auto y = create_rhs(exec->get_master(), rhs_engine,
+                                gko::dim<2>{data.size[0], nrhs});
+#ifdef CHECK
+            std::cerr << "Matrix : " << mtx_file << std::endl;
+#endif
             for (const auto &elem : format_list) {
-                if (elem == "Coo") {
+#ifdef CHECK
+                std::cerr << "Format : " << elem << " ";
+#endif
+                if (elem == "Answer") {
+                    testing<cusp_csr, true>(exec, warm_iter, test_iter, data,
+                                            lend(x), lend(y), matlab_format,
+                                            out_fd.at(i), lend(answer));
+                } else if (elem == "Coo") {
                     testing<coo>(exec, warm_iter, test_iter, data, lend(x),
-                                 lend(y), matlab_format, out_fd.at(i));
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer));
                 } else if (elem == "CuspCsr") {
                     testing<cusp_csr>(exec, warm_iter, test_iter, data, lend(x),
-                                      lend(y), matlab_format, out_fd.at(i));
+                                      lend(y), matlab_format, out_fd.at(i),
+                                      lend(answer));
                 } else if (elem == "Ell") {
                     testing<ell>(exec, warm_iter, test_iter, data, lend(x),
-                                 lend(y), matlab_format, out_fd.at(i));
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer));
                 } else if (elem == "Hybrid") {
                     testing<hybrid>(exec, warm_iter, test_iter, data, lend(x),
-                                    lend(y), matlab_format, out_fd.at(i));
+                                    lend(y), matlab_format, out_fd.at(i),
+                                    lend(answer));
                 } else if (elem == "Sellp") {
                     testing<sellp>(exec, warm_iter, test_iter, data, lend(x),
-                                   lend(y), matlab_format, out_fd.at(i));
+                                   lend(y), matlab_format, out_fd.at(i),
+                                   lend(answer));
                 } else if (elem == "CuspCsrmp") {
                     testing<cusp_csrmp>(exec, warm_iter, test_iter, data,
                                         lend(x), lend(y), matlab_format,
-                                        out_fd.at(i));
+                                        out_fd.at(i), lend(answer));
                 } else if (elem == "CuspHybrid") {
                     testing<cusp_hybrid>(exec, warm_iter, test_iter, data,
                                          lend(x), lend(y), matlab_format,
-                                         out_fd.at(i));
+                                         out_fd.at(i), lend(answer));
                 } else if (elem == "CuspCoo") {
                     testing<cusp_coo>(exec, warm_iter, test_iter, data, lend(x),
-                                      lend(y), matlab_format, out_fd.at(i));
+                                      lend(y), matlab_format, out_fd.at(i),
+                                      lend(answer));
                 } else if (elem == "CuspEll") {
                     testing<cusp_ell>(exec, warm_iter, test_iter, data, lend(x),
-                                      lend(y), matlab_format, out_fd.at(i));
+                                      lend(y), matlab_format, out_fd.at(i),
+                                      lend(answer));
                 } else if (elem == "Hybrid20") {
                     testing<hybrid>(
                         exec, warm_iter, test_iter, data, lend(x), lend(y),
-                        matlab_format, out_fd.at(i),
+                        matlab_format, out_fd.at(i), lend(answer),
                         std::make_shared<hybrid::imbalance_limit>(0.2));
                 } else if (elem == "Hybrid40") {
                     testing<hybrid>(
                         exec, warm_iter, test_iter, data, lend(x), lend(y),
-                        matlab_format, out_fd.at(i),
+                        matlab_format, out_fd.at(i), lend(answer),
                         std::make_shared<hybrid::imbalance_limit>(0.4));
                 } else if (elem == "Hybrid60") {
                     testing<hybrid>(
                         exec, warm_iter, test_iter, data, lend(x), lend(y),
-                        matlab_format, out_fd.at(i),
+                        matlab_format, out_fd.at(i), lend(answer),
                         std::make_shared<hybrid::imbalance_limit>(0.6));
                 } else if (elem == "Hybrid80") {
                     testing<hybrid>(
                         exec, warm_iter, test_iter, data, lend(x), lend(y),
-                        matlab_format, out_fd.at(i),
+                        matlab_format, out_fd.at(i), lend(answer),
                         std::make_shared<hybrid::imbalance_limit>(0.8));
                 } else if (elem == "CuspCsrex") {
                     testing<cusp_csrex>(exec, warm_iter, test_iter, data,
                                         lend(x), lend(y), matlab_format,
-                                        out_fd.at(i));
+                                        out_fd.at(i), lend(answer));
                 } else if (elem == "CuspCsrmm") {
                     testing<cusp_csrmm>(exec, warm_iter, test_iter, data,
                                         lend(x), lend(y), matlab_format,
-                                        out_fd.at(i));
+                                        out_fd.at(i), lend(answer));
+                } else if (elem == "Csri") {
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  lend(answer),
+                                  std::make_shared<csr::load_balance>(exec));
+                } else if (elem == "Csrm") {
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  lend(answer),
+                                  std::make_shared<csr::merge_path>());
+                } else if (elem == "Csrc") {
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  lend(answer),
+                                  std::make_shared<csr::classical>());
+                } else if (elem == "Csr") {
+                    testing<csr>(exec, warm_iter, test_iter, data, lend(x),
+                                  lend(y), matlab_format, out_fd.at(i),
+                                  lend(answer),
+                                  std::make_shared<csr::automatical>(exec));
                 }
             }
             out_fd.at(i) << std::endl;

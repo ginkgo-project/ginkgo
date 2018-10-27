@@ -128,10 +128,8 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
 }
 
 
-void CudaExecutor::free(void *ptr) const noexcept
+void CudaExecutor::raw_free(void *ptr) const noexcept
 {
-    this->template log<log::Logger::free_started>(
-        this, reinterpret_cast<uintptr>(ptr));
     device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
@@ -142,8 +140,6 @@ void CudaExecutor::free(void *ptr) const noexcept
                   << "Exiting program" << std::endl;
         std::exit(error_code);
     }
-    this->template log<log::Logger::free_completed>(
-        this, reinterpret_cast<uintptr>(ptr));
 }
 
 
@@ -210,15 +206,13 @@ void CudaExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
         device_guard g(this->get_device_id());
-        int major;
-        int minor;
         ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &major, cudaDevAttrComputeCapabilityMajor, device_id_));
+            &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
         ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &minor, cudaDevAttrComputeCapabilityMinor, device_id_));
+            &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
         ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
-        num_cores_per_sm_ = convert_sm_ver_to_cores(major, minor);
+        num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
     }
 }
 

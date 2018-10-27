@@ -39,9 +39,9 @@ namespace gko {
 namespace stop {
 
 
-bool Combined::check(uint8 stoppingId, bool setFinalized,
-                     Array<stopping_status> *stop_status, bool *one_changed,
-                     const Updater &updater)
+bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
+                          Array<stopping_status> *stop_status,
+                          bool *one_changed, const Updater &updater)
 {
     bool one_converged = false;
     gko::uint8 ids{1};

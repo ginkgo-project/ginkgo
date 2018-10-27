@@ -1,7 +1,10 @@
 set(SOURCES
+    base/combination.cpp
+    base/composition.cpp
     base/executor.cpp
     base/mtx_io.cpp
     base/version.cpp
+    log/convergence.cpp
     log/logger.cpp
     log/record.cpp
     log/stream.cpp

@@ -39,9 +39,9 @@ namespace gko {
 namespace stop {
 
 
-bool Iteration::check(uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status> *stop_status, bool *one_changed,
-                      const Updater &updater)
+bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
+                           Array<stopping_status> *stop_status,
+                           bool *one_changed, const Updater &updater)
 {
     bool result = updater.num_iterations_ >= parameters_.max_iters;
     if (result) {

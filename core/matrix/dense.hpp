@@ -293,7 +293,8 @@ public:
     virtual void add_scaled(const LinOp *alpha, const LinOp *b);
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`.
+     * Computes the column-wise dot product of this matrix and `b`. The
+     * conjugate of this is taken.
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
@@ -301,6 +302,15 @@ public:
      *                of columns of this)
      */
     virtual void compute_dot(const LinOp *b, LinOp *result) const;
+
+    /**
+     * Computes the Euclidian (L^2) norm of this matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    virtual void compute_norm2(LinOp *result) const;
 
     /**
      * Create a submatrix from the original matrix.
@@ -319,12 +329,14 @@ public:
         row_major_range range_this{this->get_values(), this->get_size()[0],
                                    this->get_size()[1], this->get_stride()};
         auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
         return Dense::create(
             this->get_executor(),
             dim<2>{range_result.length(0), range_result.length(1)},
             Array<ValueType>::view(
                 this->get_executor(),
-                range_result.length(0) * range_this.length(1),
+                range_result.length(0) * range_this.length(1) - columns.begin,
                 range_result->data),
             stride);
     }

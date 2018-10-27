@@ -64,6 +64,7 @@ struct TemplatedOperation {
     GKO_REGISTER_OPERATION(scale, dense::scale<ValueType>);
     GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled<ValueType>);
     GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot<ValueType>);
+    GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2<ValueType>);
     GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros<ValueType>);
     GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                            dense::calculate_max_nnz_per_row<ValueType>);
@@ -286,6 +287,17 @@ void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 
 
 template <typename ValueType>
+void Dense<ValueType>::compute_norm2(LinOp *result) const
+{
+    ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (result->get_executor() != exec) NOT_IMPLEMENTED;
+    exec->run(TemplatedOperation<ValueType>::make_compute_norm2_operation(
+        as<Dense<ValueType>>(this), as<Dense<ValueType>>(result)));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
     conversion_helper(
@@ -337,6 +349,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
         TemplatedOperationCsr<ValueType, int32>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -348,6 +361,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
         TemplatedOperationCsr<ValueType, int32>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -359,6 +373,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
         TemplatedOperationCsr<ValueType, int64>::
             template make_convert_to_csr_operation<decltype(result),
                                                    const Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 
@@ -370,6 +385,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
         TemplatedOperationCsr<ValueType, int64>::
             template make_move_to_csr_operation<decltype(result),
                                                 Dense<ValueType> *&>);
+    result->make_srow();
 }
 
 

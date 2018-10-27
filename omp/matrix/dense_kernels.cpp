@@ -180,6 +180,23 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
+template <typename ValueType>
+void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
+                   const matrix::Dense<ValueType> *x,
+                   matrix::Dense<ValueType> *result)
+{
+    compute_dot(exec, x, x, result);
+#pragma omp parallel for collapse(2)
+    for (size_type i = 0; i < result->get_size()[0]; ++i) {
+        for (size_type j = 0; j < result->get_size()[1]; ++j) {
+            result->at(i, j) = sqrt(abs(result->at(i, j)));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *result,

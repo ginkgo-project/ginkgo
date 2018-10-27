@@ -6,6 +6,16 @@ focus on sparse solution of linear systems. It is implemented using modern C++
 implemented in CUDA.
 
 
+Performance
+-----------
+
+An extensive database of up-to-date benchmark results is available in the
+[performance data repository](https://github.com/ginkgo-project/ginkgo-data).
+Visualizations of the database can be interactively generated using the
+[Ginkgo Performance Explorer web application](https://ginkgo-project.github.io/gpe).
+The benchmark results are automatically updated using the CI system to always
+reflect the current state of the library.
+
 Prerequisites
 -------------
 
@@ -50,6 +60,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
@@ -113,18 +124,17 @@ Ginkgo adds the following additional switches to control what is being built:
 
     *   `Auto`
     *   `Kepler`, `Maxwell`, `Pascal`, `Volta`
-    *   `COMPUTE`, `COMPUTE(CODE)`, `(CODE)`, `MaxPTX`
-    *   `Off`
+    *   `CODE`, `CODE(COMPUTE)`, `(COMPUTE)`
 
-    `Auto` will automatically detect the present CUDA-enabled GPU 
-    architectures in the system.
-    `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for all
-    architectures of that particular NVIDIA GPU generation. `COMPUTE` and `CODE`
-    are placeholders that should be replaced with compute and code numbers (e.g.
-    for `compute_70` and `code_70` `COMPUTE` and `CODE` should be replaced with
-    `70`. `MaxPTX` will select the latest architecture supported by the
-    compiler. `Off` will not select any architectures and compile with NVCC's
-    default settings. Default is `Auto`.
+    `Auto` will automatically detect the present CUDA-enabled GPU architectures
+    in the system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for
+    all architectures of that particular NVIDIA GPU generation. `COMPUTE` and
+    `CODE` are placeholders that should be replaced with compute and code
+    numbers (e.g.  for `compute_70` and `sm_70` `COMPUTE` and `CODE` should be
+    replaced with `70`. Default is `Auto`.  For a more detailed explanation of
+    this option see the
+    [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
+    section in the documentation of the CudaArchitectureSelector CMake module.
 
 For example, to build everything (in debug mode), use:
 
@@ -162,7 +172,6 @@ run the following from the build folder:
 ```
 
 where `path/to/test` is the path returned by `make test`.
-
 
 ### Installing Ginkgo
 

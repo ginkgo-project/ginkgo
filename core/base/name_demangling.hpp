@@ -128,7 +128,7 @@ std::string get_enclosing_scope(const T &)
  * @see C++11 documentation [type.info] and [expr.typeid]
  * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
-#define GKO_FUNCTION_NAME gko::name_demangling::get_enclosing_scope_name([] {})
+#define GKO_FUNCTION_NAME gko::name_demangling::get_enclosing_scope([] {})
 
 
 }  // namespace name_demangling

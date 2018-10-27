@@ -83,6 +83,21 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 }
 
 
+TEST(DummyLogged, CanRemoveLogger)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+    auto r = gko::share(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(r);
+    c.add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.remove_logger(gko::lend(r));
+
+    ASSERT_EQ(c.get_num_loggers(), 1);
+}
+
 struct DummyLogger : gko::log::Logger {
     using Logger = gko::log::Logger;
 

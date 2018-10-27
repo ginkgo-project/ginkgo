@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/abstract_factory.hpp"
 #include "core/base/array.hpp"
+#include "core/base/combination.hpp"
+#include "core/base/composition.hpp"
 #include "core/base/exception.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/lin_op.hpp"
@@ -50,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/base/version.hpp"
 
+#include "core/log/convergence.hpp"
 #include "core/log/record.hpp"
 #include "core/log/stream.hpp"
 
@@ -67,6 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg.hpp"
 #include "core/solver/cgs.hpp"
 #include "core/solver/fcg.hpp"
+#include "core/solver/gmres.hpp"
 
 #include "core/stop/combined.hpp"
 #include "core/stop/iteration.hpp"

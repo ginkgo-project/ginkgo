@@ -1,3 +1,5 @@
+add_subdirectory(base)
+add_subdirectory(log)
 add_subdirectory(matrix)
 add_subdirectory(preconditioner)
 add_subdirectory(solver)

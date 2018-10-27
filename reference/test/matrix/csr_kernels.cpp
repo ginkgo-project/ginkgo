@@ -56,11 +56,13 @@ protected:
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
+          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
+                          std::make_shared<Mtx::load_balance>(2)))
     {
         Mtx::value_type *v = mtx->get_values();
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
+        auto *s = mtx->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -76,6 +78,7 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
+        s[0] = 0;
     }
 
     void assert_equal_to_mtx(const Coo *m)

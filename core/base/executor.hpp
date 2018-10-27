@@ -438,7 +438,14 @@ public:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void free(void *ptr) const noexcept = 0;
+    void free(void *ptr) const noexcept
+    {
+        this->template log<log::Logger::free_started>(
+            this, reinterpret_cast<uintptr>(ptr));
+        this->raw_free(ptr);
+        this->template log<log::Logger::free_completed>(
+            this, reinterpret_cast<uintptr>(ptr));
+    }
 
     /**
      * Copies data from another Executor.
@@ -492,6 +499,15 @@ protected:
      * @return raw pointer to allocated memory
      */
     virtual void *raw_alloc(size_type size) const = 0;
+
+    /**
+     * Frees memory previously allocated with Executor::alloc().
+     *
+     * If `ptr` is a `nullptr`, the function has no effect.
+     *
+     * @param ptr  pointer to the allocated memory block
+     */
+    virtual void raw_free(void *ptr) const noexcept = 0;
 
     /**
      * Copies raw data from another Executor.
@@ -671,8 +687,6 @@ public:
         return std::shared_ptr<OmpExecutor>(new OmpExecutor());
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -683,6 +697,8 @@ protected:
     OmpExecutor() = default;
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 };
@@ -748,8 +764,6 @@ public:
             new CudaExecutor(device_id, std::move(master)));
     }
 
-    void free(void *ptr) const noexcept override;
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -778,6 +792,26 @@ public:
      */
     int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
 
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        constexpr uint32 warp_size = 32;
+        auto warps_per_sm = num_cores_per_sm_ / warp_size;
+        return num_multiprocessor_ * warps_per_sm;
+    }
+
+    /**
+     * Get the major verion of compute capability.
+     */
+    int get_major_version() const noexcept { return major_; }
+
+    /**
+     * Get the minor verion of compute capability.
+     */
+    int get_minor_version() const noexcept { return minor_; }
+
 protected:
     void set_gpu_property();
 
@@ -785,12 +819,16 @@ protected:
         : device_id_(device_id),
           master_(master),
           num_cores_per_sm_(0),
-          num_multiprocessor_(0)
+          num_multiprocessor_(0),
+          major_(0),
+          minor_(0)
     {
         this->set_gpu_property();
     }
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
 
@@ -799,6 +837,8 @@ private:
     std::shared_ptr<Executor> master_;
     int num_cores_per_sm_;
     int num_multiprocessor_;
+    int major_;
+    int minor_;
 };
 
 

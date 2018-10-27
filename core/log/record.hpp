@@ -369,7 +369,7 @@ public:
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,
-     * constructs the object and return an std::unique_ptr to this object.
+     * constructs the object and returns an std::unique_ptr to this object.
      *
      * @param exec  the executor
      * @param enabled_events  the events enabled for this logger. By default all

@@ -42,7 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
 #include "core/stop/criterion.hpp"
-#include "core/stop/iteration.hpp"
 
 
 namespace gko {

@@ -52,10 +52,6 @@ class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;
 
 public:
-    bool check(uint8 stoppingId, bool setFinalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &updater) override;
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -66,6 +62,10 @@ public:
     GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
 
 protected:
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    Array<stopping_status> *stop_status, bool *one_changed,
+                    const Updater &updater) override;
+
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
     {}

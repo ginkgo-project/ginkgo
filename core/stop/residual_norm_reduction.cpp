@@ -53,7 +53,7 @@ struct TemplatedOperation {
 
 
 template <typename ValueType>
-bool ResidualNormReduction<ValueType>::check(
+bool ResidualNormReduction<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
@@ -64,7 +64,7 @@ bool ResidualNormReduction<ValueType>::check(
     } else if (updater.residual_ != nullptr) {
         u_dense_tau = Vector::create_with_config_of(starting_tau_.get());
         auto dense_r = as<Vector>(updater.residual_);
-        dense_r->compute_dot(dense_r, u_dense_tau.get());
+        dense_r->compute_norm2(u_dense_tau.get());
         dense_tau = u_dense_tau.get();
     } else {
         NOT_SUPPORTED(nullptr);
