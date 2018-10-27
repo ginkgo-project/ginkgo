@@ -183,28 +183,29 @@ namespace {
 
 
 template <typename ValueType>
-__device__ void finish_arnoldi(ValueType *next_krylov_basis,
-                               ValueType *krylov_bases,
-                               ValueType *hessenberg_iter, iter,
-                               const stopping_status *stop_status)
+__device__ void finish_arnoldi_kernel(ValueType *next_krylov_basis,
+                                      ValueType *krylov_bases,
+                                      ValueType *hessenberg_iter,
+                                      const size_type iter,
+                                      const stopping_status *stop_status)
 {}
 
 
 template <typename ValueType>
-__device__ void givens_rotation(ValueType *next_krylov_basis,
-                                ValueType *givens_sin, ValueType *givens_cos,
-                                ValueType *hessenberg_iter, size_type iter,
-                                stopping_status *stop_status)
+__device__ void givens_rotation_kernel(ValueType *next_krylov_basis,
+                                       ValueType *givens_sin,
+                                       ValueType *givens_cos,
+                                       ValueType *hessenberg_iter,
+                                       const size_type iter,
+                                       const stopping_status *stop_status)
 {}
 
 
 template <typename ValueType>
-__device__ void calculate_next_residual_norm(ValueType *givens_sin,
-                                             ValueType *givens_cos,
-                                             ValueType *residual_norm,
-                                             ValueType *residual_norms,
-                                             ValueType *b_norm, size_type iter,
-                                             stopping_status *stop_status)
+__device__ void calculate_next_residual_norm_kernel(
+    ValueType *givens_sin, ValueType *givens_cos, ValueType *residual_norm,
+    ValueType *residual_norms, const ValueType *b_norm, const size_type iter,
+    const stopping_status *stop_status)
 {}
 
 
@@ -219,7 +220,15 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     ValueType *__restrict__ hessenberg_iter,
     const ValueType *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
-{}
+{
+    finish_arnoldi_kernel(next_krylov_basis, krylov_bases, hessenberg_iter,
+                          iter, stop_status);
+    givens_rotation_kernel(next_krylov_basis, givens_sin, givens_cos,
+                           hessenberg_iter, iter, stop_status);
+    calculate_next_residual_norm_kernel(givens_sin, givens_cos, residual_norm,
+                                        residual_norms, b_norm, iter,
+                                        stop_status);
+}
 
 
 }  // namespace
@@ -237,10 +246,61 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
             const Array<stopping_status> *stop_status)
 {
-    NOT_IMPLEMENTED;
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(krylov_bases->get_size()[0], default_block_size) *
+            krylov_bases->get_size()[1],
+        1, 1);
+    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
+        krylov_bases->get_size()[0], krylov_bases->get_size()[1],
+        krylov_bases->get_stride(), iter,
+        as_cuda_type(next_krylov_basis->get_values()),
+        as_cuda_type(givens_sin->get_values()),
+        as_cuda_type(givens_cos->get_values()),
+        as_cuda_type(residual_norm->get_values()),
+        as_cuda_type(residual_norms->get_values()),
+        as_cuda_type(krylov_bases->get_values()),
+        as_cuda_type(hessenberg_iter->get_values()),
+        as_cuda_type(b_norm->get_const_values()),
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
+
+
+namespace {
+
+
+template <typename ValueType>
+__device__ void solve_upper_triangular_kernel(const ValueType *residual_norms,
+                                              ValueType *hessenberg,
+                                              ValueType *y,
+                                              size_type *final_iter_nums)
+{}
+
+
+template <typename ValueType>
+__device__ void solve_x_kernel(ValueType *krylov_bases, ValueType *y,
+                               ValueType *x, size_type *final_iter_nums,
+                               LinOp *preconditioner)
+{}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void step_2_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ residual_norms,
+    ValueType *__restrict__ krylov_bases, ValueType *__restrict__ hessenberg,
+    ValueType *__restrict__ y, ValueType *__restrict__ x,
+    const size_type *__restrict__ final_iter_nums, const LinOp *preconditioner)
+{
+    solve_upper_triangular_kernel(residual_norms, hessenberg, y,
+                                  final_iter_nums);
+    solve_x_kernel(krylov_bases, y, x, final_iter_nums, preconditioner);
+}
+
+
+}  // namespace
 
 
 template <typename ValueType>
