@@ -254,7 +254,7 @@ public:
         /**
          * Creates an automatic strategy.
          */
-        automatic() : strategy_(imbalance_limit(0.8)) {}
+        automatic() : strategy_(imbalance_limit(0)) {}
 
         size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
