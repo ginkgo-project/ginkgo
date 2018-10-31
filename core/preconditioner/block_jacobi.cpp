@@ -147,7 +147,7 @@ void BlockJacobi<ValueType, IndexType>::write(mat_data &data) const
             for (IndexType col = 0; col < block_size; ++col) {
                 data.nonzeros.emplace_back(
                     ptrs[block] + row, ptrs[block] + col,
-                    block_data[row * tmp->get_stride() + col]);
+                    block_data[row + col * tmp->get_stride()]);
             }
         }
     }
@@ -295,7 +295,7 @@ void AdaptiveBlockJacobi<ValueType, IndexType>::write(mat_data &data) const
                     data.nonzeros.emplace_back(
                         ptrs[block] + row, ptrs[block] + col,
                         static_cast<ValueType>(
-                            block_data[row * tmp->get_stride() + col]));
+                            block_data[row + col * tmp->get_stride()]));
                 }
             }
         });
