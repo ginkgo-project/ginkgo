@@ -77,7 +77,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
         auto trans_perm = subwarp.thread_rank();
         invert_block<max_block_size>(subwarp, block_size, row, perm,
                                      trans_perm);
-        copy_matrix<max_block_size>(
+        copy_matrix<max_block_size, and_transpose>(
             subwarp, block_size, row, 1, perm, trans_perm,
             block_data + (block_ptrs[block_id] * stride), stride);
     }
@@ -104,7 +104,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     if (subwarp.thread_rank() < block_size) {
         v = b[(block_ptrs[block_id] + subwarp.thread_rank()) * b_stride];
     }
-    multiply_transposed_vec<max_block_size>(
+    multiply_vec<max_block_size>(
         subwarp, block_size, v,
         blocks + block_ptrs[block_id] * stride + subwarp.thread_rank(), stride,
         x + block_ptrs[block_id] * x_stride, x_stride);
