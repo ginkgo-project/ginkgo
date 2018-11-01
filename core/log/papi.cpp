@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/papi.hpp>
 
 
-#include "core/base/dim.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -260,7 +260,8 @@ void Papi<ValueType>::on_criterion_check_completed(
     double residual_norm_d = 0.0;
     if (residual_norm != nullptr) {
         auto dense_r_norm = as<Vector>(residual_norm);
-        residual_norm_d = static_cast<double>(std::real(dense_r_norm->at(0)));
+        residual_norm_d =
+            static_cast<double>(std::real(dense_r_norm->at(0, 0)));
     } else if (residual != nullptr) {
         auto tmp_res_norm = Vector::create(residual->get_executor(),
                                            dim<2>{1, residual->get_size()[1]});
@@ -271,20 +272,20 @@ void Papi<ValueType>::on_criterion_check_completed(
     }
 
     const auto tmp = reinterpret_cast<uintptr>(criterion);
-    if (criterion_check_completed.find(tmp) ==
-        criterion_check_completed.end()) {
-        criterion_check_completed[tmp] = NULL;
+    auto &map = this->criterion_check_completed;
+    if (map.find(tmp) == map.end()) {
+        map[tmp] = NULL;
     }
-    auto &handle = criterion_check_completed[tmp];
+    void *handle = map[tmp];
     if (!handle) {
         std::ostringstream oss;
         oss << "criterion_check_completed"
-            << "::" << tmp;
+            << "_" << tmp;
         papi_sde_create_recorder(this->papi_handle, oss.str().c_str(),
-                                 sizeof(residual_norm_d),
-                                 papi_sde_compare_double, &handle);
+                                 sizeof(double), papi_sde_compare_double,
+                                 &handle);
     }
-    papi_sde_record(handle, sizeof(residual_norm_d), &residual_norm_d);
+    papi_sde_record(handle, sizeof(double), &residual_norm_d);
 }
 
 

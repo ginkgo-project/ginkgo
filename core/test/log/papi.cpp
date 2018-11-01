@@ -32,18 +32,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include <core/log/papi.hpp>
+#include <ginkgo/core/log/papi.hpp>
 
 
 #include <gtest/gtest.h>
 #include <papi.h>
 
 
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/solver/bicgstab.hpp>
-#include <core/stop/iteration.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace {
@@ -409,11 +409,12 @@ TEST_F(Papi, CatchesLinOpAdvancedApplyCompleted)
 
 TEST_F(Papi, CatchesLinOpFactoryGenerateStarted)
 {
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::Factory::create().with_max_iters(3u).on(
+                    exec))
+            .on(exec);
     auto str = init(gko::log::Logger::linop_factory_generate_started_mask,
                     "linop_factory_generate_started", factory.get());
     add_event(str);
@@ -430,11 +431,12 @@ TEST_F(Papi, CatchesLinOpFactoryGenerateStarted)
 
 TEST_F(Papi, CatchesLinOpFactoryGenerateCompleted)
 {
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::Factory::create().with_max_iters(3u).on(
+                    exec))
+            .on(exec);
     auto str = init(gko::log::Logger::linop_factory_generate_completed_mask,
                     "linop_factory_generate_completed", factory.get());
     add_event(str);

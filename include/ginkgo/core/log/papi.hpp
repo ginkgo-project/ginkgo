@@ -42,10 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include "core/log/papi_sde_interface.h"
 
 
 #include <papi.h>
-#include <papi_sde_interface.h>
 
 
 namespace gko {

@@ -56,15 +56,38 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 #         + ./configure --with-components=sde
 #         + make -j$(nproc)
 #         + (sudo) make install
-#     3. Add stdlib.h to the papi_sde_include.h header
-#     4. Copy the previous header to an include path in your system
+#      OR
+#     Ask for pre-compiled binaries
 find_library(GKO_PAPI_LIB papi)
 if (GKO_PAPI_LIB)
   include (CheckCXXSymbolExists)
 
-  set(CMAKE_REQUIRED_LIBRARIES ${GKO_PAPI_LIB})
-  check_cxx_symbol_exists(papi_sde_init papi_sde_interface.h GKO_HAVE_PAPI_SDE)
-  unset(CMAKE_REQUIRED_LIBRARIES)
+  set(papi_sde_detect_code "
+#include <papi.h>
+int main() {
+	int retval;
+	retval = PAPI_library_init(PAPI_VER_CURRENT);
+	if (retval != PAPI_VER_CURRENT && retval > 0)
+		return -1;
+	if (PAPI_get_component_index(\"sde\") < 0)
+		return 0;
+	return 1;
+}
+")
+
+  file(WRITE "${CMAKE_BINARY_DIR}/papi_sde_detect.c" "${papi_sde_detect_code}")
+
+  try_run(GKO_HAVE_PAPI_SDE
+    gko_result_unused
+    "${CMAKE_BINARY_DIR}"
+    "${CMAKE_BINARY_DIR}/papi_sde_detect.c"
+    LINK_LIBRARIES papi
+    )
+  if (NOT GKO_HAVE_PAPI_SDE EQUAL 1)
+    unset(GKO_HAVE_PAPI_SDE)
+  else()
+    message("-- PAPI SDE component was found")
+  endif()
 
   if (GKO_HAVE_PAPI_SDE)
     set(GKO_PAPI_SDE_LIB ${GKO_PAPI_LIB})
