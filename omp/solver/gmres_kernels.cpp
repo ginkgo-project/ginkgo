@@ -50,13 +50,11 @@ namespace gmres {
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
-                  matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *givens_sin,
-                  matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, const int krylov_dim)
+void initialize_1(
+    std::shared_ptr<const OmpExecutor> exec, const matrix::Dense<ValueType> *b,
+    matrix::Dense<ValueType> *b_norm, matrix::Dense<ValueType> *residual,
+    matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
+    Array<stopping_status> *stop_status, const size_type krylov_dim)
 {
     NOT_IMPLEMENTED;
 }
@@ -70,7 +68,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norms,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, const int krylov_dim)
+                  Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
     NOT_IMPLEMENTED;
 }
