@@ -246,24 +246,26 @@ public:
 
     /**
      * automatic is a stratgy_type which decides the number of stored elements
-     * per row of the ell part automatically. For now, it uses
-     * imbalance_limit(0.8).
+     * per row of the ell part automatically.
      */
     class automatic : public strategy_type {
     public:
         /**
          * Creates an automatic strategy.
          */
-        automatic() : strategy_(imbalance_limit(0)) {}
+        automatic() {}
 
         size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
         {
-            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+            const auto num_rows = row_nnz->get_num_elems();
+            const auto row_nnz_val = row_nnz->get_const_data();
+            size_type minimal(num_rows / 1000);
+            for (size_type i = 0; i < num_rows; i++) {
+                minimal = std::min(minimal, row_nnz_val[i]);
+            }
+            return minimal;
         }
-
-    private:
-        imbalance_limit strategy_;
     };
 
     void convert_to(Dense<ValueType> *other) const override;
