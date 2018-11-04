@@ -253,19 +253,20 @@ public:
         /**
          * Creates an automatic strategy.
          */
-        automatic() {}
+        automatic()
+            : strategy_(imbalance_limit(static_cast<float>(
+                  sizeof(IndexType) /
+                  (sizeof(ValueType) + 2 * sizeof(IndexType)))))
+        {}
 
         size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
         {
-            const auto num_rows = row_nnz->get_num_elems();
-            const auto row_nnz_val = row_nnz->get_const_data();
-            size_type minimal(num_rows / 1000);
-            for (size_type i = 0; i < num_rows; i++) {
-                minimal = std::min(minimal, row_nnz_val[i]);
-            }
-            return minimal;
+            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
+
+    private:
+        imbalance_limit strategy_;
     };
 
     void convert_to(Dense<ValueType> *other) const override;
