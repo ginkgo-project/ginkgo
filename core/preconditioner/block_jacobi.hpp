@@ -82,20 +82,35 @@ struct index_type<Op<ValueType, IndexType>> {
 /**
  * Defines the parameters of the interleaved block storage scheme used by
  * block-Jacobi blocks.
+ *
+ * @tparam IndexType  type used for storing indices of the matrix
  */
+template <typename IndexType>
 struct block_interleaved_storage_scheme {
     /**
      * The offset between consecutive blocks within the group.
      */
-    size_type block_offset;
+    IndexType block_offset;
     /**
      * The offset between two block groups.
      */
-    size_type group_offset;
+    IndexType group_offset;
     /**
-     * Then number of blocks within the group.
+     * Then base 2 power of the group.
+     *
+     * I.e. the group contains `1 << group_power` elements.
      */
-    uint32 group_size;
+    uint32 group_power;
+
+    /**
+     * Returns the number of elements in the group.
+     *
+     * @return the number of elements in the group
+     */
+    GKO_ATTRIBUTES IndexType get_group_size() const noexcept
+    {
+        return one<IndexType>() << group_power;
+    }
 
     /**
      * Computes the storage space required for the requested number of blocks.
@@ -105,11 +120,12 @@ struct block_interleaved_storage_scheme {
      * @return the total memory (as the number of elements) that need to be
      *         allocated for the scheme
      */
-    size_type compute_storage_space(size_type num_blocks) const
+    GKO_ATTRIBUTES IndexType compute_storage_space(IndexType num_blocks) const
+        noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
-                   : ceildiv(num_blocks, group_size) * group_offset;
+                   : ceildiv(num_blocks, this->get_group_size()) * group_offset;
     }
 
     /**
@@ -119,9 +135,9 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the group belonging to block with ID `block_id`
      */
-    GKO_ATTRIBUTES size_type get_group_offset(size_type block_id) const
+    GKO_ATTRIBUTES IndexType get_group_offset(IndexType block_id) const noexcept
     {
-        return group_offset * (block_id / group_size);
+        return group_offset * (block_id >> group_power);
     }
 
     /**
@@ -131,9 +147,9 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id` within its group
      */
-    GKO_ATTRIBUTES size_type get_block_offset(size_type block_id) const
+    GKO_ATTRIBUTES IndexType get_block_offset(IndexType block_id) const noexcept
     {
-        return block_offset * (block_id % group_size);
+        return block_offset * (block_id & (this->get_group_size() - 1));
     }
 
     /**
@@ -143,7 +159,8 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES size_type get_global_block_offset(size_type block_id) const
+    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
+        noexcept
     {
         return this->get_group_offset(block_id) +
                this->get_block_offset(block_id);
@@ -154,11 +171,12 @@ struct block_interleaved_storage_scheme {
      *
      * @return stride between columns of the block
      */
-    GKO_ATTRIBUTES size_type get_stride() const
+    GKO_ATTRIBUTES IndexType get_stride() const noexcept
     {
-        return block_offset * group_size;
+        return block_offset << group_power;
     }
 };
+
 
 /**
  * This is an intermediate class which implements common methods of block-Jacobi
@@ -220,7 +238,8 @@ public:
      *
      * @return the storage scheme used for storing Jacobi blocks
      */
-    const block_interleaved_storage_scheme &get_storage_scheme() const noexcept
+    const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
+        const noexcept
     {
         return storage_scheme_;
     }
@@ -286,7 +305,7 @@ protected:
 
     size_type num_blocks_{};
     uint32 max_block_size_{};
-    block_interleaved_storage_scheme storage_scheme_;
+    block_interleaved_storage_scheme<index_type> storage_scheme_;
     Array<index_type> block_pointers_;
     Array<value_type> blocks_;
 
@@ -312,6 +331,18 @@ protected:
     }
 
     /**
+     * Returns the base-2 logarithm of `n` rounded down to the nearest integer.
+     */
+    static uint32 get_log2(size_type n) noexcept
+    {
+        for (auto r = uint32{0};; ++r) {
+            if ((size_type{1} << (r + 1)) > n) {
+                return r;
+            }
+        }
+    }
+
+    /**
      * Computes the storage scheme suitable for storing blocks of a given
      * maximum size.
      *
@@ -319,7 +350,7 @@ protected:
      *
      * @return a suitable storage scheme
      */
-    static block_interleaved_storage_scheme compute_storage_scheme(
+    static block_interleaved_storage_scheme<index_type> compute_storage_scheme(
         uint32 max_block_size) noexcept
     {
         const auto group_size = static_cast<uint32>(
@@ -327,7 +358,8 @@ protected:
         const auto block_offset = max_block_size;
         const auto block_stride = group_size * block_offset;
         const auto group_offset = max_block_size * block_stride;
-        return {block_offset, group_offset, group_size};
+        return {static_cast<index_type>(block_offset),
+                static_cast<index_type>(group_offset), get_log2(group_size)};
     }
 };
 

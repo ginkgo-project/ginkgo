@@ -281,12 +281,12 @@ inline void invert_block(IndexType block_size, IndexType *perm,
 
 
 template <typename ValueType, typename IndexType>
-void generate(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    size_type num_blocks, uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type b = 0; b < num_blocks; ++b) {
@@ -350,13 +350,15 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 
 
 template <typename ValueType, typename IndexType>
-void apply(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *b,
-    const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
@@ -379,7 +381,8 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -405,7 +408,8 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     ValueType *result_values, size_type result_stride)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -454,14 +458,16 @@ namespace adaptive_block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void apply(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *b,
-    const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+           uint32 max_block_size,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const Array<precision<ValueType, IndexType>> &block_precisions,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -491,7 +497,8 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
@@ -525,7 +532,8 @@ void convert_to_dense(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     ValueType *result_values, size_type result_stride)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -558,13 +566,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    size_type num_blocks, uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+void generate(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              Array<precision<ValueType, IndexType>> &block_precisions,
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_data();

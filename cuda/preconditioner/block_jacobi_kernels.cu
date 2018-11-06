@@ -68,7 +68,8 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
              const IndexType *__restrict__ col_idxs,
              const ValueType *__restrict__ values,
              ValueType *__restrict__ block_data,
-             preconditioner::block_interleaved_storage_scheme storage_scheme,
+             preconditioner::block_interleaved_storage_scheme<IndexType>
+                 storage_scheme,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
@@ -100,7 +101,8 @@ template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     apply(const ValueType *__restrict__ blocks,
-          preconditioner::block_interleaved_storage_scheme storage_scheme,
+          preconditioner::block_interleaved_storage_scheme<IndexType>
+              storage_scheme,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
           const ValueType *__restrict__ b, int32 b_stride,
           ValueType *__restrict__ x, int32 x_stride)
@@ -144,11 +146,12 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void generate(
-    syn::compile_int_list<max_block_size>,
-    const matrix::Csr<ValueType, IndexType> *mtx, ValueType *block_data,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const IndexType *block_ptrs, size_type num_blocks)
+void generate(syn::compile_int_list<max_block_size>,
+              const matrix::Csr<ValueType, IndexType> *mtx,
+              ValueType *block_data,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
@@ -168,11 +171,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void apply(
-    syn::compile_int_list<max_block_size>, size_type num_blocks,
-    const IndexType *block_pointers, const ValueType *blocks,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const ValueType *b, size_type b_stride, ValueType *x, size_type x_stride)
+void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
+           const IndexType *block_pointers, const ValueType *blocks,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const ValueType *b, size_type b_stride, ValueType *x,
+           size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
@@ -350,12 +354,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    size_type num_blocks, uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+void generate(std::shared_ptr<const CudaExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     select_generate(compiled_kernels(),
                     [&](int compiled_block_size) {
@@ -372,13 +376,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void apply(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *b,
-    const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
+           uint32 max_block_size,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 {
     using Vec = matrix::Dense<ValueType>;
     // TODO: do this efficiently
@@ -397,7 +403,8 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -423,7 +430,8 @@ template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     ValueType *result_values, size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -437,29 +445,31 @@ namespace adaptive_block_jacobi {
 
 
 template <typename ValueType, typename IndexType>
-void generate(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    size_type num_blocks, uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers,
-    Array<ValueType> &blocks) NOT_IMPLEMENTED;
+void generate(std::shared_ptr<const CudaExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              size_type num_blocks, uint32 max_block_size,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              Array<precision<ValueType, IndexType>> &block_precisions,
+              const Array<IndexType> &block_pointers,
+              Array<ValueType> &blocks) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void apply(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *b,
-    const matrix::Dense<ValueType> *beta,
-    matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
+void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
+           uint32 max_block_size,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const Array<precision<ValueType, IndexType>> &block_precisions,
+           const Array<IndexType> &block_pointers,
+           const Array<ValueType> &blocks,
+           const matrix::Dense<ValueType> *alpha,
+           const matrix::Dense<ValueType> *b,
+           const matrix::Dense<ValueType> *beta,
+           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL);
@@ -469,7 +479,8 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b,
@@ -484,7 +495,8 @@ void convert_to_dense(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     const Array<precision<ValueType, IndexType>> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme &storage_scheme,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
     ValueType *result_values, size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

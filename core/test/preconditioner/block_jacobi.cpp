@@ -178,7 +178,8 @@ TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPrecisions)
 class BlockInterleavedStorageScheme : public ::testing::Test {
 protected:
     // groups of 4 blocks, offset of 3 within the group and 16 between groups
-    gko::preconditioner::block_interleaved_storage_scheme s{3, 16, 4};
+    gko::preconditioner::block_interleaved_storage_scheme<gko::int32> s{3, 16,
+                                                                        2};
 };
 
 
