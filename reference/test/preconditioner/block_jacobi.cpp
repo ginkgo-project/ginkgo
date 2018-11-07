@@ -146,8 +146,8 @@ TEST_F(BlockJacobi, GeneratesCorrectStorageScheme)
     auto scheme = bj->get_storage_scheme();
 
     ASSERT_EQ(scheme.group_power, 3);  // 8 3-by-3 blocks fit into 32-wide group
-    ASSERT_EQ(scheme.block_offset, 3);
-    ASSERT_EQ(scheme.group_offset, 8 * 3 * 3);
+    ASSERT_EQ(scheme.block_offset, 4);
+    ASSERT_EQ(scheme.group_offset, 8 * 4 * 3);
 }
 
 

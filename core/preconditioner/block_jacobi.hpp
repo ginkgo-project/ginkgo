@@ -355,7 +355,7 @@ protected:
     {
         const auto group_size = static_cast<uint32>(
             max_block_stride_ / get_larger_power(max_block_size));
-        const auto block_offset = max_block_size;
+        const auto block_offset = max_block_stride_ / group_size;
         const auto block_stride = group_size * block_offset;
         const auto group_offset = max_block_size * block_stride;
         return {static_cast<index_type>(block_offset),
