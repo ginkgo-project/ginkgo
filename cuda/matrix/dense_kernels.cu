@@ -57,7 +57,7 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *c)
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
+        auto handle = exec->get_cublas_handle();
         ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
         auto alpha = one<ValueType>();
@@ -67,7 +67,8 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                      b->get_const_values(), b->get_stride(),
                      a->get_const_values(), a->get_stride(), &beta,
                      c->get_values(), c->get_stride());
-        cublas::destroy(handle);
+        ASSERT_NO_CUBLAS_ERRORS(
+            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
     } else {
         NOT_IMPLEMENTED;
     }
@@ -83,14 +84,12 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
-        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
-                     c->get_size()[0], a->get_size()[1],
+        cublas::gemm(exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
+                     c->get_size()[1], c->get_size()[0], a->get_size()[1],
                      alpha->get_const_values(), b->get_const_values(),
                      b->get_stride(), a->get_const_values(), a->get_stride(),
                      beta->get_const_values(), c->get_values(),
                      c->get_stride());
-        cublas::destroy(handle);
     } else {
         NOT_IMPLEMENTED;
     }
@@ -131,10 +130,9 @@ void scale(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
     if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        auto handle = cublas::init();
-        cublas::scal(handle, x->get_size()[0], alpha->get_const_values(),
-                     x->get_values(), x->get_stride());
-        cublas::destroy(handle);
+        cublas::scal(exec->get_cublas_handle(), x->get_size()[0],
+                     alpha->get_const_values(), x->get_values(),
+                     x->get_stride());
     } else {
         // TODO: tune this parameter
         constexpr auto block_size = default_block_size;
@@ -183,11 +181,9 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
     if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        auto handle = cublas::init();
-        cublas::axpy(handle, x->get_size()[0], alpha->get_const_values(),
-                     x->get_const_values(), x->get_stride(), y->get_values(),
-                     y->get_stride());
-        cublas::destroy(handle);
+        cublas::axpy(exec->get_cublas_handle(), x->get_size()[0],
+                     alpha->get_const_values(), x->get_const_values(),
+                     x->get_stride(), y->get_values(), y->get_stride());
     } else {
         // TODO: tune this parameter
         constexpr auto block_size = default_block_size;
@@ -270,14 +266,13 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
                  matrix::Dense<ValueType> *result)
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            cublas::dot(handle, x->get_size()[0], x->get_const_values() + col,
-                        x->get_stride(), y->get_const_values() + col,
-                        y->get_stride(), result->get_values() + col);
+            cublas::dot(exec->get_cublas_handle(), x->get_size()[0],
+                        x->get_const_values() + col, x->get_stride(),
+                        y->get_const_values() + col, y->get_stride(),
+                        result->get_values() + col);
         }
-        cublas::destroy(handle);
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
@@ -331,12 +326,11 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    matrix::Dense<ValueType> *result)
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            cublas::norm2(handle, x->get_size()[0], x->get_const_values() + col,
-                          x->get_stride(), result->get_values() + col);
+            cublas::norm2(exec->get_cublas_handle(), x->get_size()[0],
+                          x->get_const_values() + col, x->get_stride(),
+                          result->get_values() + col);
         }
-        cublas::destroy(handle);
     } else {
         compute_dot(exec, x, x, result);
         const dim3 block_size(default_block_size, 1, 1);
@@ -474,7 +468,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                const matrix::Dense<ValueType> *orig)
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
+        auto handle = exec->get_cublas_handle();
         ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
 
@@ -485,8 +479,6 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                      orig->get_stride(), &beta,
                      static_cast<ValueType *>(nullptr), trans->get_size()[1],
                      trans->get_values(), trans->get_stride());
-
-        cublas::destroy(handle);
     } else {
         NOT_IMPLEMENTED;
     }
@@ -502,7 +494,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 {
     if (cublas::is_supported<ValueType>::value) {
-        auto handle = cublas::init();
+        auto handle = exec->get_cublas_handle();
         ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
 
@@ -513,8 +505,6 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                      orig->get_stride(), &beta,
                      static_cast<ValueType *>(nullptr), trans->get_size()[1],
                      trans->get_values(), trans->get_stride());
-
-        cublas::destroy(handle);
     } else {
         NOT_IMPLEMENTED;
     }

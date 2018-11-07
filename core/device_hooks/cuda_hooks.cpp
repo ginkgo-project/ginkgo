@@ -108,6 +108,12 @@ int CudaExecutor::get_num_devices() { return 0; }
 void CudaExecutor::set_gpu_property() {}
 
 
+void CudaExecutor::init_handles() {}
+
+
+void CudaExecutor::destroy_handles() {}
+
+
 }  // namespace gko
 
 

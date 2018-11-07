@@ -44,6 +44,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/log/logger.hpp"
 
 
+struct cublasContext;
+
+struct cusparseContext;
+
+
 namespace gko {
 
 
@@ -812,8 +817,32 @@ public:
      */
     int get_minor_version() const noexcept { return minor_; }
 
+    /**
+     * Get the cublas handle for this executor
+     *
+     * @return  the cublas handle (cublasContext*) for this executor
+     */
+    cublasContext *get_cublas_handle() const { return cublas_handle_; }
+
+    /**
+     * Get the cusparse handle for this executor
+     *
+     * @return the cusparse handle (cusparseContext*) for this executor
+     */
+    cusparseContext *get_cusparse_handle() const { return cusparse_handle_; }
+
+    /**
+     * Destructor which properly destroys the cublas and cusparse handles when
+     * required
+     */
+    ~CudaExecutor() { destroy_handles(); }
+
 protected:
     void set_gpu_property();
+
+    void init_handles();
+
+    void destroy_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master)
         : device_id_(device_id),
@@ -824,6 +853,7 @@ protected:
           minor_(0)
     {
         this->set_gpu_property();
+        this->init_handles();
     }
 
     void *raw_alloc(size_type size) const override;
@@ -839,6 +869,8 @@ private:
     int num_multiprocessor_;
     int major_;
     int minor_;
+    cublasContext *cublas_handle_;
+    cusparseContext *cusparse_handle_;
 };
 
 
