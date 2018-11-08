@@ -479,6 +479,9 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                      orig->get_stride(), &beta,
                      static_cast<ValueType *>(nullptr), trans->get_size()[1],
                      trans->get_values(), trans->get_stride());
+
+        ASSERT_NO_CUBLAS_ERRORS(
+            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
     } else {
         NOT_IMPLEMENTED;
     }
@@ -505,6 +508,9 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                      orig->get_stride(), &beta,
                      static_cast<ValueType *>(nullptr), trans->get_size()[1],
                      trans->get_values(), trans->get_stride());
+
+        ASSERT_NO_CUBLAS_ERRORS(
+            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
     } else {
         NOT_IMPLEMENTED;
     }

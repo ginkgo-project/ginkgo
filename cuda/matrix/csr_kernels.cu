@@ -560,6 +560,9 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                            a->get_const_values(), row_ptrs, col_idxs,
                            b->get_const_values(), &beta, c->get_values());
 
+            ASSERT_NO_CUSPARSE_ERRORS(
+                cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
             cusparse::destroy(descr);
         } else {
             // use classical implementation
