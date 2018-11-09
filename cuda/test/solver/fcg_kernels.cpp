@@ -255,26 +255,18 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     d_b->copy_from(b.get());
     auto fcg_factory =
         Solver::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(50u).on(
-                            ref),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-14)
-                            .on(ref))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
                     .on(ref))
             .on(ref);
     auto d_fcg_factory =
         Solver::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(50u).on(
-                            cuda),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-14)
-                            .on(cuda))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(cuda),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
                     .on(cuda))
             .on(cuda);
     auto solver = fcg_factory->generate(std::move(mtx));

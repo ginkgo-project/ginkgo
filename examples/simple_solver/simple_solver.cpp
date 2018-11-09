@@ -103,14 +103,10 @@ int main(int argc, char *argv[])
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(20u).on(
-                            exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-20)
-                            .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-20)
                     .on(exec))
             .on(exec);
     auto solver = solver_gen->generate(A);

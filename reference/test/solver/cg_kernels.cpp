@@ -59,19 +59,13 @@ protected:
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           cg_factory(
               gko::solver::Cg<>::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(4u)
-                                  .on(exec),
-                              gko::stop::Time::build()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::Factory::create()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -84,15 +78,11 @@ protected:
               exec)),
           cg_factory_big(
               gko::solver::Cg<>::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(100u)
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::build()
-                                  .with_reduction_factor(1e-15)
-                                  .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec))
     {}

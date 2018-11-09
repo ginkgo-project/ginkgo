@@ -231,14 +231,10 @@ void solve_system(const std::string &executor_string,
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(dp).on(
-                            exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(accuracy)
-                            .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(dp).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(accuracy)
                     .on(exec))
             // something fails here:
             // .with_preconditioner(bj::create(exec, 32))

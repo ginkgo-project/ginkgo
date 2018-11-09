@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
+#include "core/stop/combined.hpp"
 #include "core/stop/criterion.hpp"
 
 
@@ -102,10 +103,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Criterion factory
+         * Criterion factories.
          */
-        std::shared_ptr<const stop::CriterionFactory> GKO_FACTORY_PARAMETER(
-            criterion, nullptr);
+        std::vector<std::shared_ptr<const stop::CriterionFactory>>
+            GKO_FACTORY_PARAMETER(criteria);
 
         /**
          * Preconditioner factory.
@@ -145,8 +146,14 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        if (parameters_.criterion) {
-            stop_criterion_factory_ = std::move(parameters_.criterion);
+        if (parameters_.criteria.size() == 1) {
+            stop_criterion_factory_ = std::move(parameters_.criteria[0]);
+        } else if (parameters_.criteria.size() > 1) {
+            auto exec = parameters_.criteria[0]->get_executor();
+            stop_criterion_factory_ =
+                stop::Combined::build()
+                    .with_criteria(std::move(parameters_.criteria))
+                    .on(exec);
         } else {
             NOT_SUPPORTED(nullptr);
         }

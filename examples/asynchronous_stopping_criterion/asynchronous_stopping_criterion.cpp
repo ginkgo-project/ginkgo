@@ -138,10 +138,10 @@ void run_solver(volatile bool *stop_iteration_process,
 
     // Create solver factory and solve system
     auto solver = bicg::build()
-                      .with_criterion(ByInteraction::build()
-                                          .with_stop_iteration_process(
-                                              stop_iteration_process)
-                                          .on(exec))
+                      .with_criteria(ByInteraction::build()
+                                         .with_stop_iteration_process(
+                                             stop_iteration_process)
+                                         .on(exec))
                       .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<>::create(

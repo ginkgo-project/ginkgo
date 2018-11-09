@@ -72,29 +72,19 @@ protected:
         d_mtx->copy_from(mtx.get());
         omp_bicgstab_factory =
             Solver::build()
-                .with_criterion(
-                    gko::stop::Combined::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build()
-                                .with_max_iters(246u)
-                                .on(omp),
-                            gko::stop::ResidualNormReduction<>::build()
-                                .with_reduction_factor(1e-15)
-                                .on(omp))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(omp),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
                         .on(omp))
                 .on(omp);
 
         ref_bicgstab_factory =
             Solver::build()
-                .with_criterion(
-                    gko::stop::Combined::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build()
-                                .with_max_iters(246u)
-                                .on(ref),
-                            gko::stop::ResidualNormReduction<>::build()
-                                .with_reduction_factor(1e-15)
-                                .on(ref))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
                         .on(ref))
                 .on(ref);
     }

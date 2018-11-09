@@ -59,18 +59,14 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          cg_factory(Solver::build()
-                         .with_criterion(
-                             gko::stop::Combined::build()
-                                 .with_criteria(
-                                     gko::stop::Iteration::build()
-                                         .with_max_iters(3u)
-                                         .on(exec),
-                                     gko::stop::ResidualNormReduction<>::build()
-                                         .with_reduction_factor(1e-6)
-                                         .on(exec))
-                                 .on(exec))
-                         .on(exec)),
+          cg_factory(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
+                          .on(exec))
+                  .on(exec)),
           solver(cg_factory->generate(mtx))
     {}
 
@@ -155,14 +151,10 @@ TEST_F(Cg, CanSetPreconditionerGenerator)
 {
     auto cg_factory =
         Solver::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(3u).on(
-                            exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-6)
-                            .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
                     .on(exec))
             .with_preconditioner(Solver::build().on(exec))
             .on(exec);

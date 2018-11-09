@@ -145,13 +145,9 @@ int main(int argc, char *argv[])
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        residual_criterion,
-                        gko::stop::Iteration::build().with_max_iters(20u).on(
-                            exec))
-                    .on(exec))
+            .with_criteria(
+                residual_criterion,
+                gko::stop::Iteration::build().with_max_iters(20u).on(exec))
             .on(exec);
     auto solver = solver_gen->generate(A);
 

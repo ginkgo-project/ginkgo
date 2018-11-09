@@ -59,15 +59,10 @@ protected:
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           bicgstab_factory(
               Solver::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(3u)
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::build()
-                                  .with_reduction_factor(1e-6)
-                                  .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
                           .on(exec))
                   .on(exec)),
           solver(bicgstab_factory->generate(mtx))
@@ -154,7 +149,7 @@ TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 {
     auto bicgstab_factory =
         Solver::build()
-            .with_criterion(
+            .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .with_preconditioner(Solver::build().on(exec))
             .on(exec);

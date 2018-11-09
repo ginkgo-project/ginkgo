@@ -61,36 +61,25 @@ protected:
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
               Solver::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(8u)
-                                  .on(exec),
-                              gko::stop::Time::build()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::Factory::create()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(50u)
-                                  .on(exec),
-                              gko::stop::Time::build()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(50u).on(
+                          exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::Factory::create()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec))
     {}

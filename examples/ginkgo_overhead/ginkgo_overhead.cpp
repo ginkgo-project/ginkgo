@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 
     auto cg_factory =
         cg::build()
-            .with_criterion(
+            .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
                     exec))
             .on(exec);

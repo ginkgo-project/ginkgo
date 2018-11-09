@@ -338,15 +338,12 @@ int main(int argc, char *argv[])
 
     // Generate solver and solve the system
     cg::build()
-        .with_criterion(
-            gko::stop::Combined::build()
-                .with_criteria(gko::stop::Iteration::build()
-                                   .with_max_iters(discretization_points)
-                                   .on(exec),
-                               gko::stop::ResidualNormReduction<>::build()
-                                   .with_reduction_factor(1e-6)
-                                   .on(exec))
-                .on(exec))
+        .with_criteria(gko::stop::Iteration::build()
+                           .with_max_iters(discretization_points)
+                           .on(exec),
+                       gko::stop::ResidualNormReduction<>::build()
+                           .with_reduction_factor(1e-6)
+                           .on(exec))
         // something fails here:
         // .with_preconditioner(bj::create(exec, 32))
         .on(exec)

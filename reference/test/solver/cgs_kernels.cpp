@@ -61,15 +61,11 @@ protected:
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           cgs_factory(
               Solver::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(40u)
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::build()
-                                  .with_reduction_factor(1e-15)
-                                  .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(40u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec)),
           mtx_big(
@@ -82,15 +78,11 @@ protected:
                                    exec)),
           cgs_factory_big(
               gko::solver::Cgs<>::build()
-                  .with_criterion(
-                      gko::stop::Combined::build()
-                          .with_criteria(
-                              gko::stop::Iteration::build()
-                                  .with_max_iters(100u)
-                                  .on(exec),
-                              gko::stop::ResidualNormReduction<>::build()
-                                  .with_reduction_factor(1e-15)
-                                  .on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec))
     {}

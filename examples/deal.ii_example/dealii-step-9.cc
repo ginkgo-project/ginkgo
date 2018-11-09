@@ -879,14 +879,10 @@ void AdvectionProblem<dim>::solve()
     // documentation.
     auto solver_gen =
         bicgstab::build()
-            .with_criterion(
-                gko::stop::Combined::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(1000).on(
-                            exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-12)
-                            .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1000).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-12)
                     .on(exec))
             // something fails here:
             // .with_preconditioner(bj::create(exec, 32))
