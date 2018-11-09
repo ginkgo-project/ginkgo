@@ -52,7 +52,7 @@ protected:
         cuda_ = gko::CudaExecutor::create(0, ref_);
         // Actually use an iteration stopping criterion because Criterion is an
         // abstract class
-        factory_ = gko::stop::Iteration::Factory::create()
+        factory_ = gko::stop::Iteration::build()
                        .with_max_iters(test_iterations)
                        .on_executor(cuda_);
     }

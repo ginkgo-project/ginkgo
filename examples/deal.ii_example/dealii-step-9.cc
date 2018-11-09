@@ -482,8 +482,7 @@ private:
         Vector<float> &error_per_cell;
     };
 
-    struct EstimateCopyData {
-    };
+    struct EstimateCopyData {};
 
     template <int dim>
     static void estimate_cell(
@@ -879,16 +878,15 @@ void AdvectionProblem<dim>::solve()
     // reduction factor of 1e-12. For other options, refer to Ginkgo's
     // documentation.
     auto solver_gen =
-        bicgstab::Factory::create()
+        bicgstab::build()
             .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(1000)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-12)
-                            .on_executor(exec))
+                gko::stop::Combined::build()
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(1000)
+                                       .on_executor(exec),
+                                   gko::stop::ResidualNormReduction<>::build()
+                                       .with_reduction_factor(1e-12)
+                                       .on_executor(exec))
                     .on_executor(exec))
             // something fails here:
             // .with_preconditioner(bj::create(exec, 32))

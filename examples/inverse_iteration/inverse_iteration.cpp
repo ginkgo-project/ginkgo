@@ -153,15 +153,14 @@ int main(int argc, char *argv[])
 
     // Generate solver operator  (A - zI)^-1
     auto solver =
-        solver_type::Factory::create()
+        solver_type::build()
             .with_criterion(
-                gko::stop::Combined::Factory::create()
+                gko::stop::Combined::build()
                     .with_criteria(
-                        gko::stop::Iteration::Factory::create()
+                        gko::stop::Iteration::build()
                             .with_max_iters(system_max_iterations)
                             .on_executor(exec),
-                        gko::stop::ResidualNormReduction<
-                            precision>::Factory::create()
+                        gko::stop::ResidualNormReduction<precision>::build()
                             .with_reduction_factor(system_residual_goal)
                             .on_executor(exec))
                     .on_executor(exec))

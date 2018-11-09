@@ -119,6 +119,7 @@ public:
         size_type GKO_FACTORY_PARAMETER(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;

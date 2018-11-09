@@ -102,16 +102,15 @@ int main(int argc, char *argv[])
 
     // Generate solver
     auto solver_gen =
-        cg::Factory::create()
+        cg::build()
             .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(20u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-20)
-                            .on_executor(exec))
+                gko::stop::Combined::build()
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(20u)
+                                       .on_executor(exec),
+                                   gko::stop::ResidualNormReduction<>::build()
+                                       .with_reduction_factor(1e-20)
+                                       .on_executor(exec))
                     .on_executor(exec))
             .on_executor(exec);
     auto solver = solver_gen->generate(A);

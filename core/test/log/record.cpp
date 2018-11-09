@@ -400,11 +400,12 @@ TEST(Record, CatchesLinopFactoryGenerateStarted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::linop_factory_generate_started_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criterion(
+                gko::stop::Iteration::build().with_max_iters(3u).on_executor(
+                    exec))
+            .on_executor(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
 
     logger->on<gko::log::Logger::linop_factory_generate_started>(factory.get(),
@@ -422,11 +423,12 @@ TEST(Record, CatchesLinopFactoryGenerateCompleted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::linop_factory_generate_completed_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criterion(
+                gko::stop::Iteration::build().with_max_iters(3u).on_executor(
+                    exec))
+            .on_executor(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     auto output = factory->generate(gko::matrix::Dense<>::create(exec));
 
@@ -445,7 +447,7 @@ TEST(Record, CatchesCriterionCheckStarted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::criterion_check_started_mask);
-    auto criterion = gko::stop::Iteration::Factory::create()
+    auto criterion = gko::stop::Iteration::build()
                          .with_max_iters(3u)
                          .on_executor(exec)
                          ->generate(nullptr, nullptr, nullptr);
@@ -469,7 +471,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::criterion_check_completed_mask);
-    auto criterion = gko::stop::Iteration::Factory::create()
+    auto criterion = gko::stop::Iteration::build()
                          .with_max_iters(3u)
                          .on_executor(exec)
                          ->generate(nullptr, nullptr, nullptr);
@@ -501,11 +503,12 @@ TEST(Record, CatchesIterations)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criterion(
+                gko::stop::Iteration::build().with_max_iters(3u).on_executor(
+                    exec))
+            .on_executor(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);

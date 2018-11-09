@@ -57,12 +57,12 @@ protected:
     {
         exec_ = gko::ReferenceExecutor::create();
         factory_ =
-            gko::stop::Combined::Factory::create()
+            gko::stop::Combined::build()
                 .with_criteria(
-                    gko::stop::Iteration::Factory::create()
+                    gko::stop::Iteration::build()
                         .with_max_iters(test_iterations)
                         .on_executor(exec_),
-                    gko::stop::Time::Factory::create()
+                    gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(test_seconds))
                         .on_executor(exec_))
                 .on_executor(exec_);
@@ -109,13 +109,13 @@ TEST_F(Combined, WaitsTillTime)
     constexpr double timelimit = 1.0e-9;
     constexpr int testiters = 10;
     factory_ =
-        gko::stop::Combined::Factory::create()
-            .with_criteria(gko::stop::Iteration::Factory::create()
-                               .with_max_iters(9999u)
-                               .on_executor(exec_),
-                           gko::stop::Time::Factory::create()
-                               .with_time_limit(std::chrono::nanoseconds(1))
-                               .on_executor(exec_))
+        gko::stop::Combined::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(9999u).on_executor(
+                    exec_),
+                gko::stop::Time::build()
+                    .with_time_limit(std::chrono::nanoseconds(1))
+                    .on_executor(exec_))
             .on_executor(exec_);
     unsigned int iters = 0;
     bool one_changed{};

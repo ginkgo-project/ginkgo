@@ -50,7 +50,7 @@ protected:
     ResidualNormReduction()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+        factory_ = gko::stop::ResidualNormReduction<>::build()
                        .with_reduction_factor(reduction_factor)
                        .on_executor(exec_);
     }

@@ -51,7 +51,7 @@ protected:
         omp_ = gko::OmpExecutor::create();
         // Actually use an iteration stopping criterion because Criterion is an
         // abstract class
-        factory_ = gko::stop::Iteration::Factory::create()
+        factory_ = gko::stop::Iteration::build()
                        .with_max_iters(test_iterations)
                        .on_executor(omp_);
     }

@@ -58,16 +58,16 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           bicgstab_factory(
-              Solver::Factory::create()
+              Solver::build()
                   .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(3u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-6)
-                                                 .on_executor(exec))
+                      gko::stop::Combined::build()
+                          .with_criteria(
+                              gko::stop::Iteration::build()
+                                  .with_max_iters(3u)
+                                  .on_executor(exec),
+                              gko::stop::ResidualNormReduction<>::build()
+                                  .with_reduction_factor(1e-6)
+                                  .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
           solver(bicgstab_factory->generate(mtx))
@@ -153,11 +153,11 @@ TEST_F(Bicgstab, CanBeCleared)
 TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 {
     auto bicgstab_factory =
-        Solver::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create()
-                                .with_max_iters(3u)
-                                .on_executor(exec))
-            .with_preconditioner(Solver::Factory::create().on_executor(exec))
+        Solver::build()
+            .with_criterion(
+                gko::stop::Iteration::build().with_max_iters(3u).on_executor(
+                    exec))
+            .with_preconditioner(Solver::build().on_executor(exec))
             .on_executor(exec);
 
     auto solver = bicgstab_factory->generate(mtx);

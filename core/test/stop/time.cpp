@@ -51,7 +51,7 @@ class Time : public ::testing::Test {
 protected:
     Time() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ = gko::stop::Time::Factory::create()
+        factory_ = gko::stop::Time::build()
                        .with_time_limit(std::chrono::milliseconds(test_ms))
                        .on_executor(exec_);
     }

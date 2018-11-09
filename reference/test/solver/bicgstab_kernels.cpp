@@ -60,14 +60,14 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
-              Solver::Factory::create()
+              Solver::build()
                   .with_criterion(
-                      gko::stop::Combined::Factory::create()
+                      gko::stop::Combined::build()
                           .with_criteria(
-                              gko::stop::Iteration::Factory::create()
+                              gko::stop::Iteration::build()
                                   .with_max_iters(8u)
                                   .on_executor(exec),
-                              gko::stop::Time::Factory::create()
+                              gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
                                   .on_executor(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
@@ -77,14 +77,14 @@ protected:
                           .on_executor(exec))
                   .on_executor(exec)),
           bicgstab_factory_precision(
-              gko::solver::Bicgstab<>::Factory::create()
+              gko::solver::Bicgstab<>::build()
                   .with_criterion(
-                      gko::stop::Combined::Factory::create()
+                      gko::stop::Combined::build()
                           .with_criteria(
-                              gko::stop::Iteration::Factory::create()
+                              gko::stop::Iteration::build()
                                   .with_max_iters(50u)
                                   .on_executor(exec),
-                              gko::stop::Time::Factory::create()
+                              gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
                                   .on_executor(exec),
                               gko::stop::ResidualNormReduction<>::Factory::

@@ -91,18 +91,17 @@ int main()
     auto x = gko::read<gko::matrix::Dense<>>(std::cin, exec);
     // Create the solver
     auto solver =
-        gko::solver::Cg<>::Factory::create()
+        gko::solver::Cg<>::build()
             .with_preconditioner(
                 gko::preconditioner::BlockJacobiFactory<>::create(exec, 32))
             .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(20u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
+                gko::stop::Combined::build()
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(20u)
+                                       .on_executor(exec),
+                                   gko::stop::ResidualNormReduction<>::build()
+                                       .with_reduction_factor(1e-15)
+                                       .on_executor(exec))
                     .on_executor(exec))
             .on_executor(exec);
     // Solve system

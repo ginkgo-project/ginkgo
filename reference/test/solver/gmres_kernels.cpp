@@ -59,14 +59,14 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
-              gko::solver::Gmres<>::Factory::create()
+              gko::solver::Gmres<>::build()
                   .with_criterion(
-                      gko::stop::Combined::Factory::create()
+                      gko::stop::Combined::build()
                           .with_criteria(
-                              gko::stop::Iteration::Factory::create()
+                              gko::stop::Iteration::build()
                                   .with_max_iters(4u)
                                   .on_executor(exec),
-                              gko::stop::Time::Factory::create()
+                              gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
                                   .on_executor(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
@@ -84,16 +84,16 @@ protected:
                {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
               exec)),
           gmres_factory_big(
-              gko::solver::Gmres<>::Factory::create()
+              gko::solver::Gmres<>::build()
                   .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(100u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
+                      gko::stop::Combined::build()
+                          .with_criteria(
+                              gko::stop::Iteration::build()
+                                  .with_max_iters(100u)
+                                  .on_executor(exec),
+                              gko::stop::ResidualNormReduction<>::build()
+                                  .with_reduction_factor(1e-15)
+                                  .on_executor(exec))
                           .on_executor(exec))
                   .on_executor(exec)),
           mtx_medium(
@@ -270,17 +270,16 @@ TEST_F(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
 TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
 {
     auto gmres_factory_restart =
-        gko::solver::Gmres<>::Factory::create()
+        gko::solver::Gmres<>::build()
             .with_krylov_dim(4u)
             .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(200u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
+                gko::stop::Combined::build()
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(200u)
+                                       .on_executor(exec),
+                                   gko::stop::ResidualNormReduction<>::build()
+                                       .with_reduction_factor(1e-15)
+                                       .on_executor(exec))
                     .on_executor(exec))
             .on_executor(exec);
     auto solver = gmres_factory_restart->generate(mtx_medium);
@@ -297,16 +296,15 @@ TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
 TEST_F(Gmres, SolvesWithPreconditioner)
 {
     auto gmres_factory_preconditioner =
-        gko::solver::Gmres<>::Factory::create()
+        gko::solver::Gmres<>::build()
             .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(100u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
+                gko::stop::Combined::build()
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(100u)
+                                       .on_executor(exec),
+                                   gko::stop::ResidualNormReduction<>::build()
+                                       .with_reduction_factor(1e-15)
+                                       .on_executor(exec))
                     .on_executor(exec))
             .with_preconditioner(
                 gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))

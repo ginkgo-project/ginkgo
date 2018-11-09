@@ -228,16 +228,15 @@ template <typename SolverType>
 std::unique_ptr<gko::LinOpFactory> create_solver(
     std::shared_ptr<const gko::Executor> exec)
 {
-    return SolverType::Factory::create()
+    return SolverType::build()
         .with_criterion(
-            gko::stop::Combined::Factory::create()
-                .with_criteria(
-                    gko::stop::ResidualNormReduction<>::Factory::create()
-                        .with_reduction_factor(FLAGS_rel_res_goal)
-                        .on_executor(exec),
-                    gko::stop::Iteration::Factory::create()
-                        .with_max_iters(FLAGS_max_iters)
-                        .on_executor(exec))
+            gko::stop::Combined::build()
+                .with_criteria(gko::stop::ResidualNormReduction<>::build()
+                                   .with_reduction_factor(FLAGS_rel_res_goal)
+                                   .on_executor(exec),
+                               gko::stop::Iteration::build()
+                                   .with_max_iters(FLAGS_max_iters)
+                                   .on_executor(exec))
                 .on_executor(exec))
         .on_executor(exec);
 }

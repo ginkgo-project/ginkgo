@@ -104,6 +104,7 @@ public:
             preconditioner, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;

@@ -224,16 +224,15 @@ int main(int argc, char *argv[])
     }
 
     // Generate solver and solve the system
-    cg::Factory::create()
+    cg::build()
         .with_criterion(
-            gko::stop::Combined::Factory::create()
-                .with_criteria(
-                    gko::stop::Iteration::Factory::create()
-                        .with_max_iters(discretization_points)
-                        .on_executor(exec),
-                    gko::stop::ResidualNormReduction<>::Factory::create()
-                        .with_reduction_factor(1e-6)
-                        .on_executor(exec))
+            gko::stop::Combined::build()
+                .with_criteria(gko::stop::Iteration::build()
+                                   .with_max_iters(discretization_points)
+                                   .on_executor(exec),
+                               gko::stop::ResidualNormReduction<>::build()
+                                   .with_reduction_factor(1e-6)
+                                   .on_executor(exec))
                 .on_executor(exec))
         // something fails here:
         // .with_preconditioner(bj::create(exec, 32))
