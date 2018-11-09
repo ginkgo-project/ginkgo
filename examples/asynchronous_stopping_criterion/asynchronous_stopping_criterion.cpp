@@ -141,8 +141,8 @@ void run_solver(volatile bool *stop_iteration_process,
                       .with_criterion(ByInteraction::build()
                                           .with_stop_iteration_process(
                                               stop_iteration_process)
-                                          .on_executor(exec))
-                      .on_executor(exec)
+                                          .on(exec))
+                      .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, std::cout, true));

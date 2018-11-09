@@ -51,10 +51,9 @@ TEST(Record, CatchesCriterionCheckCompleted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<>::create(
         exec, gko::log::Logger::criterion_check_completed_mask);
-    auto criterion = gko::stop::Iteration::build()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     using Mtx = gko::matrix::Dense<>;

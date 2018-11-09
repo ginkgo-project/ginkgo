@@ -106,17 +106,17 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(20u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-20)
-                                       .on_executor(exec))
-                    .on_executor(exec))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(20u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-20)
+                            .on(exec))
+                    .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_preconditioner(bj::create(exec, 8))
-            .on_executor(exec);
+            .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
 

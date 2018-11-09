@@ -96,14 +96,14 @@ int main()
                 gko::preconditioner::BlockJacobiFactory<>::create(exec, 32))
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(20u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-15)
-                                       .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(20u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-15)
+                            .on(exec))
+                    .on(exec))
+            .on(exec);
     // Solve system
     solver->generate(give(A))->apply(lend(b), lend(x));
     // Write result

@@ -233,16 +233,16 @@ void solve_system(const std::string &executor_string,
         cg::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(dp)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(accuracy)
-                                       .on_executor(exec))
-                    .on_executor(exec))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(dp).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(accuracy)
+                            .on(exec))
+                    .on(exec))
             // something fails here:
             // .with_preconditioner(bj::create(exec, 32))
-            .on_executor(exec);
+            .on(exec);
     auto solver = solver_gen->generate(gko::give(matrix));
 
     // Solve system

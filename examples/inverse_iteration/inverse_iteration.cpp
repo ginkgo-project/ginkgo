@@ -159,12 +159,12 @@ int main(int argc, char *argv[])
                     .with_criteria(
                         gko::stop::Iteration::build()
                             .with_max_iters(system_max_iterations)
-                            .on_executor(exec),
+                            .on(exec),
                         gko::stop::ResidualNormReduction<precision>::build()
                             .with_reduction_factor(system_residual_goal)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec)
+                            .on(exec))
+                    .on(exec))
+            .on(exec)
             ->generate(system_matrix);
 
     // inverse iterations

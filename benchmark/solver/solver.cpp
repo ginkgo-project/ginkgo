@@ -233,12 +233,12 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
             gko::stop::Combined::build()
                 .with_criteria(gko::stop::ResidualNormReduction<>::build()
                                    .with_reduction_factor(FLAGS_rel_res_goal)
-                                   .on_executor(exec),
+                                   .on(exec),
                                gko::stop::Iteration::build()
                                    .with_max_iters(FLAGS_max_iters)
-                                   .on_executor(exec))
-                .on_executor(exec))
-        .on_executor(exec);
+                                   .on(exec))
+                .on(exec))
+        .on(exec);
 }
 
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(

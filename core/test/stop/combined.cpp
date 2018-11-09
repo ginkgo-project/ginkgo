@@ -61,11 +61,11 @@ protected:
                 .with_criteria(
                     gko::stop::Iteration::build()
                         .with_max_iters(test_iterations)
-                        .on_executor(exec_),
+                        .on(exec_),
                     gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(test_seconds))
-                        .on_executor(exec_))
-                .on_executor(exec_);
+                        .on(exec_))
+                .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;

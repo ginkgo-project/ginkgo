@@ -54,7 +54,7 @@ protected:
         // abstract class
         factory_ = gko::stop::Iteration::build()
                        .with_max_iters(test_iterations)
-                       .on_executor(cuda_);
+                       .on(cuda_);
     }
 
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;

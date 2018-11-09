@@ -65,16 +65,16 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(4u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
                                   create()
                                       .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                      .on(exec))
+                          .on(exec))
+                  .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
                {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
@@ -90,12 +90,12 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(100u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::build()
                                   .with_reduction_factor(1e-15)
-                                  .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                  .on(exec))
+                          .on(exec))
+                  .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
                                     {7.70, -77.00, 3.30, -149.20, 74.80},
@@ -274,14 +274,14 @@ TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
             .with_krylov_dim(4u)
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(200u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-15)
-                                       .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(200u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-15)
+                            .on(exec))
+                    .on(exec))
+            .on(exec);
     auto solver = gmres_factory_restart->generate(mtx_medium);
     auto b = gko::initialize<Mtx>(
         {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, exec);
@@ -299,16 +299,16 @@ TEST_F(Gmres, SolvesWithPreconditioner)
         gko::solver::Gmres<>::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(100u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-15)
-                                       .on_executor(exec))
-                    .on_executor(exec))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(100u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-15)
+                            .on(exec))
+                    .on(exec))
             .with_preconditioner(
                 gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
-            .on_executor(exec);
+            .on(exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},

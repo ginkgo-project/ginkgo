@@ -257,26 +257,26 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
         Solver::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(50u)
-                                       .on_executor(ref),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-14)
-                                       .on_executor(ref))
-                    .on_executor(ref))
-            .on_executor(ref);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(50u).on(
+                            ref),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-14)
+                            .on(ref))
+                    .on(ref))
+            .on(ref);
     auto d_fcg_factory =
         Solver::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(50u)
-                                       .on_executor(cuda),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-14)
-                                       .on_executor(cuda))
-                    .on_executor(cuda))
-            .on_executor(cuda);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(50u).on(
+                            cuda),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-14)
+                            .on(cuda))
+                    .on(cuda))
+            .on(cuda);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 

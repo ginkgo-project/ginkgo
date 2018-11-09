@@ -68,12 +68,12 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(3u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::build()
                                   .with_reduction_factor(1e-6)
-                                  .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                  .on(exec))
+                          .on(exec))
+                  .on(exec)),
           solver(gmres_factory->generate(mtx)),
           gmres_big_factory(
               Big_solver::build()
@@ -82,12 +82,12 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(128u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::build()
                                   .with_reduction_factor(1e-6)
-                                  .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                  .on(exec))
+                          .on(exec))
+                  .on(exec)),
           big_solver(gmres_big_factory->generate(mtx))
     {}
 
@@ -176,15 +176,15 @@ TEST_F(Gmres, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(3u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-6)
-                                       .on_executor(exec))
-                    .on_executor(exec))
-            .with_preconditioner(Solver::build().on_executor(exec))
-            .on_executor(exec);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-6)
+                            .on(exec))
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
     auto solver = gmres_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Gmres<> *>(
         static_cast<gko::solver::Gmres<> *>(solver.get())
@@ -204,14 +204,14 @@ TEST_F(Gmres, CanSetKrylovDim)
             .with_krylov_dim(4u)
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(4u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-6)
-                                       .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(4u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-6)
+                            .on(exec))
+                    .on(exec))
+            .on(exec);
     auto solver = gmres_factory->generate(mtx);
     auto krylov_dim = solver->get_krylov_dim();
 

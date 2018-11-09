@@ -138,21 +138,21 @@ int main(int argc, char *argv[])
     using ResidualCriterionFactory =
         gko::stop::ResidualNormReduction<>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =
-        ResidualCriterionFactory::create()
-            .with_reduction_factor(1e-20)
-            .on_executor(exec);
+        ResidualCriterionFactory::create().with_reduction_factor(1e-20).on(
+            exec);
     residual_criterion->add_logger(stream_logger);
 
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criterion(gko::stop::Combined::build()
-                                .with_criteria(residual_criterion,
-                                               gko::stop::Iteration::build()
-                                                   .with_max_iters(20u)
-                                                   .on_executor(exec))
-                                .on_executor(exec))
-            .on_executor(exec);
+            .with_criterion(
+                gko::stop::Combined::build()
+                    .with_criteria(
+                        residual_criterion,
+                        gko::stop::Iteration::build().with_max_iters(20u).on(
+                            exec))
+                    .on(exec))
+            .on(exec);
     auto solver = solver_gen->generate(A);
 
 

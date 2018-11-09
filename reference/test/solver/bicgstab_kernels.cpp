@@ -66,16 +66,16 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(8u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
                                   create()
                                       .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                      .on(exec))
+                          .on(exec))
+                  .on(exec)),
           bicgstab_factory_precision(
               gko::solver::Bicgstab<>::build()
                   .with_criterion(
@@ -83,16 +83,16 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(50u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
                                   create()
                                       .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+                                      .on(exec))
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

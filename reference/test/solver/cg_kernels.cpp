@@ -64,16 +64,16 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(4u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::Time::build()
                                   .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::Factory::
                                   create()
                                       .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+                                      .on(exec))
+                          .on(exec))
+                  .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
                {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
@@ -89,12 +89,12 @@ protected:
                           .with_criteria(
                               gko::stop::Iteration::build()
                                   .with_max_iters(100u)
-                                  .on_executor(exec),
+                                  .on(exec),
                               gko::stop::ResidualNormReduction<>::build()
                                   .with_reduction_factor(1e-15)
-                                  .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+                                  .on(exec))
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

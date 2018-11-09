@@ -77,12 +77,12 @@ protected:
                         .with_criteria(
                             gko::stop::Iteration::build()
                                 .with_max_iters(246u)
-                                .on_executor(omp),
+                                .on(omp),
                             gko::stop::ResidualNormReduction<>::build()
                                 .with_reduction_factor(1e-15)
-                                .on_executor(omp))
-                        .on_executor(omp))
-                .on_executor(omp);
+                                .on(omp))
+                        .on(omp))
+                .on(omp);
 
         ref_bicgstab_factory =
             Solver::build()
@@ -91,12 +91,12 @@ protected:
                         .with_criteria(
                             gko::stop::Iteration::build()
                                 .with_max_iters(246u)
-                                .on_executor(ref),
+                                .on(ref),
                             gko::stop::ResidualNormReduction<>::build()
                                 .with_reduction_factor(1e-15)
-                                .on_executor(ref))
-                        .on_executor(ref))
-                .on_executor(ref);
+                                .on(ref))
+                        .on(ref))
+                .on(ref);
     }
 
     void TearDown()

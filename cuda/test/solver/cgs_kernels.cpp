@@ -77,12 +77,12 @@ protected:
                         .with_criteria(
                             gko::stop::Iteration::build()
                                 .with_max_iters(246u)
-                                .on_executor(cuda),
+                                .on(cuda),
                             gko::stop::ResidualNormReduction<>::build()
                                 .with_reduction_factor(1e-15)
-                                .on_executor(cuda))
-                        .on_executor(cuda))
-                .on_executor(cuda);
+                                .on(cuda))
+                        .on(cuda))
+                .on(cuda);
         ref_cgs_factory =
             Solver::build()
                 .with_criterion(
@@ -90,12 +90,12 @@ protected:
                         .with_criteria(
                             gko::stop::Iteration::build()
                                 .with_max_iters(246u)
-                                .on_executor(ref),
+                                .on(ref),
                             gko::stop::ResidualNormReduction<>::build()
                                 .with_reduction_factor(1e-15)
-                                .on_executor(ref))
-                        .on_executor(ref))
-                .on_executor(ref);
+                                .on(ref))
+                        .on(ref))
+                .on(ref);
     }
 
     void TearDown()

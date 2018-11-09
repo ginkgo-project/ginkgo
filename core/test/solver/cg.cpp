@@ -65,12 +65,12 @@ protected:
                                  .with_criteria(
                                      gko::stop::Iteration::build()
                                          .with_max_iters(3u)
-                                         .on_executor(exec),
+                                         .on(exec),
                                      gko::stop::ResidualNormReduction<>::build()
                                          .with_reduction_factor(1e-6)
-                                         .on_executor(exec))
-                                 .on_executor(exec))
-                         .on_executor(exec)),
+                                         .on(exec))
+                                 .on(exec))
+                         .on(exec)),
           solver(cg_factory->generate(mtx))
     {}
 
@@ -157,15 +157,15 @@ TEST_F(Cg, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(3u)
-                                       .on_executor(exec),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-6)
-                                       .on_executor(exec))
-                    .on_executor(exec))
-            .with_preconditioner(Solver::build().on_executor(exec))
-            .on_executor(exec);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            exec),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-6)
+                            .on(exec))
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
     auto solver = cg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Cg<> *>(
         static_cast<gko::solver::Cg<> *>(solver.get())

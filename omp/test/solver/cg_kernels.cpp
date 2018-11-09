@@ -243,26 +243,26 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
         gko::solver::Cg<>::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(50u)
-                                       .on_executor(ref),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-14)
-                                       .on_executor(ref))
-                    .on_executor(ref))
-            .on_executor(ref);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(50u).on(
+                            ref),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-14)
+                            .on(ref))
+                    .on(ref))
+            .on(ref);
     auto d_cg_factory =
         gko::solver::Cg<>::build()
             .with_criterion(
                 gko::stop::Combined::build()
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(50u)
-                                       .on_executor(omp),
-                                   gko::stop::ResidualNormReduction<>::build()
-                                       .with_reduction_factor(1e-14)
-                                       .on_executor(omp))
-                    .on_executor(omp))
-            .on_executor(omp);
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(50u).on(
+                            omp),
+                        gko::stop::ResidualNormReduction<>::build()
+                            .with_reduction_factor(1e-14)
+                            .on(omp))
+                    .on(omp))
+            .on(omp);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 

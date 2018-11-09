@@ -342,14 +342,14 @@ int main(int argc, char *argv[])
             gko::stop::Combined::build()
                 .with_criteria(gko::stop::Iteration::build()
                                    .with_max_iters(discretization_points)
-                                   .on_executor(exec),
+                                   .on(exec),
                                gko::stop::ResidualNormReduction<>::build()
                                    .with_reduction_factor(1e-6)
-                                   .on_executor(exec))
-                .on_executor(exec))
+                                   .on(exec))
+                .on(exec))
         // something fails here:
         // .with_preconditioner(bj::create(exec, 32))
-        .on_executor(exec)
+        .on(exec)
         // notice how our custom StencilMatrix can be used in the same way as
         // any built-in type
         ->generate(

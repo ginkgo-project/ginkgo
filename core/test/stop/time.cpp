@@ -53,7 +53,7 @@ protected:
     {
         factory_ = gko::stop::Time::build()
                        .with_time_limit(std::chrono::milliseconds(test_ms))
-                       .on_executor(exec_);
+                       .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Time::Factory> factory_;

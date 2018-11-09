@@ -61,11 +61,11 @@ protected:
                 .with_criteria(
                     gko::stop::Iteration::build()
                         .with_max_iters(test_iterations)
-                        .on_executor(exec_),
+                        .on(exec_),
                     gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(test_seconds))
-                        .on_executor(exec_))
-                .on_executor(exec_);
+                        .on(exec_))
+                .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;
@@ -111,12 +111,11 @@ TEST_F(Combined, WaitsTillTime)
     factory_ =
         gko::stop::Combined::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(9999u).on_executor(
-                    exec_),
+                gko::stop::Iteration::build().with_max_iters(9999u).on(exec_),
                 gko::stop::Time::build()
                     .with_time_limit(std::chrono::nanoseconds(1))
-                    .on_executor(exec_))
-            .on_executor(exec_);
+                    .on(exec_))
+            .on(exec_);
     unsigned int iters = 0;
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
