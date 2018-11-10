@@ -497,15 +497,9 @@ class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
 public:
     using result_type = ResultType;
 
-    void convert_to(result_type *result) const override
-    {
-        *result = static_cast<result_type>(*self());
-    }
+    void convert_to(result_type *result) const override { *result = *self(); }
 
-    void move_to(result_type *result) override
-    {
-        *result = static_cast<result_type>(std::move(*self()));
-    }
+    void move_to(result_type *result) override { *result = std::move(*self()); }
 
 private:
     GKO_ENABLE_SELF(ConcreteType);
