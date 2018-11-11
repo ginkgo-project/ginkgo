@@ -81,8 +81,8 @@ protected:
 
     void initialize_data()
     {
-        int m = 10;
-        int n = 1;
+        int m = 597;
+        int n = 43;
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);

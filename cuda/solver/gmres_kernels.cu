@@ -161,7 +161,10 @@ __global__
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = ceildiv(idx + 1, num_cols) - 1;
     const auto column = idx - row * num_cols;
-    krylov_bases[row * stride + column] = residual[idx] / residual_norm[column];
+    if (idx < num_rows * num_cols) {
+        krylov_bases[row * stride + column] =
+            residual[idx] / residual_norm[column];
+    }
 }
 
 
