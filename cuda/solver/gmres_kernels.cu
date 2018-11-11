@@ -125,6 +125,10 @@ __global__ __launch_bounds__(default_block_size) void initialize_2_kernel(
     const auto idx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
+    if (idx < num_rows * (krylov_dim + 1) * num_cols) {
+        krylov_bases[idx] = 0;
+    }
+
     if (idx < (krylov_dim + 1) * num_cols) {
         residual_norms[idx] = 0;
     }
@@ -140,11 +144,22 @@ __global__ __launch_bounds__(default_block_size) void initialize_2_kernel(
         final_iter_nums[idx] = 0;
         residual_norms[idx] = residual_norm[idx];
     }
+}
 
-    if (idx < num_rows * stride) {
-        krylov_bases[idx] =
-            residual[idx] / residual_norm[ceildiv(idx, stride) - 1];
-    }
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void initialize_krylov_bases_kernel(
+        size_type num_rows, size_type num_cols, size_type stride,
+        const ValueType *__restrict__ residual,
+        const ValueType *__restrict__ residual_norm,
+        ValueType *__restrict__ krylov_bases)
+{
+    const auto idx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto row = ceildiv(idx + 1, num_cols) - 1;
+    const auto column = idx - row * num_cols;
+    krylov_bases[row * stride + column] = residual[idx] / residual_norm[column];
 }
 
 
@@ -162,16 +177,25 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
         ceildiv(krylov_bases->get_size()[0], default_block_size) *
-            krylov_bases->get_size()[1],
+            krylov_bases->get_stride(),
+        1, 1);
+    const dim3 grid_size_small(
+        ceildiv(krylov_bases->get_size()[0], default_block_size) *
+            residual->get_size()[1],
         1, 1);
     initialize_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        krylov_bases->get_size()[0], krylov_bases->get_size()[1],
-        krylov_bases->get_stride(), krylov_dim,
+        residual->get_size()[0], residual->get_size()[1],
+        residual->get_stride(), krylov_dim,
         as_cuda_type(residual->get_const_values()),
         as_cuda_type(residual_norm->get_values()),
         as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()),
         as_cuda_type(final_iter_nums->get_data()));
+    initialize_krylov_bases_kernel<<<grid_size_small, block_size>>>(
+        residual->get_size()[0], residual->get_size()[1],
+        krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
+        as_cuda_type(residual_norm->get_const_values()),
+        as_cuda_type(krylov_bases->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);

@@ -295,6 +295,13 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         }
         final_iter_nums->get_data()[j] = 0;
     }
+
+    for (size_type j = residual->get_size()[1]; j < krylov_bases->get_size()[1];
+         ++j) {
+        for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
+            krylov_bases->at(i, j) = zero<ValueType>();
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
