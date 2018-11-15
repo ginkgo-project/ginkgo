@@ -30,6 +30,8 @@ var searchData=
   ['get_5fcoo_5fnum_5fstored_5felements',['get_coo_num_stored_elements',['../classgko_1_1matrix_1_1Hybrid.html#a2fe06adb3323dcad710329e33a12dff4',1,'gko::matrix::Hybrid']]],
   ['get_5fcoo_5frow_5fidxs',['get_coo_row_idxs',['../classgko_1_1matrix_1_1Hybrid.html#aa64e1442587df4be9bc55f38d91be26d',1,'gko::matrix::Hybrid']]],
   ['get_5fcoo_5fvalues',['get_coo_values',['../classgko_1_1matrix_1_1Hybrid.html#a8513b46a3abb728b725fc26af81d09b9',1,'gko::matrix::Hybrid']]],
+  ['get_5fcublas_5fhandle',['get_cublas_handle',['../classgko_1_1CudaExecutor.html#a753c92ec23634650e1abed9ad0b4bc51',1,'gko::CudaExecutor']]],
+  ['get_5fcusparse_5fhandle',['get_cusparse_handle',['../classgko_1_1CudaExecutor.html#a4abf2a7b2f479ef53f50815be53cafeb',1,'gko::CudaExecutor']]],
   ['get_5fdata',['get_data',['../classgko_1_1Array.html#a9acf29878703bb8767e3cea2ba499dae',1,'gko::Array']]],
   ['get_5fdevice_5fid',['get_device_id',['../classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488',1,'gko::CudaExecutor']]],
   ['get_5fell',['get_ell',['../classgko_1_1matrix_1_1Hybrid.html#afe9a3a9a801271d5ead4774fff7ffbd7',1,'gko::matrix::Hybrid']]],

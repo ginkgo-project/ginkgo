@@ -151,6 +151,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aa7d7a5cd7aeb38b8ab8fe3e4d1538481">get_minor_version</a> () const noexcept</td></tr>
 <tr class="memdesc:aa7d7a5cd7aeb38b8ab8fe3e4d1538481"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the minor verion of compute capability. <br /></td></tr>
 <tr class="separator:aa7d7a5cd7aeb38b8ab8fe3e4d1538481"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a753c92ec23634650e1abed9ad0b4bc51"><td class="memItemLeft" align="right" valign="top">cublasContext *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a753c92ec23634650e1abed9ad0b4bc51">get_cublas_handle</a> () const </td></tr>
+<tr class="memdesc:a753c92ec23634650e1abed9ad0b4bc51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the cublas handle for this executor.  <a href="#a753c92ec23634650e1abed9ad0b4bc51">More...</a><br /></td></tr>
+<tr class="separator:a753c92ec23634650e1abed9ad0b4bc51"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4abf2a7b2f479ef53f50815be53cafeb"><td class="memItemLeft" align="right" valign="top">cusparseContext *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a4abf2a7b2f479ef53f50815be53cafeb">get_cusparse_handle</a> () const </td></tr>
+<tr class="memdesc:a4abf2a7b2f479ef53f50815be53cafeb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the cusparse handle for this executor.  <a href="#a4abf2a7b2f479ef53f50815be53cafeb">More...</a><br /></td></tr>
+<tr class="separator:a4abf2a7b2f479ef53f50815be53cafeb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -211,6 +217,42 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>ExecutorBase&lt; Cud
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a class="anchor" id="a753c92ec23634650e1abed9ad0b4bc51"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">cublasContext* gko::CudaExecutor::get_cublas_handle </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the cublas handle for this executor. </p>
+<dl class="section return"><dt>Returns</dt><dd>the cublas handle (cublasContext*) for this executor </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a4abf2a7b2f479ef53f50815be53cafeb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">cusparseContext* gko::CudaExecutor::get_cusparse_handle </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the cusparse handle for this executor. </p>
+<dl class="section return"><dt>Returns</dt><dd>the cusparse handle (cusparseContext*) for this executor </dd></dl>
 
 </div>
 </div>
@@ -309,8 +351,8 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>ExecutorBase&lt; Cud
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (36dda8f)</a></li>
-<li>core/device_hooks/cuda_hooks.cpp (62cc749)</li>
+<li>core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (36e4c2d)</a></li>
+<li>core/device_hooks/cuda_hooks.cpp (36e4c2d)</li>
 <li>core/devices/cuda/executor.cpp (348bed6)</li>
 </ul>
 </div><!-- contents -->
