@@ -822,27 +822,22 @@ public:
      *
      * @return  the cublas handle (cublasContext*) for this executor
      */
-    cublasContext *get_cublas_handle() const { return cublas_handle_; }
+    cublasContext *get_cublas_handle() const { return cublas_handle_.get(); }
 
     /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
      */
-    cusparseContext *get_cusparse_handle() const { return cusparse_handle_; }
-
-    /**
-     * Destructor which properly destroys the cublas and cusparse handles when
-     * required
-     */
-    ~CudaExecutor() { destroy_handles(); }
+    cusparseContext *get_cusparse_handle() const
+    {
+        return cusparse_handle_.get();
+    }
 
 protected:
     void set_gpu_property();
 
     void init_handles();
-
-    void destroy_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master)
         : device_id_(device_id),
@@ -869,8 +864,11 @@ private:
     int num_multiprocessor_;
     int major_;
     int minor_;
-    cublasContext *cublas_handle_;
-    cusparseContext *cusparse_handle_;
+
+    template <typename T>
+    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    handle_manager<cublasContext> cublas_handle_;
+    handle_manager<cusparseContext> cusparse_handle_;
 };
 
 

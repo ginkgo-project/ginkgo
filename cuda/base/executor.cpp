@@ -221,15 +221,12 @@ void CudaExecutor::set_gpu_property()
 
 void CudaExecutor::init_handles()
 {
-    this->cublas_handle_ = kernels::cuda::cublas::init();
-    this->cusparse_handle_ = kernels::cuda::cusparse::init();
-}
-
-
-void CudaExecutor::destroy_handles()
-{
-    kernels::cuda::cublas::destroy(this->cublas_handle_);
-    kernels::cuda::cusparse::destroy(this->cusparse_handle_);
+    this->cublas_handle_ = handle_manager<cublasContext>(
+        kernels::cuda::cublas::init(), kernels::cuda::cublas::destroy);
+    typedef void (*func_ptr)(cusparseHandle_t);
+    this->cusparse_handle_ = handle_manager<cusparseContext>(
+        kernels::cuda::cusparse::init(),
+        static_cast<func_ptr>(kernels::cuda::cusparse::destroy));
 }
 
 
