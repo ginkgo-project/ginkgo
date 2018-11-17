@@ -337,7 +337,7 @@ private:
  * // Suppose A is a matrix, b a rhs vector, and x an initial guess
  * // Create a CG which runs for at most 1000 iterations, and stops after
  * // reducing the residual norm by 6 orders of magnitude
- * auto cg_factory = solver::Cg::Factory<>::create()
+ * auto cg_factory = solver::Cg<>::build()
  *     .with_max_iters(1000)
  *     .with_rel_residual_goal(1e-6)
  *     .on(cuda);

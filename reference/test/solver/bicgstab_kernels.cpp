@@ -66,7 +66,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<>::Factory::create()
+                      gko::stop::ResidualNormReduction<>::build()
                           .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec)),
@@ -78,7 +78,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<>::Factory::create()
+                      gko::stop::ResidualNormReduction<>::build()
                           .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec))

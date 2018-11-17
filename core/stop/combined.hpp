@@ -95,6 +95,38 @@ private:
 };
 
 
+/**
+ * Combines multiple criterion factories into a single combined criterion
+ * factory.
+ *
+ * This function treats a singleton container as a special case and avoids
+ * creating an additional object and just returns the input factory.
+ *
+ * @tparam FactoryContainer  a random access container type
+ *
+ * @param factories  a list of factories to combined
+ *
+ * @return a combined criterion factory if the input contains multiple factories
+ *         or the input factory if the input contains only one factory
+ */
+template <typename FactoryContainer>
+std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
+{
+    switch (factories.size()) {
+    case 0:
+        NOT_SUPPORTED(nullptr);
+        return nullptr;
+    case 1:
+        return factories[0];
+    default:
+        auto exec = factories[0]->get_executor();
+        return Combined::build()
+            .with_criteria(std::forward<FactoryContainer>(factories))
+            .on(exec);
+    }
+}
+
+
 }  // namespace stop
 }  // namespace gko
 

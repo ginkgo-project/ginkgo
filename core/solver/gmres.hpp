@@ -35,6 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_GMRES_HPP_
 
 
+#include <vector>
+
+
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
@@ -146,22 +149,13 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        if (parameters_.criteria.size() == 1) {
-            stop_criterion_factory_ = std::move(parameters_.criteria[0]);
-        } else if (parameters_.criteria.size() > 1) {
-            auto exec = parameters_.criteria[0]->get_executor();
-            stop_criterion_factory_ =
-                stop::Combined::build()
-                    .with_criteria(std::move(parameters_.criteria))
-                    .on(exec);
-        } else {
-            NOT_SUPPORTED(nullptr);
-        }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
         } else {
             krylov_dim_ = default_krylov_dim;
         }
+        stop_criterion_factory_ =
+            stop::combine(std::move(parameters_.criteria));
     }
 
 private:
