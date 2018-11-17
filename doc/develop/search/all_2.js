@@ -68,9 +68,8 @@ var searchData=
   ['create_5fdefault',['create_default',['../classgko_1_1PolymorphicObject.html#a6d08639dbedc5561cad8ec10a464b5e0',1,'gko::PolymorphicObject::create_default(std::shared_ptr&lt; const Executor &gt; exec) const '],['../classgko_1_1PolymorphicObject.html#ad8a606d53326c409ff9a1c2b82708c8d',1,'gko::PolymorphicObject::create_default() const ']]],
   ['create_5fsubmatrix',['create_submatrix',['../classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366',1,'gko::matrix::Dense']]],
   ['create_5fwith_5fconfig_5fof',['create_with_config_of',['../classgko_1_1matrix_1_1Dense.html#a4c2089b9e1f7a99a32488a4964e832db',1,'gko::matrix::Dense']]],
-  ['criteria',['criteria',['../structgko_1_1stop_1_1Combined_1_1parameters__type.html#a2ab63880c1758c42b3a175cd6b004635',1,'gko::stop::Combined::parameters_type']]],
+  ['criteria',['criteria',['../structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a98e25950c6dcaa68eacc241fbc8bd521',1,'gko::solver::Bicgstab::parameters_type::criteria()'],['../structgko_1_1solver_1_1Cg_1_1parameters__type.html#af8544e18d6657180b3a13a98c79e4fa8',1,'gko::solver::Cg::parameters_type::criteria()'],['../structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a02051dffae27205cd269beeaa29f8163',1,'gko::solver::Cgs::parameters_type::criteria()'],['../structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a4d322d51e9c1908b97a868746c191683',1,'gko::solver::Fcg::parameters_type::criteria()'],['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#a7e00d428588b7bcac078083cb03c56c2',1,'gko::solver::Gmres::parameters_type::criteria()'],['../structgko_1_1stop_1_1Combined_1_1parameters__type.html#a2ab63880c1758c42b3a175cd6b004635',1,'gko::stop::Combined::parameters_type::criteria()']]],
   ['criterion',['Criterion',['../classgko_1_1stop_1_1Criterion.html',1,'gko::stop']]],
-  ['criterion',['criterion',['../structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#ac34b2b4e74d657c22fe3aa7efba9b179',1,'gko::solver::Bicgstab::parameters_type::criterion()'],['../structgko_1_1solver_1_1Cg_1_1parameters__type.html#a84eaf9df0574a1bc654d7829aa110423',1,'gko::solver::Cg::parameters_type::criterion()'],['../structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a356eeefa105d3d00995692e63de7b790',1,'gko::solver::Cgs::parameters_type::criterion()'],['../structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a0e53850ee89d614218f012e36c4c0a0a',1,'gko::solver::Fcg::parameters_type::criterion()'],['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#ae42562546cc2af7200c38ca7d7e41728',1,'gko::solver::Gmres::parameters_type::criterion()']]],
   ['criterion_5fdata',['criterion_data',['../structgko_1_1log_1_1criterion__data.html',1,'gko::log']]],
   ['criterion_5fevents_5fmask',['criterion_events_mask',['../classgko_1_1log_1_1Logger.html#a6d837d90c54084a9de7d0469f8e40527',1,'gko::log::Logger']]],
   ['criterionargs',['CriterionArgs',['../structgko_1_1stop_1_1CriterionArgs.html',1,'gko::stop']]],
@@ -83,6 +82,6 @@ var searchData=
   ['cudaerror',['CudaError',['../classgko_1_1CudaError.html',1,'gko']]],
   ['cudaexecutor',['CudaExecutor',['../classgko_1_1CudaExecutor.html',1,'gko']]],
   ['cusparse',['cusparse',['../classgko_1_1matrix_1_1Csr_1_1cusparse.html',1,'gko::matrix::Csr']]],
-  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html#ad51ca5caecfc2e41bd06c779d2ca57ae',1,'gko::CusparseError']]],
-  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko']]]
+  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko']]],
+  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html#ad51ca5caecfc2e41bd06c779d2ca57ae',1,'gko::CusparseError']]]
 ];

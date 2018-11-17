@@ -113,16 +113,16 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>factory</b> = Factor
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ac619c231171cfb388e2e36fd186ce0e8"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; Factory &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1enable__parameters__type.html#ac619c231171cfb388e2e36fd186ce0e8">on_executor</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const </td></tr>
-<tr class="memdesc:ac619c231171cfb388e2e36fd186ce0e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new factory on the specified executor.  <a href="#ac619c231171cfb388e2e36fd186ce0e8">More...</a><br /></td></tr>
-<tr class="separator:ac619c231171cfb388e2e36fd186ce0e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add96406758da030de7cb65eecbc42e7b"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; Factory &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1enable__parameters__type.html#add96406758da030de7cb65eecbc42e7b">on</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const </td></tr>
+<tr class="memdesc:add96406758da030de7cb65eecbc42e7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new factory on the specified executor.  <a href="#add96406758da030de7cb65eecbc42e7b">More...</a><br /></td></tr>
+<tr class="separator:add96406758da030de7cb65eecbc42e7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename ConcreteParametersType, typename Factory&gt;<br />
 struct gko::enable_parameters_type&lt; ConcreteParametersType, Factory &gt;</h3>
 
 <p>The <a class="el" href="structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">enable_parameters_type</a> mixin is used to create a base implementation of the factory parameters structure. </p>
-<p>It provides only the <a class="el" href="structgko_1_1enable__parameters__type.html#ac619c231171cfb388e2e36fd186ce0e8" title="Creates a new factory on the specified executor. ">on_executor()</a> method which can be used to instantiate the factory give the parameters stored in the structure.</p>
+<p>It provides only the <a class="el" href="structgko_1_1enable__parameters__type.html#add96406758da030de7cb65eecbc42e7b" title="Creates a new factory on the specified executor. ">on()</a> method which can be used to instantiate the factory give the parameters stored in the structure.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ConcreteParametersType</td><td>the concrete parameters type which is being implemented [CRTP parameter] </td></tr>
@@ -131,14 +131,14 @@ struct gko::enable_parameters_type&lt; ConcreteParametersType, Factory &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="ac619c231171cfb388e2e36fd186ce0e8"></a>
+<a class="anchor" id="add96406758da030de7cb65eecbc42e7b"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename ConcreteParametersType, typename Factory&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">std::unique_ptr&lt;Factory&gt; <a class="el" href="structgko_1_1enable__parameters__type.html">gko::enable_parameters_type</a>&lt; ConcreteParametersType, Factory &gt;::on_executor </td>
+          <td class="memname">std::unique_ptr&lt;Factory&gt; <a class="el" href="structgko_1_1enable__parameters__type.html">gko::enable_parameters_type</a>&lt; ConcreteParametersType, Factory &gt;::on </td>
           <td>(</td>
           <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
           <td class="paramname"><em>exec</em></td><td>)</td>
@@ -159,7 +159,7 @@ template&lt;typename ConcreteParametersType, typename Factory&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>core/base/<a class="el" href="abstract__factory_8hpp_source.html">abstract_factory.hpp (b4212b9)</a></li>
+<li>core/base/<a class="el" href="abstract__factory_8hpp_source.html">abstract_factory.hpp (a3d4a93)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
