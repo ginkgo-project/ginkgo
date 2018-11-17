@@ -60,39 +60,28 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              gko::stop::Iteration::Factory::create()
-                                  .with_max_iters(8u)
-                                  .on_executor(exec),
-                              gko::stop::Time::Factory::create()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           bicgstab_factory_precision(
-              gko::solver::Bicgstab<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              gko::stop::Iteration::Factory::create()
-                                  .with_max_iters(50u)
-                                  .on_executor(exec),
-                              gko::stop::Time::Factory::create()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+              gko::solver::Bicgstab<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(50u).on(
+                          exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

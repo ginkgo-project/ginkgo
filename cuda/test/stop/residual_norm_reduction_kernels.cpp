@@ -51,9 +51,9 @@ protected:
     {
         ref_ = gko::ReferenceExecutor::create();
         cuda_ = gko::CudaExecutor::create(0, ref_);
-        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+        factory_ = gko::stop::ResidualNormReduction<>::build()
                        .with_reduction_factor(reduction_factor)
-                       .on_executor(cuda_);
+                       .on(cuda_);
     }
 
     std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;

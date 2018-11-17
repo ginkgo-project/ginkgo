@@ -180,7 +180,7 @@ public:
      * This method does not construct the factory directly, but returns a new
      * parameters_type object, which can be used to set the parameters of the
      * factory. Once the parameters have been set, the
-     * parameters_type::on_executor() method can be used to obtain an instance
+     * parameters_type::on() method can be used to obtain an instance
      * of the factory with those parameters.
      *
      * @return a default parameters_type object
@@ -253,7 +253,7 @@ private:
  * The enable_parameters_type mixin is used to create a base implementation of
  * the factory parameters structure.
  *
- * It provides only the on_executor() method which can be used to instantiate
+ * It provides only the on() method which can be used to instantiate
  * the factory give the parameters stored in the structure.
  *
  * @tparam ConcreteParametersType  the concrete parameters type which is being
@@ -272,8 +272,7 @@ struct enable_parameters_type {
      *
      * @return a new factory instance
      */
-    std::unique_ptr<Factory> on_executor(
-        std::shared_ptr<const Executor> exec) const
+    std::unique_ptr<Factory> on(std::shared_ptr<const Executor> exec) const
     {
         return std::unique_ptr<Factory>(new Factory(exec, *self()));
     }
