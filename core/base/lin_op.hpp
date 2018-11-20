@@ -680,6 +680,7 @@ public:
     }
 
 
+#ifndef __CUDACC__
 /**
  * Creates a factory parameter in the factory parameters structure.
  *
@@ -699,6 +700,18 @@ public:
         this->_name = type{std::forward<Args>(_value)...};   \
         return *this;                                        \
     }
+#else  // __CUDACC__
+// A workaround for the NVCC compiler - parameter pack expansion does not work
+// properly. You won't be able to use factories in code compiled with NVCC, but
+// at least this won't trigger a compiler error as soon as a header using it is
+// included.
+#define GKO_FACTORY_PARAMETER(_name, ...) \
+    mutable _name{__VA_ARGS__};           \
+                                          \
+    template <typename... Args>           \
+    auto with_##_name(Args &&... _value)  \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &;
+#endif  // __CUDACC__
 
 
 }  // namespace gko

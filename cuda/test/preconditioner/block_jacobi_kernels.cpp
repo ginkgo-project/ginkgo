@@ -50,8 +50,7 @@ namespace {
 
 class BlockJacobi : public ::testing::Test {
 protected:
-    using BjFactory = gko::preconditioner::BlockJacobiFactory<>;
-    using Bj = gko::preconditioner::BlockJacobi<>;
+    using Bj = gko::preconditioner::Jacobi<>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
 
@@ -70,7 +69,7 @@ protected:
     }
 
     void initialize_data(std::initializer_list<gko::int32> block_pointers,
-                         gko::int32 max_block_size, int min_nnz, int max_nnz,
+                         gko::uint32 max_block_size, int min_nnz, int max_nnz,
                          int num_rhs = 1)
     {
         std::ranlux48 engine(42);
@@ -79,10 +78,14 @@ protected:
             dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
         gko::Array<gko::int32> block_ptrs(ref, block_pointers);
-        bj_factory = BjFactory::create(ref, max_block_size);
-        bj_factory->set_block_pointers(block_ptrs);
-        d_bj_factory = BjFactory::create(cuda, max_block_size);
-        d_bj_factory->set_block_pointers(block_ptrs);
+        bj_factory = Bj::build()
+                         .with_max_block_size(max_block_size)
+                         .with_block_pointers(block_ptrs)
+                         .on(ref);
+        d_bj_factory = Bj::build()
+                           .with_max_block_size(max_block_size)
+                           .with_block_pointers(block_ptrs)
+                           .on(cuda);
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
@@ -103,8 +106,8 @@ protected:
     std::unique_ptr<Vec> d_x;
     std::unique_ptr<Vec> d_b;
 
-    std::unique_ptr<BjFactory> bj_factory;
-    std::unique_ptr<BjFactory> d_bj_factory;
+    std::unique_ptr<Bj::Factory> bj_factory;
+    std::unique_ptr<Bj::Factory> d_bj_factory;
 };
 
 
@@ -116,7 +119,7 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksEquivalentToRef)
         1       1
         1       1
      */
-    auto mtx = Mtx::create(ref);
+    auto mtx = share(Mtx::create(ref));
     mtx->read({{4, 4},
                {{0, 0, 1.0},
                 {0, 1, 1.0},
@@ -127,19 +130,11 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksEquivalentToRef)
                 {3, 0, 1.0},
                 {3, 2, 1.0}}});
 
-    auto d_mtx = Mtx::create(cuda);
-    d_mtx->copy_from(mtx.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(cuda)->generate(mtx);
 
-    std::unique_ptr<BjFactory> bj_factory;
-    bj_factory = BjFactory::create(ref, 3);
-    auto bj_lin_op = bj_factory->generate(std::move(mtx));
-    auto bj = static_cast<Bj *>(bj_lin_op.get());
-    d_bj_factory = BjFactory::create(cuda, 3);
-    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
-    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
-
-    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
 }
 
 
@@ -152,7 +147,7 @@ TEST_F(BlockJacobi, CudaExecutesSupervariableAgglomerationEquivalentToRef)
                 1   1
                         1
      */
-    auto mtx = Mtx::create(ref);
+    auto mtx = share(Mtx::create(ref));
     mtx->read({{5, 5},
                {{0, 0, 1.0},
                 {0, 1, 1.0},
@@ -164,19 +159,11 @@ TEST_F(BlockJacobi, CudaExecutesSupervariableAgglomerationEquivalentToRef)
                 {3, 3, 1.0},
                 {4, 4, 1.0}}});
 
-    auto d_mtx = Mtx::create(cuda);
-    d_mtx->copy_from(mtx.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(cuda)->generate(mtx);
 
-    std::unique_ptr<BjFactory> bj_factory;
-    bj_factory = BjFactory::create(ref, 3);
-    auto bj_lin_op = bj_factory->generate(std::move(mtx));
-    auto bj = static_cast<Bj *>(bj_lin_op.get());
-    d_bj_factory = BjFactory::create(cuda, 3);
-    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
-    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
-
-    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
 }
 
 
@@ -191,26 +178,17 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksInLargeMatrixEquivalentToRef)
         1       1
      */
     using data = gko::matrix_data<double, int>;
-    using nnz = data::nonzero_type;
-    auto m =
-        data::diag(gko::dim<2>{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                                           {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-                                           {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}});
-    auto mtx = Mtx::create(ref);
-    mtx->read(m);
-    auto d_mtx = Mtx::create(cuda);
-    d_mtx->copy_from(mtx.get());
+    auto mtx = share(Mtx::create(ref));
+    mtx->read(data::diag({550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                      {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                                      {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                      {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                      {1.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+                                      {1.0, 0.0, 1.0, 0.0, 0.0, 0.0}}));
 
-    std::unique_ptr<BjFactory> bj_factory;
-    bj_factory = BjFactory::create(ref, 3);
-    auto bj_lin_op = bj_factory->generate(std::move(mtx));
-    auto bj = static_cast<Bj *>(bj_lin_op.get());
-    d_bj_factory = BjFactory::create(cuda, 3);
-    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
-    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(cuda)->generate(mtx);
+
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
 }
@@ -227,27 +205,20 @@ TEST_F(BlockJacobi,
                         1
      */
     using data = gko::matrix_data<double, int>;
-    using nnz = data::nonzero_type;
-    auto m = data::diag(gko::dim<2>{550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
-                                                {1.0, 1.0, 0.0, 0.0, 0.0},
-                                                {0.0, 0.0, 1.0, 1.0, 0.0},
-                                                {0.0, 0.0, 1.0, 1.0, 0.0},
-                                                {0.0, 0.0, 0.0, 0.0, 1.0}});
-    auto mtx = Mtx::create(ref);
-    mtx->read(m);
-    auto d_mtx = Mtx::create(cuda);
-    d_mtx->copy_from(mtx.get());
+    auto mtx = share(Mtx::create(ref));
+    mtx->read(data::diag({550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
+                                      {1.0, 1.0, 0.0, 0.0, 0.0},
+                                      {0.0, 0.0, 1.0, 1.0, 0.0},
+                                      {0.0, 0.0, 1.0, 1.0, 0.0},
+                                      {0.0, 0.0, 0.0, 0.0, 1.0}}));
 
-    auto bj_factory = BjFactory::create(ref, 3);
-    auto bj_lin_op = bj_factory->generate(std::move(mtx));
-    auto bj = static_cast<Bj *>(bj_lin_op.get());
-    d_bj_factory = BjFactory::create(cuda, 3);
-    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
-    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(cuda)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());
 }
+
 
 TEST_F(BlockJacobi,
        CudaExecutesSupervarAgglomerationEquivalentToRefFor150NonzerowsPerRow)
@@ -259,28 +230,18 @@ TEST_F(BlockJacobi,
         1       1   1
                 1        1
      */
-
     using data = gko::matrix_data<double, int>;
-    gko::matrix_data<double, int> m{{1.0, 1.0, 0.0, 1.0, 0.0},
-                                    {1.0, 1.0, 0.0, 1.0, 0.0},
-                                    {1.0, 0.0, 1.0, 1.0, 0.0},
-                                    {1.0, 0.0, 1.0, 1.0, 0.0},
-                                    {0.0, 0.0, 1.0, 0.0, 1.0}};
-    using nnz = data::nonzero_type;
-    gko::matrix_data<double, int> mm{{50, 50}, m};
+    auto mtx = share(Mtx::create(ref));
+    mtx->read({{50, 50},
+               {{1.0, 1.0, 0.0, 1.0, 0.0},
+                {1.0, 1.0, 0.0, 1.0, 0.0},
+                {1.0, 0.0, 1.0, 1.0, 0.0},
+                {1.0, 0.0, 1.0, 1.0, 0.0},
+                {0.0, 0.0, 1.0, 0.0, 1.0}}});
 
-    auto mtx = Mtx::create(ref);
-    mtx->read(mm);
-    auto d_mtx = Mtx::create(cuda);
-    d_mtx->copy_from(mtx.get());
 
-    std::unique_ptr<BjFactory> bj_factory;
-    bj_factory = BjFactory::create(ref, 13);
-    auto bj_lin_op = bj_factory->generate(std::move(mtx));
-    auto bj = static_cast<Bj *>(bj_lin_op.get());
-    d_bj_factory = BjFactory::create(cuda, 13);
-    auto d_bj_lin_op = d_bj_factory->generate(std::move(d_mtx));
-    auto d_bj = static_cast<Bj *>(d_bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(3u).on(cuda)->generate(mtx);
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     EXPECT_EQ(d_bj->get_max_block_size(), bj->get_max_block_size());

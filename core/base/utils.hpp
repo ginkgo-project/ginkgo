@@ -115,8 +115,8 @@ constexpr bool is_clonable_to()
 template <typename T>
 struct have_ownership_impl : std::false_type {};
 
-template <typename T>
-struct have_ownership_impl<std::unique_ptr<T>> : std::true_type {};
+template <typename T, typename Deleter>
+struct have_ownership_impl<std::unique_ptr<T, Deleter>> : std::true_type {};
 
 template <typename T>
 struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
@@ -446,6 +446,13 @@ public:
      * @return the object held by temporary_clone
      */
     T *get() const { return handle_.get(); }
+
+    /**
+     * Calls a method on the underlying object.
+     *
+     * @return the underlying object
+     */
+    T *operator->() const { return handle_.get(); }
 
 private:
     // std::function deleter allows to decide the (type of) deleter at runtime

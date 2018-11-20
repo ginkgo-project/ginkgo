@@ -135,7 +135,11 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 namespace {
 
 
+// a total of 32 warps (1024 threads)
 constexpr int default_block_size = 32;
+// with current architectures, at most 32 warps can be scheduled per SM (and
+// current GPUs have at most 84 SMs)
+constexpr int default_grid_size = 32 * 32 * 128;
 
 
 constexpr int get_larger_power(int value, int guess = 1)
@@ -191,6 +195,22 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
+
+
+template <int warps_per_block>
+__global__
+__launch_bounds__(warps_per_block *cuda_config::warp_size) void duplicate_array(
+    const precision *__restrict__ source, size_type source_size,
+    precision *__restrict__ dest, size_type dest_size)
+{
+    auto grid = group::this_grid();
+    if (grid.thread_rank() >= dest_size) {
+        return;
+    }
+    for (auto i = grid.thread_rank(); i < dest_size; i += grid.size()) {
+        dest[i] = source[i % source_size];
+    }
+}
 
 
 template <typename IndexType>
@@ -337,6 +357,20 @@ inline size_type agglomerate_supervariables(
 namespace block_jacobi {
 
 
+void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,
+                           const Array<precision> &source,
+                           Array<precision> &precisions)
+{
+    const auto block_size = default_block_size * cuda_config::warp_size;
+    const auto grid_size = min(
+        default_grid_size,
+        static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
+    duplicate_array<default_block_size><<<grid_size, block_size>>>(
+        source.get_const_data(), source.get_num_elems(), precisions.get_data(),
+        precisions.get_num_elems());
+}
+
+
 template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
@@ -359,6 +393,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              Array<precision> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     select_generate(compiled_kernels(),
@@ -380,6 +415,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
+           const Array<precision> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -390,7 +426,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     // TODO: do this efficiently
     auto tmp = x->clone();
     simple_apply(exec, num_blocks, max_block_size, storage_scheme,
-                 block_pointers, blocks, b, static_cast<Vec *>(tmp.get()));
+                 block_precisions, block_pointers, blocks, b,
+                 static_cast<Vec *>(tmp.get()));
     x->scale(beta);
     x->add_scaled(alpha, tmp.get());
 }
@@ -405,6 +442,7 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
+    const Array<precision> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -429,6 +467,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
+    const Array<precision> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
@@ -441,6 +480,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace block_jacobi
 
 
+/*
 namespace adaptive_block_jacobi {
 
 
@@ -504,6 +544,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace adaptive_block_jacobi
+*/
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

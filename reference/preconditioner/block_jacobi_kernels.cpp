@@ -72,7 +72,7 @@ inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
 
 template <typename ValueType, typename IndexType>
 size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
-                              int32 max_block_size, IndexType *block_ptrs)
+                              uint32 max_block_size, IndexType *block_ptrs)
 {
     const auto rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -104,7 +104,7 @@ size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
 
 
 template <typename IndexType>
-inline size_type agglomerate_supervariables(int32 max_block_size,
+inline size_type agglomerate_supervariables(uint32 max_block_size,
                                             size_type num_natural_blocks,
                                             IndexType *block_ptrs)
 {
@@ -286,6 +286,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              Array<precision> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -349,11 +350,23 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 }  // namespace
 
 
+void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
+                           const Array<precision> &source,
+                           Array<precision> &precisions)
+{
+    const auto source_size = source.get_num_elems();
+    for (auto i = 0u; i < precisions.get_num_elems(); ++i) {
+        precisions.get_data()[i] = source.get_const_data()[i % source_size];
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
+           const Array<precision> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -383,6 +396,7 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
+    const Array<precision> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -407,6 +421,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    const Array<precision> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
@@ -437,6 +452,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace block_jacobi
 
 
+/*
 namespace adaptive_block_jacobi {
 
 
@@ -605,8 +621,9 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
 
-
 }  // namespace adaptive_block_jacobi
+*/
+
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

@@ -76,6 +76,15 @@ public:
     using view_deleter = null_deleter<value_type[]>;
 
     /**
+     * Creates an empty Array without tying it to a specific executor.
+     */
+    Array() noexcept
+        : num_elems_(0),
+          data_(nullptr, default_deleter{nullptr}),
+          exec_(nullptr)
+    {}
+
+    /**
      * Creates an empty Array tied to the specified Executor.
      *
      * @param exec  the Executor where the array data is allocated
@@ -263,6 +272,13 @@ public:
         if (&other == this) {
             return *this;
         }
+        if (exec_ == nullptr) {
+            exec_ = other.get_executor();
+        }
+        if (other.get_executor() == nullptr) {
+            this->resize_and_reset(0);
+            return *this;
+        }
         this->resize_and_reset(other.get_num_elems());
         exec_->copy_from(other.get_executor().get(), num_elems_,
                          other.get_const_data(), this->get_data());
@@ -282,6 +298,13 @@ public:
     Array &operator=(Array &&other)
     {
         if (&other == this) {
+            return *this;
+        }
+        if (exec_ == nullptr) {
+            exec_ = other.get_executor();
+        }
+        if (other.get_executor() == nullptr) {
+            this->resize_and_reset(0);
             return *this;
         }
         if (exec_ == other.get_executor() &&

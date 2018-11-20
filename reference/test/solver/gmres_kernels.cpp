@@ -288,8 +288,9 @@ TEST_F(Gmres, SolvesWithPreconditioner)
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-15)
                     .on(exec))
-            .with_preconditioner(
-                gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build()
+                                     .with_max_block_size(3u)
+                                     .on(exec))
             .on(exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(

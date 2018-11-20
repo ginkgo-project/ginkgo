@@ -228,12 +228,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
     precond_factory{
         {"jacobi",
          [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::BlockJacobiFactory<>::create(
-                 exec, FLAGS_max_block_size);
+             return gko::preconditioner::Jacobi<>::build()
+                 .with_max_block_size(FLAGS_max_block_size)
+                 .on(exec);
          }},
         {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::AdaptiveBlockJacobiFactory<>::create(
-                 exec, FLAGS_max_block_size);
+             return gko::preconditioner::Jacobi<>::build()
+                 .with_max_block_size(FLAGS_max_block_size)
+                 .with_global_precision(gko::precision::best_precision)
+                 .on(exec);
          }}};
 
 

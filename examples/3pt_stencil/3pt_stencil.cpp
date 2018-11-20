@@ -183,7 +183,7 @@ void solve_system(const std::string &executor_string,
     using vec = gko::matrix::Dense<double>;
     using mtx = gko::matrix::Csr<double, int>;
     using cg = gko::solver::Cg<double>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<double, int>;
     using val_array = gko::Array<double>;
     using idx_array = gko::Array<int>;
     const auto &dp = discretization_points;
@@ -236,8 +236,7 @@ void solve_system(const std::string &executor_string,
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(accuracy)
                     .on(exec))
-            // something fails here:
-            // .with_preconditioner(bj::create(exec, 32))
+            .with_preconditioner(bj::build().on(exec))
             .on(exec);
     auto solver = solver_gen->generate(gko::give(matrix));
 
