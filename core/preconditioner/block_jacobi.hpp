@@ -186,14 +186,17 @@ struct block_interleaved_storage_scheme {
  * the natural blocks of the matrix, and then applying the supervariable
  * agglomeration procedure on them.
  *
- * If either the `global_precision` or the `block_precisions` factory parameter
- * is set, lower precision will be used to store well-conditioned diagonal
- * blocks, and thus improve the performance of preconditioner application by
- * reducing the amount of memory that has to be read to apply the
- * precondidionter.
- * However, there is a trade-off in terms of longer preconditioner generation
- * due to extra work required to compute the condition numbers. This step is
- * necessary to preserve the regularity of the diagonal blocks.
+ * This class also implements an improved adaptive version of the block-Jacobi
+ * preconditioner, which can store some of the blocks in lower precision and
+ * thus improve the performance of preconditioner application by reducing the
+ * amount of memory that has to be read to apply the preconditioner.
+ * This can be enabled by setting the `global_precision` (or, for advanced uses
+ * `block_precisions`) parameter. Refer to the documentation of these parameters
+ * for more details.
+ * However, there is a trade-off in terms of slightly longer preconditioner
+ * generation when using the adaptive variant due to extra work required to
+ * compute the condition numbers (a step is necessary to preserve the
+ * regularity of the diagonal blocks).
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
@@ -217,47 +220,17 @@ public:
      * Returns the number of blocks of the operator.
      *
      * @return the number of blocks of the operator
+     *
+     * TODO: replace with ranges
      */
     size_type get_num_blocks() const noexcept { return num_blocks_; }
-
-    /**
-     * Returns the maximum allowed block size of each block.
-     *
-     * @return the maximum allowed block size of each block
-     */
-    uint32 get_max_block_size() const noexcept
-    {
-        return parameters_.max_block_size;
-    }
-
-    /**
-     * Returns the array of pointers to the start of diagonal blocks.
-     *
-     * @return the array of pointers to the start of diagonal blocks
-     */
-    index_type *get_block_pointers() noexcept
-    {
-        return parameters_.block_pointers.get_data();
-    }
-
-    /**
-     * Returns the array of pointers to the start of diagonal blocks.
-     *
-     * @return the array of pointers to the start of diagonal blocks
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const index_type *get_const_block_pointers() const noexcept
-    {
-        return parameters_.block_pointers.get_const_data();
-    }
 
     /**
      * Returns the storage scheme used for storing Jacobi blocks.
      *
      * @return the storage scheme used for storing Jacobi blocks
+     *
+     * TODO: replace with ranges
      */
     const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
         const noexcept
@@ -272,22 +245,10 @@ public:
      * `(get_block_pointers()[b] + i) * stride + j` of the array.
      *
      * @return the pointer to the memory used for storing the block data
+     *
+     * TODO: replace with ranges
      */
-    value_type *get_blocks() noexcept { return blocks_.get_data(); }
-
-    /**
-     * Returns the pointer to the memory used for storing the block data.
-     *
-     * Element (`i`, `j`) of block `b` is stored in position
-     * `(get_block_pointers()[b] + i) * stride + j` of the array.
-     *
-     * @return the pointer to the memory used for storing the block data
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const value_type *get_const_blocks() const noexcept
+    const value_type *get_blocks() const noexcept
     {
         return blocks_.get_const_data();
     }
@@ -302,30 +263,6 @@ public:
         return blocks_.get_num_elems();
     }
 
-    /**
-     * Returns the precisions of diagonal blocks.
-     *
-     * @return precisions of diagonal blocks
-     */
-    precision *get_block_precisions() noexcept
-    {
-        return parameters_.block_precisions.get_data();
-    }
-
-    /**
-     * Returns the precisions of diagonal blocks.
-     *
-     * @return precisions of diagonal blocks
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const precision *get_const_block_precisions() const noexcept
-    {
-        return parameters_.block_precisions.get_const_data();
-    }
-
     void convert_to(matrix::Dense<value_type> *result) const override;
 
     void move_to(matrix::Dense<value_type> *result) override;
@@ -335,12 +272,28 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Maximum size of diagonal blocks.
+         * Maximal size of diagonal blocks.
+         *
+         * @note This values has to be between 1 and 32.
          */
         uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
 
         /**
-         * Starting index of each individual block.
+         * Starting (row / column) index of each individual block.
+         *
+         * An index past the last block has to be supplied as the last value.
+         * I.e. the size of the array has to be the number of blocks plus 1,
+         * where the first value is 0, and the last value is the number of
+         * rows / columns of the matrix.
+         *
+         * @note Even if not set explicitly, this parameter will be set to
+         *       automatically detected values once the preconditioner is
+         *       generated.
+         * @note If the parameter is set automatically, the size of the array
+         *       does not correlate to the number of blocks, and is
+         *       implementation defined. To obtain the number of blocks `n` use
+         *       Jacobi::get_num_blocks(). The starting indexes of each block
+         *       are stored in the first `n+1` values of this array.
          */
         gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers);
 
@@ -348,11 +301,39 @@ public:
          * Global precision to use for all blocks.
          *
          * This parameter only has effect if block_precisions is not set.
+         *
+         * If the value is set to `double_precision`, standard block-Jacobi
+         * preconditioner will be used.
+         *
+         * If the value is set to `best_precision`, the adaptive version will be
+         * used. The adaptive version automatically chooses the precision of
+         * each individual block, depending on its condition number.
+         *
+         * If the value is set to `single_precision` or `half_precision`, the
+         * mixed precision version is used. The mixed precision version will
+         * store all blocks using the same (but lower, depending on the
+         * variable) precision.
+         *
+         * If better control is needed, the precision of each block can be set
+         * individually by using the block_precisions parameter.
          */
         precision GKO_FACTORY_PARAMETER(global_precision, double_precision);
 
         /**
          * Precisions to use for each individual block.
+         *
+         * If left unset and global_precision is set to double_precision, the
+         * standard full-precision version will be used. Otherwise,
+         * adaptive/mixed precision version is used.
+         *
+         * If the number of blocks is larger than the number of elements in this
+         * array, the original array will be replicated multiple times, until
+         * its length reaches the number of blocks of the preconditioner.
+         *
+         * Each value in the list specifies the precision of the corresponding
+         * block and has the same semantics as in the global_precision
+         * parameter. The precisions of blocks whose corresponding entries in
+         * the array are set to `best_precision` will be detected automatically.
          *
          * @internal
          *
@@ -384,6 +365,10 @@ protected:
                   storage_scheme_.compute_storage_space(
                       parameters_.block_pointers.get_num_elems() - 1))
     {
+        if (parameters_.max_block_size >= 32 ||
+            parameters_.max_block_size < 1) {
+            NOT_SUPPORTED(this);
+        }
         parameters_.block_pointers.set_executor(this->get_executor());
         if (parameters_.block_precisions.get_num_elems() == 0 &&
             parameters_.global_precision != double_precision) {

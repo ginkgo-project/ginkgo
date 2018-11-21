@@ -112,18 +112,21 @@ protected:
         ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
         ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
         ASSERT_EQ(a->get_num_blocks(), b->get_num_blocks());
-        ASSERT_EQ(a->get_max_block_size(), b->get_max_block_size());
-        const auto b_ptr_a = a->get_const_block_pointers();
-        const auto b_ptr_b = b->get_const_block_pointers();
+        ASSERT_EQ(a->get_parameters().max_block_size,
+                  b->get_parameters().max_block_size);
+        const auto b_ptr_a =
+            a->get_parameters().block_pointers.get_const_data();
+        const auto b_ptr_b =
+            b->get_parameters().block_pointers.get_const_data();
         ASSERT_EQ(b_ptr_a[0], b_ptr_b[0]);
         for (int i = 0; i < a->get_num_blocks(); ++i) {
             ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
             auto scheme = a->get_storage_scheme();
             assert_same_block(
                 b_ptr_a[i + 1] - b_ptr_a[i],
-                a->get_const_blocks() + scheme.get_global_block_offset(i),
+                a->get_blocks() + scheme.get_global_block_offset(i),
                 scheme.get_stride(),
-                b->get_const_blocks() + scheme.get_global_block_offset(i),
+                b->get_blocks() + scheme.get_global_block_offset(i),
                 scheme.get_stride());
         }
     }
@@ -186,9 +189,9 @@ TEST_F(Jacobi, CanBeCleared)
 
     ASSERT_EQ(bj->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(bj->get_max_block_size(), 32);
-    ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
-    ASSERT_EQ(bj->get_const_blocks(), nullptr);
+    ASSERT_EQ(bj->get_parameters().max_block_size, 32);
+    ASSERT_EQ(bj->get_parameters().block_pointers.get_const_data(), nullptr);
+    ASSERT_EQ(bj->get_blocks(), nullptr);
 }
 
 

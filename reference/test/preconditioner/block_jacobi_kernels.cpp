@@ -102,10 +102,10 @@ TEST_F(Jacobi, CanBeGenerated)
 
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     ASSERT_EQ(ptrs[2], 5);
@@ -126,9 +126,9 @@ TEST_F(Jacobi, FindsNaturalBlocks)
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
     auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     EXPECT_EQ(ptrs[2], 4);
@@ -151,9 +151,9 @@ TEST_F(Jacobi, ExecutesSupervariableAgglomeration)
                {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
     auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     EXPECT_EQ(ptrs[2], 5);
@@ -177,9 +177,9 @@ TEST_F(Jacobi, AdheresToBlockSizeBound)
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
     auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 3);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 3);
     EXPECT_EQ(ptrs[2], 6);
@@ -193,10 +193,10 @@ TEST_F(Jacobi, CanBeGeneratedWithUnknownBlockSizes)
 
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 3);
     ASSERT_EQ(ptrs[2], 5);
