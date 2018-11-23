@@ -65,6 +65,15 @@ protected:
 };
 
 
+TEST_F(Array, CanBeCreatedWithoutAnExecutor)
+{
+    gko::Array<int> a;
+
+    ASSERT_EQ(a.get_executor(), nullptr);
+    ASSERT_EQ(a.get_num_elems(), 0);
+}
+
+
 TEST_F(Array, CanBeEmpty)
 {
     gko::Array<int> a(exec);
@@ -178,6 +187,7 @@ TEST_F(Array, CanBeCopied)
 {
     auto omp = gko::OmpExecutor::create();
     gko::Array<int> a(omp, 3);
+
     a = x;
     x.get_data()[0] = 7;
 
@@ -185,13 +195,58 @@ TEST_F(Array, CanBeCopied)
 }
 
 
+TEST_F(Array, CanBeCopiedToExecutorlessArray)
+{
+    gko::Array<int> a;
+
+    a = x;
+
+    ASSERT_EQ(a.get_executor(), x.get_executor());
+    assert_equal_to_original_x(a);
+}
+
+
+TEST_F(Array, CanBeCopiedFromExecutorlessArray)
+{
+    gko::Array<int> a;
+
+    x = a;
+
+    ASSERT_NE(x.get_executor(), nullptr);
+    ASSERT_EQ(x.get_num_elems(), 0);
+}
+
+
 TEST_F(Array, CanBeMoved)
 {
     auto omp = gko::OmpExecutor::create();
     gko::Array<int> a(omp, 3);
+
     a = std::move(x);
 
     assert_equal_to_original_x(a);
+}
+
+
+TEST_F(Array, CanBeMovedToExecutorlessArray)
+{
+    gko::Array<int> a;
+
+    a = std::move(x);
+
+    ASSERT_NE(a.get_executor(), nullptr);
+    assert_equal_to_original_x(a);
+}
+
+
+TEST_F(Array, CanBeMovedFromExecutorlessArray)
+{
+    gko::Array<int> a;
+
+    x = std::move(a);
+
+    ASSERT_NE(x.get_executor(), nullptr);
+    ASSERT_EQ(x.get_num_elems(), 0);
 }
 
 
@@ -216,6 +271,16 @@ TEST_F(Array, CanBeResized)
     EXPECT_EQ(x.get_const_data()[0], 1);
     EXPECT_EQ(x.get_const_data()[1], 8);
     EXPECT_EQ(x.get_const_data()[2], 7);
+}
+
+
+TEST_F(Array, CanBeAssignedAnExecutor)
+{
+    gko::Array<int> a;
+
+    a.set_executor(exec);
+
+    ASSERT_EQ(a.get_executor(), exec);
 }
 
 

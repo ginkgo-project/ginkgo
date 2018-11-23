@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
+#include "core/base/exception.hpp"
 #include "core/base/executor.hpp"
 #include "core/base/types.hpp"
 #include "core/base/utils.hpp"
@@ -76,7 +77,17 @@ public:
     using view_deleter = null_deleter<value_type[]>;
 
     /**
-     * Creates an empty Array without tying it to a specific executor.
+     * Creates an empty Array not tied to any executor.
+     *
+     * An array without an assigned executor can only be empty. Attempts to
+     * change its size (e.g. via the resize_and_reset method) will result in an
+     * exception. If such an array is used as the right hand side of an
+     * assignment or move assignment expression, the data of the target array
+     * will be cleared, but its executor will not be modified.
+     *
+     * The executor can later be set by using the set_executor method. If an
+     * Array with no assigned executor is assigned or moved to, it will inherit
+     * the executor of the source Array.
      */
     Array() noexcept
         : num_elems_(0),
@@ -263,6 +274,9 @@ public:
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
      *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
      * @param other  the Array to copy from
      *
      * @return this
@@ -290,6 +304,9 @@ public:
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
      *
      * @param other  the Array to move data from
      *
@@ -338,6 +355,8 @@ public:
      *
      * All data stored in the array will be lost.
      *
+     * If the Array is not assigned an executor, an exception will be thrown.
+     *
      * @param num_elems  the amount of memory (expressed as the number of
      *                   `value_type` elements) allocated on the Executor
      */
@@ -345,6 +364,10 @@ public:
     {
         if (num_elems == num_elems_) {
             return;
+        }
+        if (exec_ == nullptr) {
+            throw gko::NotSupported(__FILE__, __LINE__, __func__,
+                                    "gko::Executor (nullptr)");
         }
         num_elems_ = num_elems;
         if (num_elems > 0) {
