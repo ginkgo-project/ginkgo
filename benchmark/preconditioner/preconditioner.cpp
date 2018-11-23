@@ -235,7 +235,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::Jacobi<>::build()
                  .with_max_block_size(FLAGS_max_block_size)
-                 .with_global_precision(gko::precision::best_precision)
+                 .with_storage_optimization(gko::precision_reduction::best())
                  .on(exec);
          }}};
 

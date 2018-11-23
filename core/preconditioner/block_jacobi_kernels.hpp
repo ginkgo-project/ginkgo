@@ -56,7 +56,7 @@ namespace kernels {
         size_type num_blocks, uint32 max_block_size,                      \
         const preconditioner::block_interleaved_storage_scheme<IndexType> \
             &storage_scheme,                                              \
-        Array<precision> &block_precisions,                               \
+        Array<precision_reduction> &block_precisions,                     \
         const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 
 #define GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)            \
@@ -65,7 +65,7 @@ namespace kernels {
         uint32 max_block_size,                                                 \
         const preconditioner::block_interleaved_storage_scheme<IndexType>      \
             &storage_scheme,                                                   \
-        const Array<precision> &block_precisions,                              \
+        const Array<precision_reduction> &block_precisions,                    \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *alpha, \
         const matrix::Dense<ValueType> *b,                                     \
@@ -77,7 +77,7 @@ namespace kernels {
         uint32 max_block_size,                                             \
         const preconditioner::block_interleaved_storage_scheme<IndexType>  \
             &storage_scheme,                                               \
-        const Array<precision> &block_precisions,                          \
+        const Array<precision_reduction> &block_precisions,                \
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
@@ -85,7 +85,7 @@ namespace kernels {
 #define GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
     void convert_to_dense(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        const Array<precision> &block_precisions,                              \
+        const Array<precision_reduction> &block_precisions,                    \
         const Array<IndexType> &block_pointers,                                \
         const Array<ValueType> &blocks,                                        \
         const preconditioner::block_interleaved_storage_scheme<IndexType>      \
@@ -94,8 +94,8 @@ namespace kernels {
 
 #define GKO_DECLARE_BLOCK_JACOBI_INITIALIZE_PRECISIONS_KERNEL()             \
     void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
-                               const Array<precision> &source,              \
-                               Array<precision> &precisions)
+                               const Array<precision_reduction> &source,    \
+                               Array<precision_reduction> &precisions)
 
 #define DECLARE_ALL_AS_TEMPLATES                                            \
     template <typename ValueType, typename IndexType>                       \

@@ -153,6 +153,48 @@ using default_precision = double;
 constexpr size_type byte_size = CHAR_BIT;
 
 
+class precision_reduction {
+public:
+    GKO_ATTRIBUTES constexpr precision_reduction() noexcept : data_{0x0} {}
+
+    GKO_ATTRIBUTES constexpr precision_reduction(
+        uint8 preserving_shifts, uint8 nonpreserving_shifts) noexcept
+        : data_((preserving_shifts << 4u) | nonpreserving_shifts)
+    {}
+
+    GKO_ATTRIBUTES constexpr operator uint8() const noexcept { return data_; }
+
+    GKO_ATTRIBUTES constexpr static precision_reduction best() noexcept
+    {
+        return precision_reduction{0xFF};
+    }
+
+    GKO_ATTRIBUTES constexpr static precision_reduction common(
+        precision_reduction x, precision_reduction y) noexcept
+    {
+        return precision_reduction(min(x.data_ & 0xF0, y.data_ & 0xF0) |
+                                   min(x.data_ & 0x0F, y.data_ & 0x0F));
+    }
+
+private:
+    GKO_ATTRIBUTES constexpr precision_reduction(uint8 data) : data_{data} {}
+
+    GKO_ATTRIBUTES constexpr static uint min(uint8 x, uint8 y) noexcept
+    {
+        return x < y ? x : y;
+    }
+
+    uint8 data_;
+};
+
+
+GKO_ATTRIBUTES constexpr bool operator==(precision_reduction x,
+                                         precision_reduction y) noexcept
+{
+    return static_cast<uint8>(x) == static_cast<uint8>(y);
+}
+
+
 /**
  * Calls a given macro for each executor type.
  *

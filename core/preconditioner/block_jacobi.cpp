@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/preconditioner/block_jacobi_kernels.hpp"
+#include "core/preconditioner/block_jacobi_utils.hpp"
 
 
 namespace gko {
@@ -72,8 +73,8 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     this->get_executor()->run(
         JacobiOperation<ValueType, IndexType>::make_simple_apply_operation(
             num_blocks_, parameters_.max_block_size, storage_scheme_,
-            parameters_.block_precisions, parameters_.block_pointers, blocks_,
-            as<dense>(b), as<dense>(x)));
+            parameters_.storage_optimization.block_wise,
+            parameters_.block_pointers, blocks_, as<dense>(b), as<dense>(x)));
 }
 
 
@@ -86,8 +87,9 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     this->get_executor()->run(
         JacobiOperation<ValueType, IndexType>::make_apply_operation(
             num_blocks_, parameters_.max_block_size, storage_scheme_,
-            parameters_.block_precisions, parameters_.block_pointers, blocks_,
-            as<dense>(alpha), as<dense>(b), as<dense>(beta), as<dense>(x)));
+            parameters_.storage_optimization.block_wise,
+            parameters_.block_pointers, blocks_, as<dense>(alpha), as<dense>(b),
+            as<dense>(beta), as<dense>(x)));
 }
 
 
@@ -99,7 +101,7 @@ void Jacobi<ValueType, IndexType>::convert_to(
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     exec->run(
         JacobiOperation<ValueType, IndexType>::make_convert_to_dense_operation(
-            num_blocks_, parameters_.block_precisions,
+            num_blocks_, parameters_.storage_optimization.block_wise,
             parameters_.block_pointers, blocks_, storage_scheme_,
             tmp->get_values(), tmp->get_stride()));
     tmp->move_to(result);
@@ -111,22 +113,6 @@ void Jacobi<ValueType, IndexType>::move_to(matrix::Dense<ValueType> *result)
 {
     this->convert_to(result);  // no special optimization possible here
 }
-
-
-#define RESOLVE_PRECISION(prec, ...)                            \
-    if (prec == double_precision) {                             \
-        using resolved_precision = ValueType;                   \
-        __VA_ARGS__;                                            \
-    } else if (prec == single_precision) {                      \
-        using resolved_precision = reduce_precision<ValueType>; \
-        __VA_ARGS__;                                            \
-    } else if (prec == half_precision) {                        \
-        using resolved_precision =                              \
-            reduce_precision<reduce_precision<ValueType>>;      \
-        __VA_ARGS__;                                            \
-    } else {                                                    \
-        throw NOT_SUPPORTED(best_precision);                    \
-    }
 
 
 template <typename ValueType, typename IndexType>
@@ -142,11 +128,11 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
         const auto group_data = local_clone->blocks_.get_const_data() +
                                 scheme.get_group_offset(block);
         const auto block_size = ptrs[block + 1] - ptrs[block];
-        const auto precisions =
-            local_clone->parameters_.block_precisions.get_const_data();
-        const auto prec =
-            precisions != nullptr ? precisions[block] : double_precision;
-        RESOLVE_PRECISION(prec, {
+        const auto precisions = local_clone->parameters_.storage_optimization
+                                    .block_wise.get_const_data();
+        const auto prec = precisions != nullptr ? precisions[block]
+                                                : precision_reduction(0, 0);
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(ValueType, prec, {
             const auto block_data =
                 reinterpret_cast<const resolved_precision *>(group_data) +
                 scheme.get_block_offset(block);
@@ -191,22 +177,25 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         this->detect_blocks(csr_mtx.get());
     }
 
+    const auto all_block_opt = parameters_.storage_optimization.of_all_blocks;
+    auto &precisions = parameters_.storage_optimization.block_wise;
     // if adaptive version is used, make sure that the precision array is of the
     // correct size by replicating it multiple times if needed
-    if (parameters_.block_precisions.get_data() != nullptr &&
-        parameters_.block_precisions.get_num_elems() <
-            parameters_.block_pointers.get_num_elems() - 1) {
-        Array<precision> tmp(exec,
-                             parameters_.block_pointers.get_num_elems() - 1);
+    if (parameters_.storage_optimization.is_block_wise ||
+        all_block_opt != precision_reduction(0, 0)) {
+        if (!parameters_.storage_optimization.is_block_wise) {
+            precisions = gko::Array<precision_reduction>(exec, {all_block_opt});
+        }
+        Array<precision_reduction> tmp(
+            exec, parameters_.block_pointers.get_num_elems() - 1);
         exec->run(JacobiOperation<ValueType, IndexType>::
-                      make_initialize_precisions_operation(
-                          parameters_.block_precisions, tmp));
-        parameters_.block_precisions = std::move(tmp);
+                      make_initialize_precisions_operation(precisions, tmp));
+        precisions = std::move(tmp);
     }
 
     exec->run(JacobiOperation<ValueType, IndexType>::make_generate_operation(
         csr_mtx.get(), num_blocks_, parameters_.max_block_size, storage_scheme_,
-        parameters_.block_precisions, parameters_.block_pointers, blocks_));
+        precisions, parameters_.block_pointers, blocks_));
 }
 
 

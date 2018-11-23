@@ -56,14 +56,14 @@ protected:
     {
         block_pointers.get_data()[0] = 2;
         block_pointers.get_data()[1] = 3;
-        block_precisions.get_data()[0] = gko::precision::single_precision;
-        block_precisions.get_data()[1] = gko::precision::double_precision;
+        block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
+        block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Bj::Factory> bj_factory;
     gko::Array<gko::int32> block_pointers;
-    gko::Array<gko::precision> block_precisions;
+    gko::Array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<>> mtx;
 };
 
@@ -110,25 +110,26 @@ TEST_F(JacobiFactory, CanSetBlockPrecisions)
 {
     auto bj_factory = Bj::build()
                           .with_max_block_size(3u)
-                          .with_block_precisions(block_precisions)
+                          .with_storage_optimization(block_precisions)
                           .on(exec);
 
-    auto prec = bj_factory->get_parameters().block_precisions;
-    EXPECT_EQ(prec.get_data()[0], gko::precision::single_precision);
-    EXPECT_EQ(prec.get_data()[1], gko::precision::double_precision);
+    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
+    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
+    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
 }
 
 
 TEST_F(JacobiFactory, CanMoveBlockPrecisions)
 {
-    auto bj_factory = Bj::build()
-                          .with_max_block_size(3u)
-                          .with_block_precisions(std::move(block_precisions))
-                          .on(exec);
+    auto bj_factory =
+        Bj::build()
+            .with_max_block_size(3u)
+            .with_storage_optimization(std::move(block_precisions))
+            .on(exec);
 
-    auto prec = bj_factory->get_parameters().block_precisions;
-    EXPECT_EQ(prec.get_data()[0], gko::precision::single_precision);
-    EXPECT_EQ(prec.get_data()[1], gko::precision::double_precision);
+    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
+    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
+    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
 }
 
 

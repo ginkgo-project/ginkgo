@@ -41,35 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
-/**
- * This type is used to store data about precision of diagonal blocks.
- */
-enum precision {
-    /**
-     * Marks that double precision is used for the block.
-     */
-    double_precision,
-
-    /**
-     * Marks that single precision is used for the block.
-     */
-    single_precision,
-
-    /**
-     * Marks that half precision is used for the block.
-     */
-    half_precision,
-
-    /**
-     * The precision of the block will be determined automatically during
-     * generation phase, based on the condition number of the block.
-     */
-    best_precision
-};
-
-
 namespace preconditioner {
 
 
@@ -297,6 +268,31 @@ public:
          */
         gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers);
 
+
+    private:
+        struct storage_optimization_type {
+            storage_optimization_type(precision_reduction p)
+                : is_block_wise{false}, of_all_blocks{p}
+            {}
+
+            storage_optimization_type(
+                const Array<precision_reduction> &block_wise_opt)
+                : is_block_wise{true}, block_wise{block_wise_opt}
+            {}
+
+            storage_optimization_type(
+                Array<precision_reduction> &&block_wise_opt)
+                : is_block_wise{true}, block_wise{std::move(block_wise_opt)}
+            {}
+
+            operator precision_reduction() { return of_all_blocks; }
+
+            bool is_block_wise;
+            precision_reduction of_all_blocks;
+            gko::Array<precision_reduction> block_wise;
+        };
+
+    public:
         /**
          * Global precision to use for all blocks.
          *
@@ -316,10 +312,7 @@ public:
          *
          * If better control is needed, the precision of each block can be set
          * individually by using the block_precisions parameter.
-         */
-        precision GKO_FACTORY_PARAMETER(global_precision, double_precision);
-
-        /**
+         *
          * Precisions to use for each individual block.
          *
          * If left unset and global_precision is set to double_precision, the
@@ -341,7 +334,8 @@ public:
          *       empty if and only if the non-adaptive version of Jacobi has
          *       been requested.
          */
-        gko::Array<precision> GKO_FACTORY_PARAMETER(block_precisions);
+        storage_optimization_type GKO_FACTORY_PARAMETER(
+            storage_optimization, precision_reduction(0, 0));
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -351,7 +345,7 @@ protected:
         : EnableLinOp<Jacobi>(exec), blocks_(exec)
     {
         parameters_.block_pointers.set_executor(exec);
-        parameters_.block_precisions.set_executor(exec);
+        parameters_.storage_optimization.block_wise.set_executor(exec);
     }
 
     explicit Jacobi(const Factory *factory,
@@ -370,13 +364,8 @@ protected:
             NOT_SUPPORTED(this);
         }
         parameters_.block_pointers.set_executor(this->get_executor());
-        if (parameters_.block_precisions.get_num_elems() == 0 &&
-            parameters_.global_precision != double_precision) {
-            parameters_.block_precisions = gko::Array<precision>(
-                this->get_executor(), {parameters_.global_precision});
-        } else {
-            parameters_.block_precisions.set_executor(this->get_executor());
-        }
+        parameters_.storage_optimization.block_wise.set_executor(
+            this->get_executor());
         this->generate(lend(system_matrix));
     }
 

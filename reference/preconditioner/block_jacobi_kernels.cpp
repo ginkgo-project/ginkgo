@@ -286,7 +286,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
-              Array<precision> &block_precisions,
+              Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -351,8 +351,8 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 
 
 void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
-                           const Array<precision> &source,
-                           Array<precision> &precisions)
+                           const Array<precision_reduction> &source,
+                           Array<precision_reduction> &precisions)
 {
     const auto source_size = source.get_num_elems();
     for (auto i = 0u; i < precisions.get_num_elems(); ++i) {
@@ -366,7 +366,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
-           const Array<precision> &block_precisions,
+           const Array<precision_reduction> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -396,7 +396,7 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
-    const Array<precision> &block_precisions,
+    const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -421,7 +421,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-    const Array<precision> &block_precisions,
+    const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
