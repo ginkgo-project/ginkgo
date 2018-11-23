@@ -68,8 +68,8 @@ struct pointee_impl<T *> {
     using type = T;
 };
 
-template <typename T>
-struct pointee_impl<std::unique_ptr<T>> {
+template <typename T, typename Deleter>
+struct pointee_impl<std::unique_ptr<T, Deleter>> {
     using type = T;
 };
 

@@ -152,4 +152,58 @@ TEST(EnableCreateMethod, CreatesObject)
 }
 
 
+struct ConvertibleToDummyObject
+    : gko::EnablePolymorphicObject<ConvertibleToDummyObject>,
+      gko::EnableCreateMethod<ConvertibleToDummyObject>,
+      gko::EnablePolymorphicAssignment<ConvertibleToDummyObject>,
+      gko::ConvertibleTo<DummyObject> {
+    explicit ConvertibleToDummyObject(std::shared_ptr<const gko::Executor> exec,
+                                      int v = {})
+        : gko::EnablePolymorphicObject<ConvertibleToDummyObject>(
+              std::move(exec)),
+          x{v}
+    {}
+
+    void convert_to(DummyObject *obj) const override { obj->x = x; }
+
+    void move_to(DummyObject *obj) override { obj->x = x; }
+
+    int x;
+};
+
+
+TEST(CopyAndConvertTo, ConvertsToDummyObj)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto convertible = ConvertibleToDummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(dummy->x, 5);
+}
+
+
+TEST(CopyAndConvertTo, ConvertsConstToDummyObj)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    std::unique_ptr<const ConvertibleToDummyObject> convertible =
+        ConvertibleToDummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(dummy->x, 5);
+}
+
+
+TEST(CopyAndConvertTo, AvoidsConversion)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto convertible = DummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(gko::lend(dummy), gko::lend(convertible));
+}
+
+
 }  // namespace
