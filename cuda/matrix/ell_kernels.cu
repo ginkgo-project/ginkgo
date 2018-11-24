@@ -217,7 +217,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         }
     }
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
+    const dim3 grid_size(ceildiv(nrows * subwarp_size, block_size.x),
                          b->get_size()[1], 1);
 
     switch (subwarp_size) {
