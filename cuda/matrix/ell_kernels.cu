@@ -39,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/reduction.cuh"
 
 
 namespace gko {
@@ -53,7 +55,8 @@ constexpr int default_block_size = 512;
 namespace {
 
 
-template <typename ValueType, typename IndexType, typename Closure>
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
 __device__ void spmv_kernel(const size_type num_rows,
                             const ValueType *__restrict__ val,
                             const IndexType *__restrict__ col,
@@ -65,12 +68,17 @@ __device__ void spmv_kernel(const size_type num_rows,
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto x = tidx / subwarp_size;
+    const auto y = tidx % subwarp_size;
 
-    if (tidx < num_rows) {
+    if (x < num_rows) {
+        const auto tile_block =
+            group::tiled_partition<subwarp_size>(group::this_thread_block());
         ValueType temp = zero<ValueType>();
         const auto column_id = blockIdx.y;
-        for (IndexType idx = 0; idx < num_stored_elements_per_row; idx++) {
-            const auto ind = tidx + idx * stride;
+        for (IndexType idx = y; idx < num_stored_elements_per_row;
+             idx += subwarp_size) {
+            const auto ind = x + idx * stride;
             const auto col_idx = col[ind];
             if (col_idx < idx) {
                 break;
@@ -78,13 +86,17 @@ __device__ void spmv_kernel(const size_type num_rows,
                 temp += val[ind] * b[col_idx * b_stride + column_id];
             }
         }
-        c[tidx * c_stride + column_id] =
-            op(temp, c[tidx * c_stride + column_id]);
+        const auto answer = reduce(
+            tile_block, temp, [](ValueType x, ValueType y) { return x + y; });
+        if (tile_block.thread_rank() == 0) {
+            c[x * c_stride + column_id] =
+                op(answer, c[x * c_stride + column_id]);
+        }
     }
 }
 
 
-template <typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col, const size_type stride,
@@ -92,13 +104,13 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride)
 {
-    spmv_kernel(num_rows, val, col, stride, num_stored_elements_per_row, b,
-                b_stride, c, c_stride,
-                [](const ValueType &x, const ValueType &y) { return x; });
+    spmv_kernel<subwarp_size>(
+        num_rows, val, col, stride, num_stored_elements_per_row, b, b_stride, c,
+        c_stride, [](const ValueType &x, const ValueType &y) { return x; });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <int subwarp_size = 1, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
@@ -109,7 +121,7 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
 {
     const ValueType alpha_val = alpha[0];
     const ValueType beta_val = beta[0];
-    spmv_kernel(
+    spmv_kernel<subwarp_size>(
         num_rows, val, col, stride, num_stored_elements_per_row, b, b_stride, c,
         c_stride,
         [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
@@ -126,16 +138,62 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
-                         b->get_size()[1], 1);
+    int subwarp_size = 1;
+    const auto nrows = a->get_size()[0];
+    const auto ell_ncols = a->get_num_stored_elements_per_row();
 
-    abstract_spmv<<<grid_size, block_size, 0, 0>>>(
-        a->get_size()[0], as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), a->get_stride(),
-        a->get_num_stored_elements_per_row(),
-        as_cuda_type(b->get_const_values()), b->get_stride(),
-        as_cuda_type(c->get_values()), c->get_stride());
+    if (static_cast<double>(ell_ncols) / nrows > 1e-2) {
+        while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
+            subwarp_size <<= 1;
+        }
+    }
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(nrows * subwarp_size, block_size.x),
+                         b->get_size()[1], 1);
+    switch (subwarp_size) {
+    case 1:
+        abstract_spmv<1><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 2:
+        abstract_spmv<2><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 4:
+        abstract_spmv<4><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 8:
+        abstract_spmv<8><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 16:
+        abstract_spmv<16><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 32:
+        abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
