@@ -78,6 +78,7 @@ public:
     };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,

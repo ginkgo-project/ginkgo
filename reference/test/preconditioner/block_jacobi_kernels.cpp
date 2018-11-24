@@ -223,21 +223,21 @@ TEST_F(BlockJacobi, InvertsDiagonalBlocks)
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_stride();
     auto b1 = bj->get_blocks();
-    EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 0], 1.0 / 14.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 1], 4.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 0 * p], 4.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-14);
 
     auto b2 = bj->get_blocks() + 2 * p;
-    EXPECT_NEAR(b2[0 * p + 0], 14.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[0 * p + 1], 8.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[0 * p + 2], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 0], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 1], 16.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 2], 8.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 0], 1.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 1], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 2], 14.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 1 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 2 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 0 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 1 * p], 16.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 2 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 0 * p], 1.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 1 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 2 * p], 14.0 / 48.0, 1e-14);
 }
 
 
@@ -262,15 +262,15 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_stride();
     auto b1 = bj->get_blocks();
-    EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 * p + 2], 4.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 0], 2.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 1], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 * p + 2], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 0], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 1], 1.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 * p + 2], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 0 * p], 2.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 1 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 2 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 0 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 1 * p], 1.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 2 * p], 0.0 / 4.0, 1e-14);
 }
 
 
@@ -409,21 +409,21 @@ TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_stride();
     auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
-    EXPECT_NEAR(b1[0 * p + 0], 4.0 / 14.0, 1e-7);
-    EXPECT_NEAR(b1[0 * p + 1], 2.0 / 14.0, 1e-7);
-    EXPECT_NEAR(b1[1 * p + 0], 1.0 / 14.0, 1e-7);
-    EXPECT_NEAR(b1[1 * p + 1], 4.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[0 + 0 * p], 4.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-7);
+    EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-7);
 
     auto b2 = bj->get_blocks() + 2 * p;
-    EXPECT_NEAR(b2[0 * p + 0], 14.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[0 * p + 1], 8.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[0 * p + 2], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 0], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 1], 16.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[1 * p + 2], 8.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 0], 1.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 1], 4.0 / 48.0, 1e-14);
-    EXPECT_NEAR(b2[2 * p + 2], 14.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 1 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 2 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 0 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 1 * p], 16.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 2 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 0 * p], 1.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 1 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 2 * p], 14.0 / 48.0, 1e-14);
 }
 
 
@@ -449,15 +449,15 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
     bj = static_cast<Bj *>(bj_lin_op.get());
     auto p = bj->get_stride();
     auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
-    EXPECT_NEAR(b1[0 * p + 0], 0.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[0 * p + 1], 0.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[0 * p + 2], 4.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[1 * p + 0], 2.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[1 * p + 1], 0.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[1 * p + 2], 0.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[2 * p + 0], 0.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[2 * p + 1], 1.0 / 4.0, 1e-7);
-    EXPECT_NEAR(b1[2 * p + 2], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 + 0 * p], 2.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 + 1 * p], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[1 + 2 * p], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 + 0 * p], 0.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 + 1 * p], 1.0 / 4.0, 1e-7);
+    EXPECT_NEAR(b1[2 + 2 * p], 0.0 / 4.0, 1e-7);
 }
 
 

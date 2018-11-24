@@ -51,9 +51,9 @@ protected:
         exec_ = gko::ReferenceExecutor::create();
         // Actually use an iteration stopping criterion because Criterion is an
         // abstract class
-        factory_ = gko::stop::Iteration::Factory::create()
+        factory_ = gko::stop::Iteration::build()
                        .with_max_iters(test_iterations)
-                       .on_executor(exec_);
+                       .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;

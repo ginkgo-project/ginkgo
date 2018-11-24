@@ -544,11 +544,11 @@ TEST(Stream, CatchesLinopFactoryGenerateStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::linop_factory_generate_started_mask, out);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     std::stringstream ptrstream_factory;
     ptrstream_factory << factory.get();
@@ -571,11 +571,11 @@ TEST(Stream, CatchesLinopFactoryGenerateCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::linop_factory_generate_completed_mask, out);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     auto output = factory->generate(gko::matrix::Dense<>::create(exec));
     std::stringstream ptrstream_factory;
@@ -602,10 +602,9 @@ TEST(Stream, CatchesCriterionCheckStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_started_mask, out);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     std::stringstream ptrstream;
     ptrstream << criterion.get();
@@ -630,10 +629,9 @@ TEST(Stream, CatchesCriterionCheckCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_completed_mask, out);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream ptrstream;
@@ -662,10 +660,9 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_completed_mask, out, true);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream true_in_stream;
@@ -717,11 +714,11 @@ TEST(Stream, CatchesIterationsWithVerbose)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, out, true);
 
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);

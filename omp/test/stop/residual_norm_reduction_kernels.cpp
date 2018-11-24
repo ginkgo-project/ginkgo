@@ -50,9 +50,9 @@ protected:
     ResidualNormReduction()
     {
         omp_ = gko::OmpExecutor::create();
-        factory_ = gko::stop::ResidualNormReduction<>::Factory::create()
+        factory_ = gko::stop::ResidualNormReduction<>::build()
                        .with_reduction_factor(reduction_factor)
-                       .on_executor(omp_);
+                       .on(omp_);
     }
 
     std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;

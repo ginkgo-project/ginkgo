@@ -94,6 +94,7 @@ public:
             stop_iteration_process, nullptr);
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     bool check_impl(gko::uint8 stoppingId, bool setFinalized,
@@ -136,12 +137,12 @@ void run_solver(volatile bool *stop_iteration_process,
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    auto solver = bicg::Factory::create()
-                      .with_criterion(ByInteraction::Factory::create()
-                                          .with_stop_iteration_process(
-                                              stop_iteration_process)
-                                          .on_executor(exec))
-                      .on_executor(exec)
+    auto solver = bicg::build()
+                      .with_criteria(ByInteraction::build()
+                                         .with_stop_iteration_process(
+                                             stop_iteration_process)
+                                         .on(exec))
+                      .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, std::cout, true));

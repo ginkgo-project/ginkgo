@@ -169,9 +169,9 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
     }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
 #pragma omp parallel for
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
             result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
         }
     }

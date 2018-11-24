@@ -35,12 +35,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_GMRES_HPP_
 
 
+#include <vector>
+
+
 #include "core/base/array.hpp"
 #include "core/base/lin_op.hpp"
 #include "core/base/math.hpp"
 #include "core/base/types.hpp"
 #include "core/log/logger.hpp"
 #include "core/matrix/identity.hpp"
+#include "core/stop/combined.hpp"
 #include "core/stop/criterion.hpp"
 
 
@@ -102,10 +106,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Criterion factory
+         * Criterion factories.
          */
-        std::shared_ptr<const stop::CriterionFactory> GKO_FACTORY_PARAMETER(
-            criterion, nullptr);
+        std::vector<std::shared_ptr<const stop::CriterionFactory>>
+            GKO_FACTORY_PARAMETER(criteria);
 
         /**
          * Preconditioner factory.
@@ -119,6 +123,7 @@ public:
         size_type GKO_FACTORY_PARAMETER(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -144,16 +149,13 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        if (parameters_.criterion) {
-            stop_criterion_factory_ = std::move(parameters_.criterion);
-        } else {
-            NOT_SUPPORTED(nullptr);
-        }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
         } else {
             krylov_dim_ = default_krylov_dim;
         }
+        stop_criterion_factory_ =
+            stop::combine(std::move(parameters_.criteria));
     }
 
 private:

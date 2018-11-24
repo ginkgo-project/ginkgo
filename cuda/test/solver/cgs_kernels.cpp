@@ -71,31 +71,21 @@ protected:
         d_mtx = Mtx::create(cuda);
         d_mtx->copy_from(mtx.get());
         cuda_cgs_factory =
-            Solver::Factory::create()
-                .with_criterion(
-                    gko::stop::Combined::Factory::create()
-                        .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246u)
-                                           .on_executor(cuda),
-                                       gko::stop::ResidualNormReduction<>::
-                                           Factory::create()
-                                               .with_reduction_factor(1e-15)
-                                               .on_executor(cuda))
-                        .on_executor(cuda))
-                .on_executor(cuda);
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(cuda),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(cuda))
+                .on(cuda);
         ref_cgs_factory =
-            Solver::Factory::create()
-                .with_criterion(
-                    gko::stop::Combined::Factory::create()
-                        .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246u)
-                                           .on_executor(ref),
-                                       gko::stop::ResidualNormReduction<>::
-                                           Factory::create()
-                                               .with_reduction_factor(1e-15)
-                                               .on_executor(ref))
-                        .on_executor(ref))
-                .on_executor(ref);
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(ref))
+                .on(ref);
     }
 
     void TearDown()

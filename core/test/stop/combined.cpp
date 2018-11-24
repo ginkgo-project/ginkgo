@@ -57,15 +57,15 @@ protected:
     {
         exec_ = gko::ReferenceExecutor::create();
         factory_ =
-            gko::stop::Combined::Factory::create()
+            gko::stop::Combined::build()
                 .with_criteria(
-                    gko::stop::Iteration::Factory::create()
+                    gko::stop::Iteration::build()
                         .with_max_iters(test_iterations)
-                        .on_executor(exec_),
-                    gko::stop::Time::Factory::create()
+                        .on(exec_),
+                    gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(test_seconds))
-                        .on_executor(exec_))
-                .on_executor(exec_);
+                        .on(exec_))
+                .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;

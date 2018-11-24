@@ -250,6 +250,7 @@ public:
         T GKO_FACTORY_PARAMETER(value, T{5});
     };
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOpWithFactory(const Factory *factory,
                           std::shared_ptr<const gko::LinOp> op)
@@ -279,7 +280,7 @@ protected:
 
 TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
 {
-    auto factory = DummyLinOpWithFactory<>::Factory::create().on_executor(ref);
+    auto factory = DummyLinOpWithFactory<>::build().on(ref);
 
     ASSERT_EQ(factory->get_parameters().value, 5);
     ASSERT_EQ(factory->get_executor(), ref);
@@ -288,9 +289,7 @@ TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
 
 TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 {
-    auto factory =
-        DummyLinOpWithFactory<>::Factory::create().with_value(7).on_executor(
-            ref);
+    auto factory = DummyLinOpWithFactory<>::build().with_value(7).on(ref);
 
     ASSERT_EQ(factory->get_parameters().value, 7);
     ASSERT_EQ(factory->get_executor(), ref);
@@ -300,9 +299,7 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 {
     auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
-    auto factory =
-        DummyLinOpWithFactory<>::Factory::create().with_value(6).on_executor(
-            ref);
+    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
 
     auto op = factory->generate(dummy);
 

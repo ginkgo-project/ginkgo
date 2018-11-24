@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/exception_helpers.hpp"
+#include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/cusparse_bindings.hpp"
 
 
 namespace gko {
@@ -214,6 +216,17 @@ void CudaExecutor::set_gpu_property()
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
         num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
     }
+}
+
+
+void CudaExecutor::init_handles()
+{
+    this->cublas_handle_ = handle_manager<cublasContext>(
+        kernels::cuda::cublas::init(), kernels::cuda::cublas::destroy);
+    typedef void (*func_ptr)(cusparseHandle_t);
+    this->cusparse_handle_ = handle_manager<cusparseContext>(
+        kernels::cuda::cusparse::init(),
+        static_cast<func_ptr>(kernels::cuda::cusparse::destroy));
 }
 
 

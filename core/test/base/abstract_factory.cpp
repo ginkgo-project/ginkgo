@@ -71,8 +71,7 @@ struct MyInt {
 
 TEST(EnableDefaultFactory, StoresParameters)
 {
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
 
     ASSERT_EQ(fact->get_parameters().coefficient, 5);
 }
@@ -80,8 +79,7 @@ TEST(EnableDefaultFactory, StoresParameters)
 
 TEST(EnableDefaultFactory, GeneratesProduct)
 {
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
 
     auto prod = fact->generate(3);
 
