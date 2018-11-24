@@ -110,7 +110,7 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
 }
 
 
-template <int subwarp_size = 1, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void abstract_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
@@ -207,17 +207,75 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
+    int subwarp_size = 1;
+    const auto nrows = a->get_size()[0];
+    const auto ell_ncols = a->get_num_stored_elements_per_row();
+
+    if (static_cast<double>(ell_ncols) / nrows > 1e-2) {
+        while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
+            subwarp_size <<= 1;
+        }
+    }
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(a->get_size()[0], block_size.x),
                          b->get_size()[1], 1);
 
-    abstract_spmv<<<grid_size, block_size, 0, 0>>>(
-        a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-        a->get_stride(), a->get_num_stored_elements_per_row(),
-        as_cuda_type(b->get_const_values()), b->get_stride(),
-        as_cuda_type(beta->get_const_values()), as_cuda_type(c->get_values()),
-        c->get_stride());
+    switch (subwarp_size) {
+    case 1:
+        abstract_spmv<1><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 2:
+        abstract_spmv<2><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 4:
+        abstract_spmv<4><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 8:
+        abstract_spmv<8><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 16:
+        abstract_spmv<16><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    case 32:
+        abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+        break;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
