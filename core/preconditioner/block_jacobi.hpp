@@ -57,10 +57,12 @@ struct block_interleaved_storage_scheme {
      * The offset between consecutive blocks within the group.
      */
     IndexType block_offset;
+
     /**
      * The offset between two block groups.
      */
     IndexType group_offset;
+
     /**
      * Then base 2 power of the group.
      *
@@ -146,7 +148,7 @@ struct block_interleaved_storage_scheme {
 
 /**
  * A block-Jacobi preconditioner is a block-diagonal linear operator, obtained
- * by inverting the diagonal blocks of another operator.
+ * by inverting the diagonal blocks of the source operator.
  *
  * The Jacobi class implements the inversion of the diagonal blocks using
  * Gauss-Jordan elimination with column pivoting, and stores the inverse
@@ -155,23 +157,28 @@ struct block_interleaved_storage_scheme {
  * If the diagonal blocks of the matrix are not explicitly set by the user, the
  * implementation will try to automatically detect the blocks by first finding
  * the natural blocks of the matrix, and then applying the supervariable
- * agglomeration procedure on them.
+ * agglomeration procedure on them. However, if problem-specific knowledge
+ * regarding the block diagonal structure is available, it is usually beneficial
+ * to explicitly pass the starting rows of the diagonal blocks, as the block
+ * detection is merely a heuristic and cannot perfectly detect the diagonal
+ * block structure. The current implementation supports blocks of up to 32 rows
+ * / columns.
  *
- * This class also implements an improved adaptive version of the block-Jacobi
- * preconditioner, which can store some of the blocks in lower precision and
- * thus improve the performance of preconditioner application by reducing the
- * amount of memory that has to be read to apply the preconditioner.
- * This can be enabled by setting the `global_precision` (or, for advanced uses
- * `block_precisions`) parameter. Refer to the documentation of these parameters
- * for more details.
- * However, there is a trade-off in terms of slightly longer preconditioner
- * generation when using the adaptive variant due to extra work required to
- * compute the condition numbers (a step is necessary to preserve the
- * regularity of the diagonal blocks).
+ * The implementation also includes an improved, adaptive version of the
+ * block-Jacobi preconditioner, which can store some of the blocks in lower
+ * precision and thus improve the performance of preconditioner application by
+ * reducing the amount of memory transfers. This variant can be enabled by
+ * setting the Jacobi::Factory's `storage_optimization` parameter.  Refer to the
+ * documentation of the parameter for more details.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
+ *
+ * @note The current implementation supports blocks of up to 32 rows / columns.
+ * @note When using the adaptive variant, there may be a trade-off in terms of
+ *       slightly longer preconditioner generation due to extra work required to
+ *       detect the optimal precision of the blocks.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
@@ -245,12 +252,12 @@ public:
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This values has to be between 1 and 32.
+         * @note This value has to be between 1 and 32.
          */
         uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
 
         /**
-         * Starting (row / column) index of each individual block.
+         * Starting (row / column) indexes of individual blocks.
          *
          * An index past the last block has to be supplied as the last value.
          * I.e. the size of the array has to be the number of blocks plus 1,
@@ -263,13 +270,22 @@ public:
          * @note If the parameter is set automatically, the size of the array
          *       does not correlate to the number of blocks, and is
          *       implementation defined. To obtain the number of blocks `n` use
-         *       Jacobi::get_num_blocks(). The starting indexes of each block
+         *       Jacobi::get_num_blocks(). The starting indexes of the blocks
          *       are stored in the first `n+1` values of this array.
+         * @note If the block-diagonal structure can be determined from the
+         *       problem characteristics, it may be beneficial to pass this
+         *       information specifically via this parameter, as the
+         *       autodetection procedure is only a rough approximation of the
+         *       true block structure.
+         * @note The maximum block size set by the max_block_size parameter
+         *       has to be respected when setting this parameter. Failure to do
+         *       so will lead to undefined behavior.
          */
         gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers);
 
-
     private:
+        // See documentation of storage_optimization parameter for details about
+        // this class
         struct storage_optimization_type {
             storage_optimization_type(precision_reduction p)
                 : is_block_wise{false}, of_all_blocks{p}
@@ -294,45 +310,71 @@ public:
 
     public:
         /**
-         * Global precision to use for all blocks.
+         * The precisions to use for the blocks of the matrix.
          *
-         * This parameter only has effect if block_precisions is not set.
+         * This parameter can either be a single instance of precision_reduction
+         * or an Array of precision_reduction values. If set to
+         * `precision_reduction(0, 0)` (this is the default), a regular
+         * full-precision block-Jacobi will be used. Any other value (or an
+         * Array of values) will map to the adaptive variant.
          *
-         * If the value is set to `double_precision`, standard block-Jacobi
-         * preconditioner will be used.
+         * The best starting point when evaluating the potential of the adaptive
+         * version is to set this parameter to
+         * `precision_reduction::autodetect()`. This option will cause the
+         * preconditioner to reduce the memory transfer volume as much as
+         * possible, while trying to maintain the quality of the preconditioner
+         * similar to that of the full precision block-Jacobi.
          *
-         * If the value is set to `best_precision`, the adaptive version will be
-         * used. The adaptive version automatically chooses the precision of
-         * each individual block, depending on its condition number.
+         * For finer control, specific instances of precision_reduction can be
+         * used. Supported values are `precision_reduction(0, 0)`,
+         * `precision_reduction(0, 1)` and `precision_reduction(0, 2)`. Any
+         * other value will have the same effect as `precision_reduction(0, 0)`.
          *
-         * If the value is set to `single_precision` or `half_precision`, the
-         * mixed precision version is used. The mixed precision version will
-         * store all blocks using the same (but lower, depending on the
-         * variable) precision.
+         * If the ValueType template parameter is set to `double` (or the
+         * complex variant `std::complex<double>`), `precision_reduction(0, 0)`
+         * will use IEEE double precision for preconditioner storage,
+         * `precision_reduction(0, 1)` will use IEEE single precision, and
+         * `precision_reduction(0, 2)` will use IEEE half precision.
          *
-         * If better control is needed, the precision of each block can be set
-         * individually by using the block_precisions parameter.
+         * It ValueType is set to `float` (or `std::complex<float>`),
+         * `precision_reduction(0, 0)` will use IEEE single precision for
+         * preconditioner storage, and both `precision_reduction(0, 1)` and
+         * `precision_reduction(0, 2)` will use IEEE half precision.
          *
-         * Precisions to use for each individual block.
+         * Instead of specifying the same precision for all blocks, the
+         * precision of the elements can be specified on per-block basis by
+         * passing an array of precision_reduction objects. All values discussed
+         * above are supported, with the same meaning. It is worth mentioning
+         * that a value of `precision_reduction::autodetect()` will cause
+         * autodetection on the per-block basis, so blocks whose precisions are
+         * autodetected can end up having different precisions once the
+         * preconditioner is generated. The detected precision generally depends
+         * on the conditioning of the block.
          *
-         * If left unset and global_precision is set to double_precision, the
-         * standard full-precision version will be used. Otherwise,
-         * adaptive/mixed precision version is used.
+         * If the number of diagonal blocks is larger than the number of
+         * elements in the passed Array, the entire Array will be replicated
+         * until enough values are available. For example, if the original array
+         * contained two precisions `(x, y)` and the preconditioner contains 5
+         * blocks, the array will be transformed into `(x, y, x, y, x)` before
+         * generating the preconditioner. As a consequence, specifying a single
+         * value for this property is exactly equivalent to specifying an array
+         * with a single element set to that value.
          *
-         * If the number of blocks is larger than the number of elements in this
-         * array, the original array will be replicated multiple times, until
-         * its length reaches the number of blocks of the preconditioner.
-         *
-         * Each value in the list specifies the precision of the corresponding
-         * block and has the same semantics as in the global_precision
-         * parameter. The precisions of blocks whose corresponding entries in
-         * the array are set to `best_precision` will be detected automatically.
-         *
-         * @internal
-         *
-         * @note Once Jacobi's constructor has been called, this array will be
-         *       empty if and only if the non-adaptive version of Jacobi has
-         *       been requested.
+         * Once an instance of the Jacobi linear operator is generated, the
+         * precisions used for the blocks can be obtained by reading this
+         * property. Whether the parameter was set to a single value or to an
+         * array of values can be queried by reading the
+         * `storage_optimization.is_block_wise` boolean sub-property. If it is
+         * set to `false`, the precision used for all blocks can be obtained
+         * using `storage_optimization.of_all_blocks` or by casting
+         * `storage_optimization` to `precision_reduction`. Independently of the
+         * value of `storage_optimization.is_block_wise`, the
+         * `storage_optimization.block_wise` property will return an array of
+         * precisions used for each block. All values set to
+         * `precision_reduction::autodetect()` will be replaced with the value
+         * representing the precision used for the corresponding block.
+         * If the non-adaptive version of Jacobi is used, the
+         * `storage_optimization.block_wise` Array will be empty.
          */
         storage_optimization_type GKO_FACTORY_PARAMETER(
             storage_optimization, precision_reduction(0, 0));
@@ -341,6 +383,11 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
+    /**
+     * Creates an empty Jacobi preconditioner.
+     *
+     * @param exec  the executor this object is assigned to
+     */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Jacobi>(exec), blocks_(exec)
     {
@@ -348,6 +395,13 @@ protected:
         parameters_.storage_optimization.block_wise.set_executor(exec);
     }
 
+    /**
+     * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
+     *
+     * @param factory  the factory to use to create the preconditoner
+     * @param system_matrix  the matrix this preconditioner should be created
+     *                       from
+     */
     explicit Jacobi(const Factory *factory,
                     std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Jacobi>(factory->get_executor(),
@@ -422,11 +476,6 @@ protected:
                 static_cast<index_type>(group_offset), get_log2(group_size)};
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
-
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
-
     /**
      * Generates the preconditoner.
      *
@@ -439,10 +488,15 @@ protected:
      * Detects the diagonal blocks and allocates the memory needed to store the
      * preconditioner.
      *
-     * @param system_matrix  the source matrix whose diagonal block patter is to
-     *                       be detected
+     * @param system_matrix  the source matrix whose diagonal block pattern is
+     *                       to be detected
      */
     void detect_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix);
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
 private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};
