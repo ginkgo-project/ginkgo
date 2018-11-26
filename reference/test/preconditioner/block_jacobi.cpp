@@ -118,12 +118,13 @@ protected:
         ASSERT_EQ(b_ptr_a[0], b_ptr_b[0]);
         for (int i = 0; i < a->get_num_blocks(); ++i) {
             ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
+            auto scheme = a->get_storage_scheme();
             assert_same_block(
                 b_ptr_a[i + 1] - b_ptr_a[i],
-                a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
-                a->get_stride(),
-                b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
-                b->get_stride());
+                a->get_const_blocks() + scheme.get_global_block_offset(i),
+                scheme.get_stride(),
+                b->get_const_blocks() + scheme.get_global_block_offset(i),
+                scheme.get_stride());
         }
     }
 
@@ -138,6 +139,16 @@ protected:
 
 class BlockJacobi
     : public BasicBlockJacobiTest<gko::preconditioner::BlockJacobiFactory<>> {};
+
+
+TEST_F(BlockJacobi, GeneratesCorrectStorageScheme)
+{
+    auto scheme = bj->get_storage_scheme();
+
+    ASSERT_EQ(scheme.group_power, 3);  // 8 3-by-3 blocks fit into 32-wide group
+    ASSERT_EQ(scheme.block_offset, 3);
+    ASSERT_EQ(scheme.group_offset, 8 * 3 * 3);
+}
 
 
 TEST_F(BlockJacobi, CanBeCloned)
@@ -182,7 +193,6 @@ TEST_F(BlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
-    ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);
 }
@@ -251,22 +261,24 @@ protected:
         for (int i = 0; i < a->get_num_blocks(); ++i) {
             ASSERT_EQ(b_prec_a[i], b_prec_b[i]);
             ASSERT_EQ(b_ptr_a[i + 1], b_ptr_b[i + 1]);
+            auto scheme = a->get_storage_scheme();
             if (b_prec_a[i] == Bj::single_precision) {
-                assert_same_block(
-                    b_ptr_a[i + 1] - b_ptr_a[i],
-                    reinterpret_cast<const float *>(
-                        a->get_const_blocks() + b_ptr_a[i] * a->get_stride()),
-                    a->get_stride(),
-                    reinterpret_cast<const float *>(
-                        b->get_const_blocks() + b_ptr_b[i] * b->get_stride()),
-                    b->get_stride());
+                assert_same_block(b_ptr_a[i + 1] - b_ptr_a[i],
+                                  reinterpret_cast<const float *>(
+                                      a->get_const_blocks() +
+                                      scheme.get_global_block_offset(i)),
+                                  scheme.get_stride(),
+                                  reinterpret_cast<const float *>(
+                                      b->get_const_blocks() +
+                                      scheme.get_global_block_offset(i)),
+                                  scheme.get_stride());
             } else {
                 assert_same_block(
                     b_ptr_a[i + 1] - b_ptr_a[i],
-                    a->get_const_blocks() + b_ptr_a[i] * a->get_stride(),
-                    a->get_stride(),
-                    b->get_const_blocks() + b_ptr_b[i] * b->get_stride(),
-                    b->get_stride());
+                    a->get_const_blocks() + scheme.get_global_block_offset(i),
+                    scheme.get_stride(),
+                    b->get_const_blocks() + scheme.get_global_block_offset(i),
+                    scheme.get_stride());
             }
         }
     }
@@ -320,7 +332,6 @@ TEST_F(AdaptiveBlockJacobi, CanBeCleared)
     ASSERT_EQ(bj->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(bj->get_num_stored_elements(), 0);
     ASSERT_EQ(bj->get_max_block_size(), 0);
-    ASSERT_EQ(bj->get_stride(), 0);
     ASSERT_EQ(bj->get_const_block_pointers(), nullptr);
     ASSERT_EQ(bj->get_const_block_precisions(), nullptr);
     ASSERT_EQ(bj->get_const_blocks(), nullptr);

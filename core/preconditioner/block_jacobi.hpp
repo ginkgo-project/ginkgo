@@ -78,6 +78,106 @@ struct index_type<Op<ValueType, IndexType>> {
 };  // namespace detail
 
 
+// TODO: replace this with a custom accessor
+/**
+ * Defines the parameters of the interleaved block storage scheme used by
+ * block-Jacobi blocks.
+ *
+ * @tparam IndexType  type used for storing indices of the matrix
+ */
+template <typename IndexType>
+struct block_interleaved_storage_scheme {
+    /**
+     * The offset between consecutive blocks within the group.
+     */
+    IndexType block_offset;
+    /**
+     * The offset between two block groups.
+     */
+    IndexType group_offset;
+    /**
+     * Then base 2 power of the group.
+     *
+     * I.e. the group contains `1 << group_power` elements.
+     */
+    uint32 group_power;
+
+    /**
+     * Returns the number of elements in the group.
+     *
+     * @return the number of elements in the group
+     */
+    GKO_ATTRIBUTES IndexType get_group_size() const noexcept
+    {
+        return one<IndexType>() << group_power;
+    }
+
+    /**
+     * Computes the storage space required for the requested number of blocks.
+     *
+     * @param num_blocks  the total number of blocks that needs to be stored
+     *
+     * @return the total memory (as the number of elements) that need to be
+     *         allocated for the scheme
+     */
+    GKO_ATTRIBUTES IndexType compute_storage_space(IndexType num_blocks) const
+        noexcept
+    {
+        return (num_blocks + 1 == size_type{0})
+                   ? size_type{0}
+                   : ceildiv(num_blocks, this->get_group_size()) * group_offset;
+    }
+
+    /**
+     * Returns the offset of the group belonging to the block with the given ID.
+     *
+     * @param block_id  the ID of the block
+     *
+     * @return the offset of the group belonging to block with ID `block_id`
+     */
+    GKO_ATTRIBUTES IndexType get_group_offset(IndexType block_id) const noexcept
+    {
+        return group_offset * (block_id >> group_power);
+    }
+
+    /**
+     * Returns the offset of the block with the given ID within its group.
+     *
+     * @param block_id  the ID of the block
+     *
+     * @return the offset of the block with ID `block_id` within its group
+     */
+    GKO_ATTRIBUTES IndexType get_block_offset(IndexType block_id) const noexcept
+    {
+        return block_offset * (block_id & (this->get_group_size() - 1));
+    }
+
+    /**
+     * Returns the offset of the block with the given ID.
+     *
+     * @param block_id  the ID of the block
+     *
+     * @return the offset of the block with ID `block_id`
+     */
+    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
+        noexcept
+    {
+        return this->get_group_offset(block_id) +
+               this->get_block_offset(block_id);
+    }
+
+    /**
+     * Returns the stride between columns of the block.
+     *
+     * @return stride between columns of the block
+     */
+    GKO_ATTRIBUTES IndexType get_stride() const noexcept
+    {
+        return block_offset << group_power;
+    }
+};
+
+
 /**
  * This is an intermediate class which implements common methods of block-Jacobi
  * preconditioners.
@@ -92,7 +192,6 @@ class BasicBlockJacobi : public EnableLinOp<ConcreteBlockJacobi> {
 public:
     using EnableLinOp<ConcreteBlockJacobi>::convert_to;
     using EnableLinOp<ConcreteBlockJacobi>::move_to;
-
     using value_type = typename detail::value_type<ConcreteBlockJacobi>::type;
     using index_type = typename detail::index_type<ConcreteBlockJacobi>::type;
 
@@ -135,11 +234,15 @@ public:
     }
 
     /**
-     * Returns the stride used for storing the blocks.
+     * Returns the storage scheme used for storing Jacobi blocks.
      *
-     * @return the stride used for storing the blocks
+     * @return the storage scheme used for storing Jacobi blocks
      */
-    size_type get_stride() const noexcept { return max_block_size_; }
+    const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
+        const noexcept
+    {
+        return storage_scheme_;
+    }
 
     /**
      * Returns the pointer to the memory used for storing the block data.
@@ -192,17 +295,72 @@ protected:
               exec, transpose(system_matrix->get_size())),
           num_blocks_(block_pointers.get_num_elems() - 1),
           max_block_size_(max_block_size),
+          storage_scheme_{compute_storage_scheme(max_block_size)},
           block_pointers_(block_pointers),
-          blocks_(exec, this->get_size()[1] * max_block_size)
+          blocks_(exec, storage_scheme_.compute_storage_space(
+                            block_pointers.get_num_elems() - 1))
     {
         block_pointers_.set_executor(this->get_executor());
     }
 
-protected:
     size_type num_blocks_{};
     uint32 max_block_size_{};
+    block_interleaved_storage_scheme<index_type> storage_scheme_;
     Array<index_type> block_pointers_;
     Array<value_type> blocks_;
+
+    /**
+     * Stride between two columns of a block (as number of elements).
+     *
+     * Should be a multiple of cache line size for best performance.
+     */
+    static constexpr size_type max_block_stride_ = 32;
+
+    /**
+     * Returns the smallest power of 2 at least as larger as the input.
+     *
+     * @param n  a number
+     *
+     * @return a power of two at least as large as `n`
+     */
+    static size_type get_larger_power(size_type n) noexcept
+    {
+        size_type res = 1;
+        while (res < n) res *= 2;
+        return res;
+    }
+
+    /**
+     * Returns the base-2 logarithm of `n` rounded down to the nearest integer.
+     */
+    static uint32 get_log2(size_type n) noexcept
+    {
+        for (auto r = uint32{0};; ++r) {
+            if ((size_type{1} << (r + 1)) > n) {
+                return r;
+            }
+        }
+    }
+
+    /**
+     * Computes the storage scheme suitable for storing blocks of a given
+     * maximum size.
+     *
+     * @param max_block_size  the maximum size of the blocks
+     *
+     * @return a suitable storage scheme
+     */
+    static block_interleaved_storage_scheme<index_type> compute_storage_scheme(
+        uint32 max_block_size) noexcept
+    {
+        const auto group_size = static_cast<uint32>(
+            max_block_stride_ / get_larger_power(max_block_size));
+        const auto block_offset = max_block_size;
+        const auto block_stride = group_size * block_offset;
+        const auto group_offset = max_block_size * block_stride;
+        return {static_cast<index_type>(block_offset),
+                static_cast<index_type>(group_offset), get_log2(group_size)};
+    }
 };
 
 

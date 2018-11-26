@@ -221,14 +221,15 @@ TEST_F(BlockJacobi, InvertsDiagonalBlocks)
     bj_lin_op = bj_factory->generate(mtx);
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_stride();
-    auto b1 = bj->get_blocks();
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
     EXPECT_NEAR(b1[0 + 0 * p], 4.0 / 14.0, 1e-14);
     EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-14);
     EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-14);
     EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-14);
 
-    auto b2 = bj->get_blocks() + 2 * p;
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
     EXPECT_NEAR(b2[0 + 1 * p], 8.0 / 48.0, 1e-14);
     EXPECT_NEAR(b2[0 + 2 * p], 4.0 / 48.0, 1e-14);
@@ -260,8 +261,9 @@ TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
     bj_lin_op = bj_factory->generate(std::move(mtx));
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_stride();
-    auto b1 = bj->get_blocks();
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
     EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-14);
     EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-14);
     EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-14);
@@ -407,14 +409,16 @@ TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
     bj_lin_op = bj_factory->generate(mtx);
 
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_stride();
-    auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = reinterpret_cast<const float *>(
+        bj->get_blocks() + scheme.get_global_block_offset(0));
     EXPECT_NEAR(b1[0 + 0 * p], 4.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-7);
 
-    auto b2 = bj->get_blocks() + 2 * p;
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
     EXPECT_NEAR(b2[0 + 1 * p], 8.0 / 48.0, 1e-14);
     EXPECT_NEAR(b2[0 + 2 * p], 4.0 / 48.0, 1e-14);
@@ -445,10 +449,12 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
                {0.0, 2.0, 0.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0});
 
     bj_lin_op = bj_factory->generate(std::move(mtx));
-
     bj = static_cast<Bj *>(bj_lin_op.get());
-    auto p = bj->get_stride();
-    auto b1 = reinterpret_cast<const float *>(bj->get_const_blocks());
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = reinterpret_cast<const float *>(
+        bj->get_blocks() + scheme.get_global_block_offset(0));
     EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-7);
     EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-7);
     EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-7);
