@@ -31,25 +31,25 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_BLOCK_JACOBI_KERNELS_HPP_
-#define GKO_CORE_PRECONDITIONER_BLOCK_JACOBI_KERNELS_HPP_
+#ifndef GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_
+#define GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_
 
 
 #include "core/matrix/csr.hpp"
-#include "core/preconditioner/block_jacobi.hpp"
+#include "core/preconditioner/jacobi.hpp"
 
 
 namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)    \
+#define GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)          \
     void find_blocks(std::shared_ptr<const DefaultExecutor> exec,            \
                      const matrix::Csr<ValueType, IndexType> *system_matrix, \
                      uint32 max_block_size, size_type &num_blocks,           \
                      Array<IndexType> &block_pointers)
 
-#define GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)    \
+#define GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType)          \
     void generate(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                      \
         const matrix::Csr<ValueType, IndexType> *system_matrix,           \
@@ -59,7 +59,7 @@ namespace kernels {
         Array<precision_reduction> &block_precisions,                     \
         const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 
-#define GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)            \
+#define GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType)                  \
     void apply(                                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
         uint32 max_block_size,                                                 \
@@ -71,7 +71,7 @@ namespace kernels {
         const matrix::Dense<ValueType> *b,                                     \
         const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 
-#define GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType) \
+#define GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)       \
     void simple_apply(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
         uint32 max_block_size,                                             \
@@ -82,59 +82,59 @@ namespace kernels {
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
 
-#define GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType) \
-    void convert_to_dense(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        const Array<precision_reduction> &block_precisions,                    \
-        const Array<IndexType> &block_pointers,                                \
-        const Array<ValueType> &blocks,                                        \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>      \
-            &storage_scheme,                                                   \
+#define GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)   \
+    void convert_to_dense(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
+        const Array<precision_reduction> &block_precisions,                \
+        const Array<IndexType> &block_pointers,                            \
+        const Array<ValueType> &blocks,                                    \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>  \
+            &storage_scheme,                                               \
         ValueType *result_values, size_type result_stride)
 
-#define GKO_DECLARE_BLOCK_JACOBI_INITIALIZE_PRECISIONS_KERNEL()             \
+#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()                   \
     void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
                                const Array<precision_reduction> &source,    \
                                Array<precision_reduction> &precisions)
 
-#define DECLARE_ALL_AS_TEMPLATES                                            \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_BLOCK_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
+#define DECLARE_ALL_AS_TEMPLATES                                      \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
 
 
 namespace omp {
-namespace block_jacobi {
+namespace jacobi {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace block_jacobi
+}  // namespace jacobi
 }  // namespace omp
 
 
 namespace cuda {
-namespace block_jacobi {
+namespace jacobi {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace block_jacobi
+}  // namespace jacobi
 }  // namespace cuda
 
 
 namespace reference {
-namespace block_jacobi {
+namespace jacobi {
 
 DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace block_jacobi
+}  // namespace jacobi
 }  // namespace reference
 
 
@@ -145,4 +145,4 @@ DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_PRECONDITIONER_BLOCK_JACOBI_KERNELS_HPP_
+#endif  // GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_

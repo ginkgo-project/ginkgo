@@ -1,1 +1,1 @@
-create_test(block_jacobi_kernels)
+create_test(jacobi_kernels)

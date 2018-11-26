@@ -6,7 +6,7 @@ set(SOURCES
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
-    preconditioner/block_jacobi_kernels.cpp
+    preconditioner/jacobi_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp

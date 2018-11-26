@@ -1,1 +1,1 @@
-create_test(block_jacobi)
+create_test(jacobi)

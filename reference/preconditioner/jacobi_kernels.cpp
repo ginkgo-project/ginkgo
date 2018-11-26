@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/block_jacobi_kernels.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
 
 
 #include <cmath>
@@ -44,13 +44,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/math.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/preconditioner/block_jacobi_utils.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace reference {
-namespace block_jacobi {
+namespace jacobi {
 namespace {
 
 
@@ -145,7 +145,7 @@ void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
+    GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 
 namespace {
@@ -309,7 +309,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
         const auto p = prec ? prec[b] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            block_jacobi::permute_and_transpose_block(
+            permute_and_transpose_block(
                 block_size, perm.get_data(), block.get_data(), block_size,
                 reinterpret_cast<resolved_precision *>(
                     blocks.get_data() +
@@ -319,7 +319,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+    GKO_DECLARE_JACOBI_GENERATE_KERNEL);
 
 
 namespace {
@@ -407,8 +407,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -443,7 +442,7 @@ void simple_apply(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -482,10 +481,10 @@ void convert_to_dense(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace block_jacobi
+}  // namespace jacobi
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

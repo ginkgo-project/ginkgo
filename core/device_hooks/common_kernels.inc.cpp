@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
-#include "core/preconditioner/block_jacobi_kernels.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
@@ -471,43 +471,42 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace sellp
 
 
-namespace block_jacobi {
+namespace jacobi {
 
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)
+GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
+    GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL(ValueType, IndexType)
+GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+    GKO_DECLARE_JACOBI_GENERATE_KERNEL);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL(ValueType, IndexType)
+GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)
+GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
-GKO_DECLARE_BLOCK_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
+GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
 NOT_COMPILED(GKO_HOOK_MODULE);
 
-}  // namespace block_jacobi
+}  // namespace jacobi
 
 
 namespace set_all_statuses {

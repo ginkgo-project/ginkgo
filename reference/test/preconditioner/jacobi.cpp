@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/preconditioner/block_jacobi.hpp>
+#include <core/preconditioner/jacobi.hpp>
 
 
 #include <algorithm>
@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/matrix/csr.hpp>
 #include <core/matrix/dense.hpp>
-#include <core/preconditioner/block_jacobi_utils.hpp>
+#include <core/preconditioner/jacobi_utils.hpp>
 
 
 namespace {

@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/block_jacobi.hpp"
+#include "core/preconditioner/jacobi.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
-#include "core/preconditioner/block_jacobi_kernels.hpp"
-#include "core/preconditioner/block_jacobi_utils.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
 
 
 namespace gko {
@@ -52,14 +52,14 @@ namespace {
 
 template <typename... TArgs>
 struct JacobiOperation {
-    GKO_REGISTER_OPERATION(simple_apply, block_jacobi::simple_apply<TArgs...>);
-    GKO_REGISTER_OPERATION(apply, block_jacobi::apply<TArgs...>);
-    GKO_REGISTER_OPERATION(find_blocks, block_jacobi::find_blocks<TArgs...>);
-    GKO_REGISTER_OPERATION(generate, block_jacobi::generate<TArgs...>);
+    GKO_REGISTER_OPERATION(simple_apply, jacobi::simple_apply<TArgs...>);
+    GKO_REGISTER_OPERATION(apply, jacobi::apply<TArgs...>);
+    GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks<TArgs...>);
+    GKO_REGISTER_OPERATION(generate, jacobi::generate<TArgs...>);
     GKO_REGISTER_OPERATION(convert_to_dense,
-                           block_jacobi::convert_to_dense<TArgs...>);
+                           jacobi::convert_to_dense<TArgs...>);
     GKO_REGISTER_OPERATION(initialize_precisions,
-                           block_jacobi::initialize_precisions);
+                           jacobi::initialize_precisions);
 };
 
 
