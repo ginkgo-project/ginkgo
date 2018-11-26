@@ -21,6 +21,7 @@ var searchData=
   ['compute_5fell_5fnum_5fstored_5felements_5fper_5frow',['compute_ell_num_stored_elements_per_row',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a0a0cd4024f27c7d0f286f35fc0a6de60',1,'gko::matrix::Hybrid::strategy_type::compute_ell_num_stored_elements_per_row()'],['../classgko_1_1matrix_1_1Hybrid_1_1column__limit.html#afb410def66106b711ac094fd31d48aba',1,'gko::matrix::Hybrid::column_limit::compute_ell_num_stored_elements_per_row()'],['../classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72',1,'gko::matrix::Hybrid::imbalance_limit::compute_ell_num_stored_elements_per_row()'],['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html#a804d556fbcbe8ed754e167f270b16118',1,'gko::matrix::Hybrid::automatic::compute_ell_num_stored_elements_per_row()']]],
   ['compute_5fhybrid_5fconfig',['compute_hybrid_config',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68',1,'gko::matrix::Hybrid::strategy_type']]],
   ['compute_5fnorm2',['compute_norm2',['../classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599',1,'gko::matrix::Dense']]],
+  ['compute_5fstorage_5fspace',['compute_storage_space',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#acec67786a50d97210635eac1d1f6d568',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
   ['cond',['cond',['../structgko_1_1matrix__data.html#a84056e4ef41884be328ec78554074df1',1,'gko::matrix_data::cond(size_type size, remove_complex&lt; ValueType &gt; condition_number, RandomDistribution &amp;&amp;dist, RandomEngine &amp;&amp;engine, size_type num_reflectors)'],['../structgko_1_1matrix__data.html#aff5d2293d78e83ed783b5b8e231e7ede',1,'gko::matrix_data::cond(size_type size, remove_complex&lt; ValueType &gt; condition_number, RandomDistribution &amp;&amp;dist, RandomEngine &amp;&amp;engine)']]],
   ['conj_5foperaton',['conj_operaton',['../structgko_1_1accessor_1_1conj__operaton.html',1,'gko::accessor']]],
   ['conj_5ftranspose',['conj_transpose',['../classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077',1,'gko::Transposable::conj_transpose()'],['../classgko_1_1matrix_1_1Coo.html#a77810f90e29b3745f352a4c42c44bcfc',1,'gko::matrix::Coo::conj_transpose()'],['../classgko_1_1matrix_1_1Csr.html#af57eb59b5acb36cae0b3a16ffff9cf4f',1,'gko::matrix::Csr::conj_transpose()'],['../classgko_1_1matrix_1_1Dense.html#ac0ae2a7dcb94eb0b32e494c970d1fc7c',1,'gko::matrix::Dense::conj_transpose()']]],
@@ -74,14 +75,14 @@ var searchData=
   ['criterion_5fevents_5fmask',['criterion_events_mask',['../classgko_1_1log_1_1Logger.html#a6d837d90c54084a9de7d0469f8e40527',1,'gko::log::Logger']]],
   ['criterionargs',['CriterionArgs',['../structgko_1_1stop_1_1CriterionArgs.html',1,'gko::stop']]],
   ['csr',['Csr',['../classgko_1_1matrix_1_1Csr.html',1,'gko::matrix']]],
-  ['cublaserror',['CublasError',['../classgko_1_1CublasError.html',1,'gko']]],
   ['cublaserror',['CublasError',['../classgko_1_1CublasError.html#a4f16cd8a9189da444d11a97337a56d8f',1,'gko::CublasError']]],
+  ['cublaserror',['CublasError',['../classgko_1_1CublasError.html',1,'gko']]],
   ['cuda_5fconfig',['cuda_config',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html',1,'gko::kernels::cuda']]],
   ['cuda_5fversion',['cuda_version',['../classgko_1_1version__info.html#a75d283ac87b2f80abdc48fa48b3a5d51',1,'gko::version_info']]],
-  ['cudaerror',['CudaError',['../classgko_1_1CudaError.html#aa4f4d466d2ccdb9da5e331d8dad92d39',1,'gko::CudaError']]],
   ['cudaerror',['CudaError',['../classgko_1_1CudaError.html',1,'gko']]],
+  ['cudaerror',['CudaError',['../classgko_1_1CudaError.html#aa4f4d466d2ccdb9da5e331d8dad92d39',1,'gko::CudaError']]],
   ['cudaexecutor',['CudaExecutor',['../classgko_1_1CudaExecutor.html',1,'gko']]],
   ['cusparse',['cusparse',['../classgko_1_1matrix_1_1Csr_1_1cusparse.html',1,'gko::matrix::Csr']]],
-  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko']]],
-  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html#ad51ca5caecfc2e41bd06c779d2ca57ae',1,'gko::CusparseError']]]
+  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html#ad51ca5caecfc2e41bd06c779d2ca57ae',1,'gko::CusparseError']]],
+  ['cusparseerror',['CusparseError',['../classgko_1_1CusparseError.html',1,'gko']]]
 ];

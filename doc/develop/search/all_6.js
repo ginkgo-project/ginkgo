@@ -3,6 +3,7 @@ var searchData=
   ['generate',['generate',['../classgko_1_1AbstractFactory.html#af1a5acd03e17821d52daa9f6b3b6b167',1,'gko::AbstractFactory']]],
   ['get',['get',['../classgko_1_1temporary__clone.html#a097e518d2f32bb2102bf52a6c3fd132f',1,'gko::temporary_clone::get()'],['../classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb',1,'gko::version_info::get()'],['../classgko_1_1log_1_1Record.html#ae64de3b730322ec8be7353aba30899b2',1,'gko::log::Record::get() const noexcept'],['../classgko_1_1log_1_1Record.html#a714affcca3269fed88b982e7db011184',1,'gko::log::Record::get() noexcept']]],
   ['get_5faccessor',['get_accessor',['../classgko_1_1range.html#ac62f76256fce7442670275827e32d506',1,'gko::range']]],
+  ['get_5fblock_5foffset',['get_block_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a6384280dc1ad46fc1589d0b9165fd022',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
   ['get_5fblock_5fpointers',['get_block_pointers',['../classgko_1_1preconditioner_1_1BasicBlockJacobi.html#a4fcfea98880a0d0070318d7e84e96c20',1,'gko::preconditioner::BasicBlockJacobi::get_block_pointers()'],['../classgko_1_1preconditioner_1_1BasicBlockJacobiFactory.html#ab3cafb025cc037387fd823f264c9fbdc',1,'gko::preconditioner::BasicBlockJacobiFactory::get_block_pointers()']]],
   ['get_5fblock_5fprecisions',['get_block_precisions',['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobi.html#aa48165a5050b7035f45ecbe597b28a05',1,'gko::preconditioner::AdaptiveBlockJacobi::get_block_precisions()'],['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobiFactory.html#ad57a22d435f55665f43ab56b54e4c00b',1,'gko::preconditioner::AdaptiveBlockJacobiFactory::get_block_precisions()']]],
   ['get_5fblocks',['get_blocks',['../classgko_1_1preconditioner_1_1BasicBlockJacobi.html#a922c517bd60086366e993e8e651aa652',1,'gko::preconditioner::BasicBlockJacobi']]],
@@ -41,6 +42,9 @@ var searchData=
   ['get_5fell_5fstride',['get_ell_stride',['../classgko_1_1matrix_1_1Hybrid.html#a2472495b537b47555a04aa6ba11d5817',1,'gko::matrix::Hybrid']]],
   ['get_5fell_5fvalues',['get_ell_values',['../classgko_1_1matrix_1_1Hybrid.html#a9cd9c8b8dbf8b3c2c014f355faa61474',1,'gko::matrix::Hybrid']]],
   ['get_5fexecutor',['get_executor',['../classgko_1_1Array.html#a820e5930cb5072acc7673fdb2d11efcd',1,'gko::Array::get_executor()'],['../classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb',1,'gko::PolymorphicObject::get_executor()']]],
+  ['get_5fglobal_5fblock_5foffset',['get_global_block_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ad8356b187814609c7d77bd03e025c48f',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
+  ['get_5fgroup_5foffset',['get_group_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a66a04b4dc90547fde872359c78ee22a4',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
+  ['get_5fgroup_5fsize',['get_group_size',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#af5eee19f00b1cd4c378ac3410be72093',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
   ['get_5fid',['get_id',['../classgko_1_1stopping__status.html#ae3c4d0e7a01f4e1892a09f418ea0907d',1,'gko::stopping_status']]],
   ['get_5fkrylov_5fdim',['get_krylov_dim',['../classgko_1_1solver_1_1Gmres.html#a7fe948b5502119676b42f1d4143ac2af',1,'gko::solver::Gmres']]],
   ['get_5fmajor_5fversion',['get_major_version',['../classgko_1_1CudaExecutor.html#a3868f53f82b6398acb1ba1f9647a6e46',1,'gko::CudaExecutor']]],
@@ -69,8 +73,9 @@ var searchData=
   ['get_5fslice_5fsets',['get_slice_sets',['../classgko_1_1matrix_1_1Sellp.html#afecef07cef594f1d23c735e66ee90ec6',1,'gko::matrix::Sellp']]],
   ['get_5fslice_5fsize',['get_slice_size',['../classgko_1_1matrix_1_1Sellp.html#a0554e79b672f35df5dd01cb467850227',1,'gko::matrix::Sellp']]],
   ['get_5fsrow',['get_srow',['../classgko_1_1matrix_1_1Csr.html#a919fb1efdcbde6fba7eb18bdc39ba46a',1,'gko::matrix::Csr']]],
+  ['get_5fstorage_5fscheme',['get_storage_scheme',['../classgko_1_1preconditioner_1_1BasicBlockJacobi.html#ad1f80c025938dd210a3521518fc7f06c',1,'gko::preconditioner::BasicBlockJacobi']]],
   ['get_5fstrategy',['get_strategy',['../classgko_1_1matrix_1_1Csr.html#ada0db14e65dfe027f483dc449f704a7e',1,'gko::matrix::Csr::get_strategy()'],['../classgko_1_1matrix_1_1Hybrid.html#a8be764050176291d35e7b4dee1b6e1bc',1,'gko::matrix::Hybrid::get_strategy()']]],
-  ['get_5fstride',['get_stride',['../classgko_1_1matrix_1_1Dense.html#a8c1b220b9b9292893d9be22d632a9a0e',1,'gko::matrix::Dense::get_stride()'],['../classgko_1_1matrix_1_1Ell.html#a0be6e75dcea0975b10e3389a9eedacc1',1,'gko::matrix::Ell::get_stride()'],['../classgko_1_1preconditioner_1_1BasicBlockJacobi.html#abdf62d4ebd307ef9e5658dda2cf76f0d',1,'gko::preconditioner::BasicBlockJacobi::get_stride()']]],
+  ['get_5fstride',['get_stride',['../classgko_1_1matrix_1_1Dense.html#a8c1b220b9b9292893d9be22d632a9a0e',1,'gko::matrix::Dense::get_stride()'],['../classgko_1_1matrix_1_1Ell.html#a0be6e75dcea0975b10e3389a9eedacc1',1,'gko::matrix::Ell::get_stride()'],['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#aa07119fbf99fae71b1f9c4f693e14ce4',1,'gko::preconditioner::block_interleaved_storage_scheme::get_stride()']]],
   ['get_5fstride_5ffactor',['get_stride_factor',['../classgko_1_1matrix_1_1Sellp.html#a34c7942cac3db5a9c4c0b609d2a5540b',1,'gko::matrix::Sellp']]],
   ['get_5fsystem_5fmatrix',['get_system_matrix',['../classgko_1_1solver_1_1Bicgstab.html#a2780bc24509eaac6b2193315b01a8e63',1,'gko::solver::Bicgstab::get_system_matrix()'],['../classgko_1_1solver_1_1Cg.html#aae6b3f19511eaa2d6cbc5869fe21669a',1,'gko::solver::Cg::get_system_matrix()'],['../classgko_1_1solver_1_1Cgs.html#af1f79aa669a81bb20a9d82d15bd1140d',1,'gko::solver::Cgs::get_system_matrix()'],['../classgko_1_1solver_1_1Fcg.html#aca1e572b3282672e4634f6bb3323df42',1,'gko::solver::Fcg::get_system_matrix()'],['../classgko_1_1solver_1_1Gmres.html#a526dd3b84de4f561af157a5ccd3940a4',1,'gko::solver::Gmres::get_system_matrix()']]],
   ['get_5ftotal_5fcols',['get_total_cols',['../classgko_1_1matrix_1_1Sellp.html#a3e5ca0f4968f29f97b5a42aac4d08b3d',1,'gko::matrix::Sellp']]],
@@ -78,5 +83,7 @@ var searchData=
   ['gmres',['Gmres',['../classgko_1_1solver_1_1Gmres.html',1,'gko::solver']]],
   ['greater',['greater',['../structgko_1_1accessor_1_1greater.html',1,'gko::accessor']]],
   ['greater_5for_5fequal',['greater_or_equal',['../structgko_1_1accessor_1_1greater__or__equal.html',1,'gko::accessor']]],
-  ['group',['group',['../namespacegko_1_1group.html',1,'gko']]]
+  ['group',['group',['../namespacegko_1_1group.html',1,'gko']]],
+  ['group_5foffset',['group_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#aa8a6723ef709e69bda55eaabaeee582e',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
+  ['group_5fpower',['group_power',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a8fa279f4178c767bdbf52ef4d7e23ad1',1,'gko::preconditioner::block_interleaved_storage_scheme']]]
 ];

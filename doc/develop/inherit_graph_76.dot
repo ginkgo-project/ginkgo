@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::range\< Accessor \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1range.html",tooltip="A range is a multidimensional view of the memory. "];
+  Node1 [label="gko::preconditioner\l::block_interleaved\l_storage_scheme\< index\l_type \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html"];
 }

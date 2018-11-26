@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['size',['size',['../structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b',1,'gko::matrix_data']]],
-  ['stride',['stride',['../classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316',1,'gko::accessor::row_major']]]
+  ['reduction_5ffactor',['reduction_factor',['../structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type.html#a488ffd39d7ea7fc9093a0e7604be2746',1,'gko::stop::ResidualNormReduction::parameters_type']]],
+  ['reference_5fversion',['reference_version',['../classgko_1_1version__info.html#a772fcf25f93d719b733602b4bba7d7ec',1,'gko::version_info']]]
 ];

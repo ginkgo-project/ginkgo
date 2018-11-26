@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::version",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1version.html",tooltip="This structure is used to represent versions of various Ginkgo modules. "];
+  Node1 [label="gko::temporary_clone\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1temporary__clone.html",tooltip="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari..."];
 }

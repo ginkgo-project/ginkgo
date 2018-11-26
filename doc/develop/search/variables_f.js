@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['tag',['tag',['../structgko_1_1version.html#a1bd0eaa4d551c145ff9cd0c10e555ac3',1,'gko::version']]],
-  ['time_5flimit',['time_limit',['../structgko_1_1stop_1_1Time_1_1parameters__type.html#aee1d09b9ec4e73561e46e94888cf885a',1,'gko::stop::Time::parameters_type']]]
+  ['size',['size',['../structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b',1,'gko::matrix_data']]],
+  ['stride',['stride',['../classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316',1,'gko::accessor::row_major']]]
 ];
