@@ -35,16 +35,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_BLOCK_JACOBI_UTILS_HPP_
 
 
-#define GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(_type, _prec, ...)        \
-    if (_prec == precision_reduction(0, 1)) {                                 \
-        using resolved_precision = reduce_precision<_type>;                   \
-        __VA_ARGS__;                                                          \
-    } else if (_prec == precision_reduction(0, 2)) {                          \
-        using resolved_precision = reduce_precision<reduce_precision<_type>>; \
-        __VA_ARGS__;                                                          \
-    } else {                                                                  \
-        using resolved_precision = _type;                                     \
-        __VA_ARGS__;                                                          \
+#define GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(_type, _prec, ...) \
+    if (_prec == ::gko::precision_reduction(0, 1)) {                   \
+        using resolved_precision = ::gko::reduce_precision<_type>;     \
+        __VA_ARGS__;                                                   \
+    } else if (_prec == ::gko::precision_reduction(0, 2)) {            \
+        using resolved_precision =                                     \
+            ::gko::reduce_precision<::gko::reduce_precision<_type>>;   \
+        __VA_ARGS__;                                                   \
+    } else {                                                           \
+        using resolved_precision = _type;                              \
+        __VA_ARGS__;                                                   \
     }
 
 

@@ -396,14 +396,18 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    select_generate(compiled_kernels(),
-                    [&](int compiled_block_size) {
-                        return max_block_size <= compiled_block_size;
-                    },
-                    syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                    syn::compile_type_list<>(), system_matrix,
-                    blocks.get_data(), storage_scheme,
-                    block_pointers.get_const_data(), num_blocks);
+    if (block_precisions.get_num_elems() > 0) {
+        // TODO: use adaptive precision version
+    } else {
+        select_generate(
+            compiled_kernels(),
+            [&](int compiled_block_size) {
+                return max_block_size <= compiled_block_size;
+            },
+            syn::compile_int_list<cuda_config::min_warps_per_block>(),
+            syn::compile_type_list<>(), system_matrix, blocks.get_data(),
+            storage_scheme, block_pointers.get_const_data(), num_blocks);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -446,17 +450,22 @@ void simple_apply(
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
-    // TODO: write a special kernel for multiple RHS
-    for (size_type col = 0; col < b->get_size()[1]; ++col) {
-        select_apply(compiled_kernels(),
-                     [&](int compiled_block_size) {
-                         return max_block_size <= compiled_block_size;
-                     },
-                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                     syn::compile_type_list<>(), num_blocks,
-                     block_pointers.get_const_data(), blocks.get_const_data(),
-                     storage_scheme, b->get_const_values() + col,
-                     b->get_stride(), x->get_values() + col, x->get_stride());
+    if (block_precisions.get_num_elems() > 0) {
+        // TODO: use adaptive precision version
+    } else {
+        // TODO: write a special kernel for multiple RHS
+        for (size_type col = 0; col < b->get_size()[1]; ++col) {
+            select_apply(
+                compiled_kernels(),
+                [&](int compiled_block_size) {
+                    return max_block_size <= compiled_block_size;
+                },
+                syn::compile_int_list<cuda_config::min_warps_per_block>(),
+                syn::compile_type_list<>(), num_blocks,
+                block_pointers.get_const_data(), blocks.get_const_data(),
+                storage_scheme, b->get_const_values() + col, b->get_stride(),
+                x->get_values() + col, x->get_stride());
+        }
     }
 }
 
@@ -478,74 +487,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace block_jacobi
-
-
-/*
-namespace adaptive_block_jacobi {
-
-
-template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CudaExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>
-                  &storage_scheme,
-              Array<precision<ValueType, IndexType>> &block_precisions,
-              const Array<IndexType> &block_pointers,
-              Array<ValueType> &blocks) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-           uint32 max_block_size,
-           const preconditioner::block_interleaved_storage_scheme<IndexType>
-               &storage_scheme,
-           const Array<precision<ValueType, IndexType>> &block_precisions,
-           const Array<IndexType> &block_pointers,
-           const Array<ValueType> &blocks,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void simple_apply(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *b,
-    matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    ValueType *result_values, size_type result_stride) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
-
-
-}  // namespace adaptive_block_jacobi
-*/
-
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

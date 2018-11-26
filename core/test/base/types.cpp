@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+namespace {
+
+
 TEST(PrecisionReduction, CreatesDefaultEncoding)
 {
     auto e = gko::precision_reduction();
@@ -86,3 +89,16 @@ TEST(PrecisionReduction, ConvertsToStorageType)
 
     ASSERT_EQ(st, 0);
 }
+
+
+TEST(PrecisionReduction, ComputesCommonEncoding)
+{
+    auto e1 = gko::precision_reduction(2, 3);
+    auto e2 = gko::precision_reduction(3, 1);
+
+    ASSERT_EQ(gko::precision_reduction::common(e1, e2),
+              gko::precision_reduction(2, 1));
+}
+
+
+}  // namespace
