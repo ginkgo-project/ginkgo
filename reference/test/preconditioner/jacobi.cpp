@@ -85,7 +85,8 @@ protected:
                          .with_block_pointers(block_pointers)
                          .on(exec);
         adaptive_bj_factory = Bj::build()
-                                  .with_max_block_size(3u)
+                                  .with_max_block_size(17u)
+                                  // make sure group size is 1
                                   .with_block_pointers(block_pointers)
                                   .with_storage_optimization(block_precisions)
                                   .on(exec);

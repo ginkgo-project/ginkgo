@@ -70,7 +70,8 @@ protected:
                          .with_block_pointers(block_pointers)
                          .on(exec);
         adaptive_bj_factory = Bj::build()
-                                  .with_max_block_size(3u)
+                                  .with_max_block_size(17u)
+                                  // make sure group size is 1
                                   .with_block_pointers(block_pointers)
                                   .with_storage_optimization(block_precisions)
                                   .on(exec);
@@ -127,7 +128,7 @@ TEST_F(Jacobi, CanBeGeneratedWithAdaptivePrecision)
     auto bj = adaptive_bj_factory->generate(mtx);
 
     EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 17);
     ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
     auto ptrs = bj->get_parameters().block_pointers.get_const_data();
@@ -268,6 +269,37 @@ TEST_F(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
     EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-7);
     EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-7);
+
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
+    EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 1 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[0 + 2 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 0 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 1 * p], 16.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[1 + 2 * p], 8.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 0 * p], 1.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 1 * p], 4.0 / 48.0, 1e-14);
+    EXPECT_NEAR(b2[2 + 2 * p], 14.0 / 48.0, 1e-14);
+}
+
+
+TEST_F(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecisionAndSmallBlocks)
+{
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  // group size will be > 1
+                  .with_block_pointers(block_pointers)
+                  .with_storage_optimization(block_precisions)
+                  .on(exec)
+                  ->generate(mtx);
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
+    EXPECT_NEAR(b1[0 + 0 * p], 4.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 1 * p], 2.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 0 * p], 1.0 / 14.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 1 * p], 4.0 / 14.0, 1e-14);
 
     auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     EXPECT_NEAR(b2[0 + 0 * p], 14.0 / 48.0, 1e-14);
