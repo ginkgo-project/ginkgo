@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/base/extended_float.hpp>
 #include <core/matrix/csr.hpp>
 #include <core/matrix/dense.hpp>
 #include <core/preconditioner/jacobi_utils.hpp>
