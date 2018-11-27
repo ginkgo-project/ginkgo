@@ -300,12 +300,14 @@ public:
 
             storage_optimization_type(
                 const Array<precision_reduction> &block_wise_opt)
-                : is_block_wise{true}, block_wise{block_wise_opt}
+                : is_block_wise{block_wise_opt.get_num_elems() > 0},
+                  block_wise{block_wise_opt}
             {}
 
             storage_optimization_type(
                 Array<precision_reduction> &&block_wise_opt)
-                : is_block_wise{true}, block_wise{std::move(block_wise_opt)}
+                : is_block_wise{block_wise_opt.get_num_elems() > 0},
+                  block_wise{std::move(block_wise_opt)}
             {}
 
             operator precision_reduction() { return of_all_blocks; }

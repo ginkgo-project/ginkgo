@@ -110,7 +110,8 @@ protected:
     {
         for (int i = 0; i < block_size; ++i) {
             for (int j = 0; j < block_size; ++j) {
-                EXPECT_EQ(ptr_a[i * stride_a + j], ptr_b[i * stride_b + j])
+                EXPECT_EQ(static_cast<double>(ptr_a[i * stride_a + j]),
+                          static_cast<double>(ptr_b[i * stride_b + j]))
                     << "Mismatch at position (" << i << ", " << j << ")";
             }
         }
@@ -146,9 +147,13 @@ protected:
                 Bj::value_type, prec_a,
                 assert_same_block(
                     b_ptr_a[i + 1] - b_ptr_a[i],
-                    a->get_blocks() + scheme.get_global_block_offset(i),
+                    reinterpret_cast<const resolved_precision *>(
+                        a->get_blocks() + scheme.get_group_offset(i)) +
+                        scheme.get_block_offset(i),
                     scheme.get_stride(),
-                    b->get_blocks() + scheme.get_global_block_offset(i),
+                    reinterpret_cast<const resolved_precision *>(
+                        a->get_blocks() + scheme.get_group_offset(i)) +
+                        scheme.get_block_offset(i),
                     scheme.get_stride()));
         }
     }
