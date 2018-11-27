@@ -412,6 +412,24 @@ TEST_F(Jacobi, AppliesToVectorWithAdaptivePrecision)
 }
 
 
+TEST_F(Jacobi, AppliesToVectorWithAdaptivePrecisionAndSmallBlocks)
+{
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  // group size will be > 1
+                  .with_block_pointers(block_pointers)
+                  .with_storage_optimization(block_precisions)
+                  .on(exec)
+                  ->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
+}
+
+
 TEST_F(Jacobi, AppliesToMultipleVectors)
 {
     auto x = gko::initialize<Vec>(
@@ -439,6 +457,30 @@ TEST_F(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecision)
         3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
         exec);
     auto bj = adaptive_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
+        1e-7);
+}
+
+
+TEST_F(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecisionAndSmallBlocks)
+{
+    auto x = gko::initialize<Vec>(
+        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
+        exec);
+    auto b = gko::initialize<Vec>(
+        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
+        exec);
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  // group size will be > 1
+                  .with_block_pointers(block_pointers)
+                  .with_storage_optimization(block_precisions)
+                  .on(exec)
+                  ->generate(mtx);
 
     bj->apply(b.get(), x.get());
 
