@@ -118,7 +118,8 @@ __device__ __forceinline__ int choose_pivot(const Group &group,
 template <
     typename Group, typename ValueType, typename Operator,
     typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
-__device__ void reduce(const Group &group, ValueType *data,
+__device__ void reduce(const Group &__restrict__ group,
+                       ValueType *__restrict__ data,
                        Operator reduce_op = Operator{})
 {
     const auto local_id = group.thread_rank();

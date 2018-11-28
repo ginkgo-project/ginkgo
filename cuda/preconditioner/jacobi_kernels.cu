@@ -107,7 +107,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, ValueType *__restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    precision_reduction *block_precisions,
+    precision_reduction *__restrict__ block_precisions,
     const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
     // extract blocks
@@ -206,7 +206,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     adaptive_apply(const ValueType *__restrict__ blocks,
                    preconditioner::block_interleaved_storage_scheme<IndexType>
                        storage_scheme,
-                   const precision_reduction *block_precisions,
+                   const precision_reduction *__restrict__ block_precisions,
                    const IndexType *__restrict__ block_ptrs,
                    size_type num_blocks, const ValueType *__restrict__ b,
                    int32 b_stride, ValueType *__restrict__ x, int32 x_stride)
