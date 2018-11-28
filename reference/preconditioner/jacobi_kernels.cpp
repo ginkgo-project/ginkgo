@@ -286,6 +286,7 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size,
+              remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
               Array<remove_complex<ValueType>> &conditioning,
@@ -327,12 +328,16 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
             }
             local_prec[b] = prec ? prec[g + b] : precision_reduction();
             if (local_prec[b] == precision_reduction::autodetect()) {
-                // TODO: properly compute best precision
-                local_prec[b] = precision_reduction();
+                using preconditioner::detail::get_optimal_storage_reduction;
+                // TODO: provide verificators to allow for reduced precision
+                auto truncate_only = [] { return false; };
+                local_prec[b] = get_optimal_storage_reduction<ValueType>(
+                    accuracy, cond[g + b], truncate_only, truncate_only);
             }
         }
 
         // make sure everyone in the group uses the same precision
+        // TODO: relax this requirement to only the same number of bits
         const auto p =
             std::accumulate(begin(local_prec), end(local_prec),
                             precision_reduction::autodetect(),

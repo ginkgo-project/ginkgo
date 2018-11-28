@@ -401,6 +401,34 @@ public:
          */
         storage_optimization_type GKO_FACTORY_PARAMETER(
             storage_optimization, precision_reduction(0, 0));
+
+        /**
+         * The relative accuracy of the adaptive Jacobi variant.
+         *
+         * This parameter is only used if the adaptive version of the algorithm
+         * is selected (see storage_optimization parameter for more details).
+         * The parameter is used when detecting the optimal precisions of blocks
+         * whose precision has been set to precision_reduction::autodetect().
+         *
+         * The parameter represents the number of correct digits in the result
+         * of Jacobi::apply() operation of the adaptive variant, compared to the
+         * non-adaptive variant. In other words, the total preconditioning error
+         * will be:
+         *
+         * ```
+         * || inv(A)x - inv(M)x|| / || inv(A)x || <= c * (dropout + accuracy)
+         * ```
+         *
+         * where `c` is some constant depending on the problem size and roundoff
+         * error and `dropout` the error introduced by disregarding off-diagonal
+         * elements.
+         *
+         * Larger values reduce the volume of memory transfer, but increase
+         * the error compared to using full precision storage. Thus, tuning the
+         * accuracy to a value as close as possible to `dropout` will result in
+         * optimal memory savings, while not degrading the quality of solution.
+         */
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(accuracy, 1e-1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -35,6 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_
 
 
+#include "core/base/extended_float.hpp"
+#include "core/base/math.hpp"
+#include "core/base/types.hpp"
+
+
 #define GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(_type, _prec, ...) \
     if (_prec == ::gko::precision_reduction(0, 1)) {                   \
         using resolved_precision = ::gko::reduce_precision<_type>;     \
@@ -58,6 +63,68 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         using resolved_precision = _type;                              \
         __VA_ARGS__;                                                   \
     }
+
+
+namespace gko {
+namespace preconditioner {
+namespace detail {
+
+/**
+ * @internal
+ *
+ * Returns the largest precision reduction of ValueType accurate enough with
+ * respect to accuracy and cond.
+ *
+ * The precision returned is the smallest precision with the following
+ * properties:
+ *
+ * -   the roundoff error of the reduction is at most accuracy / cond
+ * -   if verificator1 returned false, the returned reduction contains only
+ *     range preserving reductions
+ * -   if verificator2 returned false, the returned reduction contains at most
+ *     one range non-preserving reduction
+ *
+ * The function optimizes the number of calls to verificators, and at most 1
+ * call to each will be made.
+ */
+template <typename ValueType, typename AccuracyType, typename CondType,
+          typename Predicate1, typename Predicate2>
+GKO_ATTRIBUTES precision_reduction
+get_optimal_storage_reduction(AccuracyType accuracy, CondType cond,
+                              Predicate1 verificator1, Predicate2 verificator2)
+{
+    using gko::detail::float_traits;
+    using type = remove_complex<ValueType>;
+    auto accurate = [&cond, &accuracy](double eps) {
+        return cond * eps < accuracy;
+    };
+    uint8 is_verified1 = 2;
+    // the following code uses short-circuiting to avoid calling possibly
+    // expensive verificatiors multiple times
+    if (accurate(float_traits<truncate_type<truncate_type<type>>>::eps)) {
+        return precision_reduction(2, 0);
+    } else if (accurate(
+                   float_traits<truncate_type<reduce_precision<type>>>::eps) &&
+               (is_verified1 = verificator1())) {
+        return precision_reduction(1, 1);
+    } else if (accurate(float_traits<
+                        reduce_precision<reduce_precision<type>>>::eps) &&
+               is_verified1 != 0 && verificator2()) {
+        return precision_reduction(0, 2);
+    } else if (accurate(float_traits<truncate_type<type>>::eps)) {
+        return precision_reduction(1, 0);
+    } else if (accurate(float_traits<reduce_precision<type>>::eps) &&
+               (is_verified1 == 1 ||
+                (is_verified1 == 2 && (is_verified1 = verificator1())))) {
+        return precision_reduction(0, 1);
+    } else {
+        return precision_reduction(0, 0);
+    }
+}
+
+}  // namespace detail
+}  // namespace preconditioner
+}  // namespace gko
 
 
 #endif  // GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_

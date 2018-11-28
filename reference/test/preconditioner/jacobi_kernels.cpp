@@ -398,6 +398,24 @@ TEST_F(Jacobi, ComputesConditionNumbersOfBlocks)
 }
 
 
+TEST_F(Jacobi, SelectsCorrectBlockPrecisions)
+{
+    auto bj =
+        Bj::build()
+            .with_max_block_size(17u)
+            .with_block_pointers(block_pointers)
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .with_accuracy(0.2)
+            .on(exec)
+            ->generate(give(mtx));
+
+    auto prec =
+        bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(prec[0], gko::precision_reduction(2, 0));  // u = 0.0625
+    ASSERT_EQ(prec[1], gko::precision_reduction(1, 0));  // u = 9.53e-07
+}
+
+
 TEST_F(Jacobi, AppliesToVector)
 {
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
