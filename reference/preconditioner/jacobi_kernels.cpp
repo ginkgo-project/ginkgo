@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
+#include "reference/components/matrix_operations.hpp"
 
 
 namespace gko {
@@ -287,12 +288,14 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              Array<remove_complex<ValueType>> &conditioning,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_data();
     const auto group_size = storage_scheme.get_group_size();
+    const auto cond = conditioning.get_data();
     for (size_type g = 0; g < num_blocks; g += group_size) {
         std::vector<Array<ValueType>> block(group_size);
         std::vector<Array<IndexType>> perm(group_size);
@@ -310,8 +313,18 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                       IndexType(0));
             extract_block(system_matrix, block_size, ptrs[g + b],
                           block[b].get_data(), block_size);
+            if (cond) {
+                cond[g + b] =
+                    compute_inf_norm(block_size, block_size,
+                                     block[b].get_const_data(), block_size);
+            }
             invert_block(block_size, perm[b].get_data(), block[b].get_data(),
                          block_size);
+            if (cond) {
+                cond[g + b] *=
+                    compute_inf_norm(block_size, block_size,
+                                     block[b].get_const_data(), block_size);
+            }
             local_prec[b] = prec ? prec[g + b] : precision_reduction();
             if (local_prec[b] == precision_reduction::autodetect()) {
                 // TODO: properly compute best precision

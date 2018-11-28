@@ -107,6 +107,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, ValueType *__restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
+    remove_complex<ValueType> *__restrict__ conditioning,
     precision_reduction *__restrict__ block_precisions,
     const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
@@ -131,9 +132,14 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
     auto trans_perm = subwarp.thread_rank();
     auto prec = precision_reduction(2, 2);
     if (block_id < num_blocks) {
+        auto block_cond = compute_infinity_norm<max_block_size>(
+            subwarp, block_size, block_size, row);
         invert_block<max_block_size>(subwarp, block_size, row, perm,
                                      trans_perm);
+        block_cond *= compute_infinity_norm<max_block_size>(subwarp, block_size,
+                                                            block_size, row);
         prec = block_precisions[block_id];
+        conditioning[block_id] = block_cond;
         if (prec == precision_reduction::autodetect()) {
             // TODO: correctly compute the best precision
             prec = precision_reduction();
@@ -263,6 +269,7 @@ void generate(syn::compile_int_list<max_block_size>,
               ValueType *block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              remove_complex<ValueType> *conditioning,
               precision_reduction *block_precisions,
               const IndexType *block_ptrs, size_type num_blocks)
 {
@@ -278,7 +285,8 @@ void generate(syn::compile_int_list<max_block_size>,
                 mtx->get_size()[0], mtx->get_const_row_ptrs(),
                 mtx->get_const_col_idxs(),
                 as_cuda_type(mtx->get_const_values()), as_cuda_type(block_data),
-                storage_scheme, block_precisions, block_ptrs, num_blocks);
+                storage_scheme, as_cuda_type(conditioning), block_precisions,
+                block_ptrs, num_blocks);
     } else {
         kernel::generate<max_block_size, subwarp_size, warps_per_block>
             <<<grid_size, block_size, 0, 0>>>(
@@ -522,6 +530,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              Array<remove_complex<ValueType>> &conditioning,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
@@ -531,7 +540,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
                     },
                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
                     syn::compile_type_list<>(), system_matrix,
-                    blocks.get_data(), storage_scheme,
+                    blocks.get_data(), storage_scheme, conditioning.get_data(),
                     block_precisions.get_data(),
                     block_pointers.get_const_data(), num_blocks);
 }

@@ -388,6 +388,16 @@ TEST_F(Jacobi, PivotsWhenInvertingBlocksWithiAdaptivePrecision)
 }
 
 
+TEST_F(Jacobi, ComputesConditionNumbersOfBlocks)
+{
+    auto bj = adaptive_bj_factory->generate(mtx);
+
+    auto cond = bj->get_conditioning();
+    EXPECT_NEAR(cond[0], 6.0 * 6.0 / 14.0, 1e-14);
+    ASSERT_NEAR(cond[1], 7.0 * 28.0 / 48.0, 1e-14);
+}
+
+
 TEST_F(Jacobi, AppliesToVector)
 {
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);

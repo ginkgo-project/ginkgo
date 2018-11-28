@@ -70,6 +70,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
               size_type num_blocks, uint32 max_block_size,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
                   &storage_scheme,
+              Array<remove_complex<ValueType>> &conditioning,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers,
               Array<ValueType> &blocks) NOT_IMPLEMENTED;

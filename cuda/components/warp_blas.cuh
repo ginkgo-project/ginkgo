@@ -348,6 +348,48 @@ __device__ __forceinline__ void multiply_vec(
 }
 
 
+/**
+ * @internal
+ *
+ * Computes the infinity norm of a matrix. Each thread in the group supplies
+ * one row of the matrix.
+ *
+ * @tparam max_problem_size  maximum problem size passed to the routine
+ * @tparam Group  type of the group of threads
+ * @tparam ValueType  type of values stored in the matrix
+ *
+ * @param group  group of threads participating in the operation
+ * @param num_rows  number of rows of the matrix
+ *                      (`num_rows <= max_problem_size`)
+ * @param num_cols  number of columns of the matrix
+ * @param row  pointer to memory used to store a row of the input matrix,
+ *             `i`-th thread of the group should pass in the `i`-th row of the
+ *             matrix
+ *
+ * @return the infinity norm of the matrix
+ */
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
+    const Group &group, uint32 num_rows, uint32 num_cols, const ValueType *row)
+{
+    using result_type = remove_complex<ValueType>;
+    auto sum = zero<result_type>();
+    if (group.thread_rank() < num_rows) {
+#pragma unroll
+        for (uint32 i = 0; i < max_problem_size; ++i) {
+            if (i >= num_cols) {
+                break;
+            }
+            sum += abs(row[i]);
+        }
+    }
+    return reduce(group, sum,
+                  [](result_type x, result_type y) { return max(x, y); });
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

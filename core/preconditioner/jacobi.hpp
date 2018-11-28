@@ -239,6 +239,20 @@ public:
     }
 
     /**
+     * Returns an array of 1-norm condition numbers of the blocks.
+     *
+     * This value is valid only if adaptive precision variant is used, and
+     * implementations of the standard non-adaptive variant are allowed to omit
+     * the calculation of condition numbers.
+     *
+     * @return an array of 1-norm condition numbers of the blocks
+     */
+    const remove_complex<value_type> *get_conditioning() const noexcept
+    {
+        return conditioning_.get_const_data();
+    }
+
+    /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
@@ -398,7 +412,10 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Jacobi>(exec), blocks_(exec)
+        : EnableLinOp<Jacobi>(exec),
+          num_blocks_{},
+          blocks_(exec),
+          conditioning_(exec)
     {
         parameters_.block_pointers.set_executor(exec);
         parameters_.storage_optimization.block_wise.set_executor(exec);
@@ -420,7 +437,8 @@ protected:
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
-                      parameters_.block_pointers.get_num_elems() - 1))
+                      parameters_.block_pointers.get_num_elems() - 1)),
+          conditioning_(factory->get_executor())
     {
         if (parameters_.max_block_size >= 32 ||
             parameters_.max_block_size < 1) {
@@ -486,6 +504,7 @@ private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};
     size_type num_blocks_;
     Array<value_type> blocks_;
+    Array<remove_complex<value_type>> conditioning_;
 };
 
 

@@ -397,6 +397,21 @@ TEST_F(Jacobi, CudaLinearCombinationApplyToMultipleVectorsEquivalentToRef)
 }
 
 
+TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = clone(ref, d_bj_factory->generate(mtx));
+
+    for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
+        EXPECT_NEAR(bj->get_conditioning()[i], d_bj->get_conditioning()[i],
+                    1e-11);
+    }
+}
+
+
 TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
