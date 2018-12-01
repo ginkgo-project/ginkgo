@@ -230,18 +230,19 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
         {"hybrid25",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(25))},
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.25))},
         {"hybrid33",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(33))},
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
         {"hybridlimit0",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::imbalance_bounded_limit>(0))},
         {"hybridlimit25",
          READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::imbalance_bounded_limit>(25))},
+                     std::make_shared<hybrid::imbalance_bounded_limit>(0.25))},
         {"hybridlimit33",
-         READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::imbalance_bounded_limit>(33))},
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(
+                                 1.0 / 3.0))},
         {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 // executor mapping
