@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Some shortcuts
 using vector = gko::matrix::Dense<>;
 using duration_type = std::chrono::nanoseconds;
-
+using hybrid = gko::matrix::Hybrid<>;
 
 // helper for writing out rapidjson Values
 std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
@@ -127,7 +127,8 @@ DEFINE_string(
 
 DEFINE_string(formats, "coo",
               "A comma-separated list of formats to run."
-              "Supported values are: coo, csr, ell, sellp, hybrid");
+              "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
+              "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33");
 
 DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
 
@@ -209,14 +210,39 @@ std::unique_ptr<gko::LinOp> read_matrix(
 }
 
 
+#define READ_MATRIX(MATRIX_TYPE, ...)                                   \
+    [](std::shared_ptr<const gko::Executor> exec,                       \
+       const gko::matrix_data<> &data) -> std::unique_ptr<gko::LinOp> { \
+        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);   \
+        mat->read(data);                                                \
+        return mat;                                                     \
+    }
+
+
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
-                   {"coo", read_matrix<gko::matrix::Coo<>>},
-                   {"ell", read_matrix<gko::matrix::Ell<>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
+    matrix_factory{
+        {"csr", read_matrix<gko::matrix::Csr<>>},
+        {"coo", read_matrix<gko::matrix::Coo<>>},
+        {"ell", read_matrix<gko::matrix::Ell<>>},
+        {"hybrid", read_matrix<hybrid>},
+        {"hybrid0",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
+        {"hybrid25",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(25))},
+        {"hybrid33",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(33))},
+        {"hybridlimit0",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_bounded_limit>(0))},
+        {"hybridlimit25",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_bounded_limit>(25))},
+        {"hybridlimit33",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_bounded_limit>(33))},
+        {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 // executor mapping
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
