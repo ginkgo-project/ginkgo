@@ -245,6 +245,36 @@ public:
     };
 
     /**
+     * imbalance_bounded_limit is a stratgy_type which decides the number of
+     * stored elements per row of the ell part. It uses the imbalance_limit and
+     * adds the upper bound of the number of ell's cols by the number of rows.
+     */
+    class imbalance_bounded_limit : public strategy_type {
+    public:
+        /**
+         * Creates a imbalance_bounded strategy.
+         */
+        imbalance_bounded_limit(float percent = 0.8, float ratio = 0.001)
+            : strategy_(imbalance_limit(percent)), ratio_(ratio)
+        {}
+
+        size_type compute_ell_num_stored_elements_per_row(
+            Array<size_type> *row_nnz) const override
+        {
+            auto num_rows = row_nnz->get_num_elems();
+            auto ell_cols =
+                strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+            return std::min(ell_cols,
+                            static_cast<size_type>(num_rows * ratio_));
+        }
+
+    private:
+        imbalance_limit strategy_;
+        float ratio_;
+    };
+
+
+    /**
      * automatic is a stratgy_type which decides the number of stored elements
      * per row of the ell part automatically.
      */
@@ -253,11 +283,7 @@ public:
         /**
          * Creates an automatic strategy.
          */
-        automatic()
-            : strategy_(imbalance_limit(static_cast<float>(
-                  sizeof(IndexType) /
-                  (sizeof(ValueType) + 2 * sizeof(IndexType)))))
-        {}
+        automatic() : strategy_(imbalance_bounded_limit(1.0 / 3.0, 0.001)) {}
 
         size_type compute_ell_num_stored_elements_per_row(
             Array<size_type> *row_nnz) const override
@@ -266,7 +292,7 @@ public:
         }
 
     private:
-        imbalance_limit strategy_;
+        imbalance_bounded_limit strategy_;
     };
 
     void convert_to(Dense<ValueType> *other) const override;
