@@ -25,6 +25,11 @@ elif [ ! "${SEGMENT_ID}" ]; then
     exit 1
 fi
 
+if [ ! "${PRECONDS}" ]; then
+    echo "PRECONDS    environment variable not set - assuming \"none\"" 1>&2
+    PRECONDS="none"
+fi
+
 if [ ! "${SYSTEM_NAME}" ]; then
     echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
@@ -93,6 +98,7 @@ run_solver_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --solvers="cg,bicgstab,cgs,fcg" \
+                    --preconditioners="${PRECONDS}" \
                     --max_iters=10000 --rel_res_goal=1e-6 \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
