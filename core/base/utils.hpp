@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 
 
-#include <cassert>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -478,36 +477,6 @@ temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
 {
     return temporary_clone<T>(std::move(exec), ptr);
 }
-
-
-#if defined(__CUDA_ARCH__) && defined(__APPLE__)
-
-#ifdef NDEBUG
-#define GKO_ASSERT(condition) ((void)0)
-#else  // NDEBUG
-// Poor man's assertions on GPUs for MACs. They won't terminate the program
-// but will at least print something on the screen
-#define GKO_ASSERT(condition)                                               \
-    ((condition)                                                            \
-         ? ((void)0)                                                        \
-         : ((void)printf("%s: %d: %s: Assertion `" #condition "' failed\n", \
-                         __FILE__, __LINE__, __func__)))
-#endif  // NDEBUG
-
-#else  // defined(__CUDA_ARCH__) && defined(__APPLE__)
-
-// Handle assertions normally on other systems
-#define GKO_ASSERT(condition) assert(condition)
-
-#endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
-
-
-// handled deprecated notices correctly on different systems
-#if defined(_WIN32)
-#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
-#else
-#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#endif  // defined(_WIN32)
 
 
 }  // namespace gko

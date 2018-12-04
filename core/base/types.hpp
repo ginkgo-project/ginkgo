@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TYPES_HPP_
 
 
+#include <cassert>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
@@ -44,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+// Macros for handling different compilers / architectures uniformly
+
 #ifdef __CUDACC__
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
@@ -51,6 +54,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
 #endif  // __CUDACC__
+
+
+#if defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+#ifdef NDEBUG
+#define GKO_ASSERT(condition) ((void)0)
+#else  // NDEBUG
+// Poor man's assertions on GPUs for MACs. They won't terminate the program
+// but will at least print something on the screen
+#define GKO_ASSERT(condition)                                               \
+    ((condition)                                                            \
+         ? ((void)0)                                                        \
+         : ((void)printf("%s: %d: %s: Assertion `" #condition "' failed\n", \
+                         __FILE__, __LINE__, __func__)))
+#endif  // NDEBUG
+
+#else  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+// Handle assertions normally on other systems
+#define GKO_ASSERT(condition) assert(condition)
+
+#endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+
+// Handle deprecated notices correctly on different systems
+#if defined(_WIN32)
+#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#endif  // defined(_WIN32)
 
 
 namespace gko {
@@ -226,7 +259,9 @@ public:
      */
     GKO_ATTRIBUTES constexpr precision_reduction(
         storage_type preserving, storage_type nonpreserving) noexcept
-        : data_((preserving << nonpreserving_bits) | nonpreserving)
+        : data_((GKO_ASSERT(preserving < (0x1 << preserving_bits) - 1),
+                 GKO_ASSERT(nonpreserving < (0x1 << nonpreserving_bits) - 1),
+                 (preserving << nonpreserving_bits) | nonpreserving))
     {}
 
     /**
@@ -242,7 +277,7 @@ public:
     /**
      * Returns the number of preserving conversions in the encoding.
      *
-     * @rreturn the number of preserving conversions in the encoding.
+     * @return the number of preserving conversions in the encoding.
      */
     GKO_ATTRIBUTES constexpr storage_type get_preserving() const noexcept
     {
@@ -252,7 +287,7 @@ public:
     /**
      * Returns the number of non-preserving conversions in the encoding.
      *
-     * @rreturn the number of non-preserving conversions in the encoding.
+     * @return the number of non-preserving conversions in the encoding.
      */
     GKO_ATTRIBUTES constexpr storage_type get_nonpreserving() const noexcept
     {
@@ -316,7 +351,8 @@ private:
 GKO_ATTRIBUTES constexpr bool operator==(precision_reduction x,
                                          precision_reduction y) noexcept
 {
-    return static_cast<uint8>(x) == static_cast<uint8>(y);
+    using st = precision_reduction::storage_type;
+    return static_cast<st>(x) == static_cast<st>(y);
 }
 
 
@@ -331,7 +367,8 @@ GKO_ATTRIBUTES constexpr bool operator==(precision_reduction x,
 GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
                                          precision_reduction y) noexcept
 {
-    return static_cast<uint8>(x) != static_cast<uint8>(y);
+    using st = precision_reduction::storage_type;
+    return static_cast<st>(x) != static_cast<st>(y);
 }
 
 

@@ -87,8 +87,12 @@ struct block_interleaved_storage_scheme {
      *
      * @return the total memory (as the number of elements) that need to be
      *         allocated for the scheme
+     *
+     * @note  To simplify using the method in situations where the number of
+     *        blocks is not known, for a special input `size_type{} - 1`
+     *        the method returns `0` to avoid overallocation of memory.
      */
-    GKO_ATTRIBUTES IndexType compute_storage_space(IndexType num_blocks) const
+    GKO_ATTRIBUTES size_type compute_storage_space(size_type num_blocks) const
         noexcept
     {
         return (num_blocks + 1 == size_type{0})
