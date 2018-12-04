@@ -199,6 +199,7 @@ public:
      *
      * @return the number of blocks of the operator
      *
+     * @internal
      * TODO: replace with ranges
      */
     size_type get_num_blocks() const noexcept { return num_blocks_; }
@@ -208,6 +209,7 @@ public:
      *
      * @return the storage scheme used for storing Jacobi blocks
      *
+     * @internal
      * TODO: replace with ranges
      */
     const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
@@ -224,6 +226,7 @@ public:
      *
      * @return the pointer to the memory used for storing the block data
      *
+     * @internal
      * TODO: replace with ranges
      */
     const value_type *get_blocks() const noexcept
@@ -431,32 +434,6 @@ protected:
     static constexpr size_type max_block_stride_ = 32;
 
     /**
-     * Returns the smallest power of 2 at least as larger as the input.
-     *
-     * @param n  a number
-     *
-     * @return a power of two at least as large as `n`
-     */
-    static size_type get_larger_power(size_type n) noexcept
-    {
-        size_type res = 1;
-        while (res < n) res *= 2;
-        return res;
-    }
-
-    /**
-     * Returns the base-2 logarithm of `n` rounded down to the nearest integer.
-     */
-    static uint32 get_log2(size_type n) noexcept
-    {
-        for (auto r = uint32{0};; ++r) {
-            if ((size_type{1} << (r + 1)) > n) {
-                return r;
-            }
-        }
-    }
-
-    /**
      * Computes the storage scheme suitable for storing blocks of a given
      * maximum size.
      *
@@ -468,12 +445,13 @@ protected:
         uint32 max_block_size) noexcept
     {
         const auto group_size = static_cast<uint32>(
-            max_block_stride_ / get_larger_power(max_block_size));
+            max_block_stride_ / get_superior_power(uint32{2}, max_block_size));
         const auto block_offset = max_block_size;
         const auto block_stride = group_size * block_offset;
         const auto group_offset = max_block_size * block_stride;
         return {static_cast<index_type>(block_offset),
-                static_cast<index_type>(group_offset), get_log2(group_size)};
+                static_cast<index_type>(group_offset),
+                get_significant_bit(group_size)};
     }
 
     /**
