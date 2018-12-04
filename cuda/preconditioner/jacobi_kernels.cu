@@ -131,7 +131,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
                               : 0;
     auto perm = subwarp.thread_rank();
     auto trans_perm = subwarp.thread_rank();
-    auto prec = precision_reduction(2, 2);
+    auto prec_descriptor = uint32{} - 1;
     if (block_id < num_blocks) {
         auto block_cond = compute_infinity_norm<max_block_size>(
             subwarp, block_size, block_size, row);
@@ -139,31 +139,25 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
                                      trans_perm);
         block_cond *= compute_infinity_norm<max_block_size>(subwarp, block_size,
                                                             block_size, row);
-        prec = block_precisions[block_id];
         conditioning[block_id] = block_cond;
+        const auto prec = block_precisions[block_id];
+        prec_descriptor =
+            preconditioner::detail::precision_reduction_descriptor::singleton(
+                prec);
         if (prec == precision_reduction::autodetect()) {
-            using preconditioner::detail::get_optimal_storage_reduction;
+            using preconditioner::detail::get_supported_storage_reductions;
             // TODO: provide verificators to allow for reduced precision
             auto truncate_only = [] { return false; };
-            prec = get_optimal_storage_reduction<ValueType>(
+            prec_descriptor = get_supported_storage_reductions<ValueType>(
                 accuracy, block_cond, truncate_only, truncate_only);
         }
     }
 
     // make sure all blocks in the group have the same precision
-    // TODO: relax this requirement to only the same number of bits
     const auto warp = group::tiled_partition<cuda_config::warp_size>(block);
-    // can only shuffle 4 byte multiples
-    struct alignas(uint32) wrapper {
-        __device__ wrapper(precision_reduction p = {}) : p{p} {}
-        __device__ operator precision_reduction() const { return p; }
-        precision_reduction p;
-    };
-    prec = reduce(warp, static_cast<wrapper>(prec), [](wrapper x, wrapper y) {
-        return static_cast<wrapper>(
-            precision_reduction::common(static_cast<precision_reduction>(x),
-                                        static_cast<precision_reduction>(y)));
-    });
+    const auto prec =
+        preconditioner::detail::get_optimal_storage_reduction(reduce(
+            warp, prec_descriptor, [](uint32 x, uint32 y) { return x & y; }));
 
     // store the block back into memory
     if (block_id < num_blocks) {
