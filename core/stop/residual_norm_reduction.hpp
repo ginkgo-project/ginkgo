@@ -69,14 +69,16 @@ class ResidualNormReduction
 public:
     using Vector = matrix::Dense<ValueType>;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
         /**
          * Relative residual norm goal
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(reduction_factor,
-                                                        1e-15)};
+                                                        1e-15);
+    };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
-                                 Factory)
+                                 Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
