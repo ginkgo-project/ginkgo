@@ -279,6 +279,30 @@ inline void invert_block(IndexType block_size, IndexType *perm,
 }
 
 
+template <typename ReducedType, typename ValueType, typename IndexType>
+inline bool validate_precision_reduction_feasibility(IndexType block_size,
+                                                     const ValueType *block,
+                                                     size_type stride)
+{
+    using gko::detail::float_traits;
+    std::vector<ValueType> tmp(block_size * block_size);
+    std::vector<IndexType> perm(block_size);
+    std::iota(begin(perm), end(perm), IndexType{0});
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            tmp[i * block_size + j] = static_cast<ValueType>(
+                static_cast<ReducedType>(block[i * stride + j]));
+        }
+    }
+    auto cond =
+        compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    invert_block(block_size, perm.data(), tmp.data(), block_size);
+    cond *= compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    return cond > 0.0 &&
+           cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+}
+
+
 }  // namespace
 
 
@@ -331,7 +355,18 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                 // TODO: provide verificators to allow for reduced precision
                 auto truncate_only = [] { return false; };
                 pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
-                    accuracy, cond[g + b], truncate_only, truncate_only);
+                    accuracy, cond[g + b],
+                    [&block_size, &block, &b] {
+                        using target = reduce_precision<ValueType>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    },
+                    [&block_size, &block, &b] {
+                        using target =
+                            reduce_precision<reduce_precision<ValueType>>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    });
             } else {
                 pr_descriptors[b] = preconditioner::detail::
                     precision_reduction_descriptor::singleton(local_prec);

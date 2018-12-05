@@ -85,7 +85,8 @@ struct precision_reduction_descriptor {
         p1n0 = 0x10,  // precision_reduction(1, 0)
     };
 
-    static constexpr uint32 singleton(const precision_reduction &pr)
+    static constexpr GKO_ATTRIBUTES uint32
+    singleton(const precision_reduction &pr)
     {
         return pr == precision_reduction(0, 0)
                    ? p0n0
@@ -148,19 +149,21 @@ GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions(
     // expensive verificatiors multiple times
     if (accurate(float_traits<truncate_type<truncate_type<type>>>::eps)) {
         supported |= prd::p2n0;
-    } else if (accurate(
-                   float_traits<truncate_type<reduce_precision<type>>>::eps) &&
-               (is_verified1 = verificator1())) {
+    }
+    if (accurate(float_traits<truncate_type<reduce_precision<type>>>::eps) &&
+        (is_verified1 = verificator1())) {
         supported |= prd::p1n1;
-    } else if (accurate(float_traits<
-                        reduce_precision<reduce_precision<type>>>::eps) &&
-               is_verified1 != 0 && verificator2()) {
+    }
+    if (accurate(float_traits<reduce_precision<reduce_precision<type>>>::eps) &&
+        is_verified1 != 0 && verificator2()) {
         supported |= prd::p0n2;
-    } else if (accurate(float_traits<truncate_type<type>>::eps)) {
+    }
+    if (accurate(float_traits<truncate_type<type>>::eps)) {
         supported |= prd::p1n0;
-    } else if (accurate(float_traits<reduce_precision<type>>::eps) &&
-               (is_verified1 == 1 ||
-                (is_verified1 == 2 && (is_verified1 = verificator1())))) {
+    }
+    if (accurate(float_traits<reduce_precision<type>>::eps) &&
+        (is_verified1 == 1 ||
+         (is_verified1 == 2 && (is_verified1 = verificator1())))) {
         supported |= prd::p0n1;
     }
     return supported;

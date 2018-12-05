@@ -405,14 +405,14 @@ TEST_F(Jacobi, SelectsCorrectBlockPrecisions)
             .with_max_block_size(17u)
             .with_block_pointers(block_pointers)
             .with_storage_optimization(gko::precision_reduction::autodetect())
-            .with_accuracy(0.2)
+            .with_accuracy(1.5e-3)
             .on(exec)
             ->generate(give(mtx));
 
     auto prec =
         bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    EXPECT_EQ(prec[0], gko::precision_reduction(2, 0));  // u = 0.0625
-    ASSERT_EQ(prec[1], gko::precision_reduction(1, 0));  // u = 9.53e-07
+    EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));  // u * cond = ~1.2e-3
+    ASSERT_EQ(prec[1], gko::precision_reduction(0, 1));  // u * cond = ~2.0e-3
 }
 
 
