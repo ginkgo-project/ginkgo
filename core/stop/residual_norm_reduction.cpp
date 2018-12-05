@@ -62,20 +62,19 @@ bool ResidualNormReduction<ValueType>::check_impl(
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<Vector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        u_dense_tau = Vector::create_with_config_of(starting_tau_.get());
-        auto dense_r = as<Vector>(updater.residual_);
-        dense_r->compute_norm2(u_dense_tau.get());
-        dense_tau = u_dense_tau.get();
+        auto *dense_r = as<Vector>(updater.residual_);
+        dense_r->compute_norm2(u_dense_tau_.get());
+        dense_tau = u_dense_tau_.get();
     } else {
         NOT_SUPPORTED(nullptr);
     }
+    bool all_converged = true;
 
-    bool all_converged{};
     this->get_executor()->run(
         TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
             dense_tau, starting_tau_.get(), parameters_.reduction_factor,
-            stoppingId, setFinalized, stop_status, &all_converged,
-            one_changed));
+            stoppingId, setFinalized, stop_status, &this->device_storage_,
+            &all_converged, one_changed));
     return all_converged;
 }
 
