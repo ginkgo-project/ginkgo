@@ -409,6 +409,65 @@ public:
 };
 
 
+namespace detail {
+
+
+template <typename R, typename T>
+std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to_impl(
+    std::shared_ptr<const Executor> exec, T *obj)
+{
+    auto obj_as_r = dynamic_cast<R *>(obj);
+    if (obj_as_r != nullptr && obj->get_executor() == exec) {
+        return {obj_as_r, [](R *) {}};
+    } else {
+        auto copy = R::create(exec);
+        as<ConvertibleTo<xstd::decay_t<R>>>(obj)->convert_to(lend(copy));
+        return {copy.release(), std::default_delete<R>{}};
+    }
+}
+
+
+}  // namespace detail
+
+
+/**
+ * Converts the object to R and places it on Executor exec.
+ *
+ * If the object is already of the requested type and on the requested executor,
+ * the copy and conversion is avoided and a reference to the original object is
+ * returned instead.
+ *
+ * @tparam R  the type to which the object should be converted
+ * @tparam T  the type of the input object
+ *
+ * @param exec  the executor where the result should be placed
+ * @param obj  the object that should be converted
+ *
+ * @return a unique pointer (with dynamically bound deleter) to the converted
+ *         object
+ */
+template <typename R, typename T>
+std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, T *obj)
+{
+    return detail::copy_and_convert_to_impl<R>(std::move(exec), obj);
+}
+
+
+/**
+ * @copydoc copy_and_convert_to(std::shared_ptr<const Executor>, T*)
+ *
+ * @note This is a version of the function which adds the const qualifier to the
+ *       result if the input had the same qualifier.
+ */
+template <typename R, typename T>
+std::unique_ptr<const R, std::function<void(const R *)>> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, const T *obj)
+{
+    return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
+}
+
+
 /**
  * This mixin inherits from (a subclass of) PolymorphicObject and provides a
  * base implementation of a new concrete polymorphic object.

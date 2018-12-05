@@ -15,7 +15,7 @@ set(SOURCES
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/sellp.cpp
-    preconditioner/block_jacobi.cpp
+    preconditioner/jacobi.cpp
     solver/bicgstab.cpp
     solver/cg.cpp
     solver/cgs.cpp

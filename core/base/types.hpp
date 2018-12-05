@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TYPES_HPP_
 
 
+#include <cassert>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
@@ -44,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+// Macros for handling different compilers / architectures uniformly
+
 #ifdef __CUDACC__
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
@@ -51,6 +54,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
 #endif  // __CUDACC__
+
+
+#if defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+#ifdef NDEBUG
+#define GKO_ASSERT(condition) ((void)0)
+#else  // NDEBUG
+// Poor man's assertions on GPUs for MACs. They won't terminate the program
+// but will at least print something on the screen
+#define GKO_ASSERT(condition)                                               \
+    ((condition)                                                            \
+         ? ((void)0)                                                        \
+         : ((void)printf("%s: %d: %s: Assertion `" #condition "' failed\n", \
+                         __FILE__, __LINE__, __func__)))
+#endif  // NDEBUG
+
+#else  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+// Handle assertions normally on other systems
+#define GKO_ASSERT(condition) assert(condition)
+
+#endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+
+
+// Handle deprecated notices correctly on different systems
+#if defined(_WIN32)
+#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#endif  // defined(_WIN32)
 
 
 namespace gko {
@@ -151,6 +184,192 @@ using default_precision = double;
  * Number of bits in a byte
  */
 constexpr size_type byte_size = CHAR_BIT;
+
+
+/**
+ * This class is used to encode storage precisions of low precision algorithms.
+ *
+ * Some algorithms in Ginkgo can improve their performance by storing parts of
+ * the data in lower precision, while doing computation in full precision. This
+ * class is used to encode the precisions used to store the data. From the
+ * user's perspective, some algorithms can provide a parameter for fine-tuning
+ * the storage precision. Commonly, the special value returned by
+ * precision_reduction::autodetect() should be used to allow the algorithm to
+ * automatically choose an appropriate value, though manually selected values
+ * can be used for fine-tuning.
+ *
+ * In general, a lower precision floating point value can be obtained by either
+ * dropping some of the insignificant bits of the significand (keeping the same
+ * number of exponent bits, and thus preserving the range of representable
+ * values) or using one of the hardware or software supported conversions
+ * between IEEE formats, such as double to float or float to half (reducing both
+ * the number of exponent, as well as significand bits, and thus decreasing the
+ * range of representable values).
+ *
+ * The precision_reduction class encodes the lower precision format relative to
+ * the base precision used and the algorithm in question. The encoding is
+ * done by specifying the amount of range non-preserving conversions and the
+ * amount of range preserving conversions that should be done on the base
+ * precision to obtain the lower precision format. For example, starting with a
+ * double precision value (11 exp, 52 sig. bits), the encoding specifying 1
+ * non-preserving conversion and 1 preserving conversion would first use a
+ * hardware-supported non-preserving conversion to obtain a single precision
+ * value (8 exp, 23 sig. bits), followed by a preserving bit truncation to
+ * obtain a value with 8 exponent and 7 significand bits. Note that
+ * non-preserving conversion are always done first, as preserving conversions
+ * usually result in datatypes that are not supported by builtin conversions
+ * (thus, it is generally not possible to apply a non-preserving conversion to
+ * the result of a preserving conversion).
+ *
+ * If the specified conversion is not supported by the algorithm, it will most
+ * likely fall back to using full precision for storing the data. Refer to the
+ * documentation of specific algorithms using this class for details about such
+ * special cases.
+ */
+class precision_reduction {
+public:
+    /**
+     * The underlying datatype used to store the encoding.
+     */
+    using storage_type = uint8;
+
+private:
+    static constexpr auto nonpreserving_bits = 4u;
+    static constexpr auto preserving_bits =
+        byte_size * sizeof(storage_type) - nonpreserving_bits;
+    static constexpr auto nonpreserving_mask =
+        storage_type{(0x1 << nonpreserving_bits) - 1};
+    static constexpr auto preserving_mask =
+        storage_type{(0x1 << preserving_bits) - 1} << nonpreserving_bits;
+
+public:
+    /**
+     * Creates a default precision_reduction encoding.
+     *
+     * This encoding represents the case where no conversions are performed.
+     */
+    GKO_ATTRIBUTES constexpr precision_reduction() noexcept : data_{0x0} {}
+
+    /**
+     * Creates a precision_reduction encoding with the specified number of
+     * conversions.
+     *
+     * @param preserving  the number of range preserving conversion
+     * @param nonpreserving  the number of range non-preserving conversions
+     */
+    GKO_ATTRIBUTES constexpr precision_reduction(
+        storage_type preserving, storage_type nonpreserving) noexcept
+        : data_((GKO_ASSERT(preserving < (0x1 << preserving_bits) - 1),
+                 GKO_ASSERT(nonpreserving < (0x1 << nonpreserving_bits) - 1),
+                 (preserving << nonpreserving_bits) | nonpreserving))
+    {}
+
+    /**
+     * Extracts the raw data of the encoding.
+     *
+     * @return the raw data of the encoding
+     */
+    GKO_ATTRIBUTES constexpr operator storage_type() const noexcept
+    {
+        return data_;
+    }
+
+    /**
+     * Returns the number of preserving conversions in the encoding.
+     *
+     * @return the number of preserving conversions in the encoding.
+     */
+    GKO_ATTRIBUTES constexpr storage_type get_preserving() const noexcept
+    {
+        return (data_ & preserving_mask) >> nonpreserving_bits;
+    }
+
+    /**
+     * Returns the number of non-preserving conversions in the encoding.
+     *
+     * @return the number of non-preserving conversions in the encoding.
+     */
+    GKO_ATTRIBUTES constexpr storage_type get_nonpreserving() const noexcept
+    {
+        return data_ & nonpreserving_mask;
+    }
+
+    /**
+     * Returns a special encoding which instructs the algorithm to automatically
+     * detect the best precision.
+     *
+     * @return  a special encoding instructing the algorithm to automatically
+     *          detect the best precision.
+     */
+    GKO_ATTRIBUTES constexpr static precision_reduction autodetect() noexcept
+    {
+        return precision_reduction{preserving_mask | nonpreserving_mask};
+    }
+
+    /**
+     * Returns the common encoding of input encodings.
+     *
+     * The common encoding is defined as the encoding that does not have more
+     * preserving, nor non-preserving conversions than the input encodings.
+     *
+     * @param x  an encoding
+     * @param y  an encoding
+     *
+     * @return the common encoding of `x` and `y`
+     */
+    GKO_ATTRIBUTES constexpr static precision_reduction common(
+        precision_reduction x, precision_reduction y) noexcept
+    {
+        return precision_reduction(
+            min(x.data_ & preserving_mask, y.data_ & preserving_mask) |
+            min(x.data_ & nonpreserving_mask, y.data_ & nonpreserving_mask));
+    }
+
+private:
+    GKO_ATTRIBUTES constexpr precision_reduction(storage_type data)
+        : data_{data}
+    {}
+
+    GKO_ATTRIBUTES constexpr static storage_type min(storage_type x,
+                                                     storage_type y) noexcept
+    {
+        return x < y ? x : y;
+    }
+
+    storage_type data_;
+};
+
+
+/**
+ * Checks if two precision_reduction encodings are equal.
+ *
+ * @param x  an encoding
+ * @param y  an encoding
+ *
+ * @return true if and only if `x` and `y` are the same encodings
+ */
+GKO_ATTRIBUTES constexpr bool operator==(precision_reduction x,
+                                         precision_reduction y) noexcept
+{
+    using st = precision_reduction::storage_type;
+    return static_cast<st>(x) == static_cast<st>(y);
+}
+
+
+/**
+ * Checks if two precision_reduction encodings are different.
+ *
+ * @param x  an encoding
+ * @param y  an encoding
+ *
+ * @return true if and only if `x` and `y` are different encodings.
+ */
+GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
+                                         precision_reduction y) noexcept
+{
+    using st = precision_reduction::storage_type;
+    return static_cast<st>(x) != static_cast<st>(y);
+}
 
 
 /**

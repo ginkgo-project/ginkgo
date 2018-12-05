@@ -31,52 +31,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_
+#define GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/combination.hpp"
-#include "core/base/composition.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
-
-#include "core/log/convergence.hpp"
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
-
-#include "core/preconditioner/jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-#include "core/solver/gmres.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#define GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(_type, _prec, ...) \
+    if (_prec == ::gko::precision_reduction(0, 1)) {                   \
+        using resolved_precision = ::gko::reduce_precision<_type>;     \
+        __VA_ARGS__;                                                   \
+    } else if (_prec == ::gko::precision_reduction(0, 2)) {            \
+        using resolved_precision =                                     \
+            ::gko::reduce_precision<::gko::reduce_precision<_type>>;   \
+        __VA_ARGS__;                                                   \
+    } else {                                                           \
+        using resolved_precision = _type;                              \
+        __VA_ARGS__;                                                   \
+    }
 
 
-#endif  // GKO_GINKGO_HPP_
+#endif  // GKO_CORE_PRECONDITIONER_JACOBI_UTILS_HPP_

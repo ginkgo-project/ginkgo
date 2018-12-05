@@ -326,4 +326,11 @@ TEST(ExecutorDeleter, DeletesObject)
 }
 
 
+TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
+{
+    int x[5];
+    ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
+}
+
+
 }  // namespace

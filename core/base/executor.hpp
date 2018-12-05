@@ -611,7 +611,12 @@ public:
      *
      * @param ptr  pointer to the object being deleted
      */
-    void operator()(pointer ptr) const { exec_->free(ptr); }
+    void operator()(pointer ptr) const
+    {
+        if (exec_) {
+            exec_->free(ptr);
+        }
+    }
 
 private:
     std::shared_ptr<const Executor> exec_;
@@ -627,7 +632,12 @@ public:
         : exec_{exec}
     {}
 
-    void operator()(pointer ptr) const { exec_->free(ptr); }
+    void operator()(pointer ptr) const
+    {
+        if (exec_) {
+            exec_->free(ptr);
+        }
+    }
 
 private:
     std::shared_ptr<const Executor> exec_;

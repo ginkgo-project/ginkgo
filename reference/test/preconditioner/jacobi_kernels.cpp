@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/preconditioner/block_jacobi.hpp>
+#include <core/preconditioner/jacobi.hpp>
 
 
 #include <algorithm>
@@ -48,23 +48,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ConcreteBlockJacobiFactory>
-class BasicBlockJacobiTest : public ::testing::Test {
+class Jacobi : public ::testing::Test {
 protected:
-    using BjFactory = ConcreteBlockJacobiFactory;
-    using Bj = typename ConcreteBlockJacobiFactory::generated_type;
+    using Bj = gko::preconditioner::Jacobi<>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
 
-    BasicBlockJacobiTest()
+    Jacobi()
         : exec(gko::ReferenceExecutor::create()),
-          bj_factory(BjFactory::create(exec, 3)),
           block_pointers(exec, 3),
+          block_precisions(exec, 2),
           mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5}, 13))
     {
         block_pointers.get_data()[0] = 0;
         block_pointers.get_data()[1] = 2;
         block_pointers.get_data()[2] = 5;
+        block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
+        block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
+        bj_factory = Bj::build()
+                         .with_max_block_size(3u)
+                         .with_block_pointers(block_pointers)
+                         .on(exec);
+        adaptive_bj_factory = Bj::build()
+                                  .with_max_block_size(3u)
+                                  .with_block_pointers(block_pointers)
+                                  .with_storage_optimization(block_precisions)
+                                  .on(exec);
         /* test matrix:
             4  -2 |        -2
            -1   4 |
@@ -89,37 +98,50 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<BjFactory> bj_factory;
+    std::unique_ptr<Bj::Factory> bj_factory;
+    std::unique_ptr<Bj::Factory> adaptive_bj_factory;
     gko::Array<gko::int32> block_pointers;
+    gko::Array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<>> mtx;
-    std::unique_ptr<gko::LinOp> bj_lin_op;
-    Bj *bj;
 };
 
 
-class BlockJacobi
-    : public BasicBlockJacobiTest<gko::preconditioner::BlockJacobiFactory<>> {};
-
-
-TEST_F(BlockJacobi, CanBeGenerated)
+TEST_F(Jacobi, CanBeGenerated)
 {
-    bj_factory->set_block_pointers(block_pointers);
-    bj_lin_op = bj_factory->generate(mtx);
-    bj = static_cast<Bj *>(bj_lin_op.get());
+    auto bj = bj_factory->generate(mtx);
 
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     ASSERT_EQ(ptrs[2], 5);
 }
 
 
-TEST_F(BlockJacobi, FindsNaturalBlocks)
+TEST_F(Jacobi, CanBeGeneratedWithAdaptivePrecision)
+{
+    auto bj = adaptive_bj_factory->generate(mtx);
+
+    EXPECT_EQ(bj->get_executor(), exec);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
+    ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
+    ASSERT_EQ(bj->get_num_blocks(), 2);
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
+    EXPECT_EQ(ptrs[0], 0);
+    EXPECT_EQ(ptrs[1], 2);
+    ASSERT_EQ(ptrs[2], 5);
+    auto prec =
+        bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(prec[0], gko::precision_reduction(0, 1));
+    ASSERT_EQ(prec[1], gko::precision_reduction(0, 0));
+}
+
+
+TEST_F(Jacobi, FindsNaturalBlocks)
 {
     /* example matrix:
         1   1
@@ -131,19 +153,18 @@ TEST_F(BlockJacobi, FindsNaturalBlocks)
     init_array(mtx->get_row_ptrs(), {0, 2, 4, 6, 8});
     init_array(mtx->get_col_idxs(), {0, 1, 0, 1, 0, 2, 0, 2});
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    bj_lin_op = bj_factory->generate(std::move(mtx));
-    bj = static_cast<Bj *>(bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     EXPECT_EQ(ptrs[2], 4);
 }
 
 
-TEST_F(BlockJacobi, ExecutesSupervariableAgglomeration)
+TEST_F(Jacobi, ExecutesSupervariableAgglomeration)
 {
     /* example matrix:
         1   1
@@ -157,19 +178,18 @@ TEST_F(BlockJacobi, ExecutesSupervariableAgglomeration)
     init_array(mtx->get_col_idxs(), {0, 1, 0, 1, 2, 3, 2, 3, 4});
     init_array(mtx->get_values(),
                {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    bj_lin_op = bj_factory->generate(std::move(mtx));
-    bj = static_cast<Bj *>(bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 2);
     EXPECT_EQ(ptrs[2], 5);
 }
 
 
-TEST_F(BlockJacobi, AdheresToBlockSizeBound)
+TEST_F(Jacobi, AdheresToBlockSizeBound)
 {
     /* example matrix:
         1
@@ -184,12 +204,11 @@ TEST_F(BlockJacobi, AdheresToBlockSizeBound)
     init_array(mtx->get_row_ptrs(), {0, 1, 2, 3, 4, 5, 6, 7});
     init_array(mtx->get_col_idxs(), {0, 1, 2, 3, 4, 5, 6});
     init_array(mtx->get_values(), {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    bj_lin_op = bj_factory->generate(std::move(mtx));
-    bj = static_cast<Bj *>(bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(give(mtx));
 
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_num_blocks(), 3);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 3);
     EXPECT_EQ(ptrs[2], 6);
@@ -197,30 +216,26 @@ TEST_F(BlockJacobi, AdheresToBlockSizeBound)
 }
 
 
-TEST_F(BlockJacobi, CanBeGeneratedWithUnknownBlockSizes)
+TEST_F(Jacobi, CanBeGeneratedWithUnknownBlockSizes)
 {
-    bj_lin_op = bj_factory->generate(mtx);
-    bj = dynamic_cast<Bj *>(bj_lin_op.get());
+    auto bj = Bj::build().with_max_block_size(3u).on(exec)->generate(mtx);
 
     ASSERT_NE(bj, nullptr);
     EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_max_block_size(), 3);
+    EXPECT_EQ(bj->get_parameters().max_block_size, 3);
     ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
     ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
+    auto ptrs = bj->get_parameters().block_pointers.get_const_data();
     EXPECT_EQ(ptrs[0], 0);
     EXPECT_EQ(ptrs[1], 3);
     ASSERT_EQ(ptrs[2], 5);
 }
 
 
-TEST_F(BlockJacobi, InvertsDiagonalBlocks)
+TEST_F(Jacobi, InvertsDiagonalBlocks)
 {
-    bj_factory->set_block_pointers(block_pointers);
+    auto bj = bj_factory->generate(mtx);
 
-    bj_lin_op = bj_factory->generate(mtx);
-
-    bj = static_cast<Bj *>(bj_lin_op.get());
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
     auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
@@ -241,174 +256,10 @@ TEST_F(BlockJacobi, InvertsDiagonalBlocks)
     EXPECT_NEAR(b2[2 + 2 * p], 14.0 / 48.0, 1e-14);
 }
 
-
-TEST_F(BlockJacobi, PivotsWhenInvertingBlock)
+TEST_F(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
 {
-    gko::Array<gko::int32> bp(exec, 2);
-    init_array(bp.get_data(), {0, 3});
-    bj_factory->set_block_pointers(bp);
-    auto mtx = Mtx::create(exec, gko::dim<2>{3}, 9);
-    /* test matrix:
-       0 2 0
-       0 0 4
-       1 0 0
-     */
-    init_array(mtx->get_row_ptrs(), {0, 3, 6, 9});
-    init_array(mtx->get_col_idxs(), {0, 1, 2, 0, 1, 2, 0, 1, 2});
-    init_array(mtx->get_values(),
-               {0.0, 2.0, 0.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0});
+    auto bj = adaptive_bj_factory->generate(mtx);
 
-    bj_lin_op = bj_factory->generate(std::move(mtx));
-
-    bj = static_cast<Bj *>(bj_lin_op.get());
-    auto scheme = bj->get_storage_scheme();
-    auto p = scheme.get_stride();
-    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
-    EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 + 0 * p], 2.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 + 1 * p], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[1 + 2 * p], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 + 0 * p], 0.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 + 1 * p], 1.0 / 4.0, 1e-14);
-    EXPECT_NEAR(b1[2 + 2 * p], 0.0 / 4.0, 1e-14);
-}
-
-
-TEST_F(BlockJacobi, AppliesToVector)
-{
-    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
-    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    auto bj = bj_factory->generate(mtx);
-
-    bj->apply(b.get(), x.get());
-
-    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
-}
-
-
-TEST_F(BlockJacobi, AppliesToMultipleVectors)
-{
-    auto x = gko::initialize<Vec>(
-        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
-        exec);
-    auto b = gko::initialize<Vec>(
-        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
-        exec);
-    bj_factory->set_block_pointers(block_pointers);
-    auto bj = bj_factory->generate(mtx);
-
-    bj->apply(b.get(), x.get());
-
-    ASSERT_MTX_NEAR(
-        x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
-        1e-14);
-}
-
-
-TEST_F(BlockJacobi, AppliesLinearCombinationToVector)
-{
-    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
-    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
-    auto alpha = gko::initialize<Vec>({2.0}, exec);
-    auto beta = gko::initialize<Vec>({-1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    auto bj = bj_factory->generate(mtx);
-
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
-
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
-}
-
-
-TEST_F(BlockJacobi, AppliesLinearCombinationToMultipleVectors)
-{
-    auto x = gko::initialize<Vec>(
-        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
-        exec);
-    auto b = gko::initialize<Vec>(
-        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
-        exec);
-    auto alpha = gko::initialize<Vec>({2.0}, exec);
-    auto beta = gko::initialize<Vec>({-1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    auto bj = bj_factory->generate(mtx);
-
-    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
-
-    ASSERT_MTX_NEAR(
-        x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
-        1e-14);
-}
-
-
-TEST_F(BlockJacobi, ConvertsToDense)
-{
-    auto dense = gko::matrix::Dense<>::create(exec);
-    bj_factory->set_block_pointers(block_pointers);
-
-    dense->copy_from(bj_factory->generate(mtx));
-
-    // clang-format off
-    ASSERT_MTX_NEAR(dense,
-        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
-           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
-           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
-           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), 1e-14);
-    // clang-format on
-}
-
-
-class AdaptiveBlockJacobi
-    : public BasicBlockJacobiTest<
-          gko::preconditioner::AdaptiveBlockJacobiFactory<>> {
-protected:
-    AdaptiveBlockJacobi() : block_precisions(exec, 2)
-    {
-        block_precisions.get_data()[0] = Bj::single_precision;
-        block_precisions.get_data()[1] = Bj::double_precision;
-    }
-
-    gko::Array<Bj::precision> block_precisions;
-};
-
-
-// TODO: take into account different precisions in the following tests
-
-
-TEST_F(AdaptiveBlockJacobi, CanBeGenerated)
-{
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
-    bj_lin_op = bj_factory->generate(mtx);
-    bj = static_cast<Bj *>(bj_lin_op.get());
-
-    ASSERT_NE(bj, nullptr);
-    EXPECT_EQ(bj->get_executor(), exec);
-    EXPECT_EQ(bj->get_max_block_size(), 3);
-    ASSERT_EQ(bj->get_size(), gko::dim<2>(5, 5));
-    ASSERT_EQ(bj->get_num_blocks(), 2);
-    auto ptrs = bj->get_const_block_pointers();
-    EXPECT_EQ(ptrs[0], 0);
-    EXPECT_EQ(ptrs[1], 2);
-    ASSERT_EQ(ptrs[2], 5);
-    auto prec = bj->get_const_block_precisions();
-    EXPECT_EQ(prec[0], Bj::single_precision);
-    ASSERT_EQ(prec[1], Bj::double_precision);
-}
-
-
-TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
-{
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
-
-    bj_lin_op = bj_factory->generate(mtx);
-
-    bj = static_cast<Bj *>(bj_lin_op.get());
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
     auto b1 = reinterpret_cast<const float *>(
@@ -431,12 +282,10 @@ TEST_F(AdaptiveBlockJacobi, InvertsDiagonalBlocks)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
+TEST_F(Jacobi, PivotsWhenInvertingBlocks)
 {
     gko::Array<gko::int32> bp(exec, 2);
     init_array(bp.get_data(), {0, 3});
-    bj_factory->set_block_pointers(bp);
-    bj_factory->set_block_precisions(block_precisions);
     auto mtx = Mtx::create(exec, gko::dim<2>{3}, 9);
     /* test matrix:
        0 2 0
@@ -448,8 +297,48 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
     init_array(mtx->get_values(),
                {0.0, 2.0, 0.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0});
 
-    bj_lin_op = bj_factory->generate(std::move(mtx));
-    bj = static_cast<Bj *>(bj_lin_op.get());
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  .with_block_pointers(bp)
+                  .on(exec)
+                  ->generate(give(mtx));
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
+    EXPECT_NEAR(b1[0 + 0 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 1 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[0 + 2 * p], 4.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 0 * p], 2.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 1 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[1 + 2 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 0 * p], 0.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 1 * p], 1.0 / 4.0, 1e-14);
+    EXPECT_NEAR(b1[2 + 2 * p], 0.0 / 4.0, 1e-14);
+}
+
+
+TEST_F(Jacobi, PivotsWhenInvertingBlocksWithiAdaptivePrecision)
+{
+    gko::Array<gko::int32> bp(exec, 2);
+    init_array(bp.get_data(), {0, 3});
+    auto mtx = Mtx::create(exec, gko::dim<2>{3}, 9);
+    /* test matrix:
+       0 2 0
+       0 0 4
+       1 0 0
+     */
+    init_array(mtx->get_row_ptrs(), {0, 3, 6, 9});
+    init_array(mtx->get_col_idxs(), {0, 1, 2, 0, 1, 2, 0, 1, 2});
+    init_array(mtx->get_values(),
+               {0.0, 2.0, 0.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0});
+
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  .with_block_pointers(bp)
+                  .with_storage_optimization(block_precisions)
+                  .on(exec)
+                  ->generate(give(mtx));
 
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
@@ -467,13 +356,23 @@ TEST_F(AdaptiveBlockJacobi, PivotsWhenInvertingBlock)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, AppliesToVector)
+TEST_F(Jacobi, AppliesToVector)
 {
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
     auto bj = bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
+}
+
+
+TEST_F(Jacobi, AppliesToVectorWithAdaptivePrecision)
+{
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
+    auto bj = adaptive_bj_factory->generate(mtx);
 
     bj->apply(b.get(), x.get());
 
@@ -481,7 +380,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesToVector)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, AppliesToMultipleVectors)
+TEST_F(Jacobi, AppliesToMultipleVectors)
 {
     auto x = gko::initialize<Vec>(
         3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
@@ -489,9 +388,25 @@ TEST_F(AdaptiveBlockJacobi, AppliesToMultipleVectors)
     auto b = gko::initialize<Vec>(
         3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
         exec);
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
     auto bj = bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
+        1e-14);
+}
+
+
+TEST_F(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecision)
+{
+    auto x = gko::initialize<Vec>(
+        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
+        exec);
+    auto b = gko::initialize<Vec>(
+        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
+        exec);
+    auto bj = adaptive_bj_factory->generate(mtx);
 
     bj->apply(b.get(), x.get());
 
@@ -501,15 +416,27 @@ TEST_F(AdaptiveBlockJacobi, AppliesToMultipleVectors)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToVector)
+TEST_F(Jacobi, AppliesLinearCombinationToVector)
 {
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
     auto alpha = gko::initialize<Vec>({2.0}, exec);
     auto beta = gko::initialize<Vec>({-1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
     auto bj = bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
+}
+
+
+TEST_F(Jacobi, AppliesLinearCombinationToVectorWithAdaptivePrecision)
+{
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, exec);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    auto bj = adaptive_bj_factory->generate(mtx);
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -517,7 +444,7 @@ TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToVector)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToMultipleVectors)
+TEST_F(Jacobi, AppliesLinearCombinationToMultipleVectors)
 {
     auto x = gko::initialize<Vec>(
         3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
@@ -527,9 +454,27 @@ TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToMultipleVectors)
         exec);
     auto alpha = gko::initialize<Vec>({2.0}, exec);
     auto beta = gko::initialize<Vec>({-1.0}, exec);
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
     auto bj = bj_factory->generate(mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    ASSERT_MTX_NEAR(
+        x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
+        1e-14);
+}
+
+
+TEST_F(Jacobi, AppliesLinearCombinationToMultipleVectorsWithAdaptivePrecision)
+{
+    auto x = gko::initialize<Vec>(
+        3, {{1.0, 0.5}, {-1.0, -0.5}, {2.0, 1.0}, {-2.0, -1.0}, {3.0, 1.5}},
+        exec);
+    auto b = gko::initialize<Vec>(
+        3, {{4.0, -2.0}, {-1.0, 4.0}, {-2.0, 0.0}, {4.0, -2.0}, {-1.0, 4.0}},
+        exec);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    auto bj = adaptive_bj_factory->generate(mtx);
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -539,13 +484,28 @@ TEST_F(AdaptiveBlockJacobi, AppliesLinearCombinationToMultipleVectors)
 }
 
 
-TEST_F(AdaptiveBlockJacobi, ConvertsToDense)
+TEST_F(Jacobi, ConvertsToDense)
 {
     auto dense = gko::matrix::Dense<>::create(exec);
-    bj_factory->set_block_pointers(block_pointers);
-    bj_factory->set_block_precisions(block_precisions);
 
     dense->copy_from(bj_factory->generate(mtx));
+
+    // clang-format off
+    ASSERT_MTX_NEAR(dense,
+        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), 1e-14);
+    // clang-format on
+}
+
+
+TEST_F(Jacobi, ConvertsToDenseWithAdaptivePrecision)
+{
+    auto dense = gko::matrix::Dense<>::create(exec);
+
+    dense->copy_from(adaptive_bj_factory->generate(mtx));
 
     // clang-format off
     ASSERT_MTX_NEAR(dense,

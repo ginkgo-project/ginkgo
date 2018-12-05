@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/preconditioner/block_jacobi.hpp>
+#include <core/preconditioner/jacobi.hpp>
 
 
 #include <gtest/gtest.h>
@@ -43,135 +43,93 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BlockJacobiFactory : public ::testing::Test {
+class JacobiFactory : public ::testing::Test {
 protected:
-    using BjFactory = gko::preconditioner::BlockJacobiFactory<>;
-    using Bj = gko::preconditioner::BlockJacobi<>;
+    using Bj = gko::preconditioner::Jacobi<>;
 
-    BlockJacobiFactory()
+    JacobiFactory()
         : exec(gko::ReferenceExecutor::create()),
-          bj_factory(BjFactory::create(exec, 3)),
-          block_pointers(exec, 2),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5, 5}, 13))
-    {
-        block_pointers.get_data()[0] = 2;
-        block_pointers.get_data()[1] = 3;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<BjFactory> bj_factory;
-    gko::Array<gko::int32> block_pointers;
-    std::shared_ptr<gko::matrix::Csr<>> mtx;
-};
-
-
-TEST_F(BlockJacobiFactory, KnowsItsExecutor)
-{
-    ASSERT_EQ(bj_factory->get_executor(), exec);
-}
-
-
-TEST_F(BlockJacobiFactory, SavesMaximumBlockSize)
-{
-    ASSERT_EQ(bj_factory->get_max_block_size(), 3);
-}
-
-
-TEST_F(BlockJacobiFactory, CanSetBlockPointers)
-{
-    bj_factory->set_block_pointers(block_pointers);
-
-    auto ptrs = bj_factory->get_block_pointers();
-    EXPECT_EQ(ptrs.get_data()[0], 2);
-    EXPECT_EQ(ptrs.get_data()[1], 3);
-}
-
-
-TEST_F(BlockJacobiFactory, CanMoveBlockPointers)
-{
-    bj_factory->set_block_pointers(std::move(block_pointers));
-
-    auto ptrs = bj_factory->get_block_pointers();
-    EXPECT_EQ(ptrs.get_data()[0], 2);
-    EXPECT_EQ(ptrs.get_data()[1], 3);
-}
-
-
-class AdaptiveBlockJacobiFactory : public ::testing::Test {
-protected:
-    using BjFactory = gko::preconditioner::AdaptiveBlockJacobiFactory<>;
-    using Bj = gko::preconditioner::AdaptiveBlockJacobi<>;
-
-    AdaptiveBlockJacobiFactory()
-        : exec(gko::ReferenceExecutor::create()),
-          bj_factory(BjFactory::create(exec, 3)),
+          bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
           block_pointers(exec, 2),
           block_precisions(exec, 2),
           mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5, 5}, 13))
     {
         block_pointers.get_data()[0] = 2;
         block_pointers.get_data()[1] = 3;
-        block_precisions.get_data()[0] = Bj::single_precision;
-        block_precisions.get_data()[1] = Bj::double_precision;
+        block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
+        block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<BjFactory> bj_factory;
+    std::unique_ptr<Bj::Factory> bj_factory;
     gko::Array<gko::int32> block_pointers;
-    gko::Array<Bj::precision> block_precisions;
+    gko::Array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<>> mtx;
 };
 
 
-TEST_F(AdaptiveBlockJacobiFactory, KnowsItsExecutor)
+TEST_F(JacobiFactory, KnowsItsExecutor)
 {
     ASSERT_EQ(bj_factory->get_executor(), exec);
 }
 
 
-TEST_F(AdaptiveBlockJacobiFactory, SavesMaximumBlockSize)
+TEST_F(JacobiFactory, SavesMaximumBlockSize)
 {
-    ASSERT_EQ(bj_factory->get_max_block_size(), 3);
+    ASSERT_EQ(bj_factory->get_parameters().max_block_size, 3);
 }
 
 
-TEST_F(AdaptiveBlockJacobiFactory, CanSetBlockPointers)
+TEST_F(JacobiFactory, CanSetBlockPointers)
 {
-    bj_factory->set_block_pointers(block_pointers);
+    auto bj_factory = Bj::build()
+                          .with_max_block_size(3u)
+                          .with_block_pointers(block_pointers)
+                          .on(exec);
 
-    auto ptrs = bj_factory->get_block_pointers();
+    auto ptrs = bj_factory->get_parameters().block_pointers;
     EXPECT_EQ(ptrs.get_data()[0], 2);
     EXPECT_EQ(ptrs.get_data()[1], 3);
 }
 
 
-TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPointers)
+TEST_F(JacobiFactory, CanMoveBlockPointers)
 {
-    bj_factory->set_block_pointers(std::move(block_pointers));
+    auto bj_factory = Bj::build()
+                          .with_max_block_size(3u)
+                          .with_block_pointers(std::move(block_pointers))
+                          .on(exec);
 
-    auto ptrs = bj_factory->get_block_pointers();
+    auto ptrs = bj_factory->get_parameters().block_pointers;
     EXPECT_EQ(ptrs.get_data()[0], 2);
     EXPECT_EQ(ptrs.get_data()[1], 3);
 }
 
 
-TEST_F(AdaptiveBlockJacobiFactory, CanSetBlockPrecisions)
+TEST_F(JacobiFactory, CanSetBlockPrecisions)
 {
-    bj_factory->set_block_precisions(block_precisions);
+    auto bj_factory = Bj::build()
+                          .with_max_block_size(3u)
+                          .with_storage_optimization(block_precisions)
+                          .on(exec);
 
-    auto prec = bj_factory->get_block_precisions();
-    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
-    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
+    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
+    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
+    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
 }
 
 
-TEST_F(AdaptiveBlockJacobiFactory, CanMoveBlockPrecisions)
+TEST_F(JacobiFactory, CanMoveBlockPrecisions)
 {
-    bj_factory->set_block_precisions(std::move(block_precisions));
+    auto bj_factory =
+        Bj::build()
+            .with_max_block_size(3u)
+            .with_storage_optimization(std::move(block_precisions))
+            .on(exec);
 
-    auto prec = bj_factory->get_block_precisions();
-    EXPECT_EQ(prec.get_data()[0], Bj::single_precision);
-    EXPECT_EQ(prec.get_data()[1], Bj::double_precision);
+    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
+    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
+    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
 }
 
 

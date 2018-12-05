@@ -31,52 +31,74 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include <core/base/types.hpp>
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/combination.hpp"
-#include "core/base/composition.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
-
-#include "core/log/convergence.hpp"
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
-
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
-
-#include "core/preconditioner/jacobi.hpp"
-
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-#include "core/solver/gmres.hpp"
-
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include <gtest/gtest.h>
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace {
+
+
+TEST(PrecisionReduction, CreatesDefaultEncoding)
+{
+    auto e = gko::precision_reduction();
+
+    ASSERT_EQ(e.get_preserving(), 0);
+    ASSERT_EQ(e.get_nonpreserving(), 0);
+}
+
+
+TEST(PrecisionReduction, CreatesCustomEncoding)
+{
+    auto e = gko::precision_reduction(2, 4);
+
+    ASSERT_EQ(e.get_preserving(), 2);
+    ASSERT_EQ(e.get_nonpreserving(), 4);
+}
+
+
+TEST(PrecisionReduction, ComparesEncodings)
+{
+    auto x = gko::precision_reduction(1, 2);
+    auto y = gko::precision_reduction(1, 2);
+    auto z = gko::precision_reduction(3, 1);
+
+    ASSERT_TRUE(x == y);
+    ASSERT_TRUE(!(x == z));
+    ASSERT_TRUE(!(y == z));
+    ASSERT_TRUE(!(x != y));
+    ASSERT_TRUE(x != z);
+    ASSERT_TRUE(y != z);
+}
+
+
+TEST(PrecisionReduction, CreatesAutodetectEncoding)
+{
+    auto ad = gko::precision_reduction::autodetect();
+
+    ASSERT_NE(ad, gko::precision_reduction());
+    ASSERT_NE(ad, gko::precision_reduction(1, 2));
+}
+
+
+TEST(PrecisionReduction, ConvertsToStorageType)
+{
+    auto st = static_cast<gko::precision_reduction::storage_type>(
+        gko::precision_reduction{});
+
+    ASSERT_EQ(st, 0);
+}
+
+
+TEST(PrecisionReduction, ComputesCommonEncoding)
+{
+    auto e1 = gko::precision_reduction(2, 3);
+    auto e2 = gko::precision_reduction(3, 1);
+
+    ASSERT_EQ(gko::precision_reduction::common(e1, e2),
+              gko::precision_reduction(2, 1));
+}
+
+
+}  // namespace
