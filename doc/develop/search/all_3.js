@@ -13,6 +13,5 @@ var searchData=
   ['dimensionality',['dimensionality',['../classgko_1_1range.html#a6796721a162561502474e3150f179167',1,'gko::range::dimensionality()'],['../classgko_1_1accessor_1_1row__major.html#ae969fbac55f5ba6e6f95f25a0aac483d',1,'gko::accessor::row_major::dimensionality()']]],
   ['dimensionmismatch',['DimensionMismatch',['../classgko_1_1DimensionMismatch.html#ae9ece719cbd41a39835655ba3e70aa47',1,'gko::DimensionMismatch']]],
   ['dimensionmismatch',['DimensionMismatch',['../classgko_1_1DimensionMismatch.html',1,'gko']]],
-  ['div',['div',['../structgko_1_1accessor_1_1div.html',1,'gko::accessor']]],
-  ['double_5fprecision',['double_precision',['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobi.html#ae363093b29d9663c2cd5572005da8622aa6e27b9c0a8a2c8adfda1fa1aea2d5cf',1,'gko::preconditioner::AdaptiveBlockJacobi']]]
+  ['div',['div',['../structgko_1_1accessor_1_1div.html',1,'gko::accessor']]]
 ];

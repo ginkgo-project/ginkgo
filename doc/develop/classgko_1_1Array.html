@@ -123,6 +123,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cla
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
+<tr class="memitem:a6048d48c206e8dcae55e776b7adba06a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#a6048d48c206e8dcae55e776b7adba06a">Array</a> () noexcept</td></tr>
+<tr class="memdesc:a6048d48c206e8dcae55e776b7adba06a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates an empty <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> not tied to any executor.  <a href="#a6048d48c206e8dcae55e776b7adba06a">More...</a><br /></td></tr>
+<tr class="separator:a6048d48c206e8dcae55e776b7adba06a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae64e4c698ecef2cfbe3ceb3dfd07dbaf"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#ae64e4c698ecef2cfbe3ceb3dfd07dbaf">Array</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) noexcept</td></tr>
 <tr class="memdesc:ae64e4c698ecef2cfbe3ceb3dfd07dbaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates an empty <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> tied to the specified <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#ae64e4c698ecef2cfbe3ceb3dfd07dbaf">More...</a><br /></td></tr>
 <tr class="separator:ae64e4c698ecef2cfbe3ceb3dfd07dbaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -203,6 +206,35 @@ class gko::Array&lt; ValueType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a class="anchor" id="a6048d48c206e8dcae55e776b7adba06a"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classgko_1_1Array.html">gko::Array</a>&lt; ValueType &gt;::<a class="el" href="classgko_1_1Array.html">Array</a> </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Creates an empty <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> not tied to any executor. </p>
+<p>An array without an assigned executor can only be empty. Attempts to change its size (e.g. via the resize_and_reset method) will result in an exception. If such an array is used as the right hand side of an assignment or move assignment expression, the data of the target array will be cleared, but its executor will not be modified.</p>
+<p>The executor can later be set by using the set_executor method. If an <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> with no assigned executor is assigned or moved to, it will inherit the executor of the source <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>. </p>
+
+</div>
+</div>
 <a class="anchor" id="ae64e4c698ecef2cfbe3ceb3dfd07dbaf"></a>
 <div class="memitem">
 <div class="memproto">
@@ -754,7 +786,7 @@ template&lt;typename ValueType&gt; </div>
 <p>Returns the number of elements in the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>. </p>
 <dl class="section return"><dt>Returns</dt><dd>the number of elements in the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> </dd></dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Coo.html#a2b62e99d1907c7941d1f16c6ae90b3db">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a1ac1702011ead4e56857de130b4a5301">gko::matrix::Ell&lt; ValueType, IndexType &gt;::col_at()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit::compute_ell_num_stored_elements_per_row()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::compute_hybrid_config()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::get_coo_nnz()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#aecca4e9cfb1e81958881c6dc3e2aa06f">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#aece531e069f8490fd8d2b3ab58f72d09">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#aab92660b6249e243e3ad35a51c557f3b">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a7a6ce578c683841591718134e1ccd1b9">gko::matrix::Dense&lt; ValueType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobi.html#add7ba41ee77b14cb7d19a9dc9f6dbd8d">gko::preconditioner::BasicBlockJacobi&lt; AdaptiveBlockJacobi&lt; ValueType, IndexType &gt; &gt;::get_num_stored_elements()</a>, and <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Coo.html#a2b62e99d1907c7941d1f16c6ae90b3db">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a1ac1702011ead4e56857de130b4a5301">gko::matrix::Ell&lt; ValueType, IndexType &gt;::col_at()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit::compute_ell_num_stored_elements_per_row()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::compute_hybrid_config()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type::get_coo_nnz()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#aecca4e9cfb1e81958881c6dc3e2aa06f">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#aece531e069f8490fd8d2b3ab58f72d09">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#aab92660b6249e243e3ad35a51c557f3b">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_num_stored_elements()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a7a6ce578c683841591718134e1ccd1b9">gko::matrix::Dense&lt; ValueType &gt;::get_num_stored_elements()</a>, and <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>.</p>
 
 </div>
 </div>
@@ -776,6 +808,7 @@ template&lt;typename ValueType&gt; </div>
 
 <p>Copies data from another array. </p>
 <p>This does not invoke the constructors of the elements, instead they are copied as POD types.</p>
+<p>The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">other</td><td>the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> to copy from</td></tr>
@@ -804,6 +837,7 @@ template&lt;typename ValueType&gt; </div>
 
 <p>Moves data from another array. </p>
 <p>This does not invoke the constructors of the elements, instead they are copied as POD types.</p>
+<p>The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">other</td><td>the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> to move data from</td></tr>
@@ -832,6 +866,7 @@ template&lt;typename ValueType&gt; </div>
 
 <p>Resizes the array so it is able to hold the specified number of elements. </p>
 <p>All data stored in the array will be lost.</p>
+<p>If the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> is not assigned an executor, an exception will be thrown.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">num_elems</td><td>the amount of memory (expressed as the number of <code>value_type</code> elements) allocated on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> </td></tr>
@@ -926,7 +961,7 @@ template&lt;typename ValueType&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>core/base/<a class="el" href="array_8hpp_source.html">array.hpp (0cc2c44)</a></li>
+<li>core/base/<a class="el" href="array_8hpp_source.html">array.hpp (12022a8)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

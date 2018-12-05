@@ -1,9 +1,12 @@
 var searchData=
 [
-  ['temporary_5fclone',['temporary_clone',['../classgko_1_1temporary__clone.html',1,'gko']]],
-  ['thread_5fblock_5ftile',['thread_block_tile',['../structgko_1_1group_1_1thread__block__tile.html',1,'gko::group']]],
-  ['time',['Time',['../classgko_1_1stop_1_1Time.html',1,'gko::stop']]],
-  ['transposable',['Transposable',['../classgko_1_1Transposable.html',1,'gko']]],
-  ['transpose_5foperation',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
-  ['truncated',['truncated',['../classgko_1_1truncated.html',1,'gko']]]
+  ['sellp',['Sellp',['../classgko_1_1matrix_1_1Sellp.html',1,'gko::matrix']]],
+  ['span',['span',['../structgko_1_1span.html',1,'gko']]],
+  ['squared_5fnorm_5foperaton',['squared_norm_operaton',['../structgko_1_1accessor_1_1squared__norm__operaton.html',1,'gko::accessor']]],
+  ['stopping_5fstatus',['stopping_status',['../classgko_1_1stopping__status.html',1,'gko']]],
+  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid']]],
+  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Csr_1_1strategy__type.html',1,'gko::matrix::Csr']]],
+  ['stream',['Stream',['../classgko_1_1log_1_1Stream.html',1,'gko::log']]],
+  ['streamerror',['StreamError',['../classgko_1_1StreamError.html',1,'gko']]],
+  ['sub',['sub',['../structgko_1_1accessor_1_1sub.html',1,'gko::accessor']]]
 ];

@@ -77,8 +77,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       <li><a href="functions_func.html"><span>Functions</span></a></li>
       <li><a href="functions_vars.html"><span>Variables</span></a></li>
       <li><a href="functions_type.html"><span>Typedefs</span></a></li>
-      <li><a href="functions_enum.html"><span>Enumerations</span></a></li>
-      <li><a href="functions_eval.html"><span>Enumerator</span></a></li>
       <li><a href="functions_rela.html"><span>Related&#160;Functions</span></a></li>
     </ul>
   </div>
@@ -144,6 +142,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>column_limit()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html#ac686f3f99034bffd091bd934bd1cf9f9">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::column_limit</a>
 </li>
+<li>common()
+: <a class="el" href="classgko_1_1precision__reduction.html#aa0ac7ac5a2807f3a0e9bd245273be388">gko::precision_reduction</a>
+</li>
 <li>component_mask
 : <a class="el" href="classgko_1_1truncated.html#a185fc194281cf01876f43ce51b9aa186">gko::truncated&lt; FloatType, NumComponents, ComponentId &gt;</a>
 </li>
@@ -169,7 +170,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599">gko::matrix::Dense&lt; ValueType &gt;</a>
 </li>
 <li>compute_storage_space()
-: <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#acec67786a50d97210635eac1d1f6d568">gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</a>
+: <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</a>
 </li>
 <li>cond()
 : <a class="el" href="structgko_1_1matrix__data.html#a84056e4ef41884be328ec78554074df1">gko::matrix_data&lt; ValueType, IndexType &gt;</a>
@@ -186,8 +187,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>convert_to()
 : <a class="el" href="classgko_1_1ConvertibleTo.html#aa7f3420babcbed39ee15bc020bed4f7e">gko::ConvertibleTo&lt; ResultType &gt;</a>
 , <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html#a6b7e6872e96084636f8ab5091063ada8">gko::EnablePolymorphicAssignment&lt; ConcreteType, ResultType &gt;</a>
-, <a class="el" href="classgko_1_1preconditioner_1_1AdaptiveBlockJacobi.html#aa282891853c54ffeec0afcc9a1de549e">gko::preconditioner::AdaptiveBlockJacobi&lt; ValueType, IndexType &gt;</a>
-, <a class="el" href="classgko_1_1preconditioner_1_1BlockJacobi.html#af47245568e6092b638e4495949dc2749">gko::preconditioner::BlockJacobi&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a54ce952ac4a12c3f4686442375cd4dc8">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>copy_back_deleter()
 : <a class="el" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">gko::copy_back_deleter&lt; T &gt;</a>
@@ -208,7 +208,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classgko_1_1log_1_1Stream.html#a71f96d3f1cd7c03875476cd8db98145b">gko::log::Stream&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1IdentityFactory.html#a653ce1d7377e69643828b9c46b4d0319">gko::matrix::IdentityFactory&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor</a>
-, <a class="el" href="classgko_1_1preconditioner_1_1BasicBlockJacobiFactory.html#aed1f9618813cd8c0d33459bc5a97ebd0">gko::preconditioner::BasicBlockJacobiFactory&lt; ConcreteBlockJacobiFactory &gt;</a>
 </li>
 <li>create_default()
 : <a class="el" href="classgko_1_1PolymorphicObject.html#a6d08639dbedc5561cad8ec10a464b5e0">gko::PolymorphicObject</a>

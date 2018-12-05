@@ -1,9 +1,9 @@
 var searchData=
 [
-  ['warp_5fsize',['warp_size',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a9b76132012e485cc669f6cde9420750a',1,'gko::kernels::cuda::cuda_config']]],
-  ['what',['what',['../classgko_1_1Error.html#a15930f925216ad519be09d86e22e283a',1,'gko::Error']]],
-  ['writabletomatrixdata',['WritableToMatrixData',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
-  ['writabletomatrixdata_3c_20valuetype_2c_20int32_20_3e',['WritableToMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
-  ['writabletomatrixdata_3c_20valuetype_2c_20int64_20_3e',['WritableToMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
-  ['write',['write',['../classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2',1,'gko::WritableToMatrixData::write()'],['../classgko_1_1matrix_1_1Coo.html#ae193466ca1a4a3c7d1383ddc5a2701ab',1,'gko::matrix::Coo::write()'],['../classgko_1_1matrix_1_1Csr.html#a205fc391f4cf4f7718a55b0a61f62bc9',1,'gko::matrix::Csr::write()'],['../classgko_1_1matrix_1_1Ell.html#afa9148a16a9255003055d8e9156ee941',1,'gko::matrix::Ell::write()'],['../classgko_1_1matrix_1_1Hybrid.html#a626c07541641bcdfd9a7f61322a89cbe',1,'gko::matrix::Hybrid::write()'],['../classgko_1_1matrix_1_1Sellp.html#aae2355a2866318b154d017b1c51f30a5',1,'gko::matrix::Sellp::write()'],['../classgko_1_1preconditioner_1_1BlockJacobi.html#a8c98abb81e9a823a3547435f85578d68',1,'gko::preconditioner::BlockJacobi::write()'],['../classgko_1_1preconditioner_1_1AdaptiveBlockJacobi.html#a7d16bbfdd7155226eae0e0827e5c42a1',1,'gko::preconditioner::AdaptiveBlockJacobi::write()']]]
+  ['val_5fat',['val_at',['../classgko_1_1matrix_1_1Ell.html#a0d2365837e44dc1889fc16000ff3b0a9',1,'gko::matrix::Ell::val_at(size_type row, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Ell.html#a3591fa0ab2ec09b43a15b0f0649d8ea3',1,'gko::matrix::Ell::val_at(size_type row, size_type idx) const noexcept'],['../classgko_1_1matrix_1_1Sellp.html#a0654ed1e0f066c8b9a15aaaeeea34030',1,'gko::matrix::Sellp::val_at(size_type row, size_type slice_set, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Sellp.html#ad4bb228252469da6e57eb38edd66fb8e',1,'gko::matrix::Sellp::val_at(size_type row, size_type slice_set, size_type idx) const noexcept']]],
+  ['value_5ftype',['value_type',['../classgko_1_1Array.html#ad40c95e429262175cae51bcabd291a5b',1,'gko::Array::value_type()'],['../classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba',1,'gko::accessor::row_major::value_type()']]],
+  ['version',['version',['../structgko_1_1version.html',1,'gko']]],
+  ['version_5finfo',['version_info',['../classgko_1_1version__info.html',1,'gko']]],
+  ['view',['view',['../classgko_1_1Array.html#ae8e2b4841e60741227daf3367de6ecde',1,'gko::Array']]],
+  ['view_5fdeleter',['view_deleter',['../classgko_1_1Array.html#af870dd6ab4ad4f7e0e20471cb17f4ad1',1,'gko::Array']]]
 ];

@@ -103,7 +103,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>Defines the parameters of the interleaved block storage scheme used by block-Jacobi blocks.  
  <a href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="block__jacobi_8hpp_source.html">core/preconditioner/block_jacobi.hpp</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="jacobi_8hpp_source.html">core/preconditioner/jacobi.hpp</a>&gt;</code></p>
 <div class="dynheader">
 Collaboration diagram for gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;:</div>
 <div class="dyncontent">
@@ -116,9 +116,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af5eee19f00b1cd4c378ac3410be72093"><td class="memItemLeft" align="right" valign="top">IndexType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#af5eee19f00b1cd4c378ac3410be72093">get_group_size</a> () const noexcept</td></tr>
 <tr class="memdesc:af5eee19f00b1cd4c378ac3410be72093"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements in the group.  <a href="#af5eee19f00b1cd4c378ac3410be72093">More...</a><br /></td></tr>
 <tr class="separator:af5eee19f00b1cd4c378ac3410be72093"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acec67786a50d97210635eac1d1f6d568"><td class="memItemLeft" align="right" valign="top">IndexType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#acec67786a50d97210635eac1d1f6d568">compute_storage_space</a> (IndexType num_blocks) const noexcept</td></tr>
-<tr class="memdesc:acec67786a50d97210635eac1d1f6d568"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the storage space required for the requested number of blocks.  <a href="#acec67786a50d97210635eac1d1f6d568">More...</a><br /></td></tr>
-<tr class="separator:acec67786a50d97210635eac1d1f6d568"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae46b38432c1e1b87d5743a649f2cfe84"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">compute_storage_space</a> (size_type num_blocks) const noexcept</td></tr>
+<tr class="memdesc:ae46b38432c1e1b87d5743a649f2cfe84"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the storage space required for the requested number of blocks.  <a href="#ae46b38432c1e1b87d5743a649f2cfe84">More...</a><br /></td></tr>
+<tr class="separator:ae46b38432c1e1b87d5743a649f2cfe84"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a66a04b4dc90547fde872359c78ee22a4"><td class="memItemLeft" align="right" valign="top">IndexType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a66a04b4dc90547fde872359c78ee22a4">get_group_offset</a> (IndexType block_id) const noexcept</td></tr>
 <tr class="memdesc:a66a04b4dc90547fde872359c78ee22a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the offset of the group belonging to the block with the given ID.  <a href="#a66a04b4dc90547fde872359c78ee22a4">More...</a><br /></td></tr>
 <tr class="separator:a66a04b4dc90547fde872359c78ee22a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -158,7 +158,7 @@ struct gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;<
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="acec67786a50d97210635eac1d1f6d568"></a>
+<a class="anchor" id="ae46b38432c1e1b87d5743a649f2cfe84"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -168,9 +168,9 @@ template&lt;typename IndexType&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">IndexType <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html">gko::preconditioner::block_interleaved_storage_scheme</a>&lt; IndexType &gt;::compute_storage_space </td>
+          <td class="memname">size_type <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html">gko::preconditioner::block_interleaved_storage_scheme</a>&lt; IndexType &gt;::compute_storage_space </td>
           <td>(</td>
-          <td class="paramtype">IndexType&#160;</td>
+          <td class="paramtype">size_type&#160;</td>
           <td class="paramname"><em>num_blocks</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -189,7 +189,8 @@ template&lt;typename IndexType&gt; </div>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>the total memory (as the number of elements) that need to be allocated for the scheme </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>the total memory (as the number of elements) that need to be allocated for the scheme</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>To simplify using the method in situations where the number of blocks is not known, for a special input <code>size_type{} - 1</code> the method returns <code>0</code> to avoid overallocation of memory. </dd></dl>
 
 </div>
 </div>
@@ -225,6 +226,8 @@ template&lt;typename IndexType&gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the offset of the block with ID <code>block_id</code> within its group </dd></dl>
+
+<p>Referenced by <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ad8356b187814609c7d77bd03e025c48f">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::get_global_block_offset()</a>.</p>
 
 </div>
 </div>
@@ -296,6 +299,8 @@ template&lt;typename IndexType&gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the offset of the group belonging to block with ID <code>block_id</code> </dd></dl>
 
+<p>Referenced by <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ad8356b187814609c7d77bd03e025c48f">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::get_global_block_offset()</a>.</p>
+
 </div>
 </div>
 <a class="anchor" id="af5eee19f00b1cd4c378ac3410be72093"></a>
@@ -323,6 +328,8 @@ template&lt;typename IndexType&gt; </div>
 
 <p>Returns the number of elements in the group. </p>
 <dl class="section return"><dt>Returns</dt><dd>the number of elements in the group </dd></dl>
+
+<p>Referenced by <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::compute_storage_space()</a>, and <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a6384280dc1ad46fc1589d0b9165fd022">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::get_block_offset()</a>.</p>
 
 </div>
 </div>
@@ -370,10 +377,12 @@ template&lt;typename IndexType&gt; </div>
 <p>Then base 2 power of the group. </p>
 <p>I.e. the group contains <code>1 &lt;&lt; group_power</code> elements. </p>
 
+<p>Referenced by <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#a66a04b4dc90547fde872359c78ee22a4">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::get_group_offset()</a>, and <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#aa07119fbf99fae71b1f9c4f693e14ce4">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::get_stride()</a>.</p>
+
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>core/preconditioner/<a class="el" href="block__jacobi_8hpp_source.html">block_jacobi.hpp (66edc64)</a></li>
+<li>core/preconditioner/<a class="el" href="jacobi_8hpp_source.html">jacobi.hpp (8f644f1)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

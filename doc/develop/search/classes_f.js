@@ -1,13 +1,16 @@
 var searchData=
 [
-  ['range',['range',['../classgko_1_1range.html',1,'gko']]],
-  ['readablefrommatrixdata',['ReadableFromMatrixData',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
-  ['readablefrommatrixdata_3c_20valuetype_2c_20int32_20_3e',['ReadableFromMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
-  ['readablefrommatrixdata_3c_20valuetype_2c_20int64_20_3e',['ReadableFromMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
-  ['real_5foperaton',['real_operaton',['../structgko_1_1accessor_1_1real__operaton.html',1,'gko::accessor']]],
-  ['record',['Record',['../classgko_1_1log_1_1Record.html',1,'gko::log']]],
-  ['referenceexecutor',['ReferenceExecutor',['../classgko_1_1ReferenceExecutor.html',1,'gko']]],
-  ['residualnormreduction',['ResidualNormReduction',['../classgko_1_1stop_1_1ResidualNormReduction.html',1,'gko::stop']]],
-  ['right_5fshift',['right_shift',['../structgko_1_1accessor_1_1right__shift.html',1,'gko::accessor']]],
-  ['row_5fmajor',['row_major',['../classgko_1_1accessor_1_1row__major.html',1,'gko::accessor']]]
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1stop_1_1Combined_1_1parameters__type.html',1,'gko::stop::Combined']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html',1,'gko::solver::Bicgstab']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1stop_1_1Iteration_1_1parameters__type.html',1,'gko::stop::Iteration']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1stop_1_1Time_1_1parameters__type.html',1,'gko::stop::Time']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type.html',1,'gko::stop::ResidualNormReduction']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html',1,'gko::solver::Gmres']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1solver_1_1Cg_1_1parameters__type.html',1,'gko::solver::Cg']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1solver_1_1Fcg_1_1parameters__type.html',1,'gko::solver::Fcg']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html',1,'gko::preconditioner::Jacobi']]],
+  ['parameters_5ftype',['parameters_type',['../structgko_1_1solver_1_1Cgs_1_1parameters__type.html',1,'gko::solver::Cgs']]],
+  ['polymorphic_5fobject_5fdata',['polymorphic_object_data',['../structgko_1_1log_1_1polymorphic__object__data.html',1,'gko::log']]],
+  ['polymorphicobject',['PolymorphicObject',['../classgko_1_1PolymorphicObject.html',1,'gko']]],
+  ['precision_5freduction',['precision_reduction',['../classgko_1_1precision__reduction.html',1,'gko']]]
 ];

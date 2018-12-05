@@ -1,10 +1,17 @@
 var searchData=
 [
-  ['matrix_5fdata',['matrix_data',['../structgko_1_1matrix__data.html',1,'gko']]],
-  ['max_5foperaton',['max_operaton',['../structgko_1_1accessor_1_1max__operaton.html',1,'gko::accessor']]],
-  ['merge_5fpath',['merge_path',['../classgko_1_1matrix_1_1Csr_1_1merge__path.html',1,'gko::matrix::Csr']]],
-  ['min_5foperaton',['min_operaton',['../structgko_1_1accessor_1_1min__operaton.html',1,'gko::accessor']]],
-  ['mmul_5foperation',['mmul_operation',['../structgko_1_1accessor_1_1mmul__operation.html',1,'gko::accessor']]],
-  ['mod',['mod',['../structgko_1_1accessor_1_1mod.html',1,'gko::accessor']]],
-  ['mul',['mul',['../structgko_1_1accessor_1_1mul.html',1,'gko::accessor']]]
+  ['left_5fshift',['left_shift',['../structgko_1_1accessor_1_1left__shift.html',1,'gko::accessor']]],
+  ['less',['less',['../structgko_1_1accessor_1_1less.html',1,'gko::accessor']]],
+  ['less_5for_5fequal',['less_or_equal',['../structgko_1_1accessor_1_1less__or__equal.html',1,'gko::accessor']]],
+  ['linop',['LinOp',['../classgko_1_1LinOp.html',1,'gko']]],
+  ['linop_5fdata',['linop_data',['../structgko_1_1log_1_1linop__data.html',1,'gko::log']]],
+  ['linop_5ffactory_5fdata',['linop_factory_data',['../structgko_1_1log_1_1linop__factory__data.html',1,'gko::log']]],
+  ['linopfactory',['LinOpFactory',['../classgko_1_1LinOpFactory.html',1,'gko']]],
+  ['load_5fbalance',['load_balance',['../classgko_1_1matrix_1_1Csr_1_1load__balance.html',1,'gko::matrix::Csr']]],
+  ['loggable',['Loggable',['../classgko_1_1log_1_1Loggable.html',1,'gko::log']]],
+  ['logged_5fdata',['logged_data',['../structgko_1_1log_1_1Record_1_1logged__data.html',1,'gko::log::Record']]],
+  ['logger',['Logger',['../classgko_1_1log_1_1Logger.html',1,'gko::log']]],
+  ['logical_5fand',['logical_and',['../structgko_1_1accessor_1_1logical__and.html',1,'gko::accessor']]],
+  ['logical_5fnot',['logical_not',['../structgko_1_1accessor_1_1logical__not.html',1,'gko::accessor']]],
+  ['logical_5for',['logical_or',['../structgko_1_1accessor_1_1logical__or.html',1,'gko::accessor']]]
 ];

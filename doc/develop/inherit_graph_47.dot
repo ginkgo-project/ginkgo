@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::dim\< 2 \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1dim.html"];
+  Node1 [label="gko::dim\< Dimensionality,\l DimensionType \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1dim.html",tooltip="A type representing the dimensions of a multidimensional object. "];
 }

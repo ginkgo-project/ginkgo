@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::copy_back_deleter\l\< const T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1copy__back__deleter_3_01const_01T_01_4.html"];
+  Node1 [label="gko::copy_back_deleter\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1copy__back__deleter.html",tooltip="A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo..."];
 }
