@@ -74,6 +74,14 @@ __global__
 }
 
 
+__global__ __launch_bounds__(1) void init_kernel(
+    bool *__restrict__ device_storage)
+{
+    device_storage[0] = true;
+    device_storage[1] = false;
+}
+
+
 template <typename ValueType>
 void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
                              const matrix::Dense<ValueType> *tau,
@@ -84,21 +92,20 @@ void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
                              Array<bool> *device_storage, bool *all_converged,
                              bool *one_changed)
 {
-    /* Represents all_converged, one_changed */
-    bool tmp[2] = {true, false};
-    exec->copy_from(exec->get_master().get(), 2, tmp,
-                    device_storage->get_data());
+    init_kernel<<<1, 1>>>(as_cuda_type(device_storage->get_data()));
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
-    residual_norm_reduction_kernel<<<grid_size, block_size, 0, 0>>>(
+    residual_norm_reduction_kernel<<<grid_size, block_size>>>(
         tau->get_size()[1], rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
         as_cuda_type(stop_status->get_data()),
         as_cuda_type(device_storage->get_data()));
 
+    /* Represents all_converged, one_changed */
+    bool tmp[2] = {true, false};
     exec->get_master()->copy_from(exec.get(), 2,
                                   device_storage->get_const_data(), tmp);
     *all_converged = tmp[0];
