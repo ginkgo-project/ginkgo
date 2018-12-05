@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::log::Record::logged_data",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1log_1_1Record_1_1logged__data.html",tooltip="Struct storing the actually logged data. "];
+  Node1 [label="gko::log::polymorphic\l_object_data",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1log_1_1polymorphic__object__data.html",tooltip="Struct representing PolymorphicObject related data. "];
 }

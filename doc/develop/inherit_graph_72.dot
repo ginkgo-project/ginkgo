@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::matrix_data\< ValueType,\l IndexType \>::nonzero_type",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1matrix__data_1_1nonzero__type.html",tooltip="Type used to store nonzeros. "];
+  Node1 [label="gko::matrix_data\< ValueType,\l IndexType \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1matrix__data.html",tooltip="This structure is used as an intermediate data type to store a sparse matrix. "];
 }

@@ -8,6 +8,7 @@ var searchData=
   ['add',['add',['../structgko_1_1accessor_1_1add.html',1,'gko::accessor']]],
   ['allocationerror',['AllocationError',['../classgko_1_1AllocationError.html',1,'gko']]],
   ['array',['Array',['../classgko_1_1Array.html',1,'gko']]],
+  ['array_3c_20bool_20_3e',['Array&lt; bool &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20gko_3a_3astopping_5fstatus_20_3e',['Array&lt; gko::stopping_status &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20index_5ftype_20_3e',['Array&lt; index_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20precision_20_3e',['Array&lt; precision &gt;',['../classgko_1_1Array.html',1,'gko']]],
