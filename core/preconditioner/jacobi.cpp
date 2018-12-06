@@ -132,12 +132,10 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
                                     .block_wise.get_const_data();
         const auto prec =
             precisions ? precisions[block] : precision_reduction();
-        // TODO: use the same precision for the block group and optimize the
-        // storage scheme for it
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(ValueType, prec, {
             const auto block_data =
-                reinterpret_cast<const resolved_precision *>(
-                    group_data + scheme.get_block_offset(block));
+                reinterpret_cast<const resolved_precision *>(group_data) +
+                scheme.get_block_offset(block);
             for (IndexType row = 0; row < block_size; ++row) {
                 for (IndexType col = 0; col < block_size; ++col) {
                     data.nonzeros.emplace_back(

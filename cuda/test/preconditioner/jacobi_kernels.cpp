@@ -48,7 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BlockJacobi : public ::testing::Test {
+class Jacobi : public ::testing::Test {
 protected:
     using Bj = gko::preconditioner::Jacobi<>;
     using Mtx = gko::matrix::Csr<>;
@@ -68,9 +68,10 @@ protected:
         }
     }
 
-    void initialize_data(std::initializer_list<gko::int32> block_pointers,
-                         gko::uint32 max_block_size, int min_nnz, int max_nnz,
-                         int num_rhs = 1)
+    void initialize_data(
+        std::initializer_list<gko::int32> block_pointers,
+        std::initializer_list<gko::precision_reduction> block_precisions,
+        gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1)
     {
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -78,14 +79,28 @@ protected:
             dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
         gko::Array<gko::int32> block_ptrs(ref, block_pointers);
-        bj_factory = Bj::build()
-                         .with_max_block_size(max_block_size)
-                         .with_block_pointers(block_ptrs)
-                         .on(ref);
-        d_bj_factory = Bj::build()
-                           .with_max_block_size(max_block_size)
-                           .with_block_pointers(block_ptrs)
-                           .on(cuda);
+        gko::Array<gko::precision_reduction> block_prec(ref, block_precisions);
+        if (block_prec.get_num_elems() == 0) {
+            bj_factory = Bj::build()
+                             .with_max_block_size(max_block_size)
+                             .with_block_pointers(block_ptrs)
+                             .on(ref);
+            d_bj_factory = Bj::build()
+                               .with_max_block_size(max_block_size)
+                               .with_block_pointers(block_ptrs)
+                               .on(cuda);
+        } else {
+            bj_factory = Bj::build()
+                             .with_max_block_size(max_block_size)
+                             .with_block_pointers(block_ptrs)
+                             .with_storage_optimization(block_prec)
+                             .on(ref);
+            d_bj_factory = Bj::build()
+                               .with_max_block_size(max_block_size)
+                               .with_block_pointers(block_ptrs)
+                               .with_storage_optimization(block_prec)
+                               .on(cuda);
+        }
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
@@ -97,6 +112,14 @@ protected:
         d_x = Vec::create(cuda);
         d_x->copy_from(x.get());
     }
+
+    const gko::precision_reduction dp{};
+    const gko::precision_reduction sp{0, 1};
+    const gko::precision_reduction hp{0, 2};
+    const gko::precision_reduction tp{1, 0};
+    const gko::precision_reduction qp{2, 0};
+    const gko::precision_reduction up{1, 1};
+    const gko::precision_reduction ap{gko::precision_reduction::autodetect()};
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
@@ -111,7 +134,7 @@ protected:
 };
 
 
-TEST_F(BlockJacobi, CudaFindNaturalBlocksEquivalentToRef)
+TEST_F(Jacobi, CudaFindNaturalBlocksEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -138,7 +161,7 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi, CudaExecutesSupervariableAgglomerationEquivalentToRef)
+TEST_F(Jacobi, CudaExecutesSupervariableAgglomerationEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -167,7 +190,7 @@ TEST_F(BlockJacobi, CudaExecutesSupervariableAgglomerationEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi, CudaFindNaturalBlocksInLargeMatrixEquivalentToRef)
+TEST_F(Jacobi, CudaFindNaturalBlocksInLargeMatrixEquivalentToRef)
 {
     /* example matrix:
         1   1
@@ -194,7 +217,7 @@ TEST_F(BlockJacobi, CudaFindNaturalBlocksInLargeMatrixEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi,
+TEST_F(Jacobi,
        CudaExecutesSupervariableAgglomerationInLargeMatrixEquivalentToRef)
 {
     /* example matrix:
@@ -220,7 +243,7 @@ TEST_F(BlockJacobi,
 }
 
 
-TEST_F(BlockJacobi,
+TEST_F(Jacobi,
        CudaExecutesSupervarAgglomerationEquivalentToRefFor150NonzerowsPerRow)
 {
     /* example matrix duplicated 50 times:
@@ -248,9 +271,9 @@ TEST_F(BlockJacobi,
 }
 
 
-TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
 {
-    initialize_data({0, 32, 64, 96, 128}, 32, 100, 110);
+    initialize_data({0, 32, 64, 96, 128}, {}, 32, 100, 110);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -259,9 +282,10 @@ TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
 }
 
 
-TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithDifferentBlockSize)
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithDifferentBlockSize)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 32, 97, 99);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 32, 97,
+                    99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -270,9 +294,10 @@ TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithDifferentBlockSize)
 }
 
 
-TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithMPW)
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithMPW)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 13, 97,
+                    99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -281,9 +306,9 @@ TEST_F(BlockJacobi, CudaPreconditionerEquivalentToRefWithMPW)
 }
 
 
-TEST_F(BlockJacobi, CudaApplyEquivalentToRefWithBlockSize32)
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithBlockSize32)
 {
-    initialize_data({0, 32, 64, 96, 128}, 32, 100, 111);
+    initialize_data({0, 32, 64, 96, 128}, {}, 32, 100, 111);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -294,9 +319,10 @@ TEST_F(BlockJacobi, CudaApplyEquivalentToRefWithBlockSize32)
 }
 
 
-TEST_F(BlockJacobi, CudaApplyEquivalentToRefWithDifferentBlockSize)
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithDifferentBlockSize)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 32, 97, 99);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 32, 97,
+                    99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -307,9 +333,10 @@ TEST_F(BlockJacobi, CudaApplyEquivalentToRefWithDifferentBlockSize)
 }
 
 
-TEST_F(BlockJacobi, CudaApplyEquivalentToRef)
+TEST_F(Jacobi, CudaApplyEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 13, 97,
+                    99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -320,9 +347,10 @@ TEST_F(BlockJacobi, CudaApplyEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi, CudaLinearCombinationApplyEquivalentToRef)
+TEST_F(Jacobi, CudaLinearCombinationApplyEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 13, 97,
+                    99);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, cuda);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
@@ -337,10 +365,10 @@ TEST_F(BlockJacobi, CudaLinearCombinationApplyEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi, CudaApplyToMultipleVectorsEquivalentToRef)
+TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99,
-                    5);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 13, 97,
+                    99, 5);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
@@ -351,10 +379,10 @@ TEST_F(BlockJacobi, CudaApplyToMultipleVectorsEquivalentToRef)
 }
 
 
-TEST_F(BlockJacobi, CudaLinearCombinationApplyToMultipleVectorsEquivalentToRef)
+TEST_F(Jacobi, CudaLinearCombinationApplyToMultipleVectorsEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, 13, 97, 99,
-                    5);
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, 13, 97,
+                    99, 5);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, cuda);
     auto beta = gko::initialize<Vec>({-1.0}, ref);
@@ -366,6 +394,260 @@ TEST_F(BlockJacobi, CudaLinearCombinationApplyToMultipleVectorsEquivalentToRef)
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
     ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-14);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithCustomReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithQuarteredPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, 13, 97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithFullPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-5);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithQuarteredPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-3);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {up, up, up, up, up, up, up, up, up, up, up}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-2);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomQuarteredPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(Jacobi, CudaApplyEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, 13, 97, 99);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-1);
+}
+
+
+TEST_F(Jacobi, CudaLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, 13, 97, 99);
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, cuda);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, cuda);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, 13, 97, 99,
+                    5);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, 13, 97, 99,
+                    5);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, 13, 97, 99,
+                    5);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-1);
+}
+
+
+TEST_F(
+    Jacobi,
+    CudaLinearCombinationApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, 13, 97, 99,
+                    5);
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, cuda);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, cuda);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    bj->apply(b.get(), x.get());
+    d_bj->apply(d_b.get(), d_x.get());
+
+    ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 

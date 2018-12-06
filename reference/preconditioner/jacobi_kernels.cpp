@@ -292,29 +292,61 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_data();
-    for (size_type b = 0; b < num_blocks; ++b) {
-        const auto block_size = ptrs[b + 1] - ptrs[b];
-        Array<ValueType> block(exec, block_size * block_size);
-        Array<IndexType> perm(exec, block_size);
-        std::iota(perm.get_data(), perm.get_data() + block_size, IndexType(0));
-        extract_block(system_matrix, block_size, ptrs[b], block.get_data(),
-                      block_size);
-        invert_block(block_size, perm.get_data(), block.get_data(), block_size);
-        if (prec && prec[b] == precision_reduction::autodetect()) {
-            // TODO: properly compute best precision
-            prec[b] = precision_reduction();
+    const auto group_size = storage_scheme.get_group_size();
+    for (size_type g = 0; g < num_blocks; g += group_size) {
+        std::vector<Array<ValueType>> block(group_size);
+        std::vector<Array<IndexType>> perm(group_size);
+        std::vector<precision_reduction> local_prec(
+            group_size, precision_reduction::autodetect());
+        // extract group of blocks, invert them, figure out storage precision
+        for (size_type b = 0; b < group_size; ++b) {
+            if (b + g >= num_blocks) {
+                break;
+            }
+            const auto block_size = ptrs[g + b + 1] - ptrs[g + b];
+            block[b] = Array<ValueType>(exec, block_size * block_size);
+            perm[b] = Array<IndexType>(exec, block_size);
+            std::iota(perm[b].get_data(), perm[b].get_data() + block_size,
+                      IndexType(0));
+            extract_block(system_matrix, block_size, ptrs[g + b],
+                          block[b].get_data(), block_size);
+            invert_block(block_size, perm[b].get_data(), block[b].get_data(),
+                         block_size);
+            local_prec[b] = prec ? prec[g + b] : precision_reduction();
+            if (local_prec[b] == precision_reduction::autodetect()) {
+                // TODO: properly compute best precision
+                local_prec[b] = precision_reduction();
+            }
         }
-        // TODO: use the same precision for the block group and optimize the
-        // storage scheme for it
-        const auto p = prec ? prec[b] : precision_reduction();
-        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
-            ValueType, p,
-            permute_and_transpose_block(
-                block_size, perm.get_data(), block.get_data(), block_size,
-                reinterpret_cast<resolved_precision *>(
-                    blocks.get_data() +
-                    storage_scheme.get_global_block_offset(b)),
-                storage_scheme.get_stride()));
+
+        // make sure everyone in the group uses the same precision
+        const auto p =
+            std::accumulate(begin(local_prec), end(local_prec),
+                            precision_reduction::autodetect(),
+                            [](precision_reduction x, precision_reduction y) {
+                                return precision_reduction::common(x, y);
+                            });
+
+        // store the blocks
+        for (size_type b = 0; b < group_size; ++b) {
+            if (b + g >= num_blocks) {
+                break;
+            }
+            if (prec) {
+                prec[g + b] = p;
+            }
+            const auto block_size = ptrs[g + b + 1] - ptrs[g + b];
+            GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+                ValueType, p,
+                permute_and_transpose_block(
+                    block_size, perm[b].get_data(), block[b].get_data(),
+                    block_size,
+                    reinterpret_cast<resolved_precision *>(
+                        blocks.get_data() +
+                        storage_scheme.get_group_offset(g + b)) +
+                        storage_scheme.get_block_offset(g + b),
+                    storage_scheme.get_stride()));
+        }
     }
 }
 
@@ -389,10 +421,8 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        // TODO: use the same precision for the block group and optimize the
-        // storage scheme for it
-        const auto block =
-            blocks.get_const_data() + storage_scheme.get_global_block_offset(i);
+        const auto group =
+            blocks.get_const_data() + storage_scheme.get_group_offset(i);
         const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
         const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
@@ -400,7 +430,8 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
             apply_block(block_size, b->get_size()[1],
-                        reinterpret_cast<const resolved_precision *>(block),
+                        reinterpret_cast<const resolved_precision *>(group) +
+                            storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), alpha->at(0, 0), block_b,
                         b->get_stride(), beta->at(0, 0), block_x,
                         x->get_stride()));
@@ -423,10 +454,8 @@ void simple_apply(
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
-        // TODO: use the same precision for the block group and optimize the
-        // storage scheme for it
-        const auto block =
-            blocks.get_const_data() + storage_scheme.get_global_block_offset(i);
+        const auto group =
+            blocks.get_const_data() + storage_scheme.get_group_offset(i);
         const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
         const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
@@ -434,7 +463,8 @@ void simple_apply(
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
             apply_block(block_size, b->get_size()[1],
-                        reinterpret_cast<const resolved_precision *>(block),
+                        reinterpret_cast<const resolved_precision *>(group) +
+                            storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), one<ValueType>(), block_b,
                         b->get_stride(), zero<ValueType>(), block_x,
                         x->get_stride()));
@@ -464,19 +494,19 @@ void convert_to_dense(
     }
 
     for (size_type i = 0; i < num_blocks; ++i) {
-        // TODO: use the same precision for the block group and optimize the
-        // storage scheme for it
-        const auto block =
-            blocks.get_const_data() + storage_scheme.get_global_block_offset(i);
+        const auto group =
+            blocks.get_const_data() + storage_scheme.get_group_offset(i);
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            transpose_block(block_size,
-                            reinterpret_cast<const resolved_precision *>(block),
-                            storage_scheme.get_stride(),
-                            result_values + ptrs[i] * result_stride + ptrs[i],
-                            result_stride));
+            transpose_block(
+                block_size,
+                reinterpret_cast<const resolved_precision *>(group) +
+                    storage_scheme.get_block_offset(i),
+                storage_scheme.get_stride(),
+                result_values + ptrs[i] * result_stride + ptrs[i],
+                result_stride));
     }
 }
 

@@ -43,6 +43,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         using resolved_precision =                                     \
             ::gko::reduce_precision<::gko::reduce_precision<_type>>;   \
         __VA_ARGS__;                                                   \
+    } else if (_prec == ::gko::precision_reduction(1, 0)) {            \
+        using resolved_precision = ::gko::truncate_type<_type>;        \
+        __VA_ARGS__;                                                   \
+    } else if (_prec == ::gko::precision_reduction(1, 1)) {            \
+        using resolved_precision =                                     \
+            ::gko::truncate_type<::gko::reduce_precision<_type>>;      \
+        __VA_ARGS__;                                                   \
+    } else if (_prec == ::gko::precision_reduction(2, 0)) {            \
+        using resolved_precision =                                     \
+            ::gko::truncate_type<::gko::truncate_type<_type>>;         \
+        __VA_ARGS__;                                                   \
     } else {                                                           \
         using resolved_precision = _type;                              \
         __VA_ARGS__;                                                   \
