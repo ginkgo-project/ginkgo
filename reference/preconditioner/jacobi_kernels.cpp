@@ -352,8 +352,6 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
             const auto local_prec = prec ? prec[g + b] : precision_reduction();
             if (local_prec == precision_reduction::autodetect()) {
                 using preconditioner::detail::get_supported_storage_reductions;
-                // TODO: provide verificators to allow for reduced precision
-                auto truncate_only = [] { return false; };
                 pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
                     accuracy, cond[g + b],
                     [&block_size, &block, &b] {

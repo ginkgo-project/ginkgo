@@ -430,8 +430,6 @@ TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
 }
 
 
-// TODO: uncomment once the GPU implementation does proper precision detection
-/*
 TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
 {
     initialize_data(
@@ -451,7 +449,6 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
         EXPECT_EQ(bj_prec[i], d_bj_prec[i]);
     }
 }
-*/
 
 
 TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
