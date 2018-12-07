@@ -239,6 +239,20 @@ public:
     }
 
     /**
+     * Returns an array of 1-norm condition numbers of the blocks.
+     *
+     * @return an array of 1-norm condition numbers of the blocks
+     *
+     * @note This value is valid only if adaptive precision variant is used, and
+     *       implementations of the standard non-adaptive variant are allowed to
+     *       omit the calculation of condition numbers.
+     */
+    const remove_complex<value_type> *get_conditioning() const noexcept
+    {
+        return conditioning_.get_const_data();
+    }
+
+    /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
@@ -387,6 +401,34 @@ public:
          */
         storage_optimization_type GKO_FACTORY_PARAMETER(
             storage_optimization, precision_reduction(0, 0));
+
+        /**
+         * The relative accuracy of the adaptive Jacobi variant.
+         *
+         * This parameter is only used if the adaptive version of the algorithm
+         * is selected (see storage_optimization parameter for more details).
+         * The parameter is used when detecting the optimal precisions of blocks
+         * whose precision has been set to precision_reduction::autodetect().
+         *
+         * The parameter represents the number of correct digits in the result
+         * of Jacobi::apply() operation of the adaptive variant, compared to the
+         * non-adaptive variant. In other words, the total preconditioning error
+         * will be:
+         *
+         * ```
+         * || inv(A)x - inv(M)x|| / || inv(A)x || <= c * (dropout + accuracy)
+         * ```
+         *
+         * where `c` is some constant depending on the problem size and roundoff
+         * error and `dropout` the error introduced by disregarding off-diagonal
+         * elements.
+         *
+         * Larger values reduce the volume of memory transfer, but increase
+         * the error compared to using full precision storage. Thus, tuning the
+         * accuracy to a value as close as possible to `dropout` will result in
+         * optimal memory savings, while not degrading the quality of solution.
+         */
+        remove_complex<value_type> GKO_FACTORY_PARAMETER(accuracy, 1e-1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -398,7 +440,10 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Jacobi>(exec), blocks_(exec)
+        : EnableLinOp<Jacobi>(exec),
+          num_blocks_{},
+          blocks_(exec),
+          conditioning_(exec)
     {
         parameters_.block_pointers.set_executor(exec);
         parameters_.storage_optimization.block_wise.set_executor(exec);
@@ -420,7 +465,8 @@ protected:
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
-                      parameters_.block_pointers.get_num_elems() - 1))
+                      parameters_.block_pointers.get_num_elems() - 1)),
+          conditioning_(factory->get_executor())
     {
         if (parameters_.max_block_size >= 32 ||
             parameters_.max_block_size < 1) {
@@ -486,6 +532,7 @@ private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};
     size_type num_blocks_;
     Array<value_type> blocks_;
+    Array<remove_complex<value_type>> conditioning_;
 };
 
 

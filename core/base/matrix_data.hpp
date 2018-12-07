@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <numeric>
 #include <tuple>
 #include <vector>
 
@@ -121,7 +122,7 @@ struct matrix_data {
     }
 
         GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(==);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(!=)
+        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(!=);
         GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
         GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
         GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
@@ -320,6 +321,39 @@ struct matrix_data {
                                           elem.value);
             }
         }
+        return res;
+    }
+
+    /**
+     * Initializes a block-diagonal matrix from a list of diagonal blocks.
+     *
+     * @tparam ForwardIterator  type of list iterator
+     *
+     * @param begin  the first iterator of the list
+     * @param end  the last iterator of the list
+     *
+     * @return the block-diagonal matrix with diagonal blocks set to the blocks
+     *         between begin (inclusive) and end (exclusive)
+     */
+    template <typename ForwardIterator>
+    static matrix_data diag(ForwardIterator begin, ForwardIterator end)
+    {
+        matrix_data res(std::accumulate(
+            begin, end, dim<2>{}, [](dim<2> s, const matrix_data &d) {
+                return dim<2>{s[0] + d.size[0], s[1] + d.size[1]};
+            }));
+
+        size_type row_offset{};
+        size_type col_offset{};
+        for (auto it = begin; it != end; ++it) {
+            for (const auto &elem : it->nonzeros) {
+                res.nonzeros.emplace_back(row_offset + elem.row,
+                                          col_offset + elem.column, elem.value);
+            }
+            row_offset += it->size[0];
+            col_offset += it->size[1];
+        }
+
         return res;
     }
 

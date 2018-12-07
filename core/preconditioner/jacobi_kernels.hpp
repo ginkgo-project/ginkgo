@@ -54,8 +54,10 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                      \
         const matrix::Csr<ValueType, IndexType> *system_matrix,           \
         size_type num_blocks, uint32 max_block_size,                      \
+        remove_complex<ValueType> accuracy,                               \
         const preconditioner::block_interleaved_storage_scheme<IndexType> \
             &storage_scheme,                                              \
+        Array<remove_complex<ValueType>> &conditioning,                   \
         Array<precision_reduction> &block_precisions,                     \
         const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 

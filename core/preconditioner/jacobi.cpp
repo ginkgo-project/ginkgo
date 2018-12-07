@@ -191,11 +191,13 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         exec->run(JacobiOperation<ValueType, IndexType>::
                       make_initialize_precisions_operation(precisions, tmp));
         precisions = std::move(tmp);
+        conditioning_.resize_and_reset(num_blocks_);
     }
 
     exec->run(JacobiOperation<ValueType, IndexType>::make_generate_operation(
-        csr_mtx.get(), num_blocks_, parameters_.max_block_size, storage_scheme_,
-        precisions, parameters_.block_pointers, blocks_));
+        csr_mtx.get(), num_blocks_, parameters_.max_block_size,
+        parameters_.accuracy, storage_scheme_, conditioning_, precisions,
+        parameters_.block_pointers, blocks_));
 }
 
 
