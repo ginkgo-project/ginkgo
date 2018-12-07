@@ -105,9 +105,9 @@ run_solver_benchmarks() {
 }
 
 # A list of block sizes that should be run for the block-Jacobi preconditioner
-BLOCK_SIZES={1..32}
+BLOCK_SIZES="$(seq 1 32)"
 # A lis of precision reductions to run the block-Jacobi preconditioner for
-PRECISIONS="0,0 0,1 0,2 1,0 1,1 2,0"
+PRECISIONS="0,0 0,1 0,2 1,0 1,1 2,0 autodetect"
 # Runs the preconditioner benchmarks for all supported preconditioners by using
 # file $1 as the input, and updating it with the results. Backups are created
 # after each benchmark run, to prevent data loss in case of a crash. Once the
