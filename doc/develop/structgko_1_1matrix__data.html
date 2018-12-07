@@ -167,6 +167,10 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a2d2fb8725ef69679a74f7bd2f627e776"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1matrix__data.html#a2d2fb8725ef69679a74f7bd2f627e776">diag</a> (<a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt; size_, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a> &amp;block)</td></tr>
 <tr class="memdesc:a2d2fb8725ef69679a74f7bd2f627e776"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes a block-diagonal matrix.  <a href="#a2d2fb8725ef69679a74f7bd2f627e776">More...</a><br /></td></tr>
 <tr class="separator:a2d2fb8725ef69679a74f7bd2f627e776"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83d309b12caf3957c116ed1133da39a7"><td class="memTemplParams" colspan="2">template&lt;typename ForwardIterator &gt; </td></tr>
+<tr class="memitem:a83d309b12caf3957c116ed1133da39a7"><td class="memTemplItemLeft" align="right" valign="top">static <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structgko_1_1matrix__data.html#a83d309b12caf3957c116ed1133da39a7">diag</a> (ForwardIterator begin, ForwardIterator end)</td></tr>
+<tr class="memdesc:a83d309b12caf3957c116ed1133da39a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes a block-diagonal matrix from a list of diagonal blocks.  <a href="#a83d309b12caf3957c116ed1133da39a7">More...</a><br /></td></tr>
+<tr class="separator:a83d309b12caf3957c116ed1133da39a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a84056e4ef41884be328ec78554074df1"><td class="memTemplParams" colspan="2">template&lt;typename RandomDistribution , typename RandomEngine &gt; </td></tr>
 <tr class="memitem:a84056e4ef41884be328ec78554074df1"><td class="memTemplItemLeft" align="right" valign="top">static <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="structgko_1_1matrix__data.html#a84056e4ef41884be328ec78554074df1">cond</a> (size_type <a class="el" href="structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b">size</a>, remove_complex&lt; ValueType &gt; condition_number, RandomDistribution &amp;&amp;dist, RandomEngine &amp;&amp;engine, size_type num_reflectors)</td></tr>
 <tr class="memdesc:a84056e4ef41884be328ec78554074df1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes a random dense matrix with a specific condition number.  <a href="#a84056e4ef41884be328ec78554074df1">More...</a><br /></td></tr>
@@ -726,6 +730,62 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 </div>
 </div>
+<a class="anchor" id="a83d309b12caf3957c116ed1133da39a7"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<div class="memtemplate">
+template&lt;typename ForwardIterator &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a> <a class="el" href="structgko_1_1matrix__data.html">gko::matrix_data</a>&lt; ValueType, IndexType &gt;::diag </td>
+          <td>(</td>
+          <td class="paramtype">ForwardIterator&#160;</td>
+          <td class="paramname"><em>begin</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ForwardIterator&#160;</td>
+          <td class="paramname"><em>end</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Initializes a block-diagonal matrix from a list of diagonal blocks. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ForwardIterator</td><td>type of list iterator</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">begin</td><td>the first iterator of the list </td></tr>
+    <tr><td class="paramname">end</td><td>the last iterator of the list</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the block-diagonal matrix with diagonal blocks set to the blocks between begin (inclusive) and end (exclusive) </dd></dl>
+
+<p>References <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a class="anchor" id="a4f6be92270fa96bccdc502c83d248dc0"></a>
 <div class="memitem">
@@ -747,7 +807,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>core/base/<a class="el" href="matrix__data_8hpp_source.html">matrix_data.hpp (f877ff6)</a></li>
+<li>core/base/<a class="el" href="matrix__data_8hpp_source.html">matrix_data.hpp (8722d08)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -156,6 +156,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1f3104ff10b00ff5faaf17a164400663"><td class="memItemLeft" align="right" valign="top">const value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a1f3104ff10b00ff5faaf17a164400663">get_blocks</a> () const noexcept</td></tr>
 <tr class="memdesc:a1f3104ff10b00ff5faaf17a164400663"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the pointer to the memory used for storing the block data.  <a href="#a1f3104ff10b00ff5faaf17a164400663">More...</a><br /></td></tr>
 <tr class="separator:a1f3104ff10b00ff5faaf17a164400663"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4cef85a520076fefc0e911ab205cf12"><td class="memItemLeft" align="right" valign="top">const remove_complex&lt; value_type &gt; *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">get_conditioning</a> () const noexcept</td></tr>
+<tr class="memdesc:ad4cef85a520076fefc0e911ab205cf12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an array of 1-norm condition numbers of the blocks.  <a href="#ad4cef85a520076fefc0e911ab205cf12">More...</a><br /></td></tr>
+<tr class="separator:ad4cef85a520076fefc0e911ab205cf12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af238130016f4534089edfb95918f14d1"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#af238130016f4534089edfb95918f14d1">get_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:af238130016f4534089edfb95918f14d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the matrix.  <a href="#af238130016f4534089edfb95918f14d1">More...</a><br /></td></tr>
 <tr class="separator:af238130016f4534089edfb95918f14d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -386,6 +389,35 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a class="anchor" id="ad4cef85a520076fefc0e911ab205cf12"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const remove_complex&lt;value_type&gt;* <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_conditioning </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns an array of 1-norm condition numbers of the blocks. </p>
+<dl class="section return"><dt>Returns</dt><dd>an array of 1-norm condition numbers of the blocks</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This value is valid only if adaptive precision variant is used, and implementations of the standard non-adaptive variant are allowed to omit the calculation of condition numbers. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="afb44d8e560f00f65c46c6813638ce24c"></a>
 <div class="memitem">
 <div class="memproto">
@@ -547,8 +579,8 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>core/preconditioner/<a class="el" href="jacobi_8hpp_source.html">jacobi.hpp (56e0402)</a></li>
-<li>core/preconditioner/jacobi.cpp (d878241)</li>
+<li>core/preconditioner/<a class="el" href="jacobi_8hpp_source.html">jacobi.hpp (4576432)</a></li>
+<li>core/preconditioner/jacobi.cpp (9c2f15d)</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

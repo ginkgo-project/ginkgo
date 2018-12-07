@@ -4,5 +4,11 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::matrix_data\< ValueType,\l IndexType \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1matrix__data.html",tooltip="This structure is used as an intermediate data type to store a sparse matrix. "];
+  Node1 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::strategy_type",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html",tooltip="strategy_type is to decide how to set the hybrid config. "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::automatic",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1matrix_1_1Hybrid_1_1automatic.html",tooltip="automatic is a stratgy_type which decides the number of stored elements per row of the ell part autom..."];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::column_limit",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1matrix_1_1Hybrid_1_1column__limit.html",tooltip="column_limit is a strategy_type which decides the number of stored elements per row of the ell part b..."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::imbalance_limit",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html",tooltip="imbalance_limit is a strategy_type which decides the number of stored elements per row of the ell par..."];
 }

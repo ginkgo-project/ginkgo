@@ -4,5 +4,5 @@ digraph "Graphical Class Hierarchy"
   edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
   node [fontname="Helvetica",fontsize="10",shape=record];
   rankdir="LR";
-  Node1 [label="gko::default_converter\l\< S, R \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structgko_1_1default__converter.html",tooltip="Used to convert objects of type S to objects of type R using static_cast. "];
+  Node1 [label="gko::copy_back_deleter\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1copy__back__deleter.html",tooltip="A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo..."];
 }

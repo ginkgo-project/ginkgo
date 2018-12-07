@@ -4,6 +4,7 @@ var searchData=
   ['abstractfactory',['AbstractFactory',['../classgko_1_1AbstractFactory.html',1,'gko']]],
   ['abstractfactory_3c_20linop_2c_20std_3a_3ashared_5fptr_3c_20const_20linop_20_3e_20_3e',['AbstractFactory&lt; LinOp, std::shared_ptr&lt; const LinOp &gt; &gt;',['../classgko_1_1AbstractFactory.html',1,'gko']]],
   ['accessor',['accessor',['../classgko_1_1range.html#a3332728e51dadcf6517847cef3000a17',1,'gko::range']]],
+  ['accuracy',['accuracy',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73',1,'gko::preconditioner::Jacobi::parameters_type']]],
   ['add',['add',['../structgko_1_1accessor_1_1add.html',1,'gko::accessor']]],
   ['add_5flogger',['add_logger',['../classgko_1_1log_1_1Loggable.html#aa2bb887b5ef7e75fa1a30ee1896ed932',1,'gko::log::Loggable::add_logger()'],['../classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2',1,'gko::log::EnableLogging::add_logger()']]],
   ['add_5fscaled',['add_scaled',['../classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d',1,'gko::matrix::Dense']]],
@@ -20,12 +21,13 @@ var searchData=
   ['array_3c_20gko_3a_3aprecision_5freduction_20_3e',['Array&lt; gko::precision_reduction &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20gko_3a_3astopping_5fstatus_20_3e',['Array&lt; gko::stopping_status &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20index_5ftype_20_3e',['Array&lt; index_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
+  ['array_3c_20remove_5fcomplex_3c_20value_5ftype_20_3e_20_3e',['Array&lt; remove_complex&lt; value_type &gt; &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20size_5ftype_20_3e',['Array&lt; size_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20value_5ftype_20_3e',['Array&lt; value_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['at',['at',['../classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0',1,'gko::matrix::Dense::at(size_type row, size_type col) noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae0b30c42359a03805dee41a5cbf87b26',1,'gko::matrix::Dense::at(size_type row, size_type col) const noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae6ce7585b533123b5572ddf502c9970f',1,'gko::matrix::Dense::at(size_type idx) noexcept'],['../classgko_1_1matrix_1_1Dense.html#a34ba8a7f392c65c481a93d9374cb5769',1,'gko::matrix::Dense::at(size_type idx) const noexcept']]],
   ['authors_20and_20contributors',['Authors and contributors',['../authors.html',1,'']]],
   ['autodetect',['autodetect',['../classgko_1_1precision__reduction.html#ac4109c61fadb24db7a1888c51ac483e9',1,'gko::precision_reduction']]],
-  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]],
   ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html#aadf787a2d56fe0e67c4108f14ee0cb6e',1,'gko::matrix::Hybrid::automatic']]],
+  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]],
   ['automatical',['automatical',['../classgko_1_1matrix_1_1Csr_1_1automatical.html',1,'gko::matrix::Csr']]]
 ];
