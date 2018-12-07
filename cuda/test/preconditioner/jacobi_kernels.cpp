@@ -451,6 +451,40 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
 }
 
 
+TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
+{
+    auto mtx = gko::matrix::Csr<>::create(cuda);
+    // clang-format off
+    mtx->read(mtx_data::diag({
+        // perfectly conditioned block, small value difference,
+        // can use fp16 (5, 10)
+        {{2.0, 1.0},
+         {1.0, 2.0}},
+        // perfectly conditioned block (scaled orthogonal),
+        // with large value difference, need fp16 (7, 8)
+        {{1e-8, -1e-16},
+         {1e-16,  1e-8}}
+    }));
+    // clang-format on
+
+    auto bj =
+        Bj::build()
+            .with_max_block_size(13u)
+            .with_block_pointers(gko::Array<gko::int32>(cuda, {0, 2, 4}))
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .with_accuracy(0.1)
+            .on(cuda)
+            ->generate(give(mtx));
+
+    // both blocks are in the same group, both need (7, 8)
+    auto h_bj = clone(ref, bj);
+    auto prec =
+        h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
+    ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
+}
+
+
 TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},

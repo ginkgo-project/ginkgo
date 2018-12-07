@@ -53,6 +53,7 @@ protected:
     using Bj = gko::preconditioner::Jacobi<>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
+    using mdata = gko::matrix_data<>;
 
     Jacobi()
         : exec(gko::ReferenceExecutor::create()),
@@ -413,6 +414,39 @@ TEST_F(Jacobi, SelectsCorrectBlockPrecisions)
         bj->get_parameters().storage_optimization.block_wise.get_const_data();
     EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));  // u * cond = ~1.2e-3
     ASSERT_EQ(prec[1], gko::precision_reduction(0, 1));  // u * cond = ~2.0e-3
+}
+
+
+TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
+{
+    auto mtx = gko::matrix::Csr<>::create(exec);
+    // clang-format off
+    mtx->read(mdata::diag({
+        // perfectly conditioned block, small value difference,
+        // can use fp16 (5, 10)
+        {{2.0, 1.0},
+         {1.0, 2.0}},
+        // perfectly conditioned block (scaled orthogonal),
+        // with large value difference, need fp16 (7, 8)
+        {{1e-7, -1e-14},
+         {1e-14,  1e-7}}
+    }));
+    // clang-format on
+
+    auto bj =
+        Bj::build()
+            .with_max_block_size(13u)
+            .with_block_pointers(gko::Array<gko::int32>(exec, {0, 2, 4}))
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .with_accuracy(0.1)
+            .on(exec)
+            ->generate(give(mtx));
+
+    // both blocks are in the same group, both need (7, 8)
+    auto prec =
+        bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
+    ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
 }
 
 
