@@ -166,7 +166,7 @@ inline xstd::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {
-    return static_cast<cuda_type<T>>(val);
+    return *reinterpret_cast<cuda_type<T> *>(&val);
 }
 
 

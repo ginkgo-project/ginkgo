@@ -241,11 +241,11 @@ public:
     /**
      * Returns an array of 1-norm condition numbers of the blocks.
      *
-     * This value is valid only if adaptive precision variant is used, and
-     * implementations of the standard non-adaptive variant are allowed to omit
-     * the calculation of condition numbers.
-     *
      * @return an array of 1-norm condition numbers of the blocks
+     *
+     * @note This value is valid only if adaptive precision variant is used, and
+     *       implementations of the standard non-adaptive variant are allowed to
+     *       omit the calculation of condition numbers.
      */
     const remove_complex<value_type> *get_conditioning() const noexcept
     {
