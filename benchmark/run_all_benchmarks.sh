@@ -25,6 +25,11 @@ elif [ ! "${SEGMENT_ID}" ]; then
     exit 1
 fi
 
+if [ ! "${PRECONDS}" ]; then
+    echo "PRECONDS    environment variable not set - assuming \"none\"" 1>&2
+    PRECONDS="none"
+fi
+
 if [ ! "${SYSTEM_NAME}" ]; then
     echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
@@ -93,12 +98,16 @@ run_solver_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --solvers="cg,bicgstab,cgs,fcg" \
+                    --preconditioners="${PRECONDS}" \
                     --max_iters=10000 --rel_res_goal=1e-6 \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
-
+# A list of block sizes that should be run for the block-Jacobi preconditioner
+BLOCK_SIZES="$(seq 1 32)"
+# A lis of precision reductions to run the block-Jacobi preconditioner for
+PRECISIONS="0,0 0,1 0,2 1,0 1,1 2,0 autodetect"
 # Runs the preconditioner benchmarks for all supported preconditioners by using
 # file $1 as the input, and updating it with the results. Backups are created
 # after each benchmark run, to prevent data loss in case of a crash. Once the
@@ -107,15 +116,18 @@ run_solver_benchmarks() {
 run_preconditioner_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     local bsize
-    for bsize in {1..32}; do
-        echo -e "\t\t running jacobi for block size ${bsize}/32" 1>&2
-        cp "$1" "$1.imd" # make sure we're not loosing the original input
-        ./preconditioner/preconditioner \
-            --backup="$1.bkp" --double_buffer="$1.bkp2" \
-            --executor="${EXECUTOR}" --preconditioners="jacobi" \
-            --max_block_size="${bsize}" \
-            <"$1.imd" 2>&1 >"$1"
-        keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+    for bsize in ${BLOCK_SIZES}; do
+        for prec in ${PRECISIONS}; do
+            echo -e "\t\t running jacobi ($prec) for block size ${bsize}" 1>&2
+            cp "$1" "$1.imd" # make sure we're not loosing the original input
+            ./preconditioner/preconditioner \
+                --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                --executor="${EXECUTOR}" --preconditioners="jacobi" \
+                --max_block_size="${bsize}" \
+                --storage_optimization="${prec}" \
+                <"$1.imd" 2>&1 >"$1"
+            keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+        done
     done
 }
 
@@ -256,6 +268,7 @@ for bsize in ${BLOCK_SIZES}; do
         compute_matrix_statistics "${RESULT_FILE}"
 
         echo -e "${PREFIX}Running preconditioners for ${GROUP}/${NAME}" 1>&2
+        BLOCK_SIZES="${bsize}"
         run_preconditioner_benchmarks "${RESULT_FILE}"
 
         echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2

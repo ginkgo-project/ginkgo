@@ -152,6 +152,16 @@ DEFINE_string(double_buffer, "",
               " buffering of backup files, in case of a"
               " crash when overwriting the backup");
 
+DEFINE_string(storage_optimization, "0,0",
+              "Defines the kind of storage optimization to perform on "
+              "preconditioners that support it. Supported values are: "
+              "autodetect and <X>,<Y> where <X> and <Y> are the input "
+              "parameters used to construct a precision_reduction object.");
+
+DEFINE_double(accuracy, 1e-1,
+              "This value is used as the accuracy flag of the adaptive Jacobi "
+              "preconditioner.");
+
 DEFINE_bool(detailed, true,
             "If set, runs the preconditioner a second time, timing the "
             "intermediate kernels and synchronizing between kernel launches");
@@ -180,6 +190,21 @@ void initialize_argument_parsing(int *argc, char **argv[])
     ver << gko::version_info::get();
     gflags::SetVersionString(ver.str());
     gflags::ParseCommandLineFlags(argc, argv, true);
+}
+
+
+// parses the storage optimization command line argument
+gko::precision_reduction parse_storage_optimization(const std::string &flag)
+{
+    if (flag == "autodetect") {
+        return gko::precision_reduction::autodetect();
+    }
+    const auto parts = split(flag, ',');
+    if (parts.size() != 2) {
+        throw std::runtime_error(
+            "storage_optimization has to be a list of two integers");
+    }
+    return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
 }
 
 
@@ -226,17 +251,12 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor> exec)>>
     precond_factory{
-        {"jacobi",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<>::build()
-                 .with_max_block_size(FLAGS_max_block_size)
-                 .on(exec);
-         }},
-        {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::Jacobi<>::build()
                  .with_max_block_size(FLAGS_max_block_size)
                  .with_storage_optimization(
-                     gko::precision_reduction::autodetect())
+                     parse_storage_optimization(FLAGS_storage_optimization))
+                 .with_accuracy(FLAGS_accuracy)
                  .on(exec);
          }}};
 
@@ -289,15 +309,10 @@ std::string extract_operation_name(const gko::Operation *op)
 std::string encode_parameters(const char *precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
-        {"jacobi",
-         [] {
+        {"jacobi", [] {
              std::ostringstream oss;
-             oss << "jacobi-" << FLAGS_max_block_size;
-             return oss.str();
-         }},
-        {"adaptive-jacobi", [] {
-             std::ostringstream oss;
-             oss << "adaptive-jacobi-" << FLAGS_max_block_size;
+             oss << "jacobi-" << FLAGS_max_block_size << "-"
+                 << FLAGS_storage_optimization;
              return oss.str();
          }}};
     return encoder[precond_name]();
