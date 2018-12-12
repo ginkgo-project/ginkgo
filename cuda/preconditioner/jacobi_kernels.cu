@@ -181,7 +181,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
                               : 0;
     auto perm = subwarp.thread_rank();
     auto trans_perm = subwarp.thread_rank();
-    auto prec_descriptor = uint32{} - 1;
+    auto prec_descriptor = ~uint32{};
     if (block_id < num_blocks) {
         auto block_cond = compute_infinity_norm<max_block_size>(
             subwarp, block_size, block_size, row);
