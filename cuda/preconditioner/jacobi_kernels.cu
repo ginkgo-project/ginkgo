@@ -31,10 +31,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/block_jacobi_kernels.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
 
 
 #include "core/base/exception_helpers.hpp"
+#include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -48,8 +50,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
+/**
+ * A compile-time list of block sizes for which dedicated generate and apply
+ * kernels should be compiled.
+ */
+using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+
+
 namespace kernel {
 namespace {
+
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
@@ -57,7 +69,9 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     generate(size_type num_rows, const IndexType *__restrict__ row_ptrs,
              const IndexType *__restrict__ col_idxs,
              const ValueType *__restrict__ values,
-             ValueType *__restrict__ block_data, size_type stride,
+             ValueType *__restrict__ block_data,
+             preconditioner::block_interleaved_storage_scheme<IndexType>
+                 storage_scheme,
              const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
@@ -79,7 +93,89 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
                                      trans_perm);
         copy_matrix<max_block_size, and_transpose>(
             subwarp, block_size, row, 1, perm, trans_perm,
-            block_data + (block_ptrs[block_id] * stride), stride);
+            block_data + storage_scheme.get_global_block_offset(block_id),
+            storage_scheme.get_stride());
+    }
+}
+
+
+template <int max_block_size, int subwarp_size, int warps_per_block,
+          typename ValueType, typename IndexType>
+__global__ void
+__launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, remove_complex<ValueType> accuracy,
+    ValueType *__restrict__ block_data,
+    preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
+    remove_complex<ValueType> *__restrict__ conditioning,
+    precision_reduction *__restrict__ block_precisions,
+    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+{
+    // extract blocks
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto block = group::this_thread_block();
+    ValueType row[max_block_size];
+    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+        workspace;
+    csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
+        block, cuda_config::warp_size / subwarp_size, row_ptrs, col_idxs,
+        values, block_ptrs, num_blocks, row, 1,
+        workspace + threadIdx.z * max_block_size);
+
+    // compute inverse and figure out the correct precision
+    const auto subwarp = group::tiled_partition<subwarp_size>(block);
+    const auto block_size =
+        block_id < num_blocks ? block_ptrs[block_id + 1] - block_ptrs[block_id]
+                              : 0;
+    auto perm = subwarp.thread_rank();
+    auto trans_perm = subwarp.thread_rank();
+    auto prec = precision_reduction(2, 2);
+    if (block_id < num_blocks) {
+        auto block_cond = compute_infinity_norm<max_block_size>(
+            subwarp, block_size, block_size, row);
+        invert_block<max_block_size>(subwarp, block_size, row, perm,
+                                     trans_perm);
+        block_cond *= compute_infinity_norm<max_block_size>(subwarp, block_size,
+                                                            block_size, row);
+        prec = block_precisions[block_id];
+        conditioning[block_id] = block_cond;
+        if (prec == precision_reduction::autodetect()) {
+            using preconditioner::detail::get_optimal_storage_reduction;
+            // TODO: provide verificators to allow for reduced precision
+            auto truncate_only = [] { return false; };
+            prec = get_optimal_storage_reduction<ValueType>(
+                accuracy, block_cond, truncate_only, truncate_only);
+        }
+    }
+
+    // make sure all blocks in the group have the same precision
+    // TODO: relax this requirement to only the same number of bits
+    const auto warp = group::tiled_partition<cuda_config::warp_size>(block);
+    // can only shuffle 4 byte multiples
+    struct alignas(uint32) wrapper {
+        __device__ wrapper(precision_reduction p = {}) : p{p} {}
+        __device__ operator precision_reduction() const { return p; }
+        precision_reduction p;
+    };
+    prec = reduce(warp, static_cast<wrapper>(prec), [](wrapper x, wrapper y) {
+        return static_cast<wrapper>(
+            precision_reduction::common(static_cast<precision_reduction>(x),
+                                        static_cast<precision_reduction>(y)));
+    });
+
+    // store the block back into memory
+    if (block_id < num_blocks) {
+        block_precisions[block_id] = prec;
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, prec,
+            copy_matrix<max_block_size, and_transpose>(
+                subwarp, block_size, row, 1, perm, trans_perm,
+                reinterpret_cast<resolved_precision *>(
+                    block_data + storage_scheme.get_group_offset(block_id)) +
+                    storage_scheme.get_block_offset(block_id),
+                storage_scheme.get_stride()));
     }
 }
 
@@ -87,7 +183,9 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
-    apply(const ValueType *__restrict__ blocks, int32 stride,
+    apply(const ValueType *__restrict__ blocks,
+          preconditioner::block_interleaved_storage_scheme<IndexType>
+              storage_scheme,
           const IndexType *__restrict__ block_ptrs, size_type num_blocks,
           const ValueType *__restrict__ b, int32 b_stride,
           ValueType *__restrict__ x, int32 x_stride)
@@ -106,8 +204,46 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     }
     multiply_vec<max_block_size>(
         subwarp, block_size, v,
-        blocks + block_ptrs[block_id] * stride + subwarp.thread_rank(), stride,
-        x + block_ptrs[block_id] * x_stride, x_stride);
+        blocks + storage_scheme.get_global_block_offset(block_id) +
+            subwarp.thread_rank(),
+        storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
+        x_stride);
+}
+
+
+template <int max_block_size, int subwarp_size, int warps_per_block,
+          typename ValueType, typename IndexType>
+__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
+    adaptive_apply(const ValueType *__restrict__ blocks,
+                   preconditioner::block_interleaved_storage_scheme<IndexType>
+                       storage_scheme,
+                   const precision_reduction *__restrict__ block_precisions,
+                   const IndexType *__restrict__ block_ptrs,
+                   size_type num_blocks, const ValueType *__restrict__ b,
+                   int32 b_stride, ValueType *__restrict__ x, int32 x_stride)
+{
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    if (block_id >= num_blocks) {
+        return;
+    }
+    const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
+    ValueType v = zero<ValueType>();
+    if (subwarp.thread_rank() < block_size) {
+        v = b[(block_ptrs[block_id] + subwarp.thread_rank()) * b_stride];
+    }
+    GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+        ValueType, block_precisions[block_id],
+        multiply_vec<max_block_size>(
+            subwarp, block_size, v,
+            reinterpret_cast<const resolved_precision *>(
+                blocks + storage_scheme.get_group_offset(block_id)) +
+                storage_scheme.get_block_offset(block_id) +
+                subwarp.thread_rank(),
+            storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
+            x_stride));
 }
 
 
@@ -118,7 +254,11 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 namespace {
 
 
+// a total of 32 warps (1024 threads)
 constexpr int default_block_size = 32;
+// with current architectures, at most 32 warps can be scheduled per SM (and
+// current GPUs have at most 84 SMs)
+constexpr int default_grid_size = 32 * 32 * 128;
 
 
 constexpr int get_larger_power(int value, int guess = 1)
@@ -131,7 +271,11 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::compile_int_list<max_block_size>,
               const matrix::Csr<ValueType, IndexType> *mtx,
-              ValueType *block_data, size_type stride,
+              remove_complex<ValueType> accuracy, ValueType *block_data,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              remove_complex<ValueType> *conditioning,
+              precision_reduction *block_precisions,
               const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
@@ -140,11 +284,23 @@ void generate(syn::compile_int_list<max_block_size>,
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    kernel::generate<max_block_size, subwarp_size, warps_per_block>
-        <<<grid_size, block_size, 0, 0>>>(
-            mtx->get_size()[0], mtx->get_const_row_ptrs(),
-            mtx->get_const_col_idxs(), as_cuda_type(mtx->get_const_values()),
-            as_cuda_type(block_data), stride, block_ptrs, num_blocks);
+    if (block_precisions) {
+        kernel::adaptive_generate<max_block_size, subwarp_size, warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                mtx->get_size()[0], mtx->get_const_row_ptrs(),
+                mtx->get_const_col_idxs(),
+                as_cuda_type(mtx->get_const_values()), as_cuda_type(accuracy),
+                as_cuda_type(block_data), storage_scheme,
+                as_cuda_type(conditioning), block_precisions, block_ptrs,
+                num_blocks);
+    } else {
+        kernel::generate<max_block_size, subwarp_size, warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                mtx->get_size()[0], mtx->get_const_row_ptrs(),
+                mtx->get_const_col_idxs(),
+                as_cuda_type(mtx->get_const_values()), as_cuda_type(block_data),
+                storage_scheme, block_ptrs, num_blocks);
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
@@ -153,9 +309,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
+           const precision_reduction *block_precisions,
            const IndexType *block_pointers, const ValueType *blocks,
-           size_type block_stride, const ValueType *b, size_type b_stride,
-           ValueType *x, size_type x_stride)
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const ValueType *b, size_type b_stride, ValueType *x,
+           size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
@@ -163,16 +322,38 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    kernel::apply<max_block_size, subwarp_size, warps_per_block>
-        <<<grid_size, block_size, 0, 0>>>(
-            as_cuda_type(blocks), block_stride, block_pointers, num_blocks,
-            as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
+    if (block_precisions) {
+        kernel::adaptive_apply<max_block_size, subwarp_size, warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_precisions,
+                block_pointers, num_blocks, as_cuda_type(b), b_stride,
+                as_cuda_type(x), x_stride);
+    } else {
+        kernel::apply<max_block_size, subwarp_size, warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_pointers,
+                num_blocks, as_cuda_type(b), b_stride, as_cuda_type(x),
+                x_stride);
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 
-using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+template <int warps_per_block>
+__global__
+__launch_bounds__(warps_per_block *cuda_config::warp_size) void duplicate_array(
+    const precision_reduction *__restrict__ source, size_type source_size,
+    precision_reduction *__restrict__ dest, size_type dest_size)
+{
+    auto grid = group::this_grid();
+    if (grid.thread_rank() >= dest_size) {
+        return;
+    }
+    for (auto i = grid.thread_rank(); i < dest_size; i += grid.size()) {
+        dest[i] = source[i % source_size];
+    }
+}
 
 
 template <typename IndexType>
@@ -316,7 +497,21 @@ inline size_type agglomerate_supervariables(
 }  // namespace
 
 
-namespace block_jacobi {
+namespace jacobi {
+
+
+void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,
+                           const Array<precision_reduction> &source,
+                           Array<precision_reduction> &precisions)
+{
+    const auto block_size = default_block_size * cuda_config::warp_size;
+    const auto grid_size = min(
+        default_grid_size,
+        static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
+    duplicate_array<default_block_size><<<grid_size, block_size>>>(
+        source.get_const_data(), source.get_num_elems(), precisions.get_data(),
+        precisions.get_num_elems());
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -332,13 +527,18 @@ void find_blocks(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_FIND_BLOCKS_KERNEL);
+    GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type stride,
+              size_type num_blocks, uint32 max_block_size,
+              remove_complex<ValueType> accuracy,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>
+                  &storage_scheme,
+              Array<remove_complex<ValueType>> &conditioning,
+              Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     select_generate(compiled_kernels(),
@@ -346,18 +546,22 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
                         return max_block_size <= compiled_block_size;
                     },
                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                    syn::compile_type_list<>(), system_matrix,
-                    blocks.get_data(), stride, block_pointers.get_const_data(),
-                    num_blocks);
+                    syn::compile_type_list<>(), system_matrix, accuracy,
+                    blocks.get_data(), storage_scheme, conditioning.get_data(),
+                    block_precisions.get_data(),
+                    block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_GENERATE_KERNEL);
+    GKO_DECLARE_JACOBI_GENERATE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type stride,
+           uint32 max_block_size,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>
+               &storage_scheme,
+           const Array<precision_reduction> &block_precisions,
            const Array<IndexType> &block_pointers,
            const Array<ValueType> &blocks,
            const matrix::Dense<ValueType> *alpha,
@@ -367,23 +571,25 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     using Vec = matrix::Dense<ValueType>;
     // TODO: do this efficiently
     auto tmp = x->clone();
-    simple_apply(exec, num_blocks, max_block_size, stride, block_pointers,
-                 blocks, b, static_cast<Vec *>(tmp.get()));
+    simple_apply(exec, num_blocks, max_block_size, storage_scheme,
+                 block_precisions, block_pointers, blocks, b,
+                 static_cast<Vec *>(tmp.get()));
     x->scale(beta);
     x->add_scaled(alpha, tmp.get());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void simple_apply(std::shared_ptr<const CudaExecutor> exec,
-                  size_type num_blocks, uint32 max_block_size, size_type stride,
-                  const Array<IndexType> &block_pointers,
-                  const Array<ValueType> &blocks,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x)
+void simple_apply(
+    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
+    uint32 max_block_size,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     // TODO: write a special kernel for multiple RHS
     for (size_type col = 0; col < b->get_size()[1]; ++col) {
@@ -393,87 +599,31 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                      },
                      syn::compile_int_list<cuda_config::min_warps_per_block>(),
                      syn::compile_type_list<>(), num_blocks,
+                     block_precisions.get_const_data(),
                      block_pointers.get_const_data(), blocks.get_const_data(),
-                     stride, b->get_const_values() + col, b->get_stride(),
-                     x->get_values() + col, x->get_stride());
+                     storage_scheme, b->get_const_values() + col,
+                     b->get_stride(), x->get_values() + col, x->get_stride());
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      size_type num_blocks,
-                      const Array<IndexType> &block_pointers,
-                      const Array<ValueType> &blocks, size_type block_stride,
-                      ValueType *result_values,
-                      size_type result_stride) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
-
-
-}  // namespace block_jacobi
-
-
-namespace adaptive_block_jacobi {
-
-
-template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CudaExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size, size_type stride,
-              Array<precision<ValueType, IndexType>> &block_precisions,
-              const Array<IndexType> &block_pointers,
-              Array<ValueType> &blocks) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_GENERATE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-           uint32 max_block_size, size_type stride,
-           const Array<precision<ValueType, IndexType>> &block_precisions,
-           const Array<IndexType> &block_pointers,
-           const Array<ValueType> &blocks,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void simple_apply(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, size_type stride,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *b,
-    matrix::Dense<ValueType> *x) NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
-    const Array<precision<ValueType, IndexType>> &block_precisions,
+    const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    size_type block_stride, ValueType *result_values,
-    size_type result_stride) NOT_IMPLEMENTED;
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    ValueType *result_values, size_type result_stride) NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ADAPTIVE_BLOCK_JACOBI_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 
-}  // namespace adaptive_block_jacobi
+}  // namespace jacobi
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

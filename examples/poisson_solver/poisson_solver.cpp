@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<double>;
     using mtx = gko::matrix::Csr<double, int>;
     using cg = gko::solver::Cg<double>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<>;
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
@@ -224,20 +224,15 @@ int main(int argc, char *argv[])
     }
 
     // Generate solver and solve the system
-    cg::Factory::create()
-        .with_criterion(
-            gko::stop::Combined::Factory::create()
-                .with_criteria(
-                    gko::stop::Iteration::Factory::create()
-                        .with_max_iters(discretization_points)
-                        .on_executor(exec),
-                    gko::stop::ResidualNormReduction<>::Factory::create()
-                        .with_reduction_factor(1e-6)
-                        .on_executor(exec))
-                .on_executor(exec))
-        // something fails here:
-        // .with_preconditioner(bj::create(exec, 32))
-        .on_executor(exec)
+    cg::build()
+        .with_criteria(gko::stop::Iteration::build()
+                           .with_max_iters(discretization_points)
+                           .on(exec),
+                       gko::stop::ResidualNormReduction<>::build()
+                           .with_reduction_factor(1e-6)
+                           .on(exec))
+        .with_preconditioner(bj::build().on(exec))
+        .on(exec)
         ->generate(clone(exec, matrix))  // copy the matrix to the executor
         ->apply(lend(rhs), lend(u));
 

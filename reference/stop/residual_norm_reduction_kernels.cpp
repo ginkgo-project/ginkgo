@@ -55,9 +55,11 @@ void residual_norm_reduction(std::shared_ptr<const ReferenceExecutor> exec,
                              remove_complex<ValueType> rel_residual_goal,
                              uint8 stoppingId, bool setFinalized,
                              Array<stopping_status> *stop_status,
-                             bool *all_converged, bool *one_changed)
+                             Array<bool> *device_storage, bool *all_converged,
+                             bool *one_changed)
 {
     *all_converged = true;
+    *one_changed = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);

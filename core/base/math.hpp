@@ -456,6 +456,45 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
 }
 
 
+/**
+ * Returns the position of the most significant bit of the number.
+ *
+ * This is the same as the rounded down base-2 logarithm of the number.
+ *
+ * @tparam T  a numeric type supporting bit shift and comparison
+ *
+ * @param n  a number
+ * @param hint  a lower bound for the position o the significant bit
+ *
+ * @return maximum of `hint` and the significant bit position of `n`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr uint32 get_significant_bit(
+    const T &n, uint32 hint = 0u) noexcept
+{
+    return (T{1} << (hint + 1)) > n ? hint : get_significant_bit(n, hint + 1u);
+}
+
+
+/**
+ * Returns the smallest power of `base` not smaller than `limit`.
+ *
+ * @tparam T  a numeric type supporting multiplication and comparison
+ *
+ * @param base  the base of the power to be returned
+ * @param limit  the lower limit on the size of the power returned
+ * @param hint  a lower bound on the result, has to be a power of base
+ *
+ * @return the smallest power of `base` not smaller than `limit`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
+    const T &base, const T &limit, const T &hint = T{1}) noexcept
+{
+    return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
+}
+
+
 }  // namespace gko
 
 

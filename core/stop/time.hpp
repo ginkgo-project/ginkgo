@@ -63,6 +63,7 @@ public:
             time_limit, std::chrono::seconds(10));
     };
     GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,

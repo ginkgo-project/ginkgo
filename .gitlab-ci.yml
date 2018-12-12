@@ -59,7 +59,7 @@ stages:
   before_script: *default_before_script
   script:
     - cd ${CI_JOB_NAME/test/build}
-    - make test
+    - ctest -V
   except:
       - schedules
 

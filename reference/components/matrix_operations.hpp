@@ -31,60 +31,44 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/abstract_factory.hpp>
+#ifndef GKO_REFERENCE_COMPONENTS_MATRIX_OPERATIONS_HPP_
+#define GKO_REFERENCE_COMPONENTS_MATRIX_OPERATIONS_HPP_
 
 
-#include <gtest/gtest.h>
+#include "core/base/math.hpp"
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace reference {
 
 
-struct IntFactory;
-struct MyInt;
-
-
-struct parameters_type
-    : gko::enable_parameters_type<parameters_type, IntFactory> {
-    int coefficient{5};
-};
-
-
-using base = gko::AbstractFactory<MyInt, int>;
-
-
-struct IntFactory
-    : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
-    friend class gko::enable_parameters_type<parameters_type, IntFactory>;
-    friend class gko::EnablePolymorphicObject<IntFactory, base>;
-    using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
-                                    base>::EnableDefaultFactory;
-};
-
-struct MyInt {
-    MyInt(const IntFactory *factory, int orig_value)
-        : value{orig_value * factory->get_parameters().coefficient}
-    {}
-    int value;
-};
-
-
-TEST(EnableDefaultFactory, StoresParameters)
+/**
+ * @internal
+ *
+ * Computes the infinity norm of a column-major matrix.
+ */
+template <typename ValueType>
+remove_complex<ValueType> compute_inf_norm(size_type num_rows,
+                                           size_type num_cols,
+                                           const ValueType *matrix,
+                                           size_type stride)
 {
-    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
-
-    ASSERT_EQ(fact->get_parameters().coefficient, 5);
+    auto result = zero<remove_complex<ValueType>>();
+    for (size_type i = 0; i < num_rows; ++i) {
+        auto tmp = zero<remove_complex<ValueType>>();
+        for (size_type j = 0; j < num_cols; ++j) {
+            tmp += abs(matrix[i + j * stride]);
+        }
+        result = max(result, tmp);
+    }
+    return result;
 }
 
 
-TEST(EnableDefaultFactory, GeneratesProduct)
-{
-    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
-
-    auto prod = fact->generate(3);
-
-    ASSERT_EQ(prod->value, 15);
-}
+}  // namespace reference
+}  // namespace kernels
+}  // namespace gko
 
 
-}  // namespace
+#endif  // GKO_REFERENCE_COMPONENTS_MATRIX_OPERATIONS_HPP_

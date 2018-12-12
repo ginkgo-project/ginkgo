@@ -88,8 +88,8 @@ step size h = 1 / (K + 1), the formula produces a system of linear equations
 -u_(K-1) + 2u_K           = -f_K h^2 + u1
 
 
-which is then solved using Ginkgo's implementation of the CG method
-preconditioned with block-Jacobi. It is also possible to specify on which
+which is then solved using Ginkgo's implementation of the CG method.
+It is also possible to specify on which
 executor Ginkgo will solve the system via the command line.
 The function `f` is set to `f(x) = 6x` (making the solution `u(x) = x^3`), but
 that can be changed in the `main` function.
@@ -297,7 +297,6 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<double>;
     using mtx = gko::matrix::Csr<double, int>;
     using cg = gko::solver::Cg<double>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
@@ -337,20 +336,14 @@ int main(int argc, char *argv[])
     }
 
     // Generate solver and solve the system
-    cg::Factory::create()
-        .with_criterion(
-            gko::stop::Combined::Factory::create()
-                .with_criteria(
-                    gko::stop::Iteration::Factory::create()
-                        .with_max_iters(discretization_points)
-                        .on_executor(exec),
-                    gko::stop::ResidualNormReduction<>::Factory::create()
-                        .with_reduction_factor(1e-6)
-                        .on_executor(exec))
-                .on_executor(exec))
-        // something fails here:
-        // .with_preconditioner(bj::create(exec, 32))
-        .on_executor(exec)
+    cg::build()
+        .with_criteria(gko::stop::Iteration::build()
+                           .with_max_iters(discretization_points)
+                           .on(exec),
+                       gko::stop::ResidualNormReduction<>::build()
+                           .with_reduction_factor(1e-6)
+                           .on(exec))
+        .on(exec)
         // notice how our custom StencilMatrix can be used in the same way as
         // any built-in type
         ->generate(

@@ -134,6 +134,10 @@ DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run."
               "Supported values are: cg, bicgstab, cgs, fcg");
 
+DEFINE_string(preconditioners, "none",
+              "A comma-separated list of preconditioners to use."
+              "Supported values are: none, jacobi, adaptive-jacobi");
+
 DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
 
 DEFINE_bool(overwrite, false,
@@ -152,6 +156,7 @@ DEFINE_string(double_buffer, "",
 DEFINE_bool(detailed, true,
             "If set, runs the solver a second time, calculating the recurrent "
             "and true residual norms after each iteration");
+
 
 void initialize_argument_parsing(int *argc, char **argv[])
 {
@@ -226,24 +231,23 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
 // solver mapping
 template <typename SolverType>
 std::unique_ptr<gko::LinOpFactory> create_solver(
-    std::shared_ptr<const gko::Executor> exec)
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::Factory::create()
-        .with_criterion(
-            gko::stop::Combined::Factory::create()
-                .with_criteria(
-                    gko::stop::ResidualNormReduction<>::Factory::create()
-                        .with_reduction_factor(FLAGS_rel_res_goal)
-                        .on_executor(exec),
-                    gko::stop::Iteration::Factory::create()
-                        .with_max_iters(FLAGS_max_iters)
-                        .on_executor(exec))
-                .on_executor(exec))
-        .on_executor(exec);
+    return SolverType::build()
+        .with_criteria(gko::stop::ResidualNormReduction<>::build()
+                           .with_reduction_factor(FLAGS_rel_res_goal)
+                           .on(exec),
+                       gko::stop::Iteration::build()
+                           .with_max_iters(FLAGS_max_iters)
+                           .on(exec))
+        .with_preconditioner(give(precond))
+        .on(exec);
 }
 
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor> exec)>>
+                                std::shared_ptr<const gko::Executor>,
+                                std::shared_ptr<const gko::LinOpFactory>)>>
     solver_factory{{"cg", create_solver<gko::solver::Cg<>>},
                    {"bicgstab", create_solver<gko::solver::Bicgstab<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
@@ -258,6 +262,58 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         {"cuda", [] {
              return gko::CudaExecutor::create(FLAGS_device_id,
                                               gko::OmpExecutor::create());
+         }}};
+
+
+// TODO: Workaround until GPU matrix conversions are implemented
+//       The factory will wrap another factory, and make sure that the
+//       input operator is copied to the reference executor, and then sent
+//       through the generate function
+struct ReferenceFactoryWrapper
+    : gko::EnablePolymorphicObject<ReferenceFactoryWrapper, gko::LinOpFactory> {
+    ReferenceFactoryWrapper(std::shared_ptr<const gko::Executor> exec)
+        : gko::EnablePolymorphicObject<ReferenceFactoryWrapper,
+                                       gko::LinOpFactory>(exec)
+    {}
+
+    ReferenceFactoryWrapper(std::shared_ptr<const gko::LinOpFactory> f)
+        : gko::EnablePolymorphicObject<ReferenceFactoryWrapper,
+                                       gko::LinOpFactory>(f->get_executor()),
+          base_factory{f}
+    {}
+
+    std::shared_ptr<const gko::Executor> exec{gko::ReferenceExecutor::create()};
+    std::shared_ptr<const gko::LinOpFactory> base_factory;
+
+protected:
+    std::unique_ptr<gko::LinOp> generate_impl(
+        std::shared_ptr<const gko::LinOp> op) const override
+    {
+        return base_factory->generate(gko::clone(exec, op));
+    }
+};
+
+
+const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
+                                std::shared_ptr<const gko::Executor>)>>
+    precond_factory{
+        {"none",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::matrix::IdentityFactory<>::create(exec);
+         }},
+        {"jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(
+                     gko::preconditioner::Jacobi<>::build().on(exec)));
+         }},
+        {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(
+                     gko::preconditioner::Jacobi<>::build()
+                         .with_storage_optimization(
+                             gko::precision_reduction::autodetect())
+                         .on(exec)));
          }}};
 
 
@@ -312,25 +368,27 @@ std::unique_ptr<vector> create_initial_guess(
 
 
 template <typename RandomEngine, typename Allocator>
-void solve_system(const char *solver_name,
+void solve_system(const std::string &solver_name,
+                  const std::string &precond_name,
+                  const char *precond_solver_name,
                   std::shared_ptr<const gko::Executor> exec,
                   std::shared_ptr<const gko::LinOp> system_matrix,
                   const vector *b, const vector *x, rapidjson::Value &test_case,
                   Allocator &allocator, RandomEngine &rhs_engine) try {
     auto &solver_case = test_case["solver"];
-    if (!FLAGS_overwrite && solver_case.HasMember(solver_name)) {
+    if (!FLAGS_overwrite && solver_case.HasMember(precond_solver_name)) {
         return;
     }
 
-    add_or_set_member(solver_case, solver_name,
+    add_or_set_member(solver_case, precond_solver_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(solver_case[solver_name], "recurrent_residuals",
+    auto &solver_json = solver_case[precond_solver_name];
+    add_or_set_member(solver_json, "recurrent_residuals",
                       rapidjson::Value(rapidjson::kArrayType), allocator);
-    add_or_set_member(solver_case[solver_name], "true_residuals",
+    add_or_set_member(solver_json, "true_residuals",
                       rapidjson::Value(rapidjson::kArrayType), allocator);
     auto rhs_norm = compute_norm(lend(b));
-    add_or_set_member(solver_case[solver_name], "rhs_norm", rhs_norm,
-                      allocator);
+    add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
 
     struct logger : gko::log::Logger {
         void on_iteration_complete(
@@ -358,8 +416,7 @@ void solve_system(const char *solver_name,
                const gko::LinOp *matrix, const vector *b,
                rapidjson::Value &rec_res_norms,
                rapidjson::Value &true_res_norms, Allocator &alloc)
-            : gko::log::Logger(
-                  exec /*, gko::log::Logger::iteration_complete_mask*/),
+            : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
               matrix{matrix},
               b{b},
               rec_res_norms{rec_res_norms},
@@ -379,12 +436,12 @@ void solve_system(const char *solver_name,
         // slow run, gets the recurrent and true residuals of each iteration
         auto x_clone = clone(x);
 
-        auto solver =
-            solver_factory.at(solver_name)(exec)->generate(system_matrix);
+        auto precond = precond_factory.at(precond_name)(exec);
+        auto solver = solver_factory.at(solver_name)(exec, give(precond))
+                          ->generate(system_matrix);
         solver->add_logger(std::make_shared<logger>(
-            exec, lend(system_matrix), b,
-            solver_case[solver_name]["recurrent_residuals"],
-            solver_case[solver_name]["true_residuals"], allocator));
+            exec, lend(system_matrix), b, solver_json["recurrent_residuals"],
+            solver_json["true_residuals"], allocator));
         solver->apply(lend(b), lend(x_clone));
     }
 
@@ -395,7 +452,8 @@ void solve_system(const char *solver_name,
         exec->synchronize();
         auto tic = std::chrono::system_clock::now();
 
-        auto solver = solver_factory.at(solver_name)(exec);
+        auto precond = precond_factory.at(precond_name)(exec);
+        auto solver = solver_factory.at(solver_name)(exec, give(precond));
         solver->generate(system_matrix)->apply(lend(b), lend(x_clone));
 
         exec->synchronize();
@@ -405,17 +463,15 @@ void solve_system(const char *solver_name,
             std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
         auto residual =
             compute_residual_norm(lend(system_matrix), lend(b), lend(x_clone));
-        add_or_set_member(solver_case[solver_name], "time", time.count(),
-                          allocator);
-        add_or_set_member(solver_case[solver_name], "residual_norm", residual,
-                          allocator);
+        add_or_set_member(solver_json, "time", time.count(), allocator);
+        add_or_set_member(solver_json, "residual_norm", residual, allocator);
     }
 
     // compute and write benchmark data
-    add_or_set_member(solver_case[solver_name], "completed", true, allocator);
+    add_or_set_member(solver_json, "completed", true, allocator);
 } catch (std::exception e) {
-    add_or_set_member(test_case["solver"][solver_name], "completed", false,
-                      allocator);
+    add_or_set_member(test_case["solver"][precond_solver_name], "completed",
+                      false, allocator);
     std::cerr << "Error when processing test case " << test_case << "\n"
               << "what(): " << e.what() << std::endl;
 }
@@ -436,6 +492,13 @@ int main(int argc, char *argv[])
 
     auto exec = executor_factory.at(FLAGS_executor)();
     auto solvers = split(FLAGS_solvers, ',');
+    auto preconds = split(FLAGS_preconditioners, ',');
+    std::vector<std::string> precond_solvers;
+    for (const auto &s : solvers) {
+        for (const auto &p : preconds) {
+            precond_solvers.push_back(s + (p == "none" ? "" : "-" + p));
+        }
+    }
 
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
@@ -457,7 +520,7 @@ int main(int argc, char *argv[])
             }
             auto &solver_case = test_case["solver"];
             if (!FLAGS_overwrite &&
-                all_of(begin(solvers), end(solvers),
+                all_of(begin(precond_solvers), end(precond_solvers),
                        [&solver_case](const std::string &s) {
                            return solver_case.HasMember(s.c_str());
                        })) {
@@ -473,12 +536,18 @@ int main(int argc, char *argv[])
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
+            auto precond_solver_name = begin(precond_solvers);
             for (const auto &solver_name : solvers) {
-                solve_system(solver_name.c_str(), exec, system_matrix, lend(b),
-                             lend(x), test_case, allocator, rhs_engine);
-                std::clog << "Current state:" << std::endl
-                          << test_cases << std::endl;
-                backup_results(test_cases);
+                for (const auto &precond_name : preconds) {
+                    std::clog << "\tRunning solver: " << *precond_solver_name
+                              << std::endl;
+                    solve_system(solver_name, precond_name,
+                                 precond_solver_name->c_str(), exec,
+                                 system_matrix, lend(b), lend(x), test_case,
+                                 allocator, rhs_engine);
+                    backup_results(test_cases);
+                    ++precond_solver_name;
+                }
             }
         } catch (std::exception &e) {
             std::cerr << "Error setting up solver, what(): " << e.what()

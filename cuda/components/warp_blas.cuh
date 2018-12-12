@@ -72,10 +72,9 @@ enum postprocess_transformation { and_return, and_transpose };
 template <
     int max_problem_size, typename Group, typename ValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
-                                                             int32 key_row,
-                                                             int32 key_col,
-                                                             ValueType *row)
+__device__ __forceinline__ void apply_gauss_jordan_transform(
+    const Group &__restrict__ group, int32 key_row, int32 key_col,
+    ValueType *__restrict__ row)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
     if (key_col_elem == zero<ValueType>()) {
@@ -133,7 +132,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(const Group &group,
 template <
     int max_problem_size, typename Group, typename ValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ void invert_block(const Group &group,
+__device__ __forceinline__ void invert_block(const Group &__restrict__ group,
                                              uint32 problem_size,
                                              ValueType *__restrict__ row,
                                              uint32 &__restrict__ perm,
@@ -197,7 +196,8 @@ __host__ __device__ __forceinline__ auto get_row_major_index(T1 row, T2 col,
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam mod  the transformation to perform on the return data
  * @tparam Group  type of the group of threads
- * @tparam ValueType  type of values stored in the matrix
+ * @tparam SourceValueType  type of values stored in the source matrix
+ * @tparam ResultValueType  type of values stored in the result matrix
  *
  * @param group  group of threads participating in the copy
  * @param problem_size  actual size of the matrix
@@ -216,12 +216,13 @@ __host__ __device__ __forceinline__ auto get_row_major_index(T1 row, T2 col,
  */
 template <
     int max_problem_size, postprocess_transformation mod = and_return,
-    typename Group, typename ValueType,
+    typename Group, typename SourceValueType, typename ResultValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void copy_matrix(
-    const Group &group, uint32 problem_size,
-    const ValueType *__restrict__ source_row, uint32 increment, uint32 row_perm,
-    uint32 col_perm, ValueType *__restrict__ destination, size_type stride)
+    const Group &__restrict__ group, uint32 problem_size,
+    const SourceValueType *__restrict__ source_row, uint32 increment,
+    uint32 row_perm, uint32 col_perm, ResultValueType *__restrict__ destination,
+    size_type stride)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
 #pragma unroll
@@ -232,7 +233,7 @@ __device__ __forceinline__ void copy_matrix(
         const auto idx = group.shfl(col_perm, i);
         if (group.thread_rank() < problem_size) {
             destination[get_row_major_index<mod>(idx, row_perm, stride)] =
-                source_row[i * increment];
+                static_cast<ResultValueType>(source_row[i * increment]);
         }
     }
 }
@@ -247,7 +248,8 @@ __device__ __forceinline__ void copy_matrix(
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam Group  type of the group of threads
- * @tparam ValueType  type of values stored in matrix and vectors
+ * @tparam MatrixValueType  type of values stored in the matrix
+ * @tparam VectorValueType  type of values stored in the vectors
  *
  * @param group  group of threads participating in the operation
  * @param problem_size  actual size of the matrix
@@ -263,25 +265,28 @@ __device__ __forceinline__ void copy_matrix(
  * @param mtx_increment  offset between two consecutive elements of the result
  */
 template <
-    int max_problem_size, typename Group, typename ValueType,
+    int max_problem_size, typename Group, typename MatrixValueType,
+    typename VectorValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_transposed_vec(
-    const Group &group, uint32 problem_size, const ValueType &__restrict__ vec,
-    const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
-    ValueType *__restrict__ res, uint32 res_increment)
+    const Group &__restrict__ group, uint32 problem_size,
+    const VectorValueType &__restrict__ vec,
+    const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
+    VectorValueType *__restrict__ res, uint32 res_increment)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
-    auto mtx_elem = zero<ValueType>();
+    auto mtx_elem = zero<VectorValueType>();
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
         }
         if (group.thread_rank() < problem_size) {
-            mtx_elem = mtx_row[i * mtx_increment];
+            mtx_elem = static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
         }
-        const auto out = reduce(group, mtx_elem * vec,
-                                [](ValueType x, ValueType y) { return x + y; });
+        const auto out =
+            reduce(group, mtx_elem * vec,
+                   [](VectorValueType x, VectorValueType y) { return x + y; });
         if (group.thread_rank() == 0) {
             res[i * res_increment] = out;
         }
@@ -298,7 +303,8 @@ __device__ __forceinline__ void multiply_transposed_vec(
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam Group  type of the group of threads
- * @tparam ValueType  type of values stored in matrix and vectors
+ * @tparam MatrixValueType  type of values stored in the matrix
+ * @tparam VectorValueType  type of values stored in the vectors
  *
  * @param group  group of threads participating in the operation
  * @param problem_size  actual size of the matrix
@@ -314,29 +320,73 @@ __device__ __forceinline__ void multiply_transposed_vec(
  * @param mtx_increment  offset between two consecutive elements of the result
  */
 template <
-    int max_problem_size, typename Group, typename ValueType,
+    int max_problem_size, typename Group, typename MatrixValueType,
+    typename VectorValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_vec(
-    const Group &group, uint32 problem_size, const ValueType &__restrict__ vec,
-    const ValueType *__restrict__ mtx_row, uint32 mtx_increment,
-    ValueType *__restrict__ res, uint32 res_increment)
+    const Group &__restrict__ group, uint32 problem_size,
+    const VectorValueType &__restrict__ vec,
+    const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
+    VectorValueType *__restrict__ res, uint32 res_increment)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
-    auto mtx_elem = zero<ValueType>();
-    auto out = zero<ValueType>();
+    auto mtx_elem = zero<VectorValueType>();
+    auto out = zero<VectorValueType>();
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
         }
         if (group.thread_rank() < problem_size) {
-            mtx_elem = mtx_row[i * mtx_increment];
+            mtx_elem = static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
         }
         out += mtx_elem * group.shfl(vec, i);
     }
     if (group.thread_rank() < problem_size) {
         res[group.thread_rank() * res_increment] = out;
     }
+}
+
+
+/**
+ * @internal
+ *
+ * Computes the infinity norm of a matrix. Each thread in the group supplies
+ * one row of the matrix.
+ *
+ * @tparam max_problem_size  maximum problem size passed to the routine
+ * @tparam Group  type of the group of threads
+ * @tparam ValueType  type of values stored in the matrix
+ *
+ * @param group  group of threads participating in the operation
+ * @param num_rows  number of rows of the matrix
+ *                      (`num_rows <= max_problem_size`)
+ * @param num_cols  number of columns of the matrix
+ * @param row  pointer to memory used to store a row of the input matrix,
+ *             `i`-th thread of the group should pass in the `i`-th row of the
+ *             matrix
+ *
+ * @return the infinity norm of the matrix
+ */
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
+    const Group &group, uint32 num_rows, uint32 num_cols, const ValueType *row)
+{
+    using result_type = remove_complex<ValueType>;
+    auto sum = zero<result_type>();
+    if (group.thread_rank() < num_rows) {
+#pragma unroll
+        for (uint32 i = 0; i < max_problem_size; ++i) {
+            if (i >= num_cols) {
+                break;
+            }
+            sum += abs(row[i]);
+        }
+    }
+    return reduce(group, sum,
+                  [](result_type x, result_type y) { return max(x, y); });
 }
 
 

@@ -60,18 +60,14 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           cgs_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(40u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(40u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           mtx_big(
               gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
                                     {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
@@ -81,18 +77,14 @@ protected:
                                     {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
                                    exec)),
           cgs_factory_big(
-              gko::solver::Cgs<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(100u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+              gko::solver::Cgs<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;

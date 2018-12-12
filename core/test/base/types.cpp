@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/abstract_factory.hpp>
+#include <core/base/types.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,50 +40,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-struct IntFactory;
-struct MyInt;
-
-
-struct parameters_type
-    : gko::enable_parameters_type<parameters_type, IntFactory> {
-    int coefficient{5};
-};
-
-
-using base = gko::AbstractFactory<MyInt, int>;
-
-
-struct IntFactory
-    : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
-    friend class gko::enable_parameters_type<parameters_type, IntFactory>;
-    friend class gko::EnablePolymorphicObject<IntFactory, base>;
-    using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
-                                    base>::EnableDefaultFactory;
-};
-
-struct MyInt {
-    MyInt(const IntFactory *factory, int orig_value)
-        : value{orig_value * factory->get_parameters().coefficient}
-    {}
-    int value;
-};
-
-
-TEST(EnableDefaultFactory, StoresParameters)
+TEST(PrecisionReduction, CreatesDefaultEncoding)
 {
-    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
+    auto e = gko::precision_reduction();
 
-    ASSERT_EQ(fact->get_parameters().coefficient, 5);
+    ASSERT_EQ(e.get_preserving(), 0);
+    ASSERT_EQ(e.get_nonpreserving(), 0);
 }
 
 
-TEST(EnableDefaultFactory, GeneratesProduct)
+TEST(PrecisionReduction, CreatesCustomEncoding)
 {
-    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
+    auto e = gko::precision_reduction(2, 4);
 
-    auto prod = fact->generate(3);
+    ASSERT_EQ(e.get_preserving(), 2);
+    ASSERT_EQ(e.get_nonpreserving(), 4);
+}
 
-    ASSERT_EQ(prod->value, 15);
+
+TEST(PrecisionReduction, ComparesEncodings)
+{
+    auto x = gko::precision_reduction(1, 2);
+    auto y = gko::precision_reduction(1, 2);
+    auto z = gko::precision_reduction(3, 1);
+
+    ASSERT_TRUE(x == y);
+    ASSERT_TRUE(!(x == z));
+    ASSERT_TRUE(!(y == z));
+    ASSERT_TRUE(!(x != y));
+    ASSERT_TRUE(x != z);
+    ASSERT_TRUE(y != z);
+}
+
+
+TEST(PrecisionReduction, CreatesAutodetectEncoding)
+{
+    auto ad = gko::precision_reduction::autodetect();
+
+    ASSERT_NE(ad, gko::precision_reduction());
+    ASSERT_NE(ad, gko::precision_reduction(1, 2));
+}
+
+
+TEST(PrecisionReduction, ConvertsToStorageType)
+{
+    auto st = static_cast<gko::precision_reduction::storage_type>(
+        gko::precision_reduction{});
+
+    ASSERT_EQ(st, 0);
+}
+
+
+TEST(PrecisionReduction, ComputesCommonEncoding)
+{
+    auto e1 = gko::precision_reduction(2, 3);
+    auto e2 = gko::precision_reduction(3, 1);
+
+    ASSERT_EQ(gko::precision_reduction::common(e1, e2),
+              gko::precision_reduction(2, 1));
 }
 
 

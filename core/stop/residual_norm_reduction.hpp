@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
 
 
+#include "core/base/array.hpp"
 #include "core/base/utils.hpp"
 #include "core/matrix/dense.hpp"
 #include "core/stop/criterion.hpp"
@@ -78,6 +79,7 @@ public:
     };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
@@ -85,29 +87,35 @@ protected:
                     const Criterion::Updater &) override;
 
     explicit ResidualNormReduction(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
-              std::move(exec))
+        : EnablePolymorphicObject<ResidualNormReduction, Criterion>(exec),
+          device_storage_{exec, 2}
     {}
 
     explicit ResidualNormReduction(const Factory *factory,
                                    const CriterionArgs &args)
-        : EnablePolymorphicObject<ResidualNormReduction<ValueType>, Criterion>(
+        : EnablePolymorphicObject<ResidualNormReduction, Criterion>(
               factory->get_executor()),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          device_storage_{factory->get_executor(), 2}
     {
         if (args.initial_residual == nullptr) {
             NOT_SUPPORTED(nullptr);
         }
 
+        auto exec = factory->get_executor();
+
         auto dense_r = as<Vector>(args.initial_residual);
-        starting_tau_ =
-            Vector::create(factory->get_executor(),
-                           dim<2>{1, args.initial_residual->get_size()[1]});
+        starting_tau_ = Vector::create(
+            exec, dim<2>{1, args.initial_residual->get_size()[1]});
+        u_dense_tau_ = Vector::create_with_config_of(starting_tau_.get());
         dense_r->compute_norm2(starting_tau_.get());
     }
 
 private:
     std::unique_ptr<Vector> starting_tau_{};
+    std::unique_ptr<Vector> u_dense_tau_{};
+    /* Contains device side: all_converged and one_changed booleans */
+    Array<bool> device_storage_;
 };
 
 

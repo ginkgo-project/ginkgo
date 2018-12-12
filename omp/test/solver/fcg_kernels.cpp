@@ -253,31 +253,21 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     auto d_b = Mtx::create(omp);
     d_b->copy_from(b.get());
     auto fcg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(50u)
-                            .on_executor(ref),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-14)
-                            .on_executor(ref))
-                    .on_executor(ref))
-            .on_executor(ref);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(ref))
+            .on(ref);
     auto d_fcg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(50u)
-                            .on_executor(omp),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-14)
-                            .on_executor(omp))
-                    .on_executor(omp))
-            .on_executor(omp);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(omp))
+            .on(omp);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 

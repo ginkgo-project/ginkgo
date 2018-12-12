@@ -60,18 +60,13 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           cg_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(3u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-6)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
+                          .on(exec))
+                  .on(exec)),
           solver(cg_factory->generate(mtx))
     {}
 
@@ -155,19 +150,14 @@ TEST_F(Cg, CanBeCleared)
 TEST_F(Cg, CanSetPreconditionerGenerator)
 {
     auto cg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(3u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-6)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .with_preconditioner(Solver::Factory::create().on_executor(exec))
-            .on_executor(exec);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
     auto solver = cg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Cg<> *>(
         static_cast<gko::solver::Cg<> *>(solver.get())

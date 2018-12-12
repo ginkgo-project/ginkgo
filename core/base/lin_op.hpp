@@ -337,10 +337,10 @@ private:
  * // Suppose A is a matrix, b a rhs vector, and x an initial guess
  * // Create a CG which runs for at most 1000 iterations, and stops after
  * // reducing the residual norm by 6 orders of magnitude
- * auto cg_factory = solver::Cg::Factory<>::create()
+ * auto cg_factory = solver::Cg<>::build()
  *     .with_max_iters(1000)
  *     .with_rel_residual_goal(1e-6)
- *     .on_executor(cuda);
+ *     .on(cuda);
  * // create a linear operator which represents the solver
  * auto cg = cg_factory->generate(A);
  * // solve the system
@@ -612,13 +612,13 @@ public:                                                                \
  * ```c++
  * auto exec = gko::ReferenceExecutor::create();
  * // create a factory with default `my_value` parameter
- * auto fact = MyLinOp::Factory::create().on_executor(exec);
+ * auto fact = MyLinOp::build().on(exec);
  * // create a operator using the factory:
  * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 5
  *
  * // create a factory with custom `my_value` parameter
- * auto fact = MyLinOp::Factory::create().with_my_value(0).on_executor(exec);
+ * auto fact = MyLinOp::build().with_my_value(0).on(exec);
  * // create a operator using the factory:
  * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
@@ -660,12 +660,27 @@ public:                                                                      \
     friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
                                             _parameters_name##_type>;        \
                                                                              \
+                                                                             \
 private:                                                                     \
     _parameters_name##_type _parameters_name##_;                             \
                                                                              \
 public:
 
 
+/**
+ * Defines a build method for the factory, simplifying its construction by
+ * removing the repetitive typing of factory's name.
+ *
+ * @param _factory_name  the factory for which to define the method
+ */
+#define GKO_ENABLE_BUILD_METHOD(_factory_name)       \
+    static auto build()->decltype(Factory::create()) \
+    {                                                \
+        return Factory::create();                    \
+    }
+
+
+#ifndef __CUDACC__
 /**
  * Creates a factory parameter in the factory parameters structure.
  *
@@ -685,6 +700,18 @@ public:
         this->_name = type{std::forward<Args>(_value)...};   \
         return *this;                                        \
     }
+#else  // __CUDACC__
+// A workaround for the NVCC compiler - parameter pack expansion does not work
+// properly. You won't be able to use factories in code compiled with NVCC, but
+// at least this won't trigger a compiler error as soon as a header using it is
+// included.
+#define GKO_FACTORY_PARAMETER(_name, ...) \
+    mutable _name{__VA_ARGS__};           \
+                                          \
+    template <typename... Args>           \
+    auto with_##_name(Args &&... _value)  \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &;
+#endif  // __CUDACC__
 
 
 }  // namespace gko
