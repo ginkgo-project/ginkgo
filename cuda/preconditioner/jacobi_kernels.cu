@@ -46,18 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
 
-#include <cstdio>
 
 namespace gko {
-
-
-template <typename T>
-__device__ __forceinline__ constexpr real(const thrust::complex<T> &x)
-{
-    return x.real();
-}
-
-
 namespace kernels {
 namespace cuda {
 
@@ -86,11 +76,8 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
             if (i >= block_size) {
                 break;
             }
-            auto tmp = work[i * stride + group.thread_rank()] = row[i];
+            work[i * stride + group.thread_rank()] = row[i];
             row[i] = static_cast<ValueType>(static_cast<ReducedType>(row[i]));
-            printf("%d %d %d (%d): %d >> %.16le -> %.16le\n", threadIdx.x,
-                   threadIdx.y, blockIdx.x, int(sizeof(ReducedType)), int(i),
-                   double(real(tmp)), double(real(row[i])));
         }
     }
 
@@ -99,16 +86,10 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     auto trans_perm = perm;
     auto block_cond = compute_infinity_norm<max_block_size>(group, block_size,
                                                             block_size, row);
-    printf("%d %d %d (%d): ||A|| = %.16le\n", threadIdx.x, threadIdx.y,
-           blockIdx.x, int(sizeof(ReducedType)), double(block_cond));
     invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
-    auto tmp = compute_infinity_norm<max_block_size>(group, block_size,
-                                                     block_size, row);
-    printf("%d %d %d (%d): ||inv(A)|| = %.16le\n", threadIdx.x, threadIdx.y,
-           blockIdx.x, int(sizeof(ReducedType)), double(tmp));
-    block_cond *= tmp;
-    printf("%d %d %d (%d): k(A) = %.16le\n", threadIdx.x, threadIdx.y,
-           blockIdx.x, int(sizeof(ReducedType)), double(block_cond));
+    block_cond *= compute_infinity_norm<max_block_size>(group, block_size,
+                                                        block_size, row);
+
     // restore original data
     if (group.thread_rank() < block_size) {
 #pragma unroll
@@ -116,11 +97,7 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
             if (i >= block_size) {
                 break;
             }
-            auto tmp = row[i];
             row[i] = work[i * stride + group.thread_rank()];
-            printf("%d %d %d (%d): %d >> %.16le -> %.16le\n", threadIdx.x,
-                   threadIdx.y, blockIdx.x, int(sizeof(ReducedType)), int(i),
-                   double(real(tmp)), double(real(row[i])));
         }
     }
 
