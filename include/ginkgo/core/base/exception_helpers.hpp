@@ -37,12 +37,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 
 
 #include <typeinfo>
 
 
 namespace gko {
+
+
+/**
+ * Adds quotes around the list of expressions passed to the macro.
+ *
+ * @param ...  a list of expressions
+ *
+ * @return a C string containing the expression body
+ */
+#define GKO_QUOTE(...) #__VA_ARGS__
 
 
 /**
@@ -65,9 +76,10 @@ namespace gko {
  *
  * @param _module  the module which should be compiled to enable the function
  */
-#define NOT_COMPILED(_module)                                             \
-    {                                                                     \
-        throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, #_module); \
+#define NOT_COMPILED(_module)                                  \
+    {                                                          \
+        throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, \
+                                 GKO_QUOTE(_module));          \
     }
 
 
@@ -80,8 +92,9 @@ namespace gko {
  *
  * @return NotSupported
  */
-#define NOT_SUPPORTED(_obj) \
-    ::gko::NotSupported(__FILE__, __LINE__, __func__, typeid(_obj).name())
+#define NOT_SUPPORTED(_obj)                           \
+    ::gko::NotSupported(__FILE__, __LINE__, __func__, \
+                        ::gko::name_demangling::get_type_name(typeid(_obj)))
 
 
 namespace detail {
@@ -196,6 +209,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 #define CUDA_ERROR(_errcode) \
     ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
 
+
 /**
  * Instantiates a CublasError.
  *
@@ -203,6 +217,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  */
 #define CUBLAS_ERROR(_errcode) \
     ::gko::CublasError(__FILE__, __LINE__, __func__, _errcode)
+
 
 /**
  * Instantiates a CusparseError.
@@ -288,6 +303,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  */
 #define ENSURE_ALLOCATED(_ptr, _dev, _size) \
     ::gko::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, _size)
+
 
 /**
  * Ensures that a memory access is in the bounds.
