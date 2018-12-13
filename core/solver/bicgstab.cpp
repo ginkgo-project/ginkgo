@@ -31,14 +31,14 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/bicgstab.hpp"
+#include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include "core/base/exception.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 
 

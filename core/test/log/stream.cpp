@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/stream.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
 
 #include <gtest/gtest.h>
@@ -39,11 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/solver/bicgstab.hpp>
-#include <core/stop/iteration.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace {

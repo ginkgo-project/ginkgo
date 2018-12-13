@@ -34,10 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/coo.hpp"
-#include "core/matrix/dense.hpp"
 #include "reference/components/format_conversion.hpp"
 
 

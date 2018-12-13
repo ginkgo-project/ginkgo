@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <core/solver/gmres.cpp>
-#include <core/solver/gmres.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 
 
 #include <typeinfo>
@@ -41,11 +41,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
 namespace {

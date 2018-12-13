@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/mtx_io.hpp"
+#include <ginkgo/core/base/mtx_io.hpp>
 
 
 #include <algorithm>
@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+#include <ginkgo/core/base/math.hpp>
 #include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
 
 
 namespace gko {

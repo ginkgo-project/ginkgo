@@ -39,11 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include "core/base/exception_helpers.hpp"
 #include "core/base/extended_float.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "reference/components/matrix_operations.hpp"
 

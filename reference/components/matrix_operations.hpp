@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_REFERENCE_COMPONENTS_MATRIX_OPERATIONS_HPP_
 
 
-#include "core/base/math.hpp"
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {

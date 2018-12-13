@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_EXCEPTION_HELPERS_HPP_
 
 
-#include "core/base/dim.hpp"
-#include "core/base/exception.hpp"
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/exception.hpp>
 
 
 #include <typeinfo>

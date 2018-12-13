@@ -35,48 +35,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_GINKGO_HPP_
 
 
-#include "core/base/abstract_factory.hpp"
-#include "core/base/array.hpp"
-#include "core/base/combination.hpp"
-#include "core/base/composition.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/base/math.hpp"
-#include "core/base/matrix_data.hpp"
-#include "core/base/mtx_io.hpp"
-#include "core/base/polymorphic_object.hpp"
-#include "core/base/range.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/base/types.hpp"
-#include "core/base/utils.hpp"
-#include "core/base/version.hpp"
+#include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/combination.hpp>
+#include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/version.hpp>
 
-#include "core/log/convergence.hpp"
-#include "core/log/record.hpp"
-#include "core/log/stream.hpp"
+#include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/identity.hpp"
-#include "core/matrix/sellp.hpp"
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
-#include "core/preconditioner/jacobi.hpp"
+#include <ginkgo/core/preconditioner/jacobi.hpp>
 
-#include "core/solver/bicgstab.hpp"
-#include "core/solver/cg.hpp"
-#include "core/solver/cgs.hpp"
-#include "core/solver/fcg.hpp"
-#include "core/solver/gmres.hpp"
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 
-#include "core/stop/combined.hpp"
-#include "core/stop/iteration.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
-#include "core/stop/stopping_status.hpp"
-#include "core/stop/time.hpp"
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 #endif  // GKO_GINKGO_HPP_

@@ -32,17 +32,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/stream.hpp"
+#include <ginkgo/core/log/stream.hpp>
 
 
 #include <iomanip>
 
 
-#include "core/base/array.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/stop/criterion.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {

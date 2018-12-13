@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_EXTENDED_FLOAT_HPP_
 
 
-#include "core/base/std_extensions.hpp"
-#include "core/base/types.hpp"
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #ifdef __CUDA_ARCH__
