@@ -279,6 +279,30 @@ inline void invert_block(IndexType block_size, IndexType *perm,
 }
 
 
+template <typename ReducedType, typename ValueType, typename IndexType>
+inline bool validate_precision_reduction_feasibility(IndexType block_size,
+                                                     const ValueType *block,
+                                                     size_type stride)
+{
+    using gko::detail::float_traits;
+    std::vector<ValueType> tmp(block_size * block_size);
+    std::vector<IndexType> perm(block_size);
+    std::iota(begin(perm), end(perm), IndexType{0});
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            tmp[i * block_size + j] = static_cast<ValueType>(
+                static_cast<ReducedType>(block[i * stride + j]));
+        }
+    }
+    auto cond =
+        compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    invert_block(block_size, perm.data(), tmp.data(), block_size);
+    cond *= compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    return cond > 0.0 &&
+           cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+}
+
+
 }  // namespace
 
 
@@ -300,8 +324,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type g = 0; g < num_blocks; g += group_size) {
         std::vector<Array<ValueType>> block(group_size);
         std::vector<Array<IndexType>> perm(group_size);
-        std::vector<precision_reduction> local_prec(
-            group_size, precision_reduction::autodetect());
+        std::vector<uint32> pr_descriptors(group_size, uint32{} - 1);
         // extract group of blocks, invert them, figure out storage precision
         for (size_type b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
@@ -326,24 +349,33 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                     compute_inf_norm(block_size, block_size,
                                      block[b].get_const_data(), block_size);
             }
-            local_prec[b] = prec ? prec[g + b] : precision_reduction();
-            if (local_prec[b] == precision_reduction::autodetect()) {
-                using preconditioner::detail::get_optimal_storage_reduction;
-                // TODO: provide verificators to allow for reduced precision
-                auto truncate_only = [] { return false; };
-                local_prec[b] = get_optimal_storage_reduction<ValueType>(
-                    accuracy, cond[g + b], truncate_only, truncate_only);
+            const auto local_prec = prec ? prec[g + b] : precision_reduction();
+            if (local_prec == precision_reduction::autodetect()) {
+                using preconditioner::detail::get_supported_storage_reductions;
+                pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
+                    accuracy, cond[g + b],
+                    [&block_size, &block, &b] {
+                        using target = reduce_precision<ValueType>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    },
+                    [&block_size, &block, &b] {
+                        using target =
+                            reduce_precision<reduce_precision<ValueType>>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    });
+            } else {
+                pr_descriptors[b] = preconditioner::detail::
+                    precision_reduction_descriptor::singleton(local_prec);
             }
         }
 
         // make sure everyone in the group uses the same precision
-        // TODO: relax this requirement to only the same number of bits
-        const auto p =
-            std::accumulate(begin(local_prec), end(local_prec),
-                            precision_reduction::autodetect(),
-                            [](precision_reduction x, precision_reduction y) {
-                                return precision_reduction::common(x, y);
-                            });
+        const auto p = preconditioner::detail::get_optimal_storage_reduction(
+            std::accumulate(begin(pr_descriptors), end(pr_descriptors),
+                            uint32{} - 1,
+                            [](uint32 x, uint32 y) { return x & y; }));
 
         // store the blocks
         for (size_type b = 0; b < group_size; ++b) {
