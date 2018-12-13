@@ -99,7 +99,7 @@ application solving a real-world problem, which includes a solution of a large,
 sparse linear system as a component.
  *****************************<DECSRIPTION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 #include <map>
 #include <string>

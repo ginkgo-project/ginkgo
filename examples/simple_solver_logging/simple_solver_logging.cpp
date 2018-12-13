@@ -63,7 +63,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver_logging
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>

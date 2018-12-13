@@ -42,9 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-#include "core/base/name_demangling.hpp"
-
-
 namespace gko {
 namespace log {
 

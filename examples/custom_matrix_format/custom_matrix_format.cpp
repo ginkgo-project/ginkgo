@@ -104,7 +104,7 @@ created and integrated into Ginkgo to achieve performance benefits.
 
 
 #include <omp.h>
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 // A CUDA kernel implementing the stencil, which will be used if running on the

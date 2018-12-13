@@ -73,7 +73,7 @@
 #include <deal.II/numerics/error_estimator.h>
 
 // Ginkgo's header file
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 // This is C++, as we want to write some output to disk:
 #include <fstream>

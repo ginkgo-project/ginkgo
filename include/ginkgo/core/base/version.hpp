@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_VERSION_HPP_
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include "config.hpp"
 
 
 #include <ostream>

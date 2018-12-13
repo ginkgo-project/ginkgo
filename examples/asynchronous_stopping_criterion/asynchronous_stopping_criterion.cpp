@@ -64,7 +64,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>

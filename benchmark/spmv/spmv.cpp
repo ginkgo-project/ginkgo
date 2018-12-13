@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <algorithm>
