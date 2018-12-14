@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_NAME_DEMANGLING_HPP
 
 
-#include "config.hpp"
+#include <ginkgo/config.hpp>
 
 #ifdef GKO_HAVE_CXXABI_H
 #include <cxxabi.h>
