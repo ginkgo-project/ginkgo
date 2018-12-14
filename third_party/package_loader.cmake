@@ -27,5 +27,5 @@ macro(load_git_package package_name package_url package_tag)
     _load_git_package_impl("${package_name}" "${package_url}" "${package_tag}")
     # Add package to the build
     add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/src
-                     ${CMAKE_CURRENT_BINARY_DIR}/build)
+                     ${CMAKE_CURRENT_BINARY_DIR}/build EXCLUDE_FROM_ALL)
 endmacro()

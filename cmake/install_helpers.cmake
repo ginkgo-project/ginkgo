@@ -5,14 +5,14 @@ function(ginkgo_install_library name subdir)
     # install .so and .a files
     install(TARGETS "${name}"
         EXPORT Ginkgo
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib/ginkgo
+        ARCHIVE DESTINATION lib/ginkgo
         )
     # copy header files
-    install(DIRECTORY "${PROJECT_SOURCE_DIR}/${subdir}"
-        DESTINATION include
-        FILES_MATCHING PATTERN "*.hpp"
-        )
+    #install(DIRECTORY "${PROJECT_SOURCE_DIR}/${subdir}"
+    #    DESTINATION include
+    #    FILES_MATCHING PATTERN "*.hpp"
+    #    )
 endfunction()
 
 function(ginkgo_default_includes name)
