@@ -40,22 +40,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace stop {
-namespace {
+namespace criterion {
 
 
-struct SimpleOperation {
-    GKO_REGISTER_OPERATION(set_all_statuses,
-                           set_all_statuses::set_all_statuses);
-};
+GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 
 
-}  // namespace
+}  // namespace criterion
 
 
 void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
                                  Array<stopping_status> *stop_status)
 {
-    this->get_executor()->run(SimpleOperation::make_set_all_statuses_operation(
+    this->get_executor()->run(criterion::make_set_all_statuses(
         stoppingId, setFinalized, stop_status));
 }
 

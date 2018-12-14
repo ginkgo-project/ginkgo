@@ -46,20 +46,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace {
+namespace bicgstab {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
-    GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
-    GKO_REGISTER_OPERATION(finalize, bicgstab::finalize<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, bicgstab::initialize);
+GKO_REGISTER_OPERATION(step_1, bicgstab::step_1);
+GKO_REGISTER_OPERATION(step_2, bicgstab::step_2);
+GKO_REGISTER_OPERATION(step_3, bicgstab::step_3);
+GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
-}  // namespace
+}  // namespace bicgstab
 
 
 template <typename ValueType>
@@ -98,7 +95,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
+    exec->run(bicgstab::make_initialize(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), &stop_status));
@@ -126,18 +123,17 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         rr->compute_dot(r.get(), rho.get());
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
+                                        prev_rho.get(), alpha.get(),
+                                        omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
         preconditioner_->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-            &stop_status));
+        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
+                                        alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
@@ -152,8 +148,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
 
         if (one_changed) {
-            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
-                dense_x, y.get(), alpha.get(), &stop_status));
+            exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
+                                              &stop_status));
         }
 
         if (all_converged) {
@@ -164,7 +160,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
+        exec->run(bicgstab::make_step_3(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta

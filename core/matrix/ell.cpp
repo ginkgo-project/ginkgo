@@ -49,17 +49,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
+namespace ell {
+
+
+GKO_REGISTER_OPERATION(spmv, ell::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
+GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
+
+
+}  // namespace ell
 
 
 namespace {
-
-
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, ell::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense<TplArgs...>);
-};
 
 
 template <typename ValueType, typename IndexType>
@@ -89,9 +90,7 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+    this->get_executor()->run(ell::make_spmv(this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -100,10 +99,8 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
-            as<Dense>(x)));
+    this->get_executor()->run(ell::make_advanced_spmv(
+        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
 }
 
 
@@ -112,9 +109,7 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(ell::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 

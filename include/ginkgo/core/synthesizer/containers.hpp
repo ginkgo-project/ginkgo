@@ -31,36 +31,84 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
+#ifndef GKO_CORE_SYNTHESIZER_CONTAINERS_
+#define GKO_CORE_SYNTHESIZER_CONTAINERS_
 
 
 namespace gko {
+namespace syn {
 
 
-void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    NOT_IMPLEMENTED;
+template <typename T, T... Values>
+struct value_list {};
 
 
-void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    NOT_IMPLEMENTED;
+template <typename... Types>
+struct type_list {};
 
 
-void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
-{
-    this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
-}
+template <int Start, int End, int Step = 1>
+struct range {};
 
 
-const char *Operation::get_name() const noexcept
-{
-    static auto name = name_demangling::get_dynamic_type(*this);
-    return name.c_str();
-}
+namespace detail {
 
 
+template <typename List1, typename List2>
+struct concatenate_impl;
+
+template <typename T, T... Values1, T... Values2>
+struct concatenate_impl<value_list<T, Values1...>, value_list<T, Values2...>> {
+    using type = value_list<T, Values1..., Values2...>;
+};
+
+
+}  // namespace detail
+
+
+template <typename List1, typename List2>
+using concatenate = typename detail::concatenate_impl<List1, List2>::type;
+
+
+namespace detail {
+
+
+template <typename T, typename = void>
+struct as_list_impl;
+
+template <typename T, T... Values>
+struct as_list_impl<value_list<T, Values...>> {
+    using type = value_list<T, Values...>;
+};
+
+template <typename... Types>
+struct as_list_impl<type_list<Types...>> {
+    using type = type_list<Types...>;
+};
+
+template <int Start, int End, int Step>
+struct as_list_impl<range<Start, End, Step>, xstd::enable_if_t<(Start < End)>> {
+    using type = concatenate<
+        value_list<int, Start>,
+        typename as_list_impl<range<Start + Step, End, Step>>::type>;
+};
+
+template <int Start, int End, int Step>
+struct as_list_impl<range<Start, End, Step>,
+                    xstd::enable_if_t<(Start >= End)>> {
+    using type = value_list<int>;
+};
+
+
+}  // namespace detail
+
+
+template <typename T>
+using as_list = typename detail::as_list_impl<T>::type;
+
+
+}  // namespace syn
 }  // namespace gko
+
+
+#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_

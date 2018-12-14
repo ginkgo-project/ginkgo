@@ -49,18 +49,15 @@ namespace gko {
 namespace solver {
 
 
-namespace {
+namespace cg {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, cg::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, cg::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, cg::step_2<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, cg::initialize);
+GKO_REGISTER_OPERATION(step_1, cg::step_1);
+GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
-}  // namespace
+}  // namespace cg
 
 
 template <typename ValueType>
@@ -93,9 +90,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-        dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
-        &stop_status));
+    exec->run(cg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
+                                  prev_rho.get(), rho.get(), &stop_status));
     // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
@@ -119,15 +115,14 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho.get(), prev_rho.get(), &stop_status));
+        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
+                                  &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), p.get(), q.get(), beta.get(), rho.get(),
-            &stop_status));
+        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
+                                  beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q

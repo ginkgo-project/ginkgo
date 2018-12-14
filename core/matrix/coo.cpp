@@ -53,33 +53,27 @@ namespace gko {
 namespace matrix {
 
 
-namespace {
+namespace coo {
 
 
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, coo::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(spmv2, coo::spmv2<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs,
-                           coo::convert_row_idxs_to_ptrs<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense<TplArgs...>);
-    GKO_REGISTER_OPERATION(transpose, coo::transpose<TplArgs...>);
-    GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose<TplArgs...>);
-};
+GKO_REGISTER_OPERATION(spmv, coo::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
+GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
+GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
+GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs, coo::convert_row_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
+GKO_REGISTER_OPERATION(transpose, coo::transpose);
+GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose);
 
 
-}  // namespace
+}  // namespace coo
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+    this->get_executor()->run(coo::make_spmv(this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -88,10 +82,8 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
-            as<Dense>(x)));
+    this->get_executor()->run(coo::make_advanced_spmv(
+        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
 }
 
 
@@ -100,8 +92,7 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv2_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+        coo::make_spmv2(this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -110,9 +101,8 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
                                             LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv2_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(x)));
+    this->get_executor()->run(coo::make_advanced_spmv2(
+        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -122,10 +112,9 @@ std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
-    exec->run(
-        TemplatedOperation<IndexType>::make_convert_row_idxs_to_ptrs_operation(
-            this->get_const_row_idxs(), this->get_num_stored_elements(),
-            tmp->get_row_ptrs(), this->get_size()[0] + 1));
+    exec->run(coo::make_convert_row_idxs_to_ptrs(
+        this->get_const_row_idxs(), this->get_num_stored_elements(),
+        tmp->get_row_ptrs(), this->get_size()[0] + 1));
     return tmp;
 }
 
@@ -156,9 +145,7 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(coo::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -222,9 +209,7 @@ std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
     auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
                                  this->get_num_stored_elements());
 
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
-            trans_cpy.get(), this));
+    exec->run(coo::make_transpose(trans_cpy.get(), this));
     return std::move(trans_cpy);
 }
 
@@ -236,9 +221,7 @@ std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
     auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
                                  this->get_num_stored_elements());
 
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
-            trans_cpy.get(), this));
+    exec->run(coo::make_conj_transpose(trans_cpy.get(), this));
     return std::move(trans_cpy);
 }
 

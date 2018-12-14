@@ -36,12 +36,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <sstream>
 #include <tuple>
 #include <type_traits>
 
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 struct cublasContext;
@@ -52,7 +54,7 @@ struct cusparseContext;
 namespace gko {
 
 
-#define FORWARD_DECLARE(_type, _unused) class _type
+#define FORWARD_DECLARE(_type, ...) class _type
 
 GKO_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
 
@@ -168,7 +170,7 @@ class ExecutorBase;
  */
 class Operation {
 public:
-#define DECLARE_RUN_OVERLOAD(_type, _unused) \
+#define DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
@@ -177,34 +179,31 @@ public:
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
     virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
+
+    /**
+     * Returns the operation's name.
+     *
+     * @return the operation's name
+     */
+    virtual const char *get_name() const noexcept;
 };
 
 
-namespace detail {
-
-
-template <int K, int... Ns, typename F, typename Exec, typename Tuple>
-typename std::enable_if<(K == 0)>::type call_impl(
-    F f, std::shared_ptr<const Exec> &exec, Tuple &data)
-{
-    f(exec, std::get<Ns>(data)...);
-}
-
-template <int K, int... Ns, typename F, typename Exec, typename Tuple>
-typename std::enable_if<(K > 0)>::type call_impl(
-    F f, std::shared_ptr<const Exec> &exec, Tuple &data)
-{
-    call_impl<K - 1, K - 1, Ns...>(f, exec, data);
-}
-
-template <typename F, typename Exec, typename... Args>
-void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
-{
-    call_impl<sizeof...(Args)>(f, exec, data);
-}
-
-
-}  // namespace detail
+#define GKO_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...) \
+public:                                                                 \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override   \
+    {                                                                   \
+        this->call(counts{}, exec);                                     \
+    }                                                                   \
+                                                                        \
+private:                                                                \
+    template <int... Ns>                                                \
+    void call(::gko::syn::value_list<int, Ns...>,                       \
+              std::shared_ptr<const ::gko::_type> exec) const           \
+    {                                                                   \
+        ::gko::kernels::_namespace::_kernel(                            \
+            exec, std::forward<Args>(std::get<Ns>(data))...);           \
+    }
 
 
 /**
@@ -253,7 +252,7 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
- *     auto op = make_my_op_operation(5); // x = 5
+ *     auto op = make_my_op(5); // x = 5
  *
  *     omp->run(op);  // run omp kernel
  *     cuda->run(op);  // run cuda kernel
@@ -264,33 +263,32 @@ void call(F f, std::shared_ptr<const Exec> &exec, std::tuple<Args...> &data)
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
     class _name##_operation : public Operation {                               \
+        using counts =                                                         \
+            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;        \
+                                                                               \
     public:                                                                    \
         _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
         {}                                                                     \
                                                                                \
-        void run(std::shared_ptr<const OmpExecutor> exec) const override       \
+        const char *get_name() const noexcept override                         \
         {                                                                      \
-            ::gko::detail::call(::gko::kernels::omp::_kernel, exec, data);     \
+            static auto name = [this] {                                        \
+                std::ostringstream oss;                                        \
+                oss << #_kernel << '#' << sizeof...(Args);                     \
+                return oss.str();                                              \
+            }();                                                               \
+            return name.c_str();                                               \
         }                                                                      \
                                                                                \
-        void run(std::shared_ptr<const CudaExecutor> exec) const override      \
-        {                                                                      \
-            ::gko::detail::call(::gko::kernels::cuda::_kernel, exec, data);    \
-        }                                                                      \
-                                                                               \
-        void run(std::shared_ptr<const ReferenceExecutor> exec) const override \
-        {                                                                      \
-            ::gko::detail::call(::gko::kernels::reference::_kernel, exec,      \
-                                data);                                         \
-        }                                                                      \
+        GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DETAIL_DEFINE_RUN_OVERLOAD, _kernel); \
+        GKO_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference, _kernel); \
                                                                                \
     private:                                                                   \
         mutable std::tuple<Args &&...> data;                                   \
     };                                                                         \
                                                                                \
     template <typename... Args>                                                \
-    static _name##_operation<Args...> make_##_name##_operation(                \
-        Args &&... args)                                                       \
+    static _name##_operation<Args...> make_##_name(Args &&... args)            \
     {                                                                          \
         return _name##_operation<Args...>(std::forward<Args>(args)...);        \
     }
@@ -536,7 +534,7 @@ protected:
  *
  * @param _exec_type  the Executor subclass
  */
-#define ENABLE_RAW_COPY_TO(_exec_type, _unused)                              \
+#define ENABLE_RAW_COPY_TO(_exec_type, ...)                                  \
     virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
                              const void *src_ptr, void *dest_ptr) const = 0
 
@@ -680,7 +678,7 @@ private:
 }  // namespace detail
 
 
-#define OVERRIDE_RAW_COPY_TO(_executor_type, _unused)                    \
+#define OVERRIDE_RAW_COPY_TO(_executor_type, ...)                        \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
 

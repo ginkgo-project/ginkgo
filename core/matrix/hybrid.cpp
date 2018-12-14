@@ -49,14 +49,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
+namespace hybrid {
+
+
+GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
+
+
+}  // namespace hybrid
+
+
 namespace {
-
-
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(convert_to_dense,
-                           hybrid::convert_to_dense<TplArgs...>);
-};
 
 
 template <typename ValueType, typename IndexType>
@@ -111,9 +113,7 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(hybrid::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 
