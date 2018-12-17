@@ -54,6 +54,24 @@ namespace {
 
 
 template <typename ValueType>
+__device__ void column_reduction(const ValueType *A, ValueType *b,
+                                 size_type num_rows, size_type num_cols,
+                                 size_type stride)
+{
+    const auto idx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (idx < num_cols) {
+        b[idx] = zero<ValueType>();
+        for (size_type i = 0; i < num_rows; ++i) {
+            b[idx] += A[i * stride + idx] * A[i * stride + idx];
+        }
+        b[idx] = sqrt(b[idx]);
+    }
+}
+
+
+template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type krylov_dim, const ValueType *__restrict__ b,
@@ -64,13 +82,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_1_kernel(
     const auto idx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
+    column_reduction(b, b_norm, num_rows, num_cols, stride);
+
     if (idx < num_cols) {
-        b_norm[idx] = zero<ValueType>();
-        // TODO: implement reduction for b_norm
-        for (size_type i = 0; i < num_rows; ++i) {
-            b_norm[idx] += b[i * stride + idx] * b[i * stride + idx];
-        }
-        b_norm[idx] = sqrt(b_norm[idx]);
         stop_status[idx].reset();
     }
 
@@ -114,7 +128,7 @@ namespace {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_2_kernel(
+__global__ __launch_bounds__(default_block_size) void initialize_2_kernel_1(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type krylov_dim, const ValueType *__restrict__ residual,
     ValueType *__restrict__ residual_norm,
@@ -133,32 +147,27 @@ __global__ __launch_bounds__(default_block_size) void initialize_2_kernel(
         residual_norms[idx] = 0;
     }
 
-    if (idx < num_cols) {
-        residual_norm[idx] = zero<ValueType>();
-        // TODO: implement reduction for residual_norm
-        for (size_type i = 0; i < num_rows; ++i) {
-            residual_norm[idx] +=
-                residual[i * stride + idx] * residual[i * stride + idx];
-        }
-        residual_norm[idx] = sqrt(residual_norm[idx]);
-        final_iter_nums[idx] = 0;
-        residual_norms[idx] = residual_norm[idx];
-    }
+    column_reduction(residual, residual_norm, num_rows, num_cols, stride);
 }
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(default_block_size) void initialize_krylov_bases_kernel(
-        size_type num_rows, size_type num_cols, size_type stride,
-        const ValueType *__restrict__ residual,
-        const ValueType *__restrict__ residual_norm,
-        ValueType *__restrict__ krylov_bases)
+__global__ __launch_bounds__(default_block_size) void initialize_2_kernel_2(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ residual,
+    const ValueType *__restrict__ residual_norm,
+    ValueType *__restrict__ residual_norms,
+    ValueType *__restrict__ krylov_bases)
 {
     const auto idx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     const auto row = ceildiv(idx + 1, num_cols) - 1;
     const auto column = idx - row * num_cols;
+
+    if (idx < num_cols) {
+        residual_norms[idx] = residual_norm[idx];
+    }
+
     if (idx < num_rows * num_cols) {
         krylov_bases[row * stride + column] =
             residual[idx] / residual_norm[column];
@@ -186,7 +195,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(krylov_bases->get_size()[0], default_block_size) *
             residual->get_size()[1],
         1, 1);
-    initialize_2_kernel<<<grid_size, block_size, 0, 0>>>(
+    initialize_2_kernel_1<<<grid_size, block_size, 0, 0>>>(
         residual->get_size()[0], residual->get_size()[1],
         residual->get_stride(), krylov_dim,
         as_cuda_type(residual->get_const_values()),
@@ -194,10 +203,11 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()),
         as_cuda_type(final_iter_nums->get_data()));
-    initialize_krylov_bases_kernel<<<grid_size_small, block_size>>>(
+    initialize_2_kernel_2<<<grid_size_small, block_size>>>(
         residual->get_size()[0], residual->get_size()[1],
         krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
+        as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()));
 }
 
