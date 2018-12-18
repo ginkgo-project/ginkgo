@@ -54,9 +54,11 @@ int main(int, char **)
     {
         using type1 = int;
         using type2 = double;
-        static_assert(std::is_same<
-                      gko::AbstractFactory<type1, type2>::abstract_product_type,
-                      type1>::value);
+        static_assert(
+            std::is_same<
+                gko::AbstractFactory<type1, type2>::abstract_product_type,
+                type1>::value,
+            "abstract_factory.hpp not included properly!");
     }
 
     // core/base/array.hpp
@@ -70,14 +72,16 @@ int main(int, char **)
     {
         using type1 = int;
         static_assert(
-            std::is_same<gko::Combination<type1>::value_type, type1>::value);
+            std::is_same<gko::Combination<type1>::value_type, type1>::value,
+            "combination.hpp not included properly!");
     }
 
     // core/base/composition.hpp
     {
         using type1 = int;
         static_assert(
-            std::is_same<gko::Composition<type1>::value_type, type1>::value);
+            std::is_same<gko::Composition<type1>::value_type, type1>::value,
+            "composition.hpp not included properly");
     }
 
     // core/base/dim.hpp
@@ -106,7 +110,8 @@ int main(int, char **)
     // core/base/math.hpp
     {
         using testType = double;
-        static_assert(gko::is_complex<testType>() == false);
+        static_assert(gko::is_complex<testType>() == false,
+                      "math.hpp nit included properly!");
     }
 
     // core/base/matrix_data.hpp
@@ -145,7 +150,8 @@ int main(int, char **)
 
     // core/base/std_extensions.hpp
     {
-        static_assert(std::is_same<gko::xstd::void_t<double>, void>::value);
+        static_assert(std::is_same<gko::xstd::void_t<double>, void>::value,
+                      "std::extensions.hpp not included properly!");
     }
 
     // core/base/types.hpp
