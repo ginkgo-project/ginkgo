@@ -83,7 +83,7 @@ for i = 0 .. max_iterations:
 ```
  *****************************<DECSRIPTION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <cmath>

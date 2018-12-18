@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SYNTHESIZER_IMPLEMENTATION_SELECTION_
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 #include <utility>
@@ -46,13 +46,11 @@ namespace syn {
 
 
 template <int... Values>
-struct compile_int_list {
-};
+struct compile_int_list {};
 
 
 template <typename... Values>
-struct compile_type_list {
-};
+struct compile_type_list {};
 
 
 #define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                \

@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/executor.hpp"
+#include <ginkgo/core/base/executor.hpp>
 
 
 #include <iostream>
@@ -40,7 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 

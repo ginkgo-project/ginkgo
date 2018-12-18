@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/time.hpp"
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace gko {

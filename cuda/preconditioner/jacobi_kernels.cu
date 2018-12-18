@@ -34,7 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"

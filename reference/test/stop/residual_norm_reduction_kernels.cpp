@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
 #include <gtest/gtest.h>

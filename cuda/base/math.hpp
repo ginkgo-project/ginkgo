@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_MATH_HPP_
 
 
-#include "core/base/math.hpp"
+#include <ginkgo/core/base/math.hpp>
 
 
 #include <thrust/complex.h>

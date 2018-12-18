@@ -31,14 +31,14 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
-#include <core/base/range.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace {

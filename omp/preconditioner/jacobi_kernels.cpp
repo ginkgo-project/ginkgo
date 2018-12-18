@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {

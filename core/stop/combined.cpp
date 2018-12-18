@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/combined.hpp"
+#include <ginkgo/core/stop/combined.hpp>
 
 
 namespace gko {

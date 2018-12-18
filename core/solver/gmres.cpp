@@ -31,17 +31,19 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/gmres.hpp"
+#include <ginkgo/core/solver/gmres.hpp>
 
 
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/name_demangling.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 

@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/iteration.hpp"
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace gko {
