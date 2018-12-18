@@ -8,11 +8,6 @@ function(ginkgo_install_library name subdir)
         LIBRARY DESTINATION lib/ginkgo
         ARCHIVE DESTINATION lib/ginkgo
         )
-    # copy header files
-    #install(DIRECTORY "${PROJECT_SOURCE_DIR}/${subdir}"
-    #    DESTINATION include
-    #    FILES_MATCHING PATTERN "*.hpp"
-    #    )
 endfunction()
 
 function(ginkgo_default_includes name)
