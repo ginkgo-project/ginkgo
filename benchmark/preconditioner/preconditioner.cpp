@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
               << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl;
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = get_executor();
     auto &engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
