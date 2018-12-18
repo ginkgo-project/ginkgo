@@ -34,11 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_GINKGO_HPP_
 #define GKO_GINKGO_HPP_
 
+#include <ginkgo/config.hpp>
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -50,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/version.hpp>
