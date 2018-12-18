@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['kernelnotfound',['KernelNotFound',['../classgko_1_1KernelNotFound.html',1,'gko']]],
-  ['kernelnotfound',['KernelNotFound',['../classgko_1_1KernelNotFound.html#ae75eb6d7620b86c81cafeee9c38ffc47',1,'gko::KernelNotFound']]],
-  ['krylov_5fdim',['krylov_dim',['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#a5b88f3758ea7c21c535041289e1b09ce',1,'gko::solver::Gmres::parameters_type']]]
+  ['uninitializedarray',['UninitializedArray',['../classgko_1_1kernels_1_1cuda_1_1UninitializedArray.html',1,'gko::kernels::cuda']]]
 ];

@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['begin',['begin',['../structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7',1,'gko::span']]],
-  ['block_5foffset',['block_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ada09b37f171d433cc74818961fc6eccc',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
-  ['block_5fpointers',['block_pointers',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66',1,'gko::preconditioner::Jacobi::parameters_type']]]
+  ['full_5flane_5fmask',['full_lane_mask',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#ad9a03b490c33bc4c455e725f41e05e92',1,'gko::kernels::cuda::cuda_config']]]
 ];

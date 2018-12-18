@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['accessor',['accessor',['../classgko_1_1range.html#a3332728e51dadcf6517847cef3000a17',1,'gko::range']]]
+  ['bits_5ftype',['bits_type',['../classgko_1_1truncated.html#ad26f99c9264dafeed42a018ce55d53a9',1,'gko::truncated']]]
 ];
