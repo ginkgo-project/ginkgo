@@ -64,7 +64,8 @@ namespace solver {
  * @tparam ValueType precision of the elements of the system matrix.
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>> {
+class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
+                 public Preconditionable {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 
@@ -86,7 +87,7 @@ public:
      *
      * @return the preconditioner operator used by the solver
      */
-    std::shared_ptr<const LinOp> get_preconditioner() const
+    std::shared_ptr<const LinOp> get_preconditioner() const override
     {
         return preconditioner_;
     }

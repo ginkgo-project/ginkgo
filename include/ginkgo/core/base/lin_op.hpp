@@ -447,6 +447,22 @@ public:
 
 
 /**
+ * A LinOp implementing this interface can be preconditioned.
+ */
+class Preconditionable {
+public:
+    virtual ~Preconditionable() = default;
+
+    /**
+     * Returns the preconditioner operator used by the Preconditionable.
+     *
+     * @return the preconditioner operator used by the Preconditionable
+     */
+    virtual std::shared_ptr<const LinOp> get_preconditioner() const = 0;
+};
+
+
+/**
  * The EnableLinOp mixin can be used to provide sensible default implementations
  * of the majority of the LinOp and PolymorphicObject interface.
  *
