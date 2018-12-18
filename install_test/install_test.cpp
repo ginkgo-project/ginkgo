@@ -47,7 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class PolymorphicObjectTest : public gko::PolymorphicObject {};
 
 
-int main(int argc, char *argv[])
+int main(int, char **)
 {
     auto refExec = gko::ReferenceExecutor::create();
     // core/base/abstract_factory.hpp

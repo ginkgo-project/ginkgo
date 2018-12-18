@@ -5,8 +5,8 @@ function(ginkgo_install_library name subdir)
     # install .so and .a files
     install(TARGETS "${name}"
         EXPORT Ginkgo
-        LIBRARY DESTINATION lib/ginkgo
-        ARCHIVE DESTINATION lib/ginkgo
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
         )
 endfunction()
 
