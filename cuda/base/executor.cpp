@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 

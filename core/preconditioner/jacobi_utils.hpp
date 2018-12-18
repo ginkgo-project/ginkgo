@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+
 #include "core/base/extended_float.hpp"
 
 

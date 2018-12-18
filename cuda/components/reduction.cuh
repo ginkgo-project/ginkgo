@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
+
+
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
 

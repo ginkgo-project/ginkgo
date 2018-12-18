@@ -140,7 +140,7 @@ int main(int, char **)
     {
         auto testVar = 12;
         auto test = gko::range<gko::accessor::row_major<decltype(testVar), 2>>(
-            &testVar, 1, 1, 1);
+            &testVar, 1u, 1u, 1u);
     }
 
     // core/base/std_extensions.hpp

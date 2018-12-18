@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/stop/criterion.hpp>
+
+
 #include "core/stop/criterion_kernels.hpp"
 
 

@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
