@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 
 
-#include "general.hpp"
+#include "benchmark/utils/general.hpp"
 
 
 // A logger that accumulates the time of all operations
@@ -51,7 +51,7 @@ struct OperationLogger : gko::log::Logger {
     void on_operation_launched(const gko::Executor *exec,
                                const gko::Operation *op) const override
     {
-        const auto name = extract_operation_name(op);
+        const auto name = op->get_name();
         exec->synchronize();
         start[name] = std::chrono::system_clock::now();
     }
@@ -62,7 +62,7 @@ struct OperationLogger : gko::log::Logger {
         exec->synchronize();
         const auto end = std::chrono::system_clock::now();
 
-        const auto name = extract_operation_name(op);
+        const auto name = op->get_name();
         total[name] += end - start[name];
     }
 
@@ -86,17 +86,6 @@ struct OperationLogger : gko::log::Logger {
     {}
 
 private:
-    static std::string extract_operation_name(const gko::Operation *op)
-    {
-        auto full_name = gko::name_demangling::get_dynamic_type(*op);
-        std::smatch match{};
-        if (regex_match(full_name, match, std::regex(".*::(.*)_operation.*"))) {
-            return match[1];
-        } else {
-            return full_name;
-        }
-    }
-
     mutable std::map<std::string, std::chrono::system_clock::time_point> start;
     mutable std::map<std::string, std::chrono::system_clock::duration> total;
 };
