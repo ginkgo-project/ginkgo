@@ -116,14 +116,15 @@ void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
 }
 
 
-// helper for splitting a comma-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter)
+// helper for splitting a delimiter-separated list into vector of strings
+std::vector<std::string> split(const std::string &s, char delimiter = ',')
 {
     std::istringstream iss(s);
     std::vector<std::string> tokens;
-    for (std::string token; std::getline(iss, token, delimiter);
-         tokens.push_back(token))
-        ;
+    std::string token;
+    while (std::getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
     return tokens;
 }
 
