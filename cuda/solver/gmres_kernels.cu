@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/uninitialized_array.hpp"
+#include "cuda/matrix/dense_kernels.cu"
 
 
 namespace gko {
@@ -52,56 +54,37 @@ namespace gmres {
 constexpr int default_block_size = 512;
 
 
-namespace {
+namespace kernel {
 
 
-template <typename ValueType>
-__device__ void column_reduction(const ValueType *A, ValueType *b,
-                                 size_type num_rows, size_type num_cols,
-                                 size_type stride)
-{
-    const auto idx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (idx < num_cols) {
-        b[idx] = zero<ValueType>();
-        for (size_type i = 0; i < num_rows; ++i) {
-            b[idx] += A[i * stride + idx] * A[i * stride + idx];
-        }
-        b[idx] = sqrt(b[idx]);
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_1_kernel(
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void initialize_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type krylov_dim, const ValueType *__restrict__ b,
     ValueType *__restrict__ b_norm, ValueType *__restrict__ residual,
     ValueType *__restrict__ givens_sin, ValueType *__restrict__ givens_cos,
     stopping_status *__restrict__ stop_status)
 {
-    const auto idx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
 
-    column_reduction(b, b_norm, num_rows, num_cols, stride);
-
-    if (idx < num_cols) {
-        stop_status[idx].reset();
+    if (global_id < num_cols) {
+        stop_status[global_id].reset();
     }
 
-    if (idx < num_rows * stride) {
-        residual[idx] = b[idx];
+    if (global_id < num_rows * stride) {
+        residual[global_id] = b[global_id];
     }
 
-    if (idx < krylov_dim * num_cols) {
-        givens_sin[idx] = zero<ValueType>();
-        givens_cos[idx] = zero<ValueType>();
+    if (global_id < krylov_dim * num_cols) {
+        givens_sin[global_id] = zero<ValueType>();
+        givens_cos[global_id] = zero<ValueType>();
     }
 }
 
 
-}  // namespace
+}  // namespace kernel
 
 
 template <typename ValueType>
@@ -111,10 +94,13 @@ void initialize_1(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
     Array<stopping_status> *stop_status, const size_type krylov_dim)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(b->get_size()[0], default_block_size) * b->get_size()[1], 1, 1);
-    initialize_1_kernel<<<grid_size, block_size, 0, 0>>>(
+    const dim3 grid_dim(
+        ceildiv(b->get_size()[0], default_block_size) * b->get_stride(), 1, 1);
+    const dim3 block_dim(default_block_size, 1, 1);
+    constexpr auto block_size = default_block_size;
+
+    dense::compute_norm2(exec, b, b_norm);
+    initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], b->get_stride(), krylov_dim,
         as_cuda_type(b->get_const_values()), as_cuda_type(b_norm->get_values()),
         as_cuda_type(residual->get_values()),
@@ -126,11 +112,11 @@ void initialize_1(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
-namespace {
+namespace kernel {
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_2_kernel_1(
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void initialize_2_kernel_1(
     size_type num_rows, size_type num_cols, size_type stride,
     size_type krylov_dim, const ValueType *__restrict__ residual,
     ValueType *__restrict__ residual_norm,
@@ -138,46 +124,46 @@ __global__ __launch_bounds__(default_block_size) void initialize_2_kernel_1(
     ValueType *__restrict__ krylov_bases,
     size_type *__restrict__ final_iter_nums)
 {
-    const auto idx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
 
-    if (idx < num_rows * (krylov_dim + 1) * num_cols) {
-        krylov_bases[idx] = 0;
+    if (global_id < num_rows * (krylov_dim + 1) * num_cols) {
+        krylov_bases[global_id] = 0;
     }
 
-    if (idx < (krylov_dim + 1) * num_cols) {
-        residual_norms[idx] = 0;
+    if (global_id < (krylov_dim + 1) * num_cols) {
+        residual_norms[global_id] = 0;
     }
-
-    column_reduction(residual, residual_norm, num_rows, num_cols, stride);
 }
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_2_kernel_2(
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void initialize_2_kernel_2(
     size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ residual,
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norms,
     ValueType *__restrict__ krylov_bases)
 {
-    const auto idx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto row = ceildiv(idx + 1, num_cols) - 1;
-    const auto column = idx - row * num_cols;
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto row = ceildiv(global_id + 1, num_cols) - 1;
+    const auto column = global_id - row * num_cols;
 
-    if (idx < num_cols) {
-        residual_norms[idx] = residual_norm[idx];
+    if (global_id < num_cols) {
+        residual_norms[global_id] = residual_norm[global_id];
     }
 
-    if (idx < num_rows * num_cols) {
+    if (global_id < num_rows * num_cols) {
         krylov_bases[row * stride + column] =
-            residual[idx] / residual_norm[column];
+            residual[global_id] / residual_norm[column];
     }
 }
 
 
-}  // namespace
+}  // namespace kernel
 
 
 template <typename ValueType>
@@ -188,16 +174,14 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
+    const dim3 grid_dim(
         ceildiv(krylov_bases->get_size()[0], default_block_size) *
             krylov_bases->get_stride(),
         1, 1);
-    const dim3 grid_size_small(
-        ceildiv(krylov_bases->get_size()[0], default_block_size) *
-            residual->get_size()[1],
-        1, 1);
-    initialize_2_kernel_1<<<grid_size, block_size, 0, 0>>>(
+    const dim3 block_dim(default_block_size, 1, 1);
+    constexpr auto block_size = default_block_size;
+
+    initialize_2_kernel_1<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         residual->get_stride(), krylov_dim,
         as_cuda_type(residual->get_const_values()),
@@ -205,7 +189,8 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()),
         as_cuda_type(final_iter_nums->get_data()));
-    initialize_2_kernel_2<<<grid_size_small, block_size>>>(
+    dense::compute_norm2(exec, residual, residual_norm);
+    initialize_2_kernel_2<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
@@ -216,33 +201,36 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
-namespace {
+namespace kernel {
 
 
-template <typename ValueType>
-__device__ void finish_arnoldi_kernel(ValueType *next_krylov_basis,
-                                      ValueType *krylov_bases,
-                                      ValueType *hessenberg_iter,
-                                      const size_type iter,
-                                      const stopping_status *stop_status)
-{}
-
-
-template <typename ValueType>
-__device__ void givens_rotation_kernel(ValueType *next_krylov_basis,
-                                       ValueType *givens_sin,
-                                       ValueType *givens_cos,
-                                       ValueType *hessenberg_iter,
-                                       const size_type iter,
-                                       const stopping_status *stop_status)
-{}
-
-
-template <typename ValueType>
-__device__ void calculate_next_residual_norm_kernel(
-    ValueType *givens_sin, ValueType *givens_cos, ValueType *residual_norm,
-    ValueType *residual_norms, const ValueType *b_norm, const size_type iter,
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void finish_arnoldi_kernel_1(
+    ValueType *next_krylov_basis, ValueType *krylov_bases,
+    ValueType *hessenberg_iter, const size_type iter,
     const stopping_status *stop_status)
+{
+    // for i in 1:iter
+    //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+    //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+    // end
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void givens_rotation_kernel(
+    ValueType *next_krylov_basis, ValueType *givens_sin, ValueType *givens_cos,
+    ValueType *hessenberg_iter, const size_type iter,
+    const stopping_status *stop_status)
+{}
+
+
+template <size_type block_size, typename ValueType>
+__global__
+    __launch_bounds__(block_size) void calculate_next_residual_norm_kernel(
+        ValueType *givens_sin, ValueType *givens_cos, ValueType *residual_norm,
+        ValueType *residual_norms, const ValueType *b_norm,
+        const size_type iter, const stopping_status *stop_status)
 {}
 
 
@@ -268,7 +256,7 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 }
 
 
-}  // namespace
+}  // namespace kernel
 
 
 template <typename ValueType>
@@ -288,7 +276,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(krylov_bases->get_size()[0], default_block_size) *
             krylov_bases->get_size()[1],
         1, 1);
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
+    step_1_kernel<<<grid_size, block_size,
+                    default_block_size * sizeof(ValueType)>>>(
         krylov_bases->get_size()[0], krylov_bases->get_size()[1],
         krylov_bases->get_stride(), iter,
         as_cuda_type(next_krylov_basis->get_values()),
