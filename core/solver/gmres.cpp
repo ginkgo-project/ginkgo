@@ -156,6 +156,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .num_iterations(total_iter)
                 .residual_norm(residual_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            this->template log<log::Logger::iteration_complete>(
+                this, total_iter + 1, residual.get(), dense_x);
             break;
         }
 
@@ -233,7 +235,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Calculate residual norm
 
         this->template log<log::Logger::iteration_complete>(
-            this, restart_iter + 1, residual.get(), dense_x);
+            this, total_iter + 1, residual.get(), dense_x);
         total_iter++;
         restart_iter++;
     }

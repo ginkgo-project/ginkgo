@@ -116,6 +116,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            this->template log<log::Logger::iteration_complete>(
+                this, iter + 1, r.get(), dense_x);
             break;
         }
 
