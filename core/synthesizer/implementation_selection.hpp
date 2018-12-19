@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 #include <utility>
@@ -45,36 +47,27 @@ namespace gko {
 namespace syn {
 
 
-template <int... Values>
-struct compile_int_list {};
-
-
-template <typename... Values>
-struct compile_type_list {};
-
-
 #define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                \
     template <typename Predicate, int... IntArgs, typename... TArgs,         \
               typename... InferredArgs>                                      \
-    inline void _name(::gko::syn::compile_int_list<>, Predicate,             \
-                      ::gko::syn::compile_int_list<IntArgs...>,              \
-                      ::gko::syn::compile_type_list<TArgs...>,               \
-                      InferredArgs...) KERNEL_NOT_FOUND;                     \
+    inline void _name(::gko::syn::value_list<int>, Predicate,                \
+                      ::gko::syn::value_list<int, IntArgs...>,               \
+                      ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
+        KERNEL_NOT_FOUND;                                                    \
                                                                              \
     template <int K, int... Rest, typename Predicate, int... IntArgs,        \
               typename... TArgs, typename... InferredArgs>                   \
-    inline void _name(::gko::syn::compile_int_list<K, Rest...>,              \
-                      Predicate is_eligible,                                 \
-                      ::gko::syn::compile_int_list<IntArgs...> int_args,     \
-                      ::gko::syn::compile_type_list<TArgs...> type_args,     \
-                      InferredArgs... args)                                  \
+    inline void _name(                                                       \
+        ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,      \
+        ::gko::syn::value_list<int, IntArgs...> int_args,                    \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<IntArgs..., TArgs...>(                                 \
-                ::gko::syn::compile_int_list<K>(),                           \
+                ::gko::syn::value_list<int, K>(),                            \
                 std::forward<InferredArgs>(args)...);                        \
         } else {                                                             \
-            _name(::gko::syn::compile_int_list<Rest...>(), is_eligible,      \
+            _name(::gko::syn::value_list<int, Rest...>(), is_eligible,       \
                   int_args, type_args, std::forward<InferredArgs>(args)...); \
         }                                                                    \
     }

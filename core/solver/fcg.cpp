@@ -46,18 +46,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace {
+namespace fcg {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, fcg::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, fcg::initialize);
+GKO_REGISTER_OPERATION(step_1, fcg::step_1);
+GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 
-}  // namespace
+}  // namespace fcg
 
 
 template <typename ValueType>
@@ -93,9 +90,9 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-        dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get(), &stop_status));
+    exec->run(fcg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
+                                   t.get(), prev_rho.get(), rho.get(),
+                                   rho_t.get(), &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -122,15 +119,14 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get(), &stop_status));
+        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
+                                   prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
-            &stop_status));
+        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p

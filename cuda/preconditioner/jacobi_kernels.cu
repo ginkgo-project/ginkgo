@@ -58,7 +58,7 @@ namespace cuda {
  * A compile-time list of block sizes for which dedicated generate and apply
  * kernels should be compiled.
  */
-using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 13, 16, 32>;
 
 
 namespace {
@@ -334,7 +334,7 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void generate(syn::compile_int_list<max_block_size>,
+void generate(syn::value_list<int, max_block_size>,
               const matrix::Csr<ValueType, IndexType> *mtx,
               remove_complex<ValueType> accuracy, ValueType *block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
@@ -373,7 +373,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
+void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
            const precision_reduction *block_precisions,
            const IndexType *block_pointers, const ValueType *blocks,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
@@ -610,8 +610,8 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
                     },
-                    syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                    syn::compile_type_list<>(), system_matrix, accuracy,
+                    syn::value_list<int, cuda_config::min_warps_per_block>(),
+                    syn::type_list<>(), system_matrix, accuracy,
                     blocks.get_data(), storage_scheme, conditioning.get_data(),
                     block_precisions.get_data(),
                     block_pointers.get_const_data(), num_blocks);
@@ -662,8 +662,8 @@ void simple_apply(
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;
                      },
-                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                     syn::compile_type_list<>(), num_blocks,
+                     syn::value_list<int, cuda_config::min_warps_per_block>(),
+                     syn::type_list<>(), num_blocks,
                      block_precisions.get_const_data(),
                      block_pointers.get_const_data(), blocks.get_const_data(),
                      storage_scheme, b->get_const_values() + col,

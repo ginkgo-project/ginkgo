@@ -83,5 +83,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
+#include <ginkgo/core/synthesizer/containers.hpp>
 
 #endif  // GKO_GINKGO_HPP_

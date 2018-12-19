@@ -381,12 +381,13 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  * -   the second one with the executor short name (used for namespace name)
  *
  * @param _enable_macro  macro name which will be called
+ * @param ...  extra parameters passed to _enable_macro
  *
  * @note  the macro is not called for ReferenceExecutor
  */
-#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
-    _enable_macro(OmpExecutor, omp);                \
-    _enable_macro(CudaExecutor, cuda)
+#define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro, ...) \
+    _enable_macro(OmpExecutor, omp, __VA_ARGS__);        \
+    _enable_macro(CudaExecutor, cuda, __VA_ARGS__)
 
 
 /**
