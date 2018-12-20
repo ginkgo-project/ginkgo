@@ -102,18 +102,19 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
 
-    int iter = 0;
+    int iter = -1;
     while (true) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
 
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::iteration_complete>(
-                this, iter + 1, r.get(), dense_x);
             break;
         }
 
@@ -129,9 +130,6 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + tmp * p
         // r = r - tmp * q
         swap(prev_rho, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }
 

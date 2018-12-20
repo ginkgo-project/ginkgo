@@ -111,15 +111,16 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     rr->copy_from(r.get());
     system_matrix_->apply(r.get(), v.get());
 
-    int iter = 0;
+    int iter = -1;
     while (true) {
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::iteration_complete>(
-                this, iter + 1, r.get(), dense_x);
             break;
         }
 
@@ -139,24 +140,20 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / beta
         // s = r - alpha * v
 
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get());
-        iter++;
+        ++iter;
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
                 .residual(s.get())
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
-
         if (one_changed) {
             exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
                                               &stop_status));
         }
-
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            r.get());
         if (all_converged) {
-            this->template log<log::Logger::iteration_complete>(
-                this, iter + 1, r.get(), dense_x);
             break;
         }
 
@@ -171,9 +168,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }  // namespace solver
 

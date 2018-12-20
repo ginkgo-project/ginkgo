@@ -137,20 +137,18 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = r -alpha * t
         // x = x + alpha * u_hat
 
+        iter += 2;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::iteration_complete>(
-                this, iter + 1, r.get(), dense_x);
             break;
         }
 
         swap(rho_prev, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }
 

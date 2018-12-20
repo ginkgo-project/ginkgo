@@ -150,14 +150,17 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
-    size_type total_iter = 0, restart_iter = 0;
+    int total_iter = -1;
+    size_type restart_iter = 0;
+
     while (true) {
+        ++total_iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, total_iter, residual.get(), dense_x);
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual_norm(residual_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            this->template log<log::Logger::iteration_complete>(
-                this, total_iter + 1, residual.get(), dense_x);
             break;
         }
 
@@ -234,9 +237,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // End apply givens rotation
         // Calculate residual norm
 
-        this->template log<log::Logger::iteration_complete>(
-            this, total_iter + 1, residual.get(), dense_x);
-        total_iter++;
         restart_iter++;
     }
 
