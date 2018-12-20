@@ -36,6 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <exception>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
@@ -104,7 +107,7 @@ void print_config_error_and_exit()
               << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 

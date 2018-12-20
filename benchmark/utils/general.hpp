@@ -35,7 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_BENCHMARK_UTILS_GENERAL_HPP_
 
 
+#include <ginkgo/ginkgo.hpp>
+
+
 #include <array>
+#include <fstream>
 #include <functional>
 #include <map>
 #include <ostream>

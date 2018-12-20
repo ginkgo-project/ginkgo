@@ -31,12 +31,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <ginkgo/ginkgo.hpp>
 
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <exception>
 #include <fstream>
 #include <iomanip>
@@ -60,7 +60,7 @@ void print_config_error_and_exit()
               << "[\n    { \"filename\": \"my_file.mtx\"},"
               << "\n    { \"filename\": \"my_file2.mtx\"}"
               << "\n]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 

@@ -35,9 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cmath>
+#include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
 
 
 #include "benchmark/utils/general.hpp"
@@ -55,7 +56,7 @@ void print_config_error_and_exit()
               << "    { \"filename\": \"my_file.mtx\"},\n"
               << "    { \"filename\": \"my_file2.mtx\"}\n"
               << "  ]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 
