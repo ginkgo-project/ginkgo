@@ -223,37 +223,40 @@ void write_precond_info(const gko::LinOp *precond,
                         rapidjson::Value &precond_info,
                         rapidjson::MemoryPoolAllocator<> &allocator)
 {
-    if (auto jacobi =
+    if (const auto jacobi =
             dynamic_cast<const gko::preconditioner::Jacobi<etype> *>(precond)) {
         // extract block sizes
-        auto bdata = jacobi->get_parameters().block_pointers.get_const_data();
+        const auto bdata =
+            jacobi->get_parameters().block_pointers.get_const_data();
         add_or_set_member(precond_info, "block_sizes",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        for (auto i = 0u; i < jacobi->get_num_blocks(); ++i) {
+        const auto nblocks = jacobi->get_num_blocks();
+        for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
             precond_info["block_sizes"].PushBack(bdata[i + 1] - bdata[i],
                                                  allocator);
         }
 
         // extract block precisions
-        auto pdata = jacobi->get_parameters()
-                         .storage_optimization.block_wise.get_const_data();
+        const auto pdata =
+            jacobi->get_parameters()
+                .storage_optimization.block_wise.get_const_data();
         if (pdata) {
             add_or_set_member(precond_info, "block_precisions",
                               rapidjson::Value(rapidjson::kArrayType),
                               allocator);
-            for (auto i = 0u; i < jacobi->get_num_blocks(); ++i) {
+            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
                 precond_info["block_precisions"].PushBack(
                     static_cast<int>(pdata[i]), allocator);
             }
         }
 
         // extract condition numbers
-        auto cdata = jacobi->get_conditioning();
+        const auto cdata = jacobi->get_conditioning();
         if (cdata) {
             add_or_set_member(precond_info, "block_conditioning",
                               rapidjson::Value(rapidjson::kArrayType),
                               allocator);
-            for (auto i = 0u; i < jacobi->get_num_blocks(); ++i) {
+            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
                 precond_info["block_conditioning"].PushBack(cdata[i],
                                                             allocator);
             }
