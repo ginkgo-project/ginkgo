@@ -36,66 +36,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <array>
 #include <chrono>
 #include <exception>
 #include <fstream>
-#include <functional>
 #include <iomanip>
 #include <iostream>
-#include <map>
-#include <random>
-#include <sstream>
-#include <string>
 #include <typeinfo>
 
-#include <gflags/gflags.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
+
+#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/loggers.hpp"
 
 
 // Some shortcuts
-using vector = gko::matrix::Dense<>;
+using etype = double;
 using duration_type = std::chrono::nanoseconds;
-
-
-// helper for writing out rapidjson Values
-std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
-                       Allocator &&allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        object.AddMember(rapidjson::Value::StringRefType(name),
-                         std::forward<T>(value),
-                         std::forward<Allocator>(allocator));
-    }
-}
-
-
-// helper for splitting a comma-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter)
-{
-    std::istringstream iss(s);
-    std::vector<std::string> tokens;
-    for (std::string token; std::getline(iss, token, delimiter);
-         tokens.push_back(token))
-        ;
-    return tokens;
-}
 
 
 // input validation
@@ -119,36 +74,11 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 // Command-line arguments
-DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
-
-DEFINE_string(
-    executor, "reference",
-    "The executor used to run the spmv, one of: reference, omp, cuda");
-
 DEFINE_string(formats, "coo",
               "A comma-separated list of formats to run."
               "Supported values are: coo, csr, ell, sellp, hybrid");
 
-DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
-
-DEFINE_uint32(nrhs, 1, "The number of right hand side");
-
-DEFINE_uint32(warm_iter, 2, "The number of warm-up iteration");
-
-DEFINE_uint32(run_iter, 10, "The number of running iteration");
-
-DEFINE_bool(overwrite, false,
-            "If true, overwrites existing results with new ones");
-
-DEFINE_string(backup, "",
-              "If set, the value is used as a file path of a backup"
-              " file where results are written after each test");
-
-DEFINE_string(double_buffer, "",
-              "If --backup is set, this variable can be set"
-              " to nonempty string to enable double"
-              " buffering of backup files, in case of a"
-              " crash when overwriting the backup");
+DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 
 void initialize_argument_parsing(int *argc, char **argv[])
@@ -178,26 +108,6 @@ void initialize_argument_parsing(int *argc, char **argv[])
 }
 
 
-// backup generation
-void backup_results(rapidjson::Document &results)
-{
-    static int next = 0;
-    static auto filenames = []() -> std::array<std::string, 2> {
-        if (FLAGS_double_buffer.size() > 0) {
-            return {FLAGS_backup, FLAGS_double_buffer};
-        } else {
-            return {FLAGS_backup, FLAGS_backup};
-        }
-    }();
-    if (FLAGS_backup.size() == 0) {
-        return;
-    }
-    std::ofstream ofs(filenames[next]);
-    ofs << results;
-    next = 1 - next;
-}
-
-
 // matrix format creating mapping
 template <typename MatrixType>
 std::unique_ptr<gko::LinOp> read_matrix(
@@ -212,43 +122,20 @@ std::unique_ptr<gko::LinOp> read_matrix(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
-                   {"coo", read_matrix<gko::matrix::Coo<>>},
-                   {"ell", read_matrix<gko::matrix::Ell<>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
-
-// executor mapping
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-    executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
-             return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
-         }}};
+    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<etype>>},
+                   {"coo", read_matrix<gko::matrix::Coo<etype>>},
+                   {"ell", read_matrix<gko::matrix::Ell<etype>>},
+                   {"hybrid", read_matrix<gko::matrix::Hybrid<etype>>},
+                   {"sellp", read_matrix<gko::matrix::Sellp<etype>>}};
 
 
 template <typename RandomEngine>
-std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
-                                   RandomEngine &engine, gko::dim<2> dimension)
-{
-    auto rhs = vector::create(exec);
-    rhs->read(gko::matrix_data<>(
-        dimension, std::uniform_real_distribution<>(-1.0, 1.0), engine));
-    return rhs;
-}
-
-
-std::map<gko::uintptr, gko::size_type> storage;
-
-
-template <typename RandomEngine, typename Allocator>
-void spmv_system(const char *format_name, std::shared_ptr<gko::Executor> exec,
-                 const gko::matrix_data<> &data, const vector *b,
-                 const vector *x, const unsigned int warm_iter,
-                 const unsigned int run_iter, rapidjson::Value &test_case,
-                 Allocator &allocator, RandomEngine &rhs_engine) try {
+void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
+                const gko::matrix_data<etype> &data, const vec<etype> *b,
+                const vec<etype> *x, const unsigned int warm_iter,
+                const unsigned int run_iter, rapidjson::Value &test_case,
+                rapidjson::MemoryPoolAllocator<> &allocator,
+                RandomEngine &engine) try {
     auto &spmv_case = test_case["spmv"];
     if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;
@@ -257,49 +144,11 @@ void spmv_system(const char *format_name, std::shared_ptr<gko::Executor> exec,
     add_or_set_member(spmv_case, format_name,
                       rapidjson::Value(rapidjson::kObjectType), allocator);
 
-    struct logger : gko::log::Logger {
-        using Executor = gko::Executor;
-        using uintptr = gko::uintptr;
-        using size_type = gko::size_type;
-
-        void on_allocation_completed(const Executor *exec,
-                                     const size_type &num_bytes,
-                                     const uintptr &location) const override
-        {
-            if (onoff_) {
-                storage[location] = num_bytes;
-            }
-        }
-        void on_free_completed(const Executor *exec,
-                               const uintptr &location) const override
-        {
-            if (onoff_) {
-                storage[location] = 0;
-            }
-        }
-        void output(rapidjson::Value &output, Allocator &allocator)
-        {
-            size_type total(0);
-            for (auto it = storage.begin(); it != storage.end(); it++) {
-                total += it->second;
-            }
-            add_or_set_member(output, "storage", total, allocator);
-            onoff_ = false;
-        }
-        logger(std::shared_ptr<const gko::Executor> exec)
-            : gko::log::Logger(exec), onoff_(true)
-        {
-            storage.clear();
-        }
-
-    private:
-        bool onoff_;
-    };
-
-    auto logger_item = std::make_shared<logger>(exec);
-    exec->add_logger(logger_item);
+    auto storage_logger = std::make_shared<StorageLogger>(exec);
+    exec->add_logger(storage_logger);
     auto system_matrix = share(matrix_factory.at(format_name)(exec, data));
-    logger_item->output(spmv_case[format_name], allocator);
+    exec->remove_logger(gko::lend(storage_logger));
+    storage_logger->write_data(spmv_case[format_name], allocator);
     // warm run
     for (unsigned i = 0; i < warm_iter; i++) {
         auto x_clone = clone(x);
@@ -339,15 +188,16 @@ int main(int argc, char *argv[])
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
               << ")" << std::endl
-              << "Running " << FLAGS_formats << " with " << FLAGS_warm_iter
-              << " warm iterations and " << FLAGS_run_iter
+              << "Running " << FLAGS_formats << " with " << FLAGS_warmup
+              << " warm iterations and " << FLAGS_repetitions
               << " runing iterations" << std::endl
               << "The number of right hand sides is " << FLAGS_nrhs << std::endl
-              << "The random seed for right hand sides is " << FLAGS_rhs_seed
+              << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl;
 
 
     auto exec = executor_factory.at(FLAGS_executor)();
+    auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);
@@ -357,7 +207,6 @@ int main(int argc, char *argv[])
         print_config_error_and_exit();
     }
 
-    std::ranlux24 rhs_engine(FLAGS_rhs_seed);
     auto &allocator = test_cases.GetAllocator();
 
     for (auto &test_case : test_cases.GetArray()) try {
@@ -378,17 +227,15 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<>(mtx_fd);
+            auto data = gko::read_raw<etype>(mtx_fd);
 
             auto nrhs = FLAGS_nrhs;
-            auto b =
-                create_rhs(exec, rhs_engine, gko::dim<2>{data.size[1], nrhs});
-            auto x =
-                create_rhs(exec, rhs_engine, gko::dim<2>{data.size[0], nrhs});
+            auto b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},
+                                          engine);
+            auto x = create_matrix<etype>(exec, gko::dim<2>{data.size[0], nrhs},
+                                          engine);
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << ")" << std::endl;
-            auto warm_iter = FLAGS_warm_iter;
-            auto run_iter = FLAGS_run_iter;
             std::string best_format("none");
             auto best_performance = 0.0;
             if (!test_case.HasMember("optimal")) {
@@ -397,9 +244,9 @@ int main(int argc, char *argv[])
                                     allocator);
             }
             for (const auto &format_name : formats) {
-                spmv_system(format_name.c_str(), exec, data, lend(b), lend(x),
-                            warm_iter, run_iter, test_case, allocator,
-                            rhs_engine);
+                apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
+                           FLAGS_warmup, FLAGS_repetitions, test_case,
+                           allocator, engine);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
@@ -422,7 +269,6 @@ int main(int argc, char *argv[])
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
         }
-
 
     std::cout << test_cases;
 }

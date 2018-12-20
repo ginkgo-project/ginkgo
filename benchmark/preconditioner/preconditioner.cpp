@@ -35,122 +35,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <array>
-#include <functional>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <map>
-#include <random>
-#include <regex>
-#include <sstream>
-#include <string>
 
-
-#include <gflags/gflags.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
-
-
-// some Ginkgo shortcuts
-using vector = gko::matrix::Dense<>;
-
-
-// helper for writing out rapidjson Values
-std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
-                       Allocator &&allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        auto n = rapidjson::Value(name, allocator);
-        object.AddMember(n, std::forward<T>(value), allocator);
-    }
-}
-
-
-// helper for splitting a comma-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter)
-{
-    std::istringstream iss(s);
-    std::vector<std::string> tokens;
-    for (std::string token; std::getline(iss, token, delimiter);
-         tokens.push_back(token))
-        ;
-    return tokens;
-}
-
-
-// input validation
-void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\" },\n"
-              << "    { \"filename\": \"my_file2.mtx\" }\n"
-              << "  ]" << std::endl;
-    exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value &value)
-{
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
-        print_config_error_and_exit();
-    }
-}
+#include "benchmark/utils/general.hpp"
+#include "benchmark/utils/loggers.hpp"
 
 
 // Command-line arguments
-DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
-
-DEFINE_uint32(max_iters, 1000,
-              "Maximal number of iterations the solver will be run for");
-
 DEFINE_uint32(max_block_size, 32,
               "Maximal block size of the block-Jacobi preconditioner");
-
-DEFINE_string(
-    executor, "reference",
-    "The executor used to run the solver, one of: reference, omp, cuda");
-
-DEFINE_uint32(warm_iter, 2, "The number of warm-up iteration");
-
-DEFINE_uint32(run_iter, 10, "The number of running iteration");
 
 DEFINE_string(matrix_format, "csr", "The format in which to read the matrix");
 
 DEFINE_string(preconditioners, "jacobi",
               "A comma-separated list of solvers to run."
               "Supported values are: jacobi");
-
-DEFINE_uint32(rhs_seed, 1234, "Seed used to generate the right hand side");
-
-DEFINE_bool(overwrite, false,
-            "If true, overwrites existing results with new ones");
-
-DEFINE_string(backup, "",
-              "If set, the value is used as a file path of a backup"
-              " file where results are written after each test");
-
-DEFINE_string(double_buffer, "",
-              "If --backup is set, this variable can be set"
-              " to nonempty string to enable double"
-              " buffering of backup files, in case of a"
-              " crash when overwriting the backup");
 
 DEFINE_string(storage_optimization, "0,0",
               "Defines the kind of storage optimization to perform on "
@@ -162,9 +63,6 @@ DEFINE_double(accuracy, 1e-1,
               "This value is used as the accuracy flag of the adaptive Jacobi "
               "preconditioner.");
 
-DEFINE_bool(detailed, true,
-            "If set, runs the preconditioner a second time, timing the "
-            "intermediate kernels and synchronizing between kernel launches");
 
 void initialize_argument_parsing(int *argc, char **argv[])
 {
@@ -193,6 +91,31 @@ void initialize_argument_parsing(int *argc, char **argv[])
 }
 
 
+// input validation
+void print_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
+              << "  [\n"
+              << "    { \"filename\": \"my_file.mtx\" },\n"
+              << "    { \"filename\": \"my_file2.mtx\" }\n"
+              << "  ]" << std::endl;
+    exit(1);
+}
+
+
+void validate_option_object(const rapidjson::Value &value)
+{
+    if (!value.IsObject() || !value.HasMember("filename") ||
+        !value["filename"].IsString()) {
+        print_config_error_and_exit();
+    }
+}
+
+
+// some shortcuts
+using etype = double;
+
+
 // parses the storage optimization command line argument
 gko::precision_reduction parse_storage_optimization(const std::string &flag)
 {
@@ -208,26 +131,6 @@ gko::precision_reduction parse_storage_optimization(const std::string &flag)
 }
 
 
-// backup generation
-void backup_results(rapidjson::Document &results)
-{
-    static int next = 0;
-    static auto filenames = []() -> std::array<std::string, 2> {
-        if (FLAGS_double_buffer.size() > 0) {
-            return {FLAGS_backup, FLAGS_double_buffer};
-        } else {
-            return {FLAGS_backup, FLAGS_backup};
-        }
-    }();
-    if (FLAGS_backup.size() == 0) {
-        return;
-    }
-    std::ofstream ofs(filenames[next]);
-    ofs << results;
-    next = 1 - next;
-}
-
-
 // matrix format mapping
 template <typename MatrixType>
 std::unique_ptr<gko::LinOp> read_matrix(
@@ -240,11 +143,11 @@ std::unique_ptr<gko::LinOp> read_matrix(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const rapidjson::Value &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
-                   {"coo", read_matrix<gko::matrix::Coo<>>},
-                   {"ell", read_matrix<gko::matrix::Ell<>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
+    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<etype>>},
+                   {"coo", read_matrix<gko::matrix::Coo<etype>>},
+                   {"ell", read_matrix<gko::matrix::Ell<etype>>},
+                   {"hybrid", read_matrix<gko::matrix::Hybrid<etype>>},
+                   {"sellp", read_matrix<gko::matrix::Sellp<etype>>}};
 
 
 // preconditioner mapping
@@ -252,7 +155,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor> exec)>>
     precond_factory{
         {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<>::build()
+             return gko::preconditioner::Jacobi<etype>::build()
                  .with_max_block_size(FLAGS_max_block_size)
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_storage_optimization))
@@ -261,50 +164,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }}};
 
 
-// executor mapping
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-    executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
-             return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
-         }}};
-
-
 // preconditioner generation and application
-template <typename RandomEngine>
-std::unique_ptr<vector> create_rhs(std::shared_ptr<const gko::Executor> exec,
-                                   RandomEngine &engine, gko::size_type size)
-{
-    auto rhs = vector::create(exec);
-    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1},
-                                 std::uniform_real_distribution<>(-1.0, 1.0),
-                                 engine));
-    return rhs;
-}
-
-
-std::unique_ptr<vector> create_initial_guess(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
-{
-    auto rhs = vector::create(exec);
-    rhs->read(gko::matrix_data<>(gko::dim<2>{size, 1}));
-    return rhs;
-}
-
-
-std::string extract_operation_name(const gko::Operation *op)
-{
-    auto full_name = gko::name_demangling::get_dynamic_type(*op);
-    std::smatch match{};
-    if (regex_match(full_name, match, std::regex(".*::(.*)_operation.*"))) {
-        return match[1];
-    } else {
-        return full_name;
-    }
-}
-
 
 std::string encode_parameters(const char *precond_name)
 {
@@ -319,12 +179,12 @@ std::string encode_parameters(const char *precond_name)
 }
 
 
-template <typename Allocator>
 void run_preconditioner(const char *precond_name,
                         std::shared_ptr<gko::Executor> exec,
                         std::shared_ptr<const gko::LinOp> system_matrix,
-                        const vector *b, const vector *x,
-                        rapidjson::Value &test_case, Allocator &allocator) try {
+                        const vec<etype> *b, const vec<etype> *x,
+                        rapidjson::Value &test_case,
+                        rapidjson::MemoryPoolAllocator<> &allocator) try {
     auto &precond_object = test_case["preconditioner"];
     auto encoded_name = encode_parameters(precond_name);
 
@@ -345,57 +205,13 @@ void run_preconditioner(const char *precond_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
     }
 
-    struct logger : gko::log::Logger {
-        void on_operation_launched(const gko::Executor *exec,
-                                   const gko::Operation *op) const override
-        {
-            const auto name = extract_operation_name(op);
-            exec->synchronize();
-            start[name] = std::chrono::system_clock::now();
-        }
-
-        void on_operation_completed(const gko::Executor *exec,
-                                    const gko::Operation *op) const override
-        {
-            exec->synchronize();
-            const auto end = std::chrono::system_clock::now();
-
-            const auto name = extract_operation_name(op);
-            total[name] += end - start[name];
-        }
-
-        void write_data(rapidjson::Value &object, Allocator &alloc,
-                        gko::uint32 repetitions)
-        {
-            for (const auto &entry : total) {
-                add_or_set_member(
-                    object, entry.first.c_str(),
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        entry.second)
-                            .count() /
-                        repetitions,
-                    alloc);
-            }
-        }
-
-        logger(std::shared_ptr<const gko::Executor> exec)
-            : gko::log::Logger(exec)
-        {}
-
-    private:
-        mutable std::map<std::string, std::chrono::system_clock::time_point>
-            start;
-        mutable std::map<std::string, std::chrono::system_clock::duration>
-            total;
-    };
-
-    // timed run
     {
+        // fast run, gets total time
         auto x_clone = clone(x);
 
         auto precond = precond_factory.at(precond_name)(exec);
 
-        for (auto i = 0u; i < FLAGS_warm_iter; ++i) {
+        for (auto i = 0u; i < FLAGS_warmup; ++i) {
             precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
         }
 
@@ -403,7 +219,7 @@ void run_preconditioner(const char *precond_name,
         auto g_tic = std::chrono::system_clock::now();
 
         std::unique_ptr<gko::LinOp> precond_op;
-        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
             precond_op = precond->generate(system_matrix);
         }
 
@@ -413,14 +229,14 @@ void run_preconditioner(const char *precond_name,
         auto generate_time =
             std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                  g_tic) /
-            FLAGS_run_iter;
+            FLAGS_repetitions;
         add_or_set_member(this_precond_data["generate"], "time",
                           generate_time.count(), allocator);
 
         exec->synchronize();
         auto a_tic = std::chrono::system_clock::now();
 
-        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
             precond_op->apply(lend(b), lend(x_clone));
         }
 
@@ -429,7 +245,7 @@ void run_preconditioner(const char *precond_name,
 
         auto apply_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               a_tac - a_tic) /
-                          FLAGS_run_iter;
+                          FLAGS_repetitions;
         add_or_set_member(this_precond_data["apply"], "time",
                           apply_time.count(), allocator);
     }
@@ -439,26 +255,26 @@ void run_preconditioner(const char *precond_name,
         auto x_clone = clone(x);
         auto precond = precond_factory.at(precond_name)(exec);
 
-        auto gen_logger = std::make_shared<logger>(exec);
+        auto gen_logger = std::make_shared<OperationLogger>(exec);
         exec->add_logger(gen_logger);
         std::unique_ptr<gko::LinOp> precond_op;
-        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
             precond_op = precond->generate(system_matrix);
         }
         exec->remove_logger(gko::lend(gen_logger));
 
         gen_logger->write_data(this_precond_data["generate"]["components"],
-                               allocator, FLAGS_run_iter);
+                               allocator, FLAGS_repetitions);
 
-        auto apply_logger = std::make_shared<logger>(exec);
+        auto apply_logger = std::make_shared<OperationLogger>(exec);
         exec->add_logger(apply_logger);
-        for (auto i = 0u; i < FLAGS_run_iter; ++i) {
+        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
             precond_op->apply(lend(b), lend(x_clone));
         }
         exec->remove_logger(gko::lend(apply_logger));
 
         apply_logger->write_data(this_precond_data["apply"]["components"],
-                                 allocator, FLAGS_run_iter);
+                                 allocator, FLAGS_repetitions);
     }
 
     add_or_set_member(this_precond_data, "completed", true, allocator);
@@ -482,10 +298,12 @@ int main(int argc, char *argv[])
               << ")" << std::endl
               << "Running preconditioners " << FLAGS_preconditioners
               << std::endl
-              << "The random seed for right hand sides is " << FLAGS_rhs_seed
+              << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl;
 
     auto exec = executor_factory.at(FLAGS_executor)();
+    auto &engine = get_engine();
+
     auto preconditioners = split(FLAGS_preconditioners, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);
@@ -495,7 +313,6 @@ int main(int argc, char *argv[])
         print_config_error_and_exit();
     }
 
-    std::ranlux24 rhs_engine(FLAGS_rhs_seed);
     auto &allocator = test_cases.GetAllocator();
 
     for (auto &test_case : test_cases.GetArray()) try {
@@ -518,8 +335,9 @@ int main(int argc, char *argv[])
 
             auto system_matrix =
                 share(matrix_factory.at(FLAGS_matrix_format)(exec, test_case));
-            auto b = create_rhs(exec, rhs_engine, system_matrix->get_size()[0]);
-            auto x = create_initial_guess(exec, system_matrix->get_size()[0]);
+            auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
+                                          engine);
+            auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
