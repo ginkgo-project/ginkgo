@@ -24,6 +24,7 @@ set(CUDA_ARCHITECTURES "Auto" CACHE STRING
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
     message(STATUS "BUILD_TESTS is ON, enabling BUILD_REFERENCE")
@@ -48,52 +49,11 @@ include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 
-# Automatically find PAPI and search for required 'sde' component
-# CURRENT REQUIREMENTS:
-#     1. Have access to papi-sde private repo
-#     2. Install PAPI and activate sde component:
-#         + cd <path-to-papi>/src
-#         + ./configure --with-components=sde
-#         + make -j$(nproc)
-#         + (sudo) make install
-#      OR
-#     Ask for pre-compiled binaries
-find_library(GKO_PAPI_LIB papi)
-if (GKO_PAPI_LIB)
-  include (CheckCXXSymbolExists)
-
-  set(papi_sde_detect_code "
-#include <papi.h>
-int main() {
-	int retval;
-	retval = PAPI_library_init(PAPI_VER_CURRENT);
-	if (retval != PAPI_VER_CURRENT && retval > 0)
-		return -1;
-	if (PAPI_get_component_index(\"sde\") < 0)
-		return 0;
-	return 1;
-}
-")
-
-  file(WRITE "${CMAKE_BINARY_DIR}/papi_sde_detect.c" "${papi_sde_detect_code}")
-
-  try_run(GKO_HAVE_PAPI_SDE
-    gko_result_unused
-    "${CMAKE_BINARY_DIR}"
-    "${CMAKE_BINARY_DIR}/papi_sde_detect.c"
-    LINK_LIBRARIES papi
-    )
-  if (NOT GKO_HAVE_PAPI_SDE EQUAL 1)
-    unset(GKO_HAVE_PAPI_SDE)
-  else()
-    message("-- PAPI SDE component was found")
-  endif()
-
-  if (GKO_HAVE_PAPI_SDE)
-    set(GKO_PAPI_SDE_LIB ${GKO_PAPI_LIB})
-  endif()
+# Automatically find PAPI and search for the required 'sde' component
+find_package(PAPI OPTIONAL_COMPONENTS sde)
+if (PAPI_sde_FOUND)
+    set(GKO_HAVE_PAPI_SDE 1)
 endif()
-
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in
   ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)

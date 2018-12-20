@@ -40,7 +40,10 @@ add_library(ginkgo ${SOURCES})
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ${GKO_PAPI_SDE_LIB})
+    PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference)
+if (GKO_HAVE_PAPI_SDE)
+  target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 

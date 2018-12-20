@@ -39,10 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <papi.h>
 
 
+#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <core/test/utils/assertions.hpp>
 
 
 namespace {
@@ -58,13 +58,11 @@ protected:
     {
         int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
         if (ret_val != PAPI_VER_CURRENT) {
-            fprintf(stderr, "Error at PAPI_library_init()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_library_init()");
         }
         ret_val = PAPI_create_eventset(&eventset);
         if (PAPI_OK != ret_val) {
-            fprintf(stderr, "Error at PAPI_create_eventset()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_create_eventset()");
         }
     }
 
@@ -86,14 +84,12 @@ protected:
         int code;
         int ret_val = PAPI_event_name_to_code(event_name.c_str(), &code);
         if (PAPI_OK != ret_val) {
-            fprintf(stderr, "Error at PAPI_name_to_code()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_name_to_code()\n");
         }
 
         ret_val = PAPI_add_event(eventset, code);
         if (PAPI_OK != ret_val) {
-            fprintf(stderr, "Error at PAPI_name_to_code()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_name_to_code()\n");
         }
     }
 
@@ -101,8 +97,7 @@ protected:
     {
         int ret_val = PAPI_start(eventset);
         if (PAPI_OK != ret_val) {
-            fprintf(stderr, "Error at PAPI_start()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_start()\n");
         }
     }
 
@@ -110,8 +105,7 @@ protected:
     {
         int ret_val = PAPI_stop(eventset, values);
         if (PAPI_OK != ret_val) {
-            fprintf(stderr, "Error at PAPI_stop()\n");
-            exit(-1);
+            throw std::runtime_error("Error at PAPI_stop()\n");
         }
     }
 
@@ -124,10 +118,9 @@ protected:
 TEST_F(Papi, CatchesCriterionCheckCompleted)
 {
     auto residual_norm = gko::initialize<Dense>({4.0}, exec);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     auto str = init(gko::log::Logger::criterion_check_completed_mask,
                     "criterion_check_completed", criterion.get());
     add_event(str + ":CNT");

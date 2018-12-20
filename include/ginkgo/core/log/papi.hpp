@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include "core/log/papi_sde_interface.h"
+#include "third_party/papi_sde/papi_sde_interface.h"
 
 
 #include <papi.h>
@@ -184,46 +184,6 @@ public:
      */
     const std::string get_handle_name() const { return name; }
 
-    /**
-     * Properly free all the per event data.
-     */
-    ~Papi()
-    {
-        unregister_queue(allocation_started, "allocation_started");
-        unregister_queue(allocation_completed, "allocation_completed");
-        unregister_queue(free_started, "free_started");
-        unregister_queue(free_completed, "free_completed");
-        unregister_queue(copy_started_from, "copy_started_from");
-        unregister_queue(copy_started_to, "copy_started_to");
-        unregister_queue(copy_completed_from, "copy_completed_from");
-        unregister_queue(copy_completed_to, "copy_completed_to");
-        unregister_queue(operation_launched, "operation_launched");
-        unregister_queue(operation_completed, "operation_completed");
-        unregister_queue(polymorphic_object_create_started,
-                         "polymorphic_object_create_started");
-        unregister_queue(polymorphic_object_create_completed,
-                         "polymorphic_object_create_completed");
-        unregister_queue(polymorphic_object_copy_started,
-                         "polymorphic_object_copy_started");
-        unregister_queue(polymorphic_object_copy_completed,
-                         "polymorphic_object_copy_completed");
-        unregister_queue(polymorphic_object_deleted,
-                         "polymorphic_object_deleted");
-        unregister_queue(linop_factory_generate_started,
-                         "linop_factory_generate_started");
-        unregister_queue(linop_factory_generate_completed,
-                         "linop_factory_generate_completed");
-        unregister_queue(linop_apply_started, "linop_apply_started");
-        unregister_queue(linop_apply_completed, "linop_apply_completed");
-        unregister_queue(linop_advanced_apply_started,
-                         "linop_advanced_apply_started");
-        unregister_queue(linop_advanced_apply_completed,
-                         "linop_advanced_apply_completed");
-        unregister_queue(criterion_check_completed,
-                         "criterion_check_completed");
-        unregister_queue(iteration_complete, "iteration_complete");
-    }
-
 protected:
     explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
@@ -238,72 +198,97 @@ protected:
     }
 
 private:
-    template <typename T>
-    void unregister_queue(std::map<std::uintptr_t, T> &queue, const char *name)
-    {
-        if (PAPI_is_initialized()) {
-            for (auto e : queue) {
-                std::ostringstream oss;
-                oss << name << "::" << e.first;
-                papi_sde_unregister_counter(this->papi_handle,
-                                            oss.str().c_str());
+    template <typename PointerType>
+    class papi_queue {
+    public:
+        papi_queue(papi_handle_t *handle, const char *counter_name)
+            : handle{handle}, counter_name{counter_name}
+        {}
+
+        ~papi_queue()
+        {
+            if (PAPI_is_initialized()) {
+                for (auto e : data) {
+                    std::ostringstream oss;
+                    oss << counter_name << "::" << e.first;
+                    papi_sde_unregister_counter(*handle, oss.str().c_str());
+                }
             }
+            data.clear();
         }
-        queue.clear();
-    }
 
-    template <typename T, typename U>
-    U &add_to_map(const T *ptr, std::map<std::uintptr_t, U> &map,
-                  const char *name) const
-    {
-        const auto tmp = reinterpret_cast<uintptr>(ptr);
-        if (map.find(tmp) == map.end()) {
-            map[tmp] = 0;
-        }
-        auto &value = map[tmp];
-        if (!value) {
+        size_type &get_counter(const PointerType *ptr)
+        {
+            const auto tmp = reinterpret_cast<uintptr>(ptr);
+            if (data.find(tmp) == data.end()) {
+                data[tmp] = 0;
+            }
+            auto &value = data[tmp];
             std::ostringstream oss;
-            oss << name << "::" << tmp;
-            papi_sde_register_counter(this->papi_handle, oss.str().c_str(),
-                                      PAPI_SDE_RO | PAPI_SDE_INSTANT,
-                                      PAPI_SDE_long_long, &value);
+            oss << counter_name << "::" << tmp;
+            if (!value) {
+                papi_sde_register_counter(*handle, oss.str().c_str(),
+                                          PAPI_SDE_RO | PAPI_SDE_INSTANT,
+                                          PAPI_SDE_long_long, &value);
+            }
+            return data[tmp];
         }
-        return map[tmp];
-    }
 
-    mutable std::map<std::uintptr_t, size_type> allocation_started;
-    mutable std::map<std::uintptr_t, size_type> allocation_completed;
-    mutable std::map<std::uintptr_t, size_type> free_started;
-    mutable std::map<std::uintptr_t, size_type> free_completed;
-    mutable std::map<std::uintptr_t, size_type> copy_started_from;
-    mutable std::map<std::uintptr_t, size_type> copy_started_to;
-    mutable std::map<std::uintptr_t, size_type> copy_completed_from;
-    mutable std::map<std::uintptr_t, size_type> copy_completed_to;
+    private:
+        papi_handle_t *handle;
+        const char *counter_name;
+        std::map<std::uintptr_t, size_type> data;
+    };
 
-    mutable std::map<std::uintptr_t, size_type> operation_launched;
-    mutable std::map<std::uintptr_t, size_type> operation_completed;
+    mutable papi_queue<Executor> allocation_started{&papi_handle,
+                                                    "allocation_started"};
+    mutable papi_queue<Executor> allocation_completed{&papi_handle,
+                                                      "allocation_completed"};
+    mutable papi_queue<Executor> free_started{&papi_handle, "free_started"};
+    mutable papi_queue<Executor> free_completed{&papi_handle, "free_completed"};
+    mutable papi_queue<Executor> copy_started_from{&papi_handle,
+                                                   "copy_started_from"};
+    mutable papi_queue<Executor> copy_started_to{&papi_handle,
+                                                 "copy_started_to"};
+    mutable papi_queue<Executor> copy_completed_from{&papi_handle,
+                                                     "copy_completed_from"};
+    mutable papi_queue<Executor> copy_completed_to{&papi_handle,
+                                                   "copy_completed_to"};
 
-    mutable std::map<std::uintptr_t, size_type>
-        polymorphic_object_create_started;
-    mutable std::map<std::uintptr_t, size_type>
-        polymorphic_object_create_completed;
-    mutable std::map<std::uintptr_t, size_type> polymorphic_object_copy_started;
-    mutable std::map<std::uintptr_t, size_type>
-        polymorphic_object_copy_completed;
-    mutable std::map<std::uintptr_t, size_type> polymorphic_object_deleted;
+    mutable papi_queue<Executor> operation_launched{&papi_handle,
+                                                    "operation_launched"};
+    mutable papi_queue<Executor> operation_completed{&papi_handle,
+                                                     "operation_completed"};
 
-    mutable std::map<std::uintptr_t, size_type> linop_factory_generate_started;
-    mutable std::map<std::uintptr_t, size_type>
-        linop_factory_generate_completed;
+    mutable papi_queue<Executor> polymorphic_object_create_started{
+        &papi_handle, "polymorphic_object_create_started"};
+    mutable papi_queue<Executor> polymorphic_object_create_completed{
+        &papi_handle, "polymorphic_object_create_completed"};
+    mutable papi_queue<Executor> polymorphic_object_copy_started{
+        &papi_handle, "polymorphic_object_copy_started"};
+    mutable papi_queue<Executor> polymorphic_object_copy_completed{
+        &papi_handle, "polymorphic_object_copy_completed"};
+    mutable papi_queue<Executor> polymorphic_object_deleted{
+        &papi_handle, "polymorphic_object_deleted"};
 
-    mutable std::map<std::uintptr_t, size_type> linop_apply_started;
-    mutable std::map<std::uintptr_t, size_type> linop_apply_completed;
-    mutable std::map<std::uintptr_t, size_type> linop_advanced_apply_started;
-    mutable std::map<std::uintptr_t, size_type> linop_advanced_apply_completed;
+    mutable papi_queue<LinOpFactory> linop_factory_generate_started{
+        &papi_handle, "linop_factory_generate_started"};
+    mutable papi_queue<LinOpFactory> linop_factory_generate_completed{
+        &papi_handle, "linop_factory_generate_completed"};
+
+    mutable papi_queue<LinOp> linop_apply_started{&papi_handle,
+                                                  "linop_apply_started"};
+    mutable papi_queue<LinOp> linop_apply_completed{&papi_handle,
+                                                    "linop_apply_completed"};
+    mutable papi_queue<LinOp> linop_advanced_apply_started{
+        &papi_handle, "linop_advanced_apply_started"};
+    mutable papi_queue<LinOp> linop_advanced_apply_completed{
+        &papi_handle, "linop_advanced_apply_completed"};
 
     mutable std::map<std::uintptr_t, void *> criterion_check_completed;
 
-    mutable std::map<std::uintptr_t, size_type> iteration_complete;
+    mutable papi_queue<LinOp> iteration_complete{&papi_handle,
+                                                 "iteration_complete"};
 
     static size_type logger_count;
 

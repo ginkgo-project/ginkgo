@@ -70,6 +70,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
 
 
 namespace {
@@ -102,6 +103,57 @@ std::string to_string(T *ptr)
 
 
 }  // namespace
+
+
+int init_papi_counters(std::string solver_name, std::string A_name)
+{
+    // Initialize PAPI, add events and start it up
+    int eventset = PAPI_NULL;
+    int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
+    if (ret_val != PAPI_VER_CURRENT) {
+        std::cerr << "Error at PAPI_library_init()" << std::endl;
+        std::exit(-1);
+    }
+    ret_val = PAPI_create_eventset(&eventset);
+    if (PAPI_OK != ret_val) {
+        std::cerr << "Error at PAPI_create_eventset()" << std::endl;
+        std::exit(-1);
+    }
+
+    std::string simple_apply_string("sde:::ginkgo0::linop_apply_completed::");
+    std::string advanced_apply_string(
+        "sde:::ginkgo0::linop_advanced_apply_completed::");
+    papi_add_event(simple_apply_string + solver_name, eventset);
+    papi_add_event(simple_apply_string + A_name, eventset);
+    papi_add_event(advanced_apply_string + A_name, eventset);
+
+    ret_val = PAPI_start(eventset);
+    if (PAPI_OK != ret_val) {
+        std::cerr << "Error at PAPI_start()" << std::endl;
+        std::exit(-1);
+    }
+    return eventset;
+}
+
+
+void print_papi_counters(int eventset)
+{
+    // Stop PAPI and read the linop_apply_completed event for all of them
+    long long int values[3];
+    int ret_val = PAPI_stop(eventset, values);
+    if (PAPI_OK != ret_val) {
+        std::cerr << "Error at PAPI_stop()" << std::endl;
+        std::exit(-1);
+    }
+
+    PAPI_shutdown();
+
+    // Print all values returned from PAPI
+    std::cout << "PAPI SDE counters:" << std::endl;
+    std::cout << "solver did " << values[0] << " applies." << std::endl;
+    std::cout << "A did " << values[1] << " simple applies." << std::endl;
+    std::cout << "A did " << values[2] << " advanced applies." << std::endl;
+}
 
 
 int main(int argc, char *argv[])
@@ -144,8 +196,14 @@ int main(int argc, char *argv[])
             .on(exec);
     auto solver = solver_gen->generate(A);
 
-    // This is the start of the interesting part. This example is the same as
-    // simple_solver except for the use of the PAPI logger.
+    // In this example, we split as much as possible the Ginkgo solver/logger
+    // and the PAPI interface. Note that the PAPI ginkgo namespaces are of the
+    // form sde:::ginkgo<x> where <x> starts from 0 and is incremented with
+    // every new PAPI logger.
+    int eventset =
+        init_papi_counters(to_string(solver.get()), to_string(A.get()));
+
+
     // Create a PAPI logger and add it to relevant LinOps
     auto logger = gko::log::Papi<>::create(
         exec, gko::log::Logger::linop_apply_completed_mask |
@@ -153,51 +211,12 @@ int main(int argc, char *argv[])
     solver->add_logger(logger);
     A->add_logger(logger);
 
-    // Initialize PAPI, add events and start it up
-    int eventset = PAPI_NULL;
-    int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
-    if (ret_val != PAPI_VER_CURRENT) {
-        std::cerr << "Error at PAPI_library_init()" << std::endl;
-        std::exit(-1);
-    }
-    ret_val = PAPI_create_eventset(&eventset);
-    if (PAPI_OK != ret_val) {
-        std::cerr << "Error at PAPI_create_eventset()" << std::endl;
-        std::exit(-1);
-    }
-
-    std::string simple_apply_string("sde:::" + logger->get_handle_name() +
-                                    "::linop_apply_completed::");
-    std::string advanced_apply_string("sde:::" + logger->get_handle_name() +
-                                      "::linop_advanced_apply_completed::");
-    papi_add_event(simple_apply_string + to_string(solver.get()), eventset);
-    papi_add_event(simple_apply_string + to_string(A.get()), eventset);
-    papi_add_event(advanced_apply_string + to_string(A.get()), eventset);
-
-    ret_val = PAPI_start(eventset);
-    if (PAPI_OK != ret_val) {
-        std::cerr << "Error at PAPI_start()" << std::endl;
-        std::exit(-1);
-    }
-
     // Solve system
     solver->apply(lend(b), lend(x));
 
-    // Stop PAPI and read the linop_apply_completed event for all of them
-    long long int values[3];
-    ret_val = PAPI_stop(eventset, values);
-    if (PAPI_OK != ret_val) {
-        std::cerr << "Error at PAPI_stop()" << std::endl;
-        std::exit(-1);
-    }
 
-    PAPI_shutdown();
-
-    // Print all values returned from PAPI
-    std::cout << "PAPI SDE counter:" << std::endl;
-    std::cout << "solver did " << values[0] << " applies." << std::endl;
-    std::cout << "A did " << values[1] << " simple applies." << std::endl;
-    std::cout << "A did " << values[2] << " advanced applies." << std::endl;
+    // Stop PAPI event gathering and print the counters
+    print_papi_counters(eventset);
 
     // Print solution
     std::cout << "Solution (x): \n";
