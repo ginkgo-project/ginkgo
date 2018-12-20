@@ -71,7 +71,7 @@ namespace solver {
  * @tparam ValueType precision of matrix elements
  */
 template <typename ValueType = default_precision>
-class Fcg : public EnableLinOp<Fcg<ValueType>> {
+class Fcg : public EnableLinOp<Fcg<ValueType>>, public Preconditionable {
     friend class EnableLinOp<Fcg>;
     friend class EnablePolymorphicObject<Fcg, LinOp>;
 
@@ -93,7 +93,7 @@ public:
      *
      * @return the preconditioner operator used by the solver
      */
-    std::shared_ptr<const LinOp> get_preconditioner() const
+    std::shared_ptr<const LinOp> get_preconditioner() const override
     {
         return preconditioner_;
     }
