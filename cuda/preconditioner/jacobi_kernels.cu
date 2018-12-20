@@ -88,7 +88,8 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     auto trans_perm = perm;
     auto block_cond = compute_infinity_norm<max_block_size>(group, block_size,
                                                             block_size, row);
-    invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
+    auto succeeded =
+        invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
     block_cond *= compute_infinity_norm<max_block_size>(group, block_size,
                                                         block_size, row);
 
@@ -103,7 +104,7 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
         }
     }
 
-    return block_cond > 0.0 &&
+    return succeeded && block_cond >= 1.0 &&
            block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
 }
 

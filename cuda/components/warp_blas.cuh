@@ -74,12 +74,13 @@ template <
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void apply_gauss_jordan_transform(
     const Group &__restrict__ group, int32 key_row, int32 key_col,
-    ValueType *__restrict__ row)
+    ValueType *__restrict__ row, bool &__restrict__ status)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
     if (key_col_elem == zero<ValueType>()) {
         // TODO: implement error handling for GPUs to be able to properly
         //       report it here
+        status = false;
         return;
     }
     if (group.thread_rank() == key_row) {
@@ -128,11 +129,13 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
  * @param perm  a value to hold an element of permutation matrix \f$ P \f$
  * @param trans_perm  a value to hold an element of permutation matrix \f$ P^T
  * \f$
+ *
+ * @return true if the inversion succeeded, false otherwise
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ void invert_block(const Group &__restrict__ group,
+__device__ __forceinline__ bool invert_block(const Group &__restrict__ group,
                                              uint32 problem_size,
                                              ValueType *__restrict__ row,
                                              uint32 &__restrict__ perm,
@@ -141,6 +144,7 @@ __device__ __forceinline__ void invert_block(const Group &__restrict__ group,
     GKO_ASSERT(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
     auto pivoted = group.thread_rank() >= problem_size;
+    auto status = true;
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
@@ -154,8 +158,10 @@ __device__ __forceinline__ void invert_block(const Group &__restrict__ group,
         if (group.thread_rank() == i) {
             trans_perm = piv;
         }
-        apply_gauss_jordan_transform<max_problem_size>(group, piv, i, row);
+        apply_gauss_jordan_transform<max_problem_size>(group, piv, i, row,
+                                                       status);
     }
+    return status;
 }
 
 
