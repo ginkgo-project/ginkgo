@@ -43,27 +43,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 
 
-#include "general.hpp"
+#include "benchmark/utils/general.hpp"
 
 
 // A logger that accumulates the time of all operations
 struct OperationLogger : gko::log::Logger {
+    void on_allocation_started(const gko::Executor *exec,
+                               const gko::size_type &) const override
+    {
+        this->start_operation(exec, "allocate");
+    }
+
+    void on_allocation_completed(const gko::Executor *exec,
+                                 const gko::size_type &,
+                                 const gko::uintptr &) const override
+    {
+        this->end_operation(exec, "allocate");
+    }
+
+    void on_free_started(const gko::Executor *exec,
+                         const gko::uintptr &) const override
+    {
+        this->start_operation(exec, "free");
+    }
+
+    void on_free_completed(const gko::Executor *exec,
+                           const gko::uintptr &) const override
+    {
+        this->end_operation(exec, "free");
+    }
+
+    void on_copy_started(const gko::Executor *from, const gko::Executor *to,
+                         const gko::uintptr &, const gko::uintptr &,
+                         const gko::size_type &) const override
+    {
+        from->synchronize();
+        this->start_operation(to, "copy");
+    }
+
+    void on_copy_completed(const gko::Executor *from, const gko::Executor *to,
+                           const gko::uintptr &, const gko::uintptr &,
+                           const gko::size_type &) const override
+    {
+        from->synchronize();
+        this->end_operation(to, "copy");
+    }
+
     void on_operation_launched(const gko::Executor *exec,
                                const gko::Operation *op) const override
     {
-        const auto name = extract_operation_name(op);
-        exec->synchronize();
-        start[name] = std::chrono::system_clock::now();
+        this->start_operation(exec, op->get_name());
     }
 
     void on_operation_completed(const gko::Executor *exec,
                                 const gko::Operation *op) const override
     {
-        exec->synchronize();
-        const auto end = std::chrono::system_clock::now();
-
-        const auto name = extract_operation_name(op);
-        total[name] += end - start[name];
+        this->end_operation(exec, op->get_name());
     }
 
     void write_data(rapidjson::Value &object,
@@ -86,19 +121,32 @@ struct OperationLogger : gko::log::Logger {
     {}
 
 private:
-    static std::string extract_operation_name(const gko::Operation *op)
+    void start_operation(const gko::Executor *exec,
+                         const std::string &name) const
     {
-        auto full_name = gko::name_demangling::get_dynamic_type(*op);
-        std::smatch match{};
-        if (regex_match(full_name, match, std::regex(".*::(.*)_operation.*"))) {
-            return match[1];
-        } else {
-            return full_name;
+        nested.emplace_back(0);
+        exec->synchronize();
+        start[name] = std::chrono::system_clock::now();
+    }
+
+    void end_operation(const gko::Executor *exec, const std::string &name) const
+    {
+        exec->synchronize();
+        const auto end = std::chrono::system_clock::now();
+        const auto diff = end - start[name];
+        // make sure timings for nested operations are not counted twice
+        total[name] += diff - nested.back();
+        nested.pop_back();
+        if (nested.size() > 0) {
+            nested.back() += diff;
         }
     }
 
     mutable std::map<std::string, std::chrono::system_clock::time_point> start;
     mutable std::map<std::string, std::chrono::system_clock::duration> total;
+    // the position i of this vector holds the total time spend on child
+    // operations on nesting level i
+    mutable std::vector<std::chrono::system_clock::duration> nested;
 };
 
 

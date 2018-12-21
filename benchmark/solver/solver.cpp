@@ -36,6 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <exception>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
@@ -104,7 +107,7 @@ void print_config_error_and_exit()
               << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 
@@ -216,10 +219,56 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }}};
 
 
+void write_precond_info(const gko::LinOp *precond,
+                        rapidjson::Value &precond_info,
+                        rapidjson::MemoryPoolAllocator<> &allocator)
+{
+    if (const auto jacobi =
+            dynamic_cast<const gko::preconditioner::Jacobi<etype> *>(precond)) {
+        // extract block sizes
+        const auto bdata =
+            jacobi->get_parameters().block_pointers.get_const_data();
+        add_or_set_member(precond_info, "block_sizes",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
+        const auto nblocks = jacobi->get_num_blocks();
+        for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
+            precond_info["block_sizes"].PushBack(bdata[i + 1] - bdata[i],
+                                                 allocator);
+        }
+
+        // extract block precisions
+        const auto pdata =
+            jacobi->get_parameters()
+                .storage_optimization.block_wise.get_const_data();
+        if (pdata) {
+            add_or_set_member(precond_info, "block_precisions",
+                              rapidjson::Value(rapidjson::kArrayType),
+                              allocator);
+            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
+                precond_info["block_precisions"].PushBack(
+                    static_cast<int>(pdata[i]), allocator);
+            }
+        }
+
+        // extract condition numbers
+        const auto cdata = jacobi->get_conditioning();
+        if (cdata) {
+            add_or_set_member(precond_info, "block_conditioning",
+                              rapidjson::Value(rapidjson::kArrayType),
+                              allocator);
+            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
+                precond_info["block_conditioning"].PushBack(cdata[i],
+                                                            allocator);
+            }
+        }
+    }
+}
+
+
 template <typename RandomEngine>
 void solve_system(
     const std::string &solver_name, const std::string &precond_name,
-    const char *precond_solver_name, std::shared_ptr<const gko::Executor> exec,
+    const char *precond_solver_name, std::shared_ptr<gko::Executor> exec,
     std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype> *b,
     const vec<etype> *x, rapidjson::Value &test_case,
     rapidjson::MemoryPoolAllocator<> &allocator, RandomEngine &rhs_engine) try {
@@ -237,19 +286,50 @@ void solve_system(
                       rapidjson::Value(rapidjson::kArrayType), allocator);
     auto rhs_norm = compute_norm(lend(b));
     add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+    for (auto stage : {"generate", "apply"}) {
+        add_or_set_member(solver_json, stage,
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+        add_or_set_member(solver_json[stage], "components",
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+    }
 
     if (FLAGS_detailed) {
         // slow run, gets the recurrent and true residuals of each iteration
         auto x_clone = clone(x);
 
+        auto gen_logger = std::make_shared<OperationLogger>(exec);
+        exec->add_logger(gen_logger);
+
         auto precond = precond_factory.at(precond_name)(exec);
         auto solver = solver_factory.at(solver_name)(exec, give(precond))
                           ->generate(system_matrix);
+
+        exec->remove_logger(gko::lend(gen_logger));
+        gen_logger->write_data(solver_json["generate"]["components"], allocator,
+                               1);
+
+        if (auto prec =
+                dynamic_cast<const gko::Preconditionable *>(lend(solver))) {
+            add_or_set_member(solver_json, "preconditioner",
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+            write_precond_info(lend(clone(get_executor()->get_master(),
+                                          prec->get_preconditioner())),
+                               solver_json["preconditioner"], allocator);
+        }
+
+        auto apply_logger = std::make_shared<OperationLogger>(exec);
+        exec->add_logger(apply_logger);
         auto res_logger = std::make_shared<ResidualLogger<etype>>(
             exec, lend(system_matrix), b, solver_json["recurrent_residuals"],
             solver_json["true_residuals"], allocator);
         solver->add_logger(res_logger);
+
         solver->apply(lend(b), lend(x_clone));
+
+        exec->remove_logger(gko::lend(apply_logger));
+        apply_logger->write_data(solver_json["apply"]["components"], allocator,
+                                 1);
     }
 
     // timed run
@@ -257,20 +337,33 @@ void solve_system(
         auto x_clone = clone(x);
 
         exec->synchronize();
-        auto tic = std::chrono::system_clock::now();
+        auto g_tic = std::chrono::system_clock::now();
 
         auto precond = precond_factory.at(precond_name)(exec);
-        auto solver = solver_factory.at(solver_name)(exec, give(precond));
-        solver->generate(system_matrix)->apply(lend(b), lend(x_clone));
+        auto solver = solver_factory.at(solver_name)(exec, give(precond))
+                          ->generate(system_matrix);
 
         exec->synchronize();
-        auto tac = std::chrono::system_clock::now();
+        auto g_tac = std::chrono::system_clock::now();
+        auto generate_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac - g_tic);
+        add_or_set_member(solver_json["generate"], "time",
+                          generate_time.count(), allocator);
 
-        auto time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
+        exec->synchronize();
+        auto a_tic = std::chrono::system_clock::now();
+
+        solver->apply(lend(b), lend(x_clone));
+
+        exec->synchronize();
+        auto a_tac = std::chrono::system_clock::now();
+        auto apply_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac - a_tic);
+        add_or_set_member(solver_json["apply"], "time", apply_time.count(),
+                          allocator);
+
         auto residual =
             compute_residual_norm(lend(system_matrix), lend(b), lend(x_clone));
-        add_or_set_member(solver_json, "time", time.count(), allocator);
         add_or_set_member(solver_json, "residual_norm", residual, allocator);
     }
 

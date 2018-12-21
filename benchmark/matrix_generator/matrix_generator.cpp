@@ -34,7 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
-#include <cmath>
+#include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iostream>
 
@@ -77,7 +78,7 @@ void print_config_error_and_exit(int code = 1)
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << input_format << std::endl;
-    exit(code);
+    std::exit(code);
 }
 
 

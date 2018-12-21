@@ -35,7 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_BENCHMARK_UTILS_GENERAL_HPP_
 
 
+#include <ginkgo/ginkgo.hpp>
+
+
 #include <array>
+#include <fstream>
 #include <functional>
 #include <map>
 #include <ostream>
@@ -161,7 +165,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
 
 
 // returns the appropriate executor, as set by the executor flag
-std::shared_ptr<const gko::Executor> get_executor()
+std::shared_ptr<gko::Executor> get_executor()
 {
     static auto exec = executor_factory.at(FLAGS_executor)();
     return exec;

@@ -36,8 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <exception>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
@@ -99,7 +103,7 @@ void print_config_error_and_exit()
               << "    { \"filename\": \"my_file.mtx\" },\n"
               << "    { \"filename\": \"my_file2.mtx\" }\n"
               << "  ]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 
@@ -301,7 +305,7 @@ int main(int argc, char *argv[])
               << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl;
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = get_executor();
     auto &engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
