@@ -206,11 +206,14 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
+inline bool apply_gauss_jordan_transform(IndexType row, IndexType col,
                                          IndexType block_size, ValueType *block,
                                          size_type stride)
 {
     const auto d = block[row * stride + col];
+    if (d == zero<ValueType>()) {
+        return false;
+    }
     for (IndexType i = 0; i < block_size; ++i) {
         block[i * stride + col] /= -d;
     }
@@ -225,6 +228,7 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
         block[row * stride + j] /= d;
     }
     block[row * stride + col] = one<ValueType>() / d;
+    return true;
 }
 
 
@@ -267,7 +271,7 @@ inline void permute_and_transpose_block(IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-inline void invert_block(IndexType block_size, IndexType *perm,
+inline bool invert_block(IndexType block_size, IndexType *perm,
                          ValueType *block, size_type stride)
 {
     using std::swap;
@@ -276,8 +280,13 @@ inline void invert_block(IndexType block_size, IndexType *perm,
             choose_pivot(block_size - k, block + k * stride + k, stride) + k;
         swap_rows(k, cp, block_size, block, stride);
         swap(perm[k], perm[cp]);
-        apply_gauss_jordan_transform(k, k, block_size, block, stride);
+        auto status =
+            apply_gauss_jordan_transform(k, k, block_size, block, stride);
+        if (!status) {
+            return false;
+        }
     }
+    return true;
 }
 
 
@@ -298,9 +307,13 @@ inline bool validate_precision_reduction_feasibility(IndexType block_size,
     }
     auto cond =
         compute_inf_norm(block_size, block_size, tmp.data(), block_size);
-    invert_block(block_size, perm.data(), tmp.data(), block_size);
+    auto succeeded =
+        invert_block(block_size, perm.data(), tmp.data(), block_size);
+    if (!succeeded) {
+        return false;
+    }
     cond *= compute_inf_norm(block_size, block_size, tmp.data(), block_size);
-    return cond > 0.0 &&
+    return cond >= 1.0 &&
            cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
 }
 
