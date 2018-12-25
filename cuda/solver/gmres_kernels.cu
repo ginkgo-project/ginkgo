@@ -206,29 +206,6 @@ namespace kernel {
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void givens_rotation_kernel(
-    ValueType *next_krylov_basis, ValueType *givens_sin, ValueType *givens_cos,
-    ValueType *hessenberg_iter, const size_type iter,
-    const stopping_status *stop_status)
-{}
-
-
-template <size_type block_size, typename ValueType>
-__global__
-    __launch_bounds__(block_size) void calculate_next_residual_norm_kernel(
-        ValueType *givens_sin, ValueType *givens_cos, ValueType *residual_norm,
-        ValueType *residual_norms, const ValueType *b_norm,
-        const size_type iter, const stopping_status *stop_status)
-{}
-
-
-}  // namespace kernel
-
-
-namespace kernel {
-
-
-template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void minus_scaled(
     size_type num_rows, size_type num_cols, size_type num_alpha_cols,
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ x,
@@ -355,6 +332,143 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
+namespace kernel {
+
+
+template <typename ValueType>
+__device__ void calculate_sin_and_cos(const size_type num_cols,
+                                      const ValueType *hessenberg_iter,
+                                      ValueType *givens_sin,
+                                      ValueType *givens_cos,
+                                      const size_type iter)
+{
+    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
+
+    if (hessenberg_iter[iter * num_cols + local_id] == zero<ValueType>()) {
+        givens_cos[iter * num_cols + local_id] = zero<ValueType>();
+        givens_sin[iter * num_cols + local_id] = one<ValueType>();
+    } else {
+        auto hypotenuse =
+            sqrt(hessenberg_iter[iter * num_cols + local_id] *
+                     hessenberg_iter[iter * num_cols + local_id] +
+                 hessenberg_iter[(iter + 1) * num_cols + local_id] *
+                     hessenberg_iter[(iter + 1) * num_cols + local_id]);
+        givens_cos[iter * num_cols + local_id] =
+            abs(hessenberg_iter[iter * num_cols + local_id]) / hypotenuse;
+        givens_sin[iter * num_cols + local_id] =
+            givens_cos[iter * num_cols + local_id] *
+            hessenberg_iter[(iter + 1) * num_cols + local_id] /
+            hessenberg_iter[iter * num_cols + local_id];
+    }
+}
+
+
+template <typename ValueType>
+__device__ void claculate_residual_norm(
+    const size_type num_cols, const ValueType *givens_sin,
+    const ValueType *givens_cos, ValueType *residual_norm,
+    ValueType *residual_norms, const ValueType *b_norm, const size_type iter)
+{
+    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
+
+    residual_norms[(iter + 1) * num_cols + local_id] =
+        -givens_sin[iter * num_cols + local_id] *
+        residual_norms[iter * num_cols + local_id];
+    residual_norms[iter * num_cols + local_id] =
+        givens_cos[iter * num_cols + local_id] *
+        residual_norms[iter * num_cols + local_id];
+    residual_norm[local_id] =
+        abs(residual_norms[(iter + 1) * num_cols + local_id]) /
+        b_norm[local_id];
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void givens_rotation(
+    const size_type num_rows, const size_type num_cols,
+    ValueType *__restrict__ hessenberg_iter, ValueType *__restrict__ givens_sin,
+    ValueType *__restrict__ givens_cos, ValueType *__restrict__ residual_norm,
+    ValueType *__restrict__ residual_norms,
+    const ValueType *__restrict__ b_norm, const size_type iter,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
+    __shared__ UninitializedArray<ValueType, block_size> tmp;
+
+    if (local_id >= num_cols || stop_status[local_id].has_stopped()) return;
+
+    for (size_type i = 0; i < iter; ++i) {
+        tmp[local_id] = givens_cos[i * num_cols + local_id] *
+                            hessenberg_iter[i * num_cols + local_id] +
+                        givens_sin[i * num_cols + local_id] *
+                            hessenberg_iter[(i + 1) * num_cols + local_id];
+        __syncthreads();
+        hessenberg_iter[(i + 1) * num_cols + local_id] =
+            givens_cos[i * num_cols + local_id] *
+                hessenberg_iter[(i + 1) * num_cols + local_id] -
+            givens_sin[i * num_cols + local_id] *
+                hessenberg_iter[i * num_cols + local_id];
+        hessenberg_iter[i * num_cols + local_id] = tmp[local_id];
+        __syncthreads();
+    }
+    // for j in 1:iter - 1
+    //     temp             =  cos(j)*hessenberg(j) +
+    //                         sin(j)*hessenberg(j+1)
+    //     hessenberg(j+1)  = -sin(j)*hessenberg(j) +
+    //                         cos(j)*hessenberg(j+1)
+    //     hessenberg(j)    =  temp;
+    // end
+
+    calculate_sin_and_cos(num_cols, hessenberg_iter, givens_sin, givens_cos,
+                          iter);
+    // Calculate sin and cos
+
+    hessenberg_iter[iter * num_cols + local_id] =
+        givens_cos[iter * num_cols + local_id] *
+            hessenberg_iter[iter * num_cols + local_id] +
+        givens_sin[iter * num_cols + local_id] *
+            hessenberg_iter[(iter + 1) * num_cols + local_id];
+    hessenberg_iter[(iter + 1) * num_cols + local_id] = zero<ValueType>();
+    // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
+    //                      sin(iter)*hessenberg(iter)
+    // hessenberg(iter+1) = 0
+
+    claculate_residual_norm(num_cols, givens_sin, givens_cos, residual_norm,
+                            residual_norms, b_norm, iter);
+    // Calculate residual norm
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType>
+void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
+                     matrix::Dense<ValueType> *givens_sin,
+                     matrix::Dense<ValueType> *givens_cos,
+                     matrix::Dense<ValueType> *hessenberg_iter,
+                     matrix::Dense<ValueType> *residual_norm,
+                     matrix::Dense<ValueType> *residual_norms,
+                     const matrix::Dense<ValueType> *b_norm,
+                     const size_type iter,
+                     const Array<stopping_status> *stop_status)
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 block_dim{cuda_config::warp_size, 1,
+                         block_size / cuda_config::warp_size};
+
+    kernel::givens_rotation<block_size><<<1, block_dim>>>(
+        hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
+        as_cuda_type(hessenberg_iter->get_values()),
+        as_cuda_type(givens_sin->get_values()),
+        as_cuda_type(givens_cos->get_values()),
+        as_cuda_type(residual_norm->get_values()),
+        as_cuda_type(residual_norms->get_values()),
+        as_cuda_type(b_norm->get_const_values()), iter,
+        as_cuda_type(stop_status->get_const_data()));
+}
+
+
 template <typename ValueType>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
@@ -369,6 +483,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 {
     finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
+    givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
+                    residual_norm, residual_norms, b_norm, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
