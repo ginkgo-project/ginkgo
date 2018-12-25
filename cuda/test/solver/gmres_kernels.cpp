@@ -81,11 +81,14 @@ protected:
 
     void initialize_data()
     {
-        int m = 597;
-        int n = 43;
+        int m = 10;
+        int n = 5;
+        int iter = 5;
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);
+        next_krylov_basis = gen_mtx(m, n);
+        hessenberg_iter = gen_mtx(iter + 2, n);
         residual = gen_mtx(m, n);
         residual_norm = gen_mtx(1, n);
         residual_norms = gen_mtx(gko::solver::default_krylov_dim + 1, n);
@@ -108,6 +111,10 @@ protected:
         d_b_norm->copy_from(b_norm.get());
         d_krylov_bases = Mtx::create(cuda);
         d_krylov_bases->copy_from(krylov_bases.get());
+        d_next_krylov_basis = Mtx::create(cuda);
+        d_next_krylov_basis->copy_from(next_krylov_basis.get());
+        d_hessenberg_iter = Mtx::create(cuda);
+        d_hessenberg_iter->copy_from(hessenberg_iter.get());
         d_residual = Mtx::create(cuda);
         d_residual->copy_from(residual.get());
         d_residual_norm = Mtx::create(cuda);
@@ -161,6 +168,8 @@ protected:
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
+    std::unique_ptr<Mtx> next_krylov_basis;
+    std::unique_ptr<Mtx> hessenberg_iter;
     std::unique_ptr<Mtx> residual;
     std::unique_ptr<Mtx> residual_norm;
     std::unique_ptr<Mtx> residual_norms;
@@ -172,6 +181,8 @@ protected:
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
+    std::unique_ptr<Mtx> d_next_krylov_basis;
+    std::unique_ptr<Mtx> d_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
     std::unique_ptr<Mtx> d_residual_norm;
     std::unique_ptr<Mtx> d_residual_norms;
@@ -217,6 +228,29 @@ TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norms, residual_norms, 1e-14);
     ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+}
+
+
+TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
+{
+    initialize_data();
+    int iter = 5;
+
+    gko::kernels::reference::gmres::step_1(
+        ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+        residual_norm.get(), residual_norms.get(), krylov_bases.get(),
+        hessenberg_iter.get(), b_norm.get(), iter, stop_status.get());
+    gko::kernels::cuda::gmres::step_1(
+        cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
+        d_residual_norm.get(), d_residual_norms.get(), d_krylov_bases.get(),
+        d_hessenberg_iter.get(), d_b_norm.get(), iter, d_stop_status.get());
+
+    ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
+    ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
+    ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+    ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+    ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    ASSERT_MTX_NEAR(d_residual_norms, residual_norms, 1e-14);
 }
 
 
