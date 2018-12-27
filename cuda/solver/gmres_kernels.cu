@@ -208,25 +208,6 @@ namespace kernel {
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void minus_scaled(
-    size_type num_rows, size_type num_cols, size_type num_alpha_cols,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ x,
-    size_type stride_x, ValueType *__restrict__ y, size_type stride_y)
-{
-    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
-    if (row_id < num_rows && alpha[alpha_id] != zero<ValueType>()) {
-        y[row_id * stride_y + col_id] -=
-            x[row_id * stride_x + col_id] * alpha[alpha_id];
-    }
-}
-
-
-template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void divide(
     size_type num_rows, size_type num_cols, size_type num_alpha_cols,
     const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
@@ -248,32 +229,6 @@ __global__ __launch_bounds__(block_size) void divide(
 
 
 }  // namespace kernel
-
-
-template <typename ValueType>
-void minus_scaled(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *alpha,
-                  const matrix::Dense<ValueType> *x,
-                  matrix::Dense<ValueType> *y)
-{
-    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        cublas::axpy(exec->get_cublas_handle(), x->get_size()[0],
-                     alpha->get_const_values(), x->get_const_values(),
-                     x->get_stride(), y->get_values(), y->get_stride());
-    } else {
-        // TODO: tune this parameter
-        constexpr auto block_size = default_block_size;
-        const dim3 grid_dim =
-            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-        const dim3 block_dim{cuda_config::warp_size, 1,
-                             block_size / cuda_config::warp_size};
-        kernel::minus_scaled<block_size><<<grid_dim, block_dim>>>(
-            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
-            as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(x->get_const_values()), x->get_stride(),
-            as_cuda_type(y->get_values()), y->get_stride());
-    }
-}
 
 
 template <typename ValueType>
@@ -306,6 +261,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *hessenberg_iter,
                     const size_type iter, const stopping_status *stop_status)
 {
+    auto neg_one_op =
+        initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
+
     for (size_type i = 0; i < iter + 1; ++i) {
         auto krylov_basis = krylov_bases->create_submatrix(
             span{0, next_krylov_basis->get_size()[0]},
@@ -315,8 +273,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
             span{i, i + 1}, span{0, next_krylov_basis->get_size()[1]});
         dense::compute_dot(exec, next_krylov_basis, krylov_basis.get(),
                            hessenberg_iter_column.get());
-        minus_scaled(exec, hessenberg_iter_column.get(), krylov_basis.get(),
-                     next_krylov_basis);
+        dense::scale(exec, neg_one_op.get(), krylov_basis.get());
+        dense::add_scaled(exec, hessenberg_iter_column.get(),
+                          krylov_basis.get(), next_krylov_basis);
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
