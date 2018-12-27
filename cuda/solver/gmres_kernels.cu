@@ -521,6 +521,28 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular(
 }
 
 
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void calculate_Qy(
+    const size_type num_rows, const size_type num_cols, const size_type num_rhs,
+    const ValueType *__restrict__ krylov_bases, const ValueType *__restrict__ y,
+    ValueType *__restrict__ before_preconditioner,
+    const size_type *__restrict__ final_iter_nums)
+{
+    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_rhs;
+    const auto col_id = global_id % num_rhs;
+
+    before_preconditioner[global_id] = zero<ValueType>();
+    for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
+        before_preconditioner[global_id] +=
+            krylov_bases[row_id * num_cols + j * num_rhs + col_id] *
+            y[j * num_rhs + col_id];
+    }
+}
+
+
 }  // namespace kernel
 
 
@@ -551,6 +573,31 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
              const Array<size_type> *final_iter_nums,
              const LinOp *preconditioner)
 {
+    auto before_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+    auto after_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(x);
+
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
+    const dim3 block_dim{cuda_config::warp_size, 1,
+                         block_size / cuda_config::warp_size};
+
+    kernel::calculate_Qy<block_size><<<grid_dim, block_dim>>>(
+        before_preconditioner->get_size()[0], krylov_bases->get_size()[1],
+        before_preconditioner->get_size()[1],
+        as_cuda_type(krylov_bases->get_const_values()),
+        as_cuda_type(y->get_const_values()),
+        as_cuda_type(before_preconditioner.get()->get_values()),
+        as_cuda_type(final_iter_nums->get_const_data()));
+
+    preconditioner->apply(before_preconditioner.get(),
+                          after_preconditioner.get());
+
+    auto one_op =
+        initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+    dense::add_scaled(exec, one_op.get(), after_preconditioner.get(), x);
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
 }
