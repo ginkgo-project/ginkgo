@@ -455,6 +455,8 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      const size_type iter,
                      const Array<stopping_status> *stop_status)
 {
+    // TODO: tune this parameter
+    // TODO: when number of right hand side is larger than block_size
     constexpr auto block_size = default_block_size;
     const dim3 block_dim{cuda_config::warp_size, 1,
                          block_size / cuda_config::warp_size};
@@ -492,39 +494,68 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
-namespace {
+namespace kernel {
 
 
-template <typename ValueType>
-__device__ void solve_upper_triangular_kernel(const ValueType *residual_norms,
-                                              ValueType *hessenberg,
-                                              ValueType *y,
-                                              size_type *final_iter_nums)
-{}
-
-
-template <typename ValueType>
-__device__ void solve_x_kernel(ValueType *krylov_bases, ValueType *y,
-                               ValueType *x, size_type *final_iter_nums,
-                               LinOp *preconditioner)
-{}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void solve_upper_triangular(
+    size_type num_cols, size_type num_rhs,
     const ValueType *__restrict__ residual_norms,
-    ValueType *__restrict__ krylov_bases, ValueType *__restrict__ hessenberg,
-    ValueType *__restrict__ y, ValueType *__restrict__ x,
-    const size_type *__restrict__ final_iter_nums, const LinOp *preconditioner)
+    ValueType *__restrict__ hessenberg, ValueType *__restrict__ y,
+    const size_type *__restrict__ final_iter_nums)
 {
-    solve_upper_triangular_kernel(residual_norms, hessenberg, y,
-                                  final_iter_nums);
-    solve_x_kernel(krylov_bases, y, x, final_iter_nums, preconditioner);
+    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
+
+    if (local_id >= num_rhs) return;
+
+    for (int i = final_iter_nums[local_id] - 1; i >= 0; --i) {
+        auto temp = residual_norms[i * num_rhs + local_id];
+        for (size_type j = i + 1; j < final_iter_nums[local_id]; ++j) {
+            temp -= hessenberg[i * num_cols + j * num_rhs + local_id] *
+                    y[j * num_rhs + local_id];
+        }
+        y[i * num_rhs + local_id] =
+            temp / hessenberg[i * num_cols + i * num_rhs + local_id];
+        __syncthreads();
+    }
+    // Solve upper triangular.
+    // y = hessenberg \ residual_norms
 }
 
 
-}  // namespace
+}  // namespace kernel
+
+
+template <typename ValueType>
+void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
+                            matrix::Dense<ValueType> *hessenberg,
+                            matrix::Dense<ValueType> *y,
+                            const Array<size_type> *final_iter_nums)
+{
+    // TODO: tune this parameter
+    // TODO: when number of right hand side is larger than block_size
+    constexpr auto block_size = default_block_size;
+    const dim3 block_dim{cuda_config::warp_size, 1,
+                         block_size / cuda_config::warp_size};
+
+    kernel::solve_upper_triangular<block_size><<<1, block_dim>>>(
+        hessenberg->get_size()[1], residual_norms->get_size()[1],
+        as_cuda_type(residual_norms->get_const_values()),
+        as_cuda_type(hessenberg->get_values()), as_cuda_type(y->get_values()),
+        as_cuda_type(final_iter_nums->get_const_data()));
+}
+
+
+template <typename ValueType>
+void solve_x(std::shared_ptr<const CudaExecutor> exec,
+             matrix::Dense<ValueType> *krylov_bases,
+             matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+             const Array<size_type> *final_iter_nums,
+             const LinOp *preconditioner)
+{
+    // Solve x
+    // x = x + preconditioner_ * krylov_bases * y
+}
 
 
 template <typename ValueType>
@@ -536,7 +567,8 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const Array<size_type> *final_iter_nums,
             const LinOp *preconditioner)
 {
-    NOT_IMPLEMENTED;
+    solve_upper_triangular(residual_norms, hessenberg, y, final_iter_nums);
+    solve_x(exec, krylov_bases, y, x, final_iter_nums, preconditioner);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
