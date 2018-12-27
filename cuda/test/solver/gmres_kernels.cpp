@@ -83,12 +83,16 @@ protected:
     {
         int m = 10;
         int n = 5;
-        int iter = 5;
+        preconditioner = gen_mtx(m, m);
+        x = gen_mtx(m, n);
+        y = gen_mtx(gko::solver::default_krylov_dim, n);
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);
         next_krylov_basis = gen_mtx(m, n);
-        hessenberg_iter = gen_mtx(iter + 2, n);
+        hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
+                             gko::solver::default_krylov_dim * n);
+        hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim + 1, n);
         residual = gen_mtx(m, n);
         residual_norm = gen_mtx(1, n);
         residual_norms = gen_mtx(gko::solver::default_krylov_dim + 1, n);
@@ -102,9 +106,15 @@ protected:
         final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
             new gko::Array<gko::size_type>(ref, n));
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
-            final_iter_nums->get_data()[i] = 0;
+            final_iter_nums->get_data()[i] = 5;
         }
 
+        d_preconditioner = Mtx::create(cuda);
+        d_preconditioner->copy_from(preconditioner.get());
+        d_x = Mtx::create(cuda);
+        d_x->copy_from(x.get());
+        d_y = Mtx::create(cuda);
+        d_y->copy_from(y.get());
         d_b = Mtx::create(cuda);
         d_b->copy_from(b.get());
         d_b_norm = Mtx::create(cuda);
@@ -113,6 +123,8 @@ protected:
         d_krylov_bases->copy_from(krylov_bases.get());
         d_next_krylov_basis = Mtx::create(cuda);
         d_next_krylov_basis->copy_from(next_krylov_basis.get());
+        d_hessenberg = Mtx::create(cuda);
+        d_hessenberg->copy_from(hessenberg.get());
         d_hessenberg_iter = Mtx::create(cuda);
         d_hessenberg_iter->copy_from(hessenberg_iter.get());
         d_residual = Mtx::create(cuda);
@@ -165,10 +177,14 @@ protected:
 
     std::ranlux48 rand_engine;
 
+    std::unique_ptr<Mtx> preconditioner;
+    std::unique_ptr<Mtx> x;
+    std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
     std::unique_ptr<Mtx> next_krylov_basis;
+    std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
     std::unique_ptr<Mtx> residual;
     std::unique_ptr<Mtx> residual_norm;
@@ -178,10 +194,14 @@ protected:
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
     std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
 
+    std::unique_ptr<Mtx> d_preconditioner;
+    std::unique_ptr<Mtx> d_x;
+    std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
     std::unique_ptr<Mtx> d_next_krylov_basis;
+    std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
     std::unique_ptr<Mtx> d_residual_norm;
@@ -251,6 +271,22 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norms, residual_norms, 1e-14);
+}
+
+
+TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
+{
+    initialize_data();
+
+    gko::kernels::reference::gmres::step_2(
+        ref, residual_norms.get(), krylov_bases.get(), hessenberg.get(),
+        y.get(), x.get(), final_iter_nums.get(), preconditioner.get());
+    gko::kernels::cuda::gmres::step_2(
+        cuda, d_residual_norms.get(), d_krylov_bases.get(), d_hessenberg.get(),
+        d_y.get(), d_x.get(), d_final_iter_nums.get(), d_preconditioner.get());
+
+    ASSERT_MTX_NEAR(d_y, y, 1e-14);
+    ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
