@@ -81,8 +81,8 @@ protected:
 
     void initialize_data()
     {
-        int m = 10;
-        int n = 5;
+        int m = 597;
+        int n = 43;
         preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
