@@ -39,11 +39,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/base/extended_float.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "reference/components/matrix_operations.hpp"
 
@@ -204,11 +206,14 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
+inline bool apply_gauss_jordan_transform(IndexType row, IndexType col,
                                          IndexType block_size, ValueType *block,
                                          size_type stride)
 {
     const auto d = block[row * stride + col];
+    if (d == zero<ValueType>()) {
+        return false;
+    }
     for (IndexType i = 0; i < block_size; ++i) {
         block[i * stride + col] /= -d;
     }
@@ -223,6 +228,7 @@ inline void apply_gauss_jordan_transform(IndexType row, IndexType col,
         block[row * stride + j] /= d;
     }
     block[row * stride + col] = one<ValueType>() / d;
+    return true;
 }
 
 
@@ -265,7 +271,7 @@ inline void permute_and_transpose_block(IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-inline void invert_block(IndexType block_size, IndexType *perm,
+inline bool invert_block(IndexType block_size, IndexType *perm,
                          ValueType *block, size_type stride)
 {
     using std::swap;
@@ -274,8 +280,41 @@ inline void invert_block(IndexType block_size, IndexType *perm,
             choose_pivot(block_size - k, block + k * stride + k, stride) + k;
         swap_rows(k, cp, block_size, block, stride);
         swap(perm[k], perm[cp]);
-        apply_gauss_jordan_transform(k, k, block_size, block, stride);
+        auto status =
+            apply_gauss_jordan_transform(k, k, block_size, block, stride);
+        if (!status) {
+            return false;
+        }
     }
+    return true;
+}
+
+
+template <typename ReducedType, typename ValueType, typename IndexType>
+inline bool validate_precision_reduction_feasibility(IndexType block_size,
+                                                     const ValueType *block,
+                                                     size_type stride)
+{
+    using gko::detail::float_traits;
+    std::vector<ValueType> tmp(block_size * block_size);
+    std::vector<IndexType> perm(block_size);
+    std::iota(begin(perm), end(perm), IndexType{0});
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            tmp[i * block_size + j] = static_cast<ValueType>(
+                static_cast<ReducedType>(block[i * stride + j]));
+        }
+    }
+    auto cond =
+        compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    auto succeeded =
+        invert_block(block_size, perm.data(), tmp.data(), block_size);
+    if (!succeeded) {
+        return false;
+    }
+    cond *= compute_inf_norm(block_size, block_size, tmp.data(), block_size);
+    return cond >= 1.0 &&
+           cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
 }
 
 
@@ -300,8 +339,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type g = 0; g < num_blocks; g += group_size) {
         std::vector<Array<ValueType>> block(group_size);
         std::vector<Array<IndexType>> perm(group_size);
-        std::vector<precision_reduction> local_prec(
-            group_size, precision_reduction::autodetect());
+        std::vector<uint32> pr_descriptors(group_size, uint32{} - 1);
         // extract group of blocks, invert them, figure out storage precision
         for (size_type b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
@@ -326,24 +364,33 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                     compute_inf_norm(block_size, block_size,
                                      block[b].get_const_data(), block_size);
             }
-            local_prec[b] = prec ? prec[g + b] : precision_reduction();
-            if (local_prec[b] == precision_reduction::autodetect()) {
-                using preconditioner::detail::get_optimal_storage_reduction;
-                // TODO: provide verificators to allow for reduced precision
-                auto truncate_only = [] { return false; };
-                local_prec[b] = get_optimal_storage_reduction<ValueType>(
-                    accuracy, cond[g + b], truncate_only, truncate_only);
+            const auto local_prec = prec ? prec[g + b] : precision_reduction();
+            if (local_prec == precision_reduction::autodetect()) {
+                using preconditioner::detail::get_supported_storage_reductions;
+                pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
+                    accuracy, cond[g + b],
+                    [&block_size, &block, &b] {
+                        using target = reduce_precision<ValueType>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    },
+                    [&block_size, &block, &b] {
+                        using target =
+                            reduce_precision<reduce_precision<ValueType>>;
+                        return validate_precision_reduction_feasibility<target>(
+                            block_size, block[b].get_const_data(), block_size);
+                    });
+            } else {
+                pr_descriptors[b] = preconditioner::detail::
+                    precision_reduction_descriptor::singleton(local_prec);
             }
         }
 
         // make sure everyone in the group uses the same precision
-        // TODO: relax this requirement to only the same number of bits
-        const auto p =
-            std::accumulate(begin(local_prec), end(local_prec),
-                            precision_reduction::autodetect(),
-                            [](precision_reduction x, precision_reduction y) {
-                                return precision_reduction::common(x, y);
-                            });
+        const auto p = preconditioner::detail::get_optimal_storage_reduction(
+            std::accumulate(begin(pr_descriptors), end(pr_descriptors),
+                            uint32{} - 1,
+                            [](uint32 x, uint32 y) { return x & y; }));
 
         // store the blocks
         for (size_type b = 0; b < group_size; ++b) {

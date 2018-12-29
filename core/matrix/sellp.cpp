@@ -31,14 +31,16 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sellp.hpp"
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -47,18 +49,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
+namespace sellp {
+
+
+GKO_REGISTER_OPERATION(spmv, sellp::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
+GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
+
+
+}  // namespace sellp
 
 
 namespace {
-
-
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, sellp::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense,
-                           sellp::convert_to_dense<TplArgs...>);
-};
 
 
 template <typename ValueType, typename IndexType>
@@ -104,8 +106,7 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
     this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+        sellp::make_spmv(this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -114,10 +115,8 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
-            as<Dense>(x)));
+    this->get_executor()->run(sellp::make_advanced_spmv(
+        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
 }
 
 
@@ -126,9 +125,7 @@ void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(sellp::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 

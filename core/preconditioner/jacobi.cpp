@@ -31,50 +31,46 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/jacobi.hpp"
+#include <ginkgo/core/preconditioner/jacobi.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/base/extended_float.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
 
 namespace gko {
 namespace preconditioner {
-namespace {
+namespace jacobi {
 
 
-template <typename... TArgs>
-struct JacobiOperation {
-    GKO_REGISTER_OPERATION(simple_apply, jacobi::simple_apply<TArgs...>);
-    GKO_REGISTER_OPERATION(apply, jacobi::apply<TArgs...>);
-    GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks<TArgs...>);
-    GKO_REGISTER_OPERATION(generate, jacobi::generate<TArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense,
-                           jacobi::convert_to_dense<TArgs...>);
-    GKO_REGISTER_OPERATION(initialize_precisions,
-                           jacobi::initialize_precisions);
-};
+GKO_REGISTER_OPERATION(simple_apply, jacobi::simple_apply);
+GKO_REGISTER_OPERATION(apply, jacobi::apply);
+GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
+GKO_REGISTER_OPERATION(generate, jacobi::generate);
+GKO_REGISTER_OPERATION(convert_to_dense, jacobi::convert_to_dense);
+GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
-}  // namespace
+}  // namespace jacobi
 
 
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using dense = matrix::Dense<ValueType>;
-    this->get_executor()->run(
-        JacobiOperation<ValueType, IndexType>::make_simple_apply_operation(
-            num_blocks_, parameters_.max_block_size, storage_scheme_,
-            parameters_.storage_optimization.block_wise,
-            parameters_.block_pointers, blocks_, as<dense>(b), as<dense>(x)));
+    this->get_executor()->run(jacobi::make_simple_apply(
+        num_blocks_, parameters_.max_block_size, storage_scheme_,
+        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
+        blocks_, as<dense>(b), as<dense>(x)));
 }
 
 
@@ -84,12 +80,11 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                               LinOp *x) const
 {
     using dense = matrix::Dense<ValueType>;
-    this->get_executor()->run(
-        JacobiOperation<ValueType, IndexType>::make_apply_operation(
-            num_blocks_, parameters_.max_block_size, storage_scheme_,
-            parameters_.storage_optimization.block_wise,
-            parameters_.block_pointers, blocks_, as<dense>(alpha), as<dense>(b),
-            as<dense>(beta), as<dense>(x)));
+    this->get_executor()->run(jacobi::make_apply(
+        num_blocks_, parameters_.max_block_size, storage_scheme_,
+        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
+        blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
+        as<dense>(x)));
 }
 
 
@@ -99,11 +94,10 @@ void Jacobi<ValueType, IndexType>::convert_to(
 {
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
-    exec->run(
-        JacobiOperation<ValueType, IndexType>::make_convert_to_dense_operation(
-            num_blocks_, parameters_.storage_optimization.block_wise,
-            parameters_.block_pointers, blocks_, storage_scheme_,
-            tmp->get_values(), tmp->get_stride()));
+    exec->run(jacobi::make_convert_to_dense(
+        num_blocks_, parameters_.storage_optimization.block_wise,
+        parameters_.block_pointers, blocks_, storage_scheme_, tmp->get_values(),
+        tmp->get_stride()));
     tmp->move_to(result);
 }
 
@@ -156,9 +150,8 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
     parameters_.block_pointers.resize_and_reset(system_matrix->get_size()[0] +
                                                 1);
     this->get_executor()->run(
-        JacobiOperation<ValueType, IndexType>::make_find_blocks_operation(
-            system_matrix, parameters_.max_block_size, num_blocks_,
-            parameters_.block_pointers));
+        jacobi::make_find_blocks(system_matrix, parameters_.max_block_size,
+                                 num_blocks_, parameters_.block_pointers));
     blocks_.resize_and_reset(
         storage_scheme_.compute_storage_space(num_blocks_));
 }
@@ -188,13 +181,12 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
         }
         Array<precision_reduction> tmp(
             exec, parameters_.block_pointers.get_num_elems() - 1);
-        exec->run(JacobiOperation<ValueType, IndexType>::
-                      make_initialize_precisions_operation(precisions, tmp));
+        exec->run(jacobi::make_initialize_precisions(precisions, tmp));
         precisions = std::move(tmp);
         conditioning_.resize_and_reset(num_blocks_);
     }
 
-    exec->run(JacobiOperation<ValueType, IndexType>::make_generate_operation(
+    exec->run(jacobi::make_generate(
         csr_mtx.get(), num_blocks_, parameters_.max_block_size,
         parameters_.accuracy, storage_scheme_, conditioning_, precisions,
         parameters_.block_pointers, blocks_));

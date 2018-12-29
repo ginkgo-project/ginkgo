@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cg.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,14 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/solver/cg_kernels.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 namespace {
 

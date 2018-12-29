@@ -34,7 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -56,7 +58,58 @@ namespace cuda {
  * A compile-time list of block sizes for which dedicated generate and apply
  * kernels should be compiled.
  */
-using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+using compiled_kernels = syn::value_list<int, 1, 13, 16, 32>;
+
+
+namespace {
+
+
+template <int max_block_size, typename ReducedType, typename Group,
+          typename ValueType, typename IndexType>
+__device__ __forceinline__ bool validate_precision_reduction_feasibility(
+    Group &__restrict__ group, IndexType block_size,
+    ValueType *__restrict__ row, ValueType *__restrict__ work, size_type stride)
+{
+    using gko::detail::float_traits;
+    // save original data and reduce precision
+    if (group.thread_rank() < block_size) {
+#pragma unroll
+        for (auto i = 0u; i < max_block_size; ++i) {
+            if (i >= block_size) {
+                break;
+            }
+            work[i * stride + group.thread_rank()] = row[i];
+            row[i] = static_cast<ValueType>(static_cast<ReducedType>(row[i]));
+        }
+    }
+
+    // compute the condition number
+    auto perm = group.thread_rank();
+    auto trans_perm = perm;
+    auto block_cond = compute_infinity_norm<max_block_size>(group, block_size,
+                                                            block_size, row);
+    auto succeeded =
+        invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
+    block_cond *= compute_infinity_norm<max_block_size>(group, block_size,
+                                                        block_size, row);
+
+    // restore original data
+    if (group.thread_rank() < block_size) {
+#pragma unroll
+        for (auto i = 0u; i < max_block_size; ++i) {
+            if (i >= block_size) {
+                break;
+            }
+            row[i] = work[i * stride + group.thread_rank()];
+        }
+    }
+
+    return succeeded && block_cond >= 1.0 &&
+           block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+}
+
+
+}  // namespace
 
 
 namespace kernel {
@@ -131,7 +184,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
                               : 0;
     auto perm = subwarp.thread_rank();
     auto trans_perm = subwarp.thread_rank();
-    auto prec = precision_reduction(2, 2);
+    auto prec_descriptor = ~uint32{};
     if (block_id < num_blocks) {
         auto block_cond = compute_infinity_norm<max_block_size>(
             subwarp, block_size, block_size, row);
@@ -139,31 +192,44 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
                                      trans_perm);
         block_cond *= compute_infinity_norm<max_block_size>(subwarp, block_size,
                                                             block_size, row);
-        prec = block_precisions[block_id];
         conditioning[block_id] = block_cond;
+        const auto prec = block_precisions[block_id];
+        prec_descriptor =
+            preconditioner::detail::precision_reduction_descriptor::singleton(
+                prec);
         if (prec == precision_reduction::autodetect()) {
-            using preconditioner::detail::get_optimal_storage_reduction;
-            // TODO: provide verificators to allow for reduced precision
-            auto truncate_only = [] { return false; };
-            prec = get_optimal_storage_reduction<ValueType>(
-                accuracy, block_cond, truncate_only, truncate_only);
+            using preconditioner::detail::get_supported_storage_reductions;
+            prec_descriptor = get_supported_storage_reductions<ValueType>(
+                accuracy, block_cond,
+                [&subwarp, &block_size, &row, &block_data, &storage_scheme,
+                 &block_id] {
+                    using target = reduce_precision<ValueType>;
+                    return validate_precision_reduction_feasibility<
+                        max_block_size, target>(
+                        subwarp, block_size, row,
+                        block_data +
+                            storage_scheme.get_global_block_offset(block_id),
+                        storage_scheme.get_stride());
+                },
+                [&subwarp, &block_size, &row, &block_data, &storage_scheme,
+                 &block_id] {
+                    using target =
+                        reduce_precision<reduce_precision<ValueType>>;
+                    return validate_precision_reduction_feasibility<
+                        max_block_size, target>(
+                        subwarp, block_size, row,
+                        block_data +
+                            storage_scheme.get_global_block_offset(block_id),
+                        storage_scheme.get_stride());
+                });
         }
     }
 
     // make sure all blocks in the group have the same precision
-    // TODO: relax this requirement to only the same number of bits
     const auto warp = group::tiled_partition<cuda_config::warp_size>(block);
-    // can only shuffle 4 byte multiples
-    struct alignas(uint32) wrapper {
-        __device__ wrapper(precision_reduction p = {}) : p{p} {}
-        __device__ operator precision_reduction() const { return p; }
-        precision_reduction p;
-    };
-    prec = reduce(warp, static_cast<wrapper>(prec), [](wrapper x, wrapper y) {
-        return static_cast<wrapper>(
-            precision_reduction::common(static_cast<precision_reduction>(x),
-                                        static_cast<precision_reduction>(y)));
-    });
+    const auto prec =
+        preconditioner::detail::get_optimal_storage_reduction(reduce(
+            warp, prec_descriptor, [](uint32 x, uint32 y) { return x & y; }));
 
     // store the block back into memory
     if (block_id < num_blocks) {
@@ -269,7 +335,7 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void generate(syn::compile_int_list<max_block_size>,
+void generate(syn::value_list<int, max_block_size>,
               const matrix::Csr<ValueType, IndexType> *mtx,
               remove_complex<ValueType> accuracy, ValueType *block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>
@@ -308,7 +374,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
+void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
            const precision_reduction *block_precisions,
            const IndexType *block_pointers, const ValueType *blocks,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
@@ -545,8 +611,8 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
                     },
-                    syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                    syn::compile_type_list<>(), system_matrix, accuracy,
+                    syn::value_list<int, cuda_config::min_warps_per_block>(),
+                    syn::type_list<>(), system_matrix, accuracy,
                     blocks.get_data(), storage_scheme, conditioning.get_data(),
                     block_precisions.get_data(),
                     block_pointers.get_const_data(), num_blocks);
@@ -597,8 +663,8 @@ void simple_apply(
                      [&](int compiled_block_size) {
                          return max_block_size <= compiled_block_size;
                      },
-                     syn::compile_int_list<cuda_config::min_warps_per_block>(),
-                     syn::compile_type_list<>(), num_blocks,
+                     syn::value_list<int, cuda_config::min_warps_per_block>(),
+                     syn::type_list<>(), num_blocks,
                      block_precisions.get_const_data(),
                      block_pointers.get_const_data(), blocks.get_const_data(),
                      storage_scheme, b->get_const_values() + col,

@@ -34,8 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+
+
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 

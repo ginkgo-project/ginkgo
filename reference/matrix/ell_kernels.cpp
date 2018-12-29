@@ -34,9 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {

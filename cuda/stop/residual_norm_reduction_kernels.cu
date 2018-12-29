@@ -34,9 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/stop/residual_norm_reduction.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 

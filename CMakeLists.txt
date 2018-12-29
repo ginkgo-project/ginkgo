@@ -42,22 +42,22 @@ if(BUILD_TESTS)
 endif()
 
 
-# Find important header files, store the definitions in include/config.h.in
+# Find important header files, store the definitions in include/ginkgo/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
-  DESTINATION "include/"
+  DESTINATION "include"
   FILES_MATCHING PATTERN "*.hpp"
   )
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
-  DESTINATION "include/"
+  DESTINATION "include"
   FILES_MATCHING PATTERN "*.hpp"
   )
 

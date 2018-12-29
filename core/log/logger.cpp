@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/logger.hpp"
+#include <ginkgo/core/log/logger.hpp>
 
 
 namespace gko {

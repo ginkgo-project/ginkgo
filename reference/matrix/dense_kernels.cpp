@@ -34,13 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-#include "core/base/math.hpp"
-#include "core/base/range_accessors.hpp"
-#include "core/matrix/coo.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/ell.hpp"
-#include "core/matrix/hybrid.hpp"
-#include "core/matrix/sellp.hpp"
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include <algorithm>

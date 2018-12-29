@@ -78,7 +78,7 @@ cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda
 
 *****************************<DECSRIPTION>**********************************/
 
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 
 int main()

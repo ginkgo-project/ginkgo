@@ -31,11 +31,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/executor.hpp"
+#include <ginkgo/core/base/executor.hpp>
 
 
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 
 
 namespace gko {
@@ -52,6 +53,13 @@ void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
 void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
 {
     this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
+}
+
+
+const char *Operation::get_name() const noexcept
+{
+    static auto name = name_demangling::get_dynamic_type(*this);
+    return name.c_str();
 }
 
 

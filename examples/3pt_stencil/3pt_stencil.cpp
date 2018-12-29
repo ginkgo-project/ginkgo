@@ -102,7 +102,7 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 `solve_system` function.
 *****************************<DECSRIPTION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 #include <map>
 #include <string>

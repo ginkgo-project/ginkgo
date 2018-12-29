@@ -31,64 +31,21 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <cmath>
+#include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
-#include <vector>
 
 
-#include <gflags/gflags.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
+#include "benchmark/utils/general.hpp"
 
 
 // some Ginkgo shortcuts
-using vector = gko::matrix::Dense<>;
-
-
-// helper for writing out rapidjson Values
-std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
-    if (!value.Accept(writer)) {
-        throw std::runtime_error("Error writing data");
-    }
-    return os;
-}
-
-
-// helper for setting rapidjson object members
-template <typename T, typename NameType, typename Allocator>
-void add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
-                       Allocator &&allocator)
-{
-    if (object.HasMember(name)) {
-        object[name] = std::forward<T>(value);
-    } else {
-        object.AddMember(rapidjson::Value::StringRefType(name),
-                         std::forward<T>(value),
-                         std::forward<Allocator>(allocator));
-    }
-}
-
-
-// helper for splitting a comma-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter)
-{
-    std::istringstream iss(s);
-    std::vector<std::string> tokens;
-    for (std::string token; std::getline(iss, token, delimiter);
-         tokens.push_back(token))
-        ;
-    return tokens;
-}
+using etype = double;
 
 
 // input validation
@@ -99,7 +56,7 @@ void print_config_error_and_exit()
               << "    { \"filename\": \"my_file.mtx\"},\n"
               << "    { \"filename\": \"my_file2.mtx\"}\n"
               << "  ]" << std::endl;
-    exit(1);
+    std::exit(1);
 }
 
 
@@ -111,18 +68,6 @@ void validate_option_object(const rapidjson::Value &value)
     }
 }
 
-
-// Command-line arguments
-
-DEFINE_string(backup, "",
-              "If set, the value is used as a file path of a backup"
-              " file where results are written after each test");
-
-DEFINE_string(double_buffer, "",
-              "If --backup is set, this variable can be set"
-              " to nonempty string to enable double"
-              " buffering of backup files, in case of a"
-              " crash when overwriting the backup");
 
 void initialize_argument_parsing(int *argc, char **argv[])
 {
@@ -152,30 +97,11 @@ void initialize_argument_parsing(int *argc, char **argv[])
 }
 
 
-// backup generation
-void backup_results(rapidjson::Document &results)
-{
-    static int next = 0;
-    static auto filenames = []() -> std::array<std::string, 2> {
-        if (FLAGS_double_buffer.size() > 0) {
-            return {FLAGS_backup, FLAGS_double_buffer};
-        } else {
-            return {FLAGS_backup, FLAGS_backup};
-        }
-    }();
-    if (FLAGS_backup.size() == 0) {
-        return;
-    }
-    std::ofstream ofs(filenames[next]);
-    ofs << results;
-    next = 1 - next;
-}
-
 // See en.wikipedia.org/wiki/Five-number_summary
 // Quartile computation uses Method 3 from en.wikipedia.org/wiki/Quartile
-template <typename Allocator>
 void compute_summary(const std::vector<gko::size_type> &dist,
-                     rapidjson::Value &out, Allocator &allocator)
+                     rapidjson::Value &out,
+                     rapidjson::MemoryPoolAllocator<> &allocator)
 {
     const auto q = dist.size() / 4;
     const auto r = dist.size() % 4;
@@ -226,9 +152,9 @@ double compute_moment(int degree, const std::vector<gko::size_type> &dist,
 
 
 // See en.wikipedia.org/wiki/Moment_(mathematics)
-template <typename Allocator>
 void compute_moments(const std::vector<gko::size_type> &dist,
-                     rapidjson::Value &out, Allocator &allocator)
+                     rapidjson::Value &out,
+                     rapidjson::MemoryPoolAllocator<> &allocator)
 {
     const auto mean = compute_moment(1, dist);
     add_or_set_member(out, "mean", mean, allocator);
@@ -257,7 +183,7 @@ void compute_distribution_properties(const std::vector<gko::size_type> &dist,
 
 
 template <typename Allocator>
-void extract_matrix_statistics(gko::matrix_data<double, gko::int64> &data,
+void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
                                rapidjson::Value &problem, Allocator &allocator)
 {
     std::vector<gko::size_type> row_dist(data.size[0]);
@@ -309,7 +235,7 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             std::ifstream ifs(test_case["filename"].GetString());
-            auto matrix = gko::read_raw<double, gko::int64>(ifs);
+            auto matrix = gko::read_raw<etype, gko::int64>(ifs);
             ifs.close();
 
             std::clog << "Matrix is of size (" << matrix.size[0] << ", "

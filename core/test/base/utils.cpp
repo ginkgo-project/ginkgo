@@ -31,13 +31,13 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/utils.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 
 
 namespace {

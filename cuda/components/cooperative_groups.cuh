@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cooperative_groups.h>
 
 
-#include "core/base/std_extensions.hpp"
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {

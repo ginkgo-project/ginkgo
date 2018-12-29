@@ -32,24 +32,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/residual_norm_reduction.hpp"
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 namespace gko {
 namespace stop {
-namespace {
+namespace residual_norm_reduction {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        residual_norm_reduction,
-        residual_norm_reduction::residual_norm_reduction<ValueType>);
-};
+GKO_REGISTER_OPERATION(residual_norm_reduction,
+                       residual_norm_reduction::residual_norm_reduction);
 
 
-}  // namespace
+}  // namespace residual_norm_reduction
 
 
 template <typename ValueType>
@@ -71,7 +69,7 @@ bool ResidualNormReduction<ValueType>::check_impl(
     bool all_converged = true;
 
     this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
+        residual_norm_reduction::make_residual_norm_reduction(
             dense_tau, starting_tau_.get(), parameters_.reduction_factor,
             stoppingId, setFinalized, stop_status, &this->device_storage_,
             &all_converged, one_changed));

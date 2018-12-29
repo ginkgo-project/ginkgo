@@ -31,14 +31,16 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/cgs.hpp"
+#include <ginkgo/core/solver/cgs.hpp>
 
 
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+
+
 #include "core/solver/cgs_kernels.hpp"
 
 
@@ -46,19 +48,16 @@ namespace gko {
 namespace solver {
 
 
-namespace {
+namespace cgs {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, cgs::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, cgs::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, cgs::step_2<ValueType>);
-    GKO_REGISTER_OPERATION(step_3, cgs::step_3<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, cgs::initialize);
+GKO_REGISTER_OPERATION(step_1, cgs::step_1);
+GKO_REGISTER_OPERATION(step_2, cgs::step_2);
+GKO_REGISTER_OPERATION(step_3, cgs::step_3);
 
 
-}  // namespace
+}  // namespace cgs
 
 
 template <typename ValueType>
@@ -97,7 +96,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
+    exec->run(cgs::make_initialize(
         dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
         v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
         rho_prev.get(), rho.get(), &stop_status));
@@ -116,28 +115,31 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = 0;
     while (true) {
         r->compute_dot(r_tld.get(), rho.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            r.get(), u.get(), p.get(), q.get(), beta.get(), rho.get(),
-            rho_prev.get(), &stop_status));
+        exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), rho_prev.get(),
+                                   &stop_status));
         // beta = rho / rho_prev
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
         preconditioner_->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_dot(v_hat.get(), gamma.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            u.get(), v_hat.get(), q.get(), t.get(), alpha.get(), rho.get(),
-            gamma.get(), &stop_status));
+        exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
+                                   alpha.get(), rho.get(), gamma.get(),
+                                   &stop_status));
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
         preconditioner_->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
-            t.get(), u_hat.get(), r.get(), dense_x, alpha.get(), &stop_status));
+        exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
+                                   alpha.get(), &stop_status));
         // r = r -alpha * t
         // x = x + alpha * u_hat
 
+        iter += 2;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
@@ -147,9 +149,6 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         swap(rho_prev, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }
 

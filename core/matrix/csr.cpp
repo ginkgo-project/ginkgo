@@ -31,48 +31,44 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/csr.hpp"
+#include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/coo.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/csr_kernels.hpp"
-#include "core/matrix/dense.hpp"
 
 
 namespace gko {
 namespace matrix {
 
 
-namespace {
+namespace csr {
 
 
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(spmv, csr::spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_row_ptrs_to_idxs,
-                           csr::convert_row_ptrs_to_idxs<TplArgs...>);
-    GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense<TplArgs...>);
-    GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense<TplArgs...>);
-    GKO_REGISTER_OPERATION(transpose, csr::transpose<TplArgs...>);
-    GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose<TplArgs...>);
-};
+GKO_REGISTER_OPERATION(spmv, csr::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
+GKO_REGISTER_OPERATION(convert_row_ptrs_to_idxs, csr::convert_row_ptrs_to_idxs);
+GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
+GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense);
+GKO_REGISTER_OPERATION(transpose, csr::transpose);
+GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 
 
-}  // namespace
+}  // namespace csr
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_spmv_operation(
-            this, as<Dense>(b), as<Dense>(x)));
+    this->get_executor()->run(csr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
 }
 
 
@@ -81,10 +77,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
     using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        TemplatedOperation<ValueType, IndexType>::make_advanced_spmv_operation(
-            as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta),
-            as<Dense>(x)));
+    this->get_executor()->run(csr::make_advanced_spmv(
+        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
 }
 
 
@@ -95,10 +89,8 @@ std::unique_ptr<Coo<ValueType, IndexType>> Csr<ValueType, IndexType>::make_coo()
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
         exec, this->get_size(), this->get_num_stored_elements());
-    exec->run(
-        TemplatedOperation<IndexType>::make_convert_row_ptrs_to_idxs_operation(
-            this->get_const_row_ptrs(), this->get_size()[0],
-            tmp->get_row_idxs()));
+    exec->run(csr::make_convert_row_ptrs_to_idxs(
+        this->get_const_row_ptrs(), this->get_size()[0], tmp->get_row_idxs()));
     return tmp;
 }
 
@@ -129,9 +121,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(csr::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -141,9 +131,7 @@ void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_move_to_dense_operation(
-            tmp.get(), this));
+    exec->run(csr::make_move_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -213,9 +201,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_transpose_operation(
-            trans_cpy.get(), this));
+    exec->run(csr::make_transpose(trans_cpy.get(), this));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
@@ -229,9 +215,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(
-        TemplatedOperation<ValueType, IndexType>::make_conj_transpose_operation(
-            trans_cpy.get(), this));
+    exec->run(csr::make_conj_transpose(trans_cpy.get(), this));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
