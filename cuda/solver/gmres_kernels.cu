@@ -45,9 +45,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/matrix/dense_kernels.cu"
 
 
-#include <iostream>
-
-
 namespace gko {
 namespace kernels {
 namespace cuda {
