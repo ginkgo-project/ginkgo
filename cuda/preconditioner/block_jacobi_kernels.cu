@@ -163,7 +163,10 @@ void apply(syn::compile_int_list<max_block_size>, size_type num_blocks,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 
-using compiled_kernels = syn::compile_int_list<1, 13, 16, 32>;
+using compiled_kernels =
+    syn::compile_int_list<1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+                          30, 31, 32>;
 
 
 template <typename IndexType>
