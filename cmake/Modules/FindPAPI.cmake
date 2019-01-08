@@ -43,13 +43,13 @@ mark_as_advanced(PAPI_INCLUDE_DIR)
 if(NOT PAPI_LIBRARY)
   find_library(PAPI_LIBRARY_RELEASE NAMES
       papi
-			papi64
+   papi64
   )
   mark_as_advanced(PAPI_LIBRARY_RELEASE)
 
   find_library(PAPI_LIBRARY_DEBUG NAMES
       papid
-		  papi-d
+    papi-d
   )
   mark_as_advanced(PAPI_LIBRARY_DEBUG)
 
@@ -68,18 +68,18 @@ if(PAPI_INCLUDE_DIR)
 
   if (PAPI_LIBRARY)
     # find the components
-	  foreach(component IN LISTS PAPI_FIND_COMPONENTS)
+   foreach(component IN LISTS PAPI_FIND_COMPONENTS)
       file(WRITE "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
         "
          #include <papi.h>
          int main() {
-	         int retval;
-	         retval = PAPI_library_init(PAPI_VER_CURRENT);
-	           if (retval != PAPI_VER_CURRENT && retval > 0)
-		           return -1;
-	           if (PAPI_get_component_index(\"${component}\") < 0)
-		           return 0;
-	           return 1;
+          int retval;
+          retval = PAPI_library_init(PAPI_VER_CURRENT);
+            if (retval != PAPI_VER_CURRENT && retval > 0)
+             return -1;
+            if (PAPI_get_component_index(\"${component}\") < 0)
+             return 0;
+            return 1;
          }
         ")
       try_run(PAPI_${component}_FOUND
@@ -106,8 +106,8 @@ find_package_handle_standard_args(PAPI
 if(PAPI_FOUND)
   set(PAPI_LIBRARIES ${PAPI_LIBRARY})
   set(PAPI_INCLUDE_DIRS ${PAPI_INCLUDE_DIR})
-	unset(PAPI_LIBRARY)
-	unset(PAPI_INCLUDE_DIR)
+ unset(PAPI_LIBRARY)
+ unset(PAPI_INCLUDE_DIR)
 
   if(NOT TARGET PAPI::PAPI)
     add_library(PAPI::PAPI UNKNOWN IMPORTED)
@@ -125,7 +125,7 @@ if(PAPI_FOUND)
       set_target_properties(PAPI::PAPI PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION_RELEASE "${PAPI_LIBRARY_RELEASE}")
-			unset(PAPI_LIBRARY_RELEASE)
+   unset(PAPI_LIBRARY_RELEASE)
     endif()
     if(PAPI_LIBRARY_DEBUG)
       set_property(TARGET PAPI::PAPI APPEND PROPERTY
@@ -133,7 +133,7 @@ if(PAPI_FOUND)
       set_target_properties(PAPI::PAPI PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION_DEBUG "${PAPI_LIBRARY_DEBUG}")
-			unset(PAPI_LIBRARY_DEBUG)
+   unset(PAPI_LIBRARY_DEBUG)
     endif()
   endif()
 endif()

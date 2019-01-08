@@ -247,8 +247,7 @@ void Papi<ValueType>::on_criterion_check_completed(
     void *handle = map[tmp];
     if (!handle) {
         std::ostringstream oss;
-        oss << "criterion_check_completed"
-            << "_" << tmp;
+        oss << "criterion_check_completed_" << tmp;
         papi_sde_create_recorder(this->papi_handle, oss.str().c_str(),
                                  sizeof(double), papi_sde_compare_double,
                                  &handle);

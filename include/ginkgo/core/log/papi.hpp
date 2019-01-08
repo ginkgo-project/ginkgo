@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include <iostream>
 #include <map>
+#include <mutex>
 
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -191,6 +192,8 @@ protected:
         : Logger(exec, enabled_events)
     {
         std::ostringstream os;
+
+        std::lock_guard<std::mutex> guard(count_mutex);
         os << "ginkgo" << logger_count;
         name = os.str();
         papi_handle = papi_sde_init(name.c_str());
@@ -224,9 +227,9 @@ private:
                 data[tmp] = 0;
             }
             auto &value = data[tmp];
-            std::ostringstream oss;
-            oss << counter_name << "::" << tmp;
             if (!value) {
+                std::ostringstream oss;
+                oss << counter_name << "::" << tmp;
                 papi_sde_register_counter(*handle, oss.str().c_str(),
                                           PAPI_SDE_RO | PAPI_SDE_INSTANT,
                                           PAPI_SDE_long_long, &value);
@@ -239,6 +242,7 @@ private:
         const char *counter_name;
         std::map<std::uintptr_t, size_type> data;
     };
+
 
     mutable papi_queue<Executor> allocation_started{&papi_handle,
                                                     "allocation_started"};
@@ -291,8 +295,9 @@ private:
                                                  "iteration_complete"};
 
     static size_type logger_count;
+    std::mutex count_mutex;
 
-    std::string name = std::string("ginkgo");
+    std::string name{"ginkgo"};
     papi_handle_t papi_handle;
 };
 

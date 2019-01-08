@@ -59,7 +59,7 @@ protected:
     void SetUp()
     {
         int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
-        if (ret_val != PAPI_VER_CURRENT) {
+        if (PAPI_VER_CURRENT != ret_val) {
             throw std::runtime_error("Error at PAPI_library_init()");
         }
         ret_val = PAPI_create_eventset(&eventset);
