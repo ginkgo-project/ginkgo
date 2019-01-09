@@ -82,6 +82,15 @@ recipe: the image is very light and does not include the `make` command by
 default, so it is necessary to add the `build-essential` package to the
 requirements.
 
+In addition to the previous argument, an extra `papi` argument can be given.
+This argument can be set to `True` to indicate that the image should be built
+for papi support. In this case, if papi files can be found, the library perfmon
+(`libpfm4`) is added do the docker container and papi files are copied to the
+container from a folder named `papi/` with the following format:
++ `papi/include`: papi include files
++ `papi/lib`: papi pre-built library files
++ `papi/bin`: papi pre-built binary files
+
 The dockerfiles and container images already generated are:
 + GNU 8, LLVM 6 (7 will replace this as soon as it is available)
 ## Using HPCCM recipes and docker to create containers
@@ -101,8 +110,10 @@ docker build -t localhost:5000/gko-cuda100-gnu8-llvm60 -f gko-cuda100-gnu8-llvm6
 A name is given to the image through `-t tag`. It is required to append
 `localhost:5000/` to designate our server's local container registry.
 The base image (or dockerfile) is given through the `-f` argument.
-The path given here is `.`, this is not used in our case, it is the path where
-files to be put into the container can be found.
+The path given here is `.`. This is important if building an image from the
+`gko-nocuda-base` base image. This indicates the path where the relevant papi
+pre-built files (`papi/include/...`, etc) files to be put into the container can
+be found.
 ### Test the generated container
 The created container should be tested to ensure all supposed functionalities
 are present and properly working. Here is a standard procedure for this:
