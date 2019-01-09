@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_LOG_PAPI_HPP_
 #define GKO_CORE_LOG_PAPI_HPP_
 
+#include <ginkgo/config.hpp>
+
+#ifdef GKO_HAVE_PAPI_SDE
 
 #include <cstddef>
 #include <iostream>
@@ -305,5 +308,6 @@ private:
 }  // namespace log
 }  // namespace gko
 
+#endif  // GKO_HAVE_PAPI_SDE
 
 #endif  // GKO_CORE_LOG_OSTREAM_HPP_

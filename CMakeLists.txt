@@ -103,6 +103,11 @@ if(DEVEL_TOOLS)
     add_dependencies(format add_license)
 endif()
 
+# Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+add_custom_target(generate_ginkgo_header ALL
+        COMMAND ${CMAKE_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 if(BUILD_DOC)
 	add_subdirectory(doc)
 endif()
