@@ -145,33 +145,6 @@ protected:
         *d_final_iter_nums = *final_iter_nums;
     }
 
-    void make_symetric(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
-                mtx->at(i, j) = mtx->at(j, i);
-            }
-        }
-    }
-
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
-
-    void make_spd(Mtx *mtx)
-    {
-        make_symetric(mtx);
-        make_diag_dominant(mtx);
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
 
