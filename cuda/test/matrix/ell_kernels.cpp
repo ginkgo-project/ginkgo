@@ -78,14 +78,15 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0,
+    void set_up_apply_data(int num_rows = 532, int num_cols = 231,
+                           int num_stored_elements_per_row = 0, int stride = 0,
                            int num_vectors = 1)
     {
         mtx = Mtx::create(ref, gko::dim<2>{}, num_stored_elements_per_row,
                           stride);
-        mtx->copy_from(gen_mtx(532, 231));
-        expected = gen_mtx(532, num_vectors);
-        y = gen_mtx(231, num_vectors);
+        mtx->copy_from(gen_mtx(num_rows, num_cols));
+        expected = gen_mtx(num_rows, num_vectors);
+        y = gen_mtx(num_cols, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda);
@@ -144,7 +145,7 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600);
+    set_up_apply_data(532, 231, 300, 600);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -155,7 +156,7 @@ TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 
 TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600);
+    set_up_apply_data(532, 231, 300, 600);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
@@ -165,7 +166,7 @@ TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 
 TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600, 3);
+    set_up_apply_data(532, 231, 300, 600, 3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -176,7 +177,29 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(300, 600, 3);
+    set_up_apply_data(532, 231, 300, 600, 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
+{
+    set_up_apply_data(10, 10000);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
+{
+    set_up_apply_data(10, 10000);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());

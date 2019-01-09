@@ -39,12 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
-#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -54,7 +54,10 @@ namespace ell {
 
 
 constexpr int default_block_size = 512;
+
+// TODO: multiple and ratio are parameters should be tuned
 constexpr int multiple = 4;
+constexpr double ratio = 1e-2;
 
 
 namespace {
@@ -73,11 +76,14 @@ __device__ void spmv_kernel(const size_type num_rows,
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto x = tidx / subwarp_size;
+    const auto nwarps_per_row =
+        gridDim.x * blockDim.x / num_rows / subwarp_size;
+    const auto x = tidx / subwarp_size / nwarps_per_row;
+    const auto warp_id = tidx / subwarp_size % nwarps_per_row;
     const auto y_start = tidx % subwarp_size +
-                         num_stored_elements_per_row * threadIdx.y / blockDim.y;
+                         num_stored_elements_per_row * warp_id / nwarps_per_row;
     const auto y_end =
-        num_stored_elements_per_row * (threadIdx.y + 1) / blockDim.y;
+        num_stored_elements_per_row * (warp_id + 1) / nwarps_per_row;
     if (x < num_rows) {
         const auto tile_block =
             group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -167,23 +173,23 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     int nwarps_per_row = 1;
     const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
                         exec->get_num_multiprocessor() * multiple;
-    if (static_cast<double>(ell_ncols) / nrows > 1e-2) {
+    if (static_cast<double>(ell_ncols) / nrows > ratio) {
         while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
         if (subwarp_size == 32) {
-            while (nwarps_per_row < 16 && nrows * nwarps_per_row < nwarps &&
-                   nwarps_per_row * cuda_config::warp_size < ell_ncols)
-                nwarps_per_row <<= 1;
+            nwarps_per_row =
+                std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
+            nwarps_per_row = std::max(nwarps_per_row, 1);
         }
         if (nwarps_per_row > 1) {
             atomic = true;
         }
     }
-    const dim3 block_size(default_block_size / nwarps_per_row, nwarps_per_row,
-                          1);
-    const dim3 grid_size(ceildiv(nrows * subwarp_size, block_size.x),
-                         b->get_size()[1], 1);
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
+        b->get_size()[1], 1);
     switch (subwarp_size) {
     case 1:
         abstract_spmv<1><<<grid_size, block_size, 0, 0>>>(
@@ -258,15 +264,27 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     int subwarp_size = 1;
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    // dense::scale(exec, beta, c);
-    if (static_cast<double>(ell_ncols) / nrows > 1e-2) {
+    bool atomic = false;
+    int nwarps_per_row = 1;
+    const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
+                        exec->get_num_multiprocessor() * multiple;
+    if (static_cast<double>(ell_ncols) / nrows > ratio) {
         while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
+        if (subwarp_size == 32) {
+            nwarps_per_row =
+                std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
+            nwarps_per_row = std::max(nwarps_per_row, 1);
+        }
+        if (nwarps_per_row > 1) {
+            atomic = true;
+        }
     }
     const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(nrows * subwarp_size, block_size.x),
-                         b->get_size()[1], 1);
+    const dim3 grid_size(
+        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
+        b->get_size()[1], 1);
 
     switch (subwarp_size) {
     case 1:
@@ -315,13 +333,24 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(c->get_values()), c->get_stride());
         break;
     case 32:
-        abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
+        if (atomic) {
+            dense::scale(exec, beta, c);
+            abstract_spmv<32, true><<<grid_size, block_size, 0, 0>>>(
+                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                a->get_stride(), a->get_num_stored_elements_per_row(),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(beta->get_const_values()),
+                as_cuda_type(c->get_values()), c->get_stride());
+        } else {
+            abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
+                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                a->get_stride(), a->get_num_stored_elements_per_row(),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(beta->get_const_values()),
+                as_cuda_type(c->get_values()), c->get_stride());
+        }
         break;
     }
 }
