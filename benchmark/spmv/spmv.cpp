@@ -155,16 +155,6 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                  1.0 / 3.0))},
         {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
-// executor mapping
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-    executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
-             return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
-         }}};
-
 
 template <typename RandomEngine>
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
@@ -172,8 +162,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const vec<etype> *x, const unsigned int warm_iter,
                 const unsigned int run_iter, rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator,
-                RandomEngine &engine)
-try {
+                RandomEngine &engine) try {
     auto &spmv_case = test_case["spmv"];
     if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;
