@@ -36,13 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/uninitialized_array.hpp"
-#include "cuda/matrix/dense_kernels.cu"
 
 
 namespace gko {
@@ -99,7 +101,7 @@ void initialize_1(
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    dense::compute_norm2(exec, b, b_norm);
+    b->compute_norm2(b_norm);
     kernel::initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], b->get_stride(), krylov_dim,
         as_cuda_type(b->get_const_values()), as_cuda_type(b_norm->get_values()),
@@ -189,7 +191,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()),
         as_cuda_type(final_iter_nums->get_data()));
-    dense::compute_norm2(exec, residual, residual_norm);
+    residual->compute_norm2(residual_norm);
     kernel::initialize_2_kernel_2<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
@@ -268,11 +270,11 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                  (i + 1) * next_krylov_basis->get_size()[1]});
         auto hessenberg_iter_column = hessenberg_iter->create_submatrix(
             span{i, i + 1}, span{0, next_krylov_basis->get_size()[1]});
-        dense::compute_dot(exec, next_krylov_basis, krylov_basis.get(),
-                           hessenberg_iter_column.get());
-        dense::scale(exec, neg_one_op.get(), krylov_basis.get());
-        dense::add_scaled(exec, hessenberg_iter_column.get(),
-                          krylov_basis.get(), next_krylov_basis);
+        next_krylov_basis->compute_dot(krylov_basis.get(),
+                                       hessenberg_iter_column.get());
+        krylov_basis->scale(neg_one_op.get());
+        next_krylov_basis->add_scaled(hessenberg_iter_column.get(),
+                                      krylov_basis.get());
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -281,7 +283,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 
     auto next_krylov_basis_norm = hessenberg_iter->create_submatrix(
         span{iter + 1, iter + 2}, span{0, next_krylov_basis->get_size()[1]});
-    dense::compute_norm2(exec, next_krylov_basis, next_krylov_basis_norm.get());
+    next_krylov_basis->compute_norm2(next_krylov_basis_norm.get());
     // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
 
     divide(exec, next_krylov_basis_norm.get(), next_krylov_basis);
@@ -555,7 +557,7 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
 
     auto one_op =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-    dense::add_scaled(exec, one_op.get(), after_preconditioner.get(), x);
+    x->add_scaled(one_op.get(), after_preconditioner.get());
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
 }
