@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
@@ -53,9 +53,11 @@ void residual_norm_reduction(std::shared_ptr<const OmpExecutor> exec,
                              remove_complex<ValueType> rel_residual_goal,
                              uint8 stoppingId, bool setFinalized,
                              Array<stopping_status> *stop_status,
-                             bool *all_converged, bool *one_changed)
+                             Array<bool> *device_storage, bool *all_converged,
+                             bool *one_changed)
 {
     *all_converged = true;
+    *one_changed = false;
 #pragma omp parallel for
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (abs(tau->at(i)) < rel_residual_goal * abs(orig_tau->at(i))) {

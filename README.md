@@ -20,57 +20,28 @@ Prerequisites
 -------------
 
 
-### Linux
+### Linux and Mac OS 
 
 For Ginkgo core library:
 
-*   _cmake 3.1+_
+*   _cmake 3.8+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 5.4.0+_
-    *   _clang 3.3+_ (__TODO__: verify, works with 5.0)
-
-The Ginkgo CUDA module has the following __additional__ requirements:
-
-*   _cmake 3.10+_
-*   _CUDA 7.0+_ (__TODO__: verify, works with 8.0)
-*   Any host compiler restrictions your version of CUDA may impose also apply
-    here. For the newest CUDA version, this information can be found in the
-    [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements)
-
-In addition, if you want to contribute code to Ginkgo, you will also need the
-following:
-
-*   _clang-format 5.0.1+_ (ships as part of _clang_)
-
-
-### Mac OS
-
-For Ginkgo core library:
-
-*   _cmake 3.1+_
-*   C++11 compliant compiler, one of:
-    *   _gcc 5.4.0+_ (__TODO__: verify)
-    *   _clang 3.3+_ (__TODO__: verify)
+    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _clang 3.9+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _cmake 3.8+_
-*   _CUDA 7.0+_ (__TODO__: verify)
+*   _CUDA 9.0+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
-    [CUDA installation guide](http://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
+    [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
+    or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
-*   __NOTE:__ If you want to use _clang_ as your compiler and develop Ginkgo,
-    you'll currently need two versions _clang_: _clang 4.0.0_ or older, as this
-    is this version supporetd by the CUDA 9.1 toolkit, and _clang 5.0.1_ or
-    newer, which will not be used for compilation, but only provide the
-    _clang-format_ utility
-
 
 ### Windows
 

@@ -35,11 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_GMRES_KERNELS_HPP_
 
 
-#include "core/base/array.hpp"
-#include "core/base/math.hpp"
-#include "core/base/types.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 namespace gko {
 namespace kernels {

@@ -34,8 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-#include "core/base/math.hpp"
-#include "core/base/range_accessors.hpp"
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
+
+
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/uninitialized_array.hpp"

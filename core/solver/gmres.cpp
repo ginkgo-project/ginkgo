@@ -31,17 +31,19 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/gmres.hpp"
+#include <ginkgo/core/solver/gmres.hpp>
 
 
-#include "core/base/array.hpp"
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/name_demangling.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 
@@ -50,16 +52,19 @@ namespace gko {
 namespace solver {
 
 
+namespace gmres {
+
+
+GKO_REGISTER_OPERATION(initialize_1, gmres::initialize_1);
+GKO_REGISTER_OPERATION(initialize_2, gmres::initialize_2);
+GKO_REGISTER_OPERATION(step_1, gmres::step_1);
+GKO_REGISTER_OPERATION(step_2, gmres::step_2);
+
+
+}  // namespace gmres
+
+
 namespace {
-
-
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize_1, gmres::initialize_1<ValueType>);
-    GKO_REGISTER_OPERATION(initialize_2, gmres::initialize_2<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, gmres::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, gmres::step_2<ValueType>);
-};
 
 
 template <typename ValueType>
@@ -123,9 +128,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // Initialization
-    exec->run(TemplatedOperation<ValueType>::make_initialize_1_operation(
-        dense_b, b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), &stop_status, krylov_dim_));
+    exec->run(gmres::make_initialize_1(dense_b, b_norm.get(), residual.get(),
+                                       givens_sin.get(), givens_cos.get(),
+                                       &stop_status, krylov_dim_));
     // b_norm = norm(b)
     // residual = dense_b
     // givens_sin = givens_cos = 0
@@ -133,9 +138,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                           residual.get());
     // residual = residual - Ax
 
-    exec->run(TemplatedOperation<ValueType>::make_initialize_2_operation(
-        residual.get(), residual_norm.get(), residual_norms.get(),
-        krylov_bases.get(), &final_iter_nums, krylov_dim_));
+    exec->run(gmres::make_initialize_2(residual.get(), residual_norm.get(),
+                                       residual_norms.get(), krylov_bases.get(),
+                                       &final_iter_nums, krylov_dim_));
     // residual_norm = norm(residual)
     // residual_norms = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
@@ -145,8 +150,13 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
-    size_type total_iter = 0, restart_iter = 0;
+    int total_iter = -1;
+    size_type restart_iter = 0;
+
     while (true) {
+        ++total_iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, total_iter, residual.get(), dense_x);
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual_norm(residual_norm.get())
@@ -156,7 +166,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         if (restart_iter == krylov_dim_) {
             // Restart
-            exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
+            exec->run(gmres::make_step_2(
                 residual_norms.get(), krylov_bases.get(), hessenberg.get(),
                 y.get(), dense_x, &final_iter_nums, preconditioner_.get()));
             // Solve upper triangular.
@@ -168,10 +178,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                   residual.get());
             // residual = residual - Ax
-            exec->run(
-                TemplatedOperation<ValueType>::make_initialize_2_operation(
-                    residual.get(), residual_norm.get(), residual_norms.get(),
-                    krylov_bases.get(), &final_iter_nums, krylov_dim_));
+            exec->run(gmres::make_initialize_2(
+                residual.get(), residual_norm.get(), residual_norms.get(),
+                krylov_bases.get(), &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
             // residual_norms = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
@@ -200,7 +209,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
+        exec->run(gmres::make_step_1(
             next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norms.get(), krylov_bases.get(),
             hessenberg_iter.get(), b_norm.get(), restart_iter, &stop_status));
@@ -228,9 +237,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // End apply givens rotation
         // Calculate residual norm
 
-        this->template log<log::Logger::iteration_complete>(
-            this, restart_iter + 1, residual.get(), dense_x);
-        total_iter++;
         restart_iter++;
     }
 
@@ -242,9 +248,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
-    exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-        residual_norms.get(), krylov_bases_small.get(), hessenberg_small.get(),
-        y.get(), dense_x, &final_iter_nums, preconditioner_.get()));
+    exec->run(gmres::make_step_2(residual_norms.get(), krylov_bases_small.get(),
+                                 hessenberg_small.get(), y.get(), dense_x,
+                                 &final_iter_nums, preconditioner_.get()));
     // Solve upper triangular.
     // y = hessenberg \ residual_norms
     // Solve x

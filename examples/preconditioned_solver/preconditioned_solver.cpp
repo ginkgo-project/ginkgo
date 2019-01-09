@@ -63,7 +63,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./preconditioned_solver
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::Cg<>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
                     .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            .with_preconditioner(bj::create(exec, 8))
+            .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);

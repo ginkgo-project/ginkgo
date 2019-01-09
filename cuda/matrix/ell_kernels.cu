@@ -34,10 +34,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/base/types.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense_kernels.hpp>
+
+
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"

@@ -31,48 +31,20 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
-#include <cmath>
+#include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <random>
-#include <vector>
 
 
-#include <gflags/gflags.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
+#include "benchmark/utils/general.hpp"
 
 
 // some Ginkgo shortcuts
-using vector = gko::matrix::Dense<>;
-
-
-// helper for writing out rapidjson Values
-std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
-{
-    rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
-    value.Accept(writer);
-    return os;
-}
-
-
-// helper for splitting a comma-separated list into vector of strings
-std::vector<std::string> split(const std::string &s, char delimiter)
-{
-    std::istringstream iss(s);
-    std::vector<std::string> tokens;
-    for (std::string token; std::getline(iss, token, delimiter);
-         tokens.push_back(token))
-        ;
-    return tokens;
-}
+using etype = double;
 
 
 namespace {
@@ -106,7 +78,7 @@ void print_config_error_and_exit(int code = 1)
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << input_format << std::endl;
-    exit(code);
+    std::exit(code);
 }
 
 
@@ -119,10 +91,6 @@ void validate_option_object(const rapidjson::Value &value)
         print_config_error_and_exit(2);
     }
 }
-
-
-// Command-line arguments
-DEFINE_uint32(seed, 42, "Seed used to generate the values of random matrices");
 
 
 void initialize_argument_parsing(int *argc, char **argv[])
@@ -143,12 +111,12 @@ void initialize_argument_parsing(int *argc, char **argv[])
 
 
 using generator_function =
-    std::function<gko::matrix_data<>(rapidjson::Value &, std::ranlux24 &)>;
+    std::function<gko::matrix_data<etype>(rapidjson::Value &, std::ranlux24 &)>;
 
 
 // matrix generators
-gko::matrix_data<> generate_block_diagonal(rapidjson::Value &config,
-                                           std::ranlux24 &engine)
+gko::matrix_data<etype> generate_block_diagonal(rapidjson::Value &config,
+                                                std::ranlux24 &engine)
 {
     if (!config.HasMember("num_blocks") || !config["num_blocks"].IsUint() ||
         !config.HasMember("block_size") || !config["block_size"].IsUint()) {
@@ -156,10 +124,10 @@ gko::matrix_data<> generate_block_diagonal(rapidjson::Value &config,
     }
     auto num_blocks = config["num_blocks"].GetUint();
     auto block_size = config["block_size"].GetUint();
-    auto block =
-        gko::matrix_data<>(gko::dim<2>(block_size),
-                           std::uniform_real_distribution<>(-1.0, 1.0), engine);
-    return gko::matrix_data<>::diag(num_blocks, block);
+    auto block = gko::matrix_data<etype>(
+        gko::dim<2>(block_size), std::uniform_real_distribution<>(-1.0, 1.0),
+        engine);
+    return gko::matrix_data<etype>::diag(num_blocks, block);
 }
 
 
@@ -174,7 +142,7 @@ int main(int argc, char *argv[])
 
     std::clog << gko::version_info::get() << std::endl;
 
-    std::ranlux24 engine(FLAGS_seed);
+    auto engine = get_engine();
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document configurations;
     configurations.ParseStream(jcin);

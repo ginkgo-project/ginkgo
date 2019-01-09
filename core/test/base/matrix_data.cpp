@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/matrix_data.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 
 
 #include <gtest/gtest.h>
@@ -64,6 +64,7 @@ TEST(MatrixData, InitializesWithZeros)
 TEST(MatrixData, InitializesWithValue)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     gko::matrix_data<double, int> m(gko::dim<2>{2, 3}, 8.3);
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
@@ -80,6 +81,7 @@ TEST(MatrixData, InitializesWithValue)
 TEST(MatrixData, InitializesWithRandomValues)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     gko::matrix_data<double, int> m(
         gko::dim<2>{2, 3}, std::uniform_real_distribution<double>(-1, 1),
         std::ranlux48(19));
@@ -95,6 +97,7 @@ TEST(MatrixData, InitializesWithRandomValues)
 TEST(MatrixData, InitializesFromValueList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     // clang-format off
     gko::matrix_data<double, int> m{
         {2, 3, 5},
@@ -114,6 +117,7 @@ TEST(MatrixData, InitializesFromValueList)
 TEST(MatrixData, InitializesRowVectorFromValueList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     gko::matrix_data<double, int> m{{2, 3, 5}};
 
     ASSERT_EQ(m.size, gko::dim<2>(1, 3));
@@ -127,6 +131,7 @@ TEST(MatrixData, InitializesRowVectorFromValueList)
 TEST(MatrixData, InitializesColumnVectorFromValueList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     gko::matrix_data<double, int> m{{2}, {3}, {5}};
 
     ASSERT_EQ(m.size, gko::dim<2>(3, 1));
@@ -140,6 +145,7 @@ TEST(MatrixData, InitializesColumnVectorFromValueList)
 TEST(MatrixData, InitializesFromNonzeroList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     gko::matrix_data<double, int> m(gko::dim<2>{5, 7},
                                     {{0, 0, 2}, {1, 1, 0}, {2, 3, 5}});
 
@@ -154,6 +160,7 @@ TEST(MatrixData, InitializesFromNonzeroList)
 TEST(MatrixData, InitializesDiagonalMatrix)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     const auto m = gko::matrix_data<double, int>::diag(gko::dim<2>{2, 3}, 5.0);
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
@@ -182,6 +189,7 @@ TEST(MatrixData, InitializesFromRange)
 TEST(MatrixData, InitializesDiagonalMatrixFromValueList)
 {
     using nnz = gko::matrix_data<double, int>::nonzero_type;
+
     const auto m =
         gko::matrix_data<double, int>::diag(gko::dim<2>{2, 3}, {3, 5});
 
@@ -196,6 +204,7 @@ TEST(MatrixData, InitializesBlockDiagonalMatrix)
 {
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
+
     const auto m = data::diag(gko::dim<2>{2, 3}, {{1.0, 2.0}, {3.0, 4.0}});
 
     ASSERT_EQ(m.size, gko::dim<2>(4, 6));
@@ -214,8 +223,9 @@ TEST(MatrixData, InitializesBlockDiagonalMatrix)
 TEST(MatrixData, InitializesCheckeredMatrix)
 {
     using data = gko::matrix_data<double, int>;
-    gko::matrix_data<double, int> m{{1., 2.}, {3., 4.}};
     using nnz = data::nonzero_type;
+    gko::matrix_data<double, int> m{{1., 2.}, {3., 4.}};
+
     gko::matrix_data<double, int> mm{gko::dim<2>{3, 2}, m};
 
     ASSERT_EQ(mm.size, gko::dim<2>(6, 4));
@@ -257,6 +267,23 @@ TEST(MatrixData, InitializesDiagonalWithConditionNumber)
 
     ASSERT_EQ(m.size, gko::dim<2>(3, 3));
     ASSERT_NEAR(m.nonzeros[0].value / m.nonzeros[2].value, 100.0, 1e-16);
+}
+
+
+TEST(MatrixData, InitializesBlockDiagonalMatrixFromBlockList)
+{
+    using data = gko::matrix_data<double, int>;
+    using nnz = data::nonzero_type;
+    auto list = {data{{1.0}}, data{{2.0, 3.0}, {0.0, 4.0}}};
+
+    const auto m = data::diag(begin(list), end(list));
+
+    ASSERT_EQ(m.size, gko::dim<2>(3, 3));
+    ASSERT_EQ(m.nonzeros.size(), 4);
+    EXPECT_EQ(m.nonzeros[0], nnz(0, 0, 1.0));
+    EXPECT_EQ(m.nonzeros[1], nnz(1, 1, 2.0));
+    EXPECT_EQ(m.nonzeros[2], nnz(1, 2, 3.0));
+    EXPECT_EQ(m.nonzeros[3], nnz(2, 2, 4.0));
 }
 
 

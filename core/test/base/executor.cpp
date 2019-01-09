@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/executor.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
 #include <type_traits>
@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
+#include <ginkgo/core/base/exception.hpp>
 
 
 namespace {
@@ -323,6 +323,13 @@ TEST(ExecutorDeleter, DeletesObject)
     gko::executor_deleter<int>{ref}(x);
 
     ASSERT_TRUE(ref->called_free);
+}
+
+
+TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
+{
+    int x[5];
+    ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
 }
 
 

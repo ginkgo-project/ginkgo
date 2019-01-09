@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
 
 
-#include "core/matrix/dense.hpp"
-#include "core/matrix/hybrid.hpp"
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 namespace gko {

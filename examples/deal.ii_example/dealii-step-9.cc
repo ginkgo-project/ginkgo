@@ -73,7 +73,7 @@
 #include <deal.II/numerics/error_estimator.h>
 
 // Ginkgo's header file
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 // This is C++, as we want to write some output to disk:
 #include <fstream>
@@ -833,7 +833,7 @@ void AdvectionProblem<dim>::solve()
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using bicgstab = gko::solver::Bicgstab<>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<>;
     using val_array = gko::Array<double>;
 
     // Where the code is to be executed. Can be changed to `omp` or `cuda` to
@@ -884,8 +884,7 @@ void AdvectionProblem<dim>::solve()
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-12)
                     .on(exec))
-            // something fails here:
-            // .with_preconditioner(bj::create(exec, 32))
+            .with_preconditioner(bj::build().on(exec))
             .on(exec);
     auto solver = solver_gen->generate(gko::give(A));
 

@@ -72,7 +72,7 @@ ext is .m for matlab, and .csv for csv.
 *****************************<COMPILATION>**********************************/
 
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <cuda_runtime.h>
@@ -122,7 +122,8 @@ public:
     }
 
     CuspCsrmp(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+        : csr_(
+              std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -174,7 +175,8 @@ public:
     }
 
     CuspCsr(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+        : csr_(
+              std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -228,7 +230,8 @@ public:
     }
 
     CuspCsrmm(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+        : csr_(
+              std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle_));
@@ -297,7 +300,8 @@ public:
     }
 
     CuspCsrEx(std::shared_ptr<gko::Executor> exec)
-        : csr_(std::move(csr::create(exec, std::make_shared<csr::classical>()))),
+        : csr_(
+              std::move(csr::create(exec, std::make_shared<csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           set_buffer_(false)
     {
@@ -769,24 +773,24 @@ int main(int argc, char *argv[])
                                         out_fd.at(i), lend(answer));
                 } else if (elem == "Csri") {
                     testing<csr>(exec, warm_iter, test_iter, data, lend(x),
-                                  lend(y), matlab_format, out_fd.at(i),
-                                  lend(answer),
-                                  std::make_shared<csr::load_balance>(exec));
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer),
+                                 std::make_shared<csr::load_balance>(exec));
                 } else if (elem == "Csrm") {
                     testing<csr>(exec, warm_iter, test_iter, data, lend(x),
-                                  lend(y), matlab_format, out_fd.at(i),
-                                  lend(answer),
-                                  std::make_shared<csr::merge_path>());
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer),
+                                 std::make_shared<csr::merge_path>());
                 } else if (elem == "Csrc") {
                     testing<csr>(exec, warm_iter, test_iter, data, lend(x),
-                                  lend(y), matlab_format, out_fd.at(i),
-                                  lend(answer),
-                                  std::make_shared<csr::classical>());
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer),
+                                 std::make_shared<csr::classical>());
                 } else if (elem == "Csr") {
                     testing<csr>(exec, warm_iter, test_iter, data, lend(x),
-                                  lend(y), matlab_format, out_fd.at(i),
-                                  lend(answer),
-                                  std::make_shared<csr::automatical>(exec));
+                                 lend(y), matlab_format, out_fd.at(i),
+                                 lend(answer),
+                                 std::make_shared<csr::automatical>(exec));
                 }
             }
             out_fd.at(i) << std::endl;

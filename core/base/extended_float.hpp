@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_EXTENDED_FLOAT_HPP_
 
 
-#include "core/base/std_extensions.hpp"
-#include "core/base/types.hpp"
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #ifdef __CUDA_ARCH__
@@ -90,6 +90,7 @@ struct basic_float_traits<float16> {
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 10;
     static constexpr int exponent_bits = 5;
+    static constexpr bool rounds_to_nearest = true;
 };
 
 template <>
@@ -98,6 +99,7 @@ struct basic_float_traits<float32> {
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 23;
     static constexpr int exponent_bits = 8;
+    static constexpr bool rounds_to_nearest = true;
 };
 
 template <>
@@ -106,6 +108,7 @@ struct basic_float_traits<float64> {
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 52;
     static constexpr int exponent_bits = 11;
+    static constexpr bool rounds_to_nearest = true;
 };
 
 template <typename FloatType, size_type NumComponents, size_type ComponentId>
@@ -117,6 +120,7 @@ struct basic_float_traits<truncated<FloatType, NumComponents, ComponentId>> {
     static constexpr int significand_bits =
         ComponentId == 0 ? sizeof(type) * byte_size - exponent_bits - 1
                          : sizeof(type) * byte_size;
+    static constexpr bool rounds_to_nearest = false;
 };
 
 
@@ -147,6 +151,11 @@ struct float_traits {
     static constexpr bits_type sign_mask =
         create_ones<bits_type>(sign_bits + significand_bits + exponent_bits) -
         exponent_mask - significand_mask;
+    static constexpr bool rounds_to_nearest =
+        basic_float_traits<T>::rounds_to_nearest;
+
+    static constexpr auto eps =
+        1.0 / (1ll << (significand_bits + rounds_to_nearest));
 
     static constexpr bool is_inf(bits_type data)
     {

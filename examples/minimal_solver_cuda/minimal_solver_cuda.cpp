@@ -78,7 +78,7 @@ cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda
 
 *****************************<DECSRIPTION>**********************************/
 
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 
 int main()
@@ -92,8 +92,7 @@ int main()
     // Create the solver
     auto solver =
         gko::solver::Cg<>::build()
-            .with_preconditioner(
-                gko::preconditioner::BlockJacobiFactory<>::create(gpu, 32))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build().on(gpu))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(gpu),
                 gko::stop::ResidualNormReduction<>::build()

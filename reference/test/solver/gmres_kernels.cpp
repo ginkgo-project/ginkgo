@@ -31,21 +31,21 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/gmres.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/preconditioner/block_jacobi.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
-#include <core/stop/time.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -288,8 +288,9 @@ TEST_F(Gmres, SolvesWithPreconditioner)
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-15)
                     .on(exec))
-            .with_preconditioner(
-                gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build()
+                                     .with_max_block_size(3u)
+                                     .on(exec))
             .on(exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(

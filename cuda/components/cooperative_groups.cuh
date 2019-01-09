@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cooperative_groups.h>
 
 
-#include "core/base/std_extensions.hpp"
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
@@ -209,11 +209,52 @@ struct is_group_impl<thread_group> : std::true_type {};
 // unsigned size() const
 // unsigned thread_rank() const
 // dim3 group_dim() const
-//
-// namespace detail {
-// template <>
-// struct is_group_impl<grid_group> : std::true_type {};
-// }  // namespace detail
+
+
+/**
+ * This is a limited implementation of the CUDA grid_group that works even on
+ * devices that do not support device-wide synchronization and without special
+ * kernel launch syntax.
+ *
+ * Note that this implementation (as well as the one from CUDA's cooperative
+ * groups) does not support large grids, since it uses 32 bits to represent
+ * sizes and ranks, while at least 73 bits (63 bit grid + 10 bit block) would
+ * have to be used to represent the full space of thread ranks.
+ */
+class grid_group {
+    friend __device__ grid_group this_grid();
+
+public:
+    __device__ unsigned size() const noexcept { return data_.size; }
+
+    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
+
+private:
+    __device__ grid_group()
+        : data_{blockDim.x * blockDim.y * blockDim.z * gridDim.x * gridDim.y *
+                    gridDim.z,
+                threadIdx.x +
+                    blockDim.x *
+                        (threadIdx.y +
+                         blockDim.y *
+                             (threadIdx.z +
+                              blockDim.z *
+                                  (blockIdx.x +
+                                   gridDim.x *
+                                       (blockIdx.y + gridDim.y * blockIdx.z))))}
+    {}
+
+    struct alignas(8) {
+        unsigned size;
+        unsigned rank;
+    } data_;
+};
+
+
+namespace detail {
+template <>
+struct is_group_impl<grid_group> : std::true_type {};
+}  // namespace detail
 
 
 using cooperative_groups::thread_block;
@@ -377,6 +418,8 @@ using cooperative_groups::this_thread;
 // Not using this, as grid_group is not universally supported.
 // grid_group this_grid()
 // using cooperative_groups::this_grid;
+// Instead, use our limited implementation:
+__device__ inline grid_group this_grid() { return {}; }
 
 
 // thread_block this_thread_block()

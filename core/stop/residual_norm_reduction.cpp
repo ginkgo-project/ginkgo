@@ -32,24 +32,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/residual_norm_reduction.hpp"
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 namespace gko {
 namespace stop {
-namespace {
+namespace residual_norm_reduction {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        residual_norm_reduction,
-        residual_norm_reduction::residual_norm_reduction<ValueType>);
-};
+GKO_REGISTER_OPERATION(residual_norm_reduction,
+                       residual_norm_reduction::residual_norm_reduction);
 
 
-}  // namespace
+}  // namespace residual_norm_reduction
 
 
 template <typename ValueType>
@@ -62,20 +60,19 @@ bool ResidualNormReduction<ValueType>::check_impl(
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<Vector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        u_dense_tau = Vector::create_with_config_of(starting_tau_.get());
-        auto dense_r = as<Vector>(updater.residual_);
-        dense_r->compute_norm2(u_dense_tau.get());
-        dense_tau = u_dense_tau.get();
+        auto *dense_r = as<Vector>(updater.residual_);
+        dense_r->compute_norm2(u_dense_tau_.get());
+        dense_tau = u_dense_tau_.get();
     } else {
         NOT_SUPPORTED(nullptr);
     }
+    bool all_converged = true;
 
-    bool all_converged{};
     this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
+        residual_norm_reduction::make_residual_norm_reduction(
             dense_tau, starting_tau_.get(), parameters_.reduction_factor,
-            stoppingId, setFinalized, stop_status, &all_converged,
-            one_changed));
+            stoppingId, setFinalized, stop_status, &this->device_storage_,
+            &all_converged, one_changed));
     return all_converged;
 }
 
