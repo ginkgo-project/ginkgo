@@ -77,7 +77,8 @@ void validate_option_object(const rapidjson::Value &value)
 DEFINE_string(formats, "coo",
               "A comma-separated list of formats to run."
               "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
-              "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33");
+              "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
+              "hybridminstorage");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
@@ -153,6 +154,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridlimit33",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(
                                  1.0 / 3.0))},
+        {"hybridminstorage",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::minimal_storage_limit>())},
         {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 
@@ -162,7 +166,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const vec<etype> *x, const unsigned int warm_iter,
                 const unsigned int run_iter, rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator,
-                RandomEngine &engine) try {
+                RandomEngine &engine)
+try {
     auto &spmv_case = test_case["spmv"];
     if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;

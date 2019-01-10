@@ -252,7 +252,7 @@ public:
     class imbalance_bounded_limit : public strategy_type {
     public:
         /**
-         * Creates a imbalance_bounded strategy.
+         * Creates a imbalance_bounded_limit strategy.
          */
         imbalance_bounded_limit(float percent = 0.8, float ratio = 0.001)
             : strategy_(imbalance_limit(percent)), ratio_(ratio)
@@ -271,6 +271,33 @@ public:
     private:
         imbalance_limit strategy_;
         float ratio_;
+    };
+
+
+    /**
+     * minimal_storage_limit is a stratgy_type which decides the number of
+     * stored elements per row of the ell part. It is determined by the size of
+     * ValueType and IndexType, the storage is the minimum among all partition.
+     */
+    class minimal_storage_limit : public strategy_type {
+    public:
+        /**
+         * Creates a minimal_storage_limit strategy.
+         */
+        minimal_storage_limit()
+            : strategy_(
+                  imbalance_limit(static_cast<double>(sizeof(IndexType)) /
+                                  (sizeof(ValueType) + 2 * sizeof(IndexType))))
+        {}
+
+        size_type compute_ell_num_stored_elements_per_row(
+            Array<size_type> *row_nnz) const override
+        {
+            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+        }
+
+    private:
+        imbalance_limit strategy_;
     };
 
 
