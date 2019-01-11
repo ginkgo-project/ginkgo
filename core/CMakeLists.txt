@@ -28,6 +28,10 @@ set(SOURCES
     stop/time.cpp)
 
 
+if(GKO_HAVE_PAPI_SDE)
+  set(SOURCES ${SOURCES} log/papi.cpp)
+endif()
+
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
@@ -37,6 +41,9 @@ add_library(ginkgo ${SOURCES})
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference)
+if (GKO_HAVE_PAPI_SDE)
+  target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 

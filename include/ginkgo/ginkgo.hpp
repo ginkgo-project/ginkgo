@@ -58,6 +58,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 #include <ginkgo/core/log/convergence.hpp>
+#ifdef GKO_HAVE_PAPI_SDE
+#include <ginkgo/core/log/papi.hpp>
+#endif
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 

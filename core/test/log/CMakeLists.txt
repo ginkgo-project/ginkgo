@@ -1,4 +1,7 @@
 create_test(convergence)
 create_test(logger)
-create_test(stream)
+if (GKO_HAVE_PAPI_SDE)
+	create_test(papi)
+endif()
 create_test(record)
+create_test(stream)
