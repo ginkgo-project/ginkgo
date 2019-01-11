@@ -74,11 +74,26 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 // Command-line arguments
-DEFINE_string(formats, "coo",
-              "A comma-separated list of formats to run."
-              "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
-              "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
-              "hybridminstorage");
+DEFINE_string(
+    formats, "coo",
+    "A comma-separated list of formats to run."
+    "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
+    "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
+    "hybridminstorage\n"
+    "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
+    "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
+    "Sparse Matrices.\n"
+    "csr: Compressed Sparse Row storage. The CUDA kernel invokes NVIDIAs "
+    "cuSPARSE CSR routine.\n"
+    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
+    "Matrix-Vector Multiplication on CUDA.\n"
+    "sellp: Sliced Ellpack using a default block size of 32.\n"
+    "hybrid: Hybrid using ell and coo to represent the matrix.\n"
+    "hybrid0, hybrid25, hybrid33: Hybrid use the row distribution to decide "
+    "the partition.\n"
+    "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
+    "part of hybrid0, hybrid25, hybrid33.\n"
+    "hybridminstorage: Hybrid using the minimal storage to store the matrix.");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 

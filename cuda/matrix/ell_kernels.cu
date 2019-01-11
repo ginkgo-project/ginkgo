@@ -173,6 +173,15 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     int nwarps_per_row = 1;
     const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
                         exec->get_num_multiprocessor() * multiple;
+
+    // Use multithreads to perform the reduction on each row when the matrix is
+    // wide.
+    // To make every thread have computation, so pick the value which is the
+    // power of 2 less than 32 and is less than or equal to ell_ncols. If the
+    // subwarp_size is 32 and allow more than one warps to work on the same row,
+    // use atomic add to handle the warps write the value into the same
+    // position. The #warps is decided according to the number of warps allowed
+    // on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
         while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
