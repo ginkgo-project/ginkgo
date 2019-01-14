@@ -32,13 +32,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+
+#include "core/matrix/dense_kernels.hpp"
 
 
 #include <gtest/gtest.h>
 
 
 #include <random>
-
 
 #include <core/test/utils.hpp>
 
@@ -284,5 +291,91 @@ TEST_F(Dense, IsConjugateTransposable)
                     static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
+TEST_F(Dense, ConvertToCooIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	auto coo_mtx = gko::matrix::Coo<>::create(ref);
+	auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+
+	x->convert_to(coo_mtx.get());
+	dx->convert_to(dcoo_mtx.get());
+
+	ASSERT_EQ(dcoo_mtx->get_num_stored_elements(), coo_mtx->get_num_stored_elements());
+	ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+}
+
+TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	auto csr_mtx = gko::matrix::Csr<>::create(ref);
+	auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+
+	x->convert_to(csr_mtx.get());
+	dx->convert_to(dcsr_mtx.get());
+
+	ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+}
+
+TEST_F(Dense, ConvertToEllIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	auto ell_mtx = gko::matrix::Ell<>::create(ref);
+	auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+
+	x->convert_to(ell_mtx.get());
+	dx->convert_to(dell_mtx.get());
+
+	ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+}
+
+TEST_F(Dense, CountNNZIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	gko::size_type nnz;
+	gko::size_type dnnz;
+
+	gko::kernels::reference::dense::count_nonzeros(ref, x.get(), &nnz);
+	gko::kernels::cuda::dense::count_nonzeros(cuda, dx.get(), &dnnz);
+
+	ASSERT_EQ(nnz, dnnz);
+}
+
+TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	gko::Array<gko::size_type> nnz_per_row;
+	nnz_per_row.set_executor(ref);
+	nnz_per_row.resize_and_reset(x->get_size()[0]);
+
+	gko::Array<gko::size_type> dnnz_per_row;
+	dnnz_per_row.set_executor(cuda);
+	dnnz_per_row.resize_and_reset(dx->get_size()[0]);
+
+	gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(), &nnz_per_row);
+	gko::kernels::cuda::dense::calculate_nonzeros_per_row(cuda, dx.get(), &dnnz_per_row);
+
+	auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
+	for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
+		ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
+	}
+}
+
+TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+{
+	set_up_apply_data();
+
+	gko::size_type max_nnz;
+	gko::size_type dmax_nnz;
+
+	gko::kernels::reference::dense::calculate_max_nnz_per_row(ref, x.get(), &max_nnz);
+	gko::kernels::cuda::dense::calculate_max_nnz_per_row(cuda, dx.get(), &dmax_nnz);
+
+	ASSERT_EQ(max_nnz, dmax_nnz);
+}
 
 }  // namespace

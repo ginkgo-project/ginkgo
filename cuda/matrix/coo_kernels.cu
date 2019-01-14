@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
@@ -326,11 +327,53 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
 
+namespace kernel
+{
+
+template <typename ValueType>
+__global__ void initialize_zero_dense(size_type num_rows, size_type num_cols,
+		size_type stride, ValueType* result)
+{
+	auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
+	auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
+	if (tidx_x < num_rows && tidx_y < num_cols) {
+		result[tidx_x * stride + tidx_y] = zero<ValueType>();
+	}
+}
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(size_type nnz, const IndexType* row_idxs,
+		const IndexType* col_idxs, const ValueType* values, size_type stride, ValueType* result)
+{
+	const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+	if (tidx < nnz) {
+		result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
+	}
+}
+
+} // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+    const matrix::Coo<ValueType, IndexType> *source)
+{
+	auto num_rows = result->get_size()[0];
+	auto num_cols = result->get_size()[1];
+	auto stride = result->get_stride();
+
+    auto nnz = source->get_num_stored_elements();
+
+    dim3 block_size = (32, 32, 1);
+    dim3 init_grid_dim = (ceildiv(num_rows, 32), ceildiv(num_cols, 32), 1);
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(num_rows, num_cols, stride, as_cuda_type(result->get_values()));
+
+    auto grid_dim = ceildiv(nnz, default_block_size);
+    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(nnz, as_cuda_type(source->get_const_row_idxs()),
+    		as_cuda_type(source->get_const_col_idxs()), as_cuda_type(source->get_const_values()),
+    		stride, as_cuda_type(result->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
