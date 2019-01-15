@@ -34,6 +34,8 @@ for file in ginkgo/**/*.hpp; do
     echo "${file}" >> ${HEADER_LIST}
 done
 
+# It must be a POSIX locale in order to sort according to ASCII
+export LC_ALL=C
 # Sorting is necessary to group them according to the folders the header are in
 sort -o ${HEADER_LIST} ${HEADER_LIST}
 
