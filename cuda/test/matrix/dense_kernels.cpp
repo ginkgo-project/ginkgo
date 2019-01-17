@@ -36,8 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/base/array.hpp>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
 
 #include "core/matrix/dense_kernels.hpp"
 
