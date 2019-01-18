@@ -189,9 +189,9 @@ build/nocuda/gcc/omp/debug:
     BUILD_OMP: "ON"
 
 # Release builds
-build/cuda90/gcc/all/release:
+build/cuda91/gcc/all/release:
   <<: *default_build
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -200,9 +200,9 @@ build/cuda90/gcc/all/release:
     EXTRA_CMAKE_FLAGS: &cuda_flags
       -DCUDA_ARCHITECTURES=35
 
-build/cuda90/clang/all/release:
+build/cuda91/clang/all/release:
   <<: *default_build
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     C_COMPILER: clang
@@ -303,17 +303,17 @@ test/nocuda/gcc/omp/debug:
     - build/nocuda/gcc/omp/debug
 
 # Release tests
-test/cuda90/gcc/all/release:
+test/cuda91/gcc/all/release:
   <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   dependencies:
-    - build/cuda90/gcc/all/release
+    - build/cuda91/gcc/all/release
 
-test/cuda90/clang/all/release:
+test/cuda91/clang/all/release:
   <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   dependencies:
-    - build/cuda90/clang/all/release
+    - build/cuda91/clang/all/release
 
 test/nocuda/gcc/omp/release:
   <<: *default_test
