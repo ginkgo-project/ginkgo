@@ -34,7 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_GINKGO_HPP_
 #define GKO_GINKGO_HPP_
 
+
 #include <ginkgo/config.hpp>
+
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -87,5 +89,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 #include <ginkgo/core/synthesizer/containers.hpp>
+
 
 #endif  // GKO_GINKGO_HPP_

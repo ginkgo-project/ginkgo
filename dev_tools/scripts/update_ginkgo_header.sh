@@ -15,16 +15,6 @@ GINKGO_HEADER_FILE="ginkgo/ginkgo.hpp"
 GINKGO_HEADER_TEMPLATE_FILE="${GINKGO_HEADER_FILE}.in"
 
 HEADER_LIST="global_includes.hpp.tmp"
-# Make sure the file does not already exist.
-# If it does, append ".tmp" to the file name and retest it.
-while true; do
-    if [ -f "${HEADER_LIST}" ]; then
-        HEADER_LIST="${HEADER_LIST}.tmp"
-    else
-        break
-    fi
-done
-
 
 # Add every header file inside the ginkgo folder to the file ${HEADER_LIST}
 for file in ginkgo/**/*.hpp; do
@@ -39,19 +29,11 @@ export LC_ALL=C
 # Sorting is necessary to group them according to the folders the header are in
 sort -o ${HEADER_LIST} ${HEADER_LIST}
 
-
 # Generate a new, temporary ginkgo header file.
 # It will get compared at the end to the existing file in order to prevent 
 # the rebuilding of targets which depend on the global header
 # (e.g. benchmarks and examples)
 GINKGO_HEADER_TMP="${GINKGO_HEADER_FILE}.tmp"
-while true; do
-    if [ -f "${GINKGO_HEADER_TMP}" ]; then
-        GINKGO_HEADER_TMP="${GINKGO_HEADER_TMP}.tmp"
-    else
-        break
-    fi
-done
 
 PREVIOUS_FOLDER=""
 # "IFS=''" sets the word delimiters for read.

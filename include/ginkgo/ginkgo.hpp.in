@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -34,8 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_GINKGO_HPP_
 #define GKO_GINKGO_HPP_
 
+
 #include <ginkgo/config.hpp>
 
+
 #PUBLIC_HEADER_PLACE_HOLDER
+
 
 #endif  // GKO_GINKGO_HPP_
