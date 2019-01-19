@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -169,6 +169,11 @@ int main(int argc, char *argv[])
                   gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
+
+#ifdef GKO_HAVE_PAPI_SDE
+    solver->add_logger(
+        gko::log::Papi<>::create(exec, gko::log::Logger::all_events_mask));
+#endif  // GKO_HAVE_PAPI_SDE
 
     // Solve system
     solver->apply(lend(b), lend(x));

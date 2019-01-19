@@ -24,6 +24,7 @@ set(CUDA_ARCHITECTURES "Auto" CACHE STRING
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
     message(STATUS "BUILD_TESTS is ON, enabling BUILD_REFERENCE")
@@ -46,8 +47,17 @@ endif()
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
+
+
+# Automatically find PAPI and search for the required 'sde' component
+find_package(PAPI OPTIONAL_COMPONENTS sde)
+if (PAPI_sde_FOUND)
+    set(GKO_HAVE_PAPI_SDE 1)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/config.hpp.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
+  ${CMAKE_CURRENT_BINARY_DIR}/include/ginkgo/config.hpp)
+
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -60,6 +70,7 @@ install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
   DESTINATION "include"
   FILES_MATCHING PATTERN "*.hpp"
   )
+
 
 add_subdirectory(third_party)    # Third-party tools and libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
