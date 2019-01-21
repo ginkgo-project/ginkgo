@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 disables all output (except for test, benchmarks and examples).
  * 1 activates important messages.
 */
-#define GKO_VERBOSE_LEVEL ${GKO_VERBOSE_LEVEL}
+#define GKO_VERBOSE_LEVEL ${GINKGO_VERBOSE_LEVEL}
 
 
 /* Is Itanium ABI available? */
