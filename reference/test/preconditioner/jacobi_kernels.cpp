@@ -458,7 +458,7 @@ TEST_F(Jacobi, AppliesToVector)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-14);
 }
 
 
@@ -470,7 +470,7 @@ TEST_F(Jacobi, AppliesToVectorWithAdaptivePrecision)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
 }
 
 
@@ -488,7 +488,7 @@ TEST_F(Jacobi, AppliesToVectorWithAdaptivePrecisionAndSmallBlocks)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.0, 0.0, 1.0, 0.0}), 1e-7);
 }
 
 
@@ -504,7 +504,7 @@ TEST_F(Jacobi, AppliesToMultipleVectors)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
         1e-14);
 }
@@ -522,7 +522,7 @@ TEST_F(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecision)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
         1e-7);
 }
@@ -546,7 +546,7 @@ TEST_F(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecisionAndSmallBlocks)
 
     bj->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}}),
         1e-7);
 }
@@ -562,7 +562,7 @@ TEST_F(Jacobi, AppliesLinearCombinationToVector)
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-14);
 }
 
 
@@ -576,7 +576,7 @@ TEST_F(Jacobi, AppliesLinearCombinationToVectorWithAdaptivePrecision)
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-7);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}), 1e-7);
 }
 
 
@@ -594,7 +594,7 @@ TEST_F(Jacobi, AppliesLinearCombinationToMultipleVectors)
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
         1e-14);
 }
@@ -614,7 +614,7 @@ TEST_F(Jacobi, AppliesLinearCombinationToMultipleVectorsWithAdaptivePrecision)
 
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
         1e-7);
 }
@@ -627,7 +627,7 @@ TEST_F(Jacobi, ConvertsToDense)
     dense->copy_from(bj_factory->generate(mtx));
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense,
+    GKO_ASSERT_MTX_NEAR(dense,
         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
@@ -644,7 +644,7 @@ TEST_F(Jacobi, ConvertsToDenseWithAdaptivePrecision)
     dense->copy_from(adaptive_bj_factory->generate(mtx));
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense,
+    GKO_ASSERT_MTX_NEAR(dense,
         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},

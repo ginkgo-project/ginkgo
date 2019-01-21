@@ -50,15 +50,15 @@ namespace {
 
 
 // utilities for error checking
-#define CHECK_STREAM(_stream, _message) \
-    if ((_stream).fail()) {             \
-        throw STREAM_ERROR(_message);   \
+#define GKO_CHECK_STREAM(_stream, _message) \
+    if ((_stream).fail()) {                 \
+        throw GKO_STREAM_ERROR(_message);   \
     }
 
 
-#define CHECK_MATCH(_result, _message) \
-    if (!_result) {                    \
-        throw STREAM_ERROR(_message);  \
+#define GKO_CHECK_MATCH(_result, _message) \
+    if (!_result) {                        \
+        throw GKO_STREAM_ERROR(_message);  \
     }
 
 
@@ -91,8 +91,8 @@ public:
     {
         std::istringstream header_stream(header);
         auto parsed_header = this->read_description_line(header_stream);
-        CHECK_STREAM(os << header,
-                     "error when writing the matrix market header");
+        GKO_CHECK_STREAM(os << header,
+                         "error when writing the matrix market header");
         parsed_header.layout->write_data(os, data, parsed_header.entry,
                                          parsed_header.modifier);
     }
@@ -114,7 +114,7 @@ private:
         ValueType read_entry(std::istream &is) const override
         {
             double result{};
-            CHECK_STREAM(is >> result, "error while reading matrix entry");
+            GKO_CHECK_STREAM(is >> result, "error while reading matrix entry");
             return static_cast<ValueType>(result);
         }
 
@@ -129,7 +129,7 @@ private:
         static xstd::enable_if_t<is_complex<T>()> write_entry_impl(
             std::ostream &, const T &)
         {
-            throw STREAM_ERROR(
+            throw GKO_STREAM_ERROR(
                 "trying to write a complex matrix into a real entry format");
         }
 
@@ -137,8 +137,8 @@ private:
         static xstd::enable_if_t<!is_complex<T>()> write_entry_impl(
             std::ostream &os, const T &value)
         {
-            CHECK_STREAM(os << static_cast<double>(value),
-                         "error while writing matrix entry");
+            GKO_CHECK_STREAM(os << static_cast<double>(value),
+                             "error while writing matrix entry");
         }
 
     } real_format{};
@@ -153,9 +153,9 @@ private:
         void write_entry(std::ostream &os,
                          const ValueType &value) const override
         {
-            CHECK_STREAM(os << static_cast<double>(real(value)) << ' '
-                            << static_cast<double>(imag(value)),
-                         "error while writing matrix entry");
+            GKO_CHECK_STREAM(os << static_cast<double>(real(value)) << ' '
+                                << static_cast<double>(imag(value)),
+                             "error while writing matrix entry");
         }
 
     private:
@@ -166,8 +166,8 @@ private:
             using real_type = remove_complex<T>;
             double real{};
             double imag{};
-            CHECK_STREAM(is >> real >> imag,
-                         "error while reading matrix entry");
+            GKO_CHECK_STREAM(is >> real >> imag,
+                             "error while reading matrix entry");
             return {static_cast<real_type>(real), static_cast<real_type>(imag)};
         }
 
@@ -175,7 +175,7 @@ private:
         static xstd::enable_if_t<!is_complex<T>(), T> read_entry_impl(
             std::istream &)
         {
-            throw STREAM_ERROR(
+            throw GKO_STREAM_ERROR(
                 "trying to read a complex matrix into a real storage type");
         }
 
@@ -327,7 +327,7 @@ private:
             size_type num_rows{};
             size_type num_cols{};
             size_type num_nonzeros{};
-            CHECK_STREAM(
+            GKO_CHECK_STREAM(
                 header >> num_rows >> num_cols >> num_nonzeros,
                 "error when determining matrix size, expected: rows cols nnz");
             matrix_data<ValueType, IndexType> data(dim<2>{num_rows, num_cols});
@@ -336,12 +336,13 @@ private:
             for (size_type i = 0; i < num_nonzeros; ++i) {
                 IndexType row{};
                 IndexType col{};
-                CHECK_STREAM(content >> row >> col,
-                             "error when reading coordinates of matrix entry " +
-                                 std::to_string(i));
+                GKO_CHECK_STREAM(
+                    content >> row >> col,
+                    "error when reading coordinates of matrix entry " +
+                        std::to_string(i));
                 auto entry = entry_reader->read_entry(content);
-                CHECK_STREAM(content, "error when reading matrix entry " +
-                                          std::to_string(i));
+                GKO_CHECK_STREAM(content, "error when reading matrix entry " +
+                                              std::to_string(i));
                 modifier->insert_entry(row - 1, col - 1, entry, data);
             }
             return data;
@@ -353,15 +354,15 @@ private:
                         const storage_modifier *) const override
         {
             // TODO: use the storage modifier
-            CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << ' '
-                            << data.nonzeros.size() << '\n',
-                         "error when writing size information");
+            GKO_CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << ' '
+                                << data.nonzeros.size() << '\n',
+                             "error when writing size information");
             for (const auto &nonzero : data.nonzeros) {
-                CHECK_STREAM(
+                GKO_CHECK_STREAM(
                     os << nonzero.row + 1 << ' ' << nonzero.column + 1 << ' ',
                     "error when writing matrix index");
                 entry_writer->write_entry(os, nonzero.value);
-                CHECK_STREAM(os << '\n', "error when writing matrix data");
+                GKO_CHECK_STREAM(os << '\n', "error when writing matrix data");
             }
         }
 
@@ -376,7 +377,7 @@ private:
         {
             size_type num_rows{};
             size_type num_cols{};
-            CHECK_STREAM(
+            GKO_CHECK_STREAM(
                 header >> num_rows >> num_cols,
                 "error when determining matrix size, expected: rows cols nnz");
             matrix_data<ValueType, IndexType> data(dim<2>{num_rows, num_cols});
@@ -386,9 +387,10 @@ private:
                 for (size_type row = modifier->get_row_start(col);
                      row < num_rows; ++row) {
                     auto entry = entry_reader->read_entry(content);
-                    CHECK_STREAM(content, "error when reading matrix entry " +
-                                              std::to_string(row) + " ," +
-                                              std::to_string(col));
+                    GKO_CHECK_STREAM(content,
+                                     "error when reading matrix entry " +
+                                         std::to_string(row) + " ," +
+                                         std::to_string(col));
                     modifier->insert_entry(row, col, entry, data);
                 }
             }
@@ -407,8 +409,8 @@ private:
             });
             IndexType pos = 0;
             // TODO: use the storage modifier
-            CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << '\n',
-                         "error when writing size information");
+            GKO_CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << '\n',
+                             "error when writing size information");
             for (auto j = zero<IndexType>(); j < data.size[1]; ++j) {
                 for (auto i = zero<IndexType>(); i < data.size[0]; ++i) {
                     if (pos >= nonzeros.size() ||
@@ -419,7 +421,8 @@ private:
                         entry_writer->write_entry(os, nonzeros[pos].value);
                         ++pos;
                     }
-                    CHECK_STREAM(os << '\n', "error when writing matrix data");
+                    GKO_CHECK_STREAM(os << '\n',
+                                     "error when writing matrix data");
                 }
             }
         }
@@ -457,15 +460,15 @@ private:
 
         std::string description_line{};
         do {
-            CHECK_STREAM(getline(is, description_line),
-                         "error when reading the header line");
+            GKO_CHECK_STREAM(getline(is, description_line),
+                             "error when reading the header line");
         } while (description_line == "");
         transform(begin(description_line), end(description_line),
                   begin(description_line),
                   [](unsigned char c) { return std::tolower(c); });
 
         std::smatch match{};
-        CHECK_MATCH(
+        GKO_CHECK_MATCH(
             regex_match(
                 description_line, match,
                 std::regex("%%matrixmarket matrix "
@@ -494,8 +497,8 @@ private:
     {
         auto data = read_description_line(is);
         do {
-            CHECK_STREAM(getline(is, data.dimensions_line),
-                         "error when reading the dimensions line");
+            GKO_CHECK_STREAM(getline(is, data.dimensions_line),
+                             "error when reading the dimensions line");
         } while (data.dimensions_line[0] == '%');
         return data;
     }
@@ -525,14 +528,14 @@ void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
 }
 
 
-#define DECLARE_READ_RAW(ValueType, IndexType) \
+#define GKO_DECLARE_READ_RAW(ValueType, IndexType) \
     matrix_data<ValueType, IndexType> read_raw(std::istream &is)
-#define DECLARE_WRITE_RAW(ValueType, IndexType)                   \
+#define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)               \
     void write_raw(std::ostream &os,                              \
                    const matrix_data<ValueType, IndexType> &data, \
                    layout_type layout);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_READ_RAW);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_WRITE_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
 
 
 }  // namespace gko

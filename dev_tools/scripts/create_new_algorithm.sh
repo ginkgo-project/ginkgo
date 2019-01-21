@@ -189,7 +189,7 @@ do
 
 
     # Comment all code
-    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
+    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "GKO_NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
     mv tmp  ${TMPDIR}/$destpath
 
     ls ${TMPDIR}/$destpath
@@ -383,7 +383,7 @@ then
     echo ""                                                   | tee -a todo_${name}.txt
     echo "// template <typename ValueType>"                   | tee -a todo_${name}.txt
     echo "// GKO_DECLARE_${NAME}_INITIALIZE_KERNEL(ValueType)"| tee -a todo_${name}.txt
-    echo "// NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a todo_${name}.txt
+    echo "// GKO_NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a todo_${name}.txt
     echo "// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_${NAME}_INITIALIZE_KERNEL);" | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
     echo "// ..."                                             | tee -a todo_${name}.txt

@@ -79,7 +79,7 @@ TEST_F(Ell, AppliesToDenseVector)
 
     mtx1->apply(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -96,7 +96,7 @@ TEST_F(Ell, AppliesToDenseMatrix)
     mtx1->apply(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{13.0,  3.5},
                        { 5.0, -7.5}}), 0.0);
     // clang-format on
@@ -112,7 +112,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseVector)
 
     mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -133,7 +133,7 @@ TEST_F(Ell, AppliesLinearCombinationToDenseMatrix)
     mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-11.0, -2.5},
                        { -1.0,  4.5}}), 0.0);
     // clang-format on
@@ -174,7 +174,7 @@ TEST_F(Ell, ConvertsToDense)
     mtx1->convert_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -188,7 +188,7 @@ TEST_F(Ell, MovesToDense)
     mtx1->move_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -202,7 +202,7 @@ TEST_F(Ell, AppliesWithStrideToDenseVector)
 
     mtx2->apply(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -219,7 +219,7 @@ TEST_F(Ell, AppliesWithStrideToDenseMatrix)
     mtx2->apply(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{13.0, 3.5},
                        {5.0, -7.5}}), 0.0);
     // clang-format on
@@ -235,7 +235,7 @@ TEST_F(Ell, AppliesWithStrideLinearCombinationToDenseVector)
 
     mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -256,7 +256,7 @@ TEST_F(Ell, AppliesWithStrideLinearCombinationToDenseMatrix)
     mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-11.0, -2.5},
                        {-1.0, 4.5}}), 0.0);
     // clang-format on
@@ -302,7 +302,7 @@ TEST_F(Ell, ConvertsWithStrideToDense)
     mtx2->convert_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -316,7 +316,7 @@ TEST_F(Ell, MovesWithStrideToDense)
     mtx2->move_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on

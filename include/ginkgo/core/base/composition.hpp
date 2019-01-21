@@ -104,7 +104,7 @@ protected:
         this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
                                    operators_.back()->get_size()[1]});
         for (size_type i = 1; i < operators_.size(); ++i) {
-            ASSERT_CONFORMANT(operators_[i - 1], operators_[i]);
+            GKO_ASSERT_CONFORMANT(operators_[i - 1], operators_[i]);
         }
     }
 
@@ -120,7 +120,7 @@ protected:
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest &&... rest)
         : Composition(std::forward<Rest>(rest)...)
     {
-        ASSERT_CONFORMANT(oper, operators_[0]);
+        GKO_ASSERT_CONFORMANT(oper, operators_[0]);
         operators_.insert(begin(operators_), oper);
         this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
                                    operators_.back()->get_size()[1]});

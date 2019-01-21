@@ -216,10 +216,9 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
+#define GKO_DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
     class Hybrid<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYBRID_MATRIX);
-#undef DECLARE_HYBRID_MATRIX
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_MATRIX);
 
 
 }  // namespace matrix

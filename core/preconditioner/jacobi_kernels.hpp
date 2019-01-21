@@ -99,7 +99,7 @@ namespace kernels {
                                const Array<precision_reduction> &source,    \
                                Array<precision_reduction> &precisions)
 
-#define DECLARE_ALL_AS_TEMPLATES                                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                 \
@@ -116,7 +116,7 @@ namespace kernels {
 namespace omp {
 namespace jacobi {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace jacobi
 }  // namespace omp
@@ -125,7 +125,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace jacobi {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace jacobi
 }  // namespace cuda
@@ -134,13 +134,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace jacobi {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace jacobi
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

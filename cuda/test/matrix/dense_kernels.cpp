@@ -154,7 +154,7 @@ TEST_F(Dense, SingleVectorCudaScaleIsEquivalentToRef)
 
     auto result = Mtx::create(ref);
     result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
 }
 
 
@@ -165,7 +165,7 @@ TEST_F(Dense, MultipleVectorCudaScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -176,7 +176,7 @@ TEST_F(Dense, MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -187,7 +187,7 @@ TEST_F(Dense, SingleVectorCudaAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -198,7 +198,7 @@ TEST_F(Dense, MultipleVectorCudaAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -209,7 +209,7 @@ TEST_F(Dense, MultipleVectorCudaAddScaledWithDifferentAlphaIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -220,7 +220,7 @@ TEST_F(Dense, SingleVectorCudaComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -231,7 +231,7 @@ TEST_F(Dense, MultipleVectorCudaComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -242,7 +242,7 @@ TEST_F(Dense, CudaComputeNorm2IsEquivalentToRef)
     x->compute_norm2(expected.get());
     dx->compute_norm2(dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -253,7 +253,7 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
     x->apply(y.get(), expected.get());
     dx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -264,7 +264,7 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     x->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -275,8 +275,8 @@ TEST_F(Dense, IsTransposable)
     auto trans = x->transpose();
     auto dtrans = dx->transpose();
 
-    ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                    static_cast<Mtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                        static_cast<Mtx *>(trans.get()), 0);
 }
 
 
@@ -287,8 +287,8 @@ TEST_F(Dense, IsConjugateTransposable)
     auto trans = c_x->conj_transpose();
     auto dtrans = dc_x->conj_transpose();
 
-    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                    static_cast<ComplexMtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
+                        static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
 
@@ -304,7 +304,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 
     ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
               coo_mtx->get_num_stored_elements());
-    ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
 }
 
 
@@ -318,7 +318,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
     x->convert_to(csr_mtx.get());
     dx->convert_to(dcsr_mtx.get());
 
-    ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
 }
 
 
@@ -332,7 +332,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
     x->convert_to(ell_mtx.get());
     dx->convert_to(dell_mtx.get());
 
-    ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
 }
 
 

@@ -125,11 +125,11 @@ protected:
           operators_(operator_begin, operator_end)
     {
         for (const auto &c : coefficients_) {
-            ASSERT_EQUAL_DIMENSIONS(c, dim<2>(1, 1));
+            GKO_ASSERT_EQUAL_DIMENSIONS(c, dim<2>(1, 1));
         }
         this->set_size(operators_[0]->get_size());
         for (const auto &o : operators_) {
-            ASSERT_EQUAL_DIMENSIONS(o, this->get_size());
+            GKO_ASSERT_EQUAL_DIMENSIONS(o, this->get_size());
         }
     }
 
@@ -148,8 +148,8 @@ protected:
                          std::shared_ptr<const LinOp> oper, Rest &&... rest)
         : Combination(std::forward<Rest>(rest)...)
     {
-        ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
-        ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
+        GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
         coefficients_.insert(begin(coefficients_), coef);
         operators_.insert(begin(operators_), oper);
     }

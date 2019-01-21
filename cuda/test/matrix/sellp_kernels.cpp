@@ -152,7 +152,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -165,7 +165,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -178,7 +178,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -191,7 +191,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -204,7 +204,7 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -217,7 +217,7 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -231,7 +231,7 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -245,7 +245,7 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 

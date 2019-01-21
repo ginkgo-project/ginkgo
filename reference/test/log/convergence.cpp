@@ -64,9 +64,10 @@ TEST(Record, CatchesCriterionCheckCompleted)
         RelativeStoppingId, true, &stop_status, true, true);
 
     ASSERT_EQ(logger->get_num_iterations(), 1);
-    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()), l({1.0, 2.0, 2.0}),
-                    0.0);
-    ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
+                        l({1.0, 2.0, 2.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}),
+                        0.0);
 }
 
 

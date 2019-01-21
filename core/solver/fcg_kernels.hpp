@@ -73,7 +73,7 @@ namespace fcg {
         const Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES              \
     template <typename ValueType>                 \
     GKO_DECLARE_FCG_INITIALIZE_KERNEL(ValueType); \
     template <typename ValueType>                 \
@@ -88,7 +88,7 @@ namespace fcg {
 namespace omp {
 namespace fcg {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fcg
 }  // namespace omp
@@ -97,7 +97,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace fcg {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fcg
 }  // namespace cuda
@@ -106,13 +106,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace fcg {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fcg
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

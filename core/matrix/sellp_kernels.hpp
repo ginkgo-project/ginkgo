@@ -61,7 +61,7 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,             \
                           const matrix::Sellp<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                              \
     template <typename ValueType, typename IndexType>             \
     GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>             \
@@ -73,7 +73,7 @@ namespace kernels {
 namespace omp {
 namespace sellp {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace sellp
 }  // namespace omp
@@ -82,7 +82,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace sellp {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace sellp
 }  // namespace cuda
@@ -91,13 +91,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace sellp {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace sellp
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

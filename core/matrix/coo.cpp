@@ -226,9 +226,9 @@ std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
 }
 
 
-#define DECLARE_COO_MATRIX(ValueType, IndexType) class Coo<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_COO_MATRIX);
-#undef DECLARE_COO_MATRIX
+#define GKO_DECLARE_COO_MATRIX(ValueType, IndexType) \
+    class Coo<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_MATRIX);
 
 
 }  // namespace matrix

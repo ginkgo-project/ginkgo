@@ -56,8 +56,8 @@ class device_guard {
 public:
     device_guard(int device_id)
     {
-        ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
 
     ~device_guard() noexcept(false)
@@ -66,7 +66,7 @@ public:
         if (std::uncaught_exception()) {
             cudaSetDevice(original_device_id);
         } else {
-            ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
         }
     }
 
@@ -130,7 +130,7 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(dest->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(
+    GKO_ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
 }
 
@@ -158,9 +158,9 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
     device_guard g(this->get_device_id());
     auto error_code = cudaMalloc(&dev_ptr, num_bytes);
     if (error_code != cudaErrorMemoryAllocation) {
-        ASSERT_NO_CUDA_ERRORS(error_code);
+        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
     }
-    ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
+    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
     return dev_ptr;
 }
 
@@ -169,7 +169,7 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(this->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(
+    GKO_ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
 }
 
@@ -178,7 +178,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(this->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
                                          src->get_device_id(), num_bytes));
 }
 
@@ -186,7 +186,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 void CudaExecutor::synchronize() const
 {
     device_guard g(this->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
 
@@ -207,7 +207,7 @@ int CudaExecutor::get_num_devices()
     if (error_code == cudaErrorNoDevice) {
         return 0;
     }
-    ASSERT_NO_CUDA_ERRORS(error_code);
+    GKO_ASSERT_NO_CUDA_ERRORS(error_code);
     return deviceCount;
 }
 
@@ -216,11 +216,11 @@ void CudaExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
         device_guard g(this->get_device_id());
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
         num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
     }

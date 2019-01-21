@@ -78,7 +78,7 @@ TEST_F(Combination, AppliesToVector)
 
     cmb->apply(lend(x), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({22.0, 13.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({22.0, 13.0}), 1e-15);
 }
 
 
@@ -97,7 +97,7 @@ TEST_F(Combination, AppliesLinearCombinationToVector)
 
     cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({65.0, 37.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}), 1e-15);
 }
 
 

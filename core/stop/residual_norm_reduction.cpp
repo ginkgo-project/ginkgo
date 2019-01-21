@@ -64,7 +64,7 @@ bool ResidualNormReduction<ValueType>::check_impl(
         dense_r->compute_norm2(u_dense_tau_.get());
         dense_tau = u_dense_tau_.get();
     } else {
-        NOT_SUPPORTED(nullptr);
+        GKO_NOT_SUPPORTED(nullptr);
     }
     bool all_converged = true;
 
@@ -80,7 +80,6 @@ bool ResidualNormReduction<ValueType>::check_impl(
 #define GKO_DECLARE_RESIDUAL_NORM_REDUCTION(_type) \
     class ResidualNormReduction<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION);
-#undef GKO_DECLARE_RESIDUAL_NORM_REDUCTION
 
 
 }  // namespace stop

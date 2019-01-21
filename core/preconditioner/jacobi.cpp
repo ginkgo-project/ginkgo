@@ -160,8 +160,8 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    ASSERT_EQUAL_DIMENSIONS(system_matrix,
-                            transpose(system_matrix->get_size()));
+    GKO_ASSERT_EQUAL_DIMENSIONS(system_matrix,
+                                transpose(system_matrix->get_size()));
     const auto exec = this->get_executor();
     const auto csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
         exec, system_matrix);
@@ -196,7 +196,6 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 #define GKO_DECLARE_JACOBI(ValueType, IndexType) \
     class Jacobi<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI);
-#undef GKO_DECLARE_JACOBI
 
 
 }  // namespace preconditioner

@@ -199,7 +199,7 @@ TEST_F(Csr, ConvertsToDense)
 
     mtx->convert_to(dense_mtx.get());
 
-    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
@@ -211,7 +211,7 @@ TEST_F(Csr, MovesToDense)
 
     mtx->move_to(dense_mtx.get());
 
-    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
@@ -244,7 +244,7 @@ TEST_F(Csr, SquareMtxIsTransposable)
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0, 0.0, 0.0},
                        {3.0, 5.0, 1.5},
                        {2.0, 0.0, 2.0}}), 0.0);
@@ -258,7 +258,7 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0, 0.0},
                        {3.0, 5.0},
                        {2.0, 0.0}}), 0.0);
@@ -280,7 +280,7 @@ TEST_F(Csr, MtxIsConjugateTransposable)
         static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
                        {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
                        {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);

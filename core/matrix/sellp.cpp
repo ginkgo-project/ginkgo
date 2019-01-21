@@ -236,10 +236,9 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_SELLP_MATRIX(ValueType, IndexType) \
+#define GKO_DECLARE_SELLP_MATRIX(ValueType, IndexType) \
     class Sellp<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SELLP_MATRIX);
-#undef DECLARE_SELLP_MATRIX
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_MATRIX);
 
 
 }  // namespace matrix

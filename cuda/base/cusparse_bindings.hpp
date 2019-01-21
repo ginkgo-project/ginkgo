@@ -31,8 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef CUDA_BASE_CUSPARSE_BINDINGS_HPP_
-#define CUDA_BASE_CUSPARSE_BINDINGS_HPP_
+#ifndef GKO_CUDA_BASE_CUSPARSE_BINDINGS_HPP_
+#define GKO_CUDA_BASE_CUSPARSE_BINDINGS_HPP_
 
 
 #include <cusparse.h>
@@ -77,7 +77,7 @@ template <>
 struct is_supported<std::complex<double>, int32> : std::true_type {};
 
 
-#define BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                         \
+#define GKO_BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                     \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
                      size_type m, size_type n, size_type nnz,                 \
                      const ValueType *alpha, const cusparseMatDescr_t descrA, \
@@ -85,39 +85,39 @@ struct is_supported<std::complex<double>, int32> : std::true_type {};
                      const int32 *csrColIndA, const ValueType *x,             \
                      const ValueType *beta, ValueType *y)                     \
     {                                                                         \
-        ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                               \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                           \
             handle, transA, m, n, nnz, as_culibs_type(alpha), descrA,         \
             as_culibs_type(csrValA), csrRowPtrA, csrColIndA,                  \
             as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));     \
     }
 
-#define BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                         \
+#define GKO_BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                     \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
                      size_type m, size_type n, size_type nnz,                 \
                      const ValueType *alpha, const cusparseMatDescr_t descrA, \
                      const ValueType *csrValA, const int64 *csrRowPtrA,       \
                      const int64 *csrColIndA, const ValueType *x,             \
-                     const ValueType *beta, ValueType *y) NOT_IMPLEMENTED;
+                     const ValueType *beta, ValueType *y) GKO_NOT_IMPLEMENTED;
 
-BIND_CUSPARSE32_SPMV(float, cusparseScsrmv);
-BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv);
-BIND_CUSPARSE32_SPMV(std::complex<float>, cusparseCcsrmv);
-BIND_CUSPARSE32_SPMV(std::complex<double>, cusparseZcsrmv);
-BIND_CUSPARSE64_SPMV(float, cusparseScsrmv);
-BIND_CUSPARSE64_SPMV(double, cusparseDcsrmv);
-BIND_CUSPARSE64_SPMV(std::complex<float>, cusparseCcsrmv);
-BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
+GKO_BIND_CUSPARSE32_SPMV(float, cusparseScsrmv);
+GKO_BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv);
+GKO_BIND_CUSPARSE32_SPMV(std::complex<float>, cusparseCcsrmv);
+GKO_BIND_CUSPARSE32_SPMV(std::complex<double>, cusparseZcsrmv);
+GKO_BIND_CUSPARSE64_SPMV(float, cusparseScsrmv);
+GKO_BIND_CUSPARSE64_SPMV(double, cusparseDcsrmv);
+GKO_BIND_CUSPARSE64_SPMV(std::complex<float>, cusparseCcsrmv);
+GKO_BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
 template <typename ValueType>
-BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 template <typename ValueType>
-BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
 
 
-#undef BIND_CUSPARSE32_SPMV
-#undef BIND_CUSPARSE64_SPMV
+#undef GKO_BIND_CUSPARSE32_SPMV
+#undef GKO_BIND_CUSPARSE64_SPMV
 
 
-#define BIND_CUSPARSE_TRANSPOSE32(ValueType, CusparseName)                    \
+#define GKO_BIND_CUSPARSE_TRANSPOSE32(ValueType, CusparseName)                \
     inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \
                           size_type nnz, const ValueType *OrigValA,           \
                           const int32 *OrigRowPtrA, const int32 *OrigColIndA, \
@@ -125,72 +125,72 @@ BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
                           int32 *TransColIndA, cusparseAction_t copyValues,   \
                           cusparseIndexBase_t idxBase)                        \
     {                                                                         \
-        ASSERT_NO_CUSPARSE_ERRORS(                                            \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
             CusparseName(handle, m, n, nnz, as_culibs_type(OrigValA),         \
                          OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
                          TransRowPtrA, TransColIndA, copyValues, idxBase));   \
     }
 
-#define BIND_CUSPARSE_TRANSPOSE64(ValueType, CusparseName)                    \
+#define GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, CusparseName)                \
     inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \
                           size_type nnz, const ValueType *OrigValA,           \
                           const int64 *OrigRowPtrA, const int64 *OrigColIndA, \
                           ValueType *TransValA, int64 *TransRowPtrA,          \
                           int64 *TransColIndA, cusparseAction_t copyValues,   \
-                          cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+                          cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
 
-BIND_CUSPARSE_TRANSPOSE32(float, cusparseScsr2csc);
-BIND_CUSPARSE_TRANSPOSE32(double, cusparseDcsr2csc);
-BIND_CUSPARSE_TRANSPOSE64(float, cusparseScsr2csc);
-BIND_CUSPARSE_TRANSPOSE64(double, cusparseDcsr2csc);
-BIND_CUSPARSE_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
-BIND_CUSPARSE_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
-BIND_CUSPARSE_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
-BIND_CUSPARSE_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE32(float, cusparseScsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE32(double, cusparseDcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE64(float, cusparseScsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE64(double, cusparseDcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
+GKO_BIND_CUSPARSE_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
 template <typename ValueType>
-BIND_CUSPARSE_TRANSPOSE32(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE_TRANSPOSE32(ValueType, detail::not_implemented);
 template <typename ValueType>
-BIND_CUSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
 
-#undef BIND_CUSPARSE_TRANSPOSE
+#undef GKO_BIND_CUSPARSE_TRANSPOSE
 
-#define BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, CusparseName)              \
+#define GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, CusparseName)          \
     inline void conj_transpose(                                              \
         cusparseHandle_t handle, size_type m, size_type n, size_type nnz,    \
         const ValueType *OrigValA, const int32 *OrigRowPtrA,                 \
         const int32 *OrigColIndA, ValueType *TransValA, int32 *TransRowPtrA, \
         int32 *TransColIndA, cusparseAction_t copyValues,                    \
-        cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
 
-#define BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, CusparseName)              \
+#define GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, CusparseName)          \
     inline void conj_transpose(                                              \
         cusparseHandle_t handle, size_type m, size_type n, size_type nnz,    \
         const ValueType *OrigValA, const int64 *OrigRowPtrA,                 \
         const int64 *OrigColIndA, ValueType *TransValA, int64 *TransRowPtrA, \
         int64 *TransColIndA, cusparseAction_t copyValues,                    \
-        cusparseIndexBase_t idxBase) NOT_IMPLEMENTED;
+        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
 
-BIND_CUSPARSE_CONJ_TRANSPOSE32(float, cusparseScsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE32(double, cusparseDcsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE64(float, cusparseScsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE64(double, cusparseDcsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
-BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(float, cusparseScsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(double, cusparseDcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(float, cusparseScsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(double, cusparseDcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<float>, cusparseCcsr2csc);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(std::complex<double>, cusparseZcsr2csc);
 template <typename ValueType>
-BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(ValueType, detail::not_implemented);
 template <typename ValueType>
-BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, detail::not_implemented);
+GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, detail::not_implemented);
 
-#undef BIND_CUSPARSE_CONJ_TRANSPOSE
+#undef GKO_BIND_CUSPARSE_CONJ_TRANSPOSE
 
 
 inline cusparseHandle_t init()
 {
     cusparseHandle_t handle{};
-    ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
-    ASSERT_NO_CUSPARSE_ERRORS(
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
     return handle;
 }
@@ -198,21 +198,21 @@ inline cusparseHandle_t init()
 
 inline void destroy(cusparseHandle_t handle)
 {
-    ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle));
 }
 
 
 inline cusparseMatDescr_t create_mat_descr()
 {
     cusparseMatDescr_t descr{};
-    ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&descr));
     return descr;
 }
 
 
 inline void destroy(cusparseMatDescr_t descr)
 {
-    ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
 }
 
 
@@ -222,4 +222,4 @@ inline void destroy(cusparseMatDescr_t descr)
 }  // namespace gko
 
 
-#endif  // CUDA_BASE_CUSPARSE_BINDINGS_HPP_
+#endif  // GKO_CUDA_BASE_CUSPARSE_BINDINGS_HPP_

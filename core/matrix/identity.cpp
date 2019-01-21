@@ -64,18 +64,16 @@ template <typename ValueType>
 std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
+    GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
                                        base->get_size()[0]);
 }
 
 
-#define DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_MATRIX);
-#undef DECLARE_IDENTITY_MATRIX
-#define DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_FACTORY);
-#undef DECLARE_IDENTITY_FACTORY
+#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
+#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
 
 
 }  // namespace matrix

@@ -269,7 +269,6 @@ void Papi<ValueType>::on_iteration_complete(const LinOp *solver,
 
 #define GKO_DECLARE_PAPI(_type) class Papi<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PAPI);
-#undef GKO_DECLARE_PAPI
 
 
 }  // namespace log

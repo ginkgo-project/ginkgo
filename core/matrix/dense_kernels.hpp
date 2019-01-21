@@ -149,7 +149,7 @@ namespace kernels {
                         matrix::Dense<_type> *trans,                 \
                         const matrix::Dense<_type> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType>                                     \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                 \
     template <typename ValueType>                                     \
@@ -197,7 +197,7 @@ namespace kernels {
 namespace omp {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace omp
@@ -206,7 +206,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace cuda
@@ -215,13 +215,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

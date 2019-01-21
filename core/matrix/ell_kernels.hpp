@@ -61,7 +61,7 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Ell<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                                \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
     template <typename ValueType, typename IndexType>           \
     GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>           \
@@ -73,7 +73,7 @@ namespace kernels {
 namespace omp {
 namespace ell {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
 }  // namespace omp
@@ -82,7 +82,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace ell {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
 }  // namespace cuda
@@ -91,13 +91,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace ell {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

@@ -119,8 +119,6 @@ GKO_ENABLE_DEMANGLE_NAME(stop::Criterion);
 GKO_ENABLE_DEMANGLE_NAME(Executor);
 GKO_ENABLE_DEMANGLE_NAME(Operation);
 
-#undef GKO_ENABLE_DEMANGLE_NAME
-
 
 }  // namespace
 
@@ -455,7 +453,6 @@ void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
 
 #define GKO_DECLARE_STREAM(_type) class Stream<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
-#undef GKO_DECLARE_STREAM
 
 
 }  // namespace log

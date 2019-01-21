@@ -276,10 +276,10 @@ protected:
           num_stored_elements_per_row_{num_stored_elements_per_row},
           stride_{stride}
     {
-        ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
-                         values_.get_num_elems());
-        ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
-                         col_idxs_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
+                             values_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(num_stored_elements_per_row_ * stride_ - 1,
+                             col_idxs_.get_num_elems());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

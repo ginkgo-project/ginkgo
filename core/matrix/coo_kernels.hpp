@@ -90,7 +90,7 @@ namespace kernels {
                         matrix::Coo<ValueType, IndexType> *trans,    \
                         const matrix::Coo<ValueType, IndexType> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                   \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>              \
@@ -112,7 +112,7 @@ namespace kernels {
 namespace omp {
 namespace coo {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
 }  // namespace omp
@@ -121,7 +121,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace coo {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
 }  // namespace cuda
@@ -130,13 +130,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace coo {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

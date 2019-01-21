@@ -267,9 +267,9 @@ protected:
      */
     void validate_application_parameters(const LinOp *b, const LinOp *x) const
     {
-        ASSERT_CONFORMANT(this, b);
-        ASSERT_EQUAL_ROWS(this, x);
-        ASSERT_EQUAL_COLS(b, x);
+        GKO_ASSERT_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(this, x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
     }
 
     /**
@@ -286,8 +286,8 @@ protected:
                                          const LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
 
 private:

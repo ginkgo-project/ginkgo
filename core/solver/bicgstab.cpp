@@ -186,7 +186,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
-#undef GKO_DECLARE_BICGSTAB
 
 
 }  // namespace solver
