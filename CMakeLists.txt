@@ -19,8 +19,12 @@ option(BUILD_DOC "Generate documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" ON)
+set(Ginkgo_VERBOSE_LEVEL "1" CACHE STRING
+       "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 set(CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+
+set(GKO_VERBOSE_LEVEL ${Ginkgo_VERBOSE_LEVEL})
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
