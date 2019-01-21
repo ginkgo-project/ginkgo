@@ -34,7 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_GINKGO_HPP_
 #define GKO_GINKGO_HPP_
 
+
 #include <ginkgo/config.hpp>
+
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -58,9 +60,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 #include <ginkgo/core/log/convergence.hpp>
-#ifdef GKO_HAVE_PAPI_SDE
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/log/papi.hpp>
-#endif
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
@@ -81,11 +82,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 #include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 #include <ginkgo/core/synthesizer/containers.hpp>
+
 
 #endif  // GKO_GINKGO_HPP_
