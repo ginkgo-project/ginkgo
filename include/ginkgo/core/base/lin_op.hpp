@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -547,9 +547,9 @@ public:
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
-        return self();
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha, b, beta, x);
+        return self();
     }
 
 protected:

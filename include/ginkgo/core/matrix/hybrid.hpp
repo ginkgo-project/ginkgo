@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -254,7 +254,7 @@ public:
         /**
          * Creates a imbalance_bounded_limit strategy.
          */
-        imbalance_bounded_limit(float percent = 0.8, float ratio = 0.001)
+        imbalance_bounded_limit(float percent = 0.8, float ratio = 0.0001)
             : strategy_(imbalance_limit(percent)), ratio_(ratio)
         {}
 

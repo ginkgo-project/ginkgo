@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -172,6 +172,7 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
+    device_guard g(this->get_device_id());
     ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
                                          src->get_device_id(), num_bytes));
 }
@@ -223,12 +224,20 @@ void CudaExecutor::set_gpu_property()
 
 void CudaExecutor::init_handles()
 {
-    this->cublas_handle_ = handle_manager<cublasContext>(
-        kernels::cuda::cublas::init(), kernels::cuda::cublas::destroy);
-    typedef void (*func_ptr)(cusparseHandle_t);
-    this->cusparse_handle_ = handle_manager<cusparseContext>(
-        kernels::cuda::cusparse::init(),
-        static_cast<func_ptr>(kernels::cuda::cusparse::destroy));
+    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+        const auto id = this->get_device_id();
+        device_guard g(id);
+        this->cublas_handle_ = handle_manager<cublasContext>(
+            kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
+                device_guard g(id);
+                kernels::cuda::cublas::destroy(handle);
+            });
+        this->cusparse_handle_ = handle_manager<cusparseContext>(
+            kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
+                device_guard g(id);
+                kernels::cuda::cusparse::destroy(handle);
+            });
+    }
 }
 
 

@@ -31,22 +31,14 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
+#ifndef GKO_GINKGO_HPP_
+#define GKO_GINKGO_HPP_
 
 
-#define GKO_VERSION_MAJOR ${Ginkgo_VERSION_MAJOR}
-#define GKO_VERSION_MINOR ${Ginkgo_VERSION_MINOR}
-#define GKO_VERSION_PATCH ${Ginkgo_VERSION_PATCH}
-#define GKO_VERSION_TAG "${Ginkgo_VERSION_TAG}"
+#include <ginkgo/config.hpp>
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
+#PUBLIC_HEADER_PLACE_HOLDER
 
 
-/* Is PAPI SDE available for Logging? */
-#cmakedefine GKO_HAVE_PAPI_SDE
-
-
-#endif  // GKO_INCLUDE_CONFIG_H
+#endif  // GKO_GINKGO_HPP_
