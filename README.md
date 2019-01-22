@@ -90,6 +90,9 @@ Ginkgo adds the following additional switches to control what is being built:
     errors due to ABI incompatibilities. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`
+*   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
+    * `0` disables all output in the main libraries,
+    * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DCUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
     list of architectures. Supported values are:
 
