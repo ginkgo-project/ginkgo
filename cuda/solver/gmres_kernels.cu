@@ -317,7 +317,7 @@ __device__ void calculate_sin_and_cos(const size_type num_cols,
 
 
 template <typename ValueType>
-__device__ void claculate_residual_norm(
+__device__ void calculate_residual_norm(
     const size_type num_cols, const ValueType *givens_sin,
     const ValueType *givens_cos, ValueType *residual_norm,
     ValueType *residual_norms, const ValueType *b_norm, const size_type iter)
@@ -386,7 +386,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation(
     //                      sin(iter)*hessenberg(iter)
     // hessenberg(iter+1) = 0
 
-    claculate_residual_norm(num_cols, givens_sin, givens_cos, residual_norm,
+    calculate_residual_norm(num_cols, givens_sin, givens_cos, residual_norm,
                             residual_norms, b_norm, iter);
     // Calculate residual norm
 }
