@@ -119,12 +119,9 @@ namespace kernel {
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_kernel_1(
-    size_type num_rows, size_type num_cols, size_type stride,
-    size_type krylov_dim, const ValueType *__restrict__ residual,
-    ValueType *__restrict__ residual_norm,
+    size_type num_rows, size_type num_cols, size_type krylov_dim,
     ValueType *__restrict__ residual_norms,
-    ValueType *__restrict__ krylov_bases,
-    size_type *__restrict__ final_iter_nums)
+    ValueType *__restrict__ krylov_bases)
 {
     constexpr auto warps_per_block = block_size / cuda_config::warp_size;
     const auto global_id =
@@ -184,13 +181,9 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     constexpr auto block_size = default_block_size;
 
     kernel::initialize_2_kernel_1<block_size><<<grid_dim, block_dim>>>(
-        residual->get_size()[0], residual->get_size()[1],
-        residual->get_stride(), krylov_dim,
-        as_cuda_type(residual->get_const_values()),
-        as_cuda_type(residual_norm->get_values()),
+        residual->get_size()[0], residual->get_size()[1], krylov_dim,
         as_cuda_type(residual_norms->get_values()),
-        as_cuda_type(krylov_bases->get_values()),
-        as_cuda_type(final_iter_nums->get_data()));
+        as_cuda_type(krylov_bases->get_values()));
     residual->compute_norm2(residual_norm);
     kernel::initialize_2_kernel_2<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
