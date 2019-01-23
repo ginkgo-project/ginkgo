@@ -103,7 +103,7 @@ run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --executor="${EXECUTOR}" --formats="csr" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -119,9 +119,10 @@ run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                    --executor="${EXECUTOR}" --solvers="cg,bicgstab,cgs,fcg" \
+                    --executor="${EXECUTOR}" --solvers="cg" \
                     --preconditioners="${PRECONDS}" \
-                    --max_iters=10000 --rel_res_goal=1e-6 \
+                    --max_iters=10000 --rel_res_goal=1e-10 \
+                    --detailed=false \
                     --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -173,9 +174,23 @@ generate_suite_sparse_input() {
 EOT
 }
 
+for i in $(seq 1 $(ssget -n))
+do
+    posdef=$(ssget -p posdef -i $i)
+    cols=$(ssget -p cols -i $i)
+    nnz=$(ssget -p nonzeros -i $i)
+    if [ "$posdef" -eq 1 -a "$cols" -lt 10000000 -a "$nnz" -lt 500000000 ]
+    then
+        echo "$i"
+    fi
+done > matrix_list.txt
+
+NUM_PROBLEMS="$(cat matrix_list.txt | wc -l)"
+
 LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
 LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
-for (( i=${LOOP_START}; i < ${LOOP_END}; ++i )); do
+for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
+    i=$(sed -n "${p},${p}p" matrix_list.txt)
     if [ "${BENCHMARK}" == "preconditioner" ]; then
         break
     fi

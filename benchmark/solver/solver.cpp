@@ -51,6 +51,9 @@ using etype = double;
 
 
 // Command-line arguments
+DEFINE_uint32(max_block_size, 32,
+              "Maximal block size of the block-Jacobi preconditioner");
+
 DEFINE_uint32(max_iters, 1000,
               "Maximal number of iterations the solver will be run for");
 
@@ -165,13 +168,16 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"jacobi",
          [](std::shared_ptr<const gko::Executor> exec) {
              std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Jacobi<>::build().on(exec);
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(FLAGS_max_block_size)
+                     .on(exec);
              return std::unique_ptr<ReferenceFactoryWrapper>(
                  new ReferenceFactoryWrapper(f));
          }},
         {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
              std::shared_ptr<const gko::LinOpFactory> f =
                  gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(FLAGS_max_block_size)
                      .with_storage_optimization(
                          gko::precision_reduction::autodetect())
                      .on(exec);
