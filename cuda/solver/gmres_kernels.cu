@@ -56,9 +56,6 @@ namespace gmres {
 constexpr int default_block_size = 512;
 
 
-namespace kernel {
-
-
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -86,9 +83,6 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
 }
 
 
-}  // namespace kernel
-
-
 template <typename ValueType>
 void initialize_1(
     std::shared_ptr<const CudaExecutor> exec, const matrix::Dense<ValueType> *b,
@@ -102,7 +96,7 @@ void initialize_1(
     constexpr auto block_size = default_block_size;
 
     b->compute_norm2(b_norm);
-    kernel::initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
+    initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], b->get_stride(), krylov_dim,
         as_cuda_type(b->get_const_values()), as_cuda_type(b_norm->get_values()),
         as_cuda_type(residual->get_values()),
@@ -114,11 +108,8 @@ void initialize_1(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
-namespace kernel {
-
-
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void initialize_2_kernel_1(
+__global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     size_type num_rows, size_type num_cols, size_type krylov_dim,
     ValueType *__restrict__ residual_norms,
     ValueType *__restrict__ krylov_bases)
@@ -138,7 +129,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_kernel_1(
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void initialize_2_kernel_2(
+__global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
     const ValueType *__restrict__ residual,
     const ValueType *__restrict__ residual_norm,
@@ -162,9 +153,6 @@ __global__ __launch_bounds__(block_size) void initialize_2_kernel_2(
 }
 
 
-}  // namespace kernel
-
-
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
@@ -180,12 +168,12 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    kernel::initialize_2_kernel_1<block_size><<<grid_dim, block_dim>>>(
+    initialize_2_1_kernel<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
         as_cuda_type(residual_norms->get_values()),
         as_cuda_type(krylov_bases->get_values()));
     residual->compute_norm2(residual_norm);
-    kernel::initialize_2_kernel_2<block_size><<<grid_dim, block_dim>>>(
+    initialize_2_2_kernel<block_size><<<grid_dim, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
@@ -196,11 +184,8 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
-namespace kernel {
-
-
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void divide(
+__global__ __launch_bounds__(block_size) void divide_kernel(
     size_type num_rows, size_type num_cols, size_type num_alpha_cols,
     const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
     size_type stride_x)
@@ -220,9 +205,6 @@ __global__ __launch_bounds__(block_size) void divide(
 }
 
 
-}  // namespace kernel
-
-
 template <typename ValueType>
 void divide(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
@@ -238,7 +220,7 @@ void divide(std::shared_ptr<const CudaExecutor> exec,
             ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
         const dim3 block_dim{cuda_config::warp_size, 1,
                              block_size / cuda_config::warp_size};
-        kernel::divide<block_size><<<grid_dim, block_dim>>>(
+        divide_kernel<block_size><<<grid_dim, block_dim>>>(
             x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
             as_cuda_type(alpha->get_const_values()),
             as_cuda_type(x->get_values()), x->get_stride());
@@ -283,9 +265,6 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // End of arnoldi
 }
-
-
-namespace kernel {
 
 
 template <typename ValueType>
@@ -337,7 +316,7 @@ __device__ void calculate_residual_norm(
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void givens_rotation(
+__global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     const size_type num_rows, const size_type num_cols,
     ValueType *__restrict__ hessenberg_iter, ValueType *__restrict__ givens_sin,
     ValueType *__restrict__ givens_cos, ValueType *__restrict__ residual_norm,
@@ -392,9 +371,6 @@ __global__ __launch_bounds__(block_size) void givens_rotation(
 }
 
 
-}  // namespace kernel
-
-
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
@@ -412,7 +388,7 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim{cuda_config::warp_size, 1,
                          block_size / cuda_config::warp_size};
 
-    kernel::givens_rotation<block_size><<<1, block_dim>>>(
+    givens_rotation_kernel<block_size><<<1, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
         as_cuda_type(hessenberg_iter->get_values()),
         as_cuda_type(givens_sin->get_values()),
@@ -445,11 +421,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
-namespace kernel {
-
-
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void solve_upper_triangular(
+__global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
     const ValueType *__restrict__ residual_norms,
     ValueType *__restrict__ hessenberg, ValueType *__restrict__ y,
@@ -475,7 +448,7 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular(
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void calculate_Qy(
+__global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     const size_type num_rows, const size_type num_cols, const size_type num_rhs,
     const ValueType *__restrict__ krylov_bases, const ValueType *__restrict__ y,
     ValueType *__restrict__ before_preconditioner,
@@ -496,9 +469,6 @@ __global__ __launch_bounds__(block_size) void calculate_Qy(
 }
 
 
-}  // namespace kernel
-
-
 template <typename ValueType>
 void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
                             matrix::Dense<ValueType> *hessenberg,
@@ -511,7 +481,7 @@ void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
     const dim3 block_dim{cuda_config::warp_size, 1,
                          block_size / cuda_config::warp_size};
 
-    kernel::solve_upper_triangular<block_size><<<1, block_dim>>>(
+    solve_upper_triangular_kernel<block_size><<<1, block_dim>>>(
         hessenberg->get_size()[1], residual_norms->get_size()[1],
         as_cuda_type(residual_norms->get_const_values()),
         as_cuda_type(hessenberg->get_values()), as_cuda_type(y->get_values()),
@@ -537,7 +507,7 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim{cuda_config::warp_size, 1,
                          block_size / cuda_config::warp_size};
 
-    kernel::calculate_Qy<block_size><<<grid_dim, block_dim>>>(
+    calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(
         before_preconditioner->get_size()[0], krylov_bases->get_size()[1],
         before_preconditioner->get_size()[1],
         as_cuda_type(krylov_bases->get_const_values()),
