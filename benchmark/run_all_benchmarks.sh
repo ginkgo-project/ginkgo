@@ -103,7 +103,7 @@ run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="csr" \
+                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -119,7 +119,7 @@ run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                    --executor="${EXECUTOR}" --solvers="cg" \
+                    --executor="${EXECUTOR}" --solvers="$2" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=10000 --rel_res_goal=1e-10 \
                     --detailed=false \
@@ -176,10 +176,9 @@ EOT
 
 for i in $(seq 1 $(ssget -n))
 do
-    posdef=$(ssget -p posdef -i $i)
-    cols=$(ssget -p cols -i $i)
-    nnz=$(ssget -p nonzeros -i $i)
-    if [ "$posdef" -eq 1 -a "$cols" -lt 10000000 -a "$nnz" -lt 500000000 ]
+    NNZ=$(${SSGET} -p nonzeros -i $i)
+    COLS=$(${SSGET} -p cols -i $i)
+    if [ "$COLS" -lt 10000000 -a "$NNZ" -lt 500000000 ]
     then
         echo "$i"
     fi
@@ -224,12 +223,22 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
         continue
     fi
 
+    POSDEF=$(${SSGET} -p posdef -i $i)
+    NSYM=$(${SSGET} -p nsym -i $i)
+    SOLVERS="bicgstab,cgs"
+    if [ "$POSDEF" -eq 1 -a "${NSYM}" -eq 1 ]
+    then
+        SOLVERS="cg,${SOLVERS}"
+    fi
+
     echo -e "${PREFIX}Running solvers for ${GROUP}/${NAME}" 1>&2
-    run_solver_benchmarks "${RESULT_FILE}"
+    run_solver_benchmarks "${RESULT_FILE}" "${SOLVERS}"
 
     echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
     [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
 done
+
+rm matrix_list.txt
 
 
 if [ "${BENCHMARK}" != "preconditioner" ]; then
