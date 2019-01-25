@@ -307,6 +307,8 @@ void solve_system(const std::string &solver_name,
 
         // timed run
         {
+            auto it_logger = std::make_shared<IterationLogger>(exec);
+
             auto x_clone = clone(x);
 
             exec->synchronize();
