@@ -327,52 +327,62 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
 
-namespace kernel
-{
+namespace kernel {
 
 template <typename ValueType>
-__global__ void initialize_zero_dense(size_type num_rows, size_type num_cols,
-		size_type stride, ValueType* result)
+__global__
+    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
+        size_type num_rows, size_type num_cols, size_type stride,
+        ValueType *__restrict__ result)
 {
-	auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-	auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-	if (tidx_x < num_rows && tidx_y < num_cols) {
-		result[tidx_x * stride + tidx_y] = zero<ValueType>();
-	}
+    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
+    if (tidx_x < num_rows && tidx_y < num_cols) {
+        result[tidx_x * stride + tidx_y] = zero<ValueType>();
+    }
 }
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(size_type nnz, const IndexType* row_idxs,
-		const IndexType* col_idxs, const ValueType* values, size_type stride, ValueType* result)
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    size_type nnz, const IndexType *__restrict__ row_idxs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, size_type stride,
+    ValueType *__restrict__ result)
 {
-	const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-	if (tidx < nnz) {
-		result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
-	}
+    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    if (tidx < nnz) {
+        result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
+    }
 }
 
-} // namespace kernel
+}  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Coo<ValueType, IndexType> *source)
+void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Coo<ValueType, IndexType> *source)
 {
-	auto num_rows = result->get_size()[0];
-	auto num_cols = result->get_size()[1];
-	auto stride = result->get_stride();
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto stride = result->get_stride();
 
-    auto nnz = source->get_num_stored_elements();
+    const auto nnz = source->get_num_stored_elements();
 
-    dim3 block_size = (32, 32, 1);
-    dim3 init_grid_dim = (ceildiv(num_rows, 32), ceildiv(num_cols, 32), 1);
-    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(num_rows, num_cols, stride, as_cuda_type(result->get_values()));
+    const dim3 block_size(cuda_config::warp_size,
+                          cuda_config::max_block_size / cuda_config::warp_size,
+                          1);
+    const dim3 init_grid_dim(ceildiv(num_rows, block_size.x),
+                             ceildiv(num_cols, block_size.y), 1);
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
+        num_rows, num_cols, stride, as_cuda_type(result->get_values()));
 
-    auto grid_dim = ceildiv(nnz, default_block_size);
-    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(nnz, as_cuda_type(source->get_const_row_idxs()),
-    		as_cuda_type(source->get_const_col_idxs()), as_cuda_type(source->get_const_values()),
-    		stride, as_cuda_type(result->get_values()));
+    const auto grid_dim = ceildiv(nnz, default_block_size);
+    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
+        nnz, as_cuda_type(source->get_const_row_idxs()),
+        as_cuda_type(source->get_const_col_idxs()),
+        as_cuda_type(source->get_const_values()), stride,
+        as_cuda_type(result->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

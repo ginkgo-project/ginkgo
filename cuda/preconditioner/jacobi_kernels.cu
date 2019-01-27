@@ -58,7 +58,7 @@ namespace cuda {
  * A compile-time list of block sizes for which dedicated generate and apply
  * kernels should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 1, 13, 16, 32>;
+using compiled_kernels = syn::value_list<int>;
 
 
 namespace {
