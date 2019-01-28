@@ -76,21 +76,17 @@ struct version {
 };
 
 
-#define GKO_ENABLE_VERSION_COMPARISON(_operator)                          \
-    bool operator _operator(const version &first, const version &second)  \
-    {                                                                     \
-        return std::tie(first.major, first.minor, first.patch)            \
-            _operator std::tie(second.major, second.minor, second.patch); \
-    }
+#define GKO_DECLARE_VERSION_COMPARISON(_operator) \
+    bool operator _operator(const version &first, const version &second);
 
-GKO_ENABLE_VERSION_COMPARISON(<);
-GKO_ENABLE_VERSION_COMPARISON(<=);
-GKO_ENABLE_VERSION_COMPARISON(==);
-GKO_ENABLE_VERSION_COMPARISON(!=);
-GKO_ENABLE_VERSION_COMPARISON(>=);
-GKO_ENABLE_VERSION_COMPARISON(>);
+GKO_DECLARE_VERSION_COMPARISON(<)
+GKO_DECLARE_VERSION_COMPARISON(<=)
+GKO_DECLARE_VERSION_COMPARISON(==)
+GKO_DECLARE_VERSION_COMPARISON(!=)
+GKO_DECLARE_VERSION_COMPARISON(>=)
+GKO_DECLARE_VERSION_COMPARISON(>)
 
-#undef GKO_ENABLE_VERSION_COMPARISON
+#undef GKO_DECLARE_VERSION_COMPARISON
 
 
 /**
@@ -101,14 +97,7 @@ GKO_ENABLE_VERSION_COMPARISON(>);
  *
  * @return os
  */
-std::ostream &operator<<(std::ostream &os, const version &ver)
-{
-    os << ver.major << "." << ver.minor << "." << ver.patch;
-    if (ver.tag) {
-        os << " (" << ver.tag << ")";
-    }
-    return os;
-}
+std::ostream &operator<<(std::ostream &os, const version &ver);
 
 
 /**

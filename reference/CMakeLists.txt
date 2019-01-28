@@ -21,6 +21,13 @@ add_library(ginkgo_reference
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)
 
+if(NOT BUILD_SHARED_LIBS)
+    target_link_libraries(ginkgo_reference PUBLIC ginkgo)
+    message("From reference! NOT build with variable = ${BUILD_SHARED_LIBS}")
+else()
+    message("From reference! SET with var = ${BUILD_SHARED_LIBS}")
+endif()
+
 if(BUILD_TESTS)
     add_subdirectory(test)
 endif()

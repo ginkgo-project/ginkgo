@@ -36,6 +36,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+#define GKO_DEFINE_VERSION_COMPARISON(_operator)                          \
+    bool operator _operator(const version &first, const version &second)  \
+    {                                                                     \
+        return std::tie(first.major, first.minor, first.patch)            \
+            _operator std::tie(second.major, second.minor, second.patch); \
+    }
+
+GKO_DEFINE_VERSION_COMPARISON(<)
+GKO_DEFINE_VERSION_COMPARISON(<=)
+GKO_DEFINE_VERSION_COMPARISON(==)
+GKO_DEFINE_VERSION_COMPARISON(!=)
+GKO_DEFINE_VERSION_COMPARISON(>=)
+GKO_DEFINE_VERSION_COMPARISON(>)
+
+
+std::ostream &operator<<(std::ostream &os, const version &ver)
+{
+    os << ver.major << "." << ver.minor << "." << ver.patch;
+    if (ver.tag) {
+        os << " (" << ver.tag << ")";
+    }
+    return os;
+}
 
 version version_info::get_core_version() noexcept
 {
