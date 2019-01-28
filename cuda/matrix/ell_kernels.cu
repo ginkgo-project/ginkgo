@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -140,6 +141,10 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
 {
     const ValueType alpha_val = alpha[0];
     const ValueType beta_val = beta[0];
+    // Because the atomic operation changes the values of c during computation,
+    // it can not do the right alpha * a * b + beta * c operation.
+    // Thus, the cuda kernel only computes alpha * a * b when it uses atomic
+    // operation.
     if (atomic) {
         spmv_kernel<subwarp_size, atomic>(
             num_rows, val, col, stride, num_stored_elements_per_row, b,
@@ -237,9 +242,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         break;
     case 32:
         if (atomic) {
-            ASSERT_NO_CUDA_ERRORS(
-                cudaMemset(c->get_values(), 0,
-                           c->get_num_stored_elements() * sizeof(ValueType)));
+            zero_array(c->get_num_stored_elements() * sizeof(ValueType),
+                       c->get_values());
             abstract_spmv<32, true><<<grid_size, block_size, 0, 0>>>(
                 nrows, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), a->get_stride(),
@@ -277,6 +281,14 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     int nwarps_per_row = 1;
     const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
                         exec->get_num_multiprocessor() * multiple;
+    // Use multithreads to perform the reduction on each row when the matrix is
+    // wide.
+    // To make every thread have computation, so pick the value which is the
+    // power of 2 less than 32 and is less than or equal to ell_ncols. If the
+    // subwarp_size is 32 and allow more than one warps to work on the same row,
+    // use atomic add to handle the warps write the value into the same
+    // position. The #warps is decided according to the number of warps allowed
+    // on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
         while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;

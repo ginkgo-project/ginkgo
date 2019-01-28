@@ -79,7 +79,7 @@ DEFINE_string(
     "A comma-separated list of formats to run."
     "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
     "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
-    "hybridminstorage\n"
+    "hybridminstorage.\n"
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
@@ -87,13 +87,13 @@ DEFINE_string(
     "cuSPARSE CSR routine.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
     "Matrix-Vector Multiplication on CUDA.\n"
-    "sellp: Sliced Ellpack using a default block size of 32.\n"
-    "hybrid: Hybrid using ell and coo to represent the matrix.\n"
-    "hybrid0, hybrid25, hybrid33: Hybrid use the row distribution to decide "
+    "sellp: Sliced Ellpack uses a default block size of 32.\n"
+    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
+    "hybrid0, hybrid25, hybrid33: Hybrid uses the row distribution to decide "
     "the partition.\n"
     "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
     "part of hybrid0, hybrid25, hybrid33.\n"
-    "hybridminstorage: Hybrid using the minimal storage to store the matrix.");
+    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
@@ -181,8 +181,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const vec<etype> *x, const unsigned int warm_iter,
                 const unsigned int run_iter, rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator,
-                RandomEngine &engine)
-try {
+                RandomEngine &engine) try {
     auto &spmv_case = test_case["spmv"];
     if (!FLAGS_overwrite && spmv_case.HasMember(format_name)) {
         return;
