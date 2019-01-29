@@ -44,4 +44,7 @@ function(ginkgo_install)
         "${CMAKE_CURRENT_BINARY_DIR}/GinkgoConfigVersion.cmake"
         DESTINATION "${INSTALL_CONFIG_DIR}"
         )
+
+    # Export package for use from the build tree
+    export(PACKAGE Ginkgo)
 endfunction()
