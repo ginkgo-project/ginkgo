@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -110,12 +111,14 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         index++;
     }
 
-    // If we don't find the values, we use the last valid value by default to
-    // allow proper execution
+#if GKO_VERBOSE_LEVEL >= 1
+    // If we don't find the values, we use the last valid value by default
+    // to allow proper execution
     std::cerr << "MapSMtoCores for SM " << major << "." << minor
               << "is undefined. The default value of "
               << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
               << std::endl;
+#endif
     return nGpuArchCoresPerSM[index - 1].Cores;
 }
 
@@ -137,11 +140,13 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
     device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
                   << " in " << __func__ << ": " << cudaGetErrorName(error_code)
                   << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
+#endif
         std::exit(error_code);
     }
 }
