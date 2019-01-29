@@ -281,7 +281,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     /**
      * info is the parameter for selecting the cuda kernel.
      * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernek without atomic_add
+     * for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
@@ -313,7 +313,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     /**
      * info is the parameter for selecting the cuda kernel.
      * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernek without atomic_add
+     * for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
