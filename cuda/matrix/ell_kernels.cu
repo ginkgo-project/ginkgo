@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/dense_kernels.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
@@ -51,16 +52,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
+/**
+ * A compile-time list of sizes for which the spmv kernels should be compiled.
+ */
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
+
+
 namespace ell {
 
 
 constexpr int default_block_size = 512;
 
-// TODO: multiple and ratio are parameters should be tuned
-constexpr int multiple = 4;
+
+// TODO: num_threads_per_core and ratio are parameters should be tuned
+// num_threads_per_core is the oversubscribing parameter. There are
+// `num_threads_per_core` threads assigned to each physical core.
+// ratio is the parameter to decide when to use threads to do reduction on each
+// row. (#cols/#rows > ratio)
+constexpr int num_threads_per_core = 4;
 constexpr double ratio = 1e-2;
 
 
+namespace kernel {
 namespace {
 
 
@@ -116,7 +131,7 @@ __device__ void spmv_kernel(const size_type num_rows,
 
 template <int subwarp_size, bool atomic = false, typename ValueType,
           typename IndexType>
-__global__ __launch_bounds__(default_block_size) void abstract_spmv(
+__global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col, const size_type stride,
     const size_type num_stored_elements_per_row,
@@ -131,7 +146,7 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
 
 template <int subwarp_size, bool atomic = false, typename ValueType,
           typename IndexType>
-__global__ __launch_bounds__(default_block_size) void abstract_spmv(
+__global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
@@ -164,20 +179,62 @@ __global__ __launch_bounds__(default_block_size) void abstract_spmv(
 
 
 }  // namespace
+}  // namespace kernel
+
+
+namespace {
+
+
+template <int info, typename ValueType, typename IndexType>
+void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
+                   const matrix::Ell<ValueType, IndexType> *a,
+                   const matrix::Dense<ValueType> *b,
+                   matrix::Dense<ValueType> *c,
+                   const matrix::Dense<ValueType> *alpha = nullptr,
+                   const matrix::Dense<ValueType> *beta = nullptr)
+{
+    const auto nrows = a->get_size()[0];
+    constexpr int subwarp_size = (info == 0) ? 32 : info;
+    constexpr bool atomic = (info == 0);
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
+        b->get_size()[1], 1);
+    if (alpha == nullptr && beta == nullptr) {
+        kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else if (alpha != nullptr && beta != nullptr) {
+        kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
+            nrows, as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            a->get_stride(), a->get_num_stored_elements_per_row(),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else {
+        KERNEL_NOT_FOUND;
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+std::tuple<int, int, int> compute_subwarp_size_and_atomicity(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Ell<ValueType, IndexType> *a)
 {
     int subwarp_size = 1;
+    int atomic = 0;
+    int nwarps_per_row = 1;
+
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    bool atomic = false;
-    int nwarps_per_row = 1;
     const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
-                        exec->get_num_multiprocessor() * multiple;
+                        exec->get_num_multiprocessor() * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
@@ -197,70 +254,37 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             nwarps_per_row = std::max(nwarps_per_row, 1);
         }
         if (nwarps_per_row > 1) {
-            atomic = true;
+            atomic = 1;
         }
     }
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
-        b->get_size()[1], 1);
-    switch (subwarp_size) {
-    case 1:
-        abstract_spmv<1><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 2:
-        abstract_spmv<2><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 4:
-        abstract_spmv<4><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 8:
-        abstract_spmv<8><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 16:
-        abstract_spmv<16><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 32:
-        if (atomic) {
-            zero_array(c->get_num_stored_elements() * sizeof(ValueType),
-                       c->get_values());
-            abstract_spmv<32, true><<<grid_size, block_size, 0, 0>>>(
-                nrows, as_cuda_type(a->get_const_values()),
-                a->get_const_col_idxs(), a->get_stride(),
-                a->get_num_stored_elements_per_row(),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
-        } else {
-            abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
-                nrows, as_cuda_type(a->get_const_values()),
-                a->get_const_col_idxs(), a->get_stride(),
-                a->get_num_stored_elements_per_row(),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
-        }
+    return std::make_tuple(subwarp_size, atomic, nwarps_per_row);
+}
 
-        break;
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const CudaExecutor> exec,
+          const matrix::Ell<ValueType, IndexType> *a,
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+{
+    const auto data = compute_subwarp_size_and_atomicity(exec, a);
+    const int subwarp_size = std::get<0>(data);
+    const int atomic = std::get<1>(data);
+    const int nwarps_per_row = std::get<2>(data);
+    // use info to select kernel.
+    // for info == 0, it uses the kernel by 32 threads with atomic operation
+    // for other value, it uses the kernek without atomic_add
+    const int info = (!atomic) * subwarp_size;
+    if (atomic) {
+        zero_array(c->get_num_stored_elements() * sizeof(ValueType),
+                   c->get_values());
     }
+    select_abstract_spmv(
+        compiled_kernels(),
+        [&](int compiled_info) { return info == compiled_info; },
+        syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
@@ -274,106 +298,22 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    int subwarp_size = 1;
-    const auto nrows = a->get_size()[0];
-    const auto ell_ncols = a->get_num_stored_elements_per_row();
-    bool atomic = false;
-    int nwarps_per_row = 1;
-    const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
-                        exec->get_num_multiprocessor() * multiple;
-    // Use multithreads to perform the reduction on each row when the matrix is
-    // wide.
-    // To make every thread have computation, so pick the value which is the
-    // power of 2 less than 32 and is less than or equal to ell_ncols. If the
-    // subwarp_size is 32 and allow more than one warps to work on the same row,
-    // use atomic add to handle the warps write the value into the same
-    // position. The #warps is decided according to the number of warps allowed
-    // on GPU.
-    if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
-            subwarp_size <<= 1;
-        }
-        if (subwarp_size == 32) {
-            nwarps_per_row =
-                std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
-            nwarps_per_row = std::max(nwarps_per_row, 1);
-        }
-        if (nwarps_per_row > 1) {
-            atomic = true;
-        }
+    const auto data = compute_subwarp_size_and_atomicity(exec, a);
+    const int subwarp_size = std::get<0>(data);
+    const int atomic = std::get<1>(data);
+    const int nwarps_per_row = std::get<2>(data);
+    // use info to select kernel.
+    // for info == 0, it uses the kernel by 32 threads with atomic operation
+    // for other value, it uses the kernek without atomic_add
+    const int info = (!atomic) * subwarp_size;
+    if (atomic) {
+        dense::scale(exec, beta, c);
     }
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
-        b->get_size()[1], 1);
-
-    switch (subwarp_size) {
-    case 1:
-        abstract_spmv<1><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 2:
-        abstract_spmv<2><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 4:
-        abstract_spmv<4><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 8:
-        abstract_spmv<8><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 16:
-        abstract_spmv<16><<<grid_size, block_size, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
-        break;
-    case 32:
-        if (atomic) {
-            dense::scale(exec, beta, c);
-            abstract_spmv<32, true><<<grid_size, block_size, 0, 0>>>(
-                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                a->get_stride(), a->get_num_stored_elements_per_row(),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(beta->get_const_values()),
-                as_cuda_type(c->get_values()), c->get_stride());
-        } else {
-            abstract_spmv<32><<<grid_size, block_size, 0, 0>>>(
-                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                a->get_stride(), a->get_num_stored_elements_per_row(),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(beta->get_const_values()),
-                as_cuda_type(c->get_values()), c->get_stride());
-        }
-        break;
-    }
+    select_abstract_spmv(
+        compiled_kernels(),
+        [&](int compiled_info) { return info == compiled_info; },
+        syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c,
+        alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
