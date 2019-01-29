@@ -67,11 +67,15 @@ constexpr int default_block_size = 512;
 
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
-// num_threads_per_core is the oversubscribing parameter. There are
-// `num_threads_per_core` threads assigned to each physical core.
-// ratio is the parameter to decide when to use threads to do reduction on each
-// row. (#cols/#rows > ratio)
+/**
+ * num_threads_per_core is the oversubscribing parameter. There are
+ * `num_threads_per_core` threads assigned to each physical core.
+ */
 constexpr int num_threads_per_core = 4;
+/**
+ * ratio is the parameter to decide when to use threads to do reduction on each
+ * row. (#cols/#rows > ratio)
+ */
 constexpr double ratio = 1e-2;
 
 
@@ -273,9 +277,12 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const int subwarp_size = std::get<0>(data);
     const int atomic = std::get<1>(data);
     const int nwarps_per_row = std::get<2>(data);
-    // use info to select kernel.
-    // for info == 0, it uses the kernel by 32 threads with atomic operation
-    // for other value, it uses the kernek without atomic_add
+
+    /**
+     * info is the parameter for selecting the cuda kernel.
+     * for info == 0, it uses the kernel by 32 threads with atomic operation
+     * for other value, it uses the kernek without atomic_add
+     */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
         zero_array(c->get_num_stored_elements() * sizeof(ValueType),
@@ -302,9 +309,12 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const int subwarp_size = std::get<0>(data);
     const int atomic = std::get<1>(data);
     const int nwarps_per_row = std::get<2>(data);
-    // use info to select kernel.
-    // for info == 0, it uses the kernel by 32 threads with atomic operation
-    // for other value, it uses the kernek without atomic_add
+
+    /**
+     * info is the parameter for selecting the cuda kernel.
+     * for info == 0, it uses the kernel by 32 threads with atomic operation
+     * for other value, it uses the kernek without atomic_add
+     */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
         dense::scale(exec, beta, c);
