@@ -15,24 +15,19 @@ set(SOURCES
     stop/criterion_kernels.cpp
     stop/residual_norm_reduction_kernels.cpp)
 
-find_package(OpenMP)
+find_package(OpenMP REQUIRED)
 
 add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>
     ${SOURCES})
 
-if(OPENMP_FOUND)
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    # TODO: find alternative when CMAKE is version 3.8 (this ONLY works with 3.9+)
-    target_link_libraries(ginkgo_omp PRIVATE OpenMP::OpenMP_CXX)
-else()
-    set(BUILD_OMP OFF CACHE BOOL "Compile OpenMP kernels for CPU" FORCE)
-endif()
+target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
+target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
 
+# Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo_omp PUBLIC ginkgo)
 endif()
-#target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)

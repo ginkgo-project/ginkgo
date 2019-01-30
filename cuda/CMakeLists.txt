@@ -60,7 +60,7 @@ target_include_directories(ginkgo_cuda
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_LIBRARIES} ${CUDA_RUNTIME_LIBS} ${CUBLAS}
     ${CUSPARSE})
 
-# Problem described here: https://gitlab.kitware.com/cmake/cmake/issues/18614
+# Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo_cuda PUBLIC ginkgo)
 endif()

@@ -1,7 +1,9 @@
-
 cmake_minimum_required(VERSION 3.8)
 
 project(InstallTest LANGUAGES CXX)
+
+# The `enable_language` is needed when the library is build static with CUDA
+#enable_language(CUDA)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

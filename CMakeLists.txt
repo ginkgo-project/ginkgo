@@ -36,6 +36,14 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+# Needed because of a known issue with CUDA while linking statically.
+# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
+if((NOT BUILD_SHARED_LIBS) AND BUILD_CUDA)
+    enable_language(CUDA)
+endif()
+
+
 if(BUILD_TESTS)
     set(MEMORYCHECK_SUPPRESSIONS_FILE
         "${PROJECT_SOURCE_DIR}/dev_tools/valgrind/suppressions.supp"
