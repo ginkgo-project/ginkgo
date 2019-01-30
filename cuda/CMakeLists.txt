@@ -57,8 +57,7 @@ set_property(TARGET ginkgo_cuda PROPERTY BUILD_PATH ${CMAKE_CUDA_IMPLICIT_LINK_D
 
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_LIBRARIES} ${CUDA_RUNTIME_LIBS} ${CUBLAS}
-    ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
 
 # Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)
