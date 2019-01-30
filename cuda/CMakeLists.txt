@@ -52,9 +52,6 @@ add_library(ginkgo_cuda
     $<TARGET_OBJECTS:ginkgo_cuda_device>
     ${SOURCES})
 
-set_target_properties(ginkgo_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_property(TARGET ginkgo_cuda PROPERTY BUILD_PATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRIECTORY})
-
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
