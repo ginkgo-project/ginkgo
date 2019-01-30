@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 
 
+#include <array>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -54,12 +57,6 @@ namespace kernels {
 namespace cuda {
 
 
-/**
- * A compile-time list of sizes for which the spmv kernels should be compiled.
- */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
-
-
 namespace ell {
 
 
@@ -77,6 +74,15 @@ constexpr int num_threads_per_core = 4;
  * row. (#cols/#rows > ratio)
  */
 constexpr double ratio = 1e-2;
+
+
+/**
+ * A compile-time list of sub-warp sizes for which the spmv kernels should be
+ * compiled.
+ * 0 is a special case where it uses a sub-warp size of 32 in
+ * combination with atomic_adds.
+ */
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
 namespace kernel {
@@ -227,7 +233,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 
 
 template <typename ValueType, typename IndexType>
-std::tuple<int, int, int> compute_subwarp_size_and_atomicity(
+std::array<int, 3> compute_subwarp_size_and_atomicity(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Ell<ValueType, IndexType> *a)
 {
@@ -261,7 +267,7 @@ std::tuple<int, int, int> compute_subwarp_size_and_atomicity(
             atomic = 1;
         }
     }
-    return std::make_tuple(subwarp_size, atomic, nwarps_per_row);
+    return {subwarp_size, atomic, nwarps_per_row};
 }
 
 
@@ -290,7 +296,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     }
     select_abstract_spmv(
         compiled_kernels(),
-        [&](int compiled_info) { return info == compiled_info; },
+        [&info](int compiled_info) { return info == compiled_info; },
         syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c);
 }
 
@@ -321,7 +327,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     }
     select_abstract_spmv(
         compiled_kernels(),
-        [&](int compiled_info) { return info == compiled_info; },
+        [&info](int compiled_info) { return info == compiled_info; },
         syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c,
         alpha, beta);
 }
