@@ -93,6 +93,8 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
+*   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
+    or as dynamic libraries (`ON`), default is `ON`
 *   `-DCUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
     list of architectures. Supported values are:
 
@@ -248,6 +250,13 @@ make install
 If the installation prefix (see `CMAKE_INSTALL_PREFIX`) is not writable for your
 user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
+
+After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
+An example can be found in the [`install_test`](install_test/CMakeLists.txt).
+
+
+__Note:__ If the installed ginkgo was built statically and with CUDA, 
+`CUDA` needs to be specified as a language in order for CMake to work properly.
 
 ### Licensing
 
