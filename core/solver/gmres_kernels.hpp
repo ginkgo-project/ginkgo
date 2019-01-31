@@ -75,6 +75,7 @@ namespace gmres {
                 matrix::Dense<_type> *krylov_bases,                       \
                 matrix::Dense<_type> *hessenberg_iter,                    \
                 const matrix::Dense<_type> *b_norm, const size_type iter, \
+                Array<size_type> *final_iter_nums,                        \
                 const Array<stopping_status> *stop_status)
 
 

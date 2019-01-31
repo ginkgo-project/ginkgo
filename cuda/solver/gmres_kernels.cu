@@ -134,7 +134,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     const ValueType *__restrict__ residual,
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ krylov_bases)
+    ValueType *__restrict__ krylov_bases,
+    size_type *__restrict__ final_iter_nums)
 {
     constexpr auto warps_per_block = block_size / cuda_config::warp_size;
     const auto global_id =
@@ -144,6 +145,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
 
     if (global_id < num_cols) {
         residual_norm_collection[global_id] = residual_norm[global_id];
+        final_iter_nums[global_id] = 0;
     }
 
     if (global_id < num_rows * num_cols) {
@@ -178,10 +180,23 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(residual_norm_collection->get_values()),
-        as_cuda_type(krylov_bases->get_values()));
+        as_cuda_type(krylov_bases->get_values()),
+        as_cuda_type(final_iter_nums->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
+
+
+__global__
+    __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
+        size_type *__restrict__ final_iter_nums,
+        const stopping_status *__restrict__ stop_status, size_type total_number)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx < total_number) {
+        final_iter_nums[tidx] += (1 - stop_status[tidx].has_stopped());
+    }
+}
 
 
 template <size_type block_size, typename ValueType>
@@ -413,8 +428,15 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
+    increase_final_iteration_numbers_kernel<<<
+        ceildiv(final_iter_nums->get_num_elems(), default_block_size),
+        default_block_size>>>(as_cuda_type(final_iter_nums->get_data()),
+                              as_cuda_type(stop_status->get_const_data()),
+                              final_iter_nums->get_num_elems());
+
     finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,

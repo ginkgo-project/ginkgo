@@ -86,6 +86,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
     NOT_IMPLEMENTED;
