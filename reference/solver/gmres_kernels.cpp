@@ -161,44 +161,45 @@ void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
 
 
 template <typename ValueType>
-void calculate_next_residual_norm(matrix::Dense<ValueType> *givens_sin,
-                                  matrix::Dense<ValueType> *givens_cos,
-                                  matrix::Dense<ValueType> *residual_norm,
-                                  matrix::Dense<ValueType> *residual_norms,
-                                  const matrix::Dense<ValueType> *b_norm,
-                                  const size_type iter,
-                                  const stopping_status *stop_status)
+void calculate_next_residual_norm(
+    matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
+    matrix::Dense<ValueType> *residual_norm,
+    matrix::Dense<ValueType> *residual_norm_collection,
+    const matrix::Dense<ValueType> *b_norm, const size_type iter,
+    const stopping_status *stop_status)
 {
     for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
         }
-        residual_norms->at(iter + 1, i) =
-            -givens_sin->at(iter, i) * residual_norms->at(iter, i);
-        residual_norms->at(iter, i) =
-            givens_cos->at(iter, i) * residual_norms->at(iter, i);
+        residual_norm_collection->at(iter + 1, i) =
+            -givens_sin->at(iter, i) * residual_norm_collection->at(iter, i);
+        residual_norm_collection->at(iter, i) =
+            givens_cos->at(iter, i) * residual_norm_collection->at(iter, i);
         residual_norm->at(0, i) =
-            abs(residual_norms->at(iter + 1, i)) / b_norm->at(0, i);
+            abs(residual_norm_collection->at(iter + 1, i)) / b_norm->at(0, i);
     }
 }
 
 
 template <typename ValueType>
-void solve_upper_triangular(const matrix::Dense<ValueType> *residual_norms,
-                            matrix::Dense<ValueType> *hessenberg,
-                            matrix::Dense<ValueType> *y,
-                            const size_type *final_iter_nums)
+void solve_upper_triangular(
+    const matrix::Dense<ValueType> *residual_norm_collection,
+    matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
+    const size_type *final_iter_nums)
 {
-    for (size_type k = 0; k < residual_norms->get_size()[1]; ++k) {
+    for (size_type k = 0; k < residual_norm_collection->get_size()[1]; ++k) {
         for (int i = final_iter_nums[k] - 1; i >= 0; --i) {
-            auto temp = residual_norms->at(i, k);
+            auto temp = residual_norm_collection->at(i, k);
             for (size_type j = i + 1; j < final_iter_nums[k]; ++j) {
                 temp -=
-                    hessenberg->at(i, j * residual_norms->get_size()[1] + k) *
+                    hessenberg->at(
+                        i, j * residual_norm_collection->get_size()[1] + k) *
                     y->at(j, k);
             }
             y->at(i, k) =
-                temp / hessenberg->at(i, i * residual_norms->get_size()[1] + k);
+                temp / hessenberg->at(
+                           i, i * residual_norm_collection->get_size()[1] + k);
         }
     }
 }
@@ -270,7 +271,7 @@ template <typename ValueType>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
-                  matrix::Dense<ValueType> *residual_norms,
+                  matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
@@ -284,9 +285,9 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
-                residual_norms->at(i, j) = residual_norm->at(0, j);
+                residual_norm_collection->at(i, j) = residual_norm->at(0, j);
             } else {
-                residual_norms->at(i, j) = zero<ValueType>();
+                residual_norm_collection->at(i, j) = zero<ValueType>();
             }
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
@@ -313,7 +314,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
-            matrix::Dense<ValueType> *residual_norms,
+            matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
@@ -324,7 +325,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
-                                 residual_norms, b_norm, iter,
+                                 residual_norm_collection, b_norm, iter,
                                  stop_status->get_const_data());
 }
 
@@ -333,14 +334,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *residual_norms,
+            const matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums,
             const LinOp *preconditioner)
 {
-    solve_upper_triangular(residual_norms, hessenberg, y,
+    solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums->get_const_data());
     solve_x(krylov_bases, y, x, final_iter_nums->get_const_data(),
             preconditioner);
