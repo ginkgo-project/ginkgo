@@ -185,7 +185,7 @@ void calculate_next_residual_norm(
 template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType> *residual_norm_collection,
-    matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
+    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
     const size_type *final_iter_nums)
 {
     for (size_type k = 0; k < residual_norm_collection->get_size()[1]; ++k) {
@@ -206,7 +206,7 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void solve_x(matrix::Dense<ValueType> *krylov_bases,
+void solve_x(const matrix::Dense<ValueType> *krylov_bases,
              matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
              const size_type *final_iter_nums, const LinOp *preconditioner)
 {
@@ -341,9 +341,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *x,
+            const matrix::Dense<ValueType> *krylov_bases,
+            const matrix::Dense<ValueType> *hessenberg,
+            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums,
             const LinOp *preconditioner)
 {

@@ -451,7 +451,7 @@ template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
     const ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ hessenberg, ValueType *__restrict__ y,
+    const ValueType *__restrict__ hessenberg, ValueType *__restrict__ y,
     const size_type *__restrict__ final_iter_nums)
 {
     const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
@@ -498,7 +498,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
 template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType> *residual_norm_collection,
-    matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
+    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
     const Array<size_type> *final_iter_nums)
 {
     // TODO: tune this parameter
@@ -510,14 +510,15 @@ void solve_upper_triangular(
     solve_upper_triangular_kernel<block_size><<<1, block_dim>>>(
         hessenberg->get_size()[1], residual_norm_collection->get_size()[1],
         as_cuda_type(residual_norm_collection->get_const_values()),
-        as_cuda_type(hessenberg->get_values()), as_cuda_type(y->get_values()),
+        as_cuda_type(hessenberg->get_const_values()),
+        as_cuda_type(y->get_values()),
         as_cuda_type(final_iter_nums->get_const_data()));
 }
 
 
 template <typename ValueType>
 void solve_x(std::shared_ptr<const CudaExecutor> exec,
-             matrix::Dense<ValueType> *krylov_bases,
+             const matrix::Dense<ValueType> *krylov_bases,
              matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
              const Array<size_type> *final_iter_nums,
              const LinOp *preconditioner)
@@ -555,9 +556,9 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
 template <typename ValueType>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *x,
+            const matrix::Dense<ValueType> *krylov_bases,
+            const matrix::Dense<ValueType> *hessenberg,
+            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
             const Array<size_type> *final_iter_nums,
             const LinOp *preconditioner)
 {
