@@ -246,7 +246,6 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
     ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                     1e-14);
