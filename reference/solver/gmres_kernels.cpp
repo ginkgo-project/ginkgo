@@ -318,8 +318,14 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
             const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
+    for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+        final_iter_nums->get_data()[i] +=
+            (1 - stop_status->get_const_data()[i].has_stopped());
+    }
+
     finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,

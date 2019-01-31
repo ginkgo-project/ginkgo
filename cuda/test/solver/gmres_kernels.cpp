@@ -234,17 +234,19 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
     gko::kernels::reference::gmres::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg_iter.get(), b_norm.get(), iter, stop_status.get());
+        hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
+        stop_status.get());
     gko::kernels::cuda::gmres::step_1(
         cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), d_b_norm.get(), iter,
-        d_stop_status.get());
+        d_final_iter_nums.get(), d_stop_status.get());
 
     ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
     ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+    ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                     1e-14);

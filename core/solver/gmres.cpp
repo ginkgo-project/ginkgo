@@ -156,7 +156,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual.get(), dense_x);
+            this, total_iter, residual.get(), dense_x, residual_norm.get());
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual_norm(residual_norm.get())
@@ -185,8 +185,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 residual_norm_collection.get(), krylov_bases.get(),
                 &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
-            // residual_norm_collection
-            = {residual_norm, 0, ..., 0}
+            // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             restart_iter = 0;
@@ -196,11 +195,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                              preconditioned_vector.get(), restart_iter);
         // preconditioned_vector = preconditioner_ *
         //                         krylov_bases(:, restart_iter)
-
-        for (int i = 0; i < dense_b->get_size()[1]; ++i) {
-            final_iter_nums.get_data()[i] +=
-                (1 - stop_status.get_const_data()[i].has_stopped());
-        }
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
@@ -213,11 +207,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
 
-        exec->run(gmres::make_step_1(next_krylov_basis.get(), givens_sin.get(),
-                                     givens_cos.get(), residual_norm.get(),
-                                     residual_norm_collection.get(),
-                                     krylov_bases.get(), hessenberg_iter.get(),
-                                     b_norm.get(), restart_iter, &stop_status));
+        exec->run(gmres::make_step_1(
+            next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+            residual_norm.get(), residual_norm_collection.get(),
+            krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
+            restart_iter, &final_iter_nums, &stop_status));
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
