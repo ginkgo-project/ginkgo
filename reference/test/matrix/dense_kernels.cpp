@@ -478,135 +478,129 @@ TEST_F(Dense, MovesToEllWithStride)
 
 TEST_F(Dense, MovesToHybridAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx4->get_executor());
 
     mtx4->move_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 2);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
-    EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
 TEST_F(Dense, ConvertsToHybridAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx4->get_executor());
 
     mtx4->convert_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 2);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
-    EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
 TEST_F(Dense, MovesToHybridWithStrideAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor(),
-                                                    gko::dim<2>{}, 0, 3);
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx4->get_executor(), gko::dim<2>{}, 0, 3);
 
     mtx4->move_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 3);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 2);
-    EXPECT_EQ(c[7], 0);
-    EXPECT_EQ(c[8], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 0.0);
-    EXPECT_EQ(v[3], 3.0);
-    EXPECT_EQ(v[4], 0.0);
-    EXPECT_EQ(v[5], 0.0);
-    EXPECT_EQ(v[6], 2.0);
-    EXPECT_EQ(v[7], 0.0);
-    EXPECT_EQ(v[8], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
 TEST_F(Dense, ConvertsToHybridWithStrideAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor(),
-                                                    gko::dim<2>{}, 0, 3);
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx4->get_executor(), gko::dim<2>{}, 0, 3);
 
     mtx4->convert_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 3);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 2);
-    EXPECT_EQ(c[7], 0);
-    EXPECT_EQ(c[8], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 0.0);
-    EXPECT_EQ(v[3], 3.0);
-    EXPECT_EQ(v[4], 0.0);
-    EXPECT_EQ(v[5], 0.0);
-    EXPECT_EQ(v[6], 2.0);
-    EXPECT_EQ(v[7], 0.0);
-    EXPECT_EQ(v[8], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 

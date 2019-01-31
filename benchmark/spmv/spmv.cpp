@@ -51,7 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Some shortcuts
 using etype = double;
 using duration_type = std::chrono::nanoseconds;
-
+using hybrid = gko::matrix::Hybrid<>;
 
 // input validation
 void print_config_error_and_exit()
@@ -74,9 +74,26 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 // Command-line arguments
-DEFINE_string(formats, "coo",
-              "A comma-separated list of formats to run."
-              "Supported values are: coo, csr, ell, sellp, hybrid");
+DEFINE_string(
+    formats, "coo",
+    "A comma-separated list of formats to run."
+    "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
+    "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
+    "hybridminstorage.\n"
+    "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
+    "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
+    "Sparse Matrices.\n"
+    "csr: Compressed Sparse Row storage. The CUDA kernel invokes NVIDIAs "
+    "cuSPARSE CSR routine.\n"
+    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
+    "Matrix-Vector Multiplication on CUDA.\n"
+    "sellp: Sliced Ellpack uses a default block size of 32.\n"
+    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
+    "hybrid0, hybrid25, hybrid33: Hybrid uses the row distribution to decide "
+    "the partition.\n"
+    "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
+    "part of hybrid0, hybrid25, hybrid33.\n"
+    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
@@ -119,14 +136,43 @@ std::unique_ptr<gko::LinOp> read_matrix(
 }
 
 
+#define READ_MATRIX(MATRIX_TYPE, ...)                                   \
+    [](std::shared_ptr<const gko::Executor> exec,                       \
+       const gko::matrix_data<> &data) -> std::unique_ptr<gko::LinOp> { \
+        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);   \
+        mat->read(data);                                                \
+        return mat;                                                     \
+    }
+
+
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<etype>>},
-                   {"coo", read_matrix<gko::matrix::Coo<etype>>},
-                   {"ell", read_matrix<gko::matrix::Ell<etype>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<etype>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<etype>>}};
+    matrix_factory{
+        {"csr", read_matrix<gko::matrix::Csr<>>},
+        {"coo", read_matrix<gko::matrix::Coo<>>},
+        {"ell", read_matrix<gko::matrix::Ell<>>},
+        {"hybrid", read_matrix<hybrid>},
+        {"hybrid0",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
+        {"hybrid25",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.25))},
+        {"hybrid33",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
+        {"hybridlimit0",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_bounded_limit>(0))},
+        {"hybridlimit25",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::imbalance_bounded_limit>(0.25))},
+        {"hybridlimit33",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(
+                                 1.0 / 3.0))},
+        {"hybridminstorage",
+         READ_MATRIX(hybrid,
+                     std::make_shared<hybrid::minimal_storage_limit>())},
+        {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 
 template <typename RandomEngine>
