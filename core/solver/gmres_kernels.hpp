@@ -79,13 +79,14 @@ namespace gmres {
                 const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                                \
-    void step_2(                                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Dense<_type> *residual_norm_collection,                 \
-        matrix::Dense<_type> *krylov_bases, matrix::Dense<_type> *hessenberg, \
-        matrix::Dense<_type> *y, matrix::Dense<_type> *x,                     \
-        const Array<size_type> *final_iter_nums, const LinOp *preconditioner)
+#define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                        \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,          \
+                const matrix::Dense<_type> *residual_norm_collection, \
+                const matrix::Dense<_type> *krylov_bases,             \
+                const matrix::Dense<_type> *hessenberg,               \
+                matrix::Dense<_type> *y, matrix::Dense<_type> *x,     \
+                const Array<size_type> *final_iter_nums,              \
+                const LinOp *preconditioner)
 
 
 #define DECLARE_ALL_AS_TEMPLATES                      \
