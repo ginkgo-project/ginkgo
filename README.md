@@ -24,7 +24,7 @@ Prerequisites
 
 For Ginkgo core library:
 
-*   _cmake 3.8+_
+*   _cmake 3.9+_
 *   C++11 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
     *   _clang 3.9+_

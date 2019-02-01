@@ -21,7 +21,7 @@ add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>
     ${SOURCES})
 
-target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
+target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
 
 # Ensures that there are no circular dependency issues
