@@ -248,5 +248,18 @@ TEST_F(Sellp,
     GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
+TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
 
 }  // namespace

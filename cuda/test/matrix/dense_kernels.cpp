@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
@@ -105,7 +106,7 @@ protected:
 
     void set_up_apply_data()
     {
-        x = gen_mtx<Mtx>(40, 25);
+        x = gen_mtx<Mtx>(65, 25);
         c_x = gen_mtx<ComplexMtx>(40, 25);
         y = gen_mtx<Mtx>(25, 35);
         expected = gen_mtx<Mtx>(40, 35);
@@ -387,6 +388,36 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
                                                          &dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
+}
+
+
+TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type total_cols;
+    gko::size_type dtotal_cols;
+
+    gko::kernels::reference::dense::calculate_total_cols(ref, x.get(),
+                                                         &total_cols, 2);
+    gko::kernels::cuda::dense::calculate_total_cols(cuda, dx.get(),
+                                                    &dtotal_cols, 2);
+
+    ASSERT_EQ(total_cols, dtotal_cols);
+}
+
+
+TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    x->convert_to(sellp_mtx.get());
+    dx->convert_to(dsellp_mtx.get());
+
+    ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
 }
 
 
