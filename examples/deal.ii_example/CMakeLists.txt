@@ -10,20 +10,16 @@ find_package(deal.II 9.0.0 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR})
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 
-# Set the appropriate source 
-set(SOURCE "./")
-set(CMAKE_CXX_FLAGS "-g -Wall")
-
-set(GINKGO_LIB_DIR "/path/to/ginkgo/lib/dir")
-set(GINKGO_INC_DIR "/path/to/ginkgo/inc/dir")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-add_definitions(-DOMPI_SKIP_MPICXX)
 
-add_executable(${PROJECT_NAME} ${SOURCE}/dealii-step-9.cc)
+add_executable(${PROJECT_NAME} "")
+target_sources(${PROJECT_NAME} PRIVATE dealii-step-9.cc)
+target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall)
+target_compile_definitions(${PROJECT_NAME} PRIVATE OMPI_SKIP_MPICXX)
 
 target_link_libraries(${PROJECT_NAME}
-    ${MPI_C_LIBRARIES} ${GINKGO_LIB_DIR}/libginkgo.so ${GINKGO_LIB_DIR}/libginkgo_omp.so ${GINKGO_LIB_DIR}/libginkgo_cuda.so ${GINKGO_LIB_DIR}/libginkgo_reference.so )
+    ${MPI_C_LIBRARIES} Ginkgo::ginkgo)
 
 target_include_directories(${PROJECT_NAME}
      PRIVATE ${MPI_C_INCLUDE_PATH} ${GINKGO_INC_DIR} ${GINKGO_LIB_DIR} )
