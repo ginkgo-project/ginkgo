@@ -1,5 +1,5 @@
 # configures the file <in> into the variable <variable>
-function(configure_to_string in variable)
+function(ginkgo_configure_to_string in variable)
   set(fin "${in}")
   file(READ "${fin}" str)
   string(CONFIGURE "${str}" str_conf)
@@ -8,15 +8,15 @@ endfunction()
 
 # writes the concatenated configured files <in1,2>
 # in <base_in> into <out>
-function(doc_conf_concat base_in in1 in2 out)
-  configure_to_string("${base_in}/${in1}" s1)
-  configure_to_string("${base_in}/${in2}" s2)
+function(ginkgo_doc_conf_concat base_in in1 in2 out)
+  ginkgo_configure_to_string("${base_in}/${in1}" s1)
+  ginkgo_configure_to_string("${base_in}/${in2}" s2)
   string(CONCAT so "${s1}" "\n" "${s2}")
   file(WRITE "${out}" "${so}")
 endfunction()
 
 # adds a pdflatex build step
-function(doc_pdf name path)
+function(ginkgo_doc_pdf name path)
   add_custom_command(TARGET "${name}" POST_BUILD
     COMMAND make
     COMMAND "${CMAKE_COMMAND}" -E copy refman.pdf
@@ -29,7 +29,7 @@ endfunction()
 
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
-function(doc_gen name in pdf mainpage)
+function(ginkgo_doc_gen name in pdf mainpage)
   set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
   set(DIR_BASE "${CMAKE_CURRENT_SOURCE_DIR}/..")
   set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
@@ -43,9 +43,9 @@ function(doc_gen name in pdf mainpage)
     VERBATIM
     )
   if(pdf)
-    doc_pdf("${name}" "${DIR_OUT}")
+    ginkgo_doc_pdf("${name}" "${DIR_OUT}")
   endif()
-  doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
+  ginkgo_doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
     Doxyfile.in "${in}" "${doxyfile}"
     )
 endfunction()

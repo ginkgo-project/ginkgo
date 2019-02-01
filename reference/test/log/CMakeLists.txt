@@ -1,4 +1,4 @@
-create_test(convergence)
+ginkgo_create_test(convergence)
 if (GKO_HAVE_PAPI_SDE)
-	create_test(papi)
+	ginkgo_create_test(papi)
 endif()

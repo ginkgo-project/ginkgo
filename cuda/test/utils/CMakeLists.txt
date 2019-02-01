@@ -1,1 +1,1 @@
-create_test(assertions_test)
+ginkgo_create_test(assertions_test)

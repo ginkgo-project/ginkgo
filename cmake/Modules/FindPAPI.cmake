@@ -106,8 +106,8 @@ find_package_handle_standard_args(PAPI
 if(PAPI_FOUND)
   set(PAPI_LIBRARIES ${PAPI_LIBRARY})
   set(PAPI_INCLUDE_DIRS ${PAPI_INCLUDE_DIR})
- unset(PAPI_LIBRARY)
- unset(PAPI_INCLUDE_DIR)
+  unset(PAPI_LIBRARY)
+  unset(PAPI_INCLUDE_DIR)
 
   if(NOT TARGET PAPI::PAPI)
     add_library(PAPI::PAPI UNKNOWN IMPORTED)
@@ -125,7 +125,7 @@ if(PAPI_FOUND)
       set_target_properties(PAPI::PAPI PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION_RELEASE "${PAPI_LIBRARY_RELEASE}")
-   unset(PAPI_LIBRARY_RELEASE)
+      unset(PAPI_LIBRARY_RELEASE)
     endif()
     if(PAPI_LIBRARY_DEBUG)
       set_property(TARGET PAPI::PAPI APPEND PROPERTY
@@ -133,7 +133,7 @@ if(PAPI_FOUND)
       set_target_properties(PAPI::PAPI PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION_DEBUG "${PAPI_LIBRARY_DEBUG}")
-   unset(PAPI_LIBRARY_DEBUG)
+      unset(PAPI_LIBRARY_DEBUG)
     endif()
   endif()
 endif()

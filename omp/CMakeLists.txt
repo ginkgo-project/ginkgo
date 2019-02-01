@@ -1,4 +1,4 @@
-set(SOURCES
+set(GINKGO_SOURCES
     base/version.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
@@ -19,7 +19,7 @@ find_package(OpenMP REQUIRED)
 
 add_library(ginkgo_omp
     $<TARGET_OBJECTS:ginkgo_omp_device>
-    ${SOURCES})
+    ${GINKGO_SOURCES})
 
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
@@ -29,11 +29,11 @@ if(NOT BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo_omp PUBLIC ginkgo)
 endif()
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
-target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
+target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
 
-if(BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
