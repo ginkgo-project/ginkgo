@@ -61,7 +61,14 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
   ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp)
 
 
+# Try to find the third party packages before using our subdirectories
+include(cmake/package_helpers.cmake)
+ginkgo_find_package(GTest)
+ginkgo_find_package(gflags)
+ginkgo_find_package(RapidJSON)
 add_subdirectory(third_party)    # Third-party tools and libraries
+
+# Ginkgo library
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations

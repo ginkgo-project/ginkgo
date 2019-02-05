@@ -1,9 +1,14 @@
-include(package_loader.cmake)
+if(GINKGO_BUILD_CUDA)
+    enable_language(CUDA)
+    include(CudaArchitectureSelector OPTIONAL RESULT_VARIABLE GINKGO_CAS_FILE)
+    if (NOT GINKGO_CAS_FILE)
+        add_subdirectory(CudaArchitectureSelector)
+    endif()
+endif()
 
-add_subdirectory(CudaArchitectureSelector)
-
+# For each external package, check if they are already available, otherwise use ours
 if(GINKGO_BUILD_TESTS)
-    add_subdirectory(gtest)
+    ginkgo_add_subdirectory(GTest gtest)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
@@ -12,8 +17,14 @@ if(GINKGO_DEVEL_TOOLS)
 endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
-    add_subdirectory(gflags)
-    add_subdirectory(rapidjson)
+    ginkgo_add_subdirectory(gflags gflags)
+    ginkgo_add_subdirectory(RapidJSON rapidjson)
+
+    # RapidJSON does not provide a modern CMake target so far. Let's fix that!
+    if(RapidJSON_FOUND)
+        add_library(rapidjson INTERFACE)
+        target_include_directories(rapidjson INTERFACE ${RapidJSON_INCLUDE_DIRS})
+    endif()
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
