@@ -223,6 +223,13 @@ TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                     1e-14);
     ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+
+    gko::Array<gko::size_type> host_iter(ref, *d_final_iter_nums);
+
+    for (int i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+        ASSERT_EQ(host_iter.get_const_data()[i],
+                  final_iter_nums->get_const_data()[i]);
+    }
 }
 
 
@@ -245,10 +252,17 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
     ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                     1e-14);
+    ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+    ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+    gko::Array<gko::size_type> host_iter(ref, *d_final_iter_nums);
+
+    for (int i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+        ASSERT_EQ(host_iter.get_const_data()[i],
+                  final_iter_nums->get_const_data()[i]);
+    }
 }
 
 

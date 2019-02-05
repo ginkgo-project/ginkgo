@@ -1,3 +1,4 @@
+add_subdirectory(gmres_test)
 add_subdirectory(3pt_stencil)
 add_subdirectory(asynchronous_stopping_criterion)
 add_subdirectory(custom_matrix_format)
