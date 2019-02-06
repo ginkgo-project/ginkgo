@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 
+#include <iostream>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -255,6 +257,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // y = hessenberg \ residual_norm_collection
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
+
+    std::cout << "Total_iter: " << total_iter << '\n';
 }
 
 

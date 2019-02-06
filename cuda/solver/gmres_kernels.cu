@@ -244,6 +244,22 @@ void divide(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType>
+void __global__
+update_krylov_bases_kernels(size_type iter, size_type m, size_type n,
+                            size_type stride_bases, size_type stride_next_basis,
+                            const ValueType *__restrict__ next_krylov_basis,
+                            ValueType *__restrict__ krylov_bases)
+{
+    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row = global_id / stride_bases;
+    const auto column = global_id % stride_bases;
+    if (global_id < stride_bases * m) {
+        krylov_bases[row * stride_bases + n * (iter + 1) + column] =
+            next_krylov_basis[row * stride_next_basis + column];
+    }
+}
+
+template <typename ValueType>
 void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *next_krylov_basis,
                     matrix::Dense<ValueType> *krylov_bases,
@@ -279,6 +295,18 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     divide(exec, next_krylov_basis_norm.get(), next_krylov_basis);
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // End of arnoldi
+
+    auto dims = next_krylov_basis->get_size();
+    auto stride_bases = krylov_bases->get_stride();
+    auto stride_next_basis = next_krylov_basis->get_stride();
+    auto num_elems = dims[0] * std::max(stride_bases, stride_next_basis);
+    dim3 block_dim(default_block_size);
+    dim3 grid_dim(ceildiv(num_elems, block_dim.x));
+
+    update_krylov_bases_kernels<<<grid_dim, block_dim>>>(
+        iter, dims[0], dims[1], stride_bases, stride_next_basis,
+        as_cuda_type(next_krylov_basis->get_values()),
+        as_cuda_type(krylov_bases->get_values()));
 }
 
 
