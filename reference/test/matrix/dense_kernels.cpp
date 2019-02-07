@@ -40,6 +40,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <random>
+
+
+#include <core/test/utils.hpp>
+
+
 #include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -86,6 +92,17 @@ protected:
     std::unique_ptr<gko::matrix::Dense<std::complex<double>>> mtx6;
     std::unique_ptr<gko::matrix::Dense<>> mtx7;
     std::unique_ptr<gko::matrix::Dense<>> mtx8;
+
+    std::ranlux48 rand_engine;
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<MtxType>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine, exec);
+    }
 };
 
 
@@ -939,6 +956,19 @@ TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
                     l({{1.0 - 2.0 * i, -2.0 - 1.5 * i, 1.0 + 0.0 * i},
                        {-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
                     0.0);
+}
+
+TEST_F(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
+{
+    auto x = gen_mtx<Mtx>(65, 25);
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<>::create(exec);
+
+    x->convert_to(sellp_mtx.get());
+    sellp_mtx->convert_to(dense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx.get(), x.get(), 1e-14);
 }
 
 

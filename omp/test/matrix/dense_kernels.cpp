@@ -344,10 +344,10 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
-    gko::kernels::reference::dense::calculate_total_cols(ref, rmtx.get(),
-                                                         &ref_total_cols, 1);
-    gko::kernels::omp::dense::calculate_total_cols(omp, omtx.get(),
-                                                   &omp_total_cols, 1);
+    gko::kernels::reference::dense::calculate_total_cols(
+        ref, rmtx.get(), &ref_total_cols, 1, gko::matrix::default_slice_size);
+    gko::kernels::omp::dense::calculate_total_cols(
+        omp, omtx.get(), &omp_total_cols, 1, gko::matrix::default_slice_size);
 
     ASSERT_EQ(ref_total_cols, omp_total_cols);
 }

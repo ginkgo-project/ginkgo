@@ -396,7 +396,8 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     slice_sets[0] = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {
-            slice_sets[slice] = slice_lengths[slice - 1];
+            slice_sets[slice] =
+                slice_sets[slice - 1] + slice_lengths[slice - 1];
         }
         slice_lengths[slice] = 0;
         for (size_type row = 0; row < slice_size; row++) {
@@ -437,7 +438,8 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    slice_sets[slice_num] = slice_lengths[slice_num - 1];
+    slice_sets[slice_num] =
+        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -525,11 +527,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor)
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
-    auto slice_size = matrix::default_slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
     auto total_cols = 0;
     auto temp = 0, slice_temp = 0;
