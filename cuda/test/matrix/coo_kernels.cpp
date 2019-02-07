@@ -209,8 +209,8 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    const auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    const auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
