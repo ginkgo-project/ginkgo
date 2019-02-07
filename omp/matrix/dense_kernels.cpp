@@ -402,11 +402,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                           const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor)
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
-    auto slice_size = matrix::default_slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
     size_type total_cols = 0;
 #pragma omp parallel for reduction(+ : total_cols)

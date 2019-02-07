@@ -136,7 +136,8 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
     void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Dense<_type> *source,          \
-                              size_type *result, size_type stride_factor)
+                              size_type *result, size_type stride_factor,  \
+                              size_type slice_size)
 
 #define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
