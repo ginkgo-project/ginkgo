@@ -282,7 +282,8 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
 
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {
-            slice_sets[slice] = slice_lengths[slice - 1];
+            slice_sets[slice] =
+                slice_sets[slice - 1] + slice_lengths[slice - 1];
         }
         size_type current_slice_length = 0;
 #pragma omp parallel for reduction(max : current_slice_length)
@@ -325,7 +326,8 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
-    slice_sets[slice_num] = slice_lengths[slice_num - 1];
+    slice_sets[slice_num] =
+        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
