@@ -72,3 +72,7 @@ ginkgo_install_library(ginkgo_cuda cuda)
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+
+# Propagate some useful CUDA informations not propagated by default
+set(CMAKE_CUDA_COMPILER_VERSION "${CMAKE_CUDA_COMPILER_VERSION}" PARENT_SCOPE)
+set(CMAKE_CUDA_HOST_LINK_LAUNCHER "${CMAKE_CUDA_HOST_LINK_LAUNCHER}" PARENT_SCOPE)
