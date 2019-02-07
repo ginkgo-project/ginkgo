@@ -686,11 +686,12 @@ void move_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
+
 namespace kernel {
 
 __global__ __launch_bounds__(default_block_size) void calculate_slice_lengths(
     size_type num_rows, size_type slice_size, int slice_num,
-    const size_type *__restrict__ nnz_per_row,
+    size_type stride_factor, const size_type *__restrict__ nnz_per_row,
     size_type *__restrict__ slice_lengths)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -717,7 +718,8 @@ __global__ __launch_bounds__(default_block_size) void calculate_slice_lengths(
         }
 
         if (tid_in_warp == 0) {
-            slice_lengths[sliceid] = warp_results[0];
+            slice_lengths[sliceid] = (stride_factor - 1 + warp_results[0]) /
+                                     stride_factor * stride_factor;
         }
     }
 }
@@ -823,7 +825,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(slice_num, default_block_size / cuda_config::warp_size);
 
     kernel::calculate_slice_lengths<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, slice_num,
+        num_rows, slice_size, slice_num, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(slice_lengths));
 
@@ -1048,29 +1050,37 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
 }
 
 __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
-    size_type num_slices, size_type *__restrict__ max_nnz_per_slice,
+    size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
     size_type *result)
 {
+    extern __shared__ size_type block_result[];
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    size_type start_step = 1;
-    while (start_step * 2 < num_slices) {
+    size_type thread_result = 0;
+    for (auto i = tidx; i < num_slices; i += blockDim.x * gridDim.x) {
+        thread_result += max_nnz_per_slice[i];
+    }
+    block_result[threadIdx.x] = thread_result;
+
+    __syncthreads();
+
+    auto start_step = 1;
+    while (blockDim.x > 2 * start_step) {
         start_step *= 2;
     }
 
     for (auto i = start_step; i >= 1; i >>= 1) {
-        if (tidx < i && tidx + i < num_slices) {
-            max_nnz_per_slice[tidx] += max_nnz_per_slice[tidx + i];
+        if (threadIdx.x < i && threadIdx.x + i < blockDim.x) {
+            block_result[threadIdx.x] += block_result[threadIdx.x + i];
         }
         __syncthreads();
     }
 
-    if (tidx == 0) {
-        *result = max_nnz_per_slice[0];
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] = block_result[0];
     }
 }
 
 }  // namespace kernel
-
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
@@ -1098,15 +1108,28 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(max_nnz_per_slice.get_data()));
 
+    const auto n = ceildiv(slice_num, default_block_size);
+    const size_type grid_dim =
+        (n <= default_block_size) ? n : default_block_size;
+
+    auto block_results = Array<size_type>(exec, grid_dim);
+
+    kernel::reduce_total_cols<<<grid_dim, default_block_size,
+                                default_block_size * sizeof(size_type)>>>(
+        slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
+        as_cuda_type(block_results.get_data()));
+
     auto d_result = Array<size_type>(exec, 1);
 
-    kernel::reduce_total_cols<<<ceildiv(slice_num, default_block_size),
-                                default_block_size>>>(
-        slice_num, as_cuda_type(max_nnz_per_slice.get_data()),
+    kernel::reduce_total_cols<<<1, default_block_size,
+                                default_block_size * sizeof(size_type)>>>(
+        grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
+
+    block_results.clear();
     nnz_per_row.clear();
     max_nnz_per_slice.clear();
     d_result.clear();

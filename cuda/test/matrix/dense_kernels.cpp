@@ -107,9 +107,9 @@ protected:
     void set_up_apply_data()
     {
         x = gen_mtx<Mtx>(65, 25);
-        c_x = gen_mtx<ComplexMtx>(40, 25);
+        c_x = gen_mtx<ComplexMtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
-        expected = gen_mtx<Mtx>(40, 35);
+        expected = gen_mtx<Mtx>(65, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         dx = Mtx::create(cuda);
