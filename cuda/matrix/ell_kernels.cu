@@ -345,8 +345,8 @@ __global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_rows && tidx_y < num_cols) {
-        result[tidx_x * stride + tidx_y] = zero<ValueType>();
+    if (tidx_x < num_cols && tidx_y < num_rows) {
+        result[tidx_y * stride + tidx_x] = zero<ValueType>();
     }
 }
 
@@ -384,8 +384,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_size(cuda_config::warp_size,
                           cuda_config::max_block_size / cuda_config::warp_size,
                           1);
-    const dim3 init_grid_dim(ceildiv(num_rows, block_size.x),
-                             ceildiv(num_cols, block_size.y), 1);
+    const dim3 init_grid_dim(ceildiv(result_stride, block_size.x),
+                             ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
         num_rows, num_cols, result_stride, as_cuda_type(result->get_values()));
 
