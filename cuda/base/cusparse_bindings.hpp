@@ -49,7 +49,6 @@ namespace kernels {
 namespace cuda {
 namespace cusparse {
 namespace detail {
-namespace {
 
 
 template <typename... Args>
@@ -59,11 +58,7 @@ inline int64 not_implemented(Args...)
 }
 
 
-}  // namespace
 }  // namespace detail
-
-
-namespace {
 
 
 template <typename ValueType, typename IndexType>
@@ -221,7 +216,6 @@ inline void destroy(cusparseMatDescr_t descr)
 }
 
 
-}  // namespace
 }  // namespace cusparse
 }  // namespace cuda
 }  // namespace kernels
