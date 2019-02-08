@@ -51,7 +51,7 @@ void solve_system(ExecType exec, MatrixType system_matrix,
                   double accuracy)
 {
     using gmres = gko::solver::Gmres<double>;
-    constexpr unsigned int max_iters = 800;
+    constexpr unsigned int max_iters = 10;  // 800;
 
     // Generate solver
     auto solver_gen =

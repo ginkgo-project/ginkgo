@@ -189,8 +189,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
-    print_matrix(std::string("dense_x init"), dense_x);
-    print_matrix(std::string("krylov p init"), krylov_bases.get());
+    // print_matrix(std::string("dense_x init"), dense_x);
+    // print_matrix(std::string("krylov p init"), krylov_bases.get());
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
@@ -253,14 +253,14 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
 
-        print_matrix(
-            std::string("pre_hessenberg ") + std::to_string(total_iter),
-            hessenberg_iter.get());
+        // print_matrix(
+        //    std::string("pre_hessenberg ") + std::to_string(total_iter),
+        //    hessenberg_iter.get());
         print_matrix(std::string("pre_next ") + std::to_string(total_iter),
                      next_krylov_basis.get());
-        // print_matrix(std::string("pre_krylov ") + std::to_string(total_iter),
-        // krylov_bases.get());
-        if (exec != exec->get_master()) {
+        print_matrix(std::string("pre_krylov ") + std::to_string(total_iter),
+                     krylov_bases.get());
+        if (false && exec != exec->get_master()) {
             auto host_ex = exec->get_master();
 
             auto h_nkb = Vector::create(host_ex);

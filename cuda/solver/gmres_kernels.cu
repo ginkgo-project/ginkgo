@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 
 
+#include <iostream>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -243,21 +246,118 @@ void divide(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-template <typename ValueType>
-void __global__
-update_krylov_bases_kernels(size_type iter, size_type m, size_type n,
-                            size_type stride_bases, size_type stride_next_basis,
-                            const ValueType *__restrict__ next_krylov_basis,
-                            ValueType *__restrict__ krylov_bases)
+// Must be called with at least `(iter + 1) * stride_hessenberg` threads in
+// total
+template <int block_size = default_block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov, const ValueType *__restrict__ krylov_bases,
+    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
+    size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
 {
-    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row = global_id / stride_bases;
-    const auto column = global_id % stride_bases;
-    if (global_id < stride_bases * m) {
-        krylov_bases[row * stride_bases + n * (iter + 1) + column] =
-            next_krylov_basis[row * stride_next_basis + column];
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto row_idx = global_id / stride_hessenberg;
+    const auto col_idx = global_id % stride_hessenberg;
+
+    if (row_idx < iter + 1 && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        const auto krylov_col = row_idx * num_cols + col_idx;
+        ValueType current_hessenberg = zero<ValueType>();
+        for (size_type i = 0; i < num_rows; ++i) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            const auto krylov_idx = i * stride_krylov + krylov_col;
+            current_hessenberg +=
+                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
+        }
+        hessenberg_iter[row_idx * stride_hessenberg + col_idx] =
+            current_hessenberg;
     }
 }
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in total
+template <int block_size = default_block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_next_krylov_basis_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto row_idx = global_id / stride_next_krylov;
+    const auto col_idx = global_id % stride_next_krylov;
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        ValueType next_krylov_subtraction = zero<ValueType>();
+        for (size_type k = 0; k < iter + 1; ++k) {
+            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+            const auto krylov_idx =
+                row_idx * stride_krylov + k * num_cols + col_idx;
+            next_krylov_subtraction +=
+                hessenberg_iter[hessenberg_idx] * krylov_bases[krylov_idx];
+        }
+        next_krylov_basis[row_idx * stride_next_krylov + col_idx] -=
+            next_krylov_subtraction;
+    }
+}
+
+
+// Must be called with at least `num_cols` threads in total
+template <int block_size = default_block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov, ValueType *__restrict__ hessenberg_iter,
+    size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        ValueType next_hessenberg = zero<ValueType>();
+        for (size_type i = 0; i < num_rows; ++i) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            const auto next_krylov_value = next_krylov_basis[next_krylov_idx];
+            next_hessenberg += next_krylov_value * next_krylov_value;
+        }
+        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
+            sqrt(next_hessenberg);
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_bases` threads in total
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void update_krylov_next_krylov_kernel(
+        size_type iter, size_type num_rows, size_type num_cols,
+        ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+        ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
+    const auto hessenberg =
+        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+    if (global_id < stride_krylov * num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        auto next_krylov_value =
+            next_krylov_basis[row_idx * stride_next_krylov + col_idx] /
+            hessenberg;
+        next_krylov_basis[row_idx * stride_next_krylov + col_idx] =
+            next_krylov_value;
+        krylov_bases[row_idx * stride_krylov + num_cols * (iter + 1) +
+                     col_idx] = next_krylov_value;
+    }
+}
+
 
 template <typename ValueType>
 void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
@@ -266,6 +366,55 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *hessenberg_iter,
                     const size_type iter, const stopping_status *stop_status)
 {
+    const auto stride_next_krylov = next_krylov_basis->get_stride();
+    const auto stride_krylov = krylov_bases->get_stride();
+    const auto stride_hessenberg = hessenberg_iter->get_stride();
+    const auto dim_size = next_krylov_basis->get_size();
+
+    update_hessenberg_kernel<<<ceildiv((iter + 1) * stride_hessenberg,
+                                       default_block_size),
+                               default_block_size>>>(
+        iter, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+        as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+    // for i in 1:iter
+    //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+    // end
+
+    update_next_krylov_basis_kernel<<<ceildiv(dim_size[0] * stride_next_krylov,
+                                              default_block_size),
+                                      default_block_size>>>(
+        iter, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+        as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+        as_cuda_type(hessenberg_iter->get_const_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+    // for i in 1:iter
+    //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+    // end
+
+    update_hessenberg_2_kernel<<<ceildiv(dim_size[1], default_block_size),
+                                 default_block_size>>>(
+        iter, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+
+    update_krylov_next_krylov_kernel<<<ceildiv(dim_size[0] * stride_krylov,
+                                               default_block_size),
+                                       default_block_size>>>(
+        iter, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+        as_cuda_type(krylov_bases->get_values()), stride_krylov,
+        as_cuda_type(hessenberg_iter->get_const_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+    // next_krylov_basis /= hessenberg(iter, iter + 1)
+    // End of arnoldi
+    //*/
+
+    /*
     auto neg_one_op =
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
 
@@ -296,68 +445,63 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     divide(exec, next_krylov_basis_norm.get(), next_krylov_basis);
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // End of arnoldi
-
-    auto dims = next_krylov_basis->get_size();
-    auto stride_bases = krylov_bases->get_stride();
-    auto stride_next_basis = next_krylov_basis->get_stride();
-    auto num_elems = dims[0] * std::max(stride_bases, stride_next_basis);
-    dim3 block_dim(default_block_size);
-    dim3 grid_dim(ceildiv(num_elems, block_dim.x));
-
-    update_krylov_bases_kernels<<<grid_dim, block_dim>>>(
-        iter, dims[0], dims[1], stride_bases, stride_next_basis,
-        as_cuda_type(next_krylov_basis->get_values()),
-        as_cuda_type(krylov_bases->get_values()));
+    */
 }
 
 
 template <typename ValueType>
-__device__ void calculate_sin_and_cos(const size_type num_cols,
-                                      const ValueType *hessenberg_iter,
-                                      ValueType *givens_sin,
-                                      ValueType *givens_cos,
-                                      const size_type iter)
+__device__ void calculate_sin_and_cos(
+    const size_type num_cols, const ValueType *hessenberg_iter,
+    size_type stride_hessenberg, ValueType *givens_sin, size_type stride_sin,
+    ValueType *givens_cos, size_type stride_cos, const size_type iter)
 {
     const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
 
-    if (hessenberg_iter[iter * num_cols + local_id] == zero<ValueType>()) {
-        givens_cos[iter * num_cols + local_id] = zero<ValueType>();
-        givens_sin[iter * num_cols + local_id] = one<ValueType>();
+    if (hessenberg_iter[iter * stride_hessenberg + local_id] ==
+        zero<ValueType>()) {
+        givens_cos[iter * stride_cos + local_id] = zero<ValueType>();
+        givens_sin[iter * stride_sin + local_id] = one<ValueType>();
     } else {
-        auto hypotenuse =
-            sqrt(hessenberg_iter[iter * num_cols + local_id] *
-                     hessenberg_iter[iter * num_cols + local_id] +
-                 hessenberg_iter[(iter + 1) * num_cols + local_id] *
-                     hessenberg_iter[(iter + 1) * num_cols + local_id]);
-        givens_cos[iter * num_cols + local_id] =
-            abs(hessenberg_iter[iter * num_cols + local_id]) / hypotenuse;
-        givens_sin[iter * num_cols + local_id] =
-            givens_cos[iter * num_cols + local_id] *
-            hessenberg_iter[(iter + 1) * num_cols + local_id] /
-            hessenberg_iter[iter * num_cols + local_id];
+        auto hypotenuse = sqrt(
+            hessenberg_iter[iter * stride_hessenberg + local_id] *
+                hessenberg_iter[iter * stride_hessenberg + local_id] +
+            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] *
+                hessenberg_iter[(iter + 1) * stride_hessenberg + local_id]);
+        givens_cos[iter * stride_cos + local_id] =
+            abs(hessenberg_iter[iter * stride_hessenberg + local_id]) /
+            hypotenuse;
+        givens_sin[iter * stride_sin + local_id] =
+            givens_cos[iter * stride_cos + local_id] *
+            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] /
+            hessenberg_iter[iter * stride_hessenberg + local_id];
     }
 }
 
 
 template <typename ValueType>
-__device__ void calculate_residual_norm(const size_type num_cols,
-                                        const ValueType *givens_sin,
-                                        const ValueType *givens_cos,
-                                        ValueType *residual_norm,
-                                        ValueType *residual_norm_collection,
-                                        const ValueType *b_norm,
-                                        const size_type iter)
+__device__ void calculate_residual_norm(
+    const size_type num_cols, const ValueType *givens_sin, size_type stride_sin,
+    const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
+    ValueType *residual_norm_collection,
+    size_type stride_residual_norm_collection, const ValueType *b_norm,
+    const size_type iter)
 {
     const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
 
-    residual_norm_collection[(iter + 1) * num_cols + local_id] =
-        -givens_sin[iter * num_cols + local_id] *
-        residual_norm_collection[iter * num_cols + local_id];
-    residual_norm_collection[iter * num_cols + local_id] =
-        givens_cos[iter * num_cols + local_id] *
-        residual_norm_collection[iter * num_cols + local_id];
+    residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
+                             local_id] =
+        -givens_sin[iter * stride_sin + local_id] *
+        residual_norm_collection[iter * stride_residual_norm_collection +
+                                 local_id];
+    residual_norm_collection[iter * stride_residual_norm_collection +
+                             local_id] =
+        givens_cos[iter * stride_cos + local_id] *
+        residual_norm_collection[iter * stride_residual_norm_collection +
+                                 local_id];
     residual_norm[local_id] =
-        abs(residual_norm_collection[(iter + 1) * num_cols + local_id]) /
+        abs(residual_norm_collection[(iter + 1) *
+                                         stride_residual_norm_collection +
+                                     local_id]) /
         b_norm[local_id];
 }
 
@@ -365,9 +509,12 @@ __device__ void calculate_residual_norm(const size_type num_cols,
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     const size_type num_rows, const size_type num_cols,
-    ValueType *__restrict__ hessenberg_iter, ValueType *__restrict__ givens_sin,
-    ValueType *__restrict__ givens_cos, ValueType *__restrict__ residual_norm,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    ValueType *__restrict__ givens_sin, size_type stride_sin,
+    ValueType *__restrict__ givens_cos, size_type stride_cos,
+    ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
+    size_type stride_residual_norm_collection,
     const ValueType *__restrict__ b_norm, const size_type iter,
     const stopping_status *__restrict__ stop_status)
 {
@@ -377,17 +524,18 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     if (local_id >= num_cols || stop_status[local_id].has_stopped()) return;
 
     for (size_type i = 0; i < iter; ++i) {
-        tmp[local_id] = givens_cos[i * num_cols + local_id] *
-                            hessenberg_iter[i * num_cols + local_id] +
-                        givens_sin[i * num_cols + local_id] *
-                            hessenberg_iter[(i + 1) * num_cols + local_id];
+        tmp[local_id] =
+            givens_cos[i * stride_cos + local_id] *
+                hessenberg_iter[i * stride_hessenberg + local_id] +
+            givens_sin[i * stride_sin + local_id] *
+                hessenberg_iter[(i + 1) * stride_hessenberg + local_id];
         __syncthreads();
-        hessenberg_iter[(i + 1) * num_cols + local_id] =
-            givens_cos[i * num_cols + local_id] *
-                hessenberg_iter[(i + 1) * num_cols + local_id] -
-            givens_sin[i * num_cols + local_id] *
-                hessenberg_iter[i * num_cols + local_id];
-        hessenberg_iter[i * num_cols + local_id] = tmp[local_id];
+        hessenberg_iter[(i + 1) * stride_hessenberg + local_id] =
+            givens_cos[i * stride_cos + local_id] *
+                hessenberg_iter[(i + 1) * stride_hessenberg + local_id] -
+            givens_sin[i * stride_sin + local_id] *
+                hessenberg_iter[i * stride_hessenberg + local_id];
+        hessenberg_iter[i * stride_hessenberg + local_id] = tmp[local_id];
         __syncthreads();
     }
     // for j in 1:iter - 1
@@ -398,22 +546,24 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //     hessenberg(j)    =  temp;
     // end
 
-    calculate_sin_and_cos(num_cols, hessenberg_iter, givens_sin, givens_cos,
-                          iter);
+    calculate_sin_and_cos(num_cols, hessenberg_iter, stride_hessenberg,
+                          givens_sin, stride_sin, givens_cos, stride_cos, iter);
     // Calculate sin and cos
 
-    hessenberg_iter[iter * num_cols + local_id] =
-        givens_cos[iter * num_cols + local_id] *
-            hessenberg_iter[iter * num_cols + local_id] +
-        givens_sin[iter * num_cols + local_id] *
-            hessenberg_iter[(iter + 1) * num_cols + local_id];
-    hessenberg_iter[(iter + 1) * num_cols + local_id] = zero<ValueType>();
+    hessenberg_iter[iter * stride_hessenberg + local_id] =
+        givens_cos[iter * stride_cos + local_id] *
+            hessenberg_iter[iter * stride_hessenberg + local_id] +
+        givens_sin[iter * stride_sin + local_id] *
+            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id];
+    hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] =
+        zero<ValueType>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
     //                      sin(iter)*hessenberg(iter)
     // hessenberg(iter+1) = 0
 
-    calculate_residual_norm(num_cols, givens_sin, givens_cos, residual_norm,
-                            residual_norm_collection, b_norm, iter);
+    calculate_residual_norm(num_cols, givens_sin, stride_sin, givens_cos,
+                            stride_cos, residual_norm, residual_norm_collection,
+                            stride_residual_norm_collection, b_norm, iter);
     // Calculate residual norm
 }
 
@@ -438,10 +588,11 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
     givens_rotation_kernel<block_size><<<1, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
         as_cuda_type(hessenberg_iter->get_values()),
-        as_cuda_type(givens_sin->get_values()),
-        as_cuda_type(givens_cos->get_values()),
-        as_cuda_type(residual_norm->get_values()),
+        hessenberg_iter->get_stride(), as_cuda_type(givens_sin->get_values()),
+        givens_sin->get_stride(), as_cuda_type(givens_cos->get_values()),
+        givens_cos->get_stride(), as_cuda_type(residual_norm->get_values()),
         as_cuda_type(residual_norm_collection->get_values()),
+        residual_norm_collection->get_stride(),
         as_cuda_type(b_norm->get_const_values()), iter,
         as_cuda_type(stop_status->get_const_data()));
 }
@@ -465,7 +616,6 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
         default_block_size>>>(as_cuda_type(final_iter_nums->get_data()),
                               as_cuda_type(stop_status->get_const_data()),
                               final_iter_nums->get_num_elems());
-
     finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
