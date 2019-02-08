@@ -281,6 +281,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
         krylov_basis->scale(neg_one_op.get());
         next_krylov_basis->add_scaled(hessenberg_iter_column.get(),
                                       krylov_basis.get());
+        // krylov_basis->scale(neg_one_op.get());
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
