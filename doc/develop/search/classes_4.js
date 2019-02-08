@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['uninitializedarray',['UninitializedArray',['../classgko_1_1kernels_1_1cuda_1_1UninitializedArray.html',1,'gko::kernels::cuda']]]
+  ['thread_5fblock_5ftile',['thread_block_tile',['../structgko_1_1group_1_1thread__block__tile.html',1,'gko::group']]],
+  ['truncated',['truncated',['../classgko_1_1truncated.html',1,'gko']]]
 ];
