@@ -51,7 +51,6 @@ namespace kernels {
 namespace cuda {
 namespace cublas {
 namespace detail {
-namespace {
 
 
 template <typename... Args>
@@ -61,11 +60,7 @@ inline int64 not_implemented(Args &&...)
 }
 
 
-}  // namespace
 }  // namespace detail
-
-
-namespace {
 
 
 template <typename ValueType>
@@ -233,7 +228,6 @@ inline void destroy(cublasHandle_t handle)
 }
 
 
-}  // namespace
 }  // namespace cublas
 }  // namespace cuda
 }  // namespace kernels
