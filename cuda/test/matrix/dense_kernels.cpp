@@ -398,10 +398,10 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
     gko::size_type total_cols;
     gko::size_type dtotal_cols;
 
-    gko::kernels::reference::dense::calculate_total_cols(ref, x.get(),
-                                                         &total_cols, 2);
-    gko::kernels::cuda::dense::calculate_total_cols(cuda, dx.get(),
-                                                    &dtotal_cols, 2);
+    gko::kernels::reference::dense::calculate_total_cols(
+        ref, x.get(), &total_cols, 2, gko::matrix::default_slice_size);
+    gko::kernels::cuda::dense::calculate_total_cols(
+        cuda, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
 
     ASSERT_EQ(total_cols, dtotal_cols);
 }

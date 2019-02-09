@@ -1029,11 +1029,11 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor)
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
-    auto slice_size = matrix::default_slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
