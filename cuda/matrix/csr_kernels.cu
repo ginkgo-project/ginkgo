@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -853,6 +854,57 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 namespace kernel {
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_coo(
+    size_type nnz, const ValueType *__restrict__ source_vals,
+    const IndexType *__restrict__ source_col_idxs,
+    ValueType *__restrict__ result_vals,
+    IndexType *__restrict__ result_col_idxs)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx < nnz) {
+        result_vals[tidx] = source_vals[tidx];
+        result_col_idxs[tidx] = source_col_idxs[tidx];
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+
+    auto row_idxs = result->get_row_idxs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    const auto nnz = source->get_num_stored_elements();
+    const auto source_row_ptrs = source->get_const_row_ptrs();
+    const auto source_col_idxs = source->get_const_col_idxs();
+    const auto source_values = source->get_const_values();
+
+    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
+
+    const auto grid_dim = ceildiv(nnz, default_block_size);
+
+    kernel::fill_in_coo<<<grid_dim, default_block_size>>>(
+        nnz, as_cuda_type(source_values), as_cuda_type(source_col_idxs),
+        as_cuda_type(values), as_cuda_type(col_idxs));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
+
+
+namespace kernel {
+
+
 template <typename ValueType>
 __global__
     __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
@@ -865,6 +917,7 @@ __global__
         result[tidx_y * stride + tidx_x] = zero<ValueType>();
     }
 }
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
