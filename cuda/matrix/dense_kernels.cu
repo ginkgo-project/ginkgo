@@ -696,7 +696,6 @@ __global__
         size_type *__restrict__ slice_lengths,
         size_type *__restrict__ slice_sets)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     const auto warp_size = cuda_config::warp_size;
     const auto sliceid = blockIdx.x;
     const auto tid_in_warp = threadIdx.x;
