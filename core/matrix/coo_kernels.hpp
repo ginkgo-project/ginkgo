@@ -79,6 +79,11 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Coo<ValueType, IndexType> *source)
 
+#define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)  \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Csr<ValueType, IndexType> *result,   \
+                        const matrix::Coo<ValueType, IndexType> *source)
+
 #define GKO_DECLARE_COO_TRANSPOSE_KERNEL(ValueType, IndexType)  \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
                    matrix::Coo<ValueType, IndexType> *trans,    \
