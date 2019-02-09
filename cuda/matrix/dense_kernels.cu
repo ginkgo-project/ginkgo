@@ -689,15 +689,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 namespace kernel {
 
-__global__ __launch_bounds__(default_block_size) void calculate_slice_lengths(
-    size_type num_rows, size_type slice_size, int slice_num,
-    size_type stride_factor, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ slice_lengths)
+__global__
+    __launch_bounds__(cuda_config::warp_size) void calculate_slice_lengths(
+        size_type num_rows, size_type slice_size, int slice_num,
+        size_type stride_factor, const size_type *__restrict__ nnz_per_row,
+        size_type *__restrict__ slice_lengths,
+        size_type *__restrict__ slice_sets)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     const auto warp_size = cuda_config::warp_size;
-    const auto sliceid = tidx / warp_size;
-    const auto tid_in_warp = tidx % warp_size;
+    const auto sliceid = blockIdx.x;
+    const auto tid_in_warp = threadIdx.x;
     __shared__ size_type warp_results[warp_size];
 
     if (sliceid * slice_size + tid_in_warp < num_rows) {
@@ -718,49 +720,11 @@ __global__ __launch_bounds__(default_block_size) void calculate_slice_lengths(
         }
 
         if (tid_in_warp == 0) {
-            slice_lengths[sliceid] = (stride_factor - 1 + warp_results[0]) /
-                                     stride_factor * stride_factor;
+            auto slice_length = (stride_factor - 1 + warp_results[0]) /
+                                stride_factor * stride_factor;
+            slice_lengths[sliceid] = slice_length;
+            slice_sets[sliceid] = slice_length;
         }
-    }
-}
-
-__global__
-    __launch_bounds__(cuda_config::warp_size) void start_slice_set_calculation(
-        size_type slice_num, size_type work_size,
-        const size_type *__restrict__ slice_lengths,
-        size_type *__restrict__ slice_sets, size_type *__restrict__ add_values)
-{
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (tidx == 0) {
-        slice_sets[0] = 0;
-    }
-
-    if (tidx * work_size < slice_num) {
-        auto start_slice = tidx * work_size;
-        auto offset_up_to_here = 0;
-        for (auto i = start_slice; i < min(start_slice + work_size, slice_num);
-             i++) {
-            offset_up_to_here += slice_lengths[i];
-            slice_sets[i + 1] = offset_up_to_here;
-        }
-        add_values[tidx] = offset_up_to_here;
-    }
-}
-
-__global__
-    __launch_bounds__(default_block_size) void finalize_slice_set_calculation(
-        size_type slice_num, size_type *__restrict__ slice_sets,
-        const size_type *__restrict__ add_values)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tidx + blockDim.x + 1 < slice_num) {
-        size_type add_value = 0;
-        for (auto i = 0; i <= blockIdx.x; i++) {
-            add_value += add_values[i];
-        }
-        slice_sets[tidx + blockDim.x + 1] += add_value;
     }
 }
 
@@ -821,25 +785,24 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
-    auto grid_dim =
-        ceildiv(slice_num, default_block_size / cuda_config::warp_size);
+    auto grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, default_block_size>>>(
+    kernel::calculate_slice_lengths<<<grid_dim, cuda_config::warp_size>>>(
         num_rows, slice_size, slice_num, stride_factor,
-        as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(slice_lengths));
+        as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
+        as_cuda_type(slice_sets));
 
-    auto add_values = Array<size_type>(exec, slice_num);
-    grid_dim = ceildiv(slice_num, default_block_size);
+    auto add_values =
+        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
+    grid_dim = ceildiv(slice_num + 1, default_block_size);
 
-    kernel::start_slice_set_calculation<<<
-        ceildiv(grid_dim, cuda_config::warp_size), cuda_config::warp_size>>>(
-        slice_num, default_block_size, as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets), as_cuda_type(add_values.get_data()));
-
-    kernel::finalize_slice_set_calculation<<<grid_dim, default_block_size>>>(
-        slice_num, as_cuda_type(slice_sets),
+    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+        slice_num + 1, as_cuda_type(slice_sets),
         as_cuda_type(add_values.get_data()));
+
+    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+        slice_num + 1, as_cuda_type(slice_sets),
+        as_cuda_type(add_values.get_const_data()));
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
@@ -870,8 +833,7 @@ namespace kernel {
 template <typename Operator, typename ValueType>
 __device__ void reduce_array(size_type size,
                              const ValueType *__restrict__ source,
-                             ValueType *__restrict__ result,
-                             Operator reduce_op = Operator{})
+                             ValueType *__restrict__ result, Operator reduce_op)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     auto thread_result = zero<ValueType>();
@@ -1054,26 +1016,9 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
     size_type *result)
 {
     extern __shared__ size_type block_result[];
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    size_type thread_result = 0;
-    for (auto i = tidx; i < num_slices; i += blockDim.x * gridDim.x) {
-        thread_result += max_nnz_per_slice[i];
-    }
-    block_result[threadIdx.x] = thread_result;
 
-    __syncthreads();
-
-    auto start_step = 1;
-    while (blockDim.x > 2 * start_step) {
-        start_step *= 2;
-    }
-
-    for (auto i = start_step; i >= 1; i >>= 1) {
-        if (threadIdx.x < i && threadIdx.x + i < blockDim.x) {
-            block_result[threadIdx.x] += block_result[threadIdx.x + i];
-        }
-        __syncthreads();
-    }
+    reduce_array(num_slices, max_nnz_per_slice, block_result,
+                 [](const size_type &x, const size_type &y) { return x + y; });
 
     if (threadIdx.x == 0) {
         result[blockIdx.x] = block_result[0];
