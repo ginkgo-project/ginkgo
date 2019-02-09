@@ -677,7 +677,7 @@ __device__ void reduce_array(size_type size,
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     auto thread_result = zero<ValueType>();
     for (auto i = tidx; i < size; i += blockDim.x * gridDim.x) {
-        thread_result += source[i];
+        thread_result = reduce_op(thread_result, source[i]);
     }
     result[threadIdx.x] = thread_result;
 
