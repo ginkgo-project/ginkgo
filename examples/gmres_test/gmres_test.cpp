@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 #include <ginkgo/ginkgo.hpp>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -46,6 +47,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 void print_matrix(std::string name, const gko::matrix::Dense<ValueType> *d_mtx)
 {
+    // Store cout state to restore it later.
+    std::ios oldCoutState(nullptr);
+    oldCoutState.copyfmt(std::cout);
+
+    std::cout << std::setprecision(15);
+    std::cout << std::scientific;
+
     auto mtx = gko::matrix::Dense<ValueType>::create(
         d_mtx->get_executor()->get_master());
     mtx->copy_from(d_mtx);
@@ -80,6 +88,9 @@ void print_matrix(std::string name, const gko::matrix::Dense<ValueType> *d_mtx)
         std::cout << '-';
     }
     std::cout << std::endl;
+
+    // Restore cout settings
+    std::cout.copyfmt(oldCoutState);
 }
 
 
@@ -87,10 +98,9 @@ template <typename ExecType, typename MatrixType>
 void solve_system(ExecType exec, MatrixType system_matrix,
                   gko::matrix::Dense<double> *x,
                   gko::matrix::Dense<double> *rhs, unsigned int krylov_dim,
-                  double accuracy)
+                  double accuracy, unsigned int max_iters = 1000)
 {
     using gmres = gko::solver::Gmres<double>;
-    constexpr unsigned int max_iters = 8000;
 
     // Generate solver
     auto solver_gen =
@@ -118,6 +128,13 @@ bool are_same_mtx(const gko::matrix::Dense<double> *d_mtx1,
                   const gko::matrix::Dense<double> *d_mtx2,
                   double error = 1e-12)
 {
+    // Store cout state to restore it later.
+    std::ios oldCoutState(nullptr);
+    oldCoutState.copyfmt(std::cerr);
+
+    std::cerr << std::setprecision(15);
+    std::cerr << std::scientific;
+
     auto mtx1 = gko::matrix::Dense<double>::create(
         d_mtx1->get_executor()->get_master());
     mtx1->copy_from(d_mtx1);
@@ -130,6 +147,8 @@ bool are_same_mtx(const gko::matrix::Dense<double> *d_mtx1,
     auto size = mtx1->get_size();
     if (size != mtx2->get_size()) {
         std::cerr << "Mismatching sizes!!!\n";
+        // Restore cout settings
+        std::cerr.copyfmt(oldCoutState);
         return false;
     }
     for (int j = 0; j < size[1]; ++j) {
@@ -138,17 +157,26 @@ bool are_same_mtx(const gko::matrix::Dense<double> *d_mtx1,
                 std::cerr << "Problem at component (" << i << "," << j
                           << "): " << mtx1->at(i, j) << " != " << mtx2->at(i, j)
                           << " !!!\n";
+
+                // Restore cout settings
+                std::cerr.copyfmt(oldCoutState);
                 return false;
             }
             // std::cout << "All good for (" << i << "," << j << "): " <<
             // x->at(i,j) << " == " << x_host->at(i,j) << "\n";
         }
     }
+
+    // Restore cout settings
+    std::cerr.copyfmt(oldCoutState);
     return true;
 }
 
 int main(int argc, char *argv[])
 {
+    constexpr double default_accuracy = 1e-5;
+    constexpr unsigned int default_max_iter = 1000;
+    constexpr unsigned int default_krylov_dim = 50;
     using Mtx = gko::matrix::Coo<double>;
     using Dense = gko::matrix::Dense<double>;
     const auto host_ex = gko::ReferenceExecutor::create();
@@ -158,13 +186,20 @@ int main(int argc, char *argv[])
     /*/
     const auto exec = host_ex;
     //*/
+
+
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " MatrixMarket_File [krylov_dim]"
+        std::cerr << "Usage: " << argv[0]
+                  << " MatrixMarket_File [krylov_dim] [max_iter] [accuracy]"
                   << std::endl;
         std::exit(-1);
     }
 
-    const unsigned int krylov_dim = argc > 2 ? std::atoi(argv[2]) : 50;
+    const unsigned int krylov_dim =
+        argc > 2 ? std::stoi(argv[2]) : default_krylov_dim;
+    const unsigned int max_iter =
+        argc > 3 ? std::stoi(argv[3]) : default_max_iter;
+    const double accuracy = argc > 4 ? std::stod(argv[4]) : default_accuracy;
 
     std::ifstream matrix_stream(argv[1]);
     if (!matrix_stream) {
@@ -190,7 +225,7 @@ int main(int argc, char *argv[])
     const auto vectorLen = dimensions[0];
     decltype(vectorLen) width = 1;
 
-    std::vector<double> x_vec(width * vectorLen, 1);
+    std::vector<double> x_vec(width * vectorLen, 2);
     std::vector<double> rhs_vec(width * vectorLen, 1);
     auto x = Dense::create(
         host_ex, gko::dim<2>(vectorLen, width),
@@ -211,30 +246,37 @@ int main(int argc, char *argv[])
     auto backup_mtx = system_matrix->clone();
 
     solve_system(exec, gko::give(d_system_matrix), gko::lend(d_x),
-                 gko::lend(d_rhs), krylov_dim, 1e-12);
+                 gko::lend(d_rhs), krylov_dim, accuracy, max_iter);
 
 
     solve_system(host_ex, gko::give(system_matrix), gko::lend(x),
-                 gko::lend(rhs), krylov_dim, 1e-12);
+                 gko::lend(rhs), krylov_dim, accuracy, max_iter);
 
 
     auto x_res_cuda = Dense::create(host_ex);
     x_res_cuda->copy_from(gko::lend(d_x));
-    bool error_occured = !are_same_mtx(x.get(), x_res_cuda.get());
+    bool error_occured = !are_same_mtx(x.get(), x_res_cuda.get(), accuracy);
 
     auto b_test = rhs->clone();
     backup_mtx->apply(x.get(), b_test.get());
-    if (are_same_mtx(rhs.get(), b_test.get()))
+    if (are_same_mtx(rhs.get(), b_test.get(), accuracy / 10))
         std::cout << "Host Implementation seems to be fine!\n";
+    else
+        std::cout << "Host Implementation does not compute correct result!\n";
 
     auto b_test2 = rhs->clone();
     backup_mtx->apply(x_res_cuda.get(), b_test2.get());
-    if (are_same_mtx(rhs.get(), b_test2.get()))
+    print_matrix("SpMV result: ", gko::lend(b_test));
+
+
+    if (are_same_mtx(rhs.get(), b_test2.get(), accuracy / 10))
         std::cout << "CUDA Implementation seems to be fine!\n";
+    else
+        std::cout << "CUDA Implementation does not compute correct result!\n";
 
 
-    print_matrix(std::string("Result x from ref"), gko::lend(x.get()));
-    print_matrix(std::string("Result x from CUDA"), gko::lend(d_x.get()));
+    // print_matrix(std::string("Result x from ref"), gko::lend(x.get()));
+    // print_matrix(std::string("Result x from CUDA"), gko::lend(d_x.get()));
     std::cout << (error_occured ? "Error occured," : "Successfully")
               << " finished execution!" << std::endl;
 

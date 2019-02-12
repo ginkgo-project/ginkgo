@@ -95,6 +95,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // End of arnoldi
+        //*/
     }
 }
 
@@ -207,7 +208,7 @@ void solve_upper_triangular(
 
 template <typename ValueType>
 void solve_x(const matrix::Dense<ValueType> *krylov_bases,
-             matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+             const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
              const size_type *final_iter_nums, const LinOp *preconditioner)
 {
     auto before_preconditioner =
@@ -328,11 +329,13 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
 
     finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
+    //*
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
                                  residual_norm_collection, b_norm, iter,
                                  stop_status->get_const_data());
+    //*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);

@@ -37,7 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <iostream>
 #include <random>
+#include <string>
 
 
 #include <core/solver/gmres_kernels.hpp>
@@ -265,6 +267,44 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
     }
 }
 
+template <typename ValueType>
+void print_matrix(std::string name, const gko::matrix::Dense<ValueType> *d_mtx)
+{
+    auto mtx = gko::matrix::Dense<ValueType>::create(
+        d_mtx->get_executor()->get_master());
+    mtx->copy_from(d_mtx);
+
+    const auto stride = mtx->get_stride();
+    const auto dim = mtx->get_size();
+
+    const auto dim0 = dim[0];
+    const auto dim1 = dim[1];
+    std::cout << name << "  dim = " << dim[0] << " x " << dim[1]
+              << ", st = " << stride << "  ";
+    std::cout << (d_mtx->get_executor() == d_mtx->get_executor()->get_master()
+                      ? "ref"
+                      : "cuda")
+              << std::endl;
+    for (auto i = 0; i < 20; ++i) {
+        std::cout << '-';
+    }
+    std::cout << std::endl;
+
+    for (gko::size_type i = 0; i < dim[0]; ++i) {
+        for (gko::size_type j = 0; j < stride; ++j) {
+            if (j == dim[1]) {
+                std::cout << "| ";
+            }
+            std::cout << mtx->get_const_values()[i * stride + j] << ' ';
+        }
+        std::cout << std::endl;
+    }
+
+    for (auto i = 0; i < 20; ++i) {
+        std::cout << '-';
+    }
+    std::cout << std::endl;
+}
 
 TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
 {
@@ -279,6 +319,10 @@ TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
         d_hessenberg.get(), d_y.get(), d_x.get(), d_final_iter_nums.get(),
         d_preconditioner.get());
 
+    // print_matrix(std::string("d_y"), d_y.get());
+    // print_matrix(std::string("y"), y.get());
+    // print_matrix(std::string("d_x"), d_x.get());
+    // print_matrix(std::string("x"), x.get());
     ASSERT_MTX_NEAR(d_y, y, 1e-14);
     ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
