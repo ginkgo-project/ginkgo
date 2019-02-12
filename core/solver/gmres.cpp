@@ -34,10 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 
-#include <iostream>
-#include <string>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -84,45 +80,6 @@ void apply_preconditioner(const LinOp *preconditioner,
 
     // Apply preconditioner
     preconditioner->apply(target_basis.get(), preconditioned_vector);
-}
-
-template <typename ValueType>
-void print_matrix(std::string name, const matrix::Dense<ValueType> *d_mtx)
-{
-    auto mtx =
-        matrix::Dense<ValueType>::create(d_mtx->get_executor()->get_master());
-    mtx->copy_from(d_mtx);
-
-    const auto stride = mtx->get_stride();
-    const auto dim = mtx->get_size();
-
-    const auto dim0 = dim[0];
-    const auto dim1 = dim[1];
-    std::cout << name << "  dim = " << dim[0] << " x " << dim[1]
-              << ", st = " << stride << "  ";
-    std::cout << (d_mtx->get_executor() == d_mtx->get_executor()->get_master()
-                      ? "ref"
-                      : "cuda")
-              << std::endl;
-    for (auto i = 0; i < 20; ++i) {
-        std::cout << '-';
-    }
-    std::cout << std::endl;
-
-    for (size_type i = 0; i < dim[0]; ++i) {
-        for (size_type j = 0; j < stride; ++j) {
-            if (j == dim[1]) {
-                std::cout << "| ";
-            }
-            std::cout << mtx->get_const_values()[i * stride + j] << ' ';
-        }
-        std::cout << std::endl;
-    }
-
-    for (auto i = 0; i < 20; ++i) {
-        std::cout << '-';
-    }
-    std::cout << std::endl;
 }
 
 
@@ -189,9 +146,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
-    // print_matrix(std::string("dense_x init"), dense_x);
-    // print_matrix(std::string("krylov p init"), krylov_bases.get());
-
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
@@ -253,71 +207,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
 
-        // print_matrix(
-        //    std::string("pre_hessenberg ") + std::to_string(total_iter),
-        //    hessenberg_iter.get());
-        print_matrix(std::string("pre_next ") + std::to_string(total_iter),
-                     next_krylov_basis.get());
-        print_matrix(std::string("pre_krylov ") + std::to_string(total_iter),
-                     krylov_bases.get());
-        if (false && exec != exec->get_master()) {
-            auto host_ex = exec->get_master();
-
-            auto h_nkb = Vector::create(host_ex);
-            h_nkb->copy_from(next_krylov_basis.get());
-            auto h_gs = Vector::create(host_ex);
-            h_gs->copy_from(givens_sin.get());
-            auto h_gc = Vector::create(host_ex);
-            h_gc->copy_from(givens_cos.get());
-            auto h_rn = Vector::create(host_ex);
-            h_rn->copy_from(residual_norm.get());
-            auto h_rnc = Vector::create(host_ex);
-            h_rnc->copy_from(residual_norm_collection.get());
-            auto h_kb = Vector::create(host_ex);
-            h_kb->copy_from(krylov_bases.get());
-            auto h_hi = Vector::create(host_ex);
-            h_hi->copy_from(hessenberg_iter.get());
-            auto h_bn = Vector::create(host_ex);
-            h_bn->copy_from(b_norm.get());
-
-            stop_status.set_executor(host_ex);
-            final_iter_nums.set_executor(host_ex);
-
-            host_ex->run(gmres::make_step_1(
-                h_nkb.get(), h_gs.get(), h_gc.get(), h_rn.get(), h_rnc.get(),
-                h_kb.get(), h_hi.get(), h_bn.get(), restart_iter,
-                &final_iter_nums, &stop_status));
-
-            stop_status.set_executor(exec);
-            final_iter_nums.set_executor(exec);
-
-            next_krylov_basis->copy_from(h_nkb.get());
-            givens_sin->copy_from(h_gs.get());
-            givens_cos->copy_from(h_gc.get());
-            residual_norm->copy_from(h_rn.get());
-            residual_norm_collection->copy_from(h_rnc.get());
-            krylov_bases->copy_from(h_kb.get());
-            hessenberg_iter->copy_from(h_hi.get());
-            b_norm->copy_from(h_bn.get());
-
-        } else {
-            exec->run(gmres::make_step_1(
-                next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
-                residual_norm.get(), residual_norm_collection.get(),
-                krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
-                restart_iter, &final_iter_nums, &stop_status));
-        }
-        print_matrix(
-            std::string("post_hessenberg ") + std::to_string(total_iter),
-            hessenberg_iter.get());
-        print_matrix(std::string("post_next ") + std::to_string(total_iter),
-                     next_krylov_basis.get());
-        print_matrix(std::string("post_krylov ") + std::to_string(total_iter),
-                     krylov_bases.get());
-        // print_matrix(std::string("gives_sin ") + std::to_string(total_iter),
-        // krylov_bases.get());  print_matrix(std::string("gives_cos ") +
-        // std::to_string(total_iter), krylov_bases.get());
-
+        exec->run(gmres::make_step_1(
+            next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+            residual_norm.get(), residual_norm_collection.get(),
+            krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
+            restart_iter, &final_iter_nums, &stop_status));
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
@@ -361,8 +255,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // y = hessenberg \ residual_norm_collection
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
-
-    std::cout << "Total_iter: " << total_iter << '\n';
 }
 
 
