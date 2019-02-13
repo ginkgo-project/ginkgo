@@ -836,7 +836,8 @@ namespace kernel {
 template <typename Operator, typename ValueType>
 __device__ void reduce_array(size_type size,
                              const ValueType *__restrict__ source,
-                             ValueType *__restrict__ result, Operator reduce_op)
+                             ValueType *__restrict__ result,
+                             Operator reduce_op = Operator{})
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     auto thread_result = zero<ValueType>();
