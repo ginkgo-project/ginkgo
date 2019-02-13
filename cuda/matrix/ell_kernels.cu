@@ -336,7 +336,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType>
 __global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
@@ -349,6 +351,7 @@ __global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
         result[tidx_y * stride + tidx_x] = zero<ValueType>();
     }
 }
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
@@ -367,7 +370,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,

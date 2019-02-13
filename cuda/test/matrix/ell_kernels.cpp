@@ -221,4 +221,5 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
     ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
+
 }  // namespace

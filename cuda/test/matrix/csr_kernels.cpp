@@ -233,6 +233,7 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
                     static_cast<ComplexMtx *>(trans.get()), 0.0);
 }
 
+
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
@@ -245,5 +246,6 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 
     ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
+
 
 }  // namespace

@@ -637,7 +637,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
@@ -651,7 +653,9 @@ __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
@@ -667,7 +671,9 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType>
 __global__
@@ -697,7 +703,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,

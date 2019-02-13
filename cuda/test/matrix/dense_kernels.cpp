@@ -291,6 +291,7 @@ TEST_F(Dense, IsConjugateTransposable)
                     static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
+
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -306,6 +307,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
     ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
 }
 
+
 TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -318,6 +320,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 
     ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
 }
+
 
 TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 {
@@ -332,6 +335,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
     ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
 }
 
+
 TEST_F(Dense, CountNNZIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -344,6 +348,7 @@ TEST_F(Dense, CountNNZIsEquivalentToRef)
 
     ASSERT_EQ(nnz, dnnz);
 }
+
 
 TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 {
@@ -368,6 +373,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     }
 }
 
+
 TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -382,5 +388,6 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 
     ASSERT_EQ(max_nnz, dmax_nnz);
 }
+
 
 }  // namespace

@@ -322,7 +322,9 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType>
 __global__
@@ -337,6 +339,7 @@ __global__
     }
 }
 
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     size_type nnz, const IndexType *__restrict__ row_idxs,
@@ -349,6 +352,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
         result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
     }
 }
+
 
 }  // namespace kernel
 

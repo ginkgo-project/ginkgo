@@ -205,6 +205,7 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+
 TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();

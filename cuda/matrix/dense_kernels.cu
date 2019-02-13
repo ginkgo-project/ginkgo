@@ -351,6 +351,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 namespace kernel {
 
+
 /*
  * Calculates the prefix sum of `elements` inside `default_block_size`
  * blocks in-place.
@@ -400,6 +401,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     }
 }
 
+
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void finalize_prefix_sum(
     size_type num_elements, ValueType *__restrict__ elements,
@@ -415,6 +417,7 @@ __global__ __launch_bounds__(default_block_size) void finalize_prefix_sum(
         elements[tidx] += prefix_block_sum;
     }
 }
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
@@ -438,7 +441,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
@@ -482,7 +487,9 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
@@ -509,7 +516,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
@@ -561,7 +570,9 @@ void move_to_csr(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_ell(
@@ -592,6 +603,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
         }
     }
 }
+
 
 }  // namespace kernel
 
@@ -666,7 +678,9 @@ void move_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename Operator, typename ValueType>
 __device__ void reduce_array(size_type size,
@@ -692,6 +706,7 @@ __device__ void reduce_array(size_type size,
     }
 }
 
+
 __global__ __launch_bounds__(default_block_size) void reduce_nnz(
     size_type size, const size_type *__restrict__ nnz_per_row,
     size_type *__restrict__ result)
@@ -704,6 +719,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_nnz(
         result[blockIdx.x] = block_sum[0];
     }
 }
+
 
 }  // namespace kernel
 
@@ -744,7 +760,9 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
+
 namespace kernel {
+
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
     size_type size, const size_type *__restrict__ nnz_per_row,
@@ -761,7 +779,9 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
@@ -801,7 +821,9 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
+
 namespace kernel {
+
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
@@ -832,7 +854,9 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
