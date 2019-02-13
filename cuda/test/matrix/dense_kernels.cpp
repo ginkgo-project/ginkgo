@@ -337,7 +337,20 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, CountNNZIsEquivalentToRef)
+TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    x->convert_to(sellp_mtx.get());
+    dx->convert_to(dsellp_mtx.get());
+
+    ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+}
+
+
 {
     set_up_apply_data();
 
@@ -404,20 +417,6 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
         cuda, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
 
     ASSERT_EQ(total_cols, dtotal_cols);
-}
-
-
-TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
-
-    x->convert_to(sellp_mtx.get());
-    dx->convert_to(dsellp_mtx.get());
-
-    ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
 }
 
 
