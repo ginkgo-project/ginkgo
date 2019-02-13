@@ -51,10 +51,16 @@ find_library(CUSPARSE cusparse
 add_library(ginkgo_cuda
     $<TARGET_OBJECTS:ginkgo_cuda_device>
     ${SOURCES})
+
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS}
-    ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+
+# Ensures that there are no circular dependency issues
+if(NOT BUILD_SHARED_LIBS)
+    target_link_libraries(ginkgo_cuda PUBLIC ginkgo)
+endif()
+
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")

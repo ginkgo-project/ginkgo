@@ -77,7 +77,8 @@ struct version {
 
 
 #define GKO_ENABLE_VERSION_COMPARISON(_operator)                          \
-    bool operator _operator(const version &first, const version &second)  \
+    inline bool operator _operator(const version &first,                  \
+                                   const version &second)                 \
     {                                                                     \
         return std::tie(first.major, first.minor, first.patch)            \
             _operator std::tie(second.major, second.minor, second.patch); \
@@ -101,7 +102,7 @@ GKO_ENABLE_VERSION_COMPARISON(>);
  *
  * @return os
  */
-std::ostream &operator<<(std::ostream &os, const version &ver)
+inline std::ostream &operator<<(std::ostream &os, const version &ver)
 {
     os << ver.major << "." << ver.minor << "." << ver.patch;
     if (ver.tag) {
