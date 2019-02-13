@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
@@ -364,13 +365,14 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
 {
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
     __shared__ size_type prefix_helper[block_size];
-    prefix_helper[threadIdx.x] = (tidx < num_elements) ? elements[tidx] : 0;
+    prefix_helper[threadIdx.x] =
+        (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
     __syncthreads();
 
     // Do a normal reduction
     for (int i = 1; i < block_size; i <<= 1) {
-        const int ai = i * (2 * threadIdx.x + 1) - 1;
-        const int bi = i * (2 * threadIdx.x + 2) - 1;
+        const auto ai = i * (2 * threadIdx.x + 1) - 1;
+        const auto bi = i * (2 * threadIdx.x + 2) - 1;
         if (bi < block_size) {
             prefix_helper[bi] += prefix_helper[ai];
         }
@@ -380,15 +382,15 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     if (threadIdx.x == 0) {
         // Store the total sum
         block_sum[blockIdx.x] = prefix_helper[block_size - 1];
-        prefix_helper[block_size - 1] = 0;
+        prefix_helper[block_size - 1] = zero<ValueType>();
     }
 
     __syncthreads();
 
     // Perform the down-sweep phase to get the true prefix sum
     for (int i = block_size >> 1; i > 0; i >>= 1) {
-        const int ai = i * (2 * threadIdx.x + 1) - 1;
-        const int bi = i * (2 * threadIdx.x + 2) - 1;
+        const auto ai = i * (2 * threadIdx.x + 1) - 1;
+        const auto bi = i * (2 * threadIdx.x + 2) - 1;
         if (bi < block_size) {
             auto tmp = prefix_helper[ai];
             prefix_helper[ai] = prefix_helper[bi];
@@ -410,8 +412,8 @@ __global__ __launch_bounds__(default_block_size) void finalize_prefix_sum(
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (tidx < num_elements) {
-        ValueType prefix_block_sum = 0;
-        for (auto i = 0; i < blockIdx.x; i++) {
+        ValueType prefix_block_sum = zero<ValueType>();
+        for (size_type i = 0; i < blockIdx.x; i++) {
             prefix_block_sum += block_sum[i];
         }
         elements[tidx] += prefix_block_sum;
@@ -430,7 +432,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     if (tidx < num_rows) {
         size_type write_to = row_ptrs[tidx];
 
-        for (auto i = 0; i < num_cols; i++) {
+        for (size_type i = 0; i < num_cols; i++) {
             if (source[stride * tidx + i] != zero<ValueType>()) {
                 values[write_to] = source[stride * tidx + i];
                 col_idxs[write_to] = i;
@@ -465,12 +467,11 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     const size_type grid_dim = ceildiv(num_rows, default_block_size);
     auto add_values = Array<size_type>(exec, grid_dim);
 
-    kernel::start_prefix_sum<default_block_size, size_type>
-        <<<grid_dim, default_block_size>>>(
-            num_rows, as_cuda_type(nnz_prefix_sum.get_data()),
-            as_cuda_type(add_values.get_data()));
+    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(nnz_prefix_sum.get_data()),
+        as_cuda_type(add_values.get_data()));
 
-    kernel::finalize_prefix_sum<size_type><<<grid_dim, default_block_size>>>(
+    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(nnz_prefix_sum.get_data()),
         as_cuda_type(add_values.get_data()));
 
@@ -492,17 +493,38 @@ namespace kernel {
 
 
 template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ work, IndexType *__restrict__ result)
+{
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row_idx = tidx / warp_size;
+
+    if (row_idx < num_rows) {
+        IndexType part_result{};
+        for (auto i = threadIdx.x % warp_size; i < num_cols; i += warp_size) {
+            if (work[stride * row_idx + i] != zero<ValueType>()) {
+                part_result += 1;
+            }
+        }
+
+        auto warp_tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        result[row_idx] = reduce(
+            warp_tile, part_result,
+            [](const size_type &a, const size_type &b) { return a + b; });
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ source,
-    const size_type *__restrict__ nnz_prefix_sum,
-    IndexType *__restrict__ row_ptrs, IndexType *__restrict__ col_idxs,
-    ValueType *__restrict__ values)
+    const ValueType *__restrict__ source, IndexType *__restrict__ row_ptrs,
+    IndexType *__restrict__ col_idxs, ValueType *__restrict__ values)
 {
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (tidx <= num_rows) {
-        row_ptrs[tidx] = nnz_prefix_sum[tidx];
-    }
 
     if (tidx < num_rows) {
         auto write_to = row_ptrs[tidx];
@@ -534,28 +556,29 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     auto stride = source->get_stride();
 
-    auto nnz_prefix_sum = Array<size_type>(exec, num_rows + 1);
-    calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
+    const auto rows_per_block =
+        ceildiv(default_block_size, cuda_config::warp_size);
+    const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
+
+    kernel::count_nnz_per_row<<<grid_dim_nnz, default_block_size>>>(
+        num_rows, num_cols, stride, source->get_const_values(), row_ptrs);
 
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<size_type>(exec, grid_dim);
+    auto add_values = Array<IndexType>(exec, grid_dim);
 
-    kernel::start_prefix_sum<default_block_size, size_type>
-        <<<grid_dim, default_block_size>>>(
-            num_rows + 1, as_cuda_type(nnz_prefix_sum.get_data()),
-            as_cuda_type(add_values.get_data()));
+    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+        num_rows + 1, as_cuda_type(row_ptrs),
+        as_cuda_type(add_values.get_data()));
 
-    kernel::finalize_prefix_sum<size_type><<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(nnz_prefix_sum.get_data()),
+    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+        num_rows + 1, as_cuda_type(row_ptrs),
         as_cuda_type(add_values.get_const_data()));
 
     kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
         num_rows, num_cols, stride, as_cuda_type(source->get_const_values()),
-        as_cuda_type(nnz_prefix_sum.get_const_data()), as_cuda_type(row_ptrs),
-        as_cuda_type(col_idxs), as_cuda_type(values));
+        as_cuda_type(row_ptrs), as_cuda_type(col_idxs), as_cuda_type(values));
 
     add_values.clear();
-    nnz_prefix_sum.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -584,7 +607,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
     if (tidx < num_rows) {
         IndexType col_idx = 0;
-        for (auto col = 0; col < num_cols; col++) {
+        for (size_type col = 0; col < num_cols; col++) {
             if (source[tidx * source_stride + col] != zero<ValueType>()) {
                 col_ptrs[col_idx * result_stride + tidx] = col;
                 values[col_idx * result_stride + tidx] =
@@ -592,12 +615,12 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
                 col_idx++;
             }
         }
-        for (auto j = col_idx; j < max_nnz_per_row; j++) {
+        for (size_type j = col_idx; j < max_nnz_per_row; j++) {
             col_ptrs[j * result_stride + tidx] = 0;
             values[j * result_stride + tidx] = zero<ValueType>();
         }
     } else if (tidx < result_stride) {
-        for (auto j = 0; j < max_nnz_per_row; j++) {
+        for (size_type j = 0; j < max_nnz_per_row; j++) {
             col_ptrs[j * result_stride + tidx] = 0;
             values[j * result_stride + tidx] = zero<ValueType>();
         }
@@ -820,42 +843,6 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
-    size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ work, size_type *__restrict__ result)
-{
-    __shared__ size_type part_results[default_block_size];
-    const auto warp_size = cuda_config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto global_warpid = tidx / warp_size;
-    const auto local_warpid = threadIdx.x / warp_size;
-
-    if (global_warpid < num_rows) {
-        part_results[threadIdx.x] = 0;
-        for (auto i = threadIdx.x % warp_size; i < num_cols; i += warp_size) {
-            if (work[stride * global_warpid + i] != zero<ValueType>()) {
-                part_results[threadIdx.x] += 1;
-            }
-        }
-        __syncthreads();
-        if (threadIdx.x % warp_size == 0) {
-            result[global_warpid] = 0;
-            for (auto i = 0; i < warp_size; i++) {
-                result[global_warpid] +=
-                    part_results[local_warpid * warp_size + i];
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
 
 
 template <typename ValueType>
