@@ -38,11 +38,6 @@ target_sources(ginkgo_cuda
         stop/criterion_kernels.cu
         stop/residual_norm_reduction_kernels.cu)
 
-if(GINKGO_SET_CUDA_HOST_COMPILER)
-    target_compile_options(ginkgo_cuda
-        PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:--compiler-bindir ${CMAKE_CXX_COMPILER}>)
-endif()
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
 # merged at commit ed12b3df5d26
 if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")

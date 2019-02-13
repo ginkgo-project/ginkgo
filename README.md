@@ -87,11 +87,6 @@ Ginkgo adds the following additional switches to control what is being built:
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
     Ginkgo's documentation. The default is `OFF`.
-*   `-DGINKGO_SET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
-    explicitly set CUDA's host compiler to match the compiler used to build the
-    the rest of the library (otherwise the nvcc toolchain uses its default host
-    compiler). Setting this option may help if you're experiencing linking
-    errors due to ABI incompatibilities. The default is `OFF`.
 *   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
     CMake package registry. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
@@ -101,6 +96,14 @@ Ginkgo adds the following additional switches to control what is being built:
     * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`
+*   `-DCMAKE_CUDA_HOST_COMPILER=path` instructs the build system to explicitly
+    set CUDA's host compiler to the path given as argument. By default, CUDA
+    uses its toolchain's host compiler. Setting this option may help if you're
+    experiencing linking errors due to ABI incompatibilities. This option is
+    supported since [CMake
+    3.8](https://github.com/Kitware/CMake/commit/489c52ce680df6439f9c1e553cd2925ca8944cb1)
+    but [documented starting from
+    3.10](https://cmake.org/cmake/help/v3.10/variable/CMAKE_CUDA_HOST_COMPILER.html).
 *   `-DGINKGO_CUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
     list of architectures. Supported values are:
 
