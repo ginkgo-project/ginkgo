@@ -561,7 +561,8 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
     kernel::count_nnz_per_row<<<grid_dim_nnz, default_block_size>>>(
-        num_rows, num_cols, stride, source->get_const_values(), row_ptrs);
+        num_rows, num_cols, stride, as_cuda_type(source->get_const_values()),
+        as_cuda_type(row_ptrs));
 
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
