@@ -351,6 +351,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, CountNNZIsEquivalentToRef)
 {
     set_up_apply_data();
 
