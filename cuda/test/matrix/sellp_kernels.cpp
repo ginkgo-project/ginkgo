@@ -248,6 +248,7 @@ TEST_F(Sellp,
     GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
+
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix();

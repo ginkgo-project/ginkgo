@@ -689,6 +689,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 namespace kernel {
 
+
 __global__
     __launch_bounds__(cuda_config::warp_size) void calculate_slice_lengths(
         size_type num_rows, size_type slice_size, int slice_num,
@@ -727,6 +728,7 @@ __global__
     }
 }
 
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     size_type num_rows, size_type num_cols, size_type slice_size, int slice_num,
@@ -759,7 +761,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
@@ -986,7 +990,9 @@ void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
+
 namespace kernel {
+
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     size_type num_rows, size_type slice_size, size_type stride_factor,
@@ -1010,6 +1016,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     }
 }
 
+
 __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
     size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
     size_type *result)
@@ -1024,7 +1031,9 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
     }
 }
 
+
 }  // namespace kernel
+
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
