@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 

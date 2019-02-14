@@ -1,2 +1,2 @@
-create_test(jacobi)
-create_test(jacobi_kernels)
+ginkgo_create_test(jacobi)
+ginkgo_create_test(jacobi_kernels)

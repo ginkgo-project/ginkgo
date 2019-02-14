@@ -4,29 +4,32 @@ project(Ginkgo LANGUAGES C CXX VERSION 0.0.0)
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-option(DEVEL_TOOLS "Add development tools to the build system" ON)
-option(BUILD_TESTS "Generate build files for unit tests" ON)
-option(BUILD_EXAMPLES "Build Ginkgo's examples" ON)
-option(BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
-option(BUILD_REFERENCE "Compile reference CPU kernels" OFF)
-option(BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
-option(BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
-option(BUILD_DOC "Generate documentation" OFF)
-option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(SKIP_DEPENDENCY_UPDATE
+option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
+option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
+option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
+option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
+option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" OFF)
+option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
+option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
+option(GINKGO_BUILD_DOC "Generate documentation" OFF)
+option(GINKGO_SKIP_DEPENDENCY_UPDATE
        "Do not update dependencies each time the project is rebuilt" ON)
+option(GINKGO_EXPORT_BUILD_DIR
+    "Make Ginkgo export its build directory to the CMake package registry."
+    OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
-       "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-set(CUDA_ARCHITECTURES "Auto" CACHE STRING
+    "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
+set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-if(BUILD_TESTS AND (BUILD_CUDA OR BUILD_OMP))
-    message(STATUS "BUILD_TESTS is ON, enabling BUILD_REFERENCE")
-    set(BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
+if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
+    message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
+    set(GINKGO_BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -35,12 +38,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Needed because of a known issue with CUDA while linking statically.
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
-if((NOT BUILD_SHARED_LIBS) AND BUILD_CUDA)
+if((NOT BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
     enable_language(CUDA)
 endif()
 
-
-if(BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     set(MEMORYCHECK_SUPPRESSIONS_FILE
         "${PROJECT_SOURCE_DIR}/dev_tools/valgrind/suppressions.supp"
         CACHE FILEPATH "" FORCE)
@@ -80,31 +82,29 @@ install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
 
 add_subdirectory(third_party)    # Third-party tools and libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
-if (BUILD_REFERENCE)
+if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
-if (BUILD_OMP)
+if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
 endif()
-if(BUILD_CUDA)
+if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 
 ginkgo_install()
 
-if(BUILD_EXAMPLES)
+if(GINKGO_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-if(BUILD_BENCHMARKS)
+if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
 endif()
 
-if(DEVEL_TOOLS)
-    set(LICENSE_SCRIPT ${CMAKE_SOURCE_DIR}/dev_tools/scripts/add_license.sh)
-
+if(GINKGO_DEVEL_TOOLS)
     add_custom_target(add_license
-        COMMAND ${LICENSE_SCRIPT}
+        COMMAND ${CMAKE_SOURCE_DIR}/dev_tools/scripts/add_license.sh
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(format add_license)
 endif()
@@ -114,6 +114,6 @@ add_custom_target(generate_ginkgo_header ALL
         COMMAND ${CMAKE_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-if(BUILD_DOC)
-	add_subdirectory(doc)
+if(GINKGO_BUILD_DOC)
+    add_subdirectory(doc)
 endif()

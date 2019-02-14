@@ -1,4 +1,4 @@
-if (BUILD_CUDA)
+if (GINKGO_BUILD_CUDA)
     add_executable(spmv_comparison_cuda spmv_comparison_cuda.cpp)
     target_link_libraries(spmv_comparison_cuda ginkgo ${CUDA_RUNTIME_LIBS}
         ${CUBLAS} ${CUSPARSE})

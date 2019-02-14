@@ -1,4 +1,4 @@
-if(NOT BUILD_CUDA)
+if(NOT GINKGO_BUILD_CUDA)
     add_library(ginkgo_cuda
         $<TARGET_OBJECTS:ginkgo_cuda_device>
         cuda_hooks.cpp)
@@ -6,7 +6,7 @@ if(NOT BUILD_CUDA)
     ginkgo_install_library(ginkgo_cuda cuda)
 endif()
 
-if (NOT BUILD_OMP)
+if (NOT GINKGO_BUILD_OMP)
     add_library(ginkgo_omp
         $<TARGET_OBJECTS:ginkgo_omp_device>
         omp_hooks.cpp)
@@ -15,7 +15,7 @@ if (NOT BUILD_OMP)
     ginkgo_install_library(ginkgo_omp omp)
 endif()
 
-if (NOT BUILD_REFERENCE)
+if (NOT GINKGO_BUILD_REFERENCE)
     add_library(ginkgo_reference
         $<TARGET_OBJECTS:ginkgo_reference_device>
         reference_hooks.cpp)

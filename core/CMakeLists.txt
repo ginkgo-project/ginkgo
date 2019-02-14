@@ -1,4 +1,4 @@
-set(SOURCES
+set(GINKGO_SOURCES
     base/combination.cpp
     base/composition.cpp
     base/executor.cpp
@@ -29,13 +29,13 @@ set(SOURCES
 
 
 if(GKO_HAVE_PAPI_SDE)
-  set(SOURCES ${SOURCES} log/papi.cpp)
+  set(GINKGO_SOURCES ${GINKGO_SOURCES} log/papi.cpp)
 endif()
 
 add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
-add_library(ginkgo ${SOURCES})
+add_library(ginkgo ${GINKGO_SOURCES})
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
@@ -47,7 +47,7 @@ endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 
-if(BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 

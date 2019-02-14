@@ -67,27 +67,33 @@ cmake -G "Unix Makefiles" [OPTIONS] .. && make
 Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
-*   `-DDEVEL_TOOLS={ON, OFF}` sets up the build system for development
+*   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
     default is `ON`
-*   `-DBUILD_TESTS={ON, OFF}` builds Ginkgo's tests
+*   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`
-*   `-DBUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
+*   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
     (will download gflags and rapidjson), default is `ON`
-*   `-DBUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
-*   `-DBUILD_REFERENCE={ON, OFF}` build reference implementations of the
-    kernels, usefull for testing, default os `OFF`
-*   `-DBUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
+*   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
+*   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
+    kernels, useful for testing, default is `OFF`
+*   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
-*   `-DBUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
+*   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
-*   `-DBUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
-    from inline comments in the code
-*   `-DSET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
-    explicitly set CUDA's host compiler to match the commpiler used to build the
+*   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
+    from inline comments in the code. The default is `OFF`.
+*   `-DGINKGO_DOC_GENERATE_PDF={ON, OFF}` generates a PDF version of Ginkgo's
+    documentation from inline comments in the code. The default is `OFF`.
+*   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
+    Ginkgo's documentation. The default is `OFF`.
+*   `-DGINKGO_SET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
+    explicitly set CUDA's host compiler to match the compiler used to build the
     the rest of the library (otherwise the nvcc toolchain uses its default host
     compiler). Setting this option may help if you're experiencing linking
     errors due to ABI incompatibilities. The default is `OFF`.
+*   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
+    CMake package registry. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
@@ -95,7 +101,7 @@ Ginkgo adds the following additional switches to control what is being built:
     * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`
-*   `-DCUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
+*   `-DGINKGO_CUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
     list of architectures. Supported values are:
 
     *   `Auto`
@@ -116,8 +122,8 @@ For example, to build everything (in debug mode), use:
 
 ```cmake
 mkdir build; cd build
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DDEVEL_TOOLS=ON \
-      -DBUILD_TESTS=ON -DBUILD_REFERENCE=ON -DBUILD_OMP=ON -DBUILD_CUDA=ON  ..
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_CUDA=ON  ..
 make
 ```
 
@@ -126,7 +132,7 @@ Other generators may work, but are not officially supported.
 
 ### Running the unit tests
 
-You need to compile ginkgo with `-DBUILD_TESTS=ON` option to be able to run the
+You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to run the
 tests. Use the following command inside the build folder to run all tests:
 
 ```sh
@@ -153,7 +159,7 @@ where `path/to/test` is the path returned by `make test`.
 
 In addition to the unit tests designed to verify correctness, Ginkgo also
 includes a benchmark suite for checking its performance on the system. To
-compile the benchmarks, the flag `-DBUILD_BENCHMARKS=ON` has to be set during
+compile the benchmarks, the flag `-DGINKGO_BUILD_BENCHMARKS=ON` has to be set during
 the `cmake` step. In addition, the [`ssget` command-line
 utility](https://github.com/ginkgo-project/ssget) has to be installed on the
 system.

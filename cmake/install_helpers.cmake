@@ -46,5 +46,7 @@ function(ginkgo_install)
         )
 
     # Export package for use from the build tree
-    export(PACKAGE Ginkgo)
+    if (GINKGO_EXPORT_BUILD_DIR)
+        export(PACKAGE Ginkgo)
+    endif()
 endfunction()

@@ -1,4 +1,4 @@
-function(create_test test_name)
+function(ginkgo_create_test test_name)
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
@@ -14,9 +14,9 @@ function(create_test test_name)
                 $<TARGET_LINKER_FILE:ginkgo_omp>
                 $<TARGET_LINKER_FILE:ginkgo>)
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
-endfunction(create_test)
+endfunction(ginkgo_create_test)
 
-function(create_cuda_test test_name)
+function(ginkgo_create_cuda_test test_name)
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
@@ -30,4 +30,4 @@ function(create_cuda_test test_name)
         PRIVATE $<TARGET_LINKER_FILE:ginkgo_cuda>
                 $<TARGET_LINKER_FILE:ginkgo>)
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
-endfunction(create_cuda_test)
+endfunction(ginkgo_create_cuda_test)

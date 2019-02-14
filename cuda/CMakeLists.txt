@@ -1,4 +1,4 @@
-set(SOURCES
+set(GINKGO_SOURCES
     base/exception.cpp
     base/executor.cpp
     base/version.cpp
@@ -22,7 +22,7 @@ enable_language(CUDA)
 include(CudaArchitectureSelector)
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-if(SET_CUDA_HOST_COMPILER)
+if(GINKGO_SET_CUDA_HOST_COMPILER)
     set(CMAKE_CUDA_FLAGS
         "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CMAKE_CXX_COMPILER}")
 endif()
@@ -50,8 +50,7 @@ find_library(CUSPARSE cusparse
 
 add_library(ginkgo_cuda
     $<TARGET_OBJECTS:ginkgo_cuda_device>
-    ${SOURCES})
-
+    ${GINKGO_SOURCES})
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
@@ -62,12 +61,12 @@ if(NOT BUILD_SHARED_LIBS)
 endif()
 
 cas_target_cuda_architectures(ginkgo_cuda
-    ARCHITECTURES ${CUDA_ARCHITECTURES}
+    ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")
 
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
 
-if(BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()

@@ -1,2 +1,2 @@
-create_test(criterion_kernels)
-create_test(residual_norm_reduction_kernels)
+ginkgo_create_test(criterion_kernels)
+ginkgo_create_test(residual_norm_reduction_kernels)
