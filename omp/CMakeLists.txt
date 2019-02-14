@@ -28,6 +28,8 @@ target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
 if(NOT BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo_omp PUBLIC ginkgo)
 endif()
+# Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
+target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
