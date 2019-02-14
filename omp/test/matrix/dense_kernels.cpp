@@ -392,8 +392,8 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
-    auto srmtx = gko::matrix::Csr<>::create(ref);
-    auto somtx = gko::matrix::Csr<>::create(omp);
+    auto srmtx = gko::matrix::Ell<>::create(ref);
+    auto somtx = gko::matrix::Ell<>::create(omp);
 
     rmtx->move_to(srmtx.get());
     omtx->move_to(somtx.get());
