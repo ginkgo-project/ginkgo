@@ -37,13 +37,6 @@ if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
 endif()
 
 
-# Needed because of a known issue with CUDA while linking statically.
-# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
-if((NOT BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
-    enable_language(CUDA)
-endif()
-
-
 if(GINKGO_BUILD_TESTS)
     set(MEMORYCHECK_SUPPRESSIONS_FILE
         "${Ginkgo_SOURCE_DIR}/dev_tools/valgrind/suppressions.supp"
