@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <algorithm>
+
+
 #include <omp.h>
 
 
@@ -45,7 +48,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
-#include <algorithm>
 
 namespace gko {
 namespace kernels {
@@ -302,10 +304,9 @@ void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
             result->col_at(j, i) = 0;
         }
     }
-    size_type col_idx = 0;
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
-        col_idx = 0;
+        size_type col_idx = 0;
         for (size_type col = 0; col < num_cols; col++) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
@@ -365,7 +366,8 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     size_type coo_idx = 0;
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
-        size_type col_idx = 0, col = 0;
+        size_type col_idx = 0;
+        size_type col = 0;
         while (col < num_cols && col_idx < ell_lim) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
