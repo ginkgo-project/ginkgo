@@ -47,6 +47,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 void print_matrix(std::string name, const gko::matrix::Dense<ValueType> *d_mtx)
 {
+    constexpr bool include_stride = false;
+
     // Store cout state to restore it later.
     std::ios oldCoutState(nullptr);
     oldCoutState.copyfmt(std::cout);
@@ -54,34 +56,38 @@ void print_matrix(std::string name, const gko::matrix::Dense<ValueType> *d_mtx)
     std::cout << std::setprecision(15);
     std::cout << std::scientific;
 
-    auto mtx = gko::matrix::Dense<ValueType>::create(
+    auto mtx = d_mtx;
+
+    const bool was_mtx_on_host =
+        d_mtx->get_executor() == d_mtx->get_executor()->get_master();
+
+    auto h_mtx = gko::matrix::Dense<ValueType>::create(
         d_mtx->get_executor()->get_master());
-    mtx->copy_from(d_mtx);
+    if (!was_mtx_on_host) {
+        h_mtx->copy_from(d_mtx);
+        mtx = gko::lend(h_mtx.get());
+    }
 
     const auto stride = mtx->get_stride();
     const auto dim = mtx->get_size();
 
-    const auto dim0 = dim[0];
-    const auto dim1 = dim[1];
     std::cout << name << "  dim = " << dim[0] << " x " << dim[1]
               << ", st = " << stride << "  ";
-    std::cout << (d_mtx->get_executor() == d_mtx->get_executor()->get_master()
-                      ? "ref"
-                      : "cuda")
-              << std::endl;
+    std::cout << (was_mtx_on_host ? "ref" : "cuda") << std::endl;
     for (auto i = 0; i < 20; ++i) {
         std::cout << '-';
     }
     std::cout << std::endl;
 
     for (gko::size_type i = 0; i < dim[0]; ++i) {
-        for (gko::size_type j = 0; j < stride; ++j) {
+        for (gko::size_type j = 0; j < (include_stride ? stride : dim[1]);
+             ++j) {
             if (j == dim[1]) {
                 std::cout << "| ";
             }
             std::cout << mtx->get_const_values()[i * stride + j] << ' ';
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 
     for (auto i = 0; i < 20; ++i) {
@@ -257,22 +263,37 @@ int main(int argc, char *argv[])
     x_res_cuda->copy_from(gko::lend(d_x));
     bool error_occured = !are_same_mtx(x.get(), x_res_cuda.get(), accuracy);
 
-    auto b_test = rhs->clone();
-    backup_mtx->apply(x.get(), b_test.get());
-    if (are_same_mtx(rhs.get(), b_test.get(), accuracy / 10))
+    auto b_ref = rhs->clone();
+    backup_mtx->apply(x.get(), b_ref.get());
+    print_matrix("SpMV ref result: ", gko::lend(b_ref));
+    if (are_same_mtx(rhs.get(), b_ref.get(), accuracy / 10))
         std::cout << "Host Implementation seems to be fine!\n";
     else
         std::cout << "Host Implementation does not compute correct result!\n";
 
-    auto b_test2 = rhs->clone();
-    backup_mtx->apply(x_res_cuda.get(), b_test2.get());
-    print_matrix("SpMV result: ", gko::lend(b_test));
+    auto b_cuda = rhs->clone();
+    backup_mtx->apply(x_res_cuda.get(), b_cuda.get());
+    print_matrix("SpMV CUDA result: ", gko::lend(b_cuda));
 
 
-    if (are_same_mtx(rhs.get(), b_test2.get(), accuracy / 10))
+    if (are_same_mtx(rhs.get(), b_cuda.get(), accuracy / 10))
         std::cout << "CUDA Implementation seems to be fine!\n";
     else
         std::cout << "CUDA Implementation does not compute correct result!\n";
+
+
+    auto neg_one = gko::initialize<Dense>({-1.0}, host_ex);
+    auto residual = b_ref->clone();
+    auto residual_norm = Dense::create(host_ex, 1);
+
+    residual->add_scaled(gko::lend(neg_one), gko::lend(rhs));
+    residual->compute_norm2(gko::lend(residual_norm));
+    print_matrix("Reference norm2", gko::lend(residual_norm));
+
+    residual = b_cuda->clone();
+    residual->add_scaled(gko::lend(neg_one), gko::lend(rhs));
+    residual->compute_norm2(gko::lend(residual_norm));
+    print_matrix("CUDA norm2", gko::lend(residual_norm));
 
 
     // print_matrix(std::string("Result x from ref"), gko::lend(x.get()));
