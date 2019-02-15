@@ -10,16 +10,17 @@ function(ginkgo_install_library name subdir)
         )
 endfunction()
 
-function(ginkgo_default_includes name)
-    # set include path depending on used interface
-    target_include_directories("${name}"
-        PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-        )
-endfunction()
-
 function(ginkgo_install)
+    # install the public header files
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
+        DESTINATION "include"
+        FILES_MATCHING PATTERN "*.hpp"
+        )
+    install(DIRECTORY "${Ginkgo_BINARY_DIR}/include/"
+        DESTINATION "include"
+        FILES_MATCHING PATTERN "*.hpp"
+        )
+
     # export targets
     set(INSTALL_CONFIG_DIR "lib/cmake/Ginkgo")
     install(EXPORT Ginkgo
@@ -30,18 +31,18 @@ function(ginkgo_install)
 
     # export configuration file for importing
     write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         VERSION "${PROJECT_VERSION}"
         COMPATIBILITY AnyNewerVersion
         )
     configure_package_config_file(
-        "${PROJECT_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/GinkgoConfig.cmake"
+        "${Ginkgo_SOURCE_DIR}/cmake/GinkgoConfig.cmake.in"
+        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${INSTALL_CONFIG_DIR}"
         )
     install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/GinkgoConfig.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/GinkgoConfigVersion.cmake"
+        "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
+        "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         DESTINATION "${INSTALL_CONFIG_DIR}"
         )
 

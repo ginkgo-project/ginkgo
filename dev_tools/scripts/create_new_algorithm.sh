@@ -239,7 +239,13 @@ then
                 mv tmp $cmake_file
             elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
             then
-                list=( $(awk '/set\(GINKGO_SOURCES$/,/    .*\)/ { if ($0 != "set(GINKGO_SOURCES"){ print $0 }}'  $cmake_file) )
+                ## Works only if we have something of the form:
+                ##target_sources(
+                ##     PRIVATE
+                ##         <lib1>
+                ##         ...
+                ##         <libn>)
+                list=( $(awk '/^target_sources/,/        .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
                 last_elem=$((${#list[@]}-1))
                 list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
                 list+=( "$source_type/${TEMPLATE_FILES[$i-1]}" )
@@ -249,16 +255,17 @@ then
                 sorted[$last_elem]=$(echo ${sorted[$last_elem]}")")
 
                 ## find the correct position
-                insert_to=$(grep -n -m 1 "set(GINKGO_SOURCES" $cmake_file | sed 's/:.*//')
+                insert_to=$(grep -n -m 1 "target_sources" $cmake_file | sed 's/:.*//')
+                insert_to=$((insert_to + 1)) # account for the "PRIVATE"
 
                 ## clear up the CMakeList.txt
-                awk '/set\(GINKGO_SOURCES$/,/    .*\)/ { if ($0 == "set(GINKGO_SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
+                awk '/^target_sources/,/        .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
 
                 mytmp=`mktemp`
                 head -n$insert_to tmp > $mytmp
                 for line in "${sorted[@]}"
                 do
-                    echo "    $line" >> $mytmp
+                    echo "        $line" >> $mytmp
                 done
                 tail -n +$((insert_to+1)) tmp >> $mytmp
                 mv $mytmp tmp
