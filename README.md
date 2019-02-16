@@ -280,11 +280,7 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`install_test`](install_test/CMakeLists.txt).
-
-
-__Note:__ If the installed ginkgo was built statically and with CUDA, 
-`CUDA` needs to be specified as a language in order for CMake to work properly.
+An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
 ### Licensing
 
