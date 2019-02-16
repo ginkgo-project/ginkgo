@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <random>
@@ -202,6 +203,20 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
     ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
 

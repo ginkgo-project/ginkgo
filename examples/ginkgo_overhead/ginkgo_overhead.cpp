@@ -72,8 +72,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
 #include <iostream>
 
 
-[[noreturn]] void print_usage_and_exit(const char *name)
-{
+[[noreturn]] void print_usage_and_exit(const char *name) {
     std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
     std::exit(-1);
 }
