@@ -10,6 +10,8 @@ include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+include(cmake/build_type_helpers.cmake)
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -37,11 +39,13 @@ endif()
 
 
 if(GINKGO_BUILD_TESTS)
-    set(MEMORYCHECK_SUPPRESSIONS_FILE
-        "${Ginkgo_SOURCE_DIR}/dev_tools/valgrind/suppressions.supp"
-        CACHE FILEPATH "" FORCE)
-    include(CTest)
+    # Configure CTest
+    configure_file(
+        ${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake @ONLY)
+
     enable_testing()
+    include(CTest)
 endif()
 
 

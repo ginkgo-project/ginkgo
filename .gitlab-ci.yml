@@ -5,6 +5,10 @@ stages:
   - build
   - test
   - deploy
+  - coverage
+  - valgrind
+  - threadsanitizer
+  - addresssanitizer
   - benchmark-build
   - benchmark-cuda
   - benchmark-omp
@@ -367,6 +371,51 @@ gh-pages:
       - schedules
 
 
+coverage:
+  stage: coverage
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+  dependencies: []
+#  only:
+#    - master
+#    - develop
+
+valgrind:
+  stage: valgrind
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+  dependencies: []
+#  only:
+#    - master
+#    - develop
+
+threadsanitizer:
+  stage: threadsanitizer
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+  dependencies: []
+#  only:
+#    - master
+#    - develop
+
+addresssanitizer:
+  stage: addresssanitizer
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
+  dependencies: []
+#  only:
+#    - master
+#    - develop
+
+
 # Benchmark build
 .benchmark_before_script_template: &default_benchmark_before_script
   # set up identities
@@ -423,6 +472,8 @@ fineci-benchmark-build:
   dependencies: []
   only:
     - schedules
+#    - develop
+#    - master
 
 
 # Benchmark runs
@@ -433,9 +484,10 @@ fineci-benchmark-build:
     - |
       ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' \
             >results.json << EOT
+        module load cuda/cuda-10.0
         set -xe
         cd ginkgo/build/benchmark
-        SYSTEM_NAME=${SYSTEM_NAME} make ${EXECUTOR}_benchmark
+        make benchmark SYSTEM_NAME=${SYSTEM_NAME} EXECUTOR=${EXECUTOR}
         tar -czf data.tar.gz results
       EOT
     # publish them
@@ -455,6 +507,8 @@ fineci-benchmark-build:
   dependencies: []
   only:
     - schedules
+#    - develop
+#    - master
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda

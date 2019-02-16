@@ -89,11 +89,15 @@ Ginkgo adds the following additional switches to control what is being built:
     Ginkgo's documentation. The default is `OFF`.
 *   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
     CMake package registry. The default is `OFF`.
-*   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
-    The default value is usually something like `/usr/local`
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
+*   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
+    The default value is usually something like `/usr/local`
+*   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
+    this build of Ginkgo. There are no default. Supported values are CMake's
+    standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific 
+	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`
 *   `-DCMAKE_CUDA_HOST_COMPILER=path` instructs the build system to explicitly
@@ -156,9 +160,11 @@ Ginkgo to try to use an external version of a package. For this, set the CMake
 option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
 
 ### Running the unit tests
-
 You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to run the
-tests. Use the following command inside the build folder to run all tests:
+tests. 
+
+#### Using make test
+After configuring Ginkgo, use the following command inside the build folder to run all tests:
 
 ```sh
 make test
@@ -179,6 +185,34 @@ run the following from the build folder:
 ```
 
 where `path/to/test` is the path returned by `make test`.
+
+
+#### Using CTest 
+The tests can also be ran through CTest from the command line, for example when
+in a configured build directory:
+
+```sh 
+ctest -T start -T build -T test -T submit
+```
+
+Will start a new test campaign (usually in `Experimental` mode), build Ginkgo
+with the set configuration, run the tests and submit the results to our CDash
+dashboard.
+
+
+Another option is to use Ginkgo's CTest script which is configured to build
+Ginkgo with default settings, runs the tests and submits the test to our CDash
+dashboard automatically.
+
+To run the script, use the following command:
+
+```sh
+ctest -S cmake/CTestScript.cmake
+```
+
+The default settings are for our own CI system. Feel free to configure the
+script before launching it through variables or by directly changing its values.
+A documentation can be found in the script itself.
 
 ### Running the benchmarks
 
