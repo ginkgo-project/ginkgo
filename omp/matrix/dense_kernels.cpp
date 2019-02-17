@@ -505,7 +505,7 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
         size_type tmp = 0;
 #pragma omp parallel for
         for (size_type col = 0; col < num_cols; ++col) {
-            num_nonzeros += (source->at(row, col) != zero<ValueType>());
+            tmp += (source->at(row, col) != zero<ValueType>());
         }
         num_nonzeros += tmp;
     }
