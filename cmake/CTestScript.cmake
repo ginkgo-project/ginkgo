@@ -109,6 +109,10 @@ if(CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
     find_program(CTEST_COVERAGE_COMMAND gcov)
 endif()
 
+if(CTEST_BUILD_CONFIGURATION STREQUAL "ASAN")
+    set(ENV{ASAN_OPTIONS} "verbosity=1")
+endif()
+
 include(ProcessorCount)
 ProcessorCount(PROC_COUNT)
 if(NOT PROC_COUNT EQUAL 0)
