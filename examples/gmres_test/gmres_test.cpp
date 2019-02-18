@@ -108,6 +108,8 @@ void solve_system(ExecType exec, MatrixType system_matrix,
 {
     using gmres = gko::solver::Gmres<double>;
 
+
+    const bool is_cpu_exec = (exec == exec->get_master());
     // Generate solver
     auto solver_gen =
         gmres::build()
@@ -121,12 +123,12 @@ void solve_system(ExecType exec, MatrixType system_matrix,
             .on(exec);
     auto solver = solver_gen->generate(gko::give(system_matrix));
 
-    cudaProfilerStart();
+    if (!is_cpu_exec) cudaProfilerStart();
 
     // Solve system
     solver->apply(rhs, x);
 
-    cudaProfilerStop();
+    if (!is_cpu_exec) cudaProfilerStop();
 }
 
 
@@ -192,9 +194,11 @@ int main(int argc, char *argv[])
     /*/
     const auto exec = host_ex;
     //*/
+    const std::string print_help1("-h");
+    const std::string print_help2("--help");
 
 
-    if (argc < 2) {
+    if (argc < 2 || argv[1] == print_help1 || argv[1] == print_help2) {
         std::cerr << "Usage: " << argv[0]
                   << " MatrixMarket_File [krylov_dim] [max_iter] [accuracy]"
                   << std::endl;
@@ -261,7 +265,8 @@ int main(int argc, char *argv[])
 
     auto x_res_cuda = Dense::create(host_ex);
     x_res_cuda->copy_from(gko::lend(d_x));
-    bool error_occured = !are_same_mtx(x.get(), x_res_cuda.get(), accuracy);
+    bool are_results_similar =
+        are_same_mtx(x.get(), x_res_cuda.get(), accuracy);
 
     auto b_ref = rhs->clone();
     backup_mtx->apply(x.get(), b_ref.get());
@@ -274,13 +279,10 @@ int main(int argc, char *argv[])
     auto b_cuda = rhs->clone();
     backup_mtx->apply(x_res_cuda.get(), b_cuda.get());
     print_matrix("SpMV CUDA result: ", gko::lend(b_cuda));
-
-
     if (are_same_mtx(rhs.get(), b_cuda.get(), accuracy / 10))
         std::cout << "CUDA Implementation seems to be fine!\n";
     else
         std::cout << "CUDA Implementation does not compute correct result!\n";
-
 
     auto neg_one = gko::initialize<Dense>({-1.0}, host_ex);
     auto residual = b_ref->clone();
@@ -298,8 +300,10 @@ int main(int argc, char *argv[])
 
     // print_matrix(std::string("Result x from ref"), gko::lend(x.get()));
     // print_matrix(std::string("Result x from CUDA"), gko::lend(d_x.get()));
-    std::cout << (error_occured ? "Error occured," : "Successfully")
-              << " finished execution!" << std::endl;
+    std::cout << (are_results_similar
+                      ? "CUDA and reference results are similar!"
+                      : "CUDA and reference results are DIFFERENT!!!!!")
+              << std::endl;
 
     return 0;
 }

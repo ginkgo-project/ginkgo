@@ -317,20 +317,37 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
     size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
+    /*
+        const auto tidx = threadIdx.x;
+        const auto col_idx = blockIdx.x * blockDim.x + tidx;
+
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            ValueType local_res{};
+            const auto krylov_col = k * num_cols + col_idx;
+
+            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+            for (size_type i = 0; i < num_rows; ++i) {
+                const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+                const auto krylov_idx = i * stride_krylov + krylov_col;
+                local_res +=
+                    next_krylov_basis[next_krylov_idx] *
+    krylov_bases[krylov_idx];
+            }
+
+            hessenberg_iter[hessenberg_idx] = local_res;
+        }
+    /*/
     const auto tidx = threadIdx.x;
-    const auto global_id = blockIdx.x * blockDim.x + tidx;
-    const auto col_idx = global_id / block_size;
+    const auto col_idx = blockIdx.x;
 
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
-
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         ValueType local_res{};
         const auto krylov_col = k * num_cols + col_idx;
-
         for (size_type i = tidx; i < num_rows; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             const auto krylov_idx = i * stride_krylov + krylov_col;
@@ -350,6 +367,7 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
             hessenberg_iter[hessenberg_idx] = reduction_helper[0];
         }
     }
+    //*/
 }
 
 
@@ -379,7 +397,8 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 }
 
 
-// Must be called with at least `num_cols` threads in total
+// Must be called with at least `num_cols` blocks, each with `block_size`
+// threads. `block_size` must be a power of 2
 template <int block_size = default_block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
@@ -388,18 +407,50 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    /*
+        const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            ValueType next_hessenberg = zero<ValueType>();
+            for (size_type i = 0; i < num_rows; ++i) {
+                const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+                const auto next_krylov_value =
+    next_krylov_basis[next_krylov_idx]; next_hessenberg += next_krylov_value *
+    next_krylov_value;
+            }
+            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
+                sqrt(next_hessenberg);
+        }
+    /*/
+    const auto tidx = threadIdx.x;
+    const auto col_idx = blockIdx.x;
+
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
-        ValueType next_hessenberg = zero<ValueType>();
-        for (size_type i = 0; i < num_rows; ++i) {
+        ValueType local_res{};
+        for (size_type i = tidx; i < num_rows; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             const auto next_krylov_value = next_krylov_basis[next_krylov_idx];
-            next_hessenberg += next_krylov_value * next_krylov_value;
+
+            local_res += next_krylov_value * next_krylov_value;
         }
-        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
-            sqrt(next_hessenberg);
+
+        reduction_helper[tidx] = local_res;
+
+        // Perform thread block reduction. Result is in reduction_helper[0]
+        reduce(group::this_thread_block(), reduction_helper,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+
+        if (tidx == 0) {
+            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
+                sqrt(reduction_helper[0]);
+        }
     }
+    //*/
 }
 
 
@@ -513,9 +564,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     //*/
 
     for (size_type k = 0; k < iter + 1; ++k) {
-        update_hessenberg_kernel<<<ceildiv((iter + 1) * stride_hessenberg,
-                                           default_block_size),
-                                   default_block_size>>>(
+        update_hessenberg_kernel<<<dim_size[1], default_block_size>>>(
             k, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_const_values()),
             stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
@@ -537,8 +586,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     // end
 
 
-    update_hessenberg_2_kernel<<<ceildiv(dim_size[1], default_block_size),
-                                 default_block_size>>>(
+    update_hessenberg_2_kernel<<<dim_size[1], default_block_size>>>(
         iter, dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
@@ -575,59 +623,56 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType>
-__device__ void calculate_sin_and_cos(
-    const size_type num_cols, const ValueType *hessenberg_iter,
-    size_type stride_hessenberg, ValueType *givens_sin, size_type stride_sin,
-    ValueType *givens_cos, size_type stride_cos, const size_type iter)
+__device__ void calculate_sin_and_cos_kernel(
+    const size_type col_idx, const size_type num_cols,
+    const ValueType *hessenberg_iter, size_type stride_hessenberg,
+    ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
+    size_type stride_cos, const size_type iter)
 {
-    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
-
-    if (hessenberg_iter[iter * stride_hessenberg + local_id] ==
+    if (hessenberg_iter[iter * stride_hessenberg + col_idx] ==
         zero<ValueType>()) {
-        givens_cos[iter * stride_cos + local_id] = zero<ValueType>();
-        givens_sin[iter * stride_sin + local_id] = one<ValueType>();
+        givens_cos[iter * stride_cos + col_idx] = zero<ValueType>();
+        givens_sin[iter * stride_sin + col_idx] = one<ValueType>();
     } else {
-        auto hypotenuse = sqrt(
-            hessenberg_iter[iter * stride_hessenberg + local_id] *
-                hessenberg_iter[iter * stride_hessenberg + local_id] +
-            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] *
-                hessenberg_iter[(iter + 1) * stride_hessenberg + local_id]);
-        givens_cos[iter * stride_cos + local_id] =
-            abs(hessenberg_iter[iter * stride_hessenberg + local_id]) /
+        auto hypotenuse =
+            sqrt(hessenberg_iter[iter * stride_hessenberg + col_idx] *
+                     hessenberg_iter[iter * stride_hessenberg + col_idx] +
+                 hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] *
+                     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx]);
+        givens_cos[iter * stride_cos + col_idx] =
+            abs(hessenberg_iter[iter * stride_hessenberg + col_idx]) /
             hypotenuse;
-        givens_sin[iter * stride_sin + local_id] =
-            givens_cos[iter * stride_cos + local_id] *
-            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] /
-            hessenberg_iter[iter * stride_hessenberg + local_id];
+        givens_sin[iter * stride_sin + col_idx] =
+            givens_cos[iter * stride_cos + col_idx] *
+            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] /
+            hessenberg_iter[iter * stride_hessenberg + col_idx];
     }
 }
 
 
 template <typename ValueType>
-__device__ void calculate_residual_norm(
-    const size_type num_cols, const ValueType *givens_sin, size_type stride_sin,
+__device__ void calculate_residual_norm_kernel(
+    const size_type col_idx, const size_type num_cols,
+    const ValueType *givens_sin, size_type stride_sin,
     const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
     ValueType *residual_norm_collection,
     size_type stride_residual_norm_collection, const ValueType *b_norm,
     const size_type iter)
 {
-    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
-
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
-                             local_id] =
-        -givens_sin[iter * stride_sin + local_id] *
+                             col_idx] =
+        -givens_sin[iter * stride_sin + col_idx] *
         residual_norm_collection[iter * stride_residual_norm_collection +
-                                 local_id];
-    residual_norm_collection[iter * stride_residual_norm_collection +
-                             local_id] =
-        givens_cos[iter * stride_cos + local_id] *
+                                 col_idx];
+    residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
+        givens_cos[iter * stride_cos + col_idx] *
         residual_norm_collection[iter * stride_residual_norm_collection +
-                                 local_id];
-    residual_norm[local_id] =
+                                 col_idx];
+    residual_norm[col_idx] =
         abs(residual_norm_collection[(iter + 1) *
                                          stride_residual_norm_collection +
-                                     local_id]) /
-        b_norm[local_id];
+                                     col_idx]) /
+        b_norm[col_idx];
 }
 
 
@@ -643,24 +688,23 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     const ValueType *__restrict__ b_norm, const size_type iter,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
-    __shared__ UninitializedArray<ValueType, block_size> tmp;
+    const auto col_idx = thread::get_local_thread_id<cuda_config::warp_size>();
 
-    if (local_id >= num_cols || stop_status[local_id].has_stopped()) return;
+    if (col_idx >= num_cols || stop_status[col_idx].has_stopped()) return;
 
     for (size_type i = 0; i < iter; ++i) {
-        tmp[local_id] =
-            givens_cos[i * stride_cos + local_id] *
-                hessenberg_iter[i * stride_hessenberg + local_id] +
-            givens_sin[i * stride_sin + local_id] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + local_id];
+        const auto tmp =
+            givens_cos[i * stride_cos + col_idx] *
+                hessenberg_iter[i * stride_hessenberg + col_idx] +
+            givens_sin[i * stride_sin + col_idx] *
+                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx];
         __syncthreads();
-        hessenberg_iter[(i + 1) * stride_hessenberg + local_id] =
-            givens_cos[i * stride_cos + local_id] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + local_id] -
-            givens_sin[i * stride_sin + local_id] *
-                hessenberg_iter[i * stride_hessenberg + local_id];
-        hessenberg_iter[i * stride_hessenberg + local_id] = tmp[local_id];
+        hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] =
+            givens_cos[i * stride_cos + col_idx] *
+                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] -
+            givens_sin[i * stride_sin + col_idx] *
+                hessenberg_iter[i * stride_hessenberg + col_idx];
+        hessenberg_iter[i * stride_hessenberg + col_idx] = tmp;
         __syncthreads();
     }
     // for j in 1:iter - 1
@@ -671,24 +715,26 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //     hessenberg(j)    =  temp;
     // end
 
-    calculate_sin_and_cos(num_cols, hessenberg_iter, stride_hessenberg,
-                          givens_sin, stride_sin, givens_cos, stride_cos, iter);
+    calculate_sin_and_cos_kernel(col_idx, num_cols, hessenberg_iter,
+                                 stride_hessenberg, givens_sin, stride_sin,
+                                 givens_cos, stride_cos, iter);
     // Calculate sin and cos
 
-    hessenberg_iter[iter * stride_hessenberg + local_id] =
-        givens_cos[iter * stride_cos + local_id] *
-            hessenberg_iter[iter * stride_hessenberg + local_id] +
-        givens_sin[iter * stride_sin + local_id] *
-            hessenberg_iter[(iter + 1) * stride_hessenberg + local_id];
-    hessenberg_iter[(iter + 1) * stride_hessenberg + local_id] =
+    hessenberg_iter[iter * stride_hessenberg + col_idx] =
+        givens_cos[iter * stride_cos + col_idx] *
+            hessenberg_iter[iter * stride_hessenberg + col_idx] +
+        givens_sin[iter * stride_sin + col_idx] *
+            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+    hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
         zero<ValueType>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
     //                      sin(iter)*hessenberg(iter)
     // hessenberg(iter+1) = 0
 
-    calculate_residual_norm(num_cols, givens_sin, stride_sin, givens_cos,
-                            stride_cos, residual_norm, residual_norm_collection,
-                            stride_residual_norm_collection, b_norm, iter);
+    calculate_residual_norm_kernel(
+        col_idx, num_cols, givens_sin, stride_sin, givens_cos, stride_cos,
+        residual_norm, residual_norm_collection,
+        stride_residual_norm_collection, b_norm, iter);
     // Calculate residual norm
 }
 
@@ -760,21 +806,21 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     ValueType *__restrict__ y, size_type stride_y,
     const size_type *__restrict__ final_iter_nums)
 {
-    const auto local_id = thread::get_local_thread_id<cuda_config::warp_size>();
+    const auto col_idx = thread::get_local_thread_id<cuda_config::warp_size>();
 
-    if (local_id >= num_rhs) return;
+    if (col_idx >= num_rhs) return;
 
-    for (int i = final_iter_nums[local_id] - 1; i >= 0; --i) {
+    for (int i = final_iter_nums[col_idx] - 1; i >= 0; --i) {
         auto temp =
             residual_norm_collection[i * stride_residual_norm_collection +
-                                     local_id];
-        for (size_type j = i + 1; j < final_iter_nums[local_id]; ++j) {
-            temp -= hessenberg[i * stride_hessenberg + j * num_rhs + local_id] *
-                    y[j * stride_y + local_id];
+                                     col_idx];
+        for (size_type j = i + 1; j < final_iter_nums[col_idx]; ++j) {
+            temp -= hessenberg[i * stride_hessenberg + j * num_rhs + col_idx] *
+                    y[j * stride_y + col_idx];
         }
 
-        y[i * stride_y + local_id] =
-            temp / hessenberg[i * stride_hessenberg + i * num_rhs + local_id];
+        y[i * stride_y + col_idx] =
+            temp / hessenberg[i * stride_hessenberg + i * num_rhs + col_idx];
     }
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
