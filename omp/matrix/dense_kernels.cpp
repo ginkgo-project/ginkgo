@@ -501,13 +501,11 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
     auto num_cols = source->get_size()[1];
     auto num_nonzeros = 0;
 
+#pragma omp parallel for reduction(+ : num_nonzeros)
     for (size_type row = 0; row < num_rows; ++row) {
-        size_type tmp = 0;
-#pragma omp parallel for
         for (size_type col = 0; col < num_cols; ++col) {
-            tmp += (source->at(row, col) != zero<ValueType>());
+            num_nonzeros += (source->at(row, col) != zero<ValueType>());
         }
-        num_nonzeros += tmp;
     }
 
     *result = num_nonzeros;
