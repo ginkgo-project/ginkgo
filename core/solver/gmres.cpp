@@ -73,97 +73,6 @@ namespace {
 
 
 template <typename ValueType>
-void print_matrix(std::string name, const matrix::Dense<ValueType> *d_mtx)
-{
-    auto mtx =
-        matrix::Dense<ValueType>::create(d_mtx->get_executor()->get_master());
-    mtx->copy_from(d_mtx);
-
-    const auto stride = mtx->get_stride();
-    const auto dim = mtx->get_size();
-
-    const auto dim0 = dim[0];
-    const auto dim1 = dim[1];
-    std::cout << name << "  dim = " << dim[0] << " x " << dim[1]
-              << ", st = " << stride << "  ";
-    std::cout << (d_mtx->get_executor() == d_mtx->get_executor()->get_master()
-                      ? "ref"
-                      : "cuda")
-              << std::endl;
-    for (auto i = 0; i < 20; ++i) {
-        std::cout << '-';
-    }
-    std::cout << std::endl;
-
-    for (size_type i = 0; i < dim[0]; ++i) {
-        for (size_type j = 0; j < stride; ++j) {
-            if (j == dim[1]) {
-                std::cout << "| ";
-            }
-            std::cout << mtx->get_const_values()[i * stride + j] << ' ';
-        }
-        std::cout << std::endl;
-    }
-
-    for (auto i = 0; i < 20; ++i) {
-        std::cout << '-';
-    }
-    std::cout << std::endl;
-}
-
-
-template <typename ValueType>
-bool are_same_mtx(const gko::matrix::Dense<ValueType> *d_mtx1,
-                  const gko::matrix::Dense<ValueType> *d_mtx2,
-                  double error = 1e-12)
-{
-    auto mtx1 = gko::matrix::Dense<ValueType>::create(
-        d_mtx1->get_executor()->get_master());
-    mtx1->copy_from(d_mtx1);
-    auto mtx2 = gko::matrix::Dense<ValueType>::create(
-        d_mtx2->get_executor()->get_master());
-    mtx2->copy_from(d_mtx2);
-    auto get_error = [](const ValueType &v1, const ValueType &v2) {
-        return std::abs((v1 - v2) / std::max(v1, v2));
-    };
-    auto size = mtx1->get_size();
-    if (size != mtx2->get_size()) {
-        std::cerr << "Mismatching sizes!!!\n";
-        return false;
-    }
-    for (int j = 0; j < size[1]; ++j) {
-        for (int i = 0; i < size[0]; ++i) {
-            if (get_error(mtx1->at(i, j), mtx2->at(i, j)) > error) {
-                std::cerr << "Problem at component (" << i << "," << j
-                          << "): " << mtx1->at(i, j) << " != " << mtx2->at(i, j)
-                          << " !!!\n";
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-
-template <typename ValueType>
-bool compare_mtx(std::string name, const gko::matrix::Dense<ValueType> *d_mtx1,
-                 const gko::matrix::Dense<ValueType> *d_mtx2,
-                 double error = 1e-14)
-{}
-
-
-template <>
-bool compare_mtx(std::string name, const gko::matrix::Dense<double> *d_mtx1,
-                 const gko::matrix::Dense<double> *d_mtx2, double error)
-{
-    if (!are_same_mtx(d_mtx1, d_mtx2, error)) {
-        print_matrix(name, d_mtx1);
-        print_matrix(name, d_mtx2);
-    }
-}
-
-
-template <typename ValueType>
 void apply_preconditioner(const LinOp *preconditioner,
                           matrix::Dense<ValueType> *krylov_bases,
                           matrix::Dense<ValueType> *preconditioned_vector,
@@ -307,10 +216,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
             restart_iter, &final_iter_nums, &stop_status));
-        // print_matrix(std::string("gives_sin ") + std::to_string(total_iter),
-        // krylov_bases.get());  print_matrix(std::string("gives_cos ") +
-        // std::to_string(total_iter), krylov_bases.get());
-
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
@@ -354,10 +259,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // y = hessenberg \ residual_norm_collection
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
-
-    // print_matrix(std::string("Result y:"), y.get());
-    // print_matrix(std::string("Result x:"), dense_x);
-    std::cout << "Total_iter: " << total_iter << '\n';
 }
 
 
