@@ -121,14 +121,36 @@ Ginkgo adds the following additional switches to control what is being built:
 For example, to build everything (in debug mode), use:
 
 ```cmake
-mkdir build; cd build
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
-      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_CUDA=ON  ..
-make
+cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
+	  -DGINKGO_BUILD_CUDA=ON 
+cmake --build Debug
 ```
 
-__NOTE:__ Currently, the only verified CMake generator is `Unix Makefiles`.
-Other generators may work, but are not officially supported.
+NOTE: Ginkgo is known to work with the `Unix Makefiles` and `Ninja` based
+generators. Other CMake generators are untested.
+
+### Third party libraries and packages
+
+Ginkgo relies on third party packages in different cases. These third party
+packages can be turned off by disabling the relevant options.
+
++ GINKGO_BUILD_CUDA=ON:
+  [CudaArchitectureSelector](https://github.com/ginkgo-project/CudaArchitectureSelector)
+  (CAS) is a CMake helper to manage CUDA architecture settings;
++ GINKGO_BUILD_TESTS=ON: Our tests are implemented with [Google
+  Test](https://github.com/google/googletest);
++ GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
+  [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
+  [RapidJSON](https://github.com/Tencent/rapidjson);
++ GINKGO_DEVEL_TOOLS=ON:
+  [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
+  helper for code formatting.
+
+By default, Ginkgo uses the internal version of each package. For each of the
+packages `GTEST`, `GFLAGS` and `RAPIDJSON` and `CAS`, it is possible to force
+Ginkgo to try to use an external version of a package. For this, set the CMake
+option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
 
 ### Running the unit tests
 
