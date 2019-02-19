@@ -32,7 +32,7 @@ target_sources(ginkgo
         stop/residual_norm_reduction.cpp
         stop/time.cpp)
 
-if(GKO_HAVE_PAPI_SDE)
+if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
@@ -43,8 +43,8 @@ ginkgo_compile_features(ginkgo)
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference)
-if (GKO_HAVE_PAPI_SDE)
-    target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+if (GINKGO_HAVE_PAPI_SDE)
+    target_link_libraries(ginkgo PRIVATE PAPI::PAPI)
 endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)

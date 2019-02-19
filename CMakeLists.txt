@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 0.0.0)
+project(Ginkgo LANGUAGES C CXX VERSION 0.0.0 DESCRIPTION "Numerical linear algebra software")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -9,7 +9,6 @@ include(cmake/build_helpers.cmake)
 include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
@@ -52,14 +51,14 @@ include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 # Automatically find PAPI and search for the required 'sde' component
+set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if (PAPI_sde_FOUND)
-    set(GKO_HAVE_PAPI_SDE 1)
+    set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
-  ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp)
-
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
@@ -68,7 +67,7 @@ ginkgo_find_package(gflags)
 ginkgo_find_package(RapidJSON)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
-# Ginkgo library
+# Ginkgo core libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
@@ -80,8 +79,7 @@ if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 
-ginkgo_install()
-
+# Non core directories and targets
 if(GINKGO_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
@@ -105,3 +103,32 @@ add_custom_target(generate_ginkgo_header ALL
 if(GINKGO_BUILD_DOC)
     add_subdirectory(doc)
 endif()
+
+# Installation
+include(cmake/information_helpers.cmake)
+ginkgo_interface_information()
+ginkgo_git_information()
+
+configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
+    ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
+
+ginkgo_install()
+
+add_custom_target(test_install
+    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
+        -B${Ginkgo_BINARY_DIR}/test_install
+        -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install
+    COMMAND ${Ginkgo_BINARY_DIR}/test_install/test_install
+    COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
+
+# Setup CPack and ensure we have a debug postfix
+if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${Ginkgo_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")
+set(CPACK_PACKAGE_CONTACT "ginkgo.library@gmail.com")
+include(CPack)

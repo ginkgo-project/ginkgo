@@ -56,7 +56,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /* Is PAPI SDE available for Logging? */
-#cmakedefine GKO_HAVE_PAPI_SDE
+// clang-format off
+#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
+// clang-format on
 
 
 #endif  // GKO_INCLUDE_CONFIG_H
