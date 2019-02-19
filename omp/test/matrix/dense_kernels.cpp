@@ -283,7 +283,7 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -304,7 +304,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 
 TEST_F(Dense, MoveToCooIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -325,7 +325,7 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
 
 TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -346,7 +346,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 
 TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -367,7 +367,7 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 
 TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -388,7 +388,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 
 TEST_F(Dense, MoveToEllIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -409,7 +409,7 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
 
 TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -430,7 +430,7 @@ TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 
 TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -451,7 +451,7 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -472,7 +472,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 
 TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
