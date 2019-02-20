@@ -95,7 +95,7 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`
 *   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
-    this build of Ginkgo. There are no default. Supported values are CMake's
+    this build of Ginkgo. The default is `RELEASE`. Supported values are CMake's
     standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific 
 	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
