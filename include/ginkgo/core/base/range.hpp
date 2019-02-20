@@ -593,7 +593,8 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     {                                                               \
         return range<accessor::_operation_name<Accessor>>(          \
             operand.get_accessor());                                \
-    }
+    }                                                               \
+    void __gko_macro_terminator__()
 
 
 #define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)                  \
@@ -615,7 +616,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
         {                                                              \
             return simple_evaluate_impl(accessor(dimensions...));      \
         }                                                              \
-    };
+    }
 
 
 namespace accessor {
@@ -785,7 +786,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
         return range<accessor::_operation_name<                               \
             ::gko::detail::operation_kind::scalar_by_range, FirstOperand,     \
             SecondAccessor>>(first, second.get_accessor());                   \
-    }
+    }                                                                         \
+    void __gko_macro_terminator__()
 
 
 #define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                         \
@@ -829,7 +831,7 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
         {                                                                      \
             return simple_evaluate_impl(first(dims...), second);               \
         }                                                                      \
-    };
+    }
 
 
 namespace accessor {

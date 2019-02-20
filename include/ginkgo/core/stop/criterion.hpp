@@ -296,7 +296,8 @@ public:                                                                     \
 private:                                                                    \
     _parameters_name##_type _parameters_name##_;                            \
                                                                             \
-public:
+public:                                                                     \
+    void __gko_macro_terminator__()
 
 
 }  // namespace stop

@@ -82,7 +82,8 @@ struct version {
     {                                                                     \
         return std::tie(first.major, first.minor, first.patch)            \
             _operator std::tie(second.major, second.minor, second.patch); \
-    }
+    }                                                                     \
+    void __gko_macro_terminator__()
 
 GKO_ENABLE_VERSION_COMPARISON(<);
 GKO_ENABLE_VERSION_COMPARISON(<=);

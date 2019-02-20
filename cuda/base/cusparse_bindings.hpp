@@ -89,7 +89,8 @@ struct is_supported<std::complex<double>, int32> : std::true_type {};
             handle, transA, m, n, nnz, as_culibs_type(alpha), descrA,         \
             as_culibs_type(csrValA), csrRowPtrA, csrColIndA,                  \
             as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));     \
-    }
+    }                                                                         \
+    void __gko_macro_terminator__()
 
 #define GKO_BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                     \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
@@ -129,7 +130,8 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
             CusparseName(handle, m, n, nnz, as_culibs_type(OrigValA),         \
                          OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
                          TransRowPtrA, TransColIndA, copyValues, idxBase));   \
-    }
+    }                                                                         \
+    void __gko_macro_terminator__()
 
 #define GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, CusparseName)                \
     inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \

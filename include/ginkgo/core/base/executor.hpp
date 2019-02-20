@@ -291,7 +291,8 @@ private:                                                              \
     static _name##_operation<Args...> make_##_name(Args &&... args)            \
     {                                                                          \
         return _name##_operation<Args...>(std::forward<Args>(args)...);        \
-    }
+    }                                                                          \
+    void __gko_macro_terminator__()
 
 
 /**

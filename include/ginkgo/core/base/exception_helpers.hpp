@@ -65,7 +65,8 @@ namespace gko {
 #define GKO_NOT_IMPLEMENTED                                        \
     {                                                              \
         throw ::gko::NotImplemented(__FILE__, __LINE__, __func__); \
-    }
+    }                                                              \
+    void __gko_macro_terminator__()
 
 
 /**
@@ -80,7 +81,8 @@ namespace gko {
     {                                                          \
         throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, \
                                  GKO_QUOTE(_module));          \
-    }
+    }                                                          \
+    void __gko_macro_terminator__()
 
 
 /**

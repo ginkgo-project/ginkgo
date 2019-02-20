@@ -93,7 +93,7 @@ namespace cgs {
     template <typename ValueType>                 \
     GKO_DECLARE_CGS_STEP_2_KERNEL(ValueType);     \
     template <typename ValueType>                 \
-    GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType);
+    GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType)
 
 
 }  // namespace cgs

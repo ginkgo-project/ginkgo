@@ -90,7 +90,8 @@ struct is_supported<std::complex<double>> : std::true_type {};
             CublasName(handle, transa, transb, m, n, k, as_culibs_type(alpha), \
                        as_culibs_type(a), lda, as_culibs_type(b), ldb,         \
                        as_culibs_type(beta), as_culibs_type(c), ldc));         \
-    }
+    }                                                                          \
+    void __gko_macro_terminator__()
 
 GKO_BIND_CUBLAS_GEMM(float, cublasSgemm);
 GKO_BIND_CUBLAS_GEMM(double, cublasDgemm);
@@ -113,7 +114,8 @@ GKO_BIND_CUBLAS_GEMM(ValueType, detail::not_implemented);
             CublasName(handle, transa, transb, m, n, as_culibs_type(alpha), \
                        as_culibs_type(a), lda, as_culibs_type(beta),        \
                        as_culibs_type(b), ldb, as_culibs_type(c), ldc));    \
-    }
+    }                                                                       \
+    void __gko_macro_terminator__()
 
 GKO_BIND_CUBLAS_GEAM(float, cublasSgeam);
 GKO_BIND_CUBLAS_GEAM(double, cublasDgeam);
@@ -132,6 +134,7 @@ GKO_BIND_CUBLAS_GEAM(ValueType, detail::not_implemented);
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(                            \
             handle, n, as_culibs_type(alpha), as_culibs_type(x), incx));   \
     }
+    void __gko_macro_terminator__()
 
 GKO_BIND_CUBLAS_SCAL(float, cublasSscal);
 GKO_BIND_CUBLAS_SCAL(double, cublasDscal);
@@ -151,6 +154,7 @@ GKO_BIND_CUBLAS_SCAL(ValueType, detail::not_implemented);
             CublasName(handle, n, as_culibs_type(alpha), as_culibs_type(x), \
                        incx, as_culibs_type(y), incy));                     \
     }
+    void __gko_macro_terminator__()
 
 GKO_BIND_CUBLAS_AXPY(float, cublasSaxpy);
 GKO_BIND_CUBLAS_AXPY(double, cublasDaxpy);
@@ -170,6 +174,7 @@ GKO_BIND_CUBLAS_AXPY(ValueType, detail::not_implemented);
                                                incx, as_culibs_type(y), incy,  \
                                                as_culibs_type(result)));       \
     }
+    void __gko_macro_terminator__()
 
 GKO_BIND_CUBLAS_DOT(float, cublasSdot);
 GKO_BIND_CUBLAS_DOT(double, cublasDdot);
@@ -190,7 +195,8 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
             CublasName(handle, n, as_culibs_type(x), incx,              \
                        reinterpret_cast<remove_complex<ValueType> *>(   \
                            as_culibs_type(result))));                   \
-    }
+    }                                                                   \
+    void __gko_macro_terminator__()
 
 
 #define GKO_BIND_CUBLAS_NORM2(ValueType, CublasName)                           \
@@ -200,6 +206,7 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(result))); \
     }
+    void __gko_macro_terminator__()
 
 
 GKO_BIND_CUBLAS_NORM2(float, cublasSnrm2);

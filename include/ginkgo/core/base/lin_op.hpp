@@ -692,7 +692,8 @@ public:                                                                      \
 private:                                                                     \
     _parameters_name##_type _parameters_name##_;                             \
                                                                              \
-public:
+public:                                                                      \
+    void __gko_macro_terminator__()
 
 
 /**
@@ -738,7 +739,7 @@ public:
                                           \
     template <typename... Args>           \
     auto with_##_name(Args &&... _value)  \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &;
+        const->const ::gko::xstd::decay_t<decltype(*this)> &
 #endif  // __CUDACC__
 
 
