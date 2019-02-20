@@ -152,7 +152,7 @@ public:
         {}
 
         load_balance(int64_t nwarps)
-            : nwarps_(nwarps), strategy_type("load_balance")
+            : strategy_type("load_balance"), nwarps_(nwarps)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -219,7 +219,7 @@ public:
         {}
 
         automatical(int64_t nwarps)
-            : nwarps_(nwarps), strategy_type("automatical")
+            : strategy_type("automatical"), nwarps_(nwarps)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -412,8 +412,8 @@ protected:
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0)),
-          strategy_(std::move(strategy)),
-          srow_(exec, strategy->clac_size(num_nonzeros))
+          srow_(exec, strategy->clac_size(num_nonzeros)),
+          strategy_(std::move(strategy))
     {}
 
     /**
@@ -445,8 +445,8 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
-          strategy_(std::move(strategy)),
-          srow_(exec)
+          srow_(exec),
+          strategy_(std::move(strategy))
     {
         GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
                              col_idxs_.get_num_elems());
