@@ -42,6 +42,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
@@ -275,9 +281,177 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ConvertToCooIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Coo<>::create(ref);
+    auto somtx = gko::matrix::Coo<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToCooIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Coo<>::create(ref);
+    auto somtx = gko::matrix::Coo<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Csr<>::create(ref);
+    auto somtx = gko::matrix::Csr<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToCsrIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Csr<>::create(ref);
+    auto somtx = gko::matrix::Csr<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToEllIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Ell<>::create(ref);
+    auto somtx = gko::matrix::Ell<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToEllIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Ell<>::create(ref);
+    auto somtx = gko::matrix::Ell<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Hybrid<>::create(ref);
+    auto somtx = gko::matrix::Hybrid<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToHybridIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Hybrid<>::create(ref);
+    auto somtx = gko::matrix::Hybrid<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -298,7 +472,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 
 TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
