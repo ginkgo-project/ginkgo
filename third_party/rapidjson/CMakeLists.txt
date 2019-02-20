@@ -5,4 +5,4 @@ ginkgo_load_git_package(rapidjson_external
     "-DRAPIDJSON_BUILD_TESTS=OFF" "-DRAPIDJSON_BUILD_THIRDPARTY_GTEST=OFF")
 # Remove directory with questionable licensing
 file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/src/bin/jsonchecker)
-ginkgo_add_external_target(rapidjson src/include "" STATIC "" rapidjson_external TRUE)
+ginkgo_add_external_target(rapidjson rapidjson src/include "" STATIC "" rapidjson_external TRUE)
