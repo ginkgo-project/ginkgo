@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 
 
+#include <algorithm>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -57,29 +60,37 @@ namespace gmres {
 constexpr int default_block_size = 512;
 
 
+// Must be called with at least `max(stride_b * num_rows, krylov_dim *
+// num_cols)` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_1_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    size_type krylov_dim, const ValueType *__restrict__ b,
-    ValueType *__restrict__ b_norm, ValueType *__restrict__ residual,
-    ValueType *__restrict__ givens_sin, ValueType *__restrict__ givens_cos,
+    size_type num_rows, size_type num_cols, size_type krylov_dim,
+    const ValueType *__restrict__ b, size_type stride_b,
+    ValueType *__restrict__ residual, size_type stride_residual,
+    ValueType *__restrict__ givens_sin, size_type stride_sin,
+    ValueType *__restrict__ givens_cos, size_type stride_cos,
     stopping_status *__restrict__ stop_status)
 {
-    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    const auto row_idx = global_id / stride_b;
+    const auto col_idx = global_id % stride_b;
 
     if (global_id < num_cols) {
         stop_status[global_id].reset();
     }
 
-    if (global_id < num_rows * stride) {
-        residual[global_id] = b[global_id];
+    if (row_idx < num_rows && col_idx < num_cols) {
+        residual[row_idx * stride_residual + col_idx] =
+            b[row_idx * stride_b + col_idx];
     }
 
     if (global_id < krylov_dim * num_cols) {
-        givens_sin[global_id] = zero<ValueType>();
-        givens_cos[global_id] = zero<ValueType>();
+        const auto row_givens = global_id / num_cols;
+        const auto col_givens = global_id % num_cols;
+
+        givens_sin[row_givens * stride_sin + col_givens] = zero<ValueType>();
+        givens_cos[row_givens * stride_cos + col_givens] = zero<ValueType>();
     }
 }
 
@@ -91,67 +102,72 @@ void initialize_1(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
     Array<stopping_status> *stop_status, const size_type krylov_dim)
 {
-    const dim3 grid_dim(
-        ceildiv(b->get_size()[0], default_block_size) * b->get_stride(), 1, 1);
+    const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
+                                      krylov_dim * b->get_size()[1]);
+    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
     b->compute_norm2(b_norm);
     initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
-        b->get_size()[0], b->get_size()[1], b->get_stride(), krylov_dim,
-        as_cuda_type(b->get_const_values()), as_cuda_type(b_norm->get_values()),
-        as_cuda_type(residual->get_values()),
-        as_cuda_type(givens_sin->get_values()),
-        as_cuda_type(givens_cos->get_values()),
+        b->get_size()[0], b->get_size()[1], krylov_dim,
+        as_cuda_type(b->get_const_values()), b->get_stride(),
+        as_cuda_type(residual->get_values()), residual->get_stride(),
+        as_cuda_type(givens_sin->get_values()), givens_sin->get_stride(),
+        as_cuda_type(givens_cos->get_values()), givens_cos->get_stride(),
         as_cuda_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
+// Must be called with at least `num_rows * stride_krylov` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
-    size_type num_rows, size_type num_cols, size_type krylov_dim,
+    size_type num_rows, size_type num_rhs, size_type krylov_dim,
+    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ krylov_bases)
+    size_type stride_residual_nc)
 {
-    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
 
-    if (global_id < num_rows * (krylov_dim + 1) * num_cols) {
-        krylov_bases[global_id] = 0;
+    if (row_idx < num_rows && col_idx < (krylov_dim + 1) * num_rhs) {
+        krylov_bases[row_idx * stride_krylov + col_idx] = zero<ValueType>();
     }
 
-    if (global_id < (krylov_dim + 1) * num_cols) {
-        residual_norm_collection[global_id] = 0;
+    if (row_idx < krylov_dim + 1 && col_idx < num_rhs) {
+        residual_norm_collection[row_idx * stride_residual_nc + col_idx] =
+            zero<ValueType>();
     }
 }
 
 
+// Must be called with at least `num_rows * num_rhs` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ residual,
+    size_type num_rows, size_type num_rhs,
+    const ValueType *__restrict__ residual, size_type stride_residual,
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ krylov_bases,
+    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     size_type *__restrict__ final_iter_nums)
 {
-    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
-    const auto row = ceildiv(global_id + 1, num_cols) - 1;
-    const auto column = global_id - row * num_cols;
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto row_idx = global_id / num_rhs;
+    const auto col_idx = global_id % num_rhs;
 
-    if (global_id < num_cols) {
+    if (global_id < num_rhs) {
         residual_norm_collection[global_id] = residual_norm[global_id];
         final_iter_nums[global_id] = 0;
     }
 
-    if (global_id < num_rows * num_cols) {
-        krylov_bases[row * stride + column] =
-            residual[global_id] / residual_norm[column];
+    if (row_idx < num_rows &&
+        col_idx < num_rhs) {  // global_id < num_rows * num_cols) {
+        krylov_bases[row_idx * stride_krylov + col_idx] =
+            residual[row_idx * stride_residual + col_idx] /
+            residual_norm[col_idx];
     }
 }
 
@@ -164,24 +180,29 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, const size_type krylov_dim)
 {
-    const dim3 grid_dim(
-        ceildiv(krylov_bases->get_size()[0], default_block_size) *
-            krylov_bases->get_stride(),
-        1, 1);
+    const auto num_rows = residual->get_size()[0];
+    const auto num_rhs = residual->get_size()[1];
+    const dim3 grid_dim_1(
+        ceildiv(num_rows * krylov_bases->get_stride(), default_block_size), 1,
+        1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    initialize_2_1_kernel<block_size><<<grid_dim, block_dim>>>(
+    initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
+        as_cuda_type(krylov_bases->get_values()), krylov_bases->get_stride(),
         as_cuda_type(residual_norm_collection->get_values()),
-        as_cuda_type(krylov_bases->get_values()));
+        residual_norm_collection->get_stride());
     residual->compute_norm2(residual_norm);
-    initialize_2_2_kernel<block_size><<<grid_dim, block_dim>>>(
+
+    const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
+                          1);
+    initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
-        krylov_bases->get_stride(), as_cuda_type(residual->get_const_values()),
+        as_cuda_type(residual->get_const_values()), residual->get_stride(),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(residual_norm_collection->get_values()),
-        as_cuda_type(krylov_bases->get_values()),
+        as_cuda_type(krylov_bases->get_values()), krylov_bases->get_stride(),
         as_cuda_type(final_iter_nums->get_data()));
 }
 
@@ -193,15 +214,16 @@ __global__
         size_type *__restrict__ final_iter_nums,
         const stopping_status *__restrict__ stop_status, size_type total_number)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx < total_number) {
-        final_iter_nums[tidx] += (1 - stop_status[tidx].has_stopped());
+    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (global_id < total_number) {
+        final_iter_nums[global_id] +=
+            (1 - stop_status[global_id].has_stopped());
     }
 }
 
 
 // Must be called with at least `num_cols` blocks, each with `block_size`
-// threads. `block_size` must be a power of 2
+// threads. `block_size` must be a power of 2.
 template <int block_size = default_block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
     size_type k, size_type num_rows, size_type num_cols,
@@ -244,7 +266,8 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_next_krylov` threads in total
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
 template <int block_size = default_block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
@@ -271,7 +294,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 
 
 // Must be called with at least `num_cols` blocks, each with `block_size`
-// threads. `block_size` must be a power of 2
+// threads. `block_size` must be a power of 2.
 template <int block_size = default_block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
@@ -311,7 +334,8 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_next_krylov` threads in total
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void update_krylov_next_krylov_kernel(
@@ -451,6 +475,7 @@ __device__ void calculate_residual_norm_kernel(
 }
 
 
+// Must be called with at least `num_cols` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     const size_type num_rows, const size_type num_cols,
@@ -527,7 +552,7 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      const size_type iter,
                      const Array<stopping_status> *stop_status)
 {
-    // TODO: tune this parameter
+    // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
     const dim3 block_dim{block_size, 1, 1};
@@ -576,6 +601,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
+// Must be called with at least `num_rhs` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
@@ -606,7 +632,8 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
 }
 
 
-// Must be called with at least `stride_preconditioner * num_rows` threads
+// Must be called with at least `stride_preconditioner * num_rows` threads in
+// total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     const size_type num_rows, const size_type num_cols, const size_type num_rhs,
@@ -616,9 +643,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type stride_preconditioner,
     const size_type *__restrict__ final_iter_nums)
 {
-    constexpr auto warps_per_block = block_size / cuda_config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<cuda_config::warp_size, warps_per_block>();
+    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
     const auto row_id = global_id / stride_preconditioner;
     const auto col_id = global_id % stride_preconditioner;
 
@@ -639,8 +664,7 @@ void solve_upper_triangular(
     const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
     const Array<size_type> *final_iter_nums)
 {
-    // TODO: tune this parameter
-    // TODO: when number of right hand side is larger than block_size
+    // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
     const dim3 block_dim{block_size, 1, 1};
@@ -676,10 +700,11 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(num_rows * stride_before_preconditioner, block_size);
-    const dim3 block_dim{cuda_config::warp_size, 1,
-                         ceildiv(block_size, cuda_config::warp_size)};
+    const dim3 grid_dim{
+        static_cast<unsigned int>(
+            ceildiv(num_rows * stride_before_preconditioner, block_size)),
+        1, 1};
+    const dim3 block_dim{block_size, 1, 1};
 
 
     calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(

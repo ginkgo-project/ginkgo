@@ -34,11 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 
 
-#include <ginkgo/core/matrix/coo.hpp>
-#include <iostream>
-#include <string>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -46,10 +41,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 
 
@@ -86,6 +81,7 @@ void apply_preconditioner(const LinOp *preconditioner,
     // Apply preconditioner
     preconditioner->apply(target_basis.get(), preconditioned_vector);
 }
+
 
 }  // namespace
 
