@@ -1,6 +1,6 @@
-if (GKO_HAVE_PAPI_SDE)
+if (GINKGO_HAVE_PAPI_SDE)
 	add_executable(papi_logging papi_logging.cpp)
-	target_link_libraries(papi_logging ginkgo)
+	target_link_libraries(papi_logging ginkgo PAPI::PAPI)
 	target_include_directories(papi_logging PRIVATE ${PROJECT_SOURCE_DIR})
 	configure_file(data/A.mtx data/A.mtx COPYONLY)
 	configure_file(data/b.mtx data/b.mtx COPYONLY)

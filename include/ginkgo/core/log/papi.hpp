@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
-#ifdef GKO_HAVE_PAPI_SDE
+#if GKO_HAVE_PAPI_SDE
 
 
 #include <cstddef>

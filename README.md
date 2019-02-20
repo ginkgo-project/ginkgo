@@ -87,11 +87,6 @@ Ginkgo adds the following additional switches to control what is being built:
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
     Ginkgo's documentation. The default is `OFF`.
-*   `-DGINKGO_SET_CUDA_HOST_COMPILER={ON, OFF}` instructs the build system to
-    explicitly set CUDA's host compiler to match the compiler used to build the
-    the rest of the library (otherwise the nvcc toolchain uses its default host
-    compiler). Setting this option may help if you're experiencing linking
-    errors due to ABI incompatibilities. The default is `OFF`.
 *   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
     CMake package registry. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
@@ -101,6 +96,14 @@ Ginkgo adds the following additional switches to control what is being built:
     * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`
+*   `-DCMAKE_CUDA_HOST_COMPILER=path` instructs the build system to explicitly
+    set CUDA's host compiler to the path given as argument. By default, CUDA
+    uses its toolchain's host compiler. Setting this option may help if you're
+    experiencing linking errors due to ABI incompatibilities. This option is
+    supported since [CMake
+    3.8](https://github.com/Kitware/CMake/commit/489c52ce680df6439f9c1e553cd2925ca8944cb1)
+    but [documented starting from
+    3.10](https://cmake.org/cmake/help/v3.10/variable/CMAKE_CUDA_HOST_COMPILER.html).
 *   `-DGINKGO_CUDA_ARCHITECTURES=<list>` where `<list>` is a semicolon (`;`) separated
     list of architectures. Supported values are:
 
@@ -121,14 +124,36 @@ Ginkgo adds the following additional switches to control what is being built:
 For example, to build everything (in debug mode), use:
 
 ```cmake
-mkdir build; cd build
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
-      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_CUDA=ON  ..
-make
+cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
+	  -DGINKGO_BUILD_CUDA=ON 
+cmake --build Debug
 ```
 
-__NOTE:__ Currently, the only verified CMake generator is `Unix Makefiles`.
-Other generators may work, but are not officially supported.
+NOTE: Ginkgo is known to work with the `Unix Makefiles` and `Ninja` based
+generators. Other CMake generators are untested.
+
+### Third party libraries and packages
+
+Ginkgo relies on third party packages in different cases. These third party
+packages can be turned off by disabling the relevant options.
+
++ GINKGO_BUILD_CUDA=ON:
+  [CudaArchitectureSelector](https://github.com/ginkgo-project/CudaArchitectureSelector)
+  (CAS) is a CMake helper to manage CUDA architecture settings;
++ GINKGO_BUILD_TESTS=ON: Our tests are implemented with [Google
+  Test](https://github.com/google/googletest);
++ GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
+  [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
+  [RapidJSON](https://github.com/Tencent/rapidjson);
++ GINKGO_DEVEL_TOOLS=ON:
+  [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
+  helper for code formatting.
+
+By default, Ginkgo uses the internal version of each package. For each of the
+packages `GTEST`, `GFLAGS` and `RAPIDJSON` and `CAS`, it is possible to force
+Ginkgo to try to use an external version of a package. For this, set the CMake
+option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
 
 ### Running the unit tests
 
@@ -258,11 +283,7 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`install_test`](install_test/CMakeLists.txt).
-
-
-__Note:__ If the installed ginkgo was built statically and with CUDA, 
-`CUDA` needs to be specified as a language in order for CMake to work properly.
+An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
 ### Licensing
 

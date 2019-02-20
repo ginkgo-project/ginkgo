@@ -313,5 +313,9 @@ int main(int, char **)
                 .on(refExec);
     }
 
+    std::cout << "test_install: the Ginkgo installation was correctly detected "
+                 "and is complete."
+              << std::endl;
+
     return 0;
 }
