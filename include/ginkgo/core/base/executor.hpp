@@ -771,11 +771,7 @@ public:
      * kernels
      */
     static std::shared_ptr<CudaExecutor> create(
-        int device_id, std::shared_ptr<Executor> master)
-    {
-        return std::shared_ptr<CudaExecutor>(
-            new CudaExecutor(device_id, std::move(master)));
-    }
+        int device_id, std::shared_ptr<Executor> master);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 

@@ -50,6 +50,14 @@ version version_info::get_cuda_version() noexcept
 }
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master)));
+}
+
+
 void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     NOT_COMPILED(cuda);

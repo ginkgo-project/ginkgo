@@ -288,6 +288,7 @@ public:
         }
         if (exec_ == nullptr) {
             exec_ = other.get_executor();
+            data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
             this->resize_and_reset(0);
