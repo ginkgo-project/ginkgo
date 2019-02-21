@@ -52,7 +52,7 @@ namespace gmres {
         const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,           \
         matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
         matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
-        const size_type krylov_dim)
+        size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)                  \
@@ -61,21 +61,20 @@ namespace gmres {
                       matrix::Dense<_type> *residual_norm,            \
                       matrix::Dense<_type> *residual_norm_collection, \
                       matrix::Dense<_type> *krylov_bases,             \
-                      Array<size_type> *final_iter_nums,              \
-                      const size_type krylov_dim)
+                      Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                            \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,              \
-                matrix::Dense<_type> *next_krylov_basis,                  \
-                matrix::Dense<_type> *givens_sin,                         \
-                matrix::Dense<_type> *givens_cos,                         \
-                matrix::Dense<_type> *residual_norm,                      \
-                matrix::Dense<_type> *residual_norm_collection,           \
-                matrix::Dense<_type> *krylov_bases,                       \
-                matrix::Dense<_type> *hessenberg_iter,                    \
-                const matrix::Dense<_type> *b_norm, const size_type iter, \
-                Array<size_type> *final_iter_nums,                        \
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                      \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,        \
+                matrix::Dense<_type> *next_krylov_basis,            \
+                matrix::Dense<_type> *givens_sin,                   \
+                matrix::Dense<_type> *givens_cos,                   \
+                matrix::Dense<_type> *residual_norm,                \
+                matrix::Dense<_type> *residual_norm_collection,     \
+                matrix::Dense<_type> *krylov_bases,                 \
+                matrix::Dense<_type> *hessenberg_iter,              \
+                const matrix::Dense<_type> *b_norm, size_type iter, \
+                Array<size_type> *final_iter_nums,                  \
                 const Array<stopping_status> *stop_status)
 
 

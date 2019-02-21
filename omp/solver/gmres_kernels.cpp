@@ -50,11 +50,13 @@ namespace gmres {
 
 
 template <typename ValueType>
-void initialize_1(
-    std::shared_ptr<const OmpExecutor> exec, const matrix::Dense<ValueType> *b,
-    matrix::Dense<ValueType> *b_norm, matrix::Dense<ValueType> *residual,
-    matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
-    Array<stopping_status> *stop_status, const size_type krylov_dim)
+void initialize_1(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<ValueType> *residual,
+                  matrix::Dense<ValueType> *givens_sin,
+                  matrix::Dense<ValueType> *givens_cos,
+                  Array<stopping_status> *stop_status, size_type krylov_dim)
 {
     NOT_IMPLEMENTED;
 }
@@ -68,7 +70,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, const size_type krylov_dim)
+                  Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     NOT_IMPLEMENTED;
 }
@@ -85,7 +87,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            const matrix::Dense<ValueType> *b_norm, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {

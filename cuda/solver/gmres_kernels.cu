@@ -96,11 +96,13 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
 
 
 template <typename ValueType>
-void initialize_1(
-    std::shared_ptr<const CudaExecutor> exec, const matrix::Dense<ValueType> *b,
-    matrix::Dense<ValueType> *b_norm, matrix::Dense<ValueType> *residual,
-    matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
-    Array<stopping_status> *stop_status, const size_type krylov_dim)
+void initialize_1(std::shared_ptr<const CudaExecutor> exec,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<ValueType> *residual,
+                  matrix::Dense<ValueType> *givens_sin,
+                  matrix::Dense<ValueType> *givens_cos,
+                  Array<stopping_status> *stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -177,7 +179,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, const size_type krylov_dim)
+                  Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
@@ -368,8 +370,8 @@ template <typename ValueType>
 void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *next_krylov_basis,
                     matrix::Dense<ValueType> *krylov_bases,
-                    matrix::Dense<ValueType> *hessenberg_iter,
-                    const size_type iter, const stopping_status *stop_status)
+                    matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
+                    const stopping_status *stop_status)
 {
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_krylov = krylov_bases->get_stride();
@@ -418,16 +420,17 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
+    // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
 }
 
 
 template <typename ValueType>
 __device__ void calculate_sin_and_cos_kernel(
-    const size_type col_idx, const size_type num_cols,
+    size_type col_idx, size_type num_cols, size_type iter,
     const ValueType *hessenberg_iter, size_type stride_hessenberg,
     ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
-    size_type stride_cos, const size_type iter)
+    size_type stride_cos)
 {
     if (hessenberg_iter[iter * stride_hessenberg + col_idx] ==
         zero<ValueType>()) {
@@ -452,12 +455,11 @@ __device__ void calculate_sin_and_cos_kernel(
 
 template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
-    const size_type col_idx, const size_type num_cols,
+    size_type col_idx, size_type num_cols, size_type iter,
     const ValueType *givens_sin, size_type stride_sin,
     const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
     ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection, const ValueType *b_norm,
-    const size_type iter)
+    size_type stride_residual_norm_collection, const ValueType *b_norm)
 {
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] =
@@ -479,19 +481,21 @@ __device__ void calculate_residual_norm_kernel(
 // Must be called with at least `num_cols` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
-    const size_type num_rows, const size_type num_cols,
+    size_type num_rows, size_type num_cols, size_type iter,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     ValueType *__restrict__ givens_sin, size_type stride_sin,
     ValueType *__restrict__ givens_cos, size_type stride_cos,
     ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ b_norm, const size_type iter,
+    const ValueType *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
     const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (col_idx >= num_cols || stop_status[col_idx].has_stopped()) return;
+    if (col_idx >= num_cols || stop_status[col_idx].has_stopped()) {
+        return;
+    }
 
     const auto current_thread_block = group::this_thread_block();
 
@@ -518,9 +522,9 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //     hessenberg(j)    =  temp;
     // end
 
-    calculate_sin_and_cos_kernel(col_idx, num_cols, hessenberg_iter,
+    calculate_sin_and_cos_kernel(col_idx, num_cols, iter, hessenberg_iter,
                                  stride_hessenberg, givens_sin, stride_sin,
-                                 givens_cos, stride_cos, iter);
+                                 givens_cos, stride_cos);
     // Calculate sin and cos
 
     hessenberg_iter[iter * stride_hessenberg + col_idx] =
@@ -534,10 +538,10 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //                      sin(iter)*hessenberg(iter)
     // hessenberg(iter+1) = 0
 
-    calculate_residual_norm_kernel(
-        col_idx, num_cols, givens_sin, stride_sin, givens_cos, stride_cos,
-        residual_norm, residual_norm_collection,
-        stride_residual_norm_collection, b_norm, iter);
+    calculate_residual_norm_kernel(col_idx, num_cols, iter, givens_sin,
+                                   stride_sin, givens_cos, stride_cos,
+                                   residual_norm, residual_norm_collection,
+                                   stride_residual_norm_collection, b_norm);
     // Calculate residual norm
 }
 
@@ -549,8 +553,7 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType> *hessenberg_iter,
                      matrix::Dense<ValueType> *residual_norm,
                      matrix::Dense<ValueType> *residual_norm_collection,
-                     const matrix::Dense<ValueType> *b_norm,
-                     const size_type iter,
+                     const matrix::Dense<ValueType> *b_norm, size_type iter,
                      const Array<stopping_status> *stop_status)
 {
     // TODO: tune block_size for optimal performance
@@ -561,14 +564,14 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
         static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
 
     givens_rotation_kernel<block_size><<<grid_dim, block_dim>>>(
-        hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
+        hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1], iter,
         as_cuda_type(hessenberg_iter->get_values()),
         hessenberg_iter->get_stride(), as_cuda_type(givens_sin->get_values()),
         givens_sin->get_stride(), as_cuda_type(givens_cos->get_values()),
         givens_cos->get_stride(), as_cuda_type(residual_norm->get_values()),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride(),
-        as_cuda_type(b_norm->get_const_values()), iter,
+        as_cuda_type(b_norm->get_const_values()),
         as_cuda_type(stop_status->get_const_data()));
 }
 
@@ -582,7 +585,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            const matrix::Dense<ValueType> *b_norm, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
@@ -614,7 +617,9 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
 {
     const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (col_idx >= num_rhs) return;
+    if (col_idx >= num_rhs) {
+        return;
+    }
 
     for (int i = final_iter_nums[col_idx] - 1; i >= 0; --i) {
         auto temp =
@@ -637,7 +642,7 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
 // total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
-    const size_type num_rows, const size_type num_cols, const size_type num_rhs,
+    size_type num_rows, size_type num_cols, size_type num_rhs,
     const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     const ValueType *__restrict__ y, size_type stride_y,
     ValueType *__restrict__ before_preconditioner,

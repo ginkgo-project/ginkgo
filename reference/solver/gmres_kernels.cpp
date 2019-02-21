@@ -53,8 +53,8 @@ namespace {
 template <typename ValueType>
 void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
                     matrix::Dense<ValueType> *krylov_bases,
-                    matrix::Dense<ValueType> *hessenberg_iter,
-                    const size_type iter, const stopping_status *stop_status)
+                    matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
+                    const stopping_status *stop_status)
 {
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
@@ -94,6 +94,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
                                     i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
+        // krylov_bases(:, iter + 1) = next_krylov_basis
         // End of arnoldi
     }
 }
@@ -103,7 +104,7 @@ template <typename ValueType>
 void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
                            matrix::Dense<ValueType> *givens_cos,
                            matrix::Dense<ValueType> *hessenberg_iter,
-                           const size_type iter, const size_type rhs)
+                           size_type iter, const size_type rhs)
 {
     if (hessenberg_iter->at(iter, rhs) == zero<ValueType>()) {
         givens_cos->at(iter, rhs) = zero<ValueType>();
@@ -126,8 +127,8 @@ template <typename ValueType>
 void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
                      matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
-                     matrix::Dense<ValueType> *hessenberg_iter,
-                     const size_type iter, const stopping_status *stop_status)
+                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
+                     const stopping_status *stop_status)
 {
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
@@ -165,7 +166,7 @@ void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
     matrix::Dense<ValueType> *residual_norm,
     matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *b_norm, const size_type iter,
+    const matrix::Dense<ValueType> *b_norm, size_type iter,
     const stopping_status *stop_status)
 {
     for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
@@ -242,8 +243,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status,
-                  const size_type krylov_dim)
+                  Array<stopping_status> *stop_status, size_type krylov_dim)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
@@ -273,7 +273,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, const size_type krylov_dim)
+                  Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -317,7 +317,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, const size_type iter,
+            const matrix::Dense<ValueType> *b_norm, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {

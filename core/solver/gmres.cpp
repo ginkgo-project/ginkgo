@@ -41,7 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -159,7 +158,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             this, total_iter, residual.get(), dense_x, residual_norm.get());
         if (stop_criterion->update()
                 .num_iterations(total_iter)
+                .residual(residual.get())
                 .residual_norm(residual_norm.get())
+                .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
