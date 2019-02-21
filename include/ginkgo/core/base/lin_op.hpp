@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
+#ifdef __GNUC__
+#pragma GCC system_header
+#endif  // __GNUC__
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -693,7 +696,9 @@ private:                                                                     \
     _parameters_name##_type _parameters_name##_;                             \
                                                                              \
 public:                                                                      \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -702,11 +707,14 @@ public:                                                                      \
  *
  * @param _factory_name  the factory for which to define the method
  */
-#define GKO_ENABLE_BUILD_METHOD(_factory_name)       \
-    static auto build()->decltype(Factory::create()) \
-    {                                                \
-        return Factory::create();                    \
-    }
+#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \
+    static auto build()->decltype(Factory::create())                         \
+    {                                                                        \
+        return Factory::create();                                            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #ifndef __CUDACC__
@@ -718,17 +726,20 @@ public:                                                                      \
  *
  * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
  */
-#define GKO_FACTORY_PARAMETER(_name, ...)                    \
-    mutable _name{__VA_ARGS__};                              \
-                                                             \
-    template <typename... Args>                              \
-    auto with_##_name(Args &&... _value)                     \
-        const->const ::gko::xstd::decay_t<decltype(*this)> & \
-    {                                                        \
-        using type = decltype(this->_name);                  \
-        this->_name = type{std::forward<Args>(_value)...};   \
-        return *this;                                        \
-    }
+#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args &&... _value)                                     \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        using type = decltype(this->_name);                                  \
+        this->_name = type{std::forward<Args>(_value)...};                   \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 #else  // __CUDACC__
 // A workaround for the NVCC compiler - parameter pack expansion does not work
 // properly. You won't be able to use factories in code compiled with NVCC, but
