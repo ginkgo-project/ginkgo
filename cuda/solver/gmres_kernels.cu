@@ -163,8 +163,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
         final_iter_nums[global_id] = 0;
     }
 
-    if (row_idx < num_rows &&
-        col_idx < num_rhs) {  // global_id < num_rows * num_cols) {
+    if (row_idx < num_rows && col_idx < num_rhs) {
         krylov_bases[row_idx * stride_krylov + col_idx] =
             residual[row_idx * stride_residual + col_idx] /
             residual_norm[col_idx];
@@ -224,7 +223,7 @@ __global__
 
 // Must be called with at least `num_cols` blocks, each with `block_size`
 // threads. `block_size` must be a power of 2.
-template <int block_size = default_block_size, typename ValueType>
+template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
@@ -268,7 +267,7 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size = default_block_size, typename ValueType>
+template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
@@ -295,7 +294,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 
 // Must be called with at least `num_cols` blocks, each with `block_size`
 // threads. `block_size` must be a power of 2.
-template <int block_size = default_block_size, typename ValueType>
+template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
@@ -336,15 +335,13 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <typename ValueType>
-__global__
-    __launch_bounds__(default_block_size) void update_krylov_next_krylov_kernel(
-        size_type iter, size_type num_rows, size_type num_cols,
-        ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-        const ValueType *__restrict__ hessenberg_iter,
-        size_type stride_hessenberg,
-        const stopping_status *__restrict__ stop_status)
+template <int block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
     const auto row_idx = global_id / stride_next_krylov;
@@ -380,21 +377,24 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     const auto dim_size = next_krylov_basis->get_size();
 
     for (size_type k = 0; k < iter + 1; ++k) {
-        update_hessenberg_kernel<<<dim_size[1], default_block_size>>>(
-            k, dim_size[0], dim_size[1],
-            as_cuda_type(next_krylov_basis->get_const_values()),
-            stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
-            stride_krylov, as_cuda_type(hessenberg_iter->get_values()),
-            stride_hessenberg, as_cuda_type(stop_status));
+        update_hessenberg_kernel<default_block_size>
+            <<<dim_size[1], default_block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(stop_status));
 
-        update_next_krylov_kernel<<<ceildiv(dim_size[0] * stride_next_krylov,
-                                            default_block_size),
-                                    default_block_size>>>(
-            k, dim_size[0], dim_size[1],
-            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-            as_cuda_type(hessenberg_iter->get_const_values()),
-            stride_hessenberg, as_cuda_type(stop_status));
+        update_next_krylov_kernel<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_const_values()),
+                stride_hessenberg, as_cuda_type(stop_status));
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -402,20 +402,21 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     // end
 
 
-    update_hessenberg_2_kernel<<<dim_size[1], default_block_size>>>(
-        iter, dim_size[0], dim_size[1],
-        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
-        as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-        as_cuda_type(stop_status));
+    update_hessenberg_2_kernel<default_block_size>
+        <<<dim_size[1], default_block_size>>>(
+            iter, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov, as_cuda_type(hessenberg_iter->get_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
 
-    update_krylov_next_krylov_kernel<<<ceildiv(dim_size[0] * stride_next_krylov,
-                                               default_block_size),
-                                       default_block_size>>>(
-        iter, dim_size[0], dim_size[1],
-        as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_cuda_type(krylov_bases->get_values()), stride_krylov,
-        as_cuda_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-        as_cuda_type(stop_status));
+    update_krylov_next_krylov_kernel<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size>>>(
+            iter, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_cuda_type(krylov_bases->get_values()), stride_krylov,
+            as_cuda_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // End of arnoldi
 }
