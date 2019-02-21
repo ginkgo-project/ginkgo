@@ -90,7 +90,9 @@ struct is_supported<std::complex<double>, int32> : std::true_type {};
             as_culibs_type(csrValA), csrRowPtrA, csrColIndA,                  \
             as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));     \
     }                                                                         \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
 
 #define GKO_BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                     \
     inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
@@ -131,7 +133,9 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
                          OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
                          TransRowPtrA, TransColIndA, copyValues, idxBase));   \
     }                                                                         \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
 
 #define GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, CusparseName)                \
     inline void transpose(cusparseHandle_t handle, size_type m, size_type n,  \

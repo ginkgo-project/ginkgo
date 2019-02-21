@@ -584,17 +584,19 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name)
 
 
-#define GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(_operation_name, \
-                                                   _operator_name)  \
-    template <typename Accessor>                                    \
-    GKO_ATTRIBUTES constexpr GKO_INLINE                             \
-        range<accessor::_operation_name<Accessor>>                  \
-        _operator_name(const range<Accessor> &operand)              \
-    {                                                               \
-        return range<accessor::_operation_name<Accessor>>(          \
-            operand.get_accessor());                                \
-    }                                                               \
-    void __gko_macro_terminator__()
+#define GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(_operation_name,          \
+                                                   _operator_name)           \
+    template <typename Accessor>                                             \
+    GKO_ATTRIBUTES constexpr GKO_INLINE                                      \
+        range<accessor::_operation_name<Accessor>>                           \
+        _operator_name(const range<Accessor> &operand)                       \
+    {                                                                        \
+        return range<accessor::_operation_name<Accessor>>(                   \
+            operand.get_accessor());                                         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)                  \
@@ -724,20 +726,23 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
 #undef GKO_ENABLE_UNARY_RANGE_OPERATION
 
 
-#define GKO_ENABLE_BINARY_RANGE_OPERATION(_operation_name, _operator_name, \
-                                          _operator)                       \
-    namespace accessor {                                                   \
-    template <::gko::detail::operation_kind Kind, typename FirstOperand,   \
-              typename SecondOperand>                                      \
-    struct _operation_name                                                 \
-        : ::gko::detail::implement_binary_operation<                       \
-              Kind, FirstOperand, SecondOperand, ::gko::_operator> {       \
-        using ::gko::detail::implement_binary_operation<                   \
-            Kind, FirstOperand, SecondOperand,                             \
-            ::gko::_operator>::implement_binary_operation;                 \
-    };                                                                     \
-    }                                                                      \
-    GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name)
+#define GKO_ENABLE_BINARY_RANGE_OPERATION(_operation_name, _operator_name,   \
+                                          _operator)                         \
+    namespace accessor {                                                     \
+    template <::gko::detail::operation_kind Kind, typename FirstOperand,     \
+              typename SecondOperand>                                        \
+    struct _operation_name                                                   \
+        : ::gko::detail::implement_binary_operation<                         \
+              Kind, FirstOperand, SecondOperand, ::gko::_operator> {         \
+        using ::gko::detail::implement_binary_operation<                     \
+            Kind, FirstOperand, SecondOperand,                               \
+            ::gko::_operator>::implement_binary_operation;                   \
+    };                                                                       \
+    }                                                                        \
+    GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name);   \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #define GKO_BIND_RANGE_OPERATION_TO_OPERATOR(_operation_name, _operator_name) \
@@ -787,7 +792,9 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
             ::gko::detail::operation_kind::scalar_by_range, FirstOperand,     \
             SecondAccessor>>(first, second.get_accessor());                   \
     }                                                                         \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
 
 
 #define GKO_DEFINE_SIMPLE_BINARY_OPERATION(_name, ...)                         \

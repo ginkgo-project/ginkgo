@@ -66,7 +66,9 @@ namespace gko {
     {                                                              \
         throw ::gko::NotImplemented(__FILE__, __LINE__, __func__); \
     }                                                              \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -82,7 +84,9 @@ namespace gko {
         throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, \
                                  GKO_QUOTE(_module));          \
     }                                                          \
-    void __gko_macro_terminator__()
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -319,6 +323,9 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
     if (_index >= _bound) {                                                \
         throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _index, _bound); \
     }
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -345,6 +352,9 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
     {                                                              \
         throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__); \
     }
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace gko

@@ -93,7 +93,7 @@ std::ranlux24 &get_engine()
 {
     static std::ranlux24 engine(FLAGS_seed);
     return engine;
-};
+}
 
 
 // helper for writing out rapidjson Values

@@ -98,20 +98,22 @@ std::string location_name(const uintptr &location)
 }
 
 
-#define GKO_ENABLE_DEMANGLE_NAME(_object_type)                 \
-    std::string demangle_name(const _object_type *object)      \
-    {                                                          \
-        std::ostringstream oss;                                \
-        oss << #_object_type "[";                              \
-        if (object == nullptr) {                               \
-            oss << name_demangling::get_dynamic_type(object);  \
-        } else {                                               \
-            oss << name_demangling::get_dynamic_type(*object); \
-        }                                                      \
-        oss << "," << object << "]";                           \
-        return oss.str();                                      \
-    }                                                          \
-    void __gko_macro_terminator__()
+#define GKO_ENABLE_DEMANGLE_NAME(_object_type)                               \
+    std::string demangle_name(const _object_type *object)                    \
+    {                                                                        \
+        std::ostringstream oss;                                              \
+        oss << #_object_type "[";                                            \
+        if (object == nullptr) {                                             \
+            oss << name_demangling::get_dynamic_type(object);                \
+        } else {                                                             \
+            oss << name_demangling::get_dynamic_type(*object);               \
+        }                                                                    \
+        oss << "," << object << "]";                                         \
+        return oss.str();                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 GKO_ENABLE_DEMANGLE_NAME(PolymorphicObject);
 GKO_ENABLE_DEMANGLE_NAME(LinOp);
