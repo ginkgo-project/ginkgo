@@ -21,7 +21,8 @@ RUN apt-get update -y && \
         git \
         openssh-client \
         doxygen \
-        curl && \
+        curl \
+        valgrind && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler

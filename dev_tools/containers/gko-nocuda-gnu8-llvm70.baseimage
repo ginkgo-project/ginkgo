@@ -22,7 +22,8 @@ RUN apt-get update -y && \
         git \
         openssh-client \
         doxygen \
-        curl && \
+        curl \
+        valgrind && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler
@@ -51,5 +52,16 @@ RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
         libomp-dev && \
     rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        libpfm4 && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY papi/include/* /usr/include/
+
+COPY papi/lib/* /usr/lib/
+
+COPY papi/bin/* /usr/bin/
 
 

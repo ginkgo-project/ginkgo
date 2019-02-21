@@ -20,7 +20,7 @@ Stage0.baseimage(image)
 # Setup extra tools
 Stage0 += python()
 Stage0 += cmake(eula=True)
-Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl'])
+Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl', 'valgrind'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '7')
