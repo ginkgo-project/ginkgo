@@ -34,9 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
+#include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <vector>
+
 
 #include <omp.h>
 
@@ -67,6 +69,7 @@ void initialize_precisions(std::shared_ptr<const OmpExecutor> exec,
         precisions.get_data()[i] = source.get_const_data()[i % source_size];
     }
 }
+
 
 namespace {
 
