@@ -697,10 +697,9 @@ __global__
         size_type *__restrict__ slice_lengths,
         size_type *__restrict__ slice_sets)
 {
-    const auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = cuda_config::warp_size;
     const auto sliceid = blockIdx.x;
     const auto tid_in_warp = threadIdx.x;
-    __shared__ size_type warp_results[warp_size];
 
     if (sliceid * slice_size + tid_in_warp < num_rows) {
         size_type thread_result = 0;
@@ -710,18 +709,16 @@ __global__
                     ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
                     : thread_result;
         }
-        warp_results[tid_in_warp] = thread_result;
 
-        for (auto i = warp_size / 2; i >= 1; i >>= 1) {
-            if (tid_in_warp < i) {
-                warp_results[tid_in_warp] = max(warp_results[tid_in_warp],
-                                                warp_results[tid_in_warp + i]);
-            }
-        }
+        auto warp_tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        auto warp_result = reduce(
+            warp_tile, thread_result,
+            [](const size_type &a, const size_type &b) { return max(a, b); });
 
         if (tid_in_warp == 0) {
-            auto slice_length = (stride_factor - 1 + warp_results[0]) /
-                                stride_factor * stride_factor;
+            auto slice_length =
+                ceildiv(warp_result, stride_factor) * stride_factor;
             slice_lengths[sliceid] = slice_length;
             slice_sets[sliceid] = slice_length;
         }
@@ -731,7 +728,7 @@ __global__
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
-    size_type num_rows, size_type num_cols, size_type slice_size, int slice_num,
+    size_type num_rows, size_type num_cols, size_type slice_size,
     size_type stride, const ValueType *__restrict__ source,
     size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets,
     IndexType *__restrict__ col_idxs, ValueType *__restrict__ vals)
@@ -756,7 +753,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
              (slice_sets[sliceid] + slice_lengths[sliceid]) * slice_size + row;
              i += slice_size) {
             col_idxs[i] = 0;
-            vals[i] = 0;
+            vals[i] = zero<ValueType>();
         }
     }
 }
@@ -770,20 +767,22 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
                       matrix::Sellp<ValueType, IndexType> *result,
                       const matrix::Dense<ValueType> *source)
 {
-    auto stride = source->get_stride();
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
+    const auto stride = source->get_stride();
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+
     auto vals = result->get_values();
     auto col_idxs = result->get_col_idxs();
     auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
-    auto slice_size = (result->get_slice_size() == 0)
-                          ? matrix::default_slice_size
-                          : result->get_slice_size();
-    auto stride_factor = (result->get_stride_factor() == 0)
-                             ? matrix::default_stride_factor
-                             : result->get_stride_factor();
-    int slice_num = ceildiv(num_rows, slice_size);
+
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? matrix::default_slice_size
+                                : result->get_slice_size();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? matrix::default_stride_factor
+                                   : result->get_stride_factor();
+    const int slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
@@ -809,7 +808,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, slice_size, slice_num, stride,
+        num_rows, num_cols, slice_size, stride,
         as_cuda_type(source->get_const_values()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets), as_cuda_type(col_idxs), as_cuda_type(vals));
 
@@ -996,31 +995,38 @@ namespace kernel {
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
-    size_type num_rows, size_type slice_size, size_type stride_factor,
-    const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
+    size_type num_rows, size_type slice_size, size_type slice_num,
+    size_type stride_factor, const size_type *__restrict__ nnz_per_row,
+    size_type *__restrict__ result)
 {
-    const size_type start_step = blockDim.x;
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto warpid = tidx / warp_size;
+    const auto tid_in_warp = tidx % warp_size;
 
-    for (auto i = start_step; i >= 1; i >>= 1) {
-        if (threadIdx.x < i && threadIdx.x + i < slice_size) {
-            result[blockIdx.x] =
-                max(nnz_per_row[blockIdx.x * slice_size + threadIdx.x],
-                    nnz_per_row[blockIdx.x * slice_size + threadIdx.x + i]);
+    size_type thread_result = 0;
+    for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
+        if (warpid * warp_size + i < num_rows) {
+            thread_result =
+                max(thread_result, nnz_per_row[warpid * warp_size + i]);
         }
-        __syncthreads();
     }
 
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] =
-            ((result[blockIdx.x] + stride_factor - 1) / stride_factor) *
-            stride_factor;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    auto warp_result = reduce(
+        warp_tile, thread_result,
+        [](const size_type &a, const size_type &b) { return max(a, b); });
+
+    if (tid_in_warp == 0) {
+        result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
     }
 }
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
     size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
-    size_type *result)
+    size_type *__restrict__ result)
 {
     extern __shared__ size_type block_result[];
 
@@ -1042,9 +1048,9 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           size_type *result, size_type stride_factor,
                           size_type slice_size)
 {
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto slice_num = ceildiv(num_rows, slice_size);
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
 
@@ -1052,19 +1058,12 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
 
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
-    size_type block_dim = 1;
-    while (2 * block_dim < slice_size) {
-        block_dim *= 2;
-    }
+    const auto grid_dim = ceildiv(slice_num, default_block_size);
 
-    kernel::reduce_max_nnz_per_slice<<<slice_num, block_dim>>>(
-        num_rows, slice_size, stride_factor,
+    kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
+        num_rows, slice_size, slice_num, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(max_nnz_per_slice.get_data()));
-
-    const auto n = ceildiv(slice_num, default_block_size);
-    const size_type grid_dim =
-        (n <= default_block_size) ? n : default_block_size;
 
     auto block_results = Array<size_type>(exec, grid_dim);
 

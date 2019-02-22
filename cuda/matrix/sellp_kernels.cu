@@ -166,7 +166,7 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
+__global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
     size_type num_rows, size_type num_cols, size_type stride,
     ValueType *__restrict__ result)
 {
@@ -181,20 +181,27 @@ __global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     size_type num_rows, size_type num_cols, size_type stride,
-    size_type slice_size, const size_type *__restrict__ slice_lengths,
+    size_type slice_size, size_type threads_per_row,
+    const size_type *__restrict__ slice_lengths,
     const size_type *__restrict__ slice_sets,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, ValueType *__restrict__ result)
 {
-    const auto slice = blockIdx.x;
-    const auto row = threadIdx.x;
-    const auto global_row = slice * slice_size + row;
+    const auto global_row =
+        (blockDim.x * blockIdx.x + threadIdx.x) / threads_per_row;
+    const auto row = global_row % slice_size;
+    const auto slice = global_row / slice_size;
+    const auto start_index = threadIdx.x % threads_per_row;
 
     if (global_row < num_rows) {
-        for (auto i = threadIdx.y; i < slice_lengths[slice]; i += blockDim.y) {
-            result[global_row * stride +
-                   col_idxs[(slice_sets[slice] + i) * slice_size + row]] +=
-                values[(slice_sets[slice] + i) * slice_size + row];
+        for (auto i = start_index; i < slice_lengths[slice];
+             i += threads_per_row) {
+            if (values[(slice_sets[slice] + i) * slice_size + row] !=
+                zero<ValueType>()) {
+                result[global_row * stride +
+                       col_idxs[(slice_sets[slice] + i) * slice_size + row]] =
+                    values[(slice_sets[slice] + i) * slice_size + row];
+            }
         }
     }
 }
@@ -215,8 +222,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const auto slice_lengths = source->get_const_slice_lengths();
     const auto slice_sets = source->get_const_slice_sets();
     const auto slice_size = source->get_slice_size();
-    const auto slice_num =
-        ceildiv(source->get_size()[0] + slice_size - 1, slice_size);
+
+    const auto slice_num = ceildiv(num_rows, slice_size);
 
     const dim3 block_size(cuda_config::warp_size,
                           cuda_config::max_block_size / cuda_config::warp_size,
@@ -228,10 +235,12 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, result->get_stride(),
         as_cuda_type(result->get_values()));
 
-    const dim3 block_dim(slice_size, default_block_size / slice_size, 1);
+    const size_type threads_per_row = cuda_config::warp_size;
+    const auto grid_dim =
+        ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
 
-    kernel::fill_in_dense<<<slice_num, block_dim>>>(
-        num_rows, num_cols, result->get_stride(), slice_size,
+    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, result->get_stride(), slice_size, threads_per_row,
         as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
         as_cuda_type(col_idxs), as_cuda_type(vals),
         as_cuda_type(result->get_values()));
