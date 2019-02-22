@@ -38,7 +38,7 @@ endif()
 
 ginkgo_compile_features(ginkgo)
 
-target_compile_options(ginkgo PRIVATE "-Wpedantic")
+target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
