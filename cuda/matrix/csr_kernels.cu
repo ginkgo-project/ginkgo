@@ -645,7 +645,7 @@ namespace kernel {
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
-    size_type num_rows, const IndexType *ptrs, IndexType *idxs)
+    size_type num_rows, const IndexType *__restrict__ ptrs, IndexType *__restrict__ idxs)
 {
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
     if (tidx < num_rows) {
