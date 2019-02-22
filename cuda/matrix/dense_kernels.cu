@@ -995,9 +995,8 @@ namespace kernel {
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
-    size_type num_rows, size_type slice_size, size_type slice_num,
-    size_type stride_factor, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ result)
+    size_type num_rows, size_type slice_size, size_type stride_factor,
+    const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     constexpr auto warp_size = cuda_config::warp_size;
@@ -1061,7 +1060,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
     const auto grid_dim = ceildiv(slice_num, default_block_size);
 
     kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, slice_num, stride_factor,
+        num_rows, slice_size, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(max_nnz_per_slice.get_data()));
 
