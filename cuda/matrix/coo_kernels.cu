@@ -67,7 +67,7 @@ template <int subwarp_size = cuda_config::warp_size, typename ValueType,
           typename IndexType>
 __device__ __forceinline__ void segment_scan(
     const group::thread_block_tile<subwarp_size> &group, IndexType ind,
-    ValueType *val, bool *head)
+    ValueType *__restrict__ val, bool *__restrict__ head)
 {
 #pragma unroll
     for (int i = 1; i < subwarp_size; i <<= 1) {
