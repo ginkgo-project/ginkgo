@@ -219,7 +219,7 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    auto idxs = 0;
+    size_type idxs = 0;
     for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
         for (size_type col = 0; col < num_cols; ++col) {
