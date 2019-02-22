@@ -44,7 +44,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/matrix/dense_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 
 
@@ -114,7 +113,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
     auto givens_cos =
         Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
-    auto residual_norms =
+    auto residual_norm_collection =
         Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
         Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
@@ -138,11 +137,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                           residual.get());
     // residual = residual - Ax
 
-    exec->run(gmres::make_initialize_2(residual.get(), residual_norm.get(),
-                                       residual_norms.get(), krylov_bases.get(),
-                                       &final_iter_nums, krylov_dim_));
+    exec->run(gmres::make_initialize_2(
+        residual.get(), residual_norm.get(), residual_norm_collection.get(),
+        krylov_bases.get(), &final_iter_nums, krylov_dim_));
     // residual_norm = norm(residual)
-    // residual_norms = {residual_norm, 0, ..., 0}
+    // residual_norm_collection = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
@@ -156,21 +155,25 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual.get(), dense_x);
+            this, total_iter, residual.get(), dense_x, residual_norm.get());
         if (stop_criterion->update()
                 .num_iterations(total_iter)
+                .residual(residual.get())
                 .residual_norm(residual_norm.get())
+                .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
         if (restart_iter == krylov_dim_) {
             // Restart
-            exec->run(gmres::make_step_2(
-                residual_norms.get(), krylov_bases.get(), hessenberg.get(),
-                y.get(), dense_x, &final_iter_nums, preconditioner_.get()));
+            exec->run(gmres::make_step_2(residual_norm_collection.get(),
+                                         krylov_bases.get(), hessenberg.get(),
+                                         y.get(), dense_x, &final_iter_nums,
+                                         preconditioner_.get()));
             // Solve upper triangular.
-            // y = hessenberg \ residual_norms
+            // y = hessenberg \ residual_norm_collection
+
             // Solve x
             // x = x + preconditioner_ * krylov_bases * y
             residual->copy_from(dense_b);
@@ -179,10 +182,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                   residual.get());
             // residual = residual - Ax
             exec->run(gmres::make_initialize_2(
-                residual.get(), residual_norm.get(), residual_norms.get(),
-                krylov_bases.get(), &final_iter_nums, krylov_dim_));
+                residual.get(), residual_norm.get(),
+                residual_norm_collection.get(), krylov_bases.get(),
+                &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
-            // residual_norms = {residual_norm, 0, ..., 0}
+            // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             restart_iter = 0;
@@ -192,11 +196,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                              preconditioned_vector.get(), restart_iter);
         // preconditioned_vector = preconditioner_ *
         //                         krylov_bases(:, restart_iter)
-
-        for (int i = 0; i < dense_b->get_size()[1]; ++i) {
-            final_iter_nums.get_data()[i] +=
-                (1 - stop_status.get_const_data()[i].has_stopped());
-        }
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
@@ -211,8 +210,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         exec->run(gmres::make_step_1(
             next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
-            residual_norm.get(), residual_norms.get(), krylov_bases.get(),
-            hessenberg_iter.get(), b_norm.get(), restart_iter, &stop_status));
+            residual_norm.get(), residual_norm_collection.get(),
+            krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
+            restart_iter, &final_iter_nums, &stop_status));
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
@@ -248,11 +248,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
-    exec->run(gmres::make_step_2(residual_norms.get(), krylov_bases_small.get(),
+    exec->run(gmres::make_step_2(residual_norm_collection.get(),
+                                 krylov_bases_small.get(),
                                  hessenberg_small.get(), y.get(), dense_x,
                                  &final_iter_nums, preconditioner_.get()));
     // Solve upper triangular.
-    // y = hessenberg \ residual_norms
+    // y = hessenberg \ residual_norm_collection
     // Solve x
     // x = x + preconditioner_ * krylov_bases * y
 }
@@ -260,13 +261,14 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                  const LinOp *residual_norms, LinOp *x) const
+                                  const LinOp *residual_norm_collection,
+                                  LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
-    dense_x->scale(residual_norms);
+    dense_x->scale(residual_norm_collection);
     dense_x->add_scaled(alpha, x_clone.get());
 }
 
