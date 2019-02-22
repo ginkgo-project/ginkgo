@@ -208,7 +208,7 @@ public:
     LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x)
     {
         this->validate_application_parameters(b, x);
-        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                           make_temporary_clone(exec, b).get(),
@@ -222,7 +222,7 @@ public:
     const LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         auto exec = this->get_executor();
         this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                           make_temporary_clone(exec, b).get(),
@@ -275,10 +275,10 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
     {
-        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                         col_idxs_.get_num_elems());
-        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                         row_idxs_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                             col_idxs_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                             row_idxs_.get_num_elems());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

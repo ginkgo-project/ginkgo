@@ -58,7 +58,7 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *givens_cos,
                   Array<stopping_status> *stop_status, size_type krylov_dim)
 {
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
@@ -72,7 +72,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
@@ -91,7 +91,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
@@ -106,7 +106,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const Array<size_type> *final_iter_nums,
             const LinOp *preconditioner)
 {
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

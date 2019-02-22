@@ -442,7 +442,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        ASSERT_NO_CUDA_ERRORS(
+        GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemset(c->get_values(), 0,
                        c->get_num_stored_elements() * sizeof(ValueType)));
         const IndexType nwarps = a->get_num_srow_elements();
@@ -550,14 +550,15 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_cusparse_handle();
             auto descr = cusparse::create_mat_descr();
-            ASSERT_NO_CUSPARSE_ERRORS(
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
 
             auto row_ptrs = a->get_const_row_ptrs();
             auto col_idxs = a->get_const_col_idxs();
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+            if (b->get_stride() != 1 || c->get_stride() != 1)
+                GKO_NOT_IMPLEMENTED;
 
             cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                            a->get_size()[0], a->get_size()[1],
@@ -565,7 +566,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                            a->get_const_values(), row_ptrs, col_idxs,
                            b->get_const_values(), &beta, c->get_values());
 
-            ASSERT_NO_CUSPARSE_ERRORS(
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
             cusparse::destroy(descr);
@@ -617,7 +618,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             auto row_ptrs = a->get_const_row_ptrs();
             auto col_idxs = a->get_const_col_idxs();
 
-            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+            if (b->get_stride() != 1 || c->get_stride() != 1)
+                GKO_NOT_IMPLEMENTED;
 
             cusparse::spmv(exec->get_cusparse_handle(),
                            CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
@@ -629,7 +631,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
             cusparse::destroy(descr);
         } else {
-            NOT_IMPLEMENTED;
+            GKO_NOT_IMPLEMENTED;
         }
     }
 }
@@ -738,9 +740,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                   matrix::Dense<ValueType> *result,
-                   matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+void move_to_dense(
+    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
+    matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
@@ -762,7 +764,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
     } else {
-        NOT_IMPLEMENTED;
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -813,7 +815,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             trans->get_num_stored_elements(),
             as_cuda_type(trans->get_values()));
     } else {
-        NOT_IMPLEMENTED;
+        GKO_NOT_IMPLEMENTED;
     }
 }
 

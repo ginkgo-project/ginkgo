@@ -304,7 +304,7 @@ template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
                               IndexType *ptrs,
-                              size_type length) NOT_IMPLEMENTED;
+                              size_type length) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
@@ -313,7 +313,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                matrix::Coo<ValueType, IndexType> *trans,
-               const matrix::Coo<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+               const matrix::Coo<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
 
@@ -322,7 +323,7 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *trans,
                     const matrix::Coo<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);

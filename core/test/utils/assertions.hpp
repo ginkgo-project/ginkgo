@@ -235,8 +235,8 @@ std::string remove_list_wrapper(const std::string &expression)
  *                     first, second, tolerance);
  * ```
  *
- * @see ASSERT_MTX_NEAR
- * @see EXPECT_MTX_NEAR
+ * @see GKO_ASSERT_MTX_NEAR
+ * @see GKO_EXPECT_MTX_NEAR
  */
 template <typename LinOp1, typename LinOp2>
 ::testing::AssertionResult matrices_near(
@@ -366,7 +366,7 @@ T plain_ptr(T ptr)
  * @param _mtx2  second matrix
  * @param _tol  tolerance level
  */
-#define ASSERT_MTX_NEAR(_mtx1, _mtx2, _tol)                            \
+#define GKO_ASSERT_MTX_NEAR(_mtx1, _mtx2, _tol)                        \
     {                                                                  \
         using ::gko::test::assertions::detail::l;                      \
         using ::gko::test::assertions::detail::plain_ptr;              \
@@ -376,9 +376,9 @@ T plain_ptr(T ptr)
 
 
 /**
- * @copydoc ASSERT_MTX_NEAR
+ * @copydoc GKO_ASSERT_MTX_NEAR
  */
-#define EXPECT_MTX_NEAR(_mtx1, _mtx2, _tol)                            \
+#define GKO_EXPECT_MTX_NEAR(_mtx1, _mtx2, _tol)                        \
     {                                                                  \
         using ::gko::test::assertions::detail::l;                      \
         using ::gko::test::assertions::detail::plain_ptr;              \
@@ -396,7 +396,7 @@ T plain_ptr(T ptr)
  * @param _str1  the main string
  * @param _mtx2  the substring to find
  */
-#define ASSERT_STR_CONTAINS(_str1, _str2)                                 \
+#define GKO_ASSERT_STR_CONTAINS(_str1, _str2)                             \
     {                                                                     \
         ASSERT_PRED_FORMAT2(::gko::test::assertions::str_contains, _str1, \
                             _str2);                                       \

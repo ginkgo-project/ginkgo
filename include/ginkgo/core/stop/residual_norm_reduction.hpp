@@ -99,7 +99,7 @@ protected:
           device_storage_{factory->get_executor(), 2}
     {
         if (args.initial_residual == nullptr) {
-            NOT_SUPPORTED(nullptr);
+            GKO_NOT_SUPPORTED(nullptr);
         }
 
         auto exec = factory->get_executor();

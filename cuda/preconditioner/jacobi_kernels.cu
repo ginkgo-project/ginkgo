@@ -683,7 +683,7 @@ void convert_to_dense(
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
-    ValueType *result_values, size_type result_stride) NOT_IMPLEMENTED;
+    ValueType *result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);

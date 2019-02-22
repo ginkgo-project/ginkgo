@@ -276,9 +276,9 @@ TEST_F(Jacobi, CanBeClearedWithAdaptivePrecision)
 }
 
 
-#define EXPECT_NONZERO_NEAR(first, second, tol) \
-    EXPECT_EQ(first.row, second.row);           \
-    EXPECT_EQ(first.column, second.column);     \
+#define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
+    EXPECT_EQ(first.row, second.row);               \
+    EXPECT_EQ(first.column, second.column);         \
     EXPECT_NEAR(first.value, second.value, tol)
 
 
@@ -291,19 +291,19 @@ TEST_F(Jacobi, GeneratesCorrectMatrixData)
 
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
-    EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
 }
 
 
@@ -316,19 +316,19 @@ TEST_F(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
 
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
-    EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-7);
-    EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-7);
-    EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-7);
-    EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-7);
-    EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
-    EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-7);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-7);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-7);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-7);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
 }
 
 

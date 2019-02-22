@@ -62,7 +62,7 @@ namespace gko {
  * Attempts to call this function will result in a runtime error of type
  * NotImplemented.
  */
-#define NOT_IMPLEMENTED                                            \
+#define GKO_NOT_IMPLEMENTED                                        \
     {                                                              \
         throw ::gko::NotImplemented(__FILE__, __LINE__, __func__); \
     }
@@ -76,7 +76,7 @@ namespace gko {
  *
  * @param _module  the module which should be compiled to enable the function
  */
-#define NOT_COMPILED(_module)                                  \
+#define GKO_NOT_COMPILED(_module)                              \
     {                                                          \
         throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, \
                                  GKO_QUOTE(_module));          \
@@ -92,7 +92,7 @@ namespace gko {
  *
  * @return NotSupported
  */
-#define NOT_SUPPORTED(_obj)                           \
+#define GKO_NOT_SUPPORTED(_obj)                       \
     ::gko::NotSupported(__FILE__, __LINE__, __func__, \
                         ::gko::name_demangling::get_type_name(typeid(_obj)))
 
@@ -118,7 +118,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *@throw DimensionMismatch  if the number of rows of _op1 is different from the
  *                          number of columns of _op1.
  */
-#define ASSERT_IS_SQUARE_MATRIX(_op1)                                    \
+#define GKO_ASSERT_IS_SQUARE_MATRIX(_op1)                                \
     if (::gko::detail::get_size(_op1)[0] !=                              \
         ::gko::detail::get_size(_op1)[1]) {                              \
         throw ::gko::DimensionMismatch(                                  \
@@ -135,7 +135,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
  */
-#define ASSERT_CONFORMANT(_op1, _op2)                                         \
+#define GKO_ASSERT_CONFORMANT(_op1, _op2)                                     \
     if (::gko::detail::get_size(_op1)[1] !=                                   \
         ::gko::detail::get_size(_op2)[0]) {                                   \
         throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1,   \
@@ -153,7 +153,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of rows
  */
-#define ASSERT_EQUAL_ROWS(_op1, _op2)                                          \
+#define GKO_ASSERT_EQUAL_ROWS(_op1, _op2)                                      \
     if (::gko::detail::get_size(_op1)[0] !=                                    \
         ::gko::detail::get_size(_op2)[0]) {                                    \
         throw ::gko::DimensionMismatch(                                        \
@@ -171,7 +171,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
  *                           columns
  */
-#define ASSERT_EQUAL_COLS(_op1, _op2)                                       \
+#define GKO_ASSERT_EQUAL_COLS(_op1, _op2)                                   \
     if (::gko::detail::get_size(_op1)[1] !=                                 \
         ::gko::detail::get_size(_op2)[1]) {                                 \
         throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1, \
@@ -190,7 +190,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
  *                           rows or columns
  */
-#define ASSERT_EQUAL_DIMENSIONS(_op1, _op2)                                 \
+#define GKO_ASSERT_EQUAL_DIMENSIONS(_op1, _op2)                             \
     if (::gko::detail::get_size(_op1) != ::gko::detail::get_size(_op2)) {   \
         throw ::gko::DimensionMismatch(                                     \
             __FILE__, __LINE__, __func__, #_op1,                            \
@@ -206,7 +206,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param errcode  The error code returned from a CUDA runtime API routine.
  */
-#define CUDA_ERROR(_errcode) \
+#define GKO_CUDA_ERROR(_errcode) \
     ::gko::CudaError(__FILE__, __LINE__, __func__, _errcode)
 
 
@@ -215,7 +215,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param errcode  The error code returned from the cuBLAS routine.
  */
-#define CUBLAS_ERROR(_errcode) \
+#define GKO_CUBLAS_ERROR(_errcode) \
     ::gko::CublasError(__FILE__, __LINE__, __func__, _errcode)
 
 
@@ -224,7 +224,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param errcode  The error code returned from the cuSPARSE routine.
  */
-#define CUSPARSE_ERROR(_errcode) \
+#define GKO_CUSPARSE_ERROR(_errcode) \
     ::gko::CusparseError(__FILE__, __LINE__, __func__, _errcode)
 
 
@@ -233,12 +233,12 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param _cuda_call  a library call expression
  */
-#define ASSERT_NO_CUDA_ERRORS(_cuda_call) \
-    do {                                  \
-        auto _errcode = _cuda_call;       \
-        if (_errcode != cudaSuccess) {    \
-            throw CUDA_ERROR(_errcode);   \
-        }                                 \
+#define GKO_ASSERT_NO_CUDA_ERRORS(_cuda_call) \
+    do {                                      \
+        auto _errcode = _cuda_call;           \
+        if (_errcode != cudaSuccess) {        \
+            throw GKO_CUDA_ERROR(_errcode);   \
+        }                                     \
     } while (false)
 
 
@@ -247,12 +247,12 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param _cuda_call  a library call expression
  */
-#define ASSERT_NO_CUBLAS_ERRORS(_cublas_call)    \
-    do {                                         \
-        auto _errcode = _cublas_call;            \
-        if (_errcode != CUBLAS_STATUS_SUCCESS) { \
-            throw CUBLAS_ERROR(_errcode);        \
-        }                                        \
+#define GKO_ASSERT_NO_CUBLAS_ERRORS(_cublas_call) \
+    do {                                          \
+        auto _errcode = _cublas_call;             \
+        if (_errcode != CUBLAS_STATUS_SUCCESS) {  \
+            throw GKO_CUBLAS_ERROR(_errcode);     \
+        }                                         \
     } while (false)
 
 
@@ -261,12 +261,12 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  *
  * @param _cuda_call  a library call expression
  */
-#define ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call)  \
-    do {                                           \
-        auto _errcode = _cusparse_call;            \
-        if (_errcode != CUSPARSE_STATUS_SUCCESS) { \
-            throw CUSPARSE_ERROR(_errcode);        \
-        }                                          \
+#define GKO_ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call) \
+    do {                                              \
+        auto _errcode = _cusparse_call;               \
+        if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
+            throw GKO_CUSPARSE_ERROR(_errcode);       \
+        }                                             \
     } while (false)
 
 
@@ -301,7 +301,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  *
  * @return _ptr
  */
-#define ENSURE_ALLOCATED(_ptr, _dev, _size) \
+#define GKO_ENSURE_ALLOCATED(_ptr, _dev, _size) \
     ::gko::detail::ensure_allocated_impl(_ptr, __FILE__, __LINE__, _dev, _size)
 
 
@@ -313,7 +313,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  *
  * @throw OutOfBoundsError  if `_index >= _bound`
  */
-#define ENSURE_IN_BOUNDS(_index, _bound)                                   \
+#define GKO_ENSURE_IN_BOUNDS(_index, _bound)                               \
     if (_index >= _bound) {                                                \
         throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _index, _bound); \
     }
@@ -329,7 +329,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  *
  * @return FileError
  */
-#define STREAM_ERROR(_message) \
+#define GKO_STREAM_ERROR(_message) \
     ::gko::StreamError(__FILE__, __LINE__, __func__, _message)
 
 
@@ -339,7 +339,7 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  * Attempts to call this kernel will result in a runtime error of type
  * KernelNotFound.
  */
-#define KERNEL_NOT_FOUND                                           \
+#define GKO_KERNEL_NOT_FOUND                                       \
     {                                                              \
         throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__); \
     }

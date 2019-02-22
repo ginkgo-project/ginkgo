@@ -88,7 +88,7 @@ void apply_preconditioner(const LinOp *preconditioner,
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
     using Vector = matrix::Dense<ValueType>;
 
@@ -275,7 +275,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_GMRES(_type) class Gmres<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES);
-#undef GKO_DECLARE_GMRES
 
 
 }  // namespace solver

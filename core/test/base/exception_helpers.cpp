@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-void not_implemented_func() NOT_IMPLEMENTED;
+void not_implemented_func() GKO_NOT_IMPLEMENTED;
 
 TEST(NotImplemented, ThrowsWhenUsed)
 {
@@ -48,7 +48,7 @@ TEST(NotImplemented, ThrowsWhenUsed)
 }
 
 
-void not_compiled_func() NOT_COMPILED(omp);
+void not_compiled_func() GKO_NOT_COMPILED(omp);
 
 TEST(NotCompiled, ThrowsWhenUsed)
 {
@@ -56,7 +56,7 @@ TEST(NotCompiled, ThrowsWhenUsed)
 }
 
 
-void does_not_support_int() { throw NOT_SUPPORTED(int); }
+void does_not_support_int() { throw GKO_NOT_SUPPORTED(int); }
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
@@ -64,7 +64,7 @@ TEST(NotSupported, ReturnsNotSupportedException)
 }
 
 
-void throws_cuda_error() { throw CUDA_ERROR(0); }
+void throws_cuda_error() { throw GKO_CUDA_ERROR(0); }
 
 TEST(CudaError, ReturnsCudaError)
 {
@@ -72,7 +72,7 @@ TEST(CudaError, ReturnsCudaError)
 }
 
 
-void throws_cublas_error() { throw CUBLAS_ERROR(0); }
+void throws_cublas_error() { throw GKO_CUBLAS_ERROR(0); }
 
 TEST(CudaError, ReturnsCublasError)
 {
@@ -80,7 +80,7 @@ TEST(CudaError, ReturnsCublasError)
 }
 
 
-void throws_cusparse_error() { throw CUSPARSE_ERROR(0); }
+void throws_cusparse_error() { throw GKO_CUSPARSE_ERROR(0); }
 
 TEST(CudaError, ReturnsCusparseError)
 {
@@ -90,52 +90,55 @@ TEST(CudaError, ReturnsCusparseError)
 
 TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)
 {
-    ASSERT_NO_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));
+    ASSERT_NO_THROW(GKO_ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));
 }
 
 
 TEST(AssertIsSquareMatrix, ThrowsWhenIsNotSquareMatrix)
 {
-    ASSERT_THROW(ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 4)),
+    ASSERT_THROW(GKO_ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 4)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
-    ASSERT_NO_THROW(ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(5, 6)));
+    ASSERT_NO_THROW(
+        GKO_ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertConformant, ThrowsWhenNotConformant)
 {
-    ASSERT_THROW(ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
+    ASSERT_THROW(GKO_ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualRows, DoesNotThrowWhenEqualRowSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_ROWS(gko::dim<2>(5, 3), gko::dim<2>(5, 6)));
+    ASSERT_NO_THROW(
+        GKO_ASSERT_EQUAL_ROWS(gko::dim<2>(5, 3), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualRows, ThrowsWhenDifferentRowSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_ROWS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
+    ASSERT_THROW(GKO_ASSERT_EQUAL_ROWS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
 
 TEST(AssertEqualCols, DoesNotThrowWhenEqualColSize)
 {
-    ASSERT_NO_THROW(ASSERT_EQUAL_COLS(gko::dim<2>(3, 6), gko::dim<2>(5, 6)));
+    ASSERT_NO_THROW(
+        GKO_ASSERT_EQUAL_COLS(gko::dim<2>(3, 6), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualCols, ThrowsWhenDifferentColSize)
 {
-    ASSERT_THROW(ASSERT_EQUAL_COLS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
+    ASSERT_THROW(GKO_ASSERT_EQUAL_COLS(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
 }
 
@@ -143,43 +146,45 @@ TEST(AssertEqualCols, ThrowsWhenDifferentColSize)
 TEST(AssertEqualDimensions, DoesNotThrowWhenEqualDimensions)
 {
     ASSERT_NO_THROW(
-        ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(5, 6), gko::dim<2>(5, 6)));
+        GKO_ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(5, 6), gko::dim<2>(5, 6)));
 }
 
 
 TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
 {
-    ASSERT_THROW(ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(3, 5), gko::dim<2>(7, 5)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(
+        GKO_ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(3, 5), gko::dim<2>(7, 5)),
+        gko::DimensionMismatch);
 }
 
 
 TEST(EnsureAllocated, DoesNotThrowWhenAllocated)
 {
     int x = 5;
-    ASSERT_NO_THROW(ENSURE_ALLOCATED(&x, "OMP", 4));
+    ASSERT_NO_THROW(GKO_ENSURE_ALLOCATED(&x, "OMP", 4));
 }
 
 
 TEST(EnsureAllocated, ThrowsWhenNotAllocated)
 {
-    ASSERT_THROW(ENSURE_ALLOCATED(nullptr, "OMP", 20), gko::AllocationError);
+    ASSERT_THROW(GKO_ENSURE_ALLOCATED(nullptr, "OMP", 20),
+                 gko::AllocationError);
 }
 
 
 TEST(EnsureInBounds, DoesNotThrowWhenInBounds)
 {
-    ASSERT_NO_THROW(ENSURE_IN_BOUNDS(9, 10));
+    ASSERT_NO_THROW(GKO_ENSURE_IN_BOUNDS(9, 10));
 }
 
 
 TEST(EnsureInBounds, ThrowWhenOutOfBounds)
 {
-    ASSERT_THROW(ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
+    ASSERT_THROW(GKO_ENSURE_IN_BOUNDS(10, 10), gko::OutOfBoundsError);
 }
 
 
-void func_with_stream_error() { throw STREAM_ERROR("error message"); }
+void func_with_stream_error() { throw GKO_STREAM_ERROR("error message"); }
 
 TEST(StreamError, ThrowsStreamErrorException)
 {
@@ -187,7 +192,7 @@ TEST(StreamError, ThrowsStreamErrorException)
 }
 
 
-void non_existing_kernel() KERNEL_NOT_FOUND;
+void non_existing_kernel() GKO_KERNEL_NOT_FOUND;
 
 TEST(KernelNotFound, ThrowsKernelNotFoundException)
 {

@@ -236,19 +236,19 @@ TEST_F(Cgs, OmpCgsInitializeIsEquivalentToRef)
         d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
         d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_u, u, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
-    ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
-    ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
 }
 
 
@@ -263,9 +263,9 @@ TEST_F(Cgs, OmpCgsStep1IsEquivalentToRef)
                                    d_q.get(), d_beta.get(), d_rho.get(),
                                    d_rho_prev.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
-    ASSERT_MTX_NEAR(d_u, u, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
 
@@ -280,9 +280,9 @@ TEST_F(Cgs, OmpCgsStep2IsEquivalentToRef)
                                    d_t.get(), d_alpha.get(), d_rho.get(),
                                    d_gamma.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
 }
 
 
@@ -297,8 +297,8 @@ TEST_F(Cgs, OmpCgsStep3IsEquivalentToRef)
                                    d_x.get(), d_alpha.get(),
                                    d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
 
@@ -318,8 +318,8 @@ TEST_F(Cgs, OmpCgsApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
@@ -339,8 +339,8 @@ TEST_F(Cgs, OmpCgsApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 }  // namespace

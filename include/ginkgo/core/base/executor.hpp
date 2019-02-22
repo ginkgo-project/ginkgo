@@ -54,11 +54,11 @@ struct cusparseContext;
 namespace gko {
 
 
-#define FORWARD_DECLARE(_type, ...) class _type
+#define GKO_FORWARD_DECLARE(_type, ...) class _type
 
-GKO_ENABLE_FOR_ALL_EXECUTORS(FORWARD_DECLARE);
+GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_FORWARD_DECLARE);
 
-#undef FORWARD_DECLARE
+#undef GKO_FORWARD_DECLARE
 
 
 class ReferenceExecutor;
@@ -170,12 +170,12 @@ class ExecutorBase;
  */
 class Operation {
 public:
-#define DECLARE_RUN_OVERLOAD(_type, ...) \
+#define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(DECLARE_RUN_OVERLOAD);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
 
-#undef DECLARE_RUN_OVERLOAD
+#undef GKO_DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
     virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
@@ -189,20 +189,20 @@ public:
 };
 
 
-#define GKO_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...) \
-public:                                                                 \
-    void run(std::shared_ptr<const ::gko::_type> exec) const override   \
-    {                                                                   \
-        this->call(counts{}, exec);                                     \
-    }                                                                   \
-                                                                        \
-private:                                                                \
-    template <int... Ns>                                                \
-    void call(::gko::syn::value_list<int, Ns...>,                       \
-              std::shared_ptr<const ::gko::_type> exec) const           \
-    {                                                                   \
-        ::gko::kernels::_namespace::_kernel(                            \
-            exec, std::forward<Args>(std::get<Ns>(data))...);           \
+#define GKO_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
+public:                                                               \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override \
+    {                                                                 \
+        this->call(counts{}, exec);                                   \
+    }                                                                 \
+                                                                      \
+private:                                                              \
+    template <int... Ns>                                              \
+    void call(::gko::syn::value_list<int, Ns...>,                     \
+              std::shared_ptr<const ::gko::_type> exec) const         \
+    {                                                                 \
+        ::gko::kernels::_namespace::_kernel(                          \
+            exec, std::forward<Args>(std::get<Ns>(data))...);         \
     }
 
 
@@ -280,8 +280,8 @@ private:                                                                \
             return name.c_str();                                               \
         }                                                                      \
                                                                                \
-        GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DETAIL_DEFINE_RUN_OVERLOAD, _kernel); \
-        GKO_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference, _kernel); \
+        GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DEFINE_RUN_OVERLOAD, _kernel);        \
+        GKO_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference, _kernel);        \
                                                                                \
     private:                                                                   \
         mutable std::tuple<Args &&...> data;                                   \
@@ -534,13 +534,13 @@ protected:
  *
  * @param _exec_type  the Executor subclass
  */
-#define ENABLE_RAW_COPY_TO(_exec_type, ...)                                  \
+#define GKO_ENABLE_RAW_COPY_TO(_exec_type, ...)                              \
     virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
                              const void *src_ptr, void *dest_ptr) const = 0
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(ENABLE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_RAW_COPY_TO);
 
-#undef ENABLE_RAW_COPY_TO
+#undef GKO_ENABLE_RAW_COPY_TO
 
 private:
     /**
@@ -678,7 +678,7 @@ private:
 }  // namespace detail
 
 
-#define OVERRIDE_RAW_COPY_TO(_executor_type, ...)                        \
+#define GKO_OVERRIDE_RAW_COPY_TO(_executor_type, ...)                    \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
 
@@ -713,7 +713,7 @@ protected:
 
     void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 };
 
 
@@ -863,7 +863,7 @@ protected:
 
     void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
 private:
     int device_id_;
@@ -887,7 +887,7 @@ using DefaultExecutor = CudaExecutor;
 }  // namespace kernels
 
 
-#undef OVERRIDE_RAW_COPY_TO
+#undef GKO_OVERRIDE_RAW_COPY_TO
 
 
 }  // namespace gko

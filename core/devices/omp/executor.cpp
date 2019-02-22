@@ -62,7 +62,7 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 
 void *OmpExecutor::raw_alloc(size_type num_bytes) const
 {
-    return ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
 }
 
 

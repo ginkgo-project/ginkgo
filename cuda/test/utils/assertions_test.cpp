@@ -76,8 +76,8 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
     auto csr_mtx = gko::matrix::Csr<>::create(cuda);
     csr_mtx->copy_from(std::move(csr_omp));
 
-    EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
-    ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }
 
 

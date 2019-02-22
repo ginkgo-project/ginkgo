@@ -221,9 +221,9 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 }
 
 
-#define DECLARE_CSR_MATRIX(ValueType, IndexType) class Csr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_CSR_MATRIX);
-#undef DECLARE_CSR_MATRIX
+#define GKO_DECLARE_CSR_MATRIX(ValueType, IndexType) \
+    class Csr<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
 
 
 }  // namespace matrix

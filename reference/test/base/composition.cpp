@@ -75,7 +75,7 @@ TEST_F(Composition, AppliesToVector)
 
     cmp->apply(lend(x), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
 }
 
 
@@ -93,7 +93,7 @@ TEST_F(Composition, AppliesLinearCombinationToVector)
 
     cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
 }
 
 

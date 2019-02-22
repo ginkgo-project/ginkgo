@@ -184,9 +184,9 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_ELL_MATRIX(ValueType, IndexType) class Ell<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_ELL_MATRIX);
-#undef DECLARE_ELL_MATRIX
+#define GKO_DECLARE_ELL_MATRIX(ValueType, IndexType) \
+    class Ell<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_MATRIX);
 
 
 }  // namespace matrix

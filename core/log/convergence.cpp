@@ -72,7 +72,6 @@ void Convergence<ValueType>::on_criterion_check_completed(
 
 #define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
-#undef GKO_DECLARE_CONVERGENCE
 
 
 }  // namespace log

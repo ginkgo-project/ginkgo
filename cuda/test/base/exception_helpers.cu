@@ -47,37 +47,37 @@ namespace {
 
 TEST(AssertNoCudaErrors, ThrowsOnError)
 {
-    ASSERT_THROW(ASSERT_NO_CUDA_ERRORS(1), gko::CudaError);
+    ASSERT_THROW(GKO_ASSERT_NO_CUDA_ERRORS(1), gko::CudaError);
 }
 
 
 TEST(AssertNoCudaErrors, DoesNotThrowOnSuccess)
 {
-    ASSERT_NO_THROW(ASSERT_NO_CUDA_ERRORS(cudaSuccess));
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CUDA_ERRORS(cudaSuccess));
 }
 
 
 TEST(AssertNoCublasErrors, ThrowsOnError)
 {
-    ASSERT_THROW(ASSERT_NO_CUBLAS_ERRORS(1), gko::CublasError);
+    ASSERT_THROW(GKO_ASSERT_NO_CUBLAS_ERRORS(1), gko::CublasError);
 }
 
 
 TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
 {
-    ASSERT_NO_THROW(ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
 }
 
 
 TEST(AssertNoCusparseErrors, ThrowsOnError)
 {
-    ASSERT_THROW(ASSERT_NO_CUSPARSE_ERRORS(1), gko::CusparseError);
+    ASSERT_THROW(GKO_ASSERT_NO_CUSPARSE_ERRORS(1), gko::CusparseError);
 }
 
 
 TEST(AssertNoCusparseErrors, DoesNotThrowOnSuccess)
 {
-    ASSERT_NO_THROW(ASSERT_NO_CUSPARSE_ERRORS(CUSPARSE_STATUS_SUCCESS));
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CUSPARSE_ERRORS(CUSPARSE_STATUS_SUCCESS));
 }
 
 

@@ -448,9 +448,9 @@ protected:
           strategy_(std::move(strategy)),
           srow_(exec)
     {
-        ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                         col_idxs_.get_num_elems());
-        ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
+                             col_idxs_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
         srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
         this->make_srow();
     }

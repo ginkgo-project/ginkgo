@@ -199,14 +199,14 @@ TEST_F(Fcg, OmpFcgInitializeIsEquivalentToRef)
         omp, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
 }
 
 
@@ -219,8 +219,8 @@ TEST_F(Fcg, OmpFcgStep1IsEquivalentToRef)
     gko::kernels::omp::fcg::step_1(omp, d_p.get(), d_z.get(), d_rho_t.get(),
                                    d_prev_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
@@ -234,9 +234,9 @@ TEST_F(Fcg, OmpFcgStep2IsEquivalentToRef)
                                    d_p.get(), d_q.get(), d_beta.get(),
                                    d_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
 }
 
 
@@ -274,7 +274,7 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 

@@ -246,20 +246,20 @@ TEST_F(Bicgstab, CudaBicgstabInitializeIsEquivalentToRef)
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
 
-    EXPECT_MTX_NEAR(d_r, r, 1e-14);
-    EXPECT_MTX_NEAR(d_z, z, 1e-14);
-    EXPECT_MTX_NEAR(d_p, p, 1e-14);
-    EXPECT_MTX_NEAR(d_y, y, 1e-14);
-    EXPECT_MTX_NEAR(d_t, t, 1e-14);
-    EXPECT_MTX_NEAR(d_s, s, 1e-14);
-    EXPECT_MTX_NEAR(d_rr, rr, 1e-14);
-    EXPECT_MTX_NEAR(d_v, v, 1e-14);
-    EXPECT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    EXPECT_MTX_NEAR(d_rho, rho, 1e-14);
-    EXPECT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
-    EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
-    EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_y, y, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_s, s, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_rr, rr, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_v, v, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
 }
 
 
@@ -274,7 +274,7 @@ TEST_F(Bicgstab, CudaBicgstabStep1IsEquivalentToRef)
         cuda, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
         d_alpha.get(), d_omega.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
 
@@ -289,8 +289,8 @@ TEST_F(Bicgstab, CudaBicgstabStep2IsEquivalentToRef)
                                          d_rho.get(), d_alpha.get(),
                                          d_beta.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_s, s, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_s, s, 1e-14);
 }
 
 
@@ -306,9 +306,9 @@ TEST_F(Bicgstab, CudaBicgstabStep3IsEquivalentToRef)
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
 
@@ -328,8 +328,8 @@ TEST_F(Bicgstab, CudaBicgstabApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
@@ -349,8 +349,8 @@ TEST_F(Bicgstab, CudaBicgstabApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 

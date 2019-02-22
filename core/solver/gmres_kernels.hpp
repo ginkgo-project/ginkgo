@@ -88,7 +88,7 @@ namespace gmres {
                 const LinOp *preconditioner)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType>                     \
     GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(ValueType); \
     template <typename ValueType>                     \
@@ -105,7 +105,7 @@ namespace gmres {
 namespace omp {
 namespace gmres {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace gmres
 }  // namespace omp
@@ -114,7 +114,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace gmres {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace gmres
 }  // namespace cuda
@@ -123,13 +123,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace gmres {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace gmres
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

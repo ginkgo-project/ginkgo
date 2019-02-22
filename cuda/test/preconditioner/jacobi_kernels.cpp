@@ -296,7 +296,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 
@@ -308,7 +308,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithDifferentBlockSize)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 
@@ -320,7 +320,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithMPW)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
 }
 
 
@@ -333,7 +333,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithBlockSize32)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -347,7 +347,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithDifferentBlockSize)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -361,7 +361,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRef)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -379,7 +379,7 @@ TEST_F(Jacobi, CudaLinearCombinationApplyEquivalentToRef)
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -393,7 +393,7 @@ TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRef)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -411,7 +411,7 @@ TEST_F(Jacobi, CudaLinearCombinationApplyToMultipleVectorsEquivalentToRef)
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -493,7 +493,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-14);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-14);
 }
 
 
@@ -506,7 +506,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
 }
 
 
@@ -519,7 +519,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithCustomReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
 }
 
 
@@ -532,7 +532,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-3);
 }
 
 
@@ -545,7 +545,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
 }
 
 
@@ -558,7 +558,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithAdaptivePrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
 }
 
 
@@ -573,7 +573,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithFullPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -588,7 +588,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithReducedPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 
@@ -603,7 +603,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomReducedPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-5);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-5);
 }
 
 
@@ -618,7 +618,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithQuarteredPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-3);
 }
 
 
@@ -633,7 +633,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-2);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-2);
 }
 
 
@@ -648,7 +648,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithCustomQuarteredPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 
@@ -663,7 +663,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithAdaptivePrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-1);
 }
 
 
@@ -682,7 +682,7 @@ TEST_F(Jacobi, CudaLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 
@@ -697,7 +697,7 @@ TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
 
 
@@ -712,7 +712,7 @@ TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 
@@ -727,7 +727,7 @@ TEST_F(Jacobi, CudaApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-1);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-1);
 }
 
 
@@ -748,7 +748,7 @@ TEST_F(
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
 }
 
 

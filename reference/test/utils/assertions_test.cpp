@@ -53,8 +53,8 @@ TEST(MatricesNear, CanPassAnyMatrixType)
     auto csr_mtx = gko::matrix::Csr<>::create(exec);
     csr_mtx->copy_from(mtx.get());
 
-    EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
-    ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }
 
 

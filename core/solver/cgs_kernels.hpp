@@ -85,7 +85,7 @@ namespace cgs {
                 const Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES              \
     template <typename ValueType>                 \
     GKO_DECLARE_CGS_INITIALIZE_KERNEL(ValueType); \
     template <typename ValueType>                 \
@@ -102,7 +102,7 @@ namespace cgs {
 namespace omp {
 namespace cgs {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
 }  // namespace omp
@@ -111,7 +111,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace cgs {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
 }  // namespace cuda
@@ -120,13 +120,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace cgs {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

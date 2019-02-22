@@ -83,7 +83,7 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *trans,    \
                         const matrix::Csr<ValueType, IndexType> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                   \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>              \
@@ -103,7 +103,7 @@ namespace kernels {
 namespace omp {
 namespace csr {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace csr
 }  // namespace omp
@@ -112,7 +112,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace csr {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace csr
 }  // namespace cuda
@@ -121,13 +121,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace csr {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace csr
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

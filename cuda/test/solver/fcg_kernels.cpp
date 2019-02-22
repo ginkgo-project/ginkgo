@@ -200,14 +200,14 @@ TEST_F(Fcg, CudaFcgInitializeIsEquivalentToRef)
         cuda, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
 }
 
 
@@ -220,8 +220,8 @@ TEST_F(Fcg, CudaFcgStep1IsEquivalentToRef)
     gko::kernels::cuda::fcg::step_1(cuda, d_p.get(), d_z.get(), d_rho_t.get(),
                                     d_prev_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
@@ -235,9 +235,9 @@ TEST_F(Fcg, CudaFcgStep2IsEquivalentToRef)
                                     d_p.get(), d_q.get(), d_beta.get(),
                                     d_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
 }
 
 
@@ -275,7 +275,7 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 

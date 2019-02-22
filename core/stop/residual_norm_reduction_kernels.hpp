@@ -56,8 +56,8 @@ namespace residual_norm_reduction {
         Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 
 
-#define DECLARE_ALL_AS_TEMPLATES  \
-    template <typename ValueType> \
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename ValueType>    \
     GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
 
 
@@ -67,7 +67,7 @@ namespace residual_norm_reduction {
 namespace omp {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace omp
@@ -76,7 +76,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace cuda
@@ -85,13 +85,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 }  // namespace kernels
 }  // namespace gko

@@ -53,7 +53,7 @@ namespace syn {
     inline void _name(::gko::syn::value_list<int>, Predicate,                \
                       ::gko::syn::value_list<int, IntArgs...>,               \
                       ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
-        KERNEL_NOT_FOUND;                                                    \
+        GKO_KERNEL_NOT_FOUND;                                                \
                                                                              \
     template <int K, int... Rest, typename Predicate, int... IntArgs,        \
               typename... TArgs, typename... InferredArgs>                   \

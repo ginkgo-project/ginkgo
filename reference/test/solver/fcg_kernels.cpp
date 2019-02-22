@@ -101,7 +101,7 @@ TEST_F(Fcg, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
 
@@ -113,7 +113,7 @@ TEST_F(Fcg, SolvesMultipleStencilSystems)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
 }
 
 
@@ -127,7 +127,7 @@ TEST_F(Fcg, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
 }
 
 
@@ -141,7 +141,7 @@ TEST_F(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
 }
 
 TEST_F(Fcg, SolvesBigDenseSystem1)
@@ -153,7 +153,7 @@ TEST_F(Fcg, SolvesBigDenseSystem1)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}), 1e-10);
 }
 
 
@@ -166,7 +166,7 @@ TEST_F(Fcg, SolvesBigDenseSystem2)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
 }
 
 
@@ -240,7 +240,7 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
 }
 
 

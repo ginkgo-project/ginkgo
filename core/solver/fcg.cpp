@@ -154,7 +154,6 @@ void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_FCG(_type) class Fcg<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
-#undef GKO_DECLARE_FCG
 
 
 }  // namespace solver

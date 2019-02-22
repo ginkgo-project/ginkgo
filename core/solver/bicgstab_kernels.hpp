@@ -97,7 +97,7 @@ namespace bicgstab {
                   Array<stopping_status> *stop_status)
 
 
-#define DECLARE_ALL_AS_TEMPLATES                       \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                   \
     template <typename ValueType>                      \
     GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType); \
     template <typename ValueType>                      \
@@ -116,7 +116,7 @@ namespace bicgstab {
 namespace omp {
 namespace bicgstab {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicgstab
 }  // namespace omp
@@ -125,7 +125,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace bicgstab {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicgstab
 }  // namespace cuda
@@ -134,13 +134,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace bicgstab {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicgstab
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

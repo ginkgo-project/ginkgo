@@ -43,11 +43,11 @@ namespace gko {
 
 
 void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 
 
 void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 
 
 void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const

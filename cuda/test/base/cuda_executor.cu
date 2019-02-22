@@ -171,21 +171,21 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
 TEST_F(CudaExecutor, PreservesDeviceSettings)
 {
     auto previous_device = gko::CudaExecutor::get_num_devices() - 1;
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
     auto orig = cuda->alloc<int>(2);
     int current_device;
-    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 
     cuda->free(orig);
-    ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 }
 
 TEST_F(CudaExecutor, RunsOnProperDevice)
 {
     int value = -1;
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
 }
@@ -194,7 +194,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
 {
     int copy[2];
     auto orig = cuda->alloc<int>(2);
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     init_data<<<1, 1>>>(orig);
 
     auto copy_cuda2 = cuda2->alloc<int>(2);
@@ -202,9 +202,9 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
 
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
     check_data<<<1, 1>>>(copy_cuda2);
-    ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
 

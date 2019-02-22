@@ -226,7 +226,7 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
             as_cuda_type(beta->get_const_values()),
             as_cuda_type(c->get_values()), c->get_stride());
     } else {
-        KERNEL_NOT_FOUND;
+        GKO_KERNEL_NOT_FOUND;
     }
 }
 

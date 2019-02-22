@@ -127,7 +127,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -138,7 +138,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -149,7 +149,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -160,7 +160,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -175,7 +175,7 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 
     rmtx->convert_to(drmtx.get());
     omtx->convert_to(domtx.get());
-    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
@@ -190,7 +190,7 @@ TEST_F(Sellp, MoveToDenseIsEquivalentToRef)
 
     rmtx->move_to(drmtx.get());
     omtx->move_to(domtx.get());
-    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 

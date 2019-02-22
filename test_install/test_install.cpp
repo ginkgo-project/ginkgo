@@ -99,7 +99,7 @@ int main(int, char **)
     // core/base/exception_helpers.hpp
     {
         auto test = gko::dim<2>{3};
-        ASSERT_IS_SQUARE_MATRIX(test);
+        GKO_ASSERT_IS_SQUARE_MATRIX(test);
     }
 
     // core/base/executor.hpp

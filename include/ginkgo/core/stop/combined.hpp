@@ -114,7 +114,7 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
 {
     switch (factories.size()) {
     case 0:
-        NOT_SUPPORTED(nullptr);
+        GKO_NOT_SUPPORTED(nullptr);
         return nullptr;
     case 1:
         return factories[0];

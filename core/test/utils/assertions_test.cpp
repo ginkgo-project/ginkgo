@@ -88,15 +88,15 @@ TEST_F(MatricesNear, SucceedsIfClose)
 
 TEST_F(MatricesNear, CanUseShortNotation)
 {
-    EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
-    ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
+    GKO_EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
+    GKO_ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
 }
 
 
 TEST_F(MatricesNear, CanPassInitializerList)
 {
-    EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
-    ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+    GKO_EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
 }
 
 
