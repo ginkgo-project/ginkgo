@@ -68,6 +68,9 @@ DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use."
               "Supported values are: none, jacobi, adaptive-jacobi");
 
+DEFINE_double(adaptive_jacobi_accuracy, 1e-1,
+              "The accuracy of the adaptive-jacobi");
+
 
 void initialize_argument_parsing(int *argc, char **argv[])
 {
@@ -221,6 +224,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                          .with_max_block_size(FLAGS_max_block_size)
                          .with_storage_optimization(
                              gko::precision_reduction::autodetect())
+                         .with_accuracy(FLAGS_adaptive_jacobi_accuracy)
                          .on(exec)));
          }}};
 

@@ -35,6 +35,10 @@ if [ ! "${SYSTEM_NAME}" ]; then
     SYSTEM_NAME="unknown"
 fi
 
+if [ ! "${ADAPTIVE_JACOBI_ACCURACY}" ]; then
+    ADAPTIVE_JACOBI_ACCURACY=1e-1
+fi
+
 
 ################################################################################
 # Utilities
@@ -100,6 +104,7 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="cg" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=10000 --rel_res_goal=1e-10 \
+                    --adaptive_jacobi_accuracy="${ADAPTIVE_JACOBI_ACCURACY}" \
                     --detailed=false \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
