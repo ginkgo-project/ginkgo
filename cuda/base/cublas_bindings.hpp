@@ -105,17 +105,18 @@ GKO_BIND_CUBLAS_GEMM(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_GEMM
 
 
-#define GKO_BIND_CUBLAS_GEAM(ValueType, CublasName)                         \
-    inline void geam(cublasHandle_t handle, cublasOperation_t transa,       \
-                     cublasOperation_t transb, int m, int n,                \
-                     const ValueType *alpha, const ValueType *a, int lda,   \
-                     const ValueType *beta, const ValueType *b, int ldb,    \
-                     ValueType *c, int ldc)                                 \
-    {                                                                       \
-        GKO_ASSERT_NO_CUBLAS_ERRORS(                                        \
-            CublasName(handle, transa, transb, m, n, as_culibs_type(alpha), \
-                       as_culibs_type(a), lda, as_culibs_type(beta),        \
-                       as_culibs_type(b), ldb, as_culibs_type(c), ldc));    \
+#define GKO_BIND_CUBLAS_GEAM(ValueType, CublasName)                          \
+    inline void geam(cublasHandle_t handle, cublasOperation_t transa,        \
+                     cublasOperation_t transb, int m, int n,                 \
+                     const ValueType *alpha, const ValueType *a, int lda,    \
+                     const ValueType *beta, const ValueType *b, int ldb,     \
+                     ValueType *c, int ldc)                                  \
+    {                                                                        \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
+            CublasName(handle, transa, transb, m, n, as_culibs_type(alpha),  \
+                       as_culibs_type(a), lda, as_culibs_type(beta),         \
+                       as_culibs_type(b), ldb, as_culibs_type(c), ldc));     \
+    }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -130,13 +131,13 @@ GKO_BIND_CUBLAS_GEAM(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_GEAM
 
 
-#define GKO_BIND_CUBLAS_SCAL(ValueType, CublasName)                        \
-    inline void scal(cublasHandle_t handle, int n, const ValueType *alpha, \
-                     ValueType *x, int incx)                               \
-    {                                                                      \
-        GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(                            \
-            handle, n, as_culibs_type(alpha), as_culibs_type(x), incx));   \
-    }
+#define GKO_BIND_CUBLAS_SCAL(ValueType, CublasName)                          \
+    inline void scal(cublasHandle_t handle, int n, const ValueType *alpha,   \
+                     ValueType *x, int incx)                                 \
+    {                                                                        \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(                              \
+            handle, n, as_culibs_type(alpha), as_culibs_type(x), incx));     \
+    }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -151,14 +152,14 @@ GKO_BIND_CUBLAS_SCAL(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_SCAL
 
 
-#define GKO_BIND_CUBLAS_AXPY(ValueType, CublasName)                         \
-    inline void axpy(cublasHandle_t handle, int n, const ValueType *alpha,  \
-                     const ValueType *x, int incx, ValueType *y, int incy)  \
-    {                                                                       \
-        GKO_ASSERT_NO_CUBLAS_ERRORS(                                        \
-            CublasName(handle, n, as_culibs_type(alpha), as_culibs_type(x), \
-                       incx, as_culibs_type(y), incy));                     \
-    }
+#define GKO_BIND_CUBLAS_AXPY(ValueType, CublasName)                          \
+    inline void axpy(cublasHandle_t handle, int n, const ValueType *alpha,   \
+                     const ValueType *x, int incx, ValueType *y, int incy)   \
+    {                                                                        \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
+            CublasName(handle, n, as_culibs_type(alpha), as_culibs_type(x),  \
+                       incx, as_culibs_type(y), incy));                      \
+    }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -180,7 +181,7 @@ GKO_BIND_CUBLAS_AXPY(ValueType, detail::not_implemented);
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(y), incy,  \
                                                as_culibs_type(result)));       \
-    }
+    }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
@@ -195,15 +196,16 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_DOT
 
 
-#define GKO_BIND_CUBLAS_COMPLEX_NORM2(ValueType, CublasName)            \
-    inline void norm2(cublasHandle_t handle, int n, const ValueType *x, \
-                      int incx, ValueType *result)                      \
-    {                                                                   \
-        zero_array(n, result);                                          \
-        GKO_ASSERT_NO_CUBLAS_ERRORS(                                    \
-            CublasName(handle, n, as_culibs_type(x), incx,              \
-                       reinterpret_cast<remove_complex<ValueType> *>(   \
-                           as_culibs_type(result))));                   \
+#define GKO_BIND_CUBLAS_COMPLEX_NORM2(ValueType, CublasName)                 \
+    inline void norm2(cublasHandle_t handle, int n, const ValueType *x,      \
+                      int incx, ValueType *result)                           \
+    {                                                                        \
+        zero_array(n, result);                                               \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
+            CublasName(handle, n, as_culibs_type(x), incx,                   \
+                       reinterpret_cast<remove_complex<ValueType> *>(        \
+                           as_culibs_type(result))));                        \
+    }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -215,7 +217,7 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
     {                                                                          \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(result))); \
-    }
+    }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")

@@ -100,7 +100,7 @@ struct is_supported<std::complex<double>, int32> : std::true_type {};
                      const ValueType *alpha, const cusparseMatDescr_t descrA, \
                      const ValueType *csrValA, const int64 *csrRowPtrA,       \
                      const int64 *csrColIndA, const ValueType *x,             \
-                     const ValueType *beta, ValueType *y) GKO_NOT_IMPLEMENTED;
+                     const ValueType *beta, ValueType *y) GKO_NOT_IMPLEMENTED
 
 GKO_BIND_CUSPARSE32_SPMV(float, cusparseScsrmv);
 GKO_BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv);
@@ -143,7 +143,7 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
                           const int64 *OrigRowPtrA, const int64 *OrigColIndA, \
                           ValueType *TransValA, int64 *TransRowPtrA,          \
                           int64 *TransColIndA, cusparseAction_t copyValues,   \
-                          cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
+                          cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED
 
 GKO_BIND_CUSPARSE_TRANSPOSE32(float, cusparseScsr2csc);
 GKO_BIND_CUSPARSE_TRANSPOSE32(double, cusparseDcsr2csc);
@@ -166,7 +166,7 @@ GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
         const ValueType *OrigValA, const int32 *OrigRowPtrA,                 \
         const int32 *OrigColIndA, ValueType *TransValA, int32 *TransRowPtrA, \
         int32 *TransColIndA, cusparseAction_t copyValues,                    \
-        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
+        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED
 
 #define GKO_BIND_CUSPARSE_CONJ_TRANSPOSE64(ValueType, CusparseName)          \
     inline void conj_transpose(                                              \
@@ -174,7 +174,7 @@ GKO_BIND_CUSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
         const ValueType *OrigValA, const int64 *OrigRowPtrA,                 \
         const int64 *OrigColIndA, ValueType *TransValA, int64 *TransRowPtrA, \
         int64 *TransColIndA, cusparseAction_t copyValues,                    \
-        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
+        cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED
 
 GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(float, cusparseScsr2csc);
 GKO_BIND_CUSPARSE_CONJ_TRANSPOSE32(double, cusparseDcsr2csc);
