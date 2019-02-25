@@ -178,11 +178,10 @@ __global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <unsigned int threads_per_row, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     size_type num_rows, size_type num_cols, size_type stride,
-    size_type slice_size, size_type threads_per_row,
-    const size_type *__restrict__ slice_lengths,
+    size_type slice_size, const size_type *__restrict__ slice_lengths,
     const size_type *__restrict__ slice_sets,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, ValueType *__restrict__ result)
@@ -235,12 +234,12 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, result->get_stride(),
         as_cuda_type(result->get_values()));
 
-    const size_type threads_per_row = cuda_config::warp_size;
+    constexpr auto threads_per_row = cuda_config::warp_size;
     const auto grid_dim =
         ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
 
-    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, result->get_stride(), slice_size, threads_per_row,
+    kernel::fill_in_dense<threads_per_row><<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, result->get_stride(), slice_size,
         as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
         as_cuda_type(col_idxs), as_cuda_type(vals),
         as_cuda_type(result->get_values()));
