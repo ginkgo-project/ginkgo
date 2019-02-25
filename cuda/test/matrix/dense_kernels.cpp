@@ -347,7 +347,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
     x->convert_to(sellp_mtx.get());
     dx->convert_to(dsellp_mtx.get());
 
-    ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
 }
 
 
