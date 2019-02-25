@@ -34,9 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
+#include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <vector>
+
 
 #include <omp.h>
 
@@ -67,6 +69,7 @@ void initialize_precisions(std::shared_ptr<const OmpExecutor> exec,
         precisions.get_data()[i] = source.get_const_data()[i % source_size];
     }
 }
+
 
 namespace {
 
@@ -173,7 +176,6 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
                           IndexType block_size, IndexType block_start,
                           ValueType *block, size_type stride)
 {
-#pragma omp parallel for
     for (int i = 0; i < block_size; ++i) {
         for (int j = 0; j < block_size; ++j) {
             block[i * stride + j] = zero<ValueType>();
@@ -182,7 +184,6 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto vals = mtx->get_const_values();
-#pragma omp parallel for
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
@@ -215,7 +216,6 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
                       ValueType *block, size_type stride)
 {
     using std::swap;
-#pragma omp parallel for
     for (IndexType i = 0; i < block_size; ++i) {
         swap(block[row1 * stride + i], block[row2 * stride + i]);
     }
@@ -231,19 +231,16 @@ inline bool apply_gauss_jordan_transform(IndexType row, IndexType col,
     if (d == zero<ValueType>()) {
         return false;
     }
-#pragma omp parallel for
     for (IndexType i = 0; i < block_size; ++i) {
         block[i * stride + col] /= -d;
     }
     block[row * stride + col] = zero<ValueType>();
     for (IndexType i = 0; i < block_size; ++i) {
-#pragma omp parallel for
         for (IndexType j = 0; j < block_size; ++j) {
             block[i * stride + j] +=
                 block[i * stride + col] * block[row * stride + j];
         }
     }
-#pragma omp parallel for
     for (IndexType j = 0; j < block_size; ++j) {
         block[row * stride + j] /= d;
     }
@@ -356,6 +353,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     const auto prec = block_precisions.get_data();
     const auto group_size = storage_scheme.get_group_size();
     const auto cond = conditioning.get_data();
+#pragma omp parallel for
     for (size_type g = 0; g < num_blocks; g += group_size) {
         std::vector<Array<ValueType>> block(group_size);
         std::vector<Array<IndexType>> perm(group_size);
@@ -453,14 +451,12 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 {
     if (beta != zero<ValueType>()) {
         for (size_type row = 0; row < block_size; ++row) {
-#pragma omp parallel for
             for (size_type col = 0; col < num_rhs; ++col) {
                 x[row * stride_x + col] *= beta;
             }
         }
     } else {
         for (size_type row = 0; row < block_size; ++row) {
-#pragma omp parallel for
             for (size_type col = 0; col < num_rhs; ++col) {
                 x[row * stride_x + col] = zero<ValueType>();
             }
@@ -469,7 +465,6 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 
     for (size_type inner = 0; inner < block_size; ++inner) {
         for (size_type row = 0; row < block_size; ++row) {
-#pragma omp parallel for
             for (size_type col = 0; col < num_rhs; ++col) {
                 x[row * stride_x + col] +=
                     alpha * converter(block[row + inner * stride]) *
@@ -497,6 +492,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
+#pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
@@ -530,6 +526,7 @@ void simple_apply(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
+#pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
