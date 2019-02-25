@@ -289,9 +289,9 @@ TEST(CudaExecutor, KnowsItsMaster)
 TEST(CudaExecutor, KnowsItsDeviceId)
 {
     auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(5, omp);
+    auto cuda = gko::CudaExecutor::create(0, omp);
 
-    ASSERT_EQ(5, cuda->get_device_id());
+    ASSERT_EQ(0, cuda->get_device_id());
 }
 
 

@@ -126,6 +126,19 @@ inline int convert_sm_ver_to_cores(int major, int minor)
 }  // namespace
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master)),
+        [device_id](CudaExecutor *exec) {
+            delete exec;
+            device_guard g(device_id);
+            cudaDeviceReset();
+        });
+}
+
+
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
