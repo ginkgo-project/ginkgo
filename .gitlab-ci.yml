@@ -350,9 +350,9 @@ gh-pages:
     - popd
     # publish it
     - git clone ${PUBLIC_REPO} -b gh-pages gh-pages-repo
-    - rm -rf gh-pages-repo/doc/develop
+    - rm -rf gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
     - mkdir -p gh-pages-repo/doc
-    - cp -r ${CI_JOB_NAME}/doc/usr gh-pages-repo/doc/develop
+    - cp -r ${CI_JOB_NAME}/doc/usr gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
     - export CURRENT_SHA="$(git rev-parse --short HEAD)"
     - cd gh-pages-repo
     - git add -A
@@ -362,6 +362,8 @@ gh-pages:
   only:
     refs:
       - develop
+      - master
+      - tags
     variables:
       - $PUBLIC_CI_TAG
   except:
