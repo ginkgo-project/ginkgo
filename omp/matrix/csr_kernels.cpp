@@ -127,6 +127,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
                       matrix::Dense<ValueType> *result,
                       const matrix::Csr<ValueType, IndexType> *source)

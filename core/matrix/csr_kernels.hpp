@@ -95,6 +95,8 @@ namespace kernels {
     template <typename IndexType>                                  \
     GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL(IndexType);    \
     template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);    \
