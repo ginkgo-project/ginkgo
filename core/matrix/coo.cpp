@@ -112,9 +112,9 @@ void Coo<ValueType, IndexType>::convert_to(
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -124,9 +124,9 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 
