@@ -357,7 +357,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
     dense_mtx->convert_to(coo_mtx.get());
     dmtx->convert_to(dcoo_mtx.get());
 
-    ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
 }
 
 
