@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
+#include "core/solver/ir_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
@@ -311,6 +312,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace gmres
+
+
+namespace ir {
+
+
+GKO_DECLARE_IR_INITIALIZE_KERNEL
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+
+
+}  // namespace ir
 
 
 namespace csr {

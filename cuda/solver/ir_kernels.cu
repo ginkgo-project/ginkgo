@@ -31,64 +31,46 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/stop/time.hpp>
+#include "core/solver/ir_kernels.hpp"
 
 
-#include <gtest/gtest.h>
-#include <chrono>
-#include <thread>
+#include <ginkgo/core/base/math.hpp>
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace cuda {
+namespace ir {
 
 
-constexpr long test_ms = 500;
-constexpr double eps = 1.0e-4;
-using double_seconds = std::chrono::duration<double, std::milli>;
+constexpr int default_block_size = 512;
 
 
-class Time : public ::testing::Test {
-protected:
-    Time() : exec_{gko::ReferenceExecutor::create()}
-    {
-        factory_ = gko::stop::Time::build()
-                       .with_time_limit(std::chrono::milliseconds(test_ms))
-                       .on(exec_);
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type num_cols, stopping_status *stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_cols) {
+        stop_status[tidx].reset();
     }
-
-    std::unique_ptr<gko::stop::Time::Factory> factory_;
-    std::shared_ptr<const gko::Executor> exec_;
-};
-
-
-TEST_F(Time, CanCreateFactory)
-{
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().time_limit,
-              std::chrono::milliseconds(test_ms));
 }
 
 
-TEST_F(Time, CanCreateCriterion)
+void initialize(std::shared_ptr<const CudaExecutor> exec,
+                Array<stopping_status> *stop_status)
 {
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    ASSERT_NE(criterion, nullptr);
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
+                         1);
+
+    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
+        stop_status->get_num_elems(), stop_status->get_data());
 }
 
 
-TEST_F(Time, WaitsTillTime)
-{
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    bool one_changed{};
-    gko::Array<gko::stopping_status> stop_status(exec_, 1);
-    stop_status.get_data()[0].reset();
-    constexpr gko::uint8 RelativeStoppingId{1};
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
-
-    ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
-                                          &stop_status, &one_changed));
-}
-
-
-}  // namespace
+}  // namespace ir
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko

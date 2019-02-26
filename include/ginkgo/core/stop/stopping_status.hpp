@@ -46,6 +46,11 @@ namespace gko {
  * This class is used to keep track of the stopping status of one vector.
  */
 class stopping_status {
+    friend GKO_ATTRIBUTES GKO_INLINE bool operator==(
+        const stopping_status &x, const stopping_status &y) noexcept;
+    friend GKO_ATTRIBUTES GKO_INLINE bool operator!=(
+        const stopping_status &x, const stopping_status &y) noexcept;
+
 public:
     /**
      * Check if any stopping criteria was fulfilled.
@@ -135,8 +140,6 @@ public:
         }
     }
 
-    GKO_ATTRIBUTES GKO_INLINE void clear() noexcept { data_ = 0; }
-
 private:
     static constexpr uint8 converged_mask_ = uint8{1} << 7;
     static constexpr uint8 finalized_mask_ = uint8{1} << 6;
@@ -144,6 +147,37 @@ private:
 
     uint8 data_;
 };
+
+
+/**
+ * Checks if two stopping statuses are equivalent.
+ *
+ * @param x a stopping status
+ * @param y a stopping status
+ *
+ * @return true if and only if both `x` and `y` have the same mask and converged
+ *         and finalized state
+ */
+GKO_ATTRIBUTES GKO_INLINE bool operator==(const stopping_status &x,
+                                          const stopping_status &y) noexcept
+{
+    return x.data_ == y.data_;
+}
+
+
+/**
+ * Checks if two stopping statuses are different.
+ *
+ * @param x a stopping status
+ * @param y a stopping status
+ *
+ * @return true if and only if `!(x == y)`
+ */
+GKO_ATTRIBUTES GKO_INLINE bool operator!=(const stopping_status &x,
+                                          const stopping_status &y) noexcept
+{
+    return x.data_ != y.data_;
+}
 
 
 }  // namespace gko

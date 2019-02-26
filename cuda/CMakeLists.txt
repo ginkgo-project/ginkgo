@@ -35,6 +35,7 @@ target_sources(ginkgo_cuda
         solver/cgs_kernels.cu
         solver/fcg_kernels.cu
         solver/gmres_kernels.cu
+        solver/ir_kernels.cu
         stop/criterion_kernels.cu
         stop/residual_norm_reduction_kernels.cu)
 
