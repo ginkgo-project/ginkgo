@@ -283,6 +283,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
+                 matrix::Ell<ValueType, IndexType> *result,
+                 matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_ELL_KERNEL);
+
+
 template <typename IndexType, typename ValueType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
                                const IndexType *col_idxs,
@@ -349,6 +368,15 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                               const matrix::Csr<ValueType, IndexType> *source,
+                               size_type *result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 }  // namespace csr

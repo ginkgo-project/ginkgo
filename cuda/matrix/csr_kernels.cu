@@ -1199,6 +1199,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_ell(std::shared_ptr<const CudaExecutor> exec,
+                 matrix::Ell<ValueType, IndexType> *result,
+                 matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans,
                const matrix::Csr<ValueType, IndexType> *orig)
@@ -1271,6 +1290,48 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
+/*namespace kernel
+{
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void calculate_max_nnz_per_row(
+                size_type num_rows, const IndexType *__restrict__ row_ptrs,
+size_type *result)
+{
+        const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+
+        size_type nnz_in_this_row = (tidx < num_rows) ?
+                        row_ptrs[tidx + 1] - row_ptrs[tidx] : 0;
+
+        *result = reduce(group::this_grid(), static_cast<size_type
+*>(nnz_in_this_row),
+                   [](const size_type &x, const size_type &y) { return max(x,
+y); });
+}
+
+
+} // namespace kernel*/
+
+
+template <typename ValueType, typename IndexType>
+void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
+                               const matrix::Csr<ValueType, IndexType> *source,
+                               size_type *result) GKO_NOT_IMPLEMENTED;
+/*{
+        const auto num_rows = source->get_size()[0];
+
+        const auto grid_dim = ceildiv(num_rows, default_block_size);
+
+        kernel::calculate_max_nnz_per_row<<<grid_dim,
+default_block_size>>>(num_rows, as_cuda_type(source->get_const_row_ptrs()),
+result);
+}*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 }  // namespace csr

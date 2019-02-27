@@ -49,6 +49,9 @@ class Dense;
 template <typename ValueType, typename IndexType>
 class Coo;
 
+template <typename ValueType, typename IndexType>
+class Ell;
+
 
 template <typename ValueType, typename IndexType>
 class Sellp;
@@ -73,6 +76,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
+            public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
@@ -81,6 +85,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Sellp<ValueType, IndexType>;
+    friend class Ell<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Csr>::convert_to;
@@ -279,6 +284,10 @@ public:
     void convert_to(Sellp<ValueType, IndexType> *result) const override;
 
     void move_to(Sellp<ValueType, IndexType> *result) override;
+
+    void convert_to(Ell<ValueType, IndexType> *result) const override;
+
+    void move_to(Ell<ValueType, IndexType> *result) override;
 
     void read(const mat_data &data) override;
 
