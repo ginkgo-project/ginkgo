@@ -170,7 +170,17 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Coo<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = result->get_size()[0];
+
+    auto row_ptrs = result->get_row_ptrs();
+
+    const auto nnz = source->get_num_stored_elements();
+    const auto source_row_idxs = source->get_const_row_idxs();
+
+    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
+                             num_rows + 1);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
