@@ -34,10 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
-#ifdef __GNUC__
-#pragma GCC system_header
-#endif  // __GNUC__
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

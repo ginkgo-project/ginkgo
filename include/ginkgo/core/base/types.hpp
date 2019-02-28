@@ -414,14 +414,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)                          \
-    template _macro(float);                                                  \
-    template _macro(double);                                                 \
-    template _macro(std::complex<float>);                                    \
-    template _macro(std::complex<double>);                                   \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
+    template _macro(float);                         \
+    template _macro(double);                        \
+    template _macro(std::complex<float>);           \
+    template _macro(std::complex<double>)
 
 
 /**
@@ -432,12 +429,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro)                          \
-    template _macro(int32);                                                  \
-    template _macro(int64);                                                  \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+#define GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro) \
+    template _macro(int32);                         \
+    template _macro(int64)
 
 
 /**
@@ -448,18 +442,15 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)                \
-    template _macro(float, int32);                                           \
-    template _macro(double, int32);                                          \
-    template _macro(std::complex<float>, int32);                             \
-    template _macro(std::complex<double>, int32);                            \
-    template _macro(float, int64);                                           \
-    template _macro(double, int64);                                          \
-    template _macro(std::complex<float>, int64);                             \
-    template _macro(std::complex<double>, int64);                            \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro) \
+    template _macro(float, int32);                            \
+    template _macro(double, int32);                           \
+    template _macro(std::complex<float>, int32);              \
+    template _macro(std::complex<double>, int32);             \
+    template _macro(float, int64);                            \
+    template _macro(double, int64);                           \
+    template _macro(std::complex<float>, int64);              \
+    template _macro(std::complex<double>, int64)
 
 }  // namespace gko
 

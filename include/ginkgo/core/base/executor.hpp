@@ -34,10 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
-#ifdef __GNUC__
-#pragma GCC system_header
-#endif  // __GNUC__
-
 #include <memory>
 #include <sstream>
 #include <tuple>
