@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "cuda/base/cublas_bindings.hpp"
@@ -686,11 +687,134 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
 
+namespace kernel {
+
+
+__global__
+    __launch_bounds__(cuda_config::warp_size) void calculate_slice_lengths(
+        size_type num_rows, size_type slice_size, int slice_num,
+        size_type stride_factor, const size_type *__restrict__ nnz_per_row,
+        size_type *__restrict__ slice_lengths,
+        size_type *__restrict__ slice_sets)
+{
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto sliceid = blockIdx.x;
+    const auto tid_in_warp = threadIdx.x;
+
+    if (sliceid * slice_size + tid_in_warp < num_rows) {
+        size_type thread_result = 0;
+        for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
+            thread_result =
+                (i + slice_size * sliceid < num_rows)
+                    ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
+                    : thread_result;
+        }
+
+        auto warp_tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        auto warp_result = reduce(
+            warp_tile, thread_result,
+            [](const size_type &a, const size_type &b) { return max(a, b); });
+
+        if (tid_in_warp == 0) {
+            auto slice_length =
+                ceildiv(warp_result, stride_factor) * stride_factor;
+            slice_lengths[sliceid] = slice_length;
+            slice_sets[sliceid] = slice_length;
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_sellp(
+    size_type num_rows, size_type num_cols, size_type slice_size,
+    size_type stride, const ValueType *__restrict__ source,
+    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets,
+    IndexType *__restrict__ col_idxs, ValueType *__restrict__ vals)
+{
+    const auto global_row = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row = global_row % slice_size;
+    const auto sliceid = global_row / slice_size;
+
+    if (global_row < num_rows) {
+        size_type sellp_ind = slice_sets[sliceid] * slice_size + row;
+
+        for (size_type col = 0; col < num_cols; col++) {
+            auto val = source[global_row * stride + col];
+            if (val != zero<ValueType>()) {
+                col_idxs[sellp_ind] = col;
+                vals[sellp_ind] = val;
+                sellp_ind += slice_size;
+            }
+        }
+        for (size_type i = sellp_ind;
+             i <
+             (slice_sets[sliceid] + slice_lengths[sliceid]) * slice_size + row;
+             i += slice_size) {
+            col_idxs[i] = 0;
+            vals[i] = zero<ValueType>();
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
                       matrix::Sellp<ValueType, IndexType> *result,
                       const matrix::Dense<ValueType> *source)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto stride = source->get_stride();
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+
+    auto vals = result->get_values();
+    auto col_idxs = result->get_col_idxs();
+    auto slice_lengths = result->get_slice_lengths();
+    auto slice_sets = result->get_slice_sets();
+
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? matrix::default_slice_size
+                                : result->get_slice_size();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? matrix::default_stride_factor
+                                   : result->get_stride_factor();
+    const int slice_num = ceildiv(num_rows, slice_size);
+
+    auto nnz_per_row = Array<size_type>(exec, num_rows);
+    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
+
+    auto grid_dim = slice_num;
+
+    kernel::calculate_slice_lengths<<<grid_dim, cuda_config::warp_size>>>(
+        num_rows, slice_size, slice_num, stride_factor,
+        as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
+        as_cuda_type(slice_sets));
+
+    auto add_values =
+        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
+    grid_dim = ceildiv(slice_num + 1, default_block_size);
+
+    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+        slice_num + 1, as_cuda_type(slice_sets),
+        as_cuda_type(add_values.get_data()));
+
+    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+        slice_num + 1, as_cuda_type(slice_sets),
+        as_cuda_type(add_values.get_const_data()));
+
+    grid_dim = ceildiv(num_rows, default_block_size);
+    kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, slice_size, stride,
+        as_cuda_type(source->get_const_values()), as_cuda_type(slice_lengths),
+        as_cuda_type(slice_sets), as_cuda_type(col_idxs), as_cuda_type(vals));
+
+    add_values.clear();
+    nnz_per_row.clear();
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
@@ -867,11 +991,101 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
+namespace kernel {
+
+
+__global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
+    size_type num_rows, size_type slice_size, size_type stride_factor,
+    const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto warpid = tidx / warp_size;
+    const auto tid_in_warp = tidx % warp_size;
+
+    size_type thread_result = 0;
+    for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
+        if (warpid * warp_size + i < num_rows) {
+            thread_result =
+                max(thread_result, nnz_per_row[warpid * warp_size + i]);
+        }
+    }
+
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    auto warp_result = reduce(
+        warp_tile, thread_result,
+        [](const size_type &a, const size_type &b) { return max(a, b); });
+
+    if (tid_in_warp == 0) {
+        result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
+    }
+}
+
+
+__global__ __launch_bounds__(default_block_size) void reduce_total_cols(
+    size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
+    size_type *__restrict__ result)
+{
+    extern __shared__ size_type block_result[];
+
+    reduce_array(num_slices, max_nnz_per_slice, block_result,
+                 [](const size_type &x, const size_type &y) { return x + y; });
+
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] = block_result[0];
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Dense<ValueType> *source,
                           size_type *result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+                          size_type slice_size)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto slice_num = ceildiv(num_rows, slice_size);
+
+    auto nnz_per_row = Array<size_type>(exec, num_rows);
+
+    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
+
+    auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
+
+    const auto grid_dim = ceildiv(slice_num, default_block_size);
+
+    kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
+        num_rows, slice_size, stride_factor,
+        as_cuda_type(nnz_per_row.get_const_data()),
+        as_cuda_type(max_nnz_per_slice.get_data()));
+
+    auto block_results = Array<size_type>(exec, grid_dim);
+
+    kernel::reduce_total_cols<<<grid_dim, default_block_size,
+                                default_block_size * sizeof(size_type)>>>(
+        slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
+        as_cuda_type(block_results.get_data()));
+
+    auto d_result = Array<size_type>(exec, 1);
+
+    kernel::reduce_total_cols<<<1, default_block_size,
+                                default_block_size * sizeof(size_type)>>>(
+        grid_dim, as_cuda_type(block_results.get_const_data()),
+        as_cuda_type(d_result.get_data()));
+
+    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
+                                  result);
+
+    block_results.clear();
+    nnz_per_row.clear();
+    max_nnz_per_slice.clear();
+    d_result.clear();
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);

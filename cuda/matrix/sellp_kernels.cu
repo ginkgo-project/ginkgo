@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "cuda/base/cusparse_bindings.hpp"
@@ -51,6 +52,7 @@ namespace sellp {
 
 namespace {
 
+constexpr auto default_block_size = 512;
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
@@ -160,10 +162,89 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
+{
+    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
+    if (tidx_x < num_cols && tidx_y < num_rows) {
+        result[tidx_y * stride + tidx_x] = zero<ValueType>();
+    }
+}
+
+
+template <unsigned int threads_per_row, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type slice_size, const size_type *__restrict__ slice_lengths,
+    const size_type *__restrict__ slice_sets,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, ValueType *__restrict__ result)
+{
+    const auto global_row =
+        (blockDim.x * blockIdx.x + threadIdx.x) / threads_per_row;
+    const auto row = global_row % slice_size;
+    const auto slice = global_row / slice_size;
+    const auto start_index = threadIdx.x % threads_per_row;
+
+    if (global_row < num_rows) {
+        for (auto i = start_index; i < slice_lengths[slice];
+             i += threads_per_row) {
+            if (values[(slice_sets[slice] + i) * slice_size + row] !=
+                zero<ValueType>()) {
+                result[global_row * stride +
+                       col_idxs[(slice_sets[slice] + i) * slice_size + row]] =
+                    values[(slice_sets[slice] + i) * slice_size + row];
+            }
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Sellp<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
+void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Sellp<ValueType, IndexType> *source)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto vals = source->get_const_values();
+    const auto col_idxs = source->get_const_col_idxs();
+    const auto slice_lengths = source->get_const_slice_lengths();
+    const auto slice_sets = source->get_const_slice_sets();
+    const auto slice_size = source->get_slice_size();
+
+    const auto slice_num = ceildiv(num_rows, slice_size);
+
+    const dim3 block_size(cuda_config::warp_size,
+                          cuda_config::max_block_size / cuda_config::warp_size,
+                          1);
+    const dim3 init_grid_dim(ceildiv(result->get_stride(), block_size.x),
+                             ceildiv(num_rows, block_size.y), 1);
+
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
+        num_rows, num_cols, result->get_stride(),
+        as_cuda_type(result->get_values()));
+
+    constexpr auto threads_per_row = cuda_config::warp_size;
+    const auto grid_dim =
+        ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
+
+    kernel::fill_in_dense<threads_per_row><<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, result->get_stride(), slice_size,
+        as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
+        as_cuda_type(col_idxs), as_cuda_type(vals),
+        as_cuda_type(result->get_values()));
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
