@@ -56,14 +56,14 @@ namespace solver {
  *
  * For any approximation of the solution `solution` to the system `Ax = b`, the
  * residual is defined as: `residual = b - A solution`. The error in
- * `solution`,  `e = x - solution` can be obtained as the solution to the
- * system `Ae = residual`, since `A e = Ax - A solution = b - A solution =
- * residual`. Then the real solution is obtained as `x = solution + e`. Instead
- * of accurately solving the system `Ae = residual`, the solution of the system
- * `e` can be approximated to obtain the approximation `error` using a coarse
- * method `solver`, which is used to update `solution`, and the entire process
- * is repeated with the updated `solution`. This yields the iterative refinement
- * method:
+ * `solution`,  `e = x - solution` (with `x` being the exact solution) can be
+ * obtained as the solution to the residual equation `Ae = residual`, since `A e
+ * = Ax - A solution = b - A solution = residual`. Then, the real solution is
+ * computed as `x = solution + e`. Instead of accurately solving the residual
+ * equation `Ae = residual`, the solution of the system `e` can be approximated
+ * to obtain the approximation `error` using a coarse method `solver`, which is
+ * used to update `solution`, and the entire process is repeated with the
+ * updated `solution`.  This yields the iterative refinement method:
  *
  * ```
  * solution = initial_guess
@@ -80,12 +80,13 @@ namespace solver {
  * residual = inv(A)b - inv(A) A solution = x - solution` it follows that | x -
  * solution* | <= c | x - solution |.
  *
- * Unless specified otherwise via the `solver` factory parameter, this
+ * Unless otherwise specified via the `solver` factory parameter, this
  * implementation uses the identity operator (i.e. the solver that approximates
  * the solution of a system Ax = b by setting x := b) as the default inner
- * solver. Such setting results in a relaxation method known as the Richardson
+ * solver. Such a setting results in a relaxation method known as the Richardson
  * iteration with parameter 1, which is guaranteed to converge for matrices
- * whose spectrum is strictly contained within the unit disc around 1.
+ * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
+ * its eigenvalues `lambda` have to satisfy the equation `|lambda - 1| < 1).
  *
  * @tparam ValueType  precision of matrix elements
  */
