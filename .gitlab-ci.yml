@@ -85,6 +85,18 @@ sync:
     - schedules
 
 # Build jobs
+
+# Build job with pedantic warnings as errors.
+build/cuda100/gcc/all/debug-warnings:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: &cuda_flags
+      -DGINKGO_COMPILER_FLAGS="-Werror=pedantic"
+
 build/cuda90/gcc/all/debug:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39

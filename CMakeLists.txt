@@ -28,7 +28,7 @@ option(GINKGO_EXPORT_BUILD_DIR
     OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
   "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-set(GINKGO_COMPILER_FLAGS "-Werror=pedantic" CACHE STRING
+set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
   "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
   "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
