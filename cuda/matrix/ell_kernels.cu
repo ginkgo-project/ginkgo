@@ -292,8 +292,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
-        zero_array(c->get_num_stored_elements() * sizeof(ValueType),
-                   c->get_values());
+        zero_array(c->get_num_stored_elements(), c->get_values());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -341,9 +340,10 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(cuda_config::warp_size) void initialize_zero_dense(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
+__global__
+    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
+        size_type num_rows, size_type num_cols, size_type stride,
+        ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
