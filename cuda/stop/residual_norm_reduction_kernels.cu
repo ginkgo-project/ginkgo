@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -34,8 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 
@@ -55,21 +58,29 @@ __global__
         const ValueType *__restrict__ tau,
         const ValueType *__restrict__ orig_tau, uint8 stoppingId,
         bool setFinalized, stopping_status *__restrict__ stop_status,
-        bool *__restrict__ all_converged, bool *__restrict__ one_changed)
+        bool *__restrict__ device_storage)
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
     if (tidx < num_cols) {
         if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
             stop_status[tidx].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            device_storage[1] = true;
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
         else if (!stop_status[tidx].has_stopped()) {
-            *all_converged = false;
+            device_storage[0] = false;
         }
     }
+}
+
+
+__global__ __launch_bounds__(1) void init_kernel(
+    bool *__restrict__ device_storage)
+{
+    device_storage[0] = true;
+    device_storage[1] = false;
 }
 
 
@@ -80,31 +91,27 @@ void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
                              remove_complex<ValueType> rel_residual_goal,
                              uint8 stoppingId, bool setFinalized,
                              Array<stopping_status> *stop_status,
-                             bool *all_converged, bool *one_changed)
+                             Array<bool> *device_storage, bool *all_converged,
+                             bool *one_changed)
 {
-    *all_converged = true;
-    auto all_converged_array =
-        Array<bool>::view(exec->get_master(), 1, all_converged);
-    Array<bool> d_all_converged(exec, all_converged_array);
-
-    *one_changed = false;
-    auto one_changed_array =
-        Array<bool>::view(exec->get_master(), 1, one_changed);
-    Array<bool> d_one_changed(exec, one_changed_array);
+    init_kernel<<<1, 1>>>(as_cuda_type(device_storage->get_data()));
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
-    residual_norm_reduction_kernel<<<grid_size, block_size, 0, 0>>>(
+    residual_norm_reduction_kernel<<<grid_size, block_size>>>(
         tau->get_size()[1], rel_residual_goal,
         as_cuda_type(tau->get_const_values()),
         as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
         as_cuda_type(stop_status->get_data()),
-        as_cuda_type(d_all_converged.get_data()),
-        as_cuda_type(d_one_changed.get_data()));
+        as_cuda_type(device_storage->get_data()));
 
-    all_converged_array = d_all_converged;
-    one_changed_array = d_one_changed;
+    /* Represents all_converged, one_changed */
+    bool tmp[2] = {true, false};
+    exec->get_master()->copy_from(exec.get(), 2,
+                                  device_storage->get_const_data(), tmp);
+    *all_converged = tmp[0];
+    *one_changed = tmp[1];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,12 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/record.hpp"
+#include <ginkgo/core/log/record.hpp>
 
 
-#include "core/base/array.hpp"
-#include "core/stop/criterion.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {

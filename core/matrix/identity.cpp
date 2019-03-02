@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,12 +31,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/identity.hpp"
+#include <ginkgo/core/matrix/identity.hpp>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -64,18 +64,16 @@ template <typename ValueType>
 std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
-    ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
+    GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
                                        base->get_size()[0]);
 }
 
 
-#define DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_MATRIX);
-#undef DECLARE_IDENTITY_MATRIX
-#define DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_IDENTITY_FACTORY);
-#undef DECLARE_IDENTITY_FACTORY
+#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
+#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
 
 
 }  // namespace matrix

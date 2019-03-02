@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,13 +31,13 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/std_extensions.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace {
@@ -149,6 +149,60 @@ TEST(EnableCreateMethod, CreatesObject)
 
     ASSERT_EQ(obj->get_executor(), ref);
     ASSERT_EQ(obj->x, 5);
+}
+
+
+struct ConvertibleToDummyObject
+    : gko::EnablePolymorphicObject<ConvertibleToDummyObject>,
+      gko::EnableCreateMethod<ConvertibleToDummyObject>,
+      gko::EnablePolymorphicAssignment<ConvertibleToDummyObject>,
+      gko::ConvertibleTo<DummyObject> {
+    explicit ConvertibleToDummyObject(std::shared_ptr<const gko::Executor> exec,
+                                      int v = {})
+        : gko::EnablePolymorphicObject<ConvertibleToDummyObject>(
+              std::move(exec)),
+          x{v}
+    {}
+
+    void convert_to(DummyObject *obj) const override { obj->x = x; }
+
+    void move_to(DummyObject *obj) override { obj->x = x; }
+
+    int x;
+};
+
+
+TEST(CopyAndConvertTo, ConvertsToDummyObj)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto convertible = ConvertibleToDummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(dummy->x, 5);
+}
+
+
+TEST(CopyAndConvertTo, ConvertsConstToDummyObj)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    std::unique_ptr<const ConvertibleToDummyObject> convertible =
+        ConvertibleToDummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(dummy->x, 5);
+}
+
+
+TEST(CopyAndConvertTo, AvoidsConversion)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto convertible = DummyObject::create(ref, 5);
+
+    auto dummy = gko::copy_and_convert_to<DummyObject>(ref, lend(convertible));
+
+    ASSERT_EQ(gko::lend(dummy), gko::lend(convertible));
 }
 
 

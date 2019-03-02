@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/time.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 #include <gtest/gtest.h>
@@ -51,9 +51,9 @@ class Time : public ::testing::Test {
 protected:
     Time() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ = gko::stop::Time::Factory::create()
+        factory_ = gko::stop::Time::build()
                        .with_time_limit(std::chrono::milliseconds(test_ms))
-                       .on_executor(exec_);
+                       .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Time::Factory> factory_;
@@ -81,6 +81,7 @@ TEST_F(Time, WaitsTillTime)
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
 
     std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));

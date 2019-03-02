@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -69,10 +69,9 @@ void zero_array(size_type n, ValueType *array)
 }
 
 
-#define DECLARE_ZERO_ARRAY(_type) \
+#define GKO_DECLARE_ZERO_ARRAY(_type) \
     void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_ZERO_ARRAY);
-#undef DECLARE_ZERO_ARRAY
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
 
 
 }  // namespace cuda

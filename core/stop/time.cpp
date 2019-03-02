@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,16 +32,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/time.hpp"
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace gko {
 namespace stop {
 
 
-bool Time::check(uint8 stoppingId, bool setFinalized,
-                 Array<stopping_status> *stop_status, bool *one_changed,
-                 const Updater &)
+bool Time::check_impl(uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status, bool *one_changed,
+                      const Updater &updater)
 {
     bool result = clock::now() - start_ >= time_limit_;
     if (result) {

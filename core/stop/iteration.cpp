@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,16 +32,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/iteration.hpp"
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace gko {
 namespace stop {
 
 
-bool Iteration::check(uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status> *stop_status, bool *one_changed,
-                      const Updater &updater)
+bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
+                           Array<stopping_status> *stop_status,
+                           bool *one_changed, const Updater &updater)
 {
     bool result = updater.num_iterations_ >= parameters_.max_iters;
     if (result) {

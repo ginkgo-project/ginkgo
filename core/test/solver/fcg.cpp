@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,18 +31,18 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/fcg.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
 namespace {
@@ -58,18 +58,13 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           fcg_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(3u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-6)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
+                          .on(exec))
+                  .on(exec)),
           solver(fcg_factory->generate(mtx))
     {}
 
@@ -103,8 +98,8 @@ TEST_F(Fcg, CanBeCopied)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
-                    1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                        1e-14);
 }
 
 
@@ -116,8 +111,8 @@ TEST_F(Fcg, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
-                    1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
+                        1e-14);
 }
 
 
@@ -127,8 +122,8 @@ TEST_F(Fcg, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
-    ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
-                    1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
+                        1e-14);
 }
 
 
@@ -145,19 +140,14 @@ TEST_F(Fcg, CanBeCleared)
 TEST_F(Fcg, CanSetPreconditionerGenerator)
 {
     auto fcg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(3u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-6)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .with_preconditioner(Solver::Factory::create().on_executor(exec))
-            .on_executor(exec);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
     auto solver = fcg_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
         static_cast<gko::solver::Fcg<> *>(solver.get())

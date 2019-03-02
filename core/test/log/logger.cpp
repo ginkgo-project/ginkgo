@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,9 +31,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/logger.hpp>
-#include <core/log/record.hpp>
-#include <core/log/stream.hpp>
+#include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
 
 #include <gtest/gtest.h>
@@ -82,6 +82,21 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
 
+
+TEST(DummyLogged, CanRemoveLogger)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+    auto r = gko::share(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(r);
+    c.add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.remove_logger(gko::lend(r));
+
+    ASSERT_EQ(c.get_num_loggers(), 1);
+}
 
 struct DummyLogger : gko::log::Logger {
     using Logger = gko::log::Logger;

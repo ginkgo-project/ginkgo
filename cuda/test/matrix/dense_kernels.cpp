@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,15 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
+
+
+#include "core/matrix/dense_kernels.hpp"
 
 
 #include <gtest/gtest.h>
@@ -98,10 +106,10 @@ protected:
 
     void set_up_apply_data()
     {
-        x = gen_mtx<Mtx>(40, 25);
-        c_x = gen_mtx<ComplexMtx>(40, 25);
+        x = gen_mtx<Mtx>(65, 25);
+        c_x = gen_mtx<ComplexMtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
-        expected = gen_mtx<Mtx>(40, 35);
+        expected = gen_mtx<Mtx>(65, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         dx = Mtx::create(cuda);
@@ -147,7 +155,7 @@ TEST_F(Dense, SingleVectorCudaScaleIsEquivalentToRef)
 
     auto result = Mtx::create(ref);
     result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
 }
 
 
@@ -158,7 +166,7 @@ TEST_F(Dense, MultipleVectorCudaScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -169,7 +177,7 @@ TEST_F(Dense, MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -180,7 +188,7 @@ TEST_F(Dense, SingleVectorCudaAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -191,7 +199,7 @@ TEST_F(Dense, MultipleVectorCudaAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -202,7 +210,7 @@ TEST_F(Dense, MultipleVectorCudaAddScaledWithDifferentAlphaIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -213,7 +221,7 @@ TEST_F(Dense, SingleVectorCudaComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -224,7 +232,7 @@ TEST_F(Dense, MultipleVectorCudaComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -235,7 +243,7 @@ TEST_F(Dense, CudaComputeNorm2IsEquivalentToRef)
     x->compute_norm2(expected.get());
     dx->compute_norm2(dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -246,7 +254,7 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
     x->apply(y.get(), expected.get());
     dx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -257,7 +265,7 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     x->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -268,8 +276,8 @@ TEST_F(Dense, IsTransposable)
     auto trans = x->transpose();
     auto dtrans = dx->transpose();
 
-    ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                    static_cast<Mtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                        static_cast<Mtx *>(trans.get()), 0);
 }
 
 
@@ -280,8 +288,136 @@ TEST_F(Dense, IsConjugateTransposable)
     auto trans = c_x->conj_transpose();
     auto dtrans = dc_x->conj_transpose();
 
-    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                    static_cast<ComplexMtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
+                        static_cast<ComplexMtx *>(trans.get()), 0);
+}
+
+
+TEST_F(Dense, ConvertToCooIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+
+    x->convert_to(coo_mtx.get());
+    dx->convert_to(dcoo_mtx.get());
+
+    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
+              coo_mtx->get_num_stored_elements());
+    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+
+    x->convert_to(csr_mtx.get());
+    dx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToEllIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto ell_mtx = gko::matrix::Ell<>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+
+    x->convert_to(ell_mtx.get());
+    dx->convert_to(dell_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    x->convert_to(sellp_mtx.get());
+    dx->convert_to(dsellp_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+}
+
+
+TEST_F(Dense, CountNNZIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type nnz;
+    gko::size_type dnnz;
+
+    gko::kernels::reference::dense::count_nonzeros(ref, x.get(), &nnz);
+    gko::kernels::cuda::dense::count_nonzeros(cuda, dx.get(), &dnnz);
+
+    ASSERT_EQ(nnz, dnnz);
+}
+
+
+TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::Array<gko::size_type> nnz_per_row;
+    nnz_per_row.set_executor(ref);
+    nnz_per_row.resize_and_reset(x->get_size()[0]);
+
+    gko::Array<gko::size_type> dnnz_per_row;
+    dnnz_per_row.set_executor(cuda);
+    dnnz_per_row.resize_and_reset(dx->get_size()[0]);
+
+    gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
+                                                               &nnz_per_row);
+    gko::kernels::cuda::dense::calculate_nonzeros_per_row(cuda, dx.get(),
+                                                          &dnnz_per_row);
+
+    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
+    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
+        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
+    }
+}
+
+
+TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type max_nnz;
+    gko::size_type dmax_nnz;
+
+    gko::kernels::reference::dense::calculate_max_nnz_per_row(ref, x.get(),
+                                                              &max_nnz);
+    gko::kernels::cuda::dense::calculate_max_nnz_per_row(cuda, dx.get(),
+                                                         &dmax_nnz);
+
+    ASSERT_EQ(max_nnz, dmax_nnz);
+}
+
+
+TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type total_cols;
+    gko::size_type dtotal_cols;
+
+    gko::kernels::reference::dense::calculate_total_cols(
+        ref, x.get(), &total_cols, 2, gko::matrix::default_slice_size);
+    gko::kernels::cuda::dense::calculate_total_cols(
+        cuda, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
+
+    ASSERT_EQ(total_cols, dtotal_cols);
 }
 
 

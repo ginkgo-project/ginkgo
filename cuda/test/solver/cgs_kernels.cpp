@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cgs.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,14 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/solver/cgs_kernels.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
 namespace {
@@ -71,31 +71,21 @@ protected:
         d_mtx = Mtx::create(cuda);
         d_mtx->copy_from(mtx.get());
         cuda_cgs_factory =
-            Solver::Factory::create()
-                .with_criterion(
-                    gko::stop::Combined::Factory::create()
-                        .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246u)
-                                           .on_executor(cuda),
-                                       gko::stop::ResidualNormReduction<>::
-                                           Factory::create()
-                                               .with_reduction_factor(1e-15)
-                                               .on_executor(cuda))
-                        .on_executor(cuda))
-                .on_executor(cuda);
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(cuda),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(cuda))
+                .on(cuda);
         ref_cgs_factory =
-            Solver::Factory::create()
-                .with_criterion(
-                    gko::stop::Combined::Factory::create()
-                        .with_criteria(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(246u)
-                                           .on_executor(ref),
-                                       gko::stop::ResidualNormReduction<>::
-                                           Factory::create()
-                                               .with_reduction_factor(1e-15)
-                                               .on_executor(ref))
-                        .on_executor(ref))
-                .on_executor(ref);
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::ResidualNormReduction<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(ref))
+                .on(ref);
     }
 
     void TearDown()
@@ -247,19 +237,19 @@ TEST_F(Cgs, CudaCgsInitializeIsEquivalentToRef)
         d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
         d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_u, u, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
-    ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
-    ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r_tld, r_tld, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u_hat, u_hat, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_v_hat, v_hat, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho_prev, rho_prev, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
 }
 
 
@@ -274,9 +264,9 @@ TEST_F(Cgs, CudaCgsStep1IsEquivalentToRef)
                                     d_q.get(), d_beta.get(), d_rho.get(),
                                     d_rho_prev.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
-    ASSERT_MTX_NEAR(d_u, u, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
 
@@ -291,9 +281,9 @@ TEST_F(Cgs, CudaCgsStep2IsEquivalentToRef)
                                     d_t.get(), d_alpha.get(), d_rho.get(),
                                     d_gamma.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
 }
 
 
@@ -308,8 +298,8 @@ TEST_F(Cgs, CudaCgsStep3IsEquivalentToRef)
                                     d_x.get(), d_alpha.get(),
                                     d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
 
@@ -329,8 +319,8 @@ TEST_F(Cgs, CudaCgsApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
@@ -350,8 +340,8 @@ TEST_F(Cgs, CudaCgsApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 }  // namespace

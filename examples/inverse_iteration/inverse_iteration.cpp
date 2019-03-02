@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -83,7 +83,7 @@ for i = 0 .. max_iterations:
 ```
  *****************************<DECSRIPTION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <cmath>
@@ -153,19 +153,14 @@ int main(int argc, char *argv[])
 
     // Generate solver operator  (A - zI)^-1
     auto solver =
-        solver_type::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(system_max_iterations)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<
-                            precision>::Factory::create()
-                            .with_reduction_factor(system_residual_goal)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec)
+        solver_type::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(system_max_iterations)
+                               .on(exec),
+                           gko::stop::ResidualNormReduction<precision>::build()
+                               .with_reduction_factor(system_residual_goal)
+                               .on(exec))
+            .on(exec)
             ->generate(system_matrix);
 
     // inverse iterations

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,16 +31,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/record.hpp>
+#include <ginkgo/core/log/record.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/executor.hpp>
-#include <core/base/utils.hpp>
-#include <core/solver/bicgstab.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace {
@@ -220,7 +221,7 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
 
     auto &data = logger->get().polymorphic_object_create_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
     ASSERT_EQ(data->output.get(), nullptr);
 }
 
@@ -239,8 +240,8 @@ TEST(Record, CatchesPolymorphicObjectCreateCompleted)
 
     auto &data = logger->get().polymorphic_object_create_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output.get(), 0);
 }
 
 
@@ -258,8 +259,8 @@ TEST(Record, CatchesPolymorphicObjectCopyStarted)
 
     auto &data = logger->get().polymorphic_object_copy_started.back();
     ASSERT_EQ(data->exec, exec.get());
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
 }
 
 
@@ -278,8 +279,8 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
 
     auto &data = logger->get().polymorphic_object_copy_completed.back();
     ASSERT_EQ(data->exec, exec.get());
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
 }
 
 
@@ -297,7 +298,7 @@ TEST(Record, CatchesPolymorphicObjectDeleted)
 
     auto &data = logger->get().polymorphic_object_deleted.back();
     ASSERT_EQ(data->exec, exec.get());
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
     ASSERT_EQ(data->output, nullptr);
 }
 
@@ -316,11 +317,11 @@ TEST(Record, CatchesLinOpApplyStarted)
                                                       x.get());
 
     auto &data = logger->get().linop_apply_started.back();
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     ASSERT_EQ(data->alpha, nullptr);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
     ASSERT_EQ(data->beta, nullptr);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
 }
 
 
@@ -338,11 +339,11 @@ TEST(Record, CatchesLinOpApplyCompleted)
                                                         x.get());
 
     auto &data = logger->get().linop_apply_completed.back();
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     ASSERT_EQ(data->alpha, nullptr);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
     ASSERT_EQ(data->beta, nullptr);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
 }
 
 
@@ -362,11 +363,11 @@ TEST(Record, CatchesLinOpAdvancedApplyStarted)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto &data = logger->get().linop_advanced_apply_started.back();
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->beta.get()), beta, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->beta.get()), beta, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
 }
 
 
@@ -386,11 +387,11 @@ TEST(Record, CatchesLinOpAdvancedApplyCompleted)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto &data = logger->get().linop_advanced_apply_completed.back();
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->beta.get()), beta, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->beta.get()), beta, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->x.get()), x, 0);
 }
 
 
@@ -399,11 +400,11 @@ TEST(Record, CatchesLinopFactoryGenerateStarted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::linop_factory_generate_started_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
 
     logger->on<gko::log::Logger::linop_factory_generate_started>(factory.get(),
@@ -421,11 +422,11 @@ TEST(Record, CatchesLinopFactoryGenerateCompleted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::linop_factory_generate_completed_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     auto output = factory->generate(gko::matrix::Dense<>::create(exec));
 
@@ -444,10 +445,9 @@ TEST(Record, CatchesCriterionCheckStarted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::criterion_check_started_mask);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
 
     logger->on<gko::log::Logger::criterion_check_started>(
@@ -468,10 +468,9 @@ TEST(Record, CatchesCriterionCheckCompleted)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::criterion_check_completed_mask);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
 
@@ -500,11 +499,11 @@ TEST(Record, CatchesIterations)
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
         exec, gko::log::Logger::iteration_complete_mask);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
@@ -518,10 +517,10 @@ TEST(Record, CatchesIterations)
     auto &data = logger->get().iteration_completed.back();
     ASSERT_NE(data->solver.get(), nullptr);
     ASSERT_EQ(data->num_iterations, num_iters);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
-    ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()), residual_norm,
-                    0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
+                        residual_norm, 0);
 }
 
 

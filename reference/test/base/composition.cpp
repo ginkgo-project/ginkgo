@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/composition.hpp>
+#include <ginkgo/core/base/composition.hpp>
 
 
 #include <vector>
@@ -40,8 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -75,7 +75,7 @@ TEST_F(Composition, AppliesToVector)
 
     cmp->apply(lend(x), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
 }
 
 
@@ -93,7 +93,7 @@ TEST_F(Composition, AppliesLinearCombinationToVector)
 
     cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
-    ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
 }
 
 

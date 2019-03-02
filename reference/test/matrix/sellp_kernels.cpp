@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,17 +31,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/exception_helpers.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -79,7 +79,7 @@ TEST_F(Sellp, AppliesToDenseVector)
 
     mtx1->apply(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -96,7 +96,7 @@ TEST_F(Sellp, AppliesToDenseMatrix)
     mtx1->apply(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{13.0,  3.5},
                        { 5.0, -7.5}}), 0.0);
     // clang-format on
@@ -112,7 +112,7 @@ TEST_F(Sellp, AppliesLinearCombinationToDenseVector)
 
     mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -133,7 +133,7 @@ TEST_F(Sellp, AppliesLinearCombinationToDenseMatrix)
     mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-11.0, -2.5},
                        { -1.0,  4.5}}), 0.0);
     // clang-format on
@@ -174,7 +174,7 @@ TEST_F(Sellp, ConvertsToDense)
     mtx1->convert_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -188,7 +188,7 @@ TEST_F(Sellp, MovesToDense)
     mtx1->move_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -202,7 +202,7 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
 
     mtx2->apply(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -219,7 +219,7 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
     mtx2->apply(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{13.0, 3.5},
                        {5.0, -7.5}}), 0.0);
     // clang-format on
@@ -235,7 +235,7 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseVector)
 
     mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -256,7 +256,7 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
     mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-11.0, -2.5},
                        {-1.0, 4.5}}), 0.0);
     // clang-format on
@@ -302,7 +302,7 @@ TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
     mtx2->convert_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -316,7 +316,7 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
     mtx2->move_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on

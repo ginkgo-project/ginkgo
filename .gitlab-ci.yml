@@ -1,14 +1,16 @@
-image: base/devel
+image: localhost:5000/gko-cuda100-gnu7-llvm60
 
 stages:
   - sync
   - build
   - test
   - deploy
+  - QoS_tools
   - benchmark-build
   - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
+  - on-failure
 
 # Templates with reasonable defaults for builds and tests
 .variables_template: &default_variables
@@ -20,16 +22,11 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   EXTRA_CMAKE_FLAGS: ""
-  EXTRA_PACKAGES: ""
 
 .before_script_template: &default_before_script
-  - pacman-db-upgrade
-  - pacman --noconfirm -Syu cmake git python ${EXTRA_PACKAGES}
   - export OMP_NUM_THREADS=4
 
 .before_script_git_template: &git_before_script
-  - pacman-db-upgrade
-  - pacman --noconfirm -Syu openssh git ${EXTRA_PACKAGES}
     # set up identities
   - eval $(ssh-agent -s)
   - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
@@ -48,9 +45,10 @@ stages:
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
-        ${EXTRA_CMAKE_FLAGS} -DDEVEL_TOOLS=OFF
-        -DBUILD_REFERENCE=${BUILD_REFERENCE} -DBUILD_OMP=${BUILD_OMP}
-        -DBUILD_CUDA=${BUILD_CUDA} -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
+        ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
   artifacts:
     paths:
@@ -63,7 +61,7 @@ stages:
   before_script: *default_before_script
   script:
     - cd ${CI_JOB_NAME/test/build}
-    - make test
+    - ctest -V
   except:
       - schedules
 
@@ -87,102 +85,249 @@ sync:
     - schedules
 
 # Build jobs
-build/gcc/core/debug:
+build/cuda90/gcc/all/debug:
   <<: *default_build
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
-    BUILD_REFERENCE: "off"
-
-build/clang/core/debug:
-  <<: *default_build
-  variables:
-    <<: *default_variables
-    BUILD_REFERENCE: "off"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-    EXTRA_PACKAGES: clang
-
-build/gcc/reference/debug:
-  <<: *default_build
-
-build/clang/reference/debug:
-  <<: *default_build
-  variables:
-    <<: *default_variables
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-    EXTRA_PACKAGES: clang
-
-build/gcc/omp/debug:
-  <<: *default_build
-  variables:
-    <<: *default_variables
-    BUILD_OMP: "ON"
-
-build/clang/omp/debug:
-  <<: *default_build
-  variables:
-    <<: *default_variables
-    EXTRA_PACKAGES: openmp clang
-    BUILD_OMP: "ON"
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-
-build/gcc/all/debug:
-  <<: *default_build
-  variables:
-    <<: *default_variables
-    EXTRA_PACKAGES: cuda
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: &cuda_flags
-      -DCMAKE_CUDA_COMPILER=/opt/cuda/bin/nvcc -DCUDA_ARCHITECTURES=60
+      -DCUDA_ARCHITECTURES=35
 
-build/clang/all/debug:
+build/cuda90/clang/all/debug:
   <<: *default_build
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
-    EXTRA_PACKAGES: openmp clang cuda
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: *cuda_flags
 
-
-# Test jobs
-test/gcc/core/debug:
-  <<: *default_test
-  dependencies:
-    - build/gcc/core/debug
-
-test/clang/core/debug:
-  <<: *default_test
-  dependencies:
-    - build/clang/core/debug
-
-test/gcc/reference/debug:
-  <<: *default_test
-  dependencies:
-    - build/gcc/reference/debug
-
-test/clang/reference/debug:
-  <<: *default_test
-  dependencies:
-    - build/clang/reference/debug
-
-test/gcc/omp/debug:
-  <<: *default_test
-  dependencies:
-    - build/gcc/omp/debug
-
-test/clang/omp/debug:
-  <<: *default_test
+# cuda 9.1 and friends
+build/cuda91/gcc/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
-    EXTRA_PACKAGES: openmp
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+build/cuda91/clang/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+# cuda 9.2 and friends
+build/cuda92/gcc/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+build/cuda92/clang/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+# cuda 10.0 and friends
+build/cuda100/gcc/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+build/cuda100/clang/all/debug:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+# no cuda but latest gcc and "soon" clang 7
+build/nocuda/gcc/core/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_REFERENCE: "off"
+
+build/nocuda/gcc/reference/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+
+build/nocuda/gcc/omp/debug:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+
+# Release builds
+build/cuda91/gcc/all/release:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: &cuda_flags
+      -DCUDA_ARCHITECTURES=35
+
+build/cuda91/clang/all/release:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+
+build/nocuda/gcc/omp/release:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_TYPE: Release
+
+build/nocuda/clang/omp/release:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_TYPE: Release
+
+
+# Test jobs
+test/cuda90/gcc/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
   dependencies:
-    - build/clang/omp/debug
+    - build/cuda90/gcc/all/debug
+
+test/cuda90/clang/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  dependencies:
+    - build/cuda90/clang/all/debug
+
+# cuda 9.1 and friends
+test/cuda91/gcc/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/gcc/all/debug
+
+test/cuda91/clang/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/clang/all/debug
+
+# cuda 9.2 and friends
+test/cuda92/gcc/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  dependencies:
+    - build/cuda92/gcc/all/debug
+
+test/cuda92/clang/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  dependencies:
+    - build/cuda92/clang/all/debug
+
+# cuda 10.0 and friends
+test/cuda100/gcc/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  dependencies:
+    - build/cuda100/gcc/all/debug
+
+test/cuda100/clang/all/debug:
+  <<: *default_test
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  dependencies:
+    - build/cuda100/clang/all/debug
+
+# no cuda but latest gcc and "soon" clang 7
+test/nocuda/gcc/core/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/core/debug
+
+test/nocuda/gcc/reference/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/reference/debug
+
+test/nocuda/gcc/omp/debug:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/omp/debug
+
+# Release tests
+test/cuda91/gcc/all/release:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/gcc/all/release
+
+test/cuda91/clang/all/release:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/clang/all/release
+
+test/nocuda/gcc/omp/release:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/omp/release
+
+test/nocuda/clang/omp/release:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/clang/omp/release
 
 
 # Deploy documentation to github-pages
@@ -191,7 +336,6 @@ gh-pages:
   variables:
     <<: *default_variables
     PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
-    EXTRA_PACKAGES: cmake doxygen python
   before_script: *git_before_script
   script:
     # build docs
@@ -199,16 +343,16 @@ gh-pages:
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
-        ${EXTRA_CMAKE_FLAGS} -DDEVEL_TOOLS=OFF -DBUILD_REFERENCE=OFF
-        -DBUILD_OMP=OFF -DBUILD_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF
-        -DBUILD_DOC=ON
+        ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=OFF
+        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_TESTS=OFF
+        -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_DOC=ON
     - make usr
     - popd
     # publish it
     - git clone ${PUBLIC_REPO} -b gh-pages gh-pages-repo
-    - rm -rf gh-pages-repo/doc/develop
+    - rm -rf gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
     - mkdir -p gh-pages-repo/doc
-    - cp -r ${CI_JOB_NAME}/doc/usr gh-pages-repo/doc/develop
+    - cp -r ${CI_JOB_NAME}/doc/usr gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
     - export CURRENT_SHA="$(git rev-parse --short HEAD)"
     - cd gh-pages-repo
     - git add -A
@@ -218,16 +362,77 @@ gh-pages:
   only:
     refs:
       - develop
+      - master
+      - tags
     variables:
       - $PUBLIC_CI_TAG
   except:
       - schedules
 
 
+coverage:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+threadsanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - export CC=clang
+    - export CXX=clang++
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+addresssanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - export CC=clang
+    - export CXX=clang++
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+valgrind:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+
 # Benchmark build
 .benchmark_before_script_template: &default_benchmark_before_script
-  - pacman-db-upgrade
-  - pacman --noconfirm -Syu openssh git cmake python ${EXTRA_PACKAGES}
   # set up identities
   - eval $(ssh-agent -s)
   - tmp_key=${BENCHMARK_SERVER}_SSH_KEY
@@ -271,14 +476,19 @@ fineci-benchmark-build:
                   -DCMAKE_CUDA_COMPILER=/usr/local/cuda-9.2/bin/nvcc \\
                   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \\
                   -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} \\
-                  -DDEVEL_TOOLS=OFF -DBUILD_REFERENCE=${BUILD_REFERENCE} \\
-                  -DBUILD_OMP=${BUILD_OMP} -DBUILD_CUDA=${BUILD_CUDA} \\
-                  -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARKS=ON
+                  -DGINKGO_DEVEL_TOOLS=OFF \\
+                  -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE} \\
+                  -DGINKGO_BUILD_OMP=${BUILD_OMP} \\
+                  -DGINKGO_BUILD_CUDA=${BUILD_CUDA} \\
+                  -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF \\
+                  -DGINKGO_BUILD_BENCHMARKS=ON
         make -j$(grep 'core id' /proc/cpuinfo | sort -u | wc -l)
       EOT
   dependencies: []
   only:
     - schedules
+#    - develop
+#    - master
 
 
 # Benchmark runs
@@ -289,9 +499,10 @@ fineci-benchmark-build:
     - |
       ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' \
             >results.json << EOT
+        module load cuda/cuda-10.0
         set -xe
         cd ginkgo/build/benchmark
-        SYSTEM_NAME=${SYSTEM_NAME} make ${EXECUTOR}_benchmark
+        make benchmark SYSTEM_NAME=${SYSTEM_NAME} EXECUTOR=${EXECUTOR}
         tar -czf data.tar.gz results
       EOT
     # publish them
@@ -311,6 +522,8 @@ fineci-benchmark-build:
   dependencies: []
   only:
     - schedules
+#    - develop
+#    - master
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
@@ -323,24 +536,34 @@ fineci-benchmark-cuda:
     SYSTEM_NAME: K20Xm
   <<: *default_benchmark
 
-fineci-benchmark-omp:
-  stage: benchmark-omp
-  variables:
-    <<: *default_variables
-    BENCHMARK_SERVER: FINECI
-    EXECUTOR: omp
-    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
-    SYSTEM_NAME: E5-2670
-  <<: *default_benchmark
+# fineci-benchmark-omp:
+#   stage: benchmark-omp
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: omp
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
 
-fineci-benchmark-reference:
-  stage: benchmark-reference
-  variables:
-    <<: *default_variables
-    BENCHMARK_SERVER: FINECI
-    EXECUTOR: reference
-    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
-    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
-    SYSTEM_NAME: E5-2670
-  <<: *default_benchmark
+# fineci-benchmark-reference:
+#   stage: benchmark-reference
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: reference
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
+
+new-issue-on-failure:
+  stage: on-failure
+  script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20in%20${CI_PROJECT_NAME}%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels&description=${CI_PIPELINE_URL}"
+  when: on_failure
+  only:
+    refs:
+      - develop
+      - master
+  dependencies: []

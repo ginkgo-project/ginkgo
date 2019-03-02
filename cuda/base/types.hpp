@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -150,9 +150,23 @@ using cuda_type = typename detail::cuda_type_impl<T>::type;
  * @return `val` reinterpreted to CUDA type
  */
 template <typename T>
-inline cuda_type<T> as_cuda_type(T val)
+inline xstd::enable_if_t<
+    std::is_pointer<T>::value || std::is_reference<T>::value, cuda_type<T>>
+as_cuda_type(T val)
 {
     return reinterpret_cast<cuda_type<T>>(val);
+}
+
+
+/**
+ * @copydoc as_cuda_type()
+ */
+template <typename T>
+inline xstd::enable_if_t<
+    !std::is_pointer<T>::value && !std::is_reference<T>::value, cuda_type<T>>
+as_cuda_type(T val)
+{
+    return *reinterpret_cast<cuda_type<T> *>(&val);
 }
 
 

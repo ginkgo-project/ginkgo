@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,15 +31,15 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/executor.hpp"
+#include <ginkgo/core/base/executor.hpp>
 
 
 #include <cstdlib>
 #include <cstring>
 
 
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
@@ -62,7 +62,7 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 
 void *OmpExecutor::raw_alloc(size_type num_bytes) const
 {
-    return ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-#include "core/base/math.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <iostream>

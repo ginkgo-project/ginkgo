@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,17 +31,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/csr.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -109,7 +109,7 @@ TEST_F(Coo, ConvertsToDense)
     mtx->convert_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -123,7 +123,7 @@ TEST_F(Coo, MovesToDense)
     mtx->move_to(dense_mtx.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(dense_mtx,
+    GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
@@ -137,7 +137,7 @@ TEST_F(Coo, AppliesToDenseVector)
 
     mtx->apply(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
@@ -154,7 +154,7 @@ TEST_F(Coo, AppliesToDenseMatrix)
     mtx->apply(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{13.0,  3.5},
                        { 5.0, -7.5}}), 0.0);
     // clang-format on
@@ -170,7 +170,7 @@ TEST_F(Coo, AppliesLinearCombinationToDenseVector)
 
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
@@ -191,7 +191,7 @@ TEST_F(Coo, AppliesLinearCombinationToDenseMatrix)
     mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-11.0, -2.5},
                        { -1.0,  4.5}}), 0.0);
     // clang-format on
@@ -231,7 +231,7 @@ TEST_F(Coo, AppliesAddToDenseVector)
     auto y = gko::initialize<Vec>({2.0, 1.0}, exec);
     mtx->apply2(x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
 }
 
 
@@ -250,7 +250,7 @@ TEST_F(Coo, AppliesAddToDenseMatrix)
     mtx->apply2(x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{14.0,  4.0},
                        { 7.0, -9.0}}), 0.0);
     // clang-format on
@@ -265,7 +265,7 @@ TEST_F(Coo, AppliesLinearCombinationAddToDenseVector)
 
     mtx->apply2(alpha.get(), x.get(), y.get());
 
-    ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
 }
 
 
@@ -285,7 +285,7 @@ TEST_F(Coo, AppliesLinearCombinationAddToDenseMatrix)
     mtx->apply2(alpha.get(), x.get(), y.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(y,
+    GKO_ASSERT_MTX_NEAR(y,
                     l({{-12.0, -3.0},
                        { -3.0,  6.0}}), 0.0);
     // clang-format on

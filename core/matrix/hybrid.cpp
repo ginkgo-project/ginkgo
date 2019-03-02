@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,30 +31,34 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hybrid.hpp"
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include <algorithm>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/hybrid_kernels.hpp"
 
 
 namespace gko {
 namespace matrix {
+namespace hybrid {
+
+
+GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
+
+
+}  // namespace hybrid
+
+
 namespace {
-
-
-template <typename... TplArgs>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(convert_to_dense,
-                           hybrid::convert_to_dense<TplArgs...>);
-};
 
 
 template <typename ValueType, typename IndexType>
@@ -109,9 +113,7 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(TemplatedOperation<
-              ValueType, IndexType>::make_convert_to_dense_operation(tmp.get(),
-                                                                     this));
+    exec->run(hybrid::make_convert_to_dense(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -214,10 +216,9 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 }
 
 
-#define DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
+#define GKO_DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
     class Hybrid<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_HYBRID_MATRIX);
-#undef DECLARE_HYBRID_MATRIX
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_MATRIX);
 
 
 }  // namespace matrix

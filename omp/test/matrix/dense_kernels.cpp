@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <gtest/gtest.h>
@@ -42,8 +42,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
+
+
 #include "core/matrix/dense_kernels.hpp"
-#include "core/matrix/sellp.hpp"
 
 
 namespace {
@@ -159,7 +167,7 @@ TEST_F(Dense, SingleVectorOmpScaleIsEquivalentToRef)
 
     auto result = Mtx::create(ref);
     result->copy_from(dx.get());
-    ASSERT_MTX_NEAR(result, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
 }
 
 
@@ -170,7 +178,7 @@ TEST_F(Dense, MultipleVectorOmpScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -181,7 +189,7 @@ TEST_F(Dense, MultipleVectorOmpScaleWithDifferentAlphaIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -192,7 +200,7 @@ TEST_F(Dense, SingleVectorOmpAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -203,7 +211,7 @@ TEST_F(Dense, MultipleVectorOmpAddScaledIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -214,7 +222,7 @@ TEST_F(Dense, MultipleVectorOmpAddScaledWithDifferentAlphaIsEquivalentToRef)
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
 
-    ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
 
 
@@ -225,7 +233,7 @@ TEST_F(Dense, SingleVectorOmpComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -236,7 +244,7 @@ TEST_F(Dense, MultipleVectorOmpComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -247,7 +255,7 @@ TEST_F(Dense, ComputesNorm2IsEquivalentToRef)
     x->compute_norm2(expected.get());
     dx->compute_norm2(dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -258,7 +266,7 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
     x->apply(y.get(), expected.get());
     dx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -269,13 +277,181 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     x->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToCooIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Coo<>::create(ref);
+    auto somtx = gko::matrix::Coo<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToCooIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Coo<>::create(ref);
+    auto somtx = gko::matrix::Coo<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Csr<>::create(ref);
+    auto somtx = gko::matrix::Csr<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToCsrIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Csr<>::create(ref);
+    auto somtx = gko::matrix::Csr<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToEllIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Ell<>::create(ref);
+    auto somtx = gko::matrix::Ell<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToEllIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Ell<>::create(ref);
+    auto somtx = gko::matrix::Ell<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Hybrid<>::create(ref);
+    auto somtx = gko::matrix::Hybrid<>::create(omp);
+
+    rmtx->convert_to(srmtx.get());
+    omtx->convert_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->convert_to(drmtx.get());
+    somtx->convert_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Dense, MoveToHybridIsEquivalentToRef)
+{
+    auto rmtx = gen_mtx<Mtx>(532, 231);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(rmtx.get());
+
+    auto srmtx = gko::matrix::Hybrid<>::create(ref);
+    auto somtx = gko::matrix::Hybrid<>::create(omp);
+
+    rmtx->move_to(srmtx.get());
+    omtx->move_to(somtx.get());
+
+    auto drmtx = Mtx::create(ref);
+    auto domtx = Mtx::create(omp);
+    srmtx->move_to(drmtx.get());
+    somtx->move_to(domtx.get());
+
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -290,13 +466,13 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
 TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 {
-    auto rmtx = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, ref);
+    auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
@@ -311,7 +487,7 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
 }
 
 
@@ -342,10 +518,10 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
     auto omtx = Mtx::create(omp);
     omtx->copy_from(rmtx.get());
 
-    gko::kernels::reference::dense::calculate_total_cols(ref, rmtx.get(),
-                                                         &ref_total_cols, 1);
-    gko::kernels::omp::dense::calculate_total_cols(omp, omtx.get(),
-                                                   &omp_total_cols, 1);
+    gko::kernels::reference::dense::calculate_total_cols(
+        ref, rmtx.get(), &ref_total_cols, 1, gko::matrix::default_slice_size);
+    gko::kernels::omp::dense::calculate_total_cols(
+        omp, omtx.get(), &omp_total_cols, 1, gko::matrix::default_slice_size);
 
     ASSERT_EQ(ref_total_cols, omp_total_cols);
 }
@@ -358,8 +534,8 @@ TEST_F(Dense, IsTransposable)
     auto trans = x->transpose();
     auto dtrans = dx->transpose();
 
-    ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                    static_cast<Mtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                        static_cast<Mtx *>(trans.get()), 0);
 }
 
 
@@ -370,8 +546,8 @@ TEST_F(Dense, IsConjugateTransposable)
     auto trans = c_x->conj_transpose();
     auto dtrans = dc_x->conj_transpose();
 
-    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                    static_cast<ComplexMtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
+                        static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
 

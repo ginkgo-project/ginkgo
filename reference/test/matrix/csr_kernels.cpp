@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,17 +31,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/coo.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -199,7 +199,7 @@ TEST_F(Csr, ConvertsToDense)
 
     mtx->convert_to(dense_mtx.get());
 
-    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
@@ -211,7 +211,7 @@ TEST_F(Csr, MovesToDense)
 
     mtx->move_to(dense_mtx.get());
 
-    ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
+    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
@@ -244,7 +244,7 @@ TEST_F(Csr, SquareMtxIsTransposable)
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0, 0.0, 0.0},
                        {3.0, 5.0, 1.5},
                        {2.0, 0.0, 2.0}}), 0.0);
@@ -258,7 +258,7 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
     auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0, 0.0},
                        {3.0, 5.0},
                        {2.0, 0.0}}), 0.0);
@@ -280,7 +280,7 @@ TEST_F(Csr, MtxIsConjugateTransposable)
         static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
 
     // clang-format off
-    ASSERT_MTX_NEAR(trans_as_csr,
+    GKO_ASSERT_MTX_NEAR(trans_as_csr,
                     l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
                        {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
                        {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);

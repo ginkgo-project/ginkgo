@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,17 +32,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/log/stream.hpp"
+#include <ginkgo/core/log/stream.hpp>
 
 
 #include <iomanip>
 
 
-#include "core/base/array.hpp"
-#include "core/base/lin_op.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/stop/criterion.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
+
+
+#include <ginkgo/core/base/name_demangling.hpp>
 
 
 namespace gko {
@@ -115,8 +118,6 @@ GKO_ENABLE_DEMANGLE_NAME(LinOpFactory);
 GKO_ENABLE_DEMANGLE_NAME(stop::Criterion);
 GKO_ENABLE_DEMANGLE_NAME(Executor);
 GKO_ENABLE_DEMANGLE_NAME(Operation);
-
-#undef GKO_ENABLE_DEMANGLE_NAME
 
 
 }  // namespace
@@ -452,7 +453,6 @@ void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
 
 #define GKO_DECLARE_STREAM(_type) class Stream<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
-#undef GKO_DECLARE_STREAM
 
 
 }  // namespace log

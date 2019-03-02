@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,9 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_CRITERION_KERNELS_HPP_
 
 
-#include "core/base/array.hpp"
-#include "core/base/types.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {

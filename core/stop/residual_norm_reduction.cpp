@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,28 +32,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/stop/residual_norm_reduction.hpp"
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
 
 namespace gko {
 namespace stop {
-namespace {
+namespace residual_norm_reduction {
+
+
+GKO_REGISTER_OPERATION(residual_norm_reduction,
+                       residual_norm_reduction::residual_norm_reduction);
+
+
+}  // namespace residual_norm_reduction
 
 
 template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(
-        residual_norm_reduction,
-        residual_norm_reduction::residual_norm_reduction<ValueType>);
-};
-
-
-}  // namespace
-
-
-template <typename ValueType>
-bool ResidualNormReduction<ValueType>::check(
+bool ResidualNormReduction<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
@@ -62,20 +60,19 @@ bool ResidualNormReduction<ValueType>::check(
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<Vector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        u_dense_tau = Vector::create_with_config_of(starting_tau_.get());
-        auto dense_r = as<Vector>(updater.residual_);
-        dense_r->compute_norm2(u_dense_tau.get());
-        dense_tau = u_dense_tau.get();
+        auto *dense_r = as<Vector>(updater.residual_);
+        dense_r->compute_norm2(u_dense_tau_.get());
+        dense_tau = u_dense_tau_.get();
     } else {
-        NOT_SUPPORTED(nullptr);
+        GKO_NOT_SUPPORTED(nullptr);
     }
+    bool all_converged = true;
 
-    bool all_converged{};
     this->get_executor()->run(
-        TemplatedOperation<ValueType>::make_residual_norm_reduction_operation(
+        residual_norm_reduction::make_residual_norm_reduction(
             dense_tau, starting_tau_.get(), parameters_.reduction_factor,
-            stoppingId, setFinalized, stop_status, &all_converged,
-            one_changed));
+            stoppingId, setFinalized, stop_status, &this->device_storage_,
+            &all_converged, one_changed));
     return all_converged;
 }
 
@@ -83,7 +80,6 @@ bool ResidualNormReduction<ValueType>::check(
 #define GKO_DECLARE_RESIDUAL_NORM_REDUCTION(_type) \
     class ResidualNormReduction<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION);
-#undef GKO_DECLARE_RESIDUAL_NORM_REDUCTION
 
 
 }  // namespace stop

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,9 +31,11 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/version.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/version.hpp>
+
+
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -48,9 +50,17 @@ version version_info::get_cuda_version() noexcept
 }
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master)));
+}
+
+
 void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(cuda);
+    GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::raw_free(void *ptr) const noexcept
@@ -61,20 +71,21 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const NOT_COMPILED(nvidia);
+void *CudaExecutor::raw_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
 
 
 void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(cuda);
+    GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
-    NOT_COMPILED(cuda);
+    GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::synchronize() const NOT_COMPILED(cuda);
+void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::run(const Operation &op) const
@@ -106,6 +117,9 @@ int CudaExecutor::get_num_devices() { return 0; }
 
 
 void CudaExecutor::set_gpu_property() {}
+
+
+void CudaExecutor::init_handles() {}
 
 
 }  // namespace gko

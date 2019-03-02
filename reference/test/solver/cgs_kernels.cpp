@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,20 +31,20 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/cgs.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
-#include <core/stop/time.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -60,18 +60,14 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           cgs_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(40u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(40u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           mtx_big(
               gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
                                     {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
@@ -81,18 +77,14 @@ protected:
                                     {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
                                    exec)),
           cgs_factory_big(
-              gko::solver::Cgs<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(100u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+              gko::solver::Cgs<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -111,7 +103,7 @@ TEST_F(Cgs, SolvesDenseSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
 }
 
 
@@ -124,7 +116,7 @@ TEST_F(Cgs, SolvesMultipleDenseSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
 }
 
 
@@ -138,7 +130,7 @@ TEST_F(Cgs, SolvesDenseSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
 }
 
 
@@ -153,7 +145,7 @@ TEST_F(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
 }
 
 
@@ -166,7 +158,7 @@ TEST_F(Cgs, SolvesBigDenseSystem1)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-13.0, -49.0, 69.0, -33.0, -82.0, -39.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({-13.0, -49.0, 69.0, -33.0, -82.0, -39.0}), 1e-10);
 }
 
 
@@ -179,7 +171,7 @@ TEST_F(Cgs, SolvesBigDenseSystem2)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-58.0, 98.0, -16.0, -58.0, 2.0, 76.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({-58.0, 98.0, -16.0, -58.0, 2.0, 76.0}), 1e-10);
 }
 
 
@@ -253,7 +245,7 @@ TEST_F(Cgs, SolvesMultipleDenseSystems)
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
 }
 
 

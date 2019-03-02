@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -88,15 +88,15 @@ TEST_F(MatricesNear, SucceedsIfClose)
 
 TEST_F(MatricesNear, CanUseShortNotation)
 {
-    EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
-    ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
+    GKO_EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
+    GKO_ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
 }
 
 
 TEST_F(MatricesNear, CanPassInitializerList)
 {
-    EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
-    ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+    GKO_EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
 }
 
 

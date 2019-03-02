@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,11 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
 
 
-#include "core/base/array.hpp"
-#include "core/base/math.hpp"
-#include "core/base/types.hpp"
-#include "core/matrix/dense.hpp"
-#include "core/stop/stopping_status.hpp"
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {
@@ -53,11 +53,11 @@ namespace residual_norm_reduction {
         const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
         remove_complex<_type> rel_residual_goal, uint8 stoppingId,             \
         bool setFinalized, Array<stopping_status> *stop_status,                \
-        bool *all_converged, bool *one_changed)
+        Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 
 
-#define DECLARE_ALL_AS_TEMPLATES  \
-    template <typename ValueType> \
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename ValueType>    \
     GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
 
 
@@ -67,7 +67,7 @@ namespace residual_norm_reduction {
 namespace omp {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace omp
@@ -76,7 +76,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace cuda
@@ -85,13 +85,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace residual_norm_reduction {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm_reduction
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 }  // namespace kernels
 }  // namespace gko

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -37,10 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/matrix/csr.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "omp/components/format_conversion.hpp"
 
 
@@ -149,7 +151,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const OmpExecutor> exec,
                matrix::Coo<ValueType, IndexType> *trans,
-               const matrix::Coo<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+               const matrix::Coo<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
 
@@ -158,7 +161,7 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *trans,
                     const matrix::Coo<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);

@@ -1,1 +1,1 @@
-create_test(block_jacobi)
+ginkgo_create_test(jacobi)

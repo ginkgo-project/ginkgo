@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/fcg.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 
 
 #include <gtest/gtest.h>
@@ -40,14 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/solver/fcg_kernels.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 namespace {
 
@@ -199,14 +199,14 @@ TEST_F(Fcg, OmpFcgInitializeIsEquivalentToRef)
         omp, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
 }
 
 
@@ -219,8 +219,8 @@ TEST_F(Fcg, OmpFcgStep1IsEquivalentToRef)
     gko::kernels::omp::fcg::step_1(omp, d_p.get(), d_z.get(), d_rho_t.get(),
                                    d_prev_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
@@ -234,9 +234,9 @@ TEST_F(Fcg, OmpFcgStep2IsEquivalentToRef)
                                    d_p.get(), d_q.get(), d_beta.get(),
                                    d_rho.get(), d_stop_status.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
 }
 
 
@@ -253,38 +253,28 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     auto d_b = Mtx::create(omp);
     d_b->copy_from(b.get());
     auto fcg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(50u)
-                            .on_executor(ref),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-14)
-                            .on_executor(ref))
-                    .on_executor(ref))
-            .on_executor(ref);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(ref))
+            .on(ref);
     auto d_fcg_factory =
-        Solver::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(50u)
-                            .on_executor(omp),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-14)
-                            .on_executor(omp))
-                    .on_executor(omp))
-            .on_executor(omp);
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(omp))
+            .on(omp);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 

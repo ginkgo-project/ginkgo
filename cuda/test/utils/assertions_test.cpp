@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/matrix/csr.hpp>
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -76,8 +76,8 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
     auto csr_mtx = gko::matrix::Csr<>::create(cuda);
     csr_mtx->copy_from(std::move(csr_omp));
 
-    EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
-    ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <random>
@@ -40,10 +41,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -139,7 +140,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -150,7 +151,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -161,7 +162,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -172,7 +173,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithCusparse)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -183,7 +184,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -194,7 +195,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -205,7 +206,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
 
@@ -216,8 +217,8 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
-    ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
-                    static_cast<Mtx *>(trans.get()), 0.0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
+                        static_cast<Mtx *>(trans.get()), 0.0);
 }
 
 
@@ -228,8 +229,22 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
     auto trans = complex_mtx->conj_transpose();
     auto d_trans = complex_dmtx->conj_transpose();
 
-    ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                    static_cast<ComplexMtx *>(trans.get()), 0.0);
+    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
+                        static_cast<ComplexMtx *>(trans.get()), 0.0);
+}
+
+
+TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
 

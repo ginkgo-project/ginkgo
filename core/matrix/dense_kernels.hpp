@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
 
 
-#include "core/base/types.hpp"
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -136,7 +136,8 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
     void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Dense<_type> *source,          \
-                              size_type *result, size_type stride_factor)
+                              size_type *result, size_type stride_factor,  \
+                              size_type slice_size)
 
 #define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
@@ -148,7 +149,7 @@ namespace kernels {
                         matrix::Dense<_type> *trans,                 \
                         const matrix::Dense<_type> *orig)
 
-#define DECLARE_ALL_AS_TEMPLATES                                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType>                                     \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                 \
     template <typename ValueType>                                     \
@@ -196,7 +197,7 @@ namespace kernels {
 namespace omp {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace omp
@@ -205,7 +206,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace cuda
@@ -214,13 +215,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace dense {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

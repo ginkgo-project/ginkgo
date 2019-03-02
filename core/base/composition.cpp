@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,10 +31,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/composition.hpp"
+#include <ginkgo/core/base/composition.hpp>
 
 
-#include "core/matrix/dense.hpp"
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -94,8 +94,8 @@ void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define DECLARE_COMPOSITION(_type) class Composition<_type>;
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(DECLARE_COMPOSITION);
+#define GKO_DECLARE_COMPOSITION(_type) class Composition<_type>;
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMPOSITION);
 
 
 }  // namespace gko

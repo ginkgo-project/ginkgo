@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,21 +31,21 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/gmres.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/preconditioner/block_jacobi.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
-#include <core/stop/time.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -59,22 +59,16 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
-              gko::solver::Gmres<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              gko::stop::Iteration::Factory::create()
-                                  .with_max_iters(4u)
-                                  .on_executor(exec),
-                              gko::stop::Time::Factory::create()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              gko::solver::Gmres<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
                {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
@@ -84,18 +78,14 @@ protected:
                {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
               exec)),
           gmres_factory_big(
-              gko::solver::Gmres<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(gko::stop::Iteration::Factory::create()
-                                             .with_max_iters(100u)
-                                             .on_executor(exec),
-                                         gko::stop::ResidualNormReduction<>::
-                                             Factory::create()
-                                                 .with_reduction_factor(1e-15)
-                                                 .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              gko::solver::Gmres<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
                                     {7.70, -77.00, 3.30, -149.20, 74.80},
@@ -122,7 +112,7 @@ TEST_F(Gmres, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
 
@@ -134,7 +124,7 @@ TEST_F(Gmres, SolvesMultipleStencilSystems)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
 }
 
 
@@ -148,7 +138,7 @@ TEST_F(Gmres, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
 }
 
 
@@ -162,7 +152,7 @@ TEST_F(Gmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
 }
 
 
@@ -175,7 +165,7 @@ TEST_F(Gmres, SolvesBigDenseSystem1)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}), 1e-10);
 }
 
 
@@ -189,7 +179,7 @@ TEST_F(Gmres, SolvesBigDenseSystem2)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
 }
 
 
@@ -263,26 +253,21 @@ TEST_F(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
 }
 
 
 TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
 {
     auto gmres_factory_restart =
-        gko::solver::Gmres<>::Factory::create()
+        gko::solver::Gmres<>::build()
             .with_krylov_dim(4u)
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(200u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(200u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-15)
+                    .on(exec))
+            .on(exec);
     auto solver = gmres_factory_restart->generate(mtx_medium);
     auto b = gko::initialize<Mtx>(
         {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, exec);
@@ -290,27 +275,23 @@ TEST_F(Gmres, SolvesBigDenseSystem1WithRestart)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}), 1e-5);
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}), 1e-5);
 }
 
 
 TEST_F(Gmres, SolvesWithPreconditioner)
 {
     auto gmres_factory_preconditioner =
-        gko::solver::Gmres<>::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(100u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .with_preconditioner(
-                gko::preconditioner::BlockJacobiFactory<>::create(exec, 3))
-            .on_executor(exec);
+        gko::solver::Gmres<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-15)
+                    .on(exec))
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build()
+                                     .with_max_block_size(3u)
+                                     .on(exec))
+            .on(exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
@@ -319,7 +300,7 @@ TEST_F(Gmres, SolvesWithPreconditioner)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
 }
 
 

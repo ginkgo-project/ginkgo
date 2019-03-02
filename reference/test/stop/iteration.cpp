@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/iteration.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include <gtest/gtest.h>
@@ -47,9 +47,9 @@ class Iteration : public ::testing::Test {
 protected:
     Iteration() : exec_{gko::ReferenceExecutor::create()}
     {
-        factory_ = gko::stop::Iteration::Factory::create()
+        factory_ = gko::stop::Iteration::build()
                        .with_max_iters(test_iterations)
-                       .on_executor(exec_);
+                       .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;
@@ -61,6 +61,7 @@ TEST_F(Iteration, WaitsTillIteration)
 {
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
+    stop_status.get_data()[0].clear();
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
 

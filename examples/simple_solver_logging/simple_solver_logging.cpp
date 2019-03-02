@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -63,7 +63,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver_logging
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>
@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Let's declare a logger which prints to std::cout instead of printing to a
-    // file We log all events except for all linop factory and polymorphic
-    // object events There events masks are group of events which are provided
+    // file. We log all events except for all linop factory and polymorphic
+    // object events. Events masks are group of events which are provided
     // for convenience.
     std::shared_ptr<gko::log::Stream<>> stream_logger =
         gko::log::Stream<>::create(
@@ -132,26 +132,26 @@ int main(int argc, char *argv[])
     // Add stream_logger to the executor
     exec->add_logger(stream_logger);
 
-    // Add stream_logger to the criterion
-    // criterion->add_logger(stream_logger);
+    // Add stream_logger only to the ResidualNormReduction criterion Factory
+    // Note that the logger will get automatically propagated to every criterion
+    // generated from this factory.
+    using ResidualCriterionFactory =
+        gko::stop::ResidualNormReduction<>::Factory;
+    std::shared_ptr<ResidualCriterionFactory> residual_criterion =
+        ResidualCriterionFactory::create().with_reduction_factor(1e-20).on(
+            exec);
+    residual_criterion->add_logger(stream_logger);
 
     // Generate solver
     auto solver_gen =
-        cg::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(20u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-20)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+        cg::build()
+            .with_criteria(
+                residual_criterion,
+                gko::stop::Iteration::build().with_max_iters(20u).on(exec))
+            .on(exec);
     auto solver = solver_gen->generate(A);
 
-    // Here begins the actual logging example:
+
     // First we add facilities to only print to a file. It's possible to select
     // events, using masks, e.g. only iterations mask:
     // gko::log::Logger::iteration_complete_mask. See the documentation of
@@ -159,18 +159,16 @@ int main(int argc, char *argv[])
     std::ofstream filestream("my_file.txt");
     solver->add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, filestream));
-
     solver->add_logger(stream_logger);
 
     // Add another logger which puts all the data in an object, we can later
-    // retrieve this object in our code. Here we only have want LinOp, Executor
-    // and last iteration completed events.
+    // retrieve this object in our code. Here we only have want Executor
+    // and criterion check completed events.
     std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_events_mask |
-                  gko::log::Logger::executor_events_mask |
-                  gko::log::Logger::iteration_complete_mask);
-    solver->add_logger(record_logger);
+        exec, gko::log::Logger::executor_events_mask |
+                  gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
+    residual_criterion->add_logger(record_logger);
 
     // Solve system
     solver->apply(lend(b), lend(x));
@@ -184,9 +182,10 @@ int main(int argc, char *argv[])
               << std::get<0>(*last_copy).location << " TO executor "
               << std::get<1>(*last_copy).exec << " pointer "
               << std::get<1>(*last_copy).location << std::dec << std::endl;
-    // Also print the residual of the last iteration completed
+    // Also print the residual of the last criterion check event (where
+    // convergence happened)
     auto residual =
-        record_logger->get().iteration_completed.back()->residual.get();
+        record_logger->get().criterion_check_completed.back()->residual.get();
     auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
     print_vector("Residual", residual_d);
 

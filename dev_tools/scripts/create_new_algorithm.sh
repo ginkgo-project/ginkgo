@@ -102,10 +102,6 @@ TEMPLATE_FILES=(
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
-    # "${name}_kernels.cpp"
-    # "${name}_kernels.cpp"
-    # "${name}_kernels.cpp"
-    # "${name}_kernels.cpp"
 )
 CMAKE_FILES=(
     "core/CMakeLists.txt"
@@ -118,14 +114,10 @@ CMAKE_FILES=(
     "reference/test/$source_type/CMakeLists.txt"
     "omp/test/$source_type/CMakeLists.txt"
     "cuda/test/$source_type/CMakeLists.txt"
-    # "core/benchmark/$source_type/CMakeLists.txt"
-    # "reference/benchmark/$source_type/CMakeLists.txt"
-    # "omp/benchmark/$source_type/CMakeLists.txt"
-    # "cuda/benchmark/$source_type/CMakeLists.txt"
 )
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
-    "core/$source_type"
+    "include/ginkgo/core/$source_type"
     "core/$source_type"
     "reference/$source_type"
     "omp/$source_type"
@@ -134,10 +126,6 @@ TEMPLATE_FILES_LOCATIONS=(
     "reference/test/$source_type"
     "omp/test/$source_type"
     "cuda/test/$source_type"
-    # "core/benchmark/$source_type"
-    # "reference/benchmark/$source_type"
-    # "omp/benchmark/$source_type"
-    # "cuda/benchmark/$source_type"
 )
 TEMPLATE_FILES_TYPES=(
     "$source_type file"
@@ -150,10 +138,6 @@ TEMPLATE_FILES_TYPES=(
     "unit tests for ${name} reference kernels"
     "unit tests for ${name} OMP kernels"
     "unit tests for ${name} CUDA kernels"
-    # "benchmarks for ${name} $type"
-    # "benchmarks for ${name} reference kernels"
-    # "benchmarks for ${name} OMP kernels"
-    # "benchmarks for ${name} CUDA kernels"
 )
 TEMPLATE_FILES_DESCRIPTIONS=(
     "This is where the ${name} algorithm needs to be implemented."
@@ -166,10 +150,6 @@ TEMPLATE_FILES_DESCRIPTIONS=(
     ""
     ""
     ""
-    # ""
-    # ""
-    # ""
-    # ""
 )
 
 mkdir ${TMPDIR}
@@ -209,7 +189,7 @@ do
 
 
     # Comment all code
-    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
+    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "GKO_NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
     mv tmp  ${TMPDIR}/$destpath
 
     ls ${TMPDIR}/$destpath
@@ -259,7 +239,13 @@ then
                 mv tmp $cmake_file
             elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
             then
-                list=( $(awk '/set\(SOURCES/,/    .*\)/ { if ($0 != "set(SOURCES"){ print $0 }}'  $cmake_file) )
+                ## Works only if we have something of the form:
+                ##target_sources(
+                ##     PRIVATE
+                ##         <lib1>
+                ##         ...
+                ##         <libn>)
+                list=( $(awk '/^target_sources/,/        .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
                 last_elem=$((${#list[@]}-1))
                 list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
                 list+=( "$source_type/${TEMPLATE_FILES[$i-1]}" )
@@ -269,16 +255,17 @@ then
                 sorted[$last_elem]=$(echo ${sorted[$last_elem]}")")
 
                 ## find the correct position
-                insert_to=$(grep -n "set(SOURCES" $cmake_file | sed 's/:.*//')
+                insert_to=$(grep -n -m 1 "target_sources" $cmake_file | sed 's/:.*//')
+                insert_to=$((insert_to + 1)) # account for the "PRIVATE"
 
                 ## clear up the CMakeList.txt
-                awk '/set\(SOURCES/,/    .*\)/ { if ($0 == "set(SOURCES"){ print $0 }; next}1'  $cmake_file > tmp
+                awk '/^target_sources/,/        .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
 
                 mytmp=`mktemp`
                 head -n$insert_to tmp > $mytmp
                 for line in "${sorted[@]}"
                 do
-                    echo "    $line" >> $mytmp
+                    echo "        $line" >> $mytmp
                 done
                 tail -n +$((insert_to+1)) tmp >> $mytmp
                 mv $mytmp tmp
@@ -290,12 +277,12 @@ then
         ## Automatically duplicate the entry of common_kernels.inc.cpp
         common_kernels_file="${GINKGO_ROOT_DIR}/core/device_hooks/common_kernels.inc.cpp"
         # add the new kernel file to headers
-        headers=( "$(grep '#include' $common_kernels_file)" )
+        headers=( "$(grep '#include \"' $common_kernels_file)" )
         headers+=( "#include \"core/${source_type}/${name}_kernels.hpp\"")
         IFS=$'\n' headers_sorted=($(sort <<<"${headers[*]}"))
         unset IFS
-        header_block_begin=$(grep -n "#include" $common_kernels_file | head -n1 | sed 's/:.*//')
-        grep -v '#include' $common_kernels_file > tmp
+        header_block_begin=$(grep -n "#include \"" $common_kernels_file | head -n1 | sed 's/:.*//')
+        grep -v '#include "' $common_kernels_file > tmp
 
         mytmp=`mktemp`
         head -n$((header_block_begin-1)) tmp > $mytmp
@@ -396,7 +383,7 @@ then
     echo ""                                                   | tee -a todo_${name}.txt
     echo "// template <typename ValueType>"                   | tee -a todo_${name}.txt
     echo "// GKO_DECLARE_${NAME}_INITIALIZE_KERNEL(ValueType)"| tee -a todo_${name}.txt
-    echo "// NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a todo_${name}.txt
+    echo "// GKO_NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a todo_${name}.txt
     echo "// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_${NAME}_INITIALIZE_KERNEL);" | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
     echo "// ..."                                             | tee -a todo_${name}.txt

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/abstract_factory.hpp>
 
 
 #include <gtest/gtest.h>
@@ -61,7 +61,6 @@ struct IntFactory
                                     base>::EnableDefaultFactory;
 };
 
-
 struct MyInt {
     MyInt(const IntFactory *factory, int orig_value)
         : value{orig_value * factory->get_parameters().coefficient}
@@ -72,8 +71,7 @@ struct MyInt {
 
 TEST(EnableDefaultFactory, StoresParameters)
 {
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
 
     ASSERT_EQ(fact->get_parameters().coefficient, 5);
 }
@@ -81,8 +79,7 @@ TEST(EnableDefaultFactory, StoresParameters)
 
 TEST(EnableDefaultFactory, GeneratesProduct)
 {
-    auto fact =
-        IntFactory::create().on_executor(gko::ReferenceExecutor::create());
+    auto fact = IntFactory::create().on(gko::ReferenceExecutor::create());
 
     auto prod = fact->generate(3);
 

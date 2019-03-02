@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include <random>
@@ -40,11 +40,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/exception_helpers.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -152,7 +152,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -165,7 +165,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -178,7 +178,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -191,7 +191,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -204,7 +204,7 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -217,7 +217,7 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -231,7 +231,7 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
@@ -245,7 +245,21 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
 

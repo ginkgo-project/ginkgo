@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/base/executor.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
 #include <type_traits>
@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
+#include <ginkgo/core/base/exception.hpp>
 
 
 namespace {
@@ -289,9 +289,9 @@ TEST(CudaExecutor, KnowsItsMaster)
 TEST(CudaExecutor, KnowsItsDeviceId)
 {
     auto omp = gko::OmpExecutor::create();
-    auto cuda = gko::CudaExecutor::create(5, omp);
+    auto cuda = gko::CudaExecutor::create(0, omp);
 
-    ASSERT_EQ(5, cuda->get_device_id());
+    ASSERT_EQ(0, cuda->get_device_id());
 }
 
 
@@ -323,6 +323,13 @@ TEST(ExecutorDeleter, DeletesObject)
     gko::executor_deleter<int>{ref}(x);
 
     ASSERT_TRUE(ref->called_free);
+}
+
+
+TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
+{
+    int x[5];
+    ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
 }
 
 

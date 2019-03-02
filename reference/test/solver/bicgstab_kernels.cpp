@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,20 +31,20 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/bicgstab.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/stop/combined.hpp>
-#include <core/stop/iteration.hpp>
-#include <core/stop/residual_norm_reduction.hpp>
-#include <core/stop/time.hpp>
 #include <core/test/utils.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -60,39 +60,28 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           bicgstab_factory(
-              Solver::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              gko::stop::Iteration::Factory::create()
-                                  .with_max_iters(8u)
-                                  .on_executor(exec),
-                              gko::stop::Time::Factory::create()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec)),
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           bicgstab_factory_precision(
-              gko::solver::Bicgstab<>::Factory::create()
-                  .with_criterion(
-                      gko::stop::Combined::Factory::create()
-                          .with_criteria(
-                              gko::stop::Iteration::Factory::create()
-                                  .with_max_iters(50u)
-                                  .on_executor(exec),
-                              gko::stop::Time::Factory::create()
-                                  .with_time_limit(std::chrono::seconds(6))
-                                  .on_executor(exec),
-                              gko::stop::ResidualNormReduction<>::Factory::
-                                  create()
-                                      .with_reduction_factor(1e-15)
-                                      .on_executor(exec))
-                          .on_executor(exec))
-                  .on_executor(exec))
+              gko::solver::Bicgstab<>::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(50u).on(
+                          exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -111,7 +100,7 @@ TEST_F(Bicgstab, SolvesDenseSystem)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), 1e-8);
 }
 
 
@@ -124,7 +113,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystems)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}), 1e-8);
 }
 
 
@@ -139,7 +128,7 @@ TEST_F(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
 
-    ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 1e-8);
 }
 
 
@@ -155,7 +144,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
 
-    ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
+    GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}), 1e-8);
 }
 
 
@@ -176,7 +165,7 @@ TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x,
         l({0.13853406350816114, -0.08147485210505287, -0.0450299311807042,
            -0.0051264177562865719, 0.11609654300797841, 0.1018688746740561}),
@@ -200,7 +189,7 @@ TEST_F(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
 
     solver->apply(b.get(), x.get());
 
-    ASSERT_MTX_NEAR(
+    GKO_ASSERT_MTX_NEAR(
         x,
         l({0.13517641417299162, 0.75117689075221139, 0.47572853185155239,
            -0.50927993095367852, 0.13463333820848167, 0.23126768306576015}),
@@ -284,7 +273,7 @@ TEST_F(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    ASSERT_MTX_NEAR(xc, testMtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(xc, testMtx, 1e-14);
 }
 
 

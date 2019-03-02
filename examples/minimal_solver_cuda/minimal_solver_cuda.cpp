@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -78,33 +78,27 @@ cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda
 
 *****************************<DECSRIPTION>**********************************/
 
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 
 int main()
 {
     // Instantiate a CUDA executor
-    auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
-    auto A = gko::read<gko::matrix::Csr<>>(std::cin, exec);
-    auto b = gko::read<gko::matrix::Dense<>>(std::cin, exec);
-    auto x = gko::read<gko::matrix::Dense<>>(std::cin, exec);
+    auto A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);
+    auto b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);
+    auto x = gko::read<gko::matrix::Dense<>>(std::cin, gpu);
     // Create the solver
     auto solver =
-        gko::solver::Cg<>::Factory::create()
-            .with_preconditioner(
-                gko::preconditioner::BlockJacobiFactory<>::create(exec, 32))
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(20u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-15)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            .on_executor(exec);
+        gko::solver::Cg<>::build()
+            .with_preconditioner(gko::preconditioner::Jacobi<>::build().on(gpu))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(20u).on(gpu),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-15)
+                    .on(gpu))
+            .on(gpu);
     // Solve system
     solver->generate(give(A))->apply(lend(b), lend(x));
     // Write result

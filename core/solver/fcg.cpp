@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,31 +31,30 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/fcg.hpp"
+#include <ginkgo/core/solver/fcg.hpp>
 
 
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+
+
 #include "core/solver/fcg_kernels.hpp"
 
 
 namespace gko {
 namespace solver {
-namespace {
+namespace fcg {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, fcg::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, fcg::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, fcg::step_2<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, fcg::initialize);
+GKO_REGISTER_OPERATION(step_1, fcg::step_1);
+GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 
-}  // namespace
+}  // namespace fcg
 
 
 template <typename ValueType>
@@ -91,9 +90,9 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
-        dense_b, r.get(), z.get(), p.get(), q.get(), t.get(), prev_rho.get(),
-        rho.get(), rho_t.get(), &stop_status));
+    exec->run(fcg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
+                                   t.get(), prev_rho.get(), rho.get(),
+                                   rho_t.get(), &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -106,12 +105,15 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
 
-    int iter = 0;
+    int iter = -1;
     while (true) {
         preconditioner_->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         t->compute_dot(z.get(), rho_t.get());
 
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
@@ -120,24 +122,20 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            p.get(), z.get(), rho_t.get(), prev_rho.get(), &stop_status));
+        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
+                                   prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            dense_x, r.get(), t.get(), p.get(), q.get(), beta.get(), rho.get(),
-            &stop_status));
+        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
         swap(prev_rho, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }
 
@@ -156,7 +154,6 @@ void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_FCG(_type) class Fcg<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
-#undef GKO_DECLARE_FCG
 
 
 }  // namespace solver

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -34,14 +34,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/shuffle.cuh"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/synchronization.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
@@ -70,13 +73,14 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(const IndexType ind,
-                                             ValueType *__restrict__ val)
+__device__ __forceinline__ bool segment_scan(
+    const group::thread_block_tile<wsize> &group, const IndexType ind,
+    ValueType *__restrict__ val)
 {
     bool head = true;
 #pragma unroll
     for (int i = 1; i < wsize; i <<= 1) {
-        const IndexType add_ind = warp::shuffle_up(ind, i);
+        const IndexType add_ind = group.shfl_up(ind, i);
         ValueType add_val = zero<ValueType>();
         if (add_ind == ind && threadIdx.x >= i) {
             add_val = *val;
@@ -84,7 +88,7 @@ __device__ __forceinline__ bool segment_scan(const IndexType ind,
                 head = false;
             }
         }
-        add_val = warp::shuffle_down(add_val, i);
+        add_val = group.shfl_down(add_val, i);
         if (threadIdx.x < wsize - i) {
             *val += add_val;
         }
@@ -141,14 +145,13 @@ __device__ __forceinline__ void find_next_row(
 
 
 template <typename ValueType, typename IndexType, typename Closure>
-__device__ __forceinline__ void warp_atomic_add(bool force_write,
-                                                ValueType *__restrict__ val,
-                                                IndexType ind,
-                                                ValueType *__restrict__ out,
-                                                Closure scale)
+__device__ __forceinline__ void warp_atomic_add(
+    const group::thread_block_tile<wsize> &group, bool force_write,
+    ValueType *__restrict__ val, IndexType ind, ValueType *__restrict__ out,
+    Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(ind, val);
+    const bool need_write = segment_scan(group, ind, val);
     if (need_write && force_write) {
         atomic_add(out + ind, scale(*val));
     }
@@ -160,11 +163,11 @@ __device__ __forceinline__ void warp_atomic_add(bool force_write,
 
 template <bool last, typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void process_window(
-    const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
-    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
+    const group::thread_block_tile<wsize> &group, const IndexType num_rows,
+    const IndexType data_size, const IndexType ind, IndexType *__restrict__ row,
+    IndexType *__restrict__ row_end, IndexType *__restrict__ nrow,
+    IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
     ValueType *__restrict__ c, Closure scale)
 {
@@ -172,10 +175,10 @@ __device__ __forceinline__ void process_window(
     find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
                         *nrow_end, row_ptrs);
     // segmented scan
-    if (warp::any(curr_row != *row)) {
-        warp_atomic_add(curr_row != *row, temp_val, curr_row, c, scale);
-        *nrow = warp::shuffle(*row, wsize - 1);
-        *nrow_end = warp::shuffle(*row_end, wsize - 1);
+    if (group.any(curr_row != *row)) {
+        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c, scale);
+        *nrow = group.shfl(*row, wsize - 1);
+        *nrow_end = group.shfl(*row_end, wsize - 1);
     }
 
     if (!last || ind < data_size) {
@@ -219,15 +222,17 @@ __device__ __forceinline__ void spmv_kernel(
     find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
                         nrow_end, row_ptrs);
     const IndexType ind_end = end - wsize;
+    const auto tile_block =
+        group::tiled_partition<wsize>(group::this_thread_block());
     for (; ind < ind_end; ind += wsize) {
-        process_window<false>(num_rows, data_size, ind, &row, &row_end, &nrow,
-                              &nrow_end, &temp_val, val, col_idxs, row_ptrs, b,
-                              c, scale);
+        process_window<false>(tile_block, num_rows, data_size, ind, &row,
+                              &row_end, &nrow, &nrow_end, &temp_val, val,
+                              col_idxs, row_ptrs, b, c, scale);
     }
-    process_window<true>(num_rows, data_size, ind, &row, &row_end, &nrow,
-                         &nrow_end, &temp_val, val, col_idxs, row_ptrs, b, c,
-                         scale);
-    warp_atomic_add(true, &temp_val, row, c, scale);
+    process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
+                         &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
+                         b, c, scale);
+    warp_atomic_add(tile_block, true, &temp_val, row, c, scale);
 }
 
 
@@ -437,7 +442,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        ASSERT_NO_CUDA_ERRORS(
+        GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemset(c->get_values(), 0,
                        c->get_num_stored_elements() * sizeof(ValueType)));
         const IndexType nwarps = a->get_num_srow_elements();
@@ -543,16 +548,17 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     } else if (a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
-            auto handle = cusparse::init();
+            auto handle = exec->get_cusparse_handle();
             auto descr = cusparse::create_mat_descr();
-            ASSERT_NO_CUSPARSE_ERRORS(
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
 
             auto row_ptrs = a->get_const_row_ptrs();
             auto col_idxs = a->get_const_col_idxs();
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+            if (b->get_stride() != 1 || c->get_stride() != 1)
+                GKO_NOT_IMPLEMENTED;
 
             cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                            a->get_size()[0], a->get_size()[1],
@@ -560,8 +566,10 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                            a->get_const_values(), row_ptrs, col_idxs,
                            b->get_const_values(), &beta, c->get_values());
 
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(
+                cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
             cusparse::destroy(descr);
-            cusparse::destroy(handle);
         } else {
             // use classical implementation
             classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
@@ -605,25 +613,25 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     } else if (a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
-            auto handle = cusparse::init();
             auto descr = cusparse::create_mat_descr();
 
             auto row_ptrs = a->get_const_row_ptrs();
             auto col_idxs = a->get_const_col_idxs();
 
-            if (b->get_stride() != 1 || c->get_stride() != 1) NOT_IMPLEMENTED;
+            if (b->get_stride() != 1 || c->get_stride() != 1)
+                GKO_NOT_IMPLEMENTED;
 
-            cusparse::spmv(
-                handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
-                a->get_size()[1], a->get_num_stored_elements(),
-                alpha->get_const_values(), descr, a->get_const_values(),
-                row_ptrs, col_idxs, b->get_const_values(),
-                beta->get_const_values(), c->get_values());
+            cusparse::spmv(exec->get_cusparse_handle(),
+                           CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                           a->get_size()[1], a->get_num_stored_elements(),
+                           alpha->get_const_values(), descr,
+                           a->get_const_values(), row_ptrs, col_idxs,
+                           b->get_const_values(), beta->get_const_values(),
+                           c->get_values());
 
             cusparse::destroy(descr);
-            cusparse::destroy(handle);
         } else {
-            NOT_IMPLEMENTED;
+            GKO_NOT_IMPLEMENTED;
         }
     }
 }
@@ -632,28 +640,110 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
+    size_type num_rows, const IndexType *__restrict__ ptrs,
+    IndexType *__restrict__ idxs)
+{
+    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    if (tidx < num_rows) {
+        for (auto i = ptrs[tidx]; i < ptrs[tidx + 1]; i++) {
+            idxs[i] = tidx;
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs) NOT_IMPLEMENTED;
+                              IndexType *idxs)
+{
+    const auto grid_dim = ceildiv(num_rows, default_block_size);
+
+    kernel::convert_row_ptrs_to_idxs<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(ptrs), as_cuda_type(idxs));
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
+        size_type num_rows, size_type num_cols, size_type stride,
+        ValueType *__restrict__ result)
+{
+    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
+    if (tidx_x < num_cols && tidx_y < num_rows) {
+        result[tidx_y * stride + tidx_x] = zero<ValueType>();
+    }
+}
+
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, size_type stride,
+    ValueType *__restrict__ result)
+{
+    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    if (tidx < num_rows) {
+        for (auto i = row_ptrs[tidx]; i < row_ptrs[tidx + 1]; i++) {
+            result[stride * tidx + col_idxs[i]] = values[i];
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Csr<ValueType, IndexType> *source)
+{
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto stride = result->get_stride();
+    const auto row_ptrs = source->get_const_row_ptrs();
+    const auto col_idxs = source->get_const_col_idxs();
+    const auto vals = source->get_const_values();
+
+    const dim3 block_size(cuda_config::warp_size,
+                          cuda_config::max_block_size / cuda_config::warp_size,
+                          1);
+    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+                             ceildiv(num_rows, block_size.y), 1);
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
+        num_rows, num_cols, stride, as_cuda_type(result->get_values()));
+
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
+        as_cuda_type(vals), stride, as_cuda_type(result->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void move_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                   matrix::Dense<ValueType> *result,
-                   matrix::Csr<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+void move_to_dense(
+    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
+    matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
@@ -665,20 +755,17 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                const matrix::Csr<ValueType, IndexType> *orig)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = cusparse::init();
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         cusparse::transpose(
-            handle, orig->get_size()[0], orig->get_size()[1],
-            orig->get_num_stored_elements(), orig->get_const_values(),
-            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-            trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
-            copyValues, idxBase);
-
-        cusparse::destroy(handle);
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
     } else {
-        NOT_IMPLEMENTED;
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -715,24 +802,21 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         const dim3 grid_size(
             ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
 
-        auto handle = cusparse::init();
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
         cusparse::transpose(
-            handle, orig->get_size()[0], orig->get_size()[1],
-            orig->get_num_stored_elements(), orig->get_const_values(),
-            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-            trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
-            copyValues, idxBase);
-
-        cusparse::destroy(handle);
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
 
         conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
             trans->get_num_stored_elements(),
             as_cuda_type(trans->get_values()));
     } else {
-        NOT_IMPLEMENTED;
+        GKO_NOT_IMPLEMENTED;
     }
 }
 

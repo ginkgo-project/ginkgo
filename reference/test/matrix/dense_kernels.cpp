@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <complex>
@@ -40,14 +40,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/exception.hpp>
-#include <core/base/executor.hpp>
-#include <core/matrix/coo.hpp>
-#include <core/matrix/csr.hpp>
-#include <core/matrix/ell.hpp>
-#include <core/matrix/hybrid.hpp>
-#include <core/matrix/sellp.hpp>
+#include <random>
+
+
+#include <core/test/utils.hpp>
+
+
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 namespace {
@@ -86,6 +92,17 @@ protected:
     std::unique_ptr<gko::matrix::Dense<std::complex<double>>> mtx6;
     std::unique_ptr<gko::matrix::Dense<>> mtx7;
     std::unique_ptr<gko::matrix::Dense<>> mtx8;
+
+    std::ranlux48 rand_engine;
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<MtxType>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine, exec);
+    }
 };
 
 
@@ -482,27 +499,28 @@ TEST_F(Dense, MovesToHybridAutomatically)
 
     mtx4->move_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 2);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
-    EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
@@ -512,27 +530,28 @@ TEST_F(Dense, ConvertsToHybridAutomatically)
 
     mtx4->convert_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 2);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 3.0);
-    EXPECT_EQ(v[3], 0.0);
-    EXPECT_EQ(v[4], 2.0);
-    EXPECT_EQ(v[5], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
@@ -543,33 +562,28 @@ TEST_F(Dense, MovesToHybridWithStrideAutomatically)
 
     mtx4->move_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 3);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 2);
-    EXPECT_EQ(c[7], 0);
-    EXPECT_EQ(c[8], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 0.0);
-    EXPECT_EQ(v[3], 3.0);
-    EXPECT_EQ(v[4], 0.0);
-    EXPECT_EQ(v[5], 0.0);
-    EXPECT_EQ(v[6], 2.0);
-    EXPECT_EQ(v[7], 0.0);
-    EXPECT_EQ(v[8], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
@@ -580,33 +594,28 @@ TEST_F(Dense, ConvertsToHybridWithStrideAutomatically)
 
     mtx4->convert_to(hybrid_mtx.get());
 
-    auto v = hybrid_mtx->get_const_ell_values();
-    auto c = hybrid_mtx->get_const_ell_col_idxs();
+    auto v = hybrid_mtx->get_const_coo_values();
+    auto c = hybrid_mtx->get_const_coo_col_idxs();
+    auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 9);
-    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 0);
-    EXPECT_EQ(n, 3);
+    ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
     EXPECT_EQ(p, 3);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 2);
-    EXPECT_EQ(c[7], 0);
-    EXPECT_EQ(c[8], 0);
     EXPECT_EQ(v[0], 1.0);
-    EXPECT_EQ(v[1], 5.0);
-    EXPECT_EQ(v[2], 0.0);
-    EXPECT_EQ(v[3], 3.0);
-    EXPECT_EQ(v[4], 0.0);
-    EXPECT_EQ(v[5], 0.0);
-    EXPECT_EQ(v[6], 2.0);
-    EXPECT_EQ(v[7], 0.0);
-    EXPECT_EQ(v[8], 0.0);
+    EXPECT_EQ(v[1], 3.0);
+    EXPECT_EQ(v[2], 2.0);
+    EXPECT_EQ(v[3], 5.0);
 }
 
 
@@ -919,9 +928,9 @@ TEST_F(Dense, SquareMatrixIsTransposable)
     auto trans = mtx5->transpose();
     auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
 
-    ASSERT_MTX_NEAR(trans_as_dense,
-                    l({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}),
-                    0.0);
+    GKO_ASSERT_MTX_NEAR(
+        trans_as_dense,
+        l({{1.0, -2.0, 2.1}, {-1.0, 2.0, 3.4}, {-0.5, 4.5, 1.2}}), 0.0);
 }
 
 
@@ -930,8 +939,8 @@ TEST_F(Dense, NonSquareMatrixIsTransposable)
     auto trans = mtx4->transpose();
     auto trans_as_dense = static_cast<gko::matrix::Dense<> *>(trans.get());
 
-    ASSERT_MTX_NEAR(trans_as_dense, l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}),
-                    0.0);
+    GKO_ASSERT_MTX_NEAR(trans_as_dense, l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}),
+                        0.0);
 }
 
 
@@ -941,10 +950,23 @@ TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
     auto trans_as_dense =
         static_cast<gko::matrix::Dense<std::complex<double>> *>(trans.get());
 
-    ASSERT_MTX_NEAR(trans_as_dense,
-                    l({{1.0 - 2.0 * i, -2.0 - 1.5 * i, 1.0 + 0.0 * i},
-                       {-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
-                    0.0);
+    GKO_ASSERT_MTX_NEAR(trans_as_dense,
+                        l({{1.0 - 2.0 * i, -2.0 - 1.5 * i, 1.0 + 0.0 * i},
+                           {-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
+                        0.0);
+}
+
+TEST_F(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
+{
+    auto x = gen_mtx<Mtx>(65, 25);
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<>::create(exec);
+
+    x->convert_to(sellp_mtx.get());
+    sellp_mtx->convert_to(dense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), x.get(), 1e-14);
 }
 
 

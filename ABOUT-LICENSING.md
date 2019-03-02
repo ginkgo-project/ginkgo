@@ -78,7 +78,7 @@ with Ginkgo's unit tests. Google Test is available under the following license:
 > (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 > OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-When compiling Ginkgo with `-DDEVEL_TOOLS=ON` the build system will download
+When compiling Ginkgo with `-DGINKGO_DEVEL_TOOLS=ON` the build system will download
 [git-cmake-format](https://github.com/kbenzie/git-cmake-format), available under
 the following license:
 
@@ -104,7 +104,7 @@ the following license:
 > 
 > For more information, please refer to <http://unlicense.org/>
 
-When compiling Ginkgo with `-DBUILD_BENCHMARKS=ON` the build system will
+When compiling Ginkgo with `-DGINKGO_BUILD_BENCHMARKS=ON` the build system will
 download, build, and link [gflags](https://github.com/gflags/gflags) and 
 [RapidJSON](https://github.com/Tencent/rapidjson) with the
 benchmark suites. gtest is available under the following license:

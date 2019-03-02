@@ -73,7 +73,7 @@
 #include <deal.II/numerics/error_estimator.h>
 
 // Ginkgo's header file
-#include <ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 // This is C++, as we want to write some output to disk:
 #include <fstream>
@@ -482,8 +482,7 @@ private:
         Vector<float> &error_per_cell;
     };
 
-    struct EstimateCopyData {
-    };
+    struct EstimateCopyData {};
 
     template <int dim>
     static void estimate_cell(
@@ -834,7 +833,7 @@ void AdvectionProblem<dim>::solve()
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using bicgstab = gko::solver::Bicgstab<>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<>;
     using val_array = gko::Array<double>;
 
     // Where the code is to be executed. Can be changed to `omp` or `cuda` to
@@ -879,20 +878,14 @@ void AdvectionProblem<dim>::solve()
     // reduction factor of 1e-12. For other options, refer to Ginkgo's
     // documentation.
     auto solver_gen =
-        bicgstab::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(1000)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-12)
-                            .on_executor(exec))
-                    .on_executor(exec))
-            // something fails here:
-            // .with_preconditioner(bj::create(exec, 32))
-            .on_executor(exec);
+        bicgstab::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1000).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-12)
+                    .on(exec))
+            .with_preconditioner(bj::build().on(exec))
+            .on(exec);
     auto solver = solver_gen->generate(gko::give(A));
 
     // Solve system

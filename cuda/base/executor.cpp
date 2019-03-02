@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/executor.hpp"
+#include <ginkgo/core/base/executor.hpp>
 
 
 #include <iostream>
@@ -40,7 +40,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 
-#include "core/base/exception_helpers.hpp"
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/cusparse_bindings.hpp"
 
 
 namespace gko {
@@ -51,8 +56,8 @@ class device_guard {
 public:
     device_guard(int device_id)
     {
-        ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
 
     ~device_guard() noexcept(false)
@@ -61,7 +66,7 @@ public:
         if (std::uncaught_exception()) {
             cudaSetDevice(original_device_id);
         } else {
-            ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
         }
     }
 
@@ -106,12 +111,14 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         index++;
     }
 
-    // If we don't find the values, we use the last valid value by default to
-    // allow proper execution
+#if GKO_VERBOSE_LEVEL >= 1
+    // If we don't find the values, we use the last valid value by default
+    // to allow proper execution
     std::cerr << "MapSMtoCores for SM " << major << "." << minor
               << "is undefined. The default value of "
               << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
               << std::endl;
+#endif
     return nGpuArchCoresPerSM[index - 1].Cores;
 }
 
@@ -119,11 +126,24 @@ inline int convert_sm_ver_to_cores(int major, int minor)
 }  // namespace
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, std::move(master)),
+        [device_id](CudaExecutor *exec) {
+            delete exec;
+            device_guard g(device_id);
+            cudaDeviceReset();
+        });
+}
+
+
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(dest->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(
+    GKO_ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
 }
 
@@ -133,11 +153,13 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
     device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
                   << " in " << __func__ << ": " << cudaGetErrorName(error_code)
                   << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
+#endif
         std::exit(error_code);
     }
 }
@@ -149,9 +171,9 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
     device_guard g(this->get_device_id());
     auto error_code = cudaMalloc(&dev_ptr, num_bytes);
     if (error_code != cudaErrorMemoryAllocation) {
-        ASSERT_NO_CUDA_ERRORS(error_code);
+        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
     }
-    ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
+    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
     return dev_ptr;
 }
 
@@ -160,7 +182,7 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(this->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(
+    GKO_ASSERT_NO_CUDA_ERRORS(
         cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
 }
 
@@ -168,7 +190,8 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
-    ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
+    device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
                                          src->get_device_id(), num_bytes));
 }
 
@@ -176,7 +199,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 void CudaExecutor::synchronize() const
 {
     device_guard g(this->get_device_id());
-    ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
 
@@ -197,7 +220,7 @@ int CudaExecutor::get_num_devices()
     if (error_code == cudaErrorNoDevice) {
         return 0;
     }
-    ASSERT_NO_CUDA_ERRORS(error_code);
+    GKO_ASSERT_NO_CUDA_ERRORS(error_code);
     return deviceCount;
 }
 
@@ -206,13 +229,32 @@ void CudaExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
         device_guard g(this->get_device_id());
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
-        ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
         num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
+    }
+}
+
+
+void CudaExecutor::init_handles()
+{
+    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+        const auto id = this->get_device_id();
+        device_guard g(id);
+        this->cublas_handle_ = handle_manager<cublasContext>(
+            kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
+                device_guard g(id);
+                kernels::cuda::cublas::destroy(handle);
+            });
+        this->cusparse_handle_ = handle_manager<cusparseContext>(
+            kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
+                device_guard g(id);
+                kernels::cuda::cusparse::destroy(handle);
+            });
     }
 }
 

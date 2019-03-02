@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -34,15 +34,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo_kernels.hpp"
 
 
-#include "core/base/exception_helpers.hpp"
-#include "core/base/math.hpp"
-#include "core/base/types.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/shuffle.cuh"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/synchronization.cuh"
 
 
@@ -60,13 +63,15 @@ constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
 namespace {
 
 
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
-                                             bool *head)
+template <int subwarp_size = cuda_config::warp_size, typename ValueType,
+          typename IndexType>
+__device__ __forceinline__ void segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, IndexType ind,
+    ValueType *__restrict__ val, bool *__restrict__ head)
 {
 #pragma unroll
-    for (int i = 1; i < cuda_config::warp_size; i <<= 1) {
-        const IndexType add_ind = warp::shuffle_up(ind, i);
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
         ValueType add_val = zero<ValueType>();
         if (threadIdx.x >= i && add_ind == ind) {
             add_val = *val;
@@ -74,8 +79,8 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
                 *head = false;
             }
         }
-        add_val = warp::shuffle_down(add_val, i);
-        if (threadIdx.x < cuda_config::warp_size - i) {
+        add_val = group.shfl_down(add_val, i);
+        if (threadIdx.x < subwarp_size - i) {
             *val += add_val;
         }
     }
@@ -94,7 +99,8 @@ __device__ __forceinline__ void segment_scan(IndexType ind, ValueType *val,
  * @param c  the output dense vector
  * @param scale  the function on the added value
  */
-template <typename ValueType, typename IndexType, typename Closure>
+template <int subwarp_size = cuda_config::warp_size, typename ValueType,
+          typename IndexType, typename Closure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                             const ValueType *__restrict__ val,
                             const IndexType *__restrict__ col,
@@ -108,24 +114,25 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                            blockDim.y * num_lines +
                        threadIdx.y * blockDim.x * num_lines;
     const auto column_id = blockIdx.y;
-    size_type num =
-        (nnz > start) * ceildiv(nnz - start, cuda_config::warp_size);
+    size_type num = (nnz > start) * ceildiv(nnz - start, subwarp_size);
     num = min(num, num_lines);
     const IndexType ind_start = start + threadIdx.x;
-    const IndexType ind_end = ind_start + (num - 1) * cuda_config::warp_size;
+    const IndexType ind_end = ind_start + (num - 1) * subwarp_size;
     IndexType ind = ind_start;
     bool is_first_in_segment = true;
     IndexType curr_row = (ind < nnz) ? row[ind] : 0;
-    for (; ind < ind_end; ind += cuda_config::warp_size) {
+    const auto tile_block =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    for (; ind < ind_end; ind += subwarp_size) {
         temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
                                 : zero<ValueType>();
-        auto next_row = (ind + cuda_config::warp_size < nnz)
-                            ? row[ind + cuda_config::warp_size]
-                            : row[nnz - 1];
+        auto next_row =
+            (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
-        if (warp::any(curr_row != next_row)) {
+        if (tile_block.any(curr_row != next_row)) {
             is_first_in_segment = true;
-            segment_scan(curr_row, &temp_val, &is_first_in_segment);
+            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
+                                       &is_first_in_segment);
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
@@ -135,12 +142,13 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         curr_row = next_row;
     }
     if (num > 0) {
-        ind = ind_start + (num - 1) * cuda_config::warp_size;
+        ind = ind_start + (num - 1) * subwarp_size;
         temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
                                 : zero<ValueType>();
         // segmented scan
         is_first_in_segment = true;
-        segment_scan(curr_row, &temp_val, &is_first_in_segment);
+        segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
+                                   &is_first_in_segment);
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }
@@ -296,7 +304,7 @@ template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
                               IndexType *ptrs,
-                              size_type length) NOT_IMPLEMENTED;
+                              size_type length) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
@@ -305,7 +313,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                matrix::Coo<ValueType, IndexType> *trans,
-               const matrix::Coo<ValueType, IndexType> *orig) NOT_IMPLEMENTED;
+               const matrix::Coo<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_TRANSPOSE_KERNEL);
 
@@ -314,16 +323,72 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Coo<ValueType, IndexType> *trans,
                     const matrix::Coo<ValueType, IndexType> *orig)
-    NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
+        size_type num_rows, size_type num_cols, size_type stride,
+        ValueType *__restrict__ result)
+{
+    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
+    if (tidx_x < num_cols && tidx_y < num_rows) {
+        result[tidx_y * stride + tidx_x] = zero<ValueType>();
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Coo<ValueType, IndexType> *source) NOT_IMPLEMENTED;
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    size_type nnz, const IndexType *__restrict__ row_idxs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, size_type stride,
+    ValueType *__restrict__ result)
+{
+    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    if (tidx < nnz) {
+        result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+                      matrix::Dense<ValueType> *result,
+                      const matrix::Coo<ValueType, IndexType> *source)
+{
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto stride = result->get_stride();
+
+    const auto nnz = source->get_num_stored_elements();
+
+    const dim3 block_size(cuda_config::warp_size,
+                          cuda_config::max_block_size / cuda_config::warp_size,
+                          1);
+    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+                             ceildiv(num_rows, block_size.y), 1);
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
+        num_rows, num_cols, stride, as_cuda_type(result->get_values()));
+
+    const auto grid_dim = ceildiv(nnz, default_block_size);
+    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
+        nnz, as_cuda_type(source->get_const_row_idxs()),
+        as_cuda_type(source->get_const_col_idxs()),
+        as_cuda_type(source->get_const_values()), stride,
+        as_cuda_type(result->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);

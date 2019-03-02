@@ -1,0 +1,53 @@
+{
+   cuBLAS loader
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   obj:libcublas.so.*
+   ...
+   fun:call_init.part.0
+   fun:_dl_init
+   ...
+}
+{
+   CUDA API leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:cuda*
+   ...
+}
+{
+   CUDA Init
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   fun:*alloc
+   ...
+   obj:*libcuda.so*
+   ...
+   fun:cuInit
+   ...
+}
+{
+   CUDA DevicePrimaryCtxRetain
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   fun:*alloc
+   ...
+   obj:*libcuda.so*
+   ...
+   fun:cuDevicePrimaryCtxRetain
+   ...
+}
+{
+   Allocate Thread Local Storage
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   fun:*alloc
+   ...
+   fun:_dl_allocate_tls
+   ...
+   fun:pthread_create*
+   ...
+}

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,11 +31,11 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/stop/combined.hpp>
+#include <ginkgo/core/stop/combined.hpp>
 
 
-#include <core/stop/iteration.hpp>
-#include <core/stop/time.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 #include <gtest/gtest.h>
@@ -57,15 +57,15 @@ protected:
     {
         exec_ = gko::ReferenceExecutor::create();
         factory_ =
-            gko::stop::Combined::Factory::create()
+            gko::stop::Combined::build()
                 .with_criteria(
-                    gko::stop::Iteration::Factory::create()
+                    gko::stop::Iteration::build()
                         .with_max_iters(test_iterations)
-                        .on_executor(exec_),
-                    gko::stop::Time::Factory::create()
+                        .on(exec_),
+                    gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(test_seconds))
-                        .on_executor(exec_))
-                .on_executor(exec_);
+                        .on(exec_))
+                .on(exec_);
     }
 
     std::unique_ptr<gko::stop::Combined::Factory> factory_;

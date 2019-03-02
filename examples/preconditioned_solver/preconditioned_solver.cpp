@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -63,7 +63,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./preconditioned_solver
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<>;
     using mtx = gko::matrix::Csr<>;
     using cg = gko::solver::Cg<>;
-    using bj = gko::preconditioner::BlockJacobiFactory<>;
+    using bj = gko::preconditioner::Jacobi<>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -103,21 +103,16 @@ int main(int argc, char *argv[])
 
     // Create solver factory
     auto solver_gen =
-        cg::Factory::create()
-            .with_criterion(
-                gko::stop::Combined::Factory::create()
-                    .with_criteria(
-                        gko::stop::Iteration::Factory::create()
-                            .with_max_iters(20u)
-                            .on_executor(exec),
-                        gko::stop::ResidualNormReduction<>::Factory::create()
-                            .with_reduction_factor(1e-20)
-                            .on_executor(exec))
-                    .on_executor(exec))
+        cg::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-20)
+                    .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            .with_preconditioner(bj::create(exec, 8))
-            .on_executor(exec);
+            .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
+            .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
 

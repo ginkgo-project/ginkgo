@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -64,7 +64,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./asynchronous_stopping_criterion
 
 *****************************<COMPILATION>**********************************/
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <fstream>
@@ -85,18 +85,6 @@ class ByInteraction
     using Criterion = gko::stop::Criterion;
 
 public:
-    bool check(gko::uint8 stoppingId, bool setFinalized,
-               gko::Array<gko::stopping_status> *stop_status, bool *one_changed,
-               const Criterion::Updater &) override
-    {
-        bool result = *(parameters_.stop_iteration_process);
-        if (result) {
-            this->set_all_statuses(stoppingId, setFinalized, stop_status);
-            *one_changed = true;
-        }
-        return result;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -106,8 +94,21 @@ public:
             stop_iteration_process, nullptr);
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
+    bool check_impl(gko::uint8 stoppingId, bool setFinalized,
+                    gko::Array<gko::stopping_status> *stop_status,
+                    bool *one_changed, const Criterion::Updater &) override
+    {
+        bool result = *(parameters_.stop_iteration_process);
+        if (result) {
+            this->set_all_statuses(stoppingId, setFinalized, stop_status);
+            *one_changed = true;
+        }
+        return result;
+    }
+
     explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
@@ -136,12 +137,12 @@ void run_solver(volatile bool *stop_iteration_process,
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Create solver factory and solve system
-    auto solver = bicg::Factory::create()
-                      .with_criterion(ByInteraction::Factory::create()
-                                          .with_stop_iteration_process(
-                                              stop_iteration_process)
-                                          .on_executor(exec))
-                      .on_executor(exec)
+    auto solver = bicg::build()
+                      .with_criteria(ByInteraction::build()
+                                         .with_stop_iteration_process(
+                                             stop_iteration_process)
+                                         .on(exec))
+                      .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, std::cout, true));

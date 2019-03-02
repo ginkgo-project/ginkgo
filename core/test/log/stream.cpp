@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/log/stream.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
 
 #include <gtest/gtest.h>
@@ -39,10 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 
-#include <core/base/executor.hpp>
-#include <core/matrix/dense.hpp>
-#include <core/solver/bicgstab.hpp>
 #include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace {
@@ -61,8 +62,8 @@ TEST(Stream, CatchesAllocationStarted)
     logger->on<gko::log::Logger::allocation_started>(exec.get(), 42);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "allocation started on");
-    ASSERT_STR_CONTAINS(os, "42");
+    GKO_ASSERT_STR_CONTAINS(os, "allocation started on");
+    GKO_ASSERT_STR_CONTAINS(os, "42");
 }
 
 
@@ -80,9 +81,9 @@ TEST(Stream, CatchesAllocationCompleted)
         exec.get(), 42, reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "allocation completed on");
-    ASSERT_STR_CONTAINS(os, "42");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "allocation completed on");
+    GKO_ASSERT_STR_CONTAINS(os, "42");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -100,8 +101,8 @@ TEST(Stream, CatchesFreeStarted)
         exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "free started on");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "free started on");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -119,8 +120,8 @@ TEST(Stream, CatchesFreeCompleted)
         exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "free completed on");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "free completed on");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -142,10 +143,10 @@ TEST(Stream, CatchesCopyStarted)
         reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "copy started");
-    ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
-    ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
-    ASSERT_STR_CONTAINS(os, "with Bytes[42]");
+    GKO_ASSERT_STR_CONTAINS(os, "copy started");
+    GKO_ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
+    GKO_ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
+    GKO_ASSERT_STR_CONTAINS(os, "with Bytes[42]");
 }
 
 
@@ -167,10 +168,10 @@ TEST(Stream, CatchesCopyCompleted)
         reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "copy completed");
-    ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
-    ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
-    ASSERT_STR_CONTAINS(os, "with Bytes[42]");
+    GKO_ASSERT_STR_CONTAINS(os, "copy completed");
+    GKO_ASSERT_STR_CONTAINS(os, "from Location[" + ptrstream_in.str());
+    GKO_ASSERT_STR_CONTAINS(os, "to Location[" + ptrstream_out.str());
+    GKO_ASSERT_STR_CONTAINS(os, "with Bytes[42]");
 }
 
 
@@ -187,8 +188,8 @@ TEST(Stream, CatchesOperationLaunched)
     logger->on<gko::log::Logger::operation_launched>(exec.get(), &op);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "started on");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "started on");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -205,8 +206,8 @@ TEST(Stream, CatchesOperationCompleted)
     logger->on<gko::log::Logger::operation_completed>(exec.get(), &op);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "completed on");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "completed on");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
 }
 
 
@@ -224,8 +225,8 @@ TEST(Stream, CatchesPolymorphicObjectCreateStarted)
                                                                     po.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
-    ASSERT_STR_CONTAINS(os, "create started from");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "create started from");
 }
 
 
@@ -246,9 +247,9 @@ TEST(Stream, CatchesPolymorphicObjectCreateCompleted)
         exec.get(), po.get(), output.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, ptrstream_in.str());
-    ASSERT_STR_CONTAINS(os, "create completed from");
-    ASSERT_STR_CONTAINS(os, ptrstream_out.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_in.str());
+    GKO_ASSERT_STR_CONTAINS(os, "create completed from");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_out.str());
 }
 
 
@@ -269,9 +270,9 @@ TEST(Stream, CatchesPolymorphicObjectCopyStarted)
         exec.get(), from.get(), to.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, ptrstream_from.str());
-    ASSERT_STR_CONTAINS(os, "copy started to");
-    ASSERT_STR_CONTAINS(os, ptrstream_to.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_from.str());
+    GKO_ASSERT_STR_CONTAINS(os, "copy started to");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_to.str());
 }
 
 
@@ -292,9 +293,9 @@ TEST(Stream, CatchesPolymorphicObjectCopyCompleted)
         exec.get(), from.get(), to.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, ptrstream_from.str());
-    ASSERT_STR_CONTAINS(os, "copy completed to");
-    ASSERT_STR_CONTAINS(os, ptrstream_to.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_from.str());
+    GKO_ASSERT_STR_CONTAINS(os, "copy completed to");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_to.str());
 }
 
 
@@ -312,8 +313,8 @@ TEST(Stream, CatchesPolymorphicObjectDeleted)
                                                              po.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
-    ASSERT_STR_CONTAINS(os, "deleted on");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "deleted on");
 }
 
 
@@ -338,10 +339,10 @@ TEST(Stream, CatchesLinOpApplyStarted)
                                                       x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "apply started on A");
-    ASSERT_STR_CONTAINS(os, ptrstream_A.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_b.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_x.str());
+    GKO_ASSERT_STR_CONTAINS(os, "apply started on A");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_A.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_b.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_x.str());
 }
 
 
@@ -360,9 +361,9 @@ TEST(Stream, CatchesLinOpApplyStartedWithVerbose)
                                                       x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "1.1");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.1");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "3.3");
 }
 
 
@@ -387,10 +388,10 @@ TEST(Stream, CatchesLinOpApplyCompleted)
                                                         x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "apply completed on A");
-    ASSERT_STR_CONTAINS(os, ptrstream_A.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_b.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_x.str());
+    GKO_ASSERT_STR_CONTAINS(os, "apply completed on A");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_A.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_b.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_x.str());
 }
 
 
@@ -409,9 +410,9 @@ TEST(Stream, CatchesLinOpApplyCompletedWithVerbose)
                                                         x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "1.1");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.1");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "3.3");
 }
 
 
@@ -442,12 +443,12 @@ TEST(Stream, CatchesLinOpAdvancedApplyStarted)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "advanced apply started on A");
-    ASSERT_STR_CONTAINS(os, ptrstream_A.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_alpha.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_b.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_beta.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_x.str());
+    GKO_ASSERT_STR_CONTAINS(os, "advanced apply started on A");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_A.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_alpha.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_b.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_beta.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_x.str());
 }
 
 
@@ -468,11 +469,11 @@ TEST(Stream, CatchesLinOpAdvancedApplyStartedWithVerbose)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "1.1");
-    ASSERT_STR_CONTAINS(os, "-4.4");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "-5.5");
-    ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.1");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "-5.5");
+    GKO_ASSERT_STR_CONTAINS(os, "3.3");
 }
 
 
@@ -503,12 +504,12 @@ TEST(Stream, CatchesLinOpAdvancedApplyCompleted)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "advanced apply completed on A");
-    ASSERT_STR_CONTAINS(os, ptrstream_A.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_alpha.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_b.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_beta.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_x.str());
+    GKO_ASSERT_STR_CONTAINS(os, "advanced apply completed on A");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_A.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_alpha.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_b.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_beta.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_x.str());
 }
 
 
@@ -529,11 +530,11 @@ TEST(Stream, CatchesLinOpAdvancedApplyCompletedWithVerbose)
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "1.1");
-    ASSERT_STR_CONTAINS(os, "-4.4");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "-5.5");
-    ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.1");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "-5.5");
+    GKO_ASSERT_STR_CONTAINS(os, "3.3");
 }
 
 
@@ -543,11 +544,11 @@ TEST(Stream, CatchesLinopFactoryGenerateStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::linop_factory_generate_started_mask, out);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     std::stringstream ptrstream_factory;
     ptrstream_factory << factory.get();
@@ -558,9 +559,9 @@ TEST(Stream, CatchesLinopFactoryGenerateStarted)
                                                                  input.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "generate started for");
-    ASSERT_STR_CONTAINS(os, ptrstream_factory.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_input.str());
+    GKO_ASSERT_STR_CONTAINS(os, "generate started for");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_factory.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_input.str());
 }
 
 
@@ -570,11 +571,11 @@ TEST(Stream, CatchesLinopFactoryGenerateCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::linop_factory_generate_completed_mask, out);
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto input = factory->generate(gko::matrix::Dense<>::create(exec));
     auto output = factory->generate(gko::matrix::Dense<>::create(exec));
     std::stringstream ptrstream_factory;
@@ -588,10 +589,10 @@ TEST(Stream, CatchesLinopFactoryGenerateCompleted)
         factory.get(), input.get(), output.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "generate completed for");
-    ASSERT_STR_CONTAINS(os, ptrstream_factory.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_input.str());
-    ASSERT_STR_CONTAINS(os, ptrstream_output.str());
+    GKO_ASSERT_STR_CONTAINS(os, "generate completed for");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_factory.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_input.str());
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_output.str());
 }
 
 
@@ -601,10 +602,9 @@ TEST(Stream, CatchesCriterionCheckStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_started_mask, out);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     std::stringstream ptrstream;
     ptrstream << criterion.get();
@@ -616,10 +616,10 @@ TEST(Stream, CatchesCriterionCheckStarted)
         true);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "check started for");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
-    ASSERT_STR_CONTAINS(os, std::to_string(RelativeStoppingId));
-    ASSERT_STR_CONTAINS(os, "finalized set to " + true_in_stream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "check started for");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, std::to_string(RelativeStoppingId));
+    GKO_ASSERT_STR_CONTAINS(os, "finalized set to " + true_in_stream.str());
 }
 
 
@@ -629,10 +629,9 @@ TEST(Stream, CatchesCriterionCheckCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_completed_mask, out);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream ptrstream;
@@ -645,12 +644,12 @@ TEST(Stream, CatchesCriterionCheckCompleted)
         &stop_status, true, true);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "check completed for");
-    ASSERT_STR_CONTAINS(os, ptrstream.str());
-    ASSERT_STR_CONTAINS(os, std::to_string(RelativeStoppingId));
-    ASSERT_STR_CONTAINS(os, "finalized set to " + true_in_stream.str());
-    ASSERT_STR_CONTAINS(os, "changed one RHS " + true_in_stream.str());
-    ASSERT_STR_CONTAINS(
+    GKO_ASSERT_STR_CONTAINS(os, "check completed for");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
+    GKO_ASSERT_STR_CONTAINS(os, std::to_string(RelativeStoppingId));
+    GKO_ASSERT_STR_CONTAINS(os, "finalized set to " + true_in_stream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "changed one RHS " + true_in_stream.str());
+    GKO_ASSERT_STR_CONTAINS(
         os, "stopped the iteration process " + true_in_stream.str());
 }
 
@@ -661,10 +660,9 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::criterion_check_completed_mask, out, true);
-    auto criterion = gko::stop::Iteration::Factory::create()
-                         .with_max_iters(3u)
-                         .on_executor(exec)
-                         ->generate(nullptr, nullptr, nullptr);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream true_in_stream;
@@ -677,9 +675,10 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
         &stop_status, true, true);
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "Stopped: " + true_in_stream.str());
-    ASSERT_STR_CONTAINS(os, "with id " + std::to_string(RelativeStoppingId));
-    ASSERT_STR_CONTAINS(os, "Finalized: " + true_in_stream.str());
+    GKO_ASSERT_STR_CONTAINS(os, "Stopped: " + true_in_stream.str());
+    GKO_ASSERT_STR_CONTAINS(os,
+                            "with id " + std::to_string(RelativeStoppingId));
+    GKO_ASSERT_STR_CONTAINS(os, "Finalized: " + true_in_stream.str());
 }
 
 
@@ -702,9 +701,9 @@ TEST(Stream, CatchesIterations)
     logger->on<gko::log::Logger::iteration_complete>(solver.get(), num_iters,
                                                      residual.get());
 
-    ASSERT_STR_CONTAINS(out.str(), "iteration " + num_iters);
-    ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
-    ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
+    GKO_ASSERT_STR_CONTAINS(out.str(), "iteration " + num_iters);
+    GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
+    GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
 }
 
 
@@ -716,11 +715,11 @@ TEST(Stream, CatchesIterationsWithVerbose)
     auto logger = gko::log::Stream<>::create(
         exec, gko::log::Logger::iteration_complete_mask, out, true);
 
-    auto factory = gko::solver::Bicgstab<>::Factory::create()
-                       .with_criterion(gko::stop::Iteration::Factory::create()
-                                           .with_max_iters(3u)
-                                           .on_executor(exec))
-                       .on_executor(exec);
+    auto factory =
+        gko::solver::Bicgstab<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
     auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
@@ -731,9 +730,9 @@ TEST(Stream, CatchesIterationsWithVerbose)
         residual_norm.get());
 
     auto os = out.str();
-    ASSERT_STR_CONTAINS(os, "-4.4");
-    ASSERT_STR_CONTAINS(os, "-2.2");
-    ASSERT_STR_CONTAINS(os, "-3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "-3.3");
 }
 
 

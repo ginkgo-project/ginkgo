@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The easiest way to build the example solver is to use the script provided:
 ./build.sh <PATH_TO_GINKGO_BUILD_DIR>
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
+Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
 
 Alternatively, you can setup the configuration manually:
 
@@ -64,7 +64,7 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
 *****************************<COMPILATION>**********************************/
 
 
-#include <include/ginkgo.hpp>
+#include <ginkgo/ginkgo.hpp>
 
 
 #include <chrono>
@@ -100,11 +100,11 @@ int main(int argc, char *argv[])
     auto exec = gko::ReferenceExecutor::create();
 
     auto cg_factory =
-        cg::Factory::create()
-            .with_criterion(gko::stop::Iteration::Factory::create()
-                                .with_max_iters(num_iters)
-                                .on_executor(exec))
-            .on_executor(exec);
+        cg::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec))
+            .on(exec);
     auto A = gko::initialize<mtx>({1.0}, exec);
     auto b = gko::initialize<vec>({std::nan("")}, exec);
     auto x = gko::initialize<vec>({0.0}, exec);

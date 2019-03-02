@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -35,8 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
 
 
-#include "core/matrix/dense.hpp"
-#include "core/matrix/hybrid.hpp"
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 namespace gko {
@@ -48,7 +48,7 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,              \
                           const matrix::Hybrid<ValueType, IndexType> *source)
 
-#define DECLARE_ALL_AS_TEMPLATES                      \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType, typename IndexType> \
     GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 
@@ -56,7 +56,7 @@ namespace kernels {
 namespace omp {
 namespace hybrid {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace hybrid
 }  // namespace omp
@@ -65,7 +65,7 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace hybrid {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace hybrid
 }  // namespace cuda
@@ -74,13 +74,13 @@ DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace hybrid {
 
-DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace hybrid
 }  // namespace reference
 
 
-#undef DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
 }  // namespace kernels

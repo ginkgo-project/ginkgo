@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -31,33 +31,32 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/bicgstab.hpp"
+#include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include "core/base/exception.hpp"
-#include "core/base/exception_helpers.hpp"
-#include "core/base/executor.hpp"
-#include "core/base/math.hpp"
-#include "core/base/utils.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
+
+
 #include "core/solver/bicgstab_kernels.hpp"
 
 
 namespace gko {
 namespace solver {
-namespace {
+namespace bicgstab {
 
 
-template <typename ValueType>
-struct TemplatedOperation {
-    GKO_REGISTER_OPERATION(initialize, bicgstab::initialize<ValueType>);
-    GKO_REGISTER_OPERATION(step_1, bicgstab::step_1<ValueType>);
-    GKO_REGISTER_OPERATION(step_2, bicgstab::step_2<ValueType>);
-    GKO_REGISTER_OPERATION(step_3, bicgstab::step_3<ValueType>);
-    GKO_REGISTER_OPERATION(finalize, bicgstab::finalize<ValueType>);
-};
+GKO_REGISTER_OPERATION(initialize, bicgstab::initialize);
+GKO_REGISTER_OPERATION(step_1, bicgstab::step_1);
+GKO_REGISTER_OPERATION(step_2, bicgstab::step_2);
+GKO_REGISTER_OPERATION(step_3, bicgstab::step_3);
+GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
-}  // namespace
+}  // namespace bicgstab
 
 
 template <typename ValueType>
@@ -96,7 +95,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(TemplatedOperation<ValueType>::make_initialize_operation(
+    exec->run(bicgstab::make_initialize(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), &stop_status));
@@ -112,8 +111,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     rr->copy_from(r.get());
     system_matrix_->apply(r.get(), v.get());
 
-    int iter = 0;
+    int iter = -1;
     while (true) {
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
@@ -124,36 +126,33 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         rr->compute_dot(r.get(), rho.get());
 
-        exec->run(TemplatedOperation<ValueType>::make_step_1_operation(
-            r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
+                                        prev_rho.get(), alpha.get(),
+                                        omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
         preconditioner_->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_2_operation(
-            r.get(), s.get(), v.get(), rho.get(), alpha.get(), beta.get(),
-            &stop_status));
+        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
+                                        alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get());
-        iter++;
+        ++iter;
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
                 .residual(s.get())
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
-
         if (one_changed) {
-            exec->run(TemplatedOperation<ValueType>::make_finalize_operation(
-                dense_x, y.get(), alpha.get(), &stop_status));
+            exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
+                                              &stop_status));
         }
-
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            r.get());
         if (all_converged) {
             break;
         }
@@ -162,16 +161,13 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
-        exec->run(TemplatedOperation<ValueType>::make_step_3_operation(
+        exec->run(bicgstab::make_step_3(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         swap(prev_rho, rho);
-        this->template log<log::Logger::iteration_complete>(this, iter + 1,
-                                                            r.get(), dense_x);
-        iter++;
     }
 }  // namespace solver
 
@@ -190,7 +186,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
-#undef GKO_DECLARE_BICGSTAB
 
 
 }  // namespace solver

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2018
+Copyright 2017-2019
 
 Karlsruhe Institute of Technology
 Universitat Jaume I
@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#ifndef CUDA_COMPONENTS_ZERO_ARRAY_HPP_
-#define CUDA_COMPONENTS_ZERO_ARRAY_HPP_
+#ifndef GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
+#define GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
 
 
 #include "cuda/base/math.hpp"
@@ -62,4 +62,4 @@ void zero_array(size_type n, ValueType *array);
 }  // namespace gko
 
 
-#endif  // CUDA_COMPONENTS_ZERO_ARRAY_HPP_
+#endif  // GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
