@@ -352,14 +352,8 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
 
-    // auto dense_mtx = gko::matrix::Dense<>::create(ref);
-
     gko::size_type max_nnz_per_row;
     gko::size_type dmax_nnz_per_row;
-
-    // mtx->convert_to(dense_mtx.get());
-    // gko::kernels::reference::dense::calculate_max_nnz_per_row(
-    //    ref, dense_mtx.get(), &max_nnz_per_row);
 
     gko::kernels::reference::csr::calculate_max_nnz_per_row(ref, mtx.get(),
                                                             &max_nnz_per_row);
