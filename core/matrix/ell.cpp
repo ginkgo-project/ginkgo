@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -54,6 +55,9 @@ namespace ell {
 GKO_REGISTER_OPERATION(spmv, ell::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
+GKO_REGISTER_OPERATION(converto_to_csr, ell::convert_to_csr);
+GKO_REGISTER_OPERATION(move_to_csr, ell::move_to_csr);
+GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
 
 
 }  // namespace ell
@@ -115,6 +119,29 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+
+    size_type num_stored_elements = 0;
+    exec->run(ell::make_count_nonzeros(this, &num_stored_elements));
+
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
+                                                 num_stored_elements);
+    exec->run(ell::make_converto_to_csr(tmp.get(), this));
+
+    tmp->move_to(result);
+}
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
     this->convert_to(result);
 }
