@@ -150,6 +150,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
+                                const matrix::Ell<ValueType, IndexType> *source,
+                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
 }  // namespace ell
 }  // namespace omp
 }  // namespace kernels

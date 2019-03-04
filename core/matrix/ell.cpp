@@ -58,6 +58,8 @@ GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
 GKO_REGISTER_OPERATION(converto_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(move_to_csr, ell::move_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
+GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
+                       ell::calculate_nonzeros_per_row);
 
 
 }  // namespace ell

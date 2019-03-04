@@ -76,6 +76,13 @@ namespace kernels {
                         const matrix::Ell<ValueType, IndexType> *source, \
                         size_type *result)
 
+#define GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
+                                                          IndexType) \
+    void calculate_nonzeros_per_row(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        const matrix::Ell<ValueType, IndexType> *source,             \
+        Array<size_type> *result)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);             \
@@ -88,7 +95,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_MOVE_TO_CSR_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
