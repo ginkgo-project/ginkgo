@@ -69,11 +69,6 @@ namespace kernels {
                         const matrix::Dense<ValueType> *b,           \
                         matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType)          \
-    void convert_row_idxs_to_ptrs(                                          \
-        std::shared_ptr<const DefaultExecutor> exec, const IndexType *idxs, \
-        size_type num_nonzeros, IndexType *ptrs, size_type length)
-
 #define GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                           matrix::Dense<ValueType> *result,            \
@@ -103,8 +98,6 @@ namespace kernels {
     GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL(IndexType);    \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>              \

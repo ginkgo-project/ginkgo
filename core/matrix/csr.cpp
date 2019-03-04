@@ -53,7 +53,6 @@ namespace csr {
 
 GKO_REGISTER_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
-GKO_REGISTER_OPERATION(convert_row_ptrs_to_idxs, csr::convert_row_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense);

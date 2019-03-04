@@ -847,9 +847,6 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
         num_rows, as_cuda_type(ptrs), as_cuda_type(idxs));
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,

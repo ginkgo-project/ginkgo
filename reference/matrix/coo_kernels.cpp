@@ -132,9 +132,6 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
     convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
