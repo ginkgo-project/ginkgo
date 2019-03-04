@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -319,6 +320,30 @@ TEST_F(Ell, MovesWithStrideToDense)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TEST_F(Ell, ConvertsToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    auto dense_ref = gko::matrix::Dense<>::create(mtx1->get_executor());
+
+    mtx1->convert_to(csr_mtx.get());
+    csr_mtx->convert_to(dense_ref.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx1, dense_ref, 0.0);
+}
+
+
+TEST_F(Ell, ConvertsWithStrideToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+    auto dense_ref = gko::matrix::Dense<>::create(mtx2->get_executor());
+
+    mtx2->convert_to(csr_mtx.get());
+    csr_mtx->convert_to(dense_ref.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx1, dense_ref, 0.0);
 }
 
 
