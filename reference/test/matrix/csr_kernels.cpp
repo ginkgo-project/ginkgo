@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+
 
 #include "core/matrix/csr_kernels.hpp"
 
@@ -292,6 +294,20 @@ TEST_F(Csr, MovesToCoo)
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
     mtx->move_to(coo_mtx.get());
     assert_equal_to_mtx(coo_mtx.get());
+}
+
+TEST_F(Csr, ConvertsToEll)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->convert_to(ell_mtx.get());
+    ell_mtx->convert_to(dense_mtx.get());
+
+    mtx->convert_to(ref_dense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ref_dense_mtx.get(), 0.0);
 }
 
 
