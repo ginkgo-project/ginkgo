@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
@@ -1100,6 +1101,97 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace kernel {
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void initialize_zero_ell(
+    size_type max_nnz_per_row, size_type stride, ValueType *__restrict__ values,
+    IndexType *__restrict__ col_idxs)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (tidx < stride * max_nnz_per_row) {
+        values[tidx] = zero<ValueType>();
+        col_idxs[tidx] = 0;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_ell(
+    size_type num_rows, size_type stride,
+    const ValueType *__restrict__ source_values,
+    const IndexType *__restrict__ source_row_ptrs,
+    const IndexType *__restrict__ source_col_idxs,
+    ValueType *__restrict__ result_values,
+    IndexType *__restrict__ result_col_idxs)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto warp_size = cuda_config::warp_size;
+    const auto row = tidx / warp_size;
+    const auto local_tidx = tidx % warp_size;
+
+    if (row < num_rows) {
+        for (size_type i = local_tidx;
+             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
+             i += warp_size) {
+            result_values[row + stride * i] =
+                source_values[i + source_row_ptrs[row]];
+            result_col_idxs[row + stride * i] =
+                source_col_idxs[i + source_row_ptrs[row]];
+        }
+    }
+}
+
+
+} // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    const auto source_values = source->get_const_values();
+    const auto source_row_ptrs = source->get_const_row_ptrs();
+    const auto source_col_idxs = source->get_const_col_idxs();
+
+    auto result_values = result->get_values();
+    auto result_col_idxs = result->get_col_idxs();
+    const auto stride = result->get_stride();
+    const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+
+    const auto init_grid_dim = ceildiv(stride * num_rows, default_block_size);
+
+    kernel::initialize_zero_ell<<<init_grid_dim, default_block_size>>>(
+        max_nnz_per_row, stride, as_cuda_type(result_values),
+        as_cuda_type(result_col_idxs));
+
+    const auto grid_dim =
+        ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+
+    kernel::fill_in_ell<<<grid_dim, default_block_size>>>(
+        num_rows, stride, as_cuda_type(source_values),
+        as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
+        as_cuda_type(result_values), as_cuda_type(result_col_idxs));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_ell(std::shared_ptr<const CudaExecutor> exec,
+                 matrix::Ell<ValueType, IndexType> *result,
+                 matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_ELL_KERNEL);
+
+
+namespace kernel {
+
+
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     size_type num_rows, size_type slice_size, size_type stride_factor,
     const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
@@ -1196,25 +1288,6 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                 matrix::Ell<ValueType, IndexType> *result,
-                 matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
