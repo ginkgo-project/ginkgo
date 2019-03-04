@@ -1292,43 +1292,90 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
-/*namespace kernel
+namespace kernel {
+
+
+template <typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void calculate_max_nnz_per_block(
+        size_type num_rows, const IndexType *__restrict__ row_ptrs,
+        IndexType *__restrict__ result)
 {
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto num_threads = blockDim.x * gridDim.x;
+
+    __shared__ IndexType block_result[default_block_size];
+
+    block_result[threadIdx.x] =
+        (tidx < num_rows) ? row_ptrs[tidx + 1] - row_ptrs[tidx] : 0;
+
+    for (auto i = num_threads; i < num_rows; i += num_threads) {
+        block_result[threadIdx.x] =
+            max(block_result[threadIdx.x], row_ptrs[i + 1] - row_ptrs[i]);
+    }
+
+    __syncthreads();
+
+    gko::kernels::cuda::reduce(
+        group::this_thread_block(), block_result,
+        [](const IndexType &a, const IndexType &b) { return max(a, b); });
+
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] = block_result[0];
+    }
+}
 
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void calculate_max_nnz_per_row(
-                size_type num_rows, const IndexType *__restrict__ row_ptrs,
-size_type *result)
+    const IndexType *__restrict__ max_nnz_per_block, size_type *result)
 {
-        const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    __shared__ size_type helper[default_block_size];
 
-        size_type nnz_in_this_row = (tidx < num_rows) ?
-                        row_ptrs[tidx + 1] - row_ptrs[tidx] : 0;
+    helper[threadIdx.x] = max_nnz_per_block[threadIdx.x];
 
-        *result = reduce(group::this_grid(), static_cast<size_type
-*>(nnz_in_this_row),
-                   [](const size_type &x, const size_type &y) { return max(x,
-y); });
+    gko::kernels::cuda::reduce(
+        group::this_thread_block(), helper,
+        [](const size_type &a, const size_type &b) { return max(a, b); });
+
+    if (threadIdx.x == 0) {
+        result[0] = helper[0];
+    }
 }
 
 
-} // namespace kernel*/
+}  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
                                const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result) GKO_NOT_IMPLEMENTED;
-/*{
-        const auto num_rows = source->get_size()[0];
+                               size_type *result)
+{
+    const auto num_rows = source->get_size()[0];
 
-        const auto grid_dim = ceildiv(num_rows, default_block_size);
+    const auto grid_dim =
+        (ceildiv(num_rows, default_block_size) < default_block_size)
+            ? ceildiv(num_rows, default_block_size)
+            : default_block_size;
 
-        kernel::calculate_max_nnz_per_row<<<grid_dim,
-default_block_size>>>(num_rows, as_cuda_type(source->get_const_row_ptrs()),
-result);
-}*/
+    auto max_nnz_per_block = Array<IndexType>(exec, default_block_size);
+    auto max_nnz_per_row = Array<size_type>(exec, 1);
+
+    kernel::calculate_max_nnz_per_block<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(source->get_const_row_ptrs()),
+        as_cuda_type(max_nnz_per_block.get_data()));
+
+    kernel::calculate_max_nnz_per_row<<<1, default_block_size>>>(
+        as_cuda_type(max_nnz_per_block.get_data()),
+        as_cuda_type(max_nnz_per_row.get_data()));
+
+    exec->get_master()->copy_from(exec.get(), 1,
+                                  max_nnz_per_row.get_const_data(), result);
+
+    max_nnz_per_block.clear();
+    max_nnz_per_row.clear();
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
