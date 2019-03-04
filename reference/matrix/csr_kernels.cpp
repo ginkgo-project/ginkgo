@@ -373,7 +373,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result) GKO_NOT_IMPLEMENTED;
+                               size_type *result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto row_ptrs = source->get_const_row_ptrs();
+    IndexType max_nnz = 0;
+
+    for (auto i = 0; i < num_rows; i++) {
+        max_nnz = max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
+    }
+
+    *result = max_nnz;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
