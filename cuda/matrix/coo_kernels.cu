@@ -366,8 +366,8 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     auto num_rows = result->get_size()[0];
 
     auto row_ptrs = result->get_row_ptrs();
+    const auto nnz = result->get_num_stored_elements();
 
-    const auto nnz = source->get_num_stored_elements();
     const auto source_row_idxs = source->get_const_row_idxs();
 
     convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
