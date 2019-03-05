@@ -27,7 +27,11 @@ option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
-    "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
+  "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
+set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
+  "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
+  "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)

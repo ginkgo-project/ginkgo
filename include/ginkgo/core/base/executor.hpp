@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
-
 #include <memory>
 #include <sstream>
 #include <tuple>
@@ -188,22 +187,43 @@ public:
     virtual const char *get_name() const noexcept;
 };
 
+#define GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel)    \
+public:                                                                      \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
+    {                                                                        \
+        this->call(counts{}, exec);                                          \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    template <int... Ns>                                                     \
+    void call(::gko::syn::value_list<int, Ns...>,                            \
+              std::shared_ptr<const ::gko::_type> exec) const                \
+    {                                                                        \
+        ::gko::kernels::_namespace::_kernel(                                 \
+            exec, std::forward<Args>(std::get<Ns>(data))...);                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
-#define GKO_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
-public:                                                               \
-    void run(std::shared_ptr<const ::gko::_type> exec) const override \
-    {                                                                 \
-        this->call(counts{}, exec);                                   \
-    }                                                                 \
-                                                                      \
-private:                                                              \
-    template <int... Ns>                                              \
-    void call(::gko::syn::value_list<int, Ns...>,                     \
-              std::shared_ptr<const ::gko::_type> exec) const         \
-    {                                                                 \
-        ::gko::kernels::_namespace::_kernel(                          \
-            exec, std::forward<Args>(std::get<Ns>(data))...);         \
-    }
+#define GKO_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
+public:                                                                      \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
+    {                                                                        \
+        this->call(counts{}, exec);                                          \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    template <int... Ns>                                                     \
+    void call(::gko::syn::value_list<int, Ns...>,                            \
+              std::shared_ptr<const ::gko::_type> exec) const                \
+    {                                                                        \
+        ::gko::kernels::_namespace::_kernel(                                 \
+            exec, std::forward<Args>(std::get<Ns>(data))...);                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -280,8 +300,10 @@ private:                                                              \
             return name.c_str();                                               \
         }                                                                      \
                                                                                \
-        GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DEFINE_RUN_OVERLOAD, _kernel);        \
-        GKO_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference, _kernel);        \
+        GKO_ENABLE_KERNEL_FOR_ALL_EXECUTORS(                                   \
+            GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD, _kernel);                   \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,    \
+                                              _kernel);                        \
                                                                                \
     private:                                                                   \
         mutable std::tuple<Args &&...> data;                                   \
@@ -291,7 +313,10 @@ private:                                                              \
     static _name##_operation<Args...> make_##_name(Args &&... args)            \
     {                                                                          \
         return _name##_operation<Args...>(std::forward<Args>(args)...);        \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 
 /**

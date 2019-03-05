@@ -76,13 +76,16 @@ struct version {
 };
 
 
-#define GKO_ENABLE_VERSION_COMPARISON(_operator)                          \
-    inline bool operator _operator(const version &first,                  \
-                                   const version &second)                 \
-    {                                                                     \
-        return std::tie(first.major, first.minor, first.patch)            \
-            _operator std::tie(second.major, second.minor, second.patch); \
-    }
+#define GKO_ENABLE_VERSION_COMPARISON(_operator)                             \
+    inline bool operator _operator(const version &first,                     \
+                                   const version &second)                    \
+    {                                                                        \
+        return std::tie(first.major, first.minor, first.patch)               \
+            _operator std::tie(second.major, second.minor, second.patch);    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 GKO_ENABLE_VERSION_COMPARISON(<);
 GKO_ENABLE_VERSION_COMPARISON(<=);

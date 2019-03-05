@@ -61,8 +61,8 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
     auto exec = mtx->get_executor();
     auto tmp = make_temporary_clone(exec->get_master(), mtx);
     os << "[" << std::endl;
-    for (int i = 0; i < mtx->get_size()[0]; ++i) {
-        for (int j = 0; j < mtx->get_size()[1]; ++j) {
+    for (size_type i = 0; i < mtx->get_size()[0]; ++i) {
+        for (size_type j = 0; j < mtx->get_size()[1]; ++j) {
             os << '\t' << mtx->at(i, j);
         }
         os << std::endl;
@@ -98,19 +98,22 @@ std::string location_name(const uintptr &location)
 }
 
 
-#define GKO_ENABLE_DEMANGLE_NAME(_object_type)                 \
-    std::string demangle_name(const _object_type *object)      \
-    {                                                          \
-        std::ostringstream oss;                                \
-        oss << #_object_type "[";                              \
-        if (object == nullptr) {                               \
-            oss << name_demangling::get_dynamic_type(object);  \
-        } else {                                               \
-            oss << name_demangling::get_dynamic_type(*object); \
-        }                                                      \
-        oss << "," << object << "]";                           \
-        return oss.str();                                      \
-    }
+#define GKO_ENABLE_DEMANGLE_NAME(_object_type)                               \
+    std::string demangle_name(const _object_type *object)                    \
+    {                                                                        \
+        std::ostringstream oss;                                              \
+        oss << #_object_type "[";                                            \
+        if (object == nullptr) {                                             \
+            oss << name_demangling::get_dynamic_type(object);                \
+        } else {                                                             \
+            oss << name_demangling::get_dynamic_type(*object);               \
+        }                                                                    \
+        oss << "," << object << "]";                                         \
+        return oss.str();                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 GKO_ENABLE_DEMANGLE_NAME(PolymorphicObject);
 GKO_ENABLE_DEMANGLE_NAME(LinOp);

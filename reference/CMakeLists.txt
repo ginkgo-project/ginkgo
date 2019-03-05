@@ -20,6 +20,7 @@ target_sources(ginkgo_reference
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)
+target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)

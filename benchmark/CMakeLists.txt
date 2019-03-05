@@ -1,6 +1,6 @@
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     message(WARNING
-        "Ginko is not being built in \"Release\" mode, benchmark performance "
+        "Ginkgo is not being built in \"Release\" mode, benchmark performance "
         "will be affected")
 endif()
 

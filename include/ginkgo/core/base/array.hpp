@@ -90,9 +90,9 @@ public:
      * the executor of the source Array.
      */
     Array() noexcept
-        : num_elems_(0),
-          data_(nullptr, default_deleter{nullptr}),
-          exec_(nullptr)
+        : exec_(nullptr),
+          num_elems_(0),
+          data_(nullptr, default_deleter{nullptr})
     {}
 
     /**
@@ -101,9 +101,9 @@ public:
      * @param exec  the Executor where the array data is allocated
      */
     Array(std::shared_ptr<const Executor> exec) noexcept
-        : num_elems_(0),
-          data_(nullptr, default_deleter{exec}),
-          exec_(std::move(exec))
+        : exec_(std::move(exec)),
+          num_elems_(0),
+          data_(nullptr, default_deleter{exec})
     {}
 
     /**
@@ -114,9 +114,9 @@ public:
      *                   `value_type` elements) allocated on the Executor
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : num_elems_(num_elems),
-          data_(nullptr, default_deleter{exec}),
-          exec_(std::move(exec))
+        : exec_(std::move(exec)),
+          num_elems_(num_elems),
+          data_(nullptr, default_deleter{exec})
     {
         if (num_elems > 0) {
             data_.reset(exec_->alloc<value_type>(num_elems));
@@ -435,9 +435,9 @@ private:
     using data_manager =
         std::unique_ptr<value_type[], std::function<void(value_type[])>>;
 
+    std::shared_ptr<const Executor> exec_;
     size_type num_elems_;
     data_manager data_;
-    std::shared_ptr<const Executor> exec_;
 };
 
 

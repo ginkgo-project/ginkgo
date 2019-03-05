@@ -22,6 +22,7 @@ target_sources(ginkgo_omp
 ginkgo_compile_features(ginkgo_omp)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
+target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)

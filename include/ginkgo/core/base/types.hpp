@@ -371,6 +371,22 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     return static_cast<st>(x) != static_cast<st>(y);
 }
 
+/**
+ * Calls a given macro for each executor type for a given kernel.
+ *
+ * The macro should take two parameters:
+ *
+ * -   the first one is replaced with the executor class name
+ * -   the second one with the name of the kernel to be bound
+ *
+ * @param _enable_macro  macro name which will be called
+ * @param _kernel  kernel which will be bound to the operation
+ *
+ * @note  the macro is not called for ReferenceExecutor
+ */
+#define GKO_ENABLE_KERNEL_FOR_ALL_EXECUTORS(_enable_macro, _kernel) \
+    _enable_macro(OmpExecutor, omp, _kernel);                       \
+    _enable_macro(CudaExecutor, cuda, _kernel)
 
 /**
  * Calls a given macro for each executor type.
@@ -435,7 +451,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(double, int64);                           \
     template _macro(std::complex<float>, int64);              \
     template _macro(std::complex<double>, int64)
-
 
 }  // namespace gko
 
