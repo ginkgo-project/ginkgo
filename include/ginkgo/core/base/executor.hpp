@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
+
 #include <memory>
 #include <sstream>
 #include <tuple>

@@ -67,7 +67,7 @@ public:
          * too costly.
          */
         std::vector<std::shared_ptr<const CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria);
+            GKO_FACTORY_PARAMETER(criteria, nullptr);
     };
     GKO_ENABLE_CRITERION_FACTORY(Combined, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
