@@ -78,12 +78,13 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0)
+    void set_up_apply_data(int max_nonzeros_per_row = 0, int stride = 0,
+                           int num_vectors = 1)
     {
         mtx = Mtx::create(ref, gko::dim<2>{}, max_nonzeros_per_row, stride);
         mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, 1, 1);
-        y = gen_mtx(231, 1, 1);
+        expected = gen_mtx(532, num_vectors, 1);
+        y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -153,6 +154,49 @@ TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
 {
     set_up_apply_data(300, 600);
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, SimpleApplyToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, SimpleApplyWithPaddinToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, AdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(300, 600, 3);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 

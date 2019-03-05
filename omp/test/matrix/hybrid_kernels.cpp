@@ -31,7 +31,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include <random>
@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -49,14 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Csr : public ::testing::Test {
+class Hybrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<>;
+    using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
-    Csr() : rand_engine(42) {}
+    Hybrid() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -71,11 +70,9 @@ protected:
         }
     }
 
-    template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
-                                     int min_nnz_row)
+    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<MtxType>(
+        return gko::test::generate_random_matrix<Vec>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -84,17 +81,13 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        complex_mtx = ComplexMtx::create(ref);
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
-        expected = gen_mtx<Vec>(532, num_vectors, 1);
-        y = gen_mtx<Vec>(231, num_vectors, 1);
+        mtx->copy_from(gen_mtx(532, 231, 1));
+        expected = gen_mtx(532, num_vectors, 1);
+        y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
         dmtx->copy_from(mtx.get());
-        complex_dmtx = ComplexMtx::create(omp);
-        complex_dmtx->copy_from(complex_mtx.get());
         dresult = Vec::create(omp);
         dresult->copy_from(expected.get());
         dy = Vec::create(omp);
@@ -105,20 +98,19 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -126,7 +118,20 @@ protected:
 };
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRef)
+TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExcutor)
+{
+    set_up_apply_data();
+
+    auto coo_mtx = dmtx->get_coo();
+    auto ell_mtx = dmtx->get_ell();
+
+    ASSERT_EQ(coo_mtx->get_executor(), omp);
+    ASSERT_EQ(ell_mtx->get_executor(), omp);
+    ASSERT_EQ(dmtx->get_executor(), omp);
+}
+
+
+TEST_F(Hybrid, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -137,7 +142,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
+TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -148,7 +153,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -159,7 +164,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -167,30 +172,6 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Csr, TransposeIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto trans = mtx->transpose();
-    auto d_trans = dmtx->transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
-                        static_cast<Mtx *>(trans.get()), 0.0);
-}
-
-
-TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto trans = complex_mtx->conj_transpose();
-    auto d_trans = complex_dmtx->conj_transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0.0);
 }
 
 
