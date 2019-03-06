@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_EXECUTOR_HPP_
 #define GKO_CORE_EXECUTOR_HPP_
 
+
 #include <memory>
 #include <sstream>
 #include <tuple>
@@ -300,8 +301,8 @@ private:                                                                     \
             return name.c_str();                                               \
         }                                                                      \
                                                                                \
-        GKO_ENABLE_KERNEL_FOR_ALL_EXECUTORS(                                   \
-            GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD, _kernel);                   \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);      \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);    \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,    \
                                               _kernel);                        \
                                                                                \

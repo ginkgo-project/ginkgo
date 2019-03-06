@@ -302,7 +302,7 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers);
+        gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers, nullptr);
 
     private:
         // See documentation of storage_optimization parameter for details about

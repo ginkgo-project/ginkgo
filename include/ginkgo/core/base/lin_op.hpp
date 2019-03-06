@@ -605,7 +605,7 @@ public:                                                                \
  *
  * The list of parameters for the factory should be defined in a code block
  * after the macro definition, and should contain a list of
- * GKO_FACTORY_PARMETER declarations. The class should provide a constructor
+ * GKO_FACTORY_PARAMETER declarations. The class should provide a constructor
  * with signature
  * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
  * which the factory will use a callback to construct the object.
