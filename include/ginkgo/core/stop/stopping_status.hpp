@@ -48,6 +48,28 @@ namespace gko {
 class stopping_status {
 public:
     /**
+     * Check if two stopping_status are identical
+     * @param other  stopping_status to compare against
+     * @return true if and only if `*this == other`
+     */
+    GKO_ATTRIBUTES GKO_INLINE bool operator==(
+        const stopping_status &other) const noexcept
+    {
+        return data_ == other.data_;
+    }
+
+    /**
+     * Check if two stopping_status are different
+     * @param other  stopping_status to compare against
+     * @return true if and only if `*this != other`
+     */
+    GKO_ATTRIBUTES GKO_INLINE bool operator!=(
+        const stopping_status &other) const noexcept
+    {
+        return data_ != other.data_;
+    }
+
+    /**
      * Check if any stopping criteria was fulfilled.
      * @return Returns true if any stopping criteria was fulfilled.
      */
@@ -93,15 +115,15 @@ public:
      * Call if a stop occured due to a hard limit (and convergence was not
      * reached).
      * @param id  id of the stopping criteria.
-     * @param setFinalized  Controls if the current version should count as
+     * @param set_finalized  Controls if the current version should count as
      * finalized (set to true) or not (set to false).
      */
     GKO_ATTRIBUTES GKO_INLINE void stop(uint8 id,
-                                        bool setFinalized = true) noexcept
+                                        bool set_finalized = true) noexcept
     {
         if (!this->has_stopped()) {
             data_ |= (id & id_mask_);
-            if (setFinalized) {
+            if (set_finalized) {
                 data_ |= finalized_mask_;
             }
         }
@@ -110,15 +132,15 @@ public:
     /**
      * Call if convergence occured.
      * @param id  id of the stopping criteria.
-     * @param setFinalized  Controls if the current version should count as
+     * @param set_finalized  Controls if the current version should count as
      * finalized (set to true) or not (set to false).
      */
     GKO_ATTRIBUTES GKO_INLINE void converge(uint8 id,
-                                            bool setFinalized = true) noexcept
+                                            bool set_finalized = true) noexcept
     {
         if (!this->has_stopped()) {
             data_ |= converged_mask_ | (id & id_mask_);
-            if (setFinalized) {
+            if (set_finalized) {
                 data_ |= finalized_mask_;
             }
         }
