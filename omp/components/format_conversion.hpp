@@ -43,13 +43,29 @@ template <typename IndexType>
 inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
                                  IndexType *ptrs, size_type length)
 {
-    std::fill(ptrs, ptrs + length, 0);
-    std::for_each(idxs, idxs + num_nonzeros, [&](size_type v) {
-        if (v + 1 < length) {
-            ++ptrs[v + 1];
-        }
-    });
-    std::partial_sum(ptrs, ptrs + length, ptrs);
+#pragma omp parallel
+    {
+        const size_type tid = omp_get_thread_num();
+        const size_type work_size = ceildiv(length, omp_get_num_threads());
+        const size_type start = work_size * tid;
+        const size_type end = min(length, work_size * (tid + 1));
+        std::fill(ptrs + start, ptrs + end, 0);
+    }
+
+#pragma omp parallel
+    {
+        const size_type tid = omp_get_thread_num();
+        const size_type work_size =
+            ceildiv(num_nonzeros, omp_get_num_threads());
+        const size_type start = work_size * tid;
+        const size_type end = min(num_nonzeros, work_size * (tid + 1));
+        std::for_each(idxs + start, idxs + end, [&](IndexType v) {
+            if (v + 1 < length) {
+#pragma omp atomic
+                ++ptrs[v + 1];
+            }
+        });
+    }
 }
 
 
@@ -57,12 +73,11 @@ template <typename IndexType>
 inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
                                  IndexType *idxs)
 {
-    size_type ind = 0;
-
+#pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type i = ptrs[row]; i < static_cast<size_type>(ptrs[row + 1]);
              ++i) {
-            idxs[ind++] = row;
+            idxs[i] = row;
         }
     }
 }
