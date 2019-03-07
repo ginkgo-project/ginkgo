@@ -63,4 +63,10 @@ const char *Operation::get_name() const noexcept
 }
 
 
+int CudaExecutor::num_execs[max_devices];
+
+
+std::mutex CudaExecutor::mutex[max_devices];
+
+
 }  // namespace gko
