@@ -7,7 +7,7 @@ PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @DIR_BASE@/core @DIR_BASE@/omp @DIR_BASE@/cuda @DIR_BASE@/reference @MAINPAGE@
+INPUT                  = @doxygen_input_str@
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples
@@ -51,12 +51,12 @@ SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
 FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
-LAYOUT_FILE            =
+LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
 CITE_BIB_FILES         = 
 
 WARN_NO_PARAMDOC       = YES
 WARN_AS_ERROR          = NO
-IMAGE_PATH             =
+IMAGE_PATH             = @doxygen_image_path_str@
 INLINE_SOURCES         = NO
 STRIP_CODE_COMMENTS    = YES
 REFERENCED_BY_RELATION = YES

@@ -27,6 +27,31 @@ function(ginkgo_doc_pdf name path)
         )
 endfunction()
 
+function(ginkgo_doc_generate_header_footer name path)
+  set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/header.html
+           ${CMAKE_CURRENT_BINARY_DIR}/footer.html
+    COMMAND ${CMAKE_COMMAND} -E touch header.html
+    COMMAND ${CMAKE_COMMAND} -E touch footer.html
+    COMMAND ${DOXYGEN_EXECUTABLE} -w html header.html footer.html ${doxyfile}
+    # COMMAND ${PERL_EXECUTABLE} -pi ${CMAKE_CURRENT_BINARY_DIR}/scripts/mod_header.pl header.html
+    # COMMAND ${PERL_EXECUTABLE} -pi ${CMAKE_CURRENT_BINARY_DIR}/scripts/mod_footer.pl footer.html
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS ${doxyfile}
+    # ${CMAKE_CURRENT_BINARY_DIR}/scripts/mod_header.pl
+    # ${CMAKE_CURRENT_BINARY_DIR}/scripts/mod_footer.pl
+    )
+endfunction()
+
+macro(to_string variable)
+  set(${variable} "")
+  foreach(var  ${ARGN})
+    set(${variable} "${${variable}} ${var}")
+  endforeach()
+  string(STRIP "${${variable}}" ${variable})
+endmacro()
+
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
 function(ginkgo_doc_gen name in pdf mainpage)
@@ -35,9 +60,41 @@ function(ginkgo_doc_gen name in pdf mainpage)
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
     set(MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/pages/${mainpage}")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
+    set(header "${CMAKE_CURRENT_BINARY_DIR}/${name}/header.html")
+    set(footer "${CMAKE_CURRENT_BINARY_DIR}/${name}/footer.html")
+    set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
+    set(doxygen_input
+      "${CMAKE_CURRENT_SOURCE_DIR}/headers/ "
+      )
+    list(APPEND doxygen_input
+      ${DIR_BASE}/core
+      ${DIR_BASE}/omp
+      ${DIR_BASE}/cuda
+      ${DIR_BASE}/reference
+      ${MAINPAGE}
+      # ${CMAKE_CURRENT_BINARY_DIR}/tutorial/tutorial.hpp
+      )
+    set(doxygen_image_path "${CMAKE_CURRENT_SOURCE_DIR}/images/")
+    file(GLOB doxygen_depend
+      ${CMAKE_CURRENT_SOURCE_DIR}/headers/*.hpp
+      ${CMAKE_SOURCE_DIR}/include/ginkgo/**/*.hpp
+      )
+    list(APPEND doxygen_depend
+      ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
+      # ${CMAKE_CURRRENT_BINARY_DIR}/tutorial/tutorial.hpp
+      )
+    to_string(doxygen_input_str ${doxygen_input} )
+    to_string(doxygen_image_path_str ${doxygen_image_path} )
     add_custom_target("${name}" ALL
         #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
-        COMMAND "${DOXYGEN_EXECUTABLE}" "${doxyfile}"
+        COMMAND "${DOXYGEN_EXECUTABLE}" ${doxyfile}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS
+        ${doxyfile}
+        # ${header}
+        # ${footer}
+        ${layout}
+        ${doxygen_depend}
         #COMMAND "${CMAKE_COMMAND}" cmake -E touch "${doxyfile}.stamp"
         COMMENT "Generating ${name} documentation with Doxygen"
         VERBATIM
