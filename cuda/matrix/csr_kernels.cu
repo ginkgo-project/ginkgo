@@ -941,6 +941,36 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
+                      matrix::Sellp<ValueType, IndexType> *result,
+                      const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void move_to_sellp(std::shared_ptr<const CudaExecutor> exec,
+                   matrix::Sellp<ValueType, IndexType> *result,
+                   matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MOVE_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *source,
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans,
                const matrix::Csr<ValueType, IndexType> *orig)
