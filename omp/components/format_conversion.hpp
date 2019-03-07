@@ -40,8 +40,9 @@ namespace omp {
 
 
 template <typename IndexType>
-inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
-                                 IndexType *ptrs, size_type length)
+inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
+                                          size_type num_nonzeros,
+                                          IndexType *ptrs, size_type length)
 {
 #pragma omp parallel
     {
@@ -65,6 +66,33 @@ inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
                 ++ptrs[v + 1];
             }
         });
+    }
+
+    std::partial_sum(ptrs, ptrs + length, ptrs);
+}
+
+
+template <typename IndexType>
+inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
+                                        size_type num_nonzeros, IndexType *ptrs,
+                                        size_type length)
+{
+    ptrs[0] = 0;
+    ptrs[length - 1] = num_nonzeros;
+
+#pragma omp parallel
+    {
+        const size_type tid = omp_get_thread_num();
+        const size_type work_size =
+            ceildiv(num_nonzeros, omp_get_num_threads());
+        const size_type start = work_size * tid;
+        const size_type end = min(num_nonzeros - 1, work_size * (tid + 1));
+
+        for (size_type i = start; i < end; i++) {
+            for (size_type j = idxs[i] + 1; j <= idxs[i + 1]; j++) {
+                ptrs[j] = i + 1;
+            }
+        }
     }
 }
 

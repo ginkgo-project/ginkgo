@@ -140,7 +140,7 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
                               IndexType *ptrs, size_type length)
 {
-    convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
+    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
 
