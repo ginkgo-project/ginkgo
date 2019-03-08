@@ -53,28 +53,6 @@ class stopping_status {
 
 public:
     /**
-     * Check if two stopping_status are identical
-     * @param other  stopping_status to compare against
-     * @return true if and only if `*this == other`
-     */
-    GKO_ATTRIBUTES GKO_INLINE bool operator==(
-        const stopping_status &other) const noexcept
-    {
-        return data_ == other.data_;
-    }
-
-    /**
-     * Check if two stopping_status are different
-     * @param other  stopping_status to compare against
-     * @return true if and only if `*this != other`
-     */
-    GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-        const stopping_status &other) const noexcept
-    {
-        return data_ != other.data_;
-    }
-
-    /**
      * Check if any stopping criteria was fulfilled.
      * @return Returns true if any stopping criteria was fulfilled.
      */
