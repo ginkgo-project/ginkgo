@@ -67,7 +67,7 @@ TEST_F(Criterion, SetsOneStopStatus)
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
-    stop_status.get_data()[0].clear();
+    stop_status.get_data()[0].reset();
 
     criterion->update()
         .num_iterations(test_iterations)
@@ -83,9 +83,9 @@ TEST_F(Criterion, SetsMultipleStopStatuses)
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     gko::Array<gko::stopping_status> stop_status(exec_, 3);
-    stop_status.get_data()[0].clear();
-    stop_status.get_data()[1].clear();
-    stop_status.get_data()[2].clear();
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[1].reset();
+    stop_status.get_data()[2].reset();
 
     criterion->update()
         .num_iterations(test_iterations)
