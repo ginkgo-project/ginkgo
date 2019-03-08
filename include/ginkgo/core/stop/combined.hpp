@@ -49,6 +49,8 @@ namespace stop {
  * OR operation. The typical use case is to stop the iteration process if any of
  * the criteria is fulfilled, e.g. a number of iterations, the relative residual
  * norm has reached a threshold, etc.
+ *
+ * @ingroup stop
  */
 class Combined : public EnablePolymorphicObject<Combined, Criterion> {
     friend class EnablePolymorphicObject<Combined, Criterion>;
@@ -107,6 +109,8 @@ private:
  *
  * @return a combined criterion factory if the input contains multiple factories
  *         or the input factory if the input contains only one factory
+ *
+ * @ingroup stop
  */
 template <typename FactoryContainer>
 std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)

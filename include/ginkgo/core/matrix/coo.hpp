@@ -59,6 +59,9 @@ class Dense;
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,

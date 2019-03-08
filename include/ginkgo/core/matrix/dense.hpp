@@ -77,6 +77,9 @@ class Sellp;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
@@ -504,6 +507,9 @@ private:
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -540,6 +546,9 @@ std::unique_ptr<Matrix> initialize(
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -568,6 +577,9 @@ std::unique_ptr<Matrix> initialize(
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -614,6 +626,9 @@ std::unique_ptr<Matrix> initialize(
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
  *                     argument
+ *
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(

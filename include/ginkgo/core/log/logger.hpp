@@ -79,6 +79,8 @@ namespace log {
  * to log. In addition, the class design allows to not propagate empty messages
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
+ *
+ * @ingroup log
  */
 class Logger {
 public:

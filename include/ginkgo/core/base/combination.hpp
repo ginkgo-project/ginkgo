@@ -48,6 +48,8 @@ namespace gko {
  * multiple linear operators `c1 * op1 + c2 * op2 + ... + ck * opk`.
  *
  * @tparam ValueType  precision of input and result vectors
+ *
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,

@@ -61,6 +61,9 @@ namespace solver {
  * BiCG method.
  *
  * @tparam ValueType precision of the elements of the system matrix.
+ *
+ * @ingroup solvers
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,

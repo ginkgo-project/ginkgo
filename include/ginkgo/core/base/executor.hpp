@@ -167,6 +167,8 @@ class ExecutorBase;
  *
  * Using this approach, however, it is impossible to distinguish between
  * a OmpExecutor and ReferenceExecutor, as both of them call the OMP closure.
+ *
+ * @ingroup Executor
  */
 class Operation {
 public:
@@ -280,6 +282,8 @@ private:                                                                     \
  *     ref->run(op);  // run reference kernel
  * }
  * ```
+ *
+ * @ingroup Executor
  */
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
@@ -400,6 +404,8 @@ private:                                                                     \
  * This approach makes using the library more concise, as explicit copies are
  * not required by the user. Nevertheless, this feature should be taken into
  * account when considering performance implications of using such operations.
+ *
+ * @ingroup Executor
  */
 class Executor : public log::EnableLogging<Executor> {
     template <typename T>
@@ -615,6 +621,8 @@ private:
  * data.
  *
  * @tparam T  the type of object being deleted
+ *
+ * @ingroup Executor
  */
 template <typename T>
 class executor_deleter {
@@ -712,6 +720,9 @@ private:
 /**
  * This is the Executor subclass which represents the OpenMP device
  * (typically CPU).
+ *
+ * @ingroup exec_omp
+ * @ingroup Executor
  */
 class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
                     public std::enable_shared_from_this<OmpExecutor> {
@@ -753,6 +764,9 @@ using DefaultExecutor = OmpExecutor;
 /**
  * This is a specialization of the OmpExecutor, which runs the reference
  * implementations of the kernels used for debugging purposes.
+ *
+ * @ingroup exec_ref
+ * @ingroup Executor
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
@@ -783,6 +797,9 @@ using DefaultExecutor = ReferenceExecutor;
 
 /**
  * This is the Executor subclass which represents the CUDA device.
+ *
+ * @ingroup exec_cuda
+ * @ingroup Executor
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor> {
