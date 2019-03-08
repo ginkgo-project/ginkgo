@@ -57,6 +57,8 @@ endmacro()
 function(ginkgo_doc_gen name in pdf mainpage)
     set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
     set(DIR_BASE "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    # set(REPO_BASE "${CMAKE_SOURCE_DIR}")
+    set(REPO_BASE "${CMAKE_SOURCE_DIR}")
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
     set(MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/pages/${mainpage}")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
@@ -67,10 +69,11 @@ function(ginkgo_doc_gen name in pdf mainpage)
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/ "
       )
     list(APPEND doxygen_input
-      ${DIR_BASE}/core
-      ${DIR_BASE}/omp
-      ${DIR_BASE}/cuda
-      ${DIR_BASE}/reference
+      ${REPO_BASE}/core
+      ${REPO_BASE}/include
+      ${REPO_BASE}/omp
+      ${REPO_BASE}/cuda
+      ${REPO_BASE}/reference
       ${MAINPAGE}
       # ${CMAKE_CURRENT_BINARY_DIR}/tutorial/tutorial.hpp
       )
@@ -105,4 +108,14 @@ function(ginkgo_doc_gen name in pdf mainpage)
     ginkgo_doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
         Doxyfile.in "${in}" "${doxyfile}"
         )
+    # add_custom_command(
+    #   OUTPUT ${header}
+    #          ${footer}
+    #   COMMAND ${CMAKE_COMMAND} -E touch ${DIR_OUT}/header.html
+    #   COMMAND ${CMAKE_COMMAND} -E touch ${DIR_OUT}/footer.html
+    #   COMMAND ${DOXYGEN_EXECUTABLE} -w html header.html footer.html style.css Doxyfile-${name}
+    #   COMMENT "Creating header and footers"
+    #   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${name}
+    #   DEPENDS ${doxyfile}
+    #   )
 endfunction()

@@ -51,7 +51,6 @@ SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
 FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
-LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
 CITE_BIB_FILES         = 
 
 WARN_NO_PARAMDOC       = YES
@@ -67,8 +66,6 @@ VERBATIM_HEADERS       = YES
 # CLANG_ASSISTED_PARSING = NO
 # CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
 
-GENERATE_HTML          = NO
-GENERATE_LATEX         = NO
 
 # Graph generation
 CLASS_DIAGRAMS         = YES
@@ -81,27 +78,24 @@ DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
 
 # HTML-specific configuration
+GENERATE_HTML          = YES
 HTML_OUTPUT            = .
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            =
-HTML_FOOTER            =
-HTML_STYLESHEET        =
-HTML_EXTRA_STYLESHEET  =
-HTML_EXTRA_FILES       =
+HTML_FOOTER            = 
 HTML_COLORSTYLE_HUE    = 220
-HTML_COLORSTYLE_SAT    = 100
-HTML_COLORSTYLE_GAMMA  = 80
-HTML_TIMESTAMP         = NO
-HTML_DYNAMIC_SECTIONS  = NO
-HTML_INDEX_NUM_ENTRIES = 100
+HTML_COLORSTYLE_SAT    = 200
+LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
+HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/stylesheet.css
 
 # LaTeX-specific configuration
+GENERATE_LATEX         = NO
 LATEX_OUTPUT           = .
 LATEX_CMD_NAME         = latex
 MAKEINDEX_CMD_NAME     = makeindex
 COMPACT_LATEX          = YES
-PAPER_TYPE             = a4
-EXTRA_PACKAGES         =
+PAPER_TYPE             = a4wide
+EXTRA_PACKAGES         = amsmath amsfonts mathtools
 LATEX_HEADER           =
 LATEX_FOOTER           =
 LATEX_EXTRA_STYLESHEET =
