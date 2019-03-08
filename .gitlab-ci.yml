@@ -370,6 +370,7 @@ gh-pages:
   dependencies: []
   only:
     refs:
+      - fix-docs
       - develop
       - master
       - tags
