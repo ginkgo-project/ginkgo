@@ -260,6 +260,7 @@ TEST_F(Bicgstab, CudaBicgstabInitializeIsEquivalentToRef)
     GKO_EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
     GKO_EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
     GKO_EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
+    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
 }
 
 

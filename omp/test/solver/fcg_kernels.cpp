@@ -207,6 +207,7 @@ TEST_F(Fcg, OmpFcgInitializeIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
+    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
 }
 
 
