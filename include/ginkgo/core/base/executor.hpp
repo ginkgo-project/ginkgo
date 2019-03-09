@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <tuple>
 #include <type_traits>
@@ -188,22 +189,43 @@ public:
     virtual const char *get_name() const noexcept;
 };
 
+#define GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel)    \
+public:                                                                      \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
+    {                                                                        \
+        this->call(counts{}, exec);                                          \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    template <int... Ns>                                                     \
+    void call(::gko::syn::value_list<int, Ns...>,                            \
+              std::shared_ptr<const ::gko::_type> exec) const                \
+    {                                                                        \
+        ::gko::kernels::_namespace::_kernel(                                 \
+            exec, std::forward<Args>(std::get<Ns>(data))...);                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
-#define GKO_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
-public:                                                               \
-    void run(std::shared_ptr<const ::gko::_type> exec) const override \
-    {                                                                 \
-        this->call(counts{}, exec);                                   \
-    }                                                                 \
-                                                                      \
-private:                                                              \
-    template <int... Ns>                                              \
-    void call(::gko::syn::value_list<int, Ns...>,                     \
-              std::shared_ptr<const ::gko::_type> exec) const         \
-    {                                                                 \
-        ::gko::kernels::_namespace::_kernel(                          \
-            exec, std::forward<Args>(std::get<Ns>(data))...);         \
-    }
+#define GKO_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
+public:                                                                      \
+    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
+    {                                                                        \
+        this->call(counts{}, exec);                                          \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    template <int... Ns>                                                     \
+    void call(::gko::syn::value_list<int, Ns...>,                            \
+              std::shared_ptr<const ::gko::_type> exec) const                \
+    {                                                                        \
+        ::gko::kernels::_namespace::_kernel(                                 \
+            exec, std::forward<Args>(std::get<Ns>(data))...);                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -280,8 +302,10 @@ private:                                                              \
             return name.c_str();                                               \
         }                                                                      \
                                                                                \
-        GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DEFINE_RUN_OVERLOAD, _kernel);        \
-        GKO_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference, _kernel);        \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);      \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);    \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,    \
+                                              _kernel);                        \
                                                                                \
     private:                                                                   \
         mutable std::tuple<Args &&...> data;                                   \
@@ -291,7 +315,10 @@ private:                                                              \
     static _name##_operation<Args...> make_##_name(Args &&... args)            \
     {                                                                          \
         return _name##_operation<Args...>(std::forward<Args>(args)...);        \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 
 /**
@@ -773,6 +800,8 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master);
 
+    ~CudaExecutor() { decrease_num_execs(this->device_id_); }
+
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -851,8 +880,10 @@ protected:
           major_(0),
           minor_(0)
     {
+        assert(device_id < max_devices);
         this->set_gpu_property();
         this->init_handles();
+        increase_num_execs(device_id);
     }
 
     void *raw_alloc(size_type size) const override;
@@ -860,6 +891,24 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    static void increase_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]++;
+    }
+
+    static void decrease_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]--;
+    }
+
+    static int get_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        return num_execs[device_id];
+    }
 
 private:
     int device_id_;
@@ -873,6 +922,10 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+
+    static constexpr int max_devices = 64;
+    static int num_execs[max_devices];
+    static std::mutex mutex[max_devices];
 };
 
 

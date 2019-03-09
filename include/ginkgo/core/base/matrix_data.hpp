@@ -227,8 +227,8 @@ struct matrix_data {
         : size{size_ * block.size}
     {
         nonzeros.reserve(size_[0] * size_[1] * block.nonzeros.size());
-        for (int row = 0; row < size_[0]; ++row) {
-            for (int col = 0; col < size_[1]; ++col) {
+        for (size_type row = 0; row < size_[0]; ++row) {
+            for (size_type col = 0; col < size_[1]; ++col) {
                 for (const auto &elem : block.nonzeros) {
                     nonzeros.emplace_back(row * block.size[0] + elem.row,
                                           col * block.size[1] + elem.column,
@@ -273,7 +273,7 @@ struct matrix_data {
         if (value != zero<ValueType>()) {
             const auto num_nnz = std::min(size_[0], size_[1]);
             res.nonzeros.reserve(num_nnz);
-            for (int i = 0; i < num_nnz; ++i) {
+            for (size_type i = 0; i < num_nnz; ++i) {
                 res.nonzeros.emplace_back(i, i, value);
             }
         }
@@ -314,7 +314,7 @@ struct matrix_data {
         matrix_data res(size_ * block.size);
         const auto num_blocks = std::min(size_[0], size_[1]);
         res.nonzeros.reserve(num_blocks * block.nonzeros.size());
-        for (int b = 0; b < num_blocks; ++b) {
+        for (size_type b = 0; b < num_blocks; ++b) {
             for (const auto &elem : block.nonzeros) {
                 res.nonzeros.emplace_back(b * block.size[0] + elem.row,
                                           b * block.size[1] + elem.column,

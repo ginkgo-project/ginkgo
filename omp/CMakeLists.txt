@@ -16,12 +16,14 @@ target_sources(ginkgo_omp
         solver/cgs_kernels.cpp
         solver/fcg_kernels.cpp
         solver/gmres_kernels.cpp
+        solver/ir_kernels.cpp
         stop/criterion_kernels.cpp
         stop/residual_norm_reduction_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
+target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)

@@ -533,7 +533,7 @@ void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
 #define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)               \
     void write_raw(std::ostream &os,                              \
                    const matrix_data<ValueType, IndexType> &data, \
-                   layout_type layout);
+                   layout_type layout)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
 

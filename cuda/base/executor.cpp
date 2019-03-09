@@ -133,8 +133,10 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
         new CudaExecutor(device_id, std::move(master)),
         [device_id](CudaExecutor *exec) {
             delete exec;
-            device_guard g(device_id);
-            cudaDeviceReset();
+            if (!CudaExecutor::get_num_execs(device_id)) {
+                device_guard g(device_id);
+                cudaDeviceReset();
+            }
         });
 }
 
@@ -191,8 +193,8 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
     device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
-                                         src->get_device_id(), num_bytes));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
+        dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
 }
 
 

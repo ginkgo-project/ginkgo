@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <initializer_list>
 #include <string>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -166,6 +167,38 @@ template <typename MatrixData1, typename MatrixData2>
 }
 
 
+template <typename ValueType>
+::testing::AssertionResult array_equal_impl(
+    const std::string &first_expression, const std::string &second_expression,
+    const Array<ValueType> *first, const Array<ValueType> *second)
+{
+    const auto num_elems1 = first->get_num_elems();
+    const auto num_elems2 = second->get_num_elems();
+    if (num_elems1 != num_elems2) {
+        auto fail = ::testing::AssertionFailure();
+        fail << "Array " << first_expression << " contains " << num_elems1
+             << ", while " << second_expression << " contains " << num_elems2
+             << " elements!\n";
+        return fail;
+    }
+
+    auto exec = first->get_executor()->get_master();
+    Array<ValueType> first_array(exec, *first);
+    Array<ValueType> second_array(exec, *second);
+    for (decltype(first->get_num_elems()) i = 0; i < num_elems1; ++i) {
+        if (!(first_array.get_const_data()[i] ==
+              second_array.get_const_data()[i])) {
+            auto fail = ::testing::AssertionFailure();
+            fail << "Array " << first_expression << " is different from "
+                 << second_expression << " at index " << i << "\n";
+            return fail;
+        }
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
+
 ::testing::AssertionResult str_contains_impl(
     const std::string &first_expression, const std::string &second_expression,
     const std::string &string1, const std::string &string2)
@@ -278,6 +311,33 @@ template <typename LinOp1, typename T>
 
 
 /**
+ * This is a gtest predicate which checks if two arrays are equal.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2 with the operator `==` for equality.
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT2` as follows:
+ * ```
+ * // Check if array1 is equal to array2
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::array_equal, array1, array2);
+ * ```
+ *
+ * @see GKO_ASSERT_ARRAY_EQ
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string &first_expression,
+                                       const std::string &second_expression,
+                                       const Array<ValueType> *first,
+                                       const Array<ValueType> *second)
+{
+    return detail::array_equal_impl(
+        detail::remove_pointer_wrapper(first_expression),
+        detail::remove_pointer_wrapper(second_expression), first, second);
+}
+
+
+/**
  * This is a gtest predicate which checks if one string is contained in another.
  *
  *
@@ -290,7 +350,7 @@ template <typename LinOp1, typename T>
  *                     first, second);
  * ```
  *
- * @see ASSERT_STRING_CONTAINS
+ * @see GKO_ASSERT_STR_CONTAINS
  */
 ::testing::AssertionResult str_contains(const std::string &first_expression,
                                         const std::string &second_expression,
@@ -384,6 +444,26 @@ T plain_ptr(T ptr)
         using ::gko::test::assertions::detail::plain_ptr;              \
         EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near,    \
                             plain_ptr(_mtx1), plain_ptr(_mtx2), _tol); \
+    }
+
+
+/**
+ * Checks if two `gko::Array`s are equal.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2 with the operator `==` for equality.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::array_equal().
+ *
+ * @param _array1  first array
+ * @param _array2  second array
+ **/
+#define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                        \
+    {                                                                \
+        using ::gko::test::assertions::detail::plain_ptr;            \
+        EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal,    \
+                            plain_ptr(_array1), plain_ptr(_array2)); \
     }
 
 

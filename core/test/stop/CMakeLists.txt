@@ -1,3 +1,4 @@
 ginkgo_create_test(combined)
 ginkgo_create_test(iteration)
+ginkgo_create_test(stopping_status)
 ginkgo_create_test(time)

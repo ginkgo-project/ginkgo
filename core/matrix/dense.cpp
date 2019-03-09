@@ -564,7 +564,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 }
 
 
-#define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>;
+#define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
 

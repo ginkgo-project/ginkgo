@@ -68,7 +68,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(omp_, 1);
-    stop_status.get_data()[0].clear();
+    stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
         criterion->update()
@@ -100,8 +100,8 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(omp_, 2);
-    stop_status.get_data()[0].clear();
-    stop_status.get_data()[1].clear();
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[1].reset();
 
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));

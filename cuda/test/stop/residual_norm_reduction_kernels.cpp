@@ -72,7 +72,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
-    stop_status.get_data()[0].clear();
+    stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
     ASSERT_FALSE(
@@ -112,8 +112,8 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
-    stop_status.get_data()[0].clear();
-    stop_status.get_data()[1].clear();
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
 
     ASSERT_FALSE(

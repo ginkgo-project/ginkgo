@@ -107,7 +107,7 @@ namespace bicgstab {
     template <typename ValueType>                      \
     GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);     \
     template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType);
+    GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType)
 
 
 }  // namespace bicgstab

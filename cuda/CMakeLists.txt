@@ -35,6 +35,7 @@ target_sources(ginkgo_cuda
         solver/cgs_kernels.cu
         solver/fcg_kernels.cu
         solver/gmres_kernels.cu
+        solver/ir_kernels.cu
         stop/criterion_kernels.cu
         stop/residual_norm_reduction_kernels.cu)
 
@@ -46,7 +47,8 @@ if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 endif()
-
+target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
+target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})

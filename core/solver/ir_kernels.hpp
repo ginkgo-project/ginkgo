@@ -31,64 +31,64 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/stop/time.hpp>
+#ifndef GKO_CORE_SOLVER_IR_KERNELS_HPP_
+#define GKO_CORE_SOLVER_IR_KERNELS_HPP_
 
 
-#include <gtest/gtest.h>
-#include <chrono>
-#include <thread>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace ir {
 
 
-constexpr long test_ms = 500;
-constexpr double eps = 1.0e-4;
-using double_seconds = std::chrono::duration<double, std::milli>;
+#define GKO_DECLARE_IR_INITIALIZE_KERNEL                         \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
+                    Array<stopping_status> *stop_status)
 
 
-class Time : public ::testing::Test {
-protected:
-    Time() : exec_{gko::ReferenceExecutor::create()}
-    {
-        factory_ = gko::stop::Time::build()
-                       .with_time_limit(std::chrono::milliseconds(test_ms))
-                       .on(exec_);
-    }
-
-    std::unique_ptr<gko::stop::Time::Factory> factory_;
-    std::shared_ptr<const gko::Executor> exec_;
-};
+#define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_IR_INITIALIZE_KERNEL
 
 
-TEST_F(Time, CanCreateFactory)
-{
-    ASSERT_NE(factory_, nullptr);
-    ASSERT_EQ(factory_->get_parameters().time_limit,
-              std::chrono::milliseconds(test_ms));
-}
+}  // namespace ir
 
 
-TEST_F(Time, CanCreateCriterion)
-{
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    ASSERT_NE(criterion, nullptr);
-}
+namespace omp {
+namespace ir {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ir
+}  // namespace omp
 
 
-TEST_F(Time, WaitsTillTime)
-{
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    bool one_changed{};
-    gko::Array<gko::stopping_status> stop_status(exec_, 1);
-    stop_status.get_data()[0].reset();
-    constexpr gko::uint8 RelativeStoppingId{1};
+namespace cuda {
+namespace ir {
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
-    ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
-                                          &stop_status, &one_changed));
-}
+}  // namespace ir
+}  // namespace cuda
 
 
-}  // namespace
+namespace reference {
+namespace ir {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ir
+}  // namespace reference
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_SOLVER_IR_KERNELS_HPP

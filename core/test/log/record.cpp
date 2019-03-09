@@ -478,7 +478,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
         &stop_status, true, true);
 
-    stop_status.get_data()->clear();
+    stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
     auto &data = logger->get().criterion_check_completed.back();
     ASSERT_NE(data->criterion, nullptr);

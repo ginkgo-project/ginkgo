@@ -26,6 +26,7 @@ target_sources(ginkgo
         solver/cgs.cpp
         solver/fcg.cpp
         solver/gmres.cpp
+        solver/ir.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp
@@ -38,6 +39,7 @@ endif()
 
 ginkgo_compile_features(ginkgo)
 
+target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)

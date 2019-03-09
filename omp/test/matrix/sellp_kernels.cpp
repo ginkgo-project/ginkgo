@@ -80,13 +80,13 @@ protected:
     void set_up_apply_data(
         int slice_size = gko::matrix::default_slice_size,
         int stride_factor = gko::matrix::default_stride_factor,
-        int total_cols = 0)
+        int total_cols = 0, int num_vectors = 1)
     {
         mtx = Mtx::create(ref, gko::dim<2>{}, slice_size, stride_factor,
                           total_cols);
         mtx->copy_from(gen_mtx(532, 231));
-        expected = gen_mtx(532, 1);
-        y = gen_mtx(231, 1);
+        expected = gen_mtx(532, num_vectors);
+        y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -156,6 +156,54 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
     set_up_apply_data(32, 4, 0);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, SimpleApplyToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(gko::matrix::default_slice_size,
+                      gko::matrix::default_stride_factor, 0, 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(gko::matrix::default_slice_size,
+                      gko::matrix::default_stride_factor, 0, 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       SimpleApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(32, 4, 0, 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp,
+       AdvancedApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(32, 4, 0, 3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());

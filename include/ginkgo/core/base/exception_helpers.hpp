@@ -62,10 +62,13 @@ namespace gko {
  * Attempts to call this function will result in a runtime error of type
  * NotImplemented.
  */
-#define GKO_NOT_IMPLEMENTED                                        \
-    {                                                              \
-        throw ::gko::NotImplemented(__FILE__, __LINE__, __func__); \
-    }
+#define GKO_NOT_IMPLEMENTED                                                  \
+    {                                                                        \
+        throw ::gko::NotImplemented(__FILE__, __LINE__, __func__);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -76,11 +79,14 @@ namespace gko {
  *
  * @param _module  the module which should be compiled to enable the function
  */
-#define GKO_NOT_COMPILED(_module)                              \
-    {                                                          \
-        throw ::gko::NotCompiled(__FILE__, __LINE__, __func__, \
-                                 GKO_QUOTE(_module));          \
-    }
+#define GKO_NOT_COMPILED(_module)                                            \
+    {                                                                        \
+        throw ::gko::NotCompiled(__FILE__, __LINE__, __func__,               \
+                                 GKO_QUOTE(_module));                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -313,10 +319,13 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  *
  * @throw OutOfBoundsError  if `_index >= _bound`
  */
-#define GKO_ENSURE_IN_BOUNDS(_index, _bound)                               \
-    if (_index >= _bound) {                                                \
-        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _index, _bound); \
-    }
+#define GKO_ENSURE_IN_BOUNDS(_index, _bound)                                 \
+    if (_index >= _bound) {                                                  \
+        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _index, _bound);   \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -339,10 +348,13 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
  * Attempts to call this kernel will result in a runtime error of type
  * KernelNotFound.
  */
-#define GKO_KERNEL_NOT_FOUND                                       \
-    {                                                              \
-        throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__); \
-    }
+#define GKO_KERNEL_NOT_FOUND                                                 \
+    {                                                                        \
+        throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace gko

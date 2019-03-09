@@ -95,6 +95,15 @@ protected:
 };
 
 
+TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
+{
+    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto cuda2 = gko::CudaExecutor::create(0, omp);
+
+    // We want automatic deinitialization to not create any error
+}
+
+
 TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;

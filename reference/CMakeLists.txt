@@ -14,12 +14,14 @@ target_sources(ginkgo_reference
         solver/cgs_kernels.cpp
         solver/fcg_kernels.cpp
         solver/gmres_kernels.cpp
+        solver/ir_kernels.cpp
         stop/criterion_kernels.cpp
         stop/residual_norm_reduction_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)
+target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Ensures that there are no circular dependency issues
 if(NOT BUILD_SHARED_LIBS)

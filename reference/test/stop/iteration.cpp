@@ -61,7 +61,7 @@ TEST_F(Iteration, WaitsTillIteration)
 {
     bool one_changed{};
     gko::Array<gko::stopping_status> stop_status(exec_, 1);
-    stop_status.get_data()[0].clear();
+    stop_status.get_data()[0].reset();
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
 

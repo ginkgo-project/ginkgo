@@ -70,9 +70,9 @@ std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
 }
 
 
-#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>;
+#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
-#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>;
+#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
 
 

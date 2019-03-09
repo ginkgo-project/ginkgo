@@ -29,7 +29,8 @@ endfunction()
 #   Create a new target and declare it as `IMPORTED` for libraries or `INTERFACE`
 #       for header only projects.
 #
-#   \param name             Name of external project
+#   \param new_target       New target for the external project
+#   \param external_name    Name of the external project
 #   \param includedir       Path to include directory
 #   \param libdir           Path to library directory
 #   \param build_type       Build type {STATIC, SHARED}
@@ -37,35 +38,35 @@ endfunction()
 #   \param external         Name of the external target
 #   \param header_only      Boolean indicating if this should be a header only target
 #
-macro(ginkgo_add_external_target name includedir libdir build_type debug_postfix external header_only)
+macro(ginkgo_add_external_target new_target external_name includedir libdir build_type debug_postfix external header_only)
     # Declare include directories and library files
-    set(${name}_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${libdir})
-    set(${name}_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${includedir}")
-    set(${name}_LIBRARY_RELEASE "${${name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
-    set(${name}_LIBRARY_DEBUG "${${name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+    set(${external_name}_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${libdir})
+    set(${external_name}_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${includedir}")
+    set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+    set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
 
     # Create an IMPORTED external library available in the GLOBAL scope
     if (${header_only})
-        add_library(${name} INTERFACE)
+        add_library(${new_target} INTERFACE)
     else()
-        add_library(${name} ${build_type} IMPORTED GLOBAL)
+        add_library(${new_target} ${build_type} IMPORTED GLOBAL)
     endif()
 
     # Set a dependency to the external target (ExternalProject fetcher and builder)
-    add_dependencies(${name} ${external})
+    add_dependencies(${new_target} ${external})
 
     # Set the target's properties, namely library file and include directory
     if (NOT ${header_only})
-        set_target_properties(${name} PROPERTIES IMPORTED_LOCATION_RELEASE ${${name}_LIBRARY_RELEASE})
-        set_target_properties(${name} PROPERTIES IMPORTED_LOCATION_DEBUG ${${name}_LIBRARY_DEBUG})
+        set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_RELEASE ${${external_name}_LIBRARY_RELEASE})
+        set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_DEBUG ${${external_name}_LIBRARY_DEBUG})
         # Since we do not really manage other build types, let's globally use the DEBUG symbols
         if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]"
             AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
-            set_target_properties(${name} PROPERTIES IMPORTED_LOCATION
-                ${${name}_LIBRARY_DEBUG})
+            set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
+                ${${external_name}_LIBRARY_DEBUG})
         endif()
     endif()
-    target_include_directories(${name} INTERFACE ${${name}_INCLUDE_DIR})
+    set_target_properties(${new_target} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${${external_name}_INCLUDE_DIR})
 endmacro(ginkgo_add_external_target)
 
 

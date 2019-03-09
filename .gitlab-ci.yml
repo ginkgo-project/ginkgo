@@ -4,6 +4,7 @@ stages:
   - sync
   - build
   - test
+  - warnings
   - deploy
   - QoS_tools
   - benchmark-build
@@ -21,6 +22,7 @@ stages:
   BUILD_REFERENCE: "ON"
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
+  CXX_FLAGS: ""
   EXTRA_CMAKE_FLAGS: ""
 
 .before_script_template: &default_before_script
@@ -49,6 +51,7 @@ stages:
         -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
   artifacts:
     paths:
@@ -328,6 +331,20 @@ test/nocuda/clang/omp/release:
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   dependencies:
     - build/nocuda/clang/omp/release
+
+
+# Job with important warnings as error
+warnings:
+  <<: *default_build
+  stage: warnings
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+  dependencies: []
+  allow_failure: yes
 
 
 # Deploy documentation to github-pages

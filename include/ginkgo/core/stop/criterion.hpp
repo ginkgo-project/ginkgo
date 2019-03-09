@@ -271,32 +271,35 @@ using EnableDefaultCriterionFactory =
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
  */
-#define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,          \
-                                     _factory_name)                         \
-public:                                                                     \
-    const _parameters_name##_type &get_##_parameters_name() const           \
-    {                                                                       \
-        return _parameters_name##_;                                         \
-    }                                                                       \
-                                                                            \
-    class _factory_name                                                     \
-        : public ::gko::stop::EnableDefaultCriterionFactory<                \
-              _factory_name, _criterion, _parameters_name##_type> {         \
-        friend class ::gko::EnablePolymorphicObject<                        \
-            _factory_name, ::gko::stop::CriterionFactory>;                  \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type, \
-                                                   _factory_name>;          \
-        using ::gko::stop::EnableDefaultCriterionFactory<                   \
-            _factory_name, _criterion,                                      \
-            _parameters_name##_type>::EnableDefaultCriterionFactory;        \
-    };                                                                      \
-    friend ::gko::stop::EnableDefaultCriterionFactory<                      \
-        _factory_name, _criterion, _parameters_name##_type>;                \
-                                                                            \
-private:                                                                    \
-    _parameters_name##_type _parameters_name##_;                            \
-                                                                            \
-public:
+#define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,           \
+                                     _factory_name)                          \
+public:                                                                      \
+    const _parameters_name##_type &get_##_parameters_name() const            \
+    {                                                                        \
+        return _parameters_name##_;                                          \
+    }                                                                        \
+                                                                             \
+    class _factory_name                                                      \
+        : public ::gko::stop::EnableDefaultCriterionFactory<                 \
+              _factory_name, _criterion, _parameters_name##_type> {          \
+        friend class ::gko::EnablePolymorphicObject<                         \
+            _factory_name, ::gko::stop::CriterionFactory>;                   \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
+                                                   _factory_name>;           \
+        using ::gko::stop::EnableDefaultCriterionFactory<                    \
+            _factory_name, _criterion,                                       \
+            _parameters_name##_type>::EnableDefaultCriterionFactory;         \
+    };                                                                       \
+    friend ::gko::stop::EnableDefaultCriterionFactory<                       \
+        _factory_name, _criterion, _parameters_name##_type>;                 \
+                                                                             \
+private:                                                                     \
+    _parameters_name##_type _parameters_name##_;                             \
+                                                                             \
+public:                                                                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace stop
