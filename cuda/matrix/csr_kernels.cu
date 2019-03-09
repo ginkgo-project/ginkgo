@@ -147,13 +147,13 @@ __device__ __forceinline__ void find_next_row(
 template <typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<wsize> &group, bool force_write,
-    ValueType *__restrict__ val, IndexType ind, ValueType *__restrict__ out,
-    Closure scale)
+    ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
+    const size_type c_stride, const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(group, ind, val);
+    const bool need_write = segment_scan(group, row, val);
     if (need_write && force_write) {
-        atomic_add(out + ind, scale(*val));
+        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
     }
     if (!need_write || force_write) {
         *val = zero<ValueType>();
@@ -169,21 +169,23 @@ __device__ __forceinline__ void process_window(
     IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    ValueType *__restrict__ c, Closure scale)
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride, const IndexType column_id, Closure scale)
 {
     const IndexType curr_row = *row;
     find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
                         *nrow_end, row_ptrs);
     // segmented scan
     if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c, scale);
+        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
+                        c_stride, column_id, scale);
         *nrow = group.shfl(*row, wsize - 1);
         *nrow_end = group.shfl(*row_end, wsize - 1);
     }
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col];
+        *temp_val += val[ind] * b[col * b_stride + column_id];
     }
 }
 
@@ -202,9 +204,11 @@ __device__ __forceinline__ void spmv_kernel(
     const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c, Closure scale)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
 {
     const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
+    const IndexType column_id = blockIdx.y;
     if (warp_idx >= nwarps) {
         return;
     }
@@ -227,12 +231,14 @@ __device__ __forceinline__ void spmv_kernel(
     for (; ind < ind_end; ind += wsize) {
         process_window<false>(tile_block, num_rows, data_size, ind, &row,
                               &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, c, scale);
+                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
+                              column_id, scale);
     }
     process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
                          &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, c, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, scale);
+                         b, b_stride, c, c_stride, column_id, scale);
+    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
+                    scale);
 }
 
 
@@ -241,10 +247,11 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride)
 {
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
-                [](const ValueType &x) { return x; });
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
+                c_stride, [](const ValueType &x) { return x; });
 }
 
 
@@ -254,12 +261,14 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride)
 {
     ValueType scale_factor = alpha[0];
-    spmv_kernel(
-        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; });
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
+                c_stride, [&scale_factor](const ValueType &x) {
+                    return scale_factor * x;
+                });
 }
 
 
@@ -448,14 +457,16 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block));
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
             abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()),
-                as_cuda_type(c->get_values()));
+                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
+                as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         const int version = exec->get_major_version()
@@ -600,7 +611,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
         if (nwarps > 0) {
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block));
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
             abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(alpha->get_const_values()),
@@ -608,7 +620,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()),
-                as_cuda_type(c->get_values()));
+                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
+                as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
