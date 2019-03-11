@@ -90,9 +90,9 @@ public:
      * the executor of the source Array.
      */
     Array() noexcept
-        : exec_(nullptr),
-          num_elems_(0),
-          data_(nullptr, default_deleter{nullptr})
+        : num_elems_(0),
+          data_(nullptr, default_deleter{nullptr}),
+          exec_(nullptr)
     {}
 
     /**
@@ -101,9 +101,9 @@ public:
      * @param exec  the Executor where the array data is allocated
      */
     Array(std::shared_ptr<const Executor> exec) noexcept
-        : exec_(std::move(exec)),
-          num_elems_(0),
-          data_(nullptr, default_deleter{exec})
+        : num_elems_(0),
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
     {}
 
     /**
@@ -114,9 +114,9 @@ public:
      *                   `value_type` elements) allocated on the Executor
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : exec_(std::move(exec)),
-          num_elems_(num_elems),
-          data_(nullptr, default_deleter{exec})
+        : num_elems_(num_elems),
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
     {
         if (num_elems > 0) {
             data_.reset(exec_->alloc<value_type>(num_elems));
@@ -144,7 +144,7 @@ public:
     template <typename DeleterType>
     Array(std::shared_ptr<const Executor> exec, size_type num_elems,
           value_type *data, DeleterType deleter)
-        : exec_{exec}, num_elems_{num_elems}, data_(data, deleter)
+        : num_elems_{num_elems}, data_(data, deleter), exec_{exec}
     {}
 
     /**
@@ -320,6 +320,7 @@ public:
         }
         if (exec_ == nullptr) {
             exec_ = other.get_executor();
+            data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
             this->resize_and_reset(0);
@@ -435,9 +436,9 @@ private:
     using data_manager =
         std::unique_ptr<value_type[], std::function<void(value_type[])>>;
 
-    std::shared_ptr<const Executor> exec_;
     size_type num_elems_;
     data_manager data_;
+    std::shared_ptr<const Executor> exec_;
 };
 
 
