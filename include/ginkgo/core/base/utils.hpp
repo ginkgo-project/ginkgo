@@ -172,7 +172,7 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
  *
- * @
+ * @param exec  the executor where the cloned object should be stored
  * @param p  a pointer to the object
  *
  * @note The difference between this function and directly calling

@@ -209,7 +209,7 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale(const LinOp *alpha)
+void Dense<ValueType>::scale_impl(const LinOp *alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -217,13 +217,12 @@ void Dense<ValueType>::scale(const LinOp *alpha)
         GKO_ASSERT_EQUAL_COLS(this, alpha);
     }
     auto exec = this->get_executor();
-    if (alpha->get_executor() != exec) GKO_NOT_IMPLEMENTED;
     exec->run(dense::make_scale(as<Dense<ValueType>>(alpha), this));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
+void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -232,32 +231,27 @@ void Dense<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
-    if (alpha->get_executor() != exec || b->get_executor() != exec)
-        GKO_NOT_IMPLEMENTED;
     exec->run(dense::make_add_scaled(as<Dense<ValueType>>(alpha),
                                      as<Dense<ValueType>>(b), this));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
+void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    if (b->get_executor() != exec || result->get_executor() != exec)
-        GKO_NOT_IMPLEMENTED;
     exec->run(dense::make_compute_dot(this, as<Dense<ValueType>>(b),
                                       as<Dense<ValueType>>(result)));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(LinOp *result) const
+void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    if (result->get_executor() != exec) GKO_NOT_IMPLEMENTED;
     exec->run(dense::make_compute_norm2(as<Dense<ValueType>>(this),
                                         as<Dense<ValueType>>(result)));
 }

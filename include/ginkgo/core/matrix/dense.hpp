@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <initializer_list>
@@ -278,7 +279,11 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
      */
-    virtual void scale(const LinOp *alpha);
+    void scale(const LinOp *alpha)
+    {
+        auto exec = this->get_executor();
+        this->scale_impl(make_temporary_clone(exec, alpha).get());
+    }
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
@@ -290,7 +295,12 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    virtual void add_scaled(const LinOp *alpha, const LinOp *b);
+    void add_scaled(const LinOp *alpha, const LinOp *b)
+    {
+        auto exec = this->get_executor();
+        this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                              make_temporary_clone(exec, b).get());
+    }
 
     /**
      * Computes the column-wise dot product of this matrix and `b`. The
@@ -301,7 +311,12 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    virtual void compute_dot(const LinOp *b, LinOp *result) const;
+    void compute_dot(const LinOp *b, LinOp *result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_dot_impl(make_temporary_clone(exec, b).get(),
+                               make_temporary_clone(exec, result).get());
+    }
 
     /**
      * Computes the Euclidian (L^2) norm of this matrix.
@@ -310,7 +325,11 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    virtual void compute_norm2(LinOp *result) const;
+    void compute_norm2(LinOp *result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_norm2_impl(make_temporary_clone(exec, result).get());
+    }
 
     /**
      * Create a submatrix from the original matrix.
@@ -406,6 +425,38 @@ protected:
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
                              values_.get_num_elems());
     }
+
+    /**
+     * @copydoc scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of scale(const LinOp *alpha).
+     */
+    virtual void scale_impl(const LinOp *alpha);
+
+    /**
+     * @copydoc add_scaled(const LinOp *, const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of add_scale(const LinOp *alpha, const LinOp *b).
+     */
+    virtual void add_scaled_impl(const LinOp *alpha, const LinOp *b);
+
+    /**
+     * @copydoc compute_dot(const LinOp *, LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_dot(const LinOp *b, LinOp *result).
+     */
+    virtual void compute_dot_impl(const LinOp *b, LinOp *result) const;
+
+    /**
+     * @copydoc compute_norm2(LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_norm2(LinOp *result).
+     */
+    virtual void compute_norm2_impl(LinOp *result) const;
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
