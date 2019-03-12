@@ -34,11 +34,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 
+#include <omp.h>
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
 
 
+/**
+ * @internal
+ *
+ * Converts an array of indexes 'idxs' in any order to an array of pointers
+ * 'ptrs'. This is used for transposing a csr matrix when calculating the row
+ * pointers of the transposed matrix out of the column indices of the original
+ * matrix.
+ */
 template <typename IndexType>
 inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
                                           size_type num_nonzeros,
@@ -72,6 +83,13 @@ inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
 }
 
 
+/**
+ * @internal
+ *
+ * Converts an array of indexes which are already stored in an increasing order
+ * to an array of pointers. This is used to calculate the row pointers when
+ * converting a coo matrix to a csr matrix.
+ */
 template <typename IndexType>
 inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
                                         size_type num_nonzeros, IndexType *ptrs,
