@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/format_conversion.cuh"
+#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/zero_array.hpp"
 
@@ -450,9 +450,10 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];
         for (auto i = 0; i < max_nnz_per_row; i++) {
-            if (source_values[tidx + stride * i] != zero<ValueType>()) {
-                result_values[write_to] = source_values[tidx + stride * i];
-                result_col_idxs[write_to] = source_col_idxs[tidx + stride * i];
+            const auto source_idx = tidx + stride * i;
+            if (source_values[source_idx] != zero<ValueType>()) {
+                result_values[write_to] = source_values[source_idx];
+                result_col_idxs[write_to] = source_col_idxs[source_idx];
                 write_to++;
             }
         }
@@ -477,7 +478,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     const auto stride = source->get_stride();
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
 
-    const auto rows_per_block =
+    constexpr auto rows_per_block =
         ceildiv(default_block_size, cuda_config::warp_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
@@ -488,11 +489,11 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    start_prefix_sum<<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(row_ptrs),
-        as_cuda_type(add_values.get_data()));
+    start_prefix_sum<default_block_size>
+        <<<grid_dim, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
+                                           as_cuda_type(add_values.get_data()));
 
-    finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         num_rows + 1, as_cuda_type(row_ptrs),
         as_cuda_type(add_values.get_const_data()));
 
