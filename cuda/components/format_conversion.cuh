@@ -119,31 +119,6 @@ __global__ __launch_bounds__(default_block_size) void finalize_prefix_sum(
 }
 
 
-template <typename Operator, typename ValueType>
-__device__ void reduce_array(size_type size,
-                             const ValueType *__restrict__ source,
-                             ValueType *__restrict__ result,
-                             Operator reduce_op = Operator{})
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    auto thread_result = zero<ValueType>();
-    for (auto i = tidx; i < size; i += blockDim.x * gridDim.x) {
-        thread_result = reduce_op(thread_result, source[i]);
-    }
-    result[threadIdx.x] = thread_result;
-
-    __syncthreads();
-
-    for (auto i = blockDim.x >> 1; i >= 1; i >>= 1) {
-        if (threadIdx.x < i && threadIdx.x + i < blockDim.x) {
-            result[threadIdx.x] =
-                reduce_op(result[threadIdx.x + i], result[threadIdx.x]);
-        }
-        __syncthreads();
-    }
-}
-
-
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
