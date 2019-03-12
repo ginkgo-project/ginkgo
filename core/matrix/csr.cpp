@@ -59,7 +59,6 @@ GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
-GKO_REGISTER_OPERATION(move_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
@@ -179,13 +178,7 @@ void Csr<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType> *result)
 {
-    auto exec = this->get_executor();
-    size_type max_nnz_per_row;
-    exec->run(csr::make_calculate_max_nnz_per_row(this, &max_nnz_per_row));
-    auto tmp = Ell<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 max_nnz_per_row);
-    exec->run(csr::make_move_to_ell(tmp.get(), this));
-    tmp->move_to(result);
+    this->convert_to(result);
 }
 
 

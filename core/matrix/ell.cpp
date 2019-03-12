@@ -55,8 +55,7 @@ namespace ell {
 GKO_REGISTER_OPERATION(spmv, ell::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
-GKO_REGISTER_OPERATION(converto_to_csr, ell::convert_to_csr);
-GKO_REGISTER_OPERATION(move_to_csr, ell::move_to_csr);
+GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        ell::calculate_nonzeros_per_row);
@@ -137,7 +136,7 @@ void Ell<ValueType, IndexType>::convert_to(
 
     auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
                                                  num_stored_elements);
-    exec->run(ell::make_converto_to_csr(tmp.get(), this));
+    exec->run(ell::make_convert_to_csr(tmp.get(), this));
 
     tmp->move_to(result);
 }
