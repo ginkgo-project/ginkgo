@@ -56,6 +56,7 @@ protected:
     using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
+    using Ell = gko::matrix::Ell<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
@@ -134,6 +135,27 @@ protected:
         EXPECT_EQ(v[65], 0.0);
         EXPECT_EQ(v[128], 2.0);
         EXPECT_EQ(v[129], 0.0);
+    }
+
+    void assert_equal_to_mtx(const Ell *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 6);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 1);
+        EXPECT_EQ(c[3], 0);
+        EXPECT_EQ(c[4], 2);
+        EXPECT_EQ(c[5], 0);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 5.0);
+        EXPECT_EQ(v[2], 3.0);
+        EXPECT_EQ(v[3], 0.0);
+        EXPECT_EQ(v[4], 2.0);
+        EXPECT_EQ(v[5], 0.0);
     }
 
     std::complex<double> i{0, 1};
@@ -303,11 +325,7 @@ TEST_F(Csr, ConvertsToEll)
     auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
 
     mtx->convert_to(ell_mtx.get());
-    ell_mtx->convert_to(dense_mtx.get());
-
-    mtx->convert_to(ref_dense_mtx.get());
-
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ref_dense_mtx.get(), 0.0);
+    assert_equal_to_mtx(ell_mtx.get());
 }
 
 

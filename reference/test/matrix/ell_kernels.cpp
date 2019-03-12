@@ -50,6 +50,7 @@ namespace {
 class Ell : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Ell<>;
+    using Csr = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
 
     Ell()
@@ -64,6 +65,27 @@ protected:
             {{1.0, 3.0, 2.0},
              {0.0, 5.0, 0.0}}, exec, gko::dim<2>{}, 0, 16);
         // clang-format on
+    }
+
+    void assert_equal_to_mtx(const Csr *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto r = m->get_const_row_ptrs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 3);
+        EXPECT_EQ(r[2], 4);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -326,24 +348,20 @@ TEST_F(Ell, MovesWithStrideToDense)
 TEST_F(Ell, ConvertsToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
-    auto dense_ref = gko::matrix::Dense<>::create(mtx1->get_executor());
 
     mtx1->convert_to(csr_mtx.get());
-    csr_mtx->convert_to(dense_ref.get());
 
-    GKO_ASSERT_MTX_NEAR(mtx1, dense_ref, 0.0);
+    assert_equal_to_mtx(csr_mtx.get());
 }
 
 
 TEST_F(Ell, ConvertsWithStrideToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
-    auto dense_ref = gko::matrix::Dense<>::create(mtx2->get_executor());
 
     mtx2->convert_to(csr_mtx.get());
-    csr_mtx->convert_to(dense_ref.get());
 
-    GKO_ASSERT_MTX_NEAR(mtx1, dense_ref, 0.0);
+    assert_equal_to_mtx(csr_mtx.get());
 }
 
 
