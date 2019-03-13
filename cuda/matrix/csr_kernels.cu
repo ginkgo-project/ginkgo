@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/dense_kernels.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -62,7 +63,14 @@ constexpr int classical_block_size = 64;
 constexpr int wsize = cuda_config::warp_size;
 
 
-namespace {
+/**
+ * A compile-time list of the number items per threads for which spmv kernel
+ * should be compiled.
+ */
+using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+
+
+namespace kernel {
 
 
 template <typename T>
@@ -476,6 +484,93 @@ __global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
 }
 
 
+}  // namespace kernel
+
+
+namespace {
+
+
+template <int items_per_thread, typename ValueType, typename IndexType>
+void merge_path_spmv(syn::value_list<int, items_per_thread>,
+                     std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Dense<ValueType> *b,
+                     matrix::Dense<ValueType> *c,
+                     const matrix::Dense<ValueType> *alpha = nullptr,
+                     const matrix::Dense<ValueType> *beta = nullptr)
+{
+    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+    const IndexType grid_num =
+        ceildiv(total, spmv_block_size * items_per_thread);
+    const dim3 grid(grid_num);
+    const dim3 block(spmv_block_size);
+    Array<IndexType> row_out(exec, grid_num);
+    Array<ValueType> val_out(exec, grid_num);
+    if (alpha == nullptr && beta == nullptr) {
+        kernel::merge_path_spmv<items_per_thread>
+            <<<grid, block, 0, 0>>>(
+                static_cast<IndexType>(a->get_size()[0]),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(a->get_const_srow()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride(),
+                as_cuda_type(row_out.get_data()),
+                as_cuda_type(val_out.get_data()));
+        kernel::reduce<<<1, spmv_block_size>>>(
+            grid_num, as_cuda_type(val_out.get_data()),
+            as_cuda_type(row_out.get_data()), as_cuda_type(c->get_values()),
+            c->get_stride());
+    } else if (alpha != nullptr && beta != nullptr) {
+        // kernel::merge_path_spmv<items_per_thread>
+        //     <<<grid_size, block_size, 0, 0>>>(
+        //         nrows, as_cuda_type(alpha->get_const_values()),
+        //         as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+        //         a->get_stride(), a->get_num_stored_elements_per_row(),
+        //         as_cuda_type(b->get_const_values()), b->get_stride(),
+        //         as_cuda_type(beta->get_const_values()),
+        //         as_cuda_type(c->get_values()), c->get_stride());
+    } else {
+        GKO_KERNEL_NOT_FOUND;
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
+
+
+template <typename IndexType>
+int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
+{
+    const int version = exec->get_major_version()
+                        << 4 + exec->get_minor_version();
+    // 128 threads/block the number of items per threads
+    // 3.0 3.5: 6
+    // 3.7: 14
+    // 5.0, 5.3, 6.0, 6.2: 8
+    // 5.2, 6.1, 7.0: 12
+    int num_item = 6;
+    switch (version) {
+    case 0x50:
+    case 0x53:
+    case 0x60:
+    case 0x62:
+        num_item = 8;
+        break;
+    case 0x52:
+    case 0x61:
+    case 0x70:
+        num_item = 12;
+        break;
+    case 0x37:
+        num_item = 14;
+    }
+    // The calculation is based on size(IndexType) = 4
+    constexpr int index_scale = sizeof(IndexType) / 4;
+    int items_per_thread = num_item / index_scale;
+    return items_per_thread;
+}
+
+
 }  // namespace
 
 
@@ -493,7 +588,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
-            abstract_spmv<<<csr_grid, csr_block>>>(
+            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
@@ -503,90 +598,17 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        const int version = exec->get_major_version()
-                            << 4 + exec->get_minor_version();
-        // 128 threads/block the number of items per threads
-        // 3.0 3.5: 6
-        // 3.7: 14
-        // 5.0, 5.3, 6.0, 6.2: 8
-        // 5.2, 6.1, 7.0: 12
-        int num_item = 6;
-        switch (version) {
-        case 0x50:
-        case 0x53:
-        case 0x60:
-        case 0x62:
-            num_item = 8;
-            break;
-        case 0x52:
-        case 0x61:
-        case 0x70:
-            num_item = 12;
-            break;
-        case 0x37:
-            num_item = 14;
-        }
-        // The calculation is based on size(IndexType) = 4
-        constexpr int index_scale = sizeof(IndexType) / 4;
-        const int items_per_thread = num_item / index_scale;
-
-        const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
-        const IndexType grid_num =
-            ceildiv(total, spmv_block_size * items_per_thread);
-        const dim3 grid(grid_num);
-        const dim3 block(spmv_block_size);
-        Array<IndexType> row_out(exec, grid_num);
-        Array<ValueType> val_out(exec, grid_num);
-        if (num_item == 6) {
-            merge_path_spmv<6 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 8) {
-            merge_path_spmv<8 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 12) {
-            merge_path_spmv<12 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 14) {
-            merge_path_spmv<14 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        }
-
-        reduce<<<1, spmv_block_size>>>(
-            grid_num, as_cuda_type(val_out.get_data()),
-            as_cuda_type(row_out.get_data()), as_cuda_type(c->get_values()),
-            c->get_stride());
+        int items_per_thread = compute_items_per_thread<IndexType>(exec);
+        select_merge_path_spmv(compiled_kernels(),
+                               [&items_per_thread](int compiled_info) {
+                                   return items_per_thread == compiled_info;
+                               },
+                               syn::value_list<int>(), syn::type_list<>(), exec,
+                               a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
-        abstract_classical_spmv<<<grid, classical_block_size>>>(
+        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
             a->get_size()[0], as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -640,7 +662,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
-            abstract_spmv<<<csr_grid, csr_block>>>(
+            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -676,7 +698,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     } else if (a->get_strategy()->get_name() == "classical") {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
-        abstract_classical_spmv<<<grid, classical_block_size>>>(
+        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
             a->get_size()[0], as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
             as_cuda_type(a->get_const_row_ptrs()),
