@@ -1,0 +1,16 @@
+digraph "Executors"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir=LR;
+  Node2 [label="OpenMP Executor",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__exec__omp.html",tooltip="A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo. "];
+  Node1 [label="CUDA Executor",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__exec__cuda.html",tooltip="A module dedicated to the implementation and usage of the CUDA executor in Ginkgo. "];
+  Node0 [label="Executors",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node3 [label="Reference Executor",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__exec__ref.html",tooltip="A module dedicated to the implementation and usage of the Reference executor in Ginkgo. "];
+  Node0->Node1 [shape=plaintext, dir="back", style="solid"];
+  Node0->Node2 [shape=plaintext, dir="back", style="solid"];
+  Node0->Node3 [shape=plaintext, dir="back", style="solid"];
+  Node0->Node2 [shape=plaintext, label="gko::OmpExecutor", color="orange", dir="none", style="dashed"];
+  Node0->Node3 [shape=plaintext, label="gko::ReferenceExecutor", color="orange", dir="none", style="dashed"];
+  Node0->Node1 [shape=plaintext, label="gko::CudaExecutor", color="orange", dir="none", style="dashed"];
+}
