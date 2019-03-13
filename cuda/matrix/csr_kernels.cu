@@ -419,13 +419,15 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(64) void classical_spmv(
-    const size_type num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
-    const size_type c_stride)
+template <typename ValueType, typename IndexType, typename Closure>
+__device__ void classical_spmv(const size_type num_rows,
+                               const ValueType *__restrict__ val,
+                               const IndexType *__restrict__ col_idxs,
+                               const IndexType *__restrict__ row_ptrs,
+                               const ValueType *__restrict__ b,
+                               const size_type b_stride,
+                               ValueType *__restrict__ c,
+                               const size_type c_stride, Closure scale)
 {
     const auto tid =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -438,7 +440,39 @@ __global__ __launch_bounds__(64) void classical_spmv(
     for (auto ind = row_ptrs[tid]; ind < ind_end; ind++) {
         temp_value += val[ind] * b[col_idxs[ind] * b_stride + column_id];
     }
-    c[tid * c_stride + column_id] = temp_value;
+    c[tid * c_stride + column_id] =
+        scale(temp_value, c[tid * c_stride + column_id]);
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    classical_spmv(num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
+                   [](const ValueType &x, const ValueType &y) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
+    const size_type b_stride, const ValueType *__restrict__ beta,
+    ValueType *__restrict__ c, const size_type c_stride)
+{
+    const auto alpha_val = alpha[0];
+    const auto beta_val = beta[0];
+    classical_spmv(
+        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
+        [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
+            return alpha_val * x + beta_val * y;
+        });
 }
 
 
@@ -550,8 +584,9 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(row_out.get_data()), as_cuda_type(c->get_values()),
             c->get_stride());
     } else if (a->get_strategy()->get_name() == "classical") {
-        classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
-                         classical_block_size>>>(
+        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
+                        b->get_size()[1]);
+        abstract_classical_spmv<<<grid, classical_block_size>>>(
             a->get_size()[0], as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -581,14 +616,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
             cusparse::destroy(descr);
-        } else {
-            // use classical implementation
-            classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
-                             classical_block_size>>>(
-                a->get_size()[0], as_cuda_type(a->get_const_values()),
-                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
         }
     }
 }
@@ -646,6 +673,16 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         } else {
             GKO_NOT_IMPLEMENTED;
         }
+    } else if (a->get_strategy()->get_name() == "classical") {
+        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
+                        b->get_size()[1]);
+        abstract_classical_spmv<<<grid, classical_block_size>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
     }
 }
 
