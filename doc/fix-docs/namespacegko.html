@@ -26,9 +26,9 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">develop 0.0.0</span>
+   &#160;<span id="projectnumber">Generated from HEAD branch based on develop. Ginkgo version 0.0.0</span>
    </div>
-   <div id="projectbrief">Ginkgo is a numerical linear algebra library targeting manycore architectures.</div>
+   <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
  </tr>
  </tbody>
@@ -1010,6 +1010,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;</b> (con
 <tr class="memitem:ga691dd917874868551c840b8853e573bc"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__LinOp.html#ga691dd917874868551c840b8853e573bc">initialize</a> (std::initializer_list&lt; std::initializer_list&lt; typename Matrix::value_type &gt;&gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;...create_args)</td></tr>
 <tr class="memdesc:ga691dd917874868551c840b8853e573bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a matrix.  <a href="group__LinOp.html#ga691dd917874868551c840b8853e573bc">More...</a><br /></td></tr>
 <tr class="separator:ga691dd917874868551c840b8853e573bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf34f605deac3e475189bb5b8a0fa71a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#acf34f605deac3e475189bb5b8a0fa71a">operator==</a> (const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;x, const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;y) noexcept</td></tr>
+<tr class="memdesc:acf34f605deac3e475189bb5b8a0fa71a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two stopping statuses are equivalent.  <a href="#acf34f605deac3e475189bb5b8a0fa71a">More...</a><br /></td></tr>
+<tr class="separator:acf34f605deac3e475189bb5b8a0fa71a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:accf1dbf5054c76e154490d825b0f44ee"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#accf1dbf5054c76e154490d825b0f44ee">operator!=</a> (const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;x, const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;y) noexcept</td></tr>
+<tr class="memdesc:accf1dbf5054c76e154490d825b0f44ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two stopping statuses are different.  <a href="#accf1dbf5054c76e154490d825b0f44ee">More...</a><br /></td></tr>
+<tr class="separator:accf1dbf5054c76e154490d825b0f44ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -1116,8 +1122,6 @@ template&lt;typename T , typename U &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>If successful, returns a pointer to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. </dd></dl>
-
-<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac9bf644183d3ddb50034d77e710818e6">gko::matrix::Dense&lt; ValueType &gt;::compute_dot()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599">gko::matrix::Dense&lt; ValueType &gt;::compute_norm2()</a>, and <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>.</p>
 
 </div>
 </div>
@@ -1264,8 +1268,9 @@ template&lt;typename Pointer &gt; </div>
   </table>
   </dd>
 </dl>
-<p>@ </p><dl class="params"><dt>Parameters</dt><dd>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">exec</td><td>the executor where the cloned object should be stored </td></tr>
     <tr><td class="paramname">p</td><td>a pointer to the object</td></tr>
   </table>
   </dd>
@@ -1705,7 +1710,7 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">gko::LinOp::apply()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ad2e97eee0ad21f8896f4a82cc5ac8a50">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>, and <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a626c07541641bcdfd9a7f61322a89cbe">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::write()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">gko::LinOp::apply()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ad2e97eee0ad21f8896f4a82cc5ac8a50">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac9bf644183d3ddb50034d77e710818e6">gko::matrix::Dense&lt; ValueType &gt;::compute_dot()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599">gko::matrix::Dense&lt; ValueType &gt;::compute_norm2()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>, and <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a626c07541641bcdfd9a7f61322a89cbe">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::write()</a>.</p>
 
 </div>
 </div>
@@ -1840,6 +1845,50 @@ template&lt;typename T &gt; </div>
 <p>Returns the multiplicative identity for T. </p>
 <dl class="section return"><dt>Returns</dt><dd>the multiplicative identity for T</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This version takes an unused reference argument to avoid complicated calls like <code>one&lt;decltype(x)&gt;()</code>. Instead, it allows <code>one(x)</code>. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="accf1dbf5054c76e154490d825b0f44ee"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool gko::operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if two stopping statuses are different. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>a stopping status </td></tr>
+    <tr><td class="paramname">y</td><td>a stopping status</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if <code>!(x == y)</code> </dd></dl>
 
 </div>
 </div>
@@ -2005,6 +2054,50 @@ template&lt;size_type Dimensionality, typename DimensionType &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>os </dd></dl>
 
 <p>References <a class="el" href="structgko_1_1version.html#a019ce1d31714612e0c77c8ef5eb4cfde">gko::version::major</a>, <a class="el" href="structgko_1_1version.html#abb548e6dca39e0a3718ecf13cafbba36">gko::version::minor</a>, <a class="el" href="structgko_1_1version.html#a7580f68f7cf0600bc620c47ed6330c95">gko::version::patch</a>, and <a class="el" href="structgko_1_1version.html#a1bd0eaa4d551c145ff9cd0c10e555ac3">gko::version::tag</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="acf34f605deac3e475189bb5b8a0fa71a"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool gko::operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if two stopping statuses are equivalent. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>a stopping status </td></tr>
+    <tr><td class="paramname">y</td><td>a stopping status</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if both <code>x</code> and <code>y</code> have the same mask and converged and finalized state </dd></dl>
 
 </div>
 </div>

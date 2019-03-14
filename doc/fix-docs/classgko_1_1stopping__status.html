@@ -26,9 +26,9 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">develop 0.0.0</span>
+   &#160;<span id="projectnumber">Generated from HEAD branch based on develop. Ginkgo version 0.0.0</span>
    </div>
-   <div id="projectbrief">Ginkgo is a numerical linear algebra library targeting manycore architectures.</div>
+   <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
  </tr>
  </tbody>
@@ -97,6 +97,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#friends">Friends</a> &#124;
 <a href="classgko_1_1stopping__status-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">gko::stopping_status Class Reference<div class="ingroups"><a class="el" href="group__stop.html">Stopping criteria</a></div></div>  </div>
@@ -126,24 +127,30 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#afb227192722d1c20d11ae15719e1f930">reset</a> () noexcept</td></tr>
 <tr class="memdesc:afb227192722d1c20d11ae15719e1f930"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clear all flags. <br /></td></tr>
 <tr class="separator:afb227192722d1c20d11ae15719e1f930"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5ade76be357b9813c017558a5f728659"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a5ade76be357b9813c017558a5f728659">stop</a> (<a class="el" href="namespacegko.html#a3950fc3732811a8563484e5098c31531">uint8</a> id, bool setFinalized=true) noexcept</td></tr>
-<tr class="memdesc:a5ade76be357b9813c017558a5f728659"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call if a stop occured due to a hard limit (and convergence was not reached).  <a href="#a5ade76be357b9813c017558a5f728659">More...</a><br /></td></tr>
-<tr class="separator:a5ade76be357b9813c017558a5f728659"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0cf8f3b7ad1d5ab8a25e49fd6eca5b28"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a0cf8f3b7ad1d5ab8a25e49fd6eca5b28">converge</a> (<a class="el" href="namespacegko.html#a3950fc3732811a8563484e5098c31531">uint8</a> id, bool setFinalized=true) noexcept</td></tr>
-<tr class="memdesc:a0cf8f3b7ad1d5ab8a25e49fd6eca5b28"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call if convergence occured.  <a href="#a0cf8f3b7ad1d5ab8a25e49fd6eca5b28">More...</a><br /></td></tr>
-<tr class="separator:a0cf8f3b7ad1d5ab8a25e49fd6eca5b28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab13d4f214328c9574fdef6168c671de0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#ab13d4f214328c9574fdef6168c671de0">stop</a> (<a class="el" href="namespacegko.html#a3950fc3732811a8563484e5098c31531">uint8</a> id, bool set_finalized=true) noexcept</td></tr>
+<tr class="memdesc:ab13d4f214328c9574fdef6168c671de0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call if a stop occured due to a hard limit (and convergence was not reached).  <a href="#ab13d4f214328c9574fdef6168c671de0">More...</a><br /></td></tr>
+<tr class="separator:ab13d4f214328c9574fdef6168c671de0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a611bf8c81a8e3b22bab8f19ff68e8a12"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a611bf8c81a8e3b22bab8f19ff68e8a12">converge</a> (<a class="el" href="namespacegko.html#a3950fc3732811a8563484e5098c31531">uint8</a> id, bool set_finalized=true) noexcept</td></tr>
+<tr class="memdesc:a611bf8c81a8e3b22bab8f19ff68e8a12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call if convergence occured.  <a href="#a611bf8c81a8e3b22bab8f19ff68e8a12">More...</a><br /></td></tr>
+<tr class="separator:a611bf8c81a8e3b22bab8f19ff68e8a12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56d82a88a20cc1954981e75a66e996bc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a56d82a88a20cc1954981e75a66e996bc"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a56d82a88a20cc1954981e75a66e996bc">finalize</a> () noexcept</td></tr>
 <tr class="memdesc:a56d82a88a20cc1954981e75a66e996bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the result to be finalized (it needs to be stopped or converged first). <br /></td></tr>
 <tr class="separator:a56d82a88a20cc1954981e75a66e996bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2cc5c627b03be4c2ee1fba6c4f095ff0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2cc5c627b03be4c2ee1fba6c4f095ff0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept</td></tr>
-<tr class="separator:a2cc5c627b03be4c2ee1fba6c4f095ff0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:a7d7a8893aec4d1d561b4f684ca5d090e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a7d7a8893aec4d1d561b4f684ca5d090e">operator==</a> (const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;x, const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;y) noexcept</td></tr>
+<tr class="memdesc:a7d7a8893aec4d1d561b4f684ca5d090e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two stopping statuses are equivalent.  <a href="#a7d7a8893aec4d1d561b4f684ca5d090e">More...</a><br /></td></tr>
+<tr class="separator:a7d7a8893aec4d1d561b4f684ca5d090e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61e994f69678aab2be54a342d4725e6c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html#a61e994f69678aab2be54a342d4725e6c">operator!=</a> (const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;x, const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;y) noexcept</td></tr>
+<tr class="memdesc:a61e994f69678aab2be54a342d4725e6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two stopping statuses are different.  <a href="#a61e994f69678aab2be54a342d4725e6c">More...</a><br /></td></tr>
+<tr class="separator:a61e994f69678aab2be54a342d4725e6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This class is used to keep track of the stopping status of one vector. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a0cf8f3b7ad1d5ab8a25e49fd6eca5b28"></a>
+<a class="anchor" id="a611bf8c81a8e3b22bab8f19ff68e8a12"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -160,7 +167,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>setFinalized</em> = <code>true</code>&#160;</td>
+          <td class="paramname"><em>set_finalized</em> = <code>true</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -179,7 +186,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>id of the stopping criteria. </td></tr>
-    <tr><td class="paramname">setFinalized</td><td>Controls if the current version should count as finalized (set to true) or not (set to false). </td></tr>
+    <tr><td class="paramname">set_finalized</td><td>Controls if the current version should count as finalized (set to true) or not (set to false). </td></tr>
   </table>
   </dd>
 </dl>
@@ -268,7 +275,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
 
 <p>References <a class="el" href="classgko_1_1stopping__status.html#ae3c4d0e7a01f4e1892a09f418ea0907d">get_id()</a>.</p>
 
-<p>Referenced by <a class="el" href="classgko_1_1stopping__status.html#a0cf8f3b7ad1d5ab8a25e49fd6eca5b28">converge()</a>, <a class="el" href="classgko_1_1stopping__status.html#a56d82a88a20cc1954981e75a66e996bc">finalize()</a>, and <a class="el" href="classgko_1_1stopping__status.html#a5ade76be357b9813c017558a5f728659">stop()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1stopping__status.html#a611bf8c81a8e3b22bab8f19ff68e8a12">converge()</a>, <a class="el" href="classgko_1_1stopping__status.html#a56d82a88a20cc1954981e75a66e996bc">finalize()</a>, and <a class="el" href="classgko_1_1stopping__status.html#ab13d4f214328c9574fdef6168c671de0">stop()</a>.</p>
 
 </div>
 </div>
@@ -298,7 +305,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
 
 </div>
 </div>
-<a class="anchor" id="a5ade76be357b9813c017558a5f728659"></a>
+<a class="anchor" id="ab13d4f214328c9574fdef6168c671de0"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -315,7 +322,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>setFinalized</em> = <code>true</code>&#160;</td>
+          <td class="paramname"><em>set_finalized</em> = <code>true</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -334,7 +341,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>id of the stopping criteria. </td></tr>
-    <tr><td class="paramname">setFinalized</td><td>Controls if the current version should count as finalized (set to true) or not (set to false). </td></tr>
+    <tr><td class="paramname">set_finalized</td><td>Controls if the current version should count as finalized (set to true) or not (set to false). </td></tr>
   </table>
   </dd>
 </dl>
@@ -343,8 +350,97 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> () noexcept
 
 </div>
 </div>
+<h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a class="anchor" id="a61e994f69678aab2be54a342d4725e6c"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if two stopping statuses are different. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>a stopping status </td></tr>
+    <tr><td class="paramname">y</td><td>a stopping status</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if <code>!(x == y)</code> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a7d7a8893aec4d1d561b4f684ca5d090e"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1stopping__status.html">stopping_status</a> &amp;&#160;</td>
+          <td class="paramname"><em>y</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if two stopping statuses are equivalent. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">x</td><td>a stopping status </td></tr>
+    <tr><td class="paramname">y</td><td>a stopping status</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if and only if both <code>x</code> and <code>y</code> have the same mask and converged and finalized state </dd></dl>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>include/ginkgo/core/stop/<a class="el" href="stopping__status_8hpp_source.html">stopping_status.hpp (71e1db0)</a></li>
+<li>include/ginkgo/core/stop/<a class="el" href="stopping__status_8hpp_source.html">stopping_status.hpp (05f0c2c)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
