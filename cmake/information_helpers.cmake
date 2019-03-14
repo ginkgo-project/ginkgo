@@ -13,7 +13,7 @@ macro(ginkgo_git_information)
         find_package(Git QUIET)
         if(GIT_FOUND)
             execute_process(
-                COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+                COMMAND ${GIT_EXECUTABLE} describe --contains --all HEAD
                 WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
                 OUTPUT_VARIABLE GINKGO_GIT_BRANCH
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
