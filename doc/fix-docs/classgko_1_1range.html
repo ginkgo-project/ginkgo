@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><a class="el" href="classgko_1_1range.html">range</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="classgko_1_1range.html">range</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -133,7 +133,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0ebf16cb14146f0041d946f7b3bc13f4"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classgko_1_1range.html">range</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#a0ebf16cb14146f0041d946f7b3bc13f4">operator=</a> (const <a class="el" href="classgko_1_1range.html">range</a> &amp;other) const </td></tr>
 <tr class="memdesc:a0ebf16cb14146f0041d946f7b3bc13f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns another range to this range.  <a href="#a0ebf16cb14146f0041d946f7b3bc13f4">More...</a><br /></td></tr>
 <tr class="separator:a0ebf16cb14146f0041d946f7b3bc13f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab6b47c4c47f0fa43dc04893c81b85172"><td class="memItemLeft" align="right" valign="top">constexpr size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#ab6b47c4c47f0fa43dc04893c81b85172">length</a> (size_type dimension) const </td></tr>
+<tr class="memitem:ab6b47c4c47f0fa43dc04893c81b85172"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#ab6b47c4c47f0fa43dc04893c81b85172">length</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> dimension) const </td></tr>
 <tr class="memdesc:ab6b47c4c47f0fa43dc04893c81b85172"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the length of the specified dimension of the range.  <a href="#ab6b47c4c47f0fa43dc04893c81b85172">More...</a><br /></td></tr>
 <tr class="separator:ab6b47c4c47f0fa43dc04893c81b85172"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad846fcf80cb6cd8881cd7dd8dddc6ca9"><td class="memItemLeft" align="right" valign="top">constexpr const <a class="el" href="classgko_1_1range.html#a3332728e51dadcf6517847cef3000a17">accessor</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#ad846fcf80cb6cd8881cd7dd8dddc6ca9">operator-&gt;</a> () const noexcept</td></tr>
@@ -146,7 +146,7 @@ Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
 <tr class="memitem:a6796721a162561502474e3150f179167"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6796721a162561502474e3150f179167"></a>
-static constexpr size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#a6796721a162561502474e3150f179167">dimensionality</a> = accessor::dimensionality</td></tr>
+static constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1range.html#a6796721a162561502474e3150f179167">dimensionality</a> = accessor::dimensionality</td></tr>
 <tr class="memdesc:a6796721a162561502474e3150f179167"><td class="mdescLeft">&#160;</td><td class="mdescRight">The number of dimensions of the range. <br /></td></tr>
 <tr class="separator:a6796721a162561502474e3150f179167"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -268,9 +268,9 @@ template&lt;typename Accessor&gt; </div>
 template&lt;typename Accessor&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">constexpr size_type <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::length </td>
+          <td class="memname">constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::length </td>
           <td>(</td>
-          <td class="paramtype">size_type&#160;</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
           <td class="paramname"><em>dimension</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -416,7 +416,7 @@ template&lt;typename Accessor&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>include/ginkgo/core/base/<a class="el" href="range_8hpp_source.html">range.hpp (1f0a13f)</a></li>
+<li>include/ginkgo/core/base/<a class="el" href="range_8hpp_source.html">range.hpp (c8eb276)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

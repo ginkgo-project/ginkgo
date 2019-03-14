@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><b>preconditioner</b></li><li class="navelem"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="namespacegko_1_1preconditioner.html">preconditioner</a></li><li class="navelem"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -151,7 +151,7 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = <a
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:afb44d8e560f00f65c46c6813638ce24c"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#afb44d8e560f00f65c46c6813638ce24c">get_num_blocks</a> () const noexcept</td></tr>
+<tr class="memitem:afb44d8e560f00f65c46c6813638ce24c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#afb44d8e560f00f65c46c6813638ce24c">get_num_blocks</a> () const noexcept</td></tr>
 <tr class="memdesc:afb44d8e560f00f65c46c6813638ce24c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of blocks of the operator.  <a href="#afb44d8e560f00f65c46c6813638ce24c">More...</a><br /></td></tr>
 <tr class="separator:afb44d8e560f00f65c46c6813638ce24c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5e4e792eebc837d555c2df4c74a3d5dc"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html">block_interleaved_storage_scheme</a>&lt; index_type &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a5e4e792eebc837d555c2df4c74a3d5dc">get_storage_scheme</a> () const noexcept</td></tr>
@@ -160,10 +160,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1f3104ff10b00ff5faaf17a164400663"><td class="memItemLeft" align="right" valign="top">const value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a1f3104ff10b00ff5faaf17a164400663">get_blocks</a> () const noexcept</td></tr>
 <tr class="memdesc:a1f3104ff10b00ff5faaf17a164400663"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the pointer to the memory used for storing the block data.  <a href="#a1f3104ff10b00ff5faaf17a164400663">More...</a><br /></td></tr>
 <tr class="separator:a1f3104ff10b00ff5faaf17a164400663"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad4cef85a520076fefc0e911ab205cf12"><td class="memItemLeft" align="right" valign="top">const remove_complex&lt; value_type &gt; *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">get_conditioning</a> () const noexcept</td></tr>
+<tr class="memitem:ad4cef85a520076fefc0e911ab205cf12"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; value_type &gt; *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">get_conditioning</a> () const noexcept</td></tr>
 <tr class="memdesc:ad4cef85a520076fefc0e911ab205cf12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an array of 1-norm condition numbers of the blocks.  <a href="#ad4cef85a520076fefc0e911ab205cf12">More...</a><br /></td></tr>
 <tr class="separator:ad4cef85a520076fefc0e911ab205cf12"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af238130016f4534089edfb95918f14d1"><td class="memItemLeft" align="right" valign="top">size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#af238130016f4534089edfb95918f14d1">get_num_stored_elements</a> () const noexcept</td></tr>
+<tr class="memitem:af238130016f4534089edfb95918f14d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#af238130016f4534089edfb95918f14d1">get_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:af238130016f4534089edfb95918f14d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the matrix.  <a href="#af238130016f4534089edfb95918f14d1">More...</a><br /></td></tr>
 <tr class="separator:af238130016f4534089edfb95918f14d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a54ce952ac4a12c3f4686442375cd4dc8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a54ce952ac4a12c3f4686442375cd4dc8">convert_to</a> (<a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; value_type &gt; *result) const override</td></tr>
@@ -326,7 +326,8 @@ class gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</h3>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>The current implementation supports blocks of up to 32 rows / columns. </dd>
 <dd>
-When using the adaptive variant, there may be a trade-off in terms of slightly longer preconditioner generation due to extra work required to detect the optimal precision of the blocks. </dd></dl>
+When using the adaptive variant, there may be a trade-off in terms of slightly longer preconditioner generation due to extra work required to detect the optimal precision of the blocks.</dd></dl>
+<p>ingroup jacobi </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="a54ce952ac4a12c3f4686442375cd4dc8"></a>
 <div class="memitem">
@@ -403,7 +404,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const remove_complex&lt;value_type&gt;* <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_conditioning </td>
+          <td class="memname">const <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt;value_type&gt;* <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_conditioning </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -432,7 +433,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">size_type <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_num_blocks </td>
+          <td class="memname"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_num_blocks </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -460,7 +461,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">size_type <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_num_stored_elements </td>
+          <td class="memname"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::get_num_stored_elements </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -475,6 +476,8 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 <p>Returns the number of elements explicitly stored in the matrix. </p>
 <dl class="section return"><dt>Returns</dt><dd>the number of elements explicitly stored in the matrix </dd></dl>
+
+<p>References <a class="el" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write()</a>.</p>
 
 </div>
 </div>
@@ -578,12 +581,12 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">gko::WritableToMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p>References <a class="el" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size()</a>, and <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>.</p>
+<p>References <a class="el" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size()</a>, <a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone()</a>, <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>, and <a class="el" href="namespacegko.html#a9b6a9d7018703d6d1f2140054e2afe4a">gko::transpose()</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>include/ginkgo/core/preconditioner/<a class="el" href="jacobi_8hpp_source.html">jacobi.hpp (71e1db0)</a></li>
+<li>include/ginkgo/core/preconditioner/<a class="el" href="jacobi_8hpp_source.html">jacobi.hpp (c8eb276)</a></li>
 <li>core/preconditioner/jacobi.cpp (b12a48e)</li>
 </ul>
 </div><!-- contents -->

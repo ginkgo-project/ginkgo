@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><b>matrix</b></li><li class="navelem"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html">Hybrid</a></li><li class="navelem"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="namespacegko_1_1matrix.html">matrix</a></li><li class="navelem"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html">Hybrid</a></li><li class="navelem"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -114,16 +114,16 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301">strategy_type</a> ()</td></tr>
 <tr class="memdesc:a307425e7a1b925583cec9d6dd30be301"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. ">strategy_type</a>. <br /></td></tr>
 <tr class="separator:a307425e7a1b925583cec9d6dd30be301"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af784a54f979bcdf55e1e76b64850dd68"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">compute_hybrid_config</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; &amp;row_nnz, size_type *ell_num_stored_elements_per_row, size_type *coo_nnz)</td></tr>
+<tr class="memitem:af784a54f979bcdf55e1e76b64850dd68"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#af784a54f979bcdf55e1e76b64850dd68">compute_hybrid_config</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &gt; &amp;row_nnz, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> *ell_num_stored_elements_per_row, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> *coo_nnz)</td></tr>
 <tr class="memdesc:af784a54f979bcdf55e1e76b64850dd68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the config of the <a class="el" href="classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format. ">Hybrid</a> matrix (ell_num_stored_elements_per_row and coo_nnz).  <a href="#af784a54f979bcdf55e1e76b64850dd68">More...</a><br /></td></tr>
 <tr class="separator:af784a54f979bcdf55e1e76b64850dd68"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3a1bc0e4837a3fde7650455088c3da8a"><td class="memItemLeft" align="right" valign="top">const size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a3a1bc0e4837a3fde7650455088c3da8a">get_ell_num_stored_elements_per_row</a> () const noexcept</td></tr>
+<tr class="memitem:a3a1bc0e4837a3fde7650455088c3da8a"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a3a1bc0e4837a3fde7650455088c3da8a">get_ell_num_stored_elements_per_row</a> () const noexcept</td></tr>
 <tr class="memdesc:a3a1bc0e4837a3fde7650455088c3da8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of stored elements per row of the ell part.  <a href="#a3a1bc0e4837a3fde7650455088c3da8a">More...</a><br /></td></tr>
 <tr class="separator:a3a1bc0e4837a3fde7650455088c3da8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4eab8283af5bbec83dab7c7f24df32ab"><td class="memItemLeft" align="right" valign="top">const size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">get_coo_nnz</a> () const noexcept</td></tr>
+<tr class="memitem:a4eab8283af5bbec83dab7c7f24df32ab"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a4eab8283af5bbec83dab7c7f24df32ab">get_coo_nnz</a> () const noexcept</td></tr>
 <tr class="memdesc:a4eab8283af5bbec83dab7c7f24df32ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of nonzeros of the coo part.  <a href="#a4eab8283af5bbec83dab7c7f24df32ab">More...</a><br /></td></tr>
 <tr class="separator:a4eab8283af5bbec83dab7c7f24df32ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="memItemLeft" align="right" valign="top">virtual size_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a0a0cd4024f27c7d0f286f35fc0a6de60">compute_ell_num_stored_elements_per_row</a> (<a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; *row_nnz) const =0</td></tr>
+<tr class="memitem:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a0a0cd4024f27c7d0f286f35fc0a6de60">compute_ell_num_stored_elements_per_row</a> (<a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &gt; *row_nnz) const =0</td></tr>
 <tr class="memdesc:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the number of stored elements per row of the ell part.  <a href="#a0a0cd4024f27c7d0f286f35fc0a6de60">More...</a><br /></td></tr>
 <tr class="separator:a0a0cd4024f27c7d0f286f35fc0a6de60"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -145,9 +145,9 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::compute_ell_num_stored_elements_per_row </td>
+          <td class="memname">virtual <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::compute_ell_num_stored_elements_per_row </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; *&#160;</td>
+          <td class="paramtype"><a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &gt; *&#160;</td>
           <td class="paramname"><em>row_nnz</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -183,19 +183,19 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
         <tr>
           <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::compute_hybrid_config </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; size_type &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>row_nnz</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">size_type *&#160;</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> *&#160;</td>
           <td class="paramname"><em>ell_num_stored_elements_per_row</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">size_type *&#160;</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> *&#160;</td>
           <td class="paramname"><em>coo_nnz</em>&#160;</td>
         </tr>
         <tr>
@@ -231,7 +231,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_coo_nnz </td>
+          <td class="memname">const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_coo_nnz </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -261,7 +261,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const size_type <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_ell_num_stored_elements_per_row </td>
+          <td class="memname">const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::strategy_type::get_ell_num_stored_elements_per_row </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -280,7 +280,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>include/ginkgo/core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (71e1db0)</a></li>
+<li>include/ginkgo/core/matrix/<a class="el" href="hybrid_8hpp_source.html">hybrid.hpp (c8eb276)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

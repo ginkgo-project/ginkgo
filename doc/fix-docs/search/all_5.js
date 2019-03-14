@@ -12,7 +12,11 @@ var searchData=
   ['factory',['Factory',['../classgko_1_1stop_1_1Combined_1_1Factory.html',1,'gko::stop::Combined']]],
   ['fcg',['Fcg',['../classgko_1_1solver_1_1Fcg.html',1,'gko::solver']]],
   ['finalize',['finalize',['../classgko_1_1stopping__status.html#a56d82a88a20cc1954981e75a66e996bc',1,'gko::stopping_status']]],
+  ['float16',['float16',['../namespacegko.html#a86477c0acba18c50cac69112d791dfa6',1,'gko']]],
+  ['float32',['float32',['../namespacegko.html#a0b5dbd886493d4ccaba6a7a1ba74896c',1,'gko']]],
+  ['float64',['float64',['../namespacegko.html#a75c7a433d814b8b37d0bc2a9c57fbe65',1,'gko']]],
   ['free',['free',['../classgko_1_1Executor.html#a0befe43d21c93e199d1620eaae4ccc0c',1,'gko::Executor']]],
   ['full_5fbits_5ftype',['full_bits_type',['../classgko_1_1truncated.html#ae7c585cb78fa85be8a965e836822c886',1,'gko::truncated']]],
-  ['full_5flane_5fmask',['full_lane_mask',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#ad9a03b490c33bc4c455e725f41e05e92',1,'gko::kernels::cuda::cuda_config']]]
+  ['full_5flane_5fmask',['full_lane_mask',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#ad9a03b490c33bc4c455e725f41e05e92',1,'gko::kernels::cuda::cuda_config']]],
+  ['full_5fprecision',['full_precision',['../namespacegko.html#ae3257beda99ac9180b501912be5caa5f',1,'gko']]]
 ];

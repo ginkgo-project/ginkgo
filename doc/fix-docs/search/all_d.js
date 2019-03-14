@@ -7,8 +7,9 @@ var searchData=
   ['notcompiled',['NotCompiled',['../classgko_1_1NotCompiled.html',1,'gko']]],
   ['notimplemented',['NotImplemented',['../classgko_1_1NotImplemented.html',1,'gko']]],
   ['notimplemented',['NotImplemented',['../classgko_1_1NotImplemented.html#a29f0b78ee5e0c2f71ddf38487a1fe5c2',1,'gko::NotImplemented']]],
-  ['notsupported',['NotSupported',['../classgko_1_1NotSupported.html#ae4d84be2a2a769e0877c4aeb75e44794',1,'gko::NotSupported']]],
   ['notsupported',['NotSupported',['../classgko_1_1NotSupported.html',1,'gko']]],
+  ['notsupported',['NotSupported',['../classgko_1_1NotSupported.html#ae4d84be2a2a769e0877c4aeb75e44794',1,'gko::NotSupported']]],
   ['null_5fdeleter',['null_deleter',['../classgko_1_1null__deleter.html',1,'gko']]],
-  ['null_5fdeleter_3c_20t_5b_5d_3e',['null_deleter&lt; T[]&gt;',['../classgko_1_1null__deleter_3_01T[]_4.html',1,'gko']]]
+  ['null_5fdeleter_3c_20t_5b_5d_3e',['null_deleter&lt; T[]&gt;',['../classgko_1_1null__deleter_3_01T[]_4.html',1,'gko']]],
+  ['num_5fthreads_5fper_5fcore',['num_threads_per_core',['../namespacegko_1_1kernels_1_1cuda_1_1ell.html#a6546af476b92ef33ec7fa4b5b663ee6b',1,'gko::kernels::cuda::ell']]]
 ];

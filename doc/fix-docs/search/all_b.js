@@ -1,6 +1,8 @@
 var searchData=
 [
+  ['layout_5ftype',['layout_type',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68',1,'gko']]],
   ['left_5fshift',['left_shift',['../structgko_1_1accessor_1_1left__shift.html',1,'gko::accessor']]],
+  ['lend',['lend',['../namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b',1,'gko::lend(const Pointer &amp;p)'],['../namespacegko.html#aa0c1deeb105cfb5a635b5f41cb5e8321',1,'gko::lend(const Pointer &amp;p)']]],
   ['length',['length',['../classgko_1_1range.html#ab6b47c4c47f0fa43dc04893c81b85172',1,'gko::range::length()'],['../classgko_1_1accessor_1_1row__major.html#a09a740e7b49d4412ccdf7ab91f52a10e',1,'gko::accessor::row_major::length()']]],
   ['lengths',['lengths',['../classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9',1,'gko::accessor::row_major']]],
   ['less',['less',['../structgko_1_1accessor_1_1less.html',1,'gko::accessor']]],

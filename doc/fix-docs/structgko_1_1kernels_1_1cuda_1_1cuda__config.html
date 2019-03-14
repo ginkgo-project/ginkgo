@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><b>kernels</b></li><li class="navelem"><b>cuda</b></li><li class="navelem"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html">cuda_config</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="namespacegko_1_1kernels.html">kernels</a></li><li class="navelem"><a class="el" href="namespacegko_1_1kernels_1_1cuda.html">cuda</a></li><li class="navelem"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html">cuda_config</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -106,19 +106,19 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
 <tr class="memitem:a9b76132012e485cc669f6cde9420750a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9b76132012e485cc669f6cde9420750a"></a>
-static constexpr uint32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a9b76132012e485cc669f6cde9420750a">warp_size</a> = 32</td></tr>
+static constexpr <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a9b76132012e485cc669f6cde9420750a">warp_size</a> = 32</td></tr>
 <tr class="memdesc:a9b76132012e485cc669f6cde9420750a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The number of threads within a CUDA warp. <br /></td></tr>
 <tr class="separator:a9b76132012e485cc669f6cde9420750a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad9a03b490c33bc4c455e725f41e05e92"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad9a03b490c33bc4c455e725f41e05e92"></a>
-static constexpr uint32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#ad9a03b490c33bc4c455e725f41e05e92">full_lane_mask</a> = (1ll &lt;&lt; warp_size) - 1</td></tr>
+static constexpr <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#ad9a03b490c33bc4c455e725f41e05e92">full_lane_mask</a> = (1ll &lt;&lt; warp_size) - 1</td></tr>
 <tr class="memdesc:ad9a03b490c33bc4c455e725f41e05e92"><td class="mdescLeft">&#160;</td><td class="mdescRight">The bitmask of the entire warp. <br /></td></tr>
 <tr class="separator:ad9a03b490c33bc4c455e725f41e05e92"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41e62ed6df95087024217c1295010861"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a41e62ed6df95087024217c1295010861"></a>
-static constexpr uint32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a41e62ed6df95087024217c1295010861">max_block_size</a> = 1024</td></tr>
+static constexpr <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a41e62ed6df95087024217c1295010861">max_block_size</a> = 1024</td></tr>
 <tr class="memdesc:a41e62ed6df95087024217c1295010861"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximal number of threads allowed in a CUDA warp. <br /></td></tr>
 <tr class="separator:a41e62ed6df95087024217c1295010861"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4b717d114681aa2bd96accc2e935cfae"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4b717d114681aa2bd96accc2e935cfae"></a>
-static constexpr uint32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a4b717d114681aa2bd96accc2e935cfae">min_warps_per_block</a> = 4</td></tr>
+static constexpr <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a4b717d114681aa2bd96accc2e935cfae">min_warps_per_block</a> = 4</td></tr>
 <tr class="memdesc:a4b717d114681aa2bd96accc2e935cfae"><td class="mdescLeft">&#160;</td><td class="mdescRight">The minimal amount of warps that need to be scheduled for each block to maximize GPU occupancy. <br /></td></tr>
 <tr class="separator:a4b717d114681aa2bd96accc2e935cfae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>

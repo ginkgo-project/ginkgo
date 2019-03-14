@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><a class="el" href="classgko_1_1LinOpFactory.html">LinOpFactory</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="classgko_1_1LinOpFactory.html">LinOpFactory</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -169,7 +169,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <li>The resulting linear operator implements the application operation <img class="formulaInl" alt="$x = M^{-1}b$" src="form_12.png"/> depending on the format the preconditioner is stored in (e.g. as two triangular solves in case of ILU)</li>
 </ul>
 <h2>Example: using CG in Ginkgo </h2>
-<div class="fragment"><div class="line">{c++}</div><div class="line"><span class="comment">// Suppose A is a matrix, b a rhs vector, and x an initial guess</span></div><div class="line"><span class="comment">// Create a CG which runs for at most 1000 iterations, and stops after</span></div><div class="line"><span class="comment">// reducing the residual norm by 6 orders of magnitude</span></div><div class="line"><span class="keyword">auto</span> cg_factory = solver::Cg&lt;&gt;::build()</div><div class="line">    .with_max_iters(1000)</div><div class="line">    .with_rel_residual_goal(1e-6)</div><div class="line">    .on(cuda);</div><div class="line"><span class="comment">// create a linear operator which represents the solver</span></div><div class="line"><span class="keyword">auto</span> cg = cg_factory-&gt;generate(A);</div><div class="line"><span class="comment">// solve the system</span></div><div class="line">cg-&gt;apply(gko::lend(b), gko::lend(x));</div></div><!-- fragment --> </div><hr/>The documentation for this class was generated from the following file:<ul>
+<div class="fragment"><div class="line">{c++}</div><div class="line"><span class="comment">// Suppose A is a matrix, b a rhs vector, and x an initial guess</span></div><div class="line"><span class="comment">// Create a CG which runs for at most 1000 iterations, and stops after</span></div><div class="line"><span class="comment">// reducing the residual norm by 6 orders of magnitude</span></div><div class="line"><span class="keyword">auto</span> cg_factory = solver::Cg&lt;&gt;::build()</div><div class="line">    .with_max_iters(1000)</div><div class="line">    .with_rel_residual_goal(1e-6)</div><div class="line">    .on(cuda);</div><div class="line"><span class="comment">// create a linear operator which represents the solver</span></div><div class="line"><span class="keyword">auto</span> cg = cg_factory-&gt;generate(A);</div><div class="line"><span class="comment">// solve the system</span></div><div class="line">cg-&gt;apply(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(b), <a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(x));</div></div><!-- fragment --> </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li>include/ginkgo/core/base/<a class="el" href="lin__op_8hpp_source.html">lin_op.hpp (71e1db0)</a></li>
 </ul>
 </div><!-- contents -->

@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><a class="el" href="classgko_1_1LinOp.html">LinOp</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="classgko_1_1LinOp.html">LinOp</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -202,7 +202,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <li>the system solve <img class="formulaInl" alt="$Ax = b$" src="form_5.png"/> can be viewed as linear operator application <img class="formulaInl" alt="$x = A^{-1}b$" src="form_6.png"/> (it goes without saying that the implementation of linear system solves does not follow this conceptual idea), so a linear system solver can be viewed as a representation of the operator <img class="formulaInl" alt="$A^{-1}$" src="form_7.png"/>.</li>
 </ul>
 <p>Finally, direct manipulation of <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> objects is rarely required in simple scenarios. As an illustrative example, one could construct a fixed-point iteration routine <img class="formulaInl" alt="$x_{k+1} = Lx_k + b$" src="form_8.png"/> as follows:</p>
-<div class="fragment"><div class="line">std::unique_ptr&lt;matrix::Dense&lt;&gt;&gt; calculate_fixed_point(</div><div class="line">        <span class="keywordtype">int</span> iters, <span class="keyword">const</span> LinOp *L, <span class="keyword">const</span> matrix::Dense&lt;&gt; *x0</div><div class="line">        <span class="keyword">const</span> matrix::Dense&lt;&gt; *b)</div><div class="line">{</div><div class="line">    <span class="keyword">auto</span> x = gko::clone(x0);</div><div class="line">    <span class="keyword">auto</span> tmp = gko::clone(x0);</div><div class="line">    <span class="keyword">auto</span> one = Dense&lt;&gt;::create(L-&gt;get_executor(), {1.0,});</div><div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; iters; ++i) {</div><div class="line">        L-&gt;apply(gko::lend(tmp), gko::lend(x));</div><div class="line">        x-&gt;add_scaled(gko::lend(one), gko::lend(b));</div><div class="line">        tmp-&gt;copy_from(gko::lend(x));</div><div class="line">    }</div><div class="line">    <span class="keywordflow">return</span> x;</div><div class="line">}</div></div><!-- fragment --><p>Here, if <img class="formulaInl" alt="$L$" src="form_9.png"/> is a matrix, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">LinOp::apply()</a> refers to the matrix vector product, and <code>L-&gt;apply(a, b)</code> computes <img class="formulaInl" alt="$b = L \cdot a$" src="form_10.png"/>. <code>x-&gt;add_scaled(one.get(), b.get())</code> is the <code>axpy</code> vector update <img class="formulaInl" alt="$x:=x+b$" src="form_11.png"/>.</p>
+<div class="fragment"><div class="line">std::unique_ptr&lt;matrix::Dense&lt;&gt;&gt; calculate_fixed_point(</div><div class="line">        <span class="keywordtype">int</span> iters, <span class="keyword">const</span> LinOp *L, <span class="keyword">const</span> matrix::Dense&lt;&gt; *x0</div><div class="line">        <span class="keyword">const</span> matrix::Dense&lt;&gt; *b)</div><div class="line">{</div><div class="line">    <span class="keyword">auto</span> x = <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(x0);</div><div class="line">    <span class="keyword">auto</span> tmp = <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(x0);</div><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = Dense&lt;&gt;::create(L-&gt;get_executor(), {1.0,});</div><div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; iters; ++i) {</div><div class="line">        L-&gt;apply(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(tmp), <a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(x));</div><div class="line">        x-&gt;add_scaled(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(<a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a>), <a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(b));</div><div class="line">        tmp-&gt;copy_from(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(x));</div><div class="line">    }</div><div class="line">    <span class="keywordflow">return</span> x;</div><div class="line">}</div></div><!-- fragment --><p>Here, if <img class="formulaInl" alt="$L$" src="form_9.png"/> is a matrix, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">LinOp::apply()</a> refers to the matrix vector product, and <code>L-&gt;apply(a, b)</code> computes <img class="formulaInl" alt="$b = L \cdot a$" src="form_10.png"/>. <code>x-&gt;add_scaled(one.get(), b.get())</code> is the <code>axpy</code> vector update <img class="formulaInl" alt="$x:=x+b$" src="form_11.png"/>.</p>
 <p>The interesting part of this example is the <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">apply()</a> routine at line 4 of the function body. Since this routine is part of the <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> base class, the fixed-point iteration routine can calculate a fixed point not only for matrices, but for any type of linear operator. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="a0449b2fc705d2f970855af23b5e2788e"></a>
@@ -240,7 +240,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>this </dd></dl>
 
-<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
+<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>, and <a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone()</a>.</p>
 
 </div>
 </div>
@@ -279,7 +279,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>this </dd></dl>
 
-<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
+<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>, and <a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone()</a>.</p>
 
 </div>
 </div>
@@ -331,7 +331,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>this </dd></dl>
 
-<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
+<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>, and <a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone()</a>.</p>
 
 </div>
 </div>
@@ -383,7 +383,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>this </dd></dl>
 
-<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>.</p>
+<p>References <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>, and <a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone()</a>.</p>
 
 </div>
 </div>
@@ -411,7 +411,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <p>Returns the size of the operator. </p>
 <dl class="section return"><dt>Returns</dt><dd>size of the operator </dd></dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a4c2089b9e1f7a99a32488a4964e832db">gko::matrix::Dense&lt; ValueType &gt;::create_with_config_of()</a>, <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;::get_operators()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ada0db14e65dfe027f483dc449f704a7e">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_strategy()</a>, <a class="el" href="classgko_1_1log_1_1Convergence.html#ae20904a348216c22750c266372b07b6e">gko::log::Convergence&lt; ValueType &gt;::on_criterion_check_completed()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>, and <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a4c2089b9e1f7a99a32488a4964e832db">gko::matrix::Dense&lt; ValueType &gt;::create_with_config_of()</a>, <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;::get_operators()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ada0db14e65dfe027f483dc449f704a7e">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_strategy()</a>, <a class="el" href="classgko_1_1log_1_1Convergence.html#ae20904a348216c22750c266372b07b6e">gko::log::Convergence&lt; ValueType &gt;::on_criterion_check_completed()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>, and <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>.</p>
 
 </div>
 </div>

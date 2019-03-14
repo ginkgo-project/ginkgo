@@ -42,7 +42,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="@ref Examples"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -91,7 +91,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>gko</b></li><li class="navelem"><a class="el" href="classgko_1_1Executor.html">Executor</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacegko.html">gko</a></li><li class="navelem"><a class="el" href="classgko_1_1Executor.html">Executor</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -138,14 +138,14 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:acc115ed1a71e2d17aaface28f036468b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runs one of the passed in functors, depending on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> type.  <a href="#acc115ed1a71e2d17aaface28f036468b">More...</a><br /></td></tr>
 <tr class="separator:acc115ed1a71e2d17aaface28f036468b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea1773a0957ad79042e4ac60dd22d60a"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:aea1773a0957ad79042e4ac60dd22d60a"><td class="memTemplItemLeft" align="right" valign="top">T *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#aea1773a0957ad79042e4ac60dd22d60a">alloc</a> (size_type num_elems) const </td></tr>
+<tr class="memitem:aea1773a0957ad79042e4ac60dd22d60a"><td class="memTemplItemLeft" align="right" valign="top">T *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#aea1773a0957ad79042e4ac60dd22d60a">alloc</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_elems) const </td></tr>
 <tr class="memdesc:aea1773a0957ad79042e4ac60dd22d60a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocates memory in this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#aea1773a0957ad79042e4ac60dd22d60a">More...</a><br /></td></tr>
 <tr class="separator:aea1773a0957ad79042e4ac60dd22d60a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0befe43d21c93e199d1620eaae4ccc0c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a0befe43d21c93e199d1620eaae4ccc0c">free</a> (void *ptr) const noexcept</td></tr>
 <tr class="memdesc:a0befe43d21c93e199d1620eaae4ccc0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees memory previously allocated with <a class="el" href="classgko_1_1Executor.html#aea1773a0957ad79042e4ac60dd22d60a" title="Allocates memory in this Executor. ">Executor::alloc()</a>.  <a href="#a0befe43d21c93e199d1620eaae4ccc0c">More...</a><br /></td></tr>
 <tr class="separator:a0befe43d21c93e199d1620eaae4ccc0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a460bbb12aba13c3cea909eb8e06c3ce1"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a460bbb12aba13c3cea909eb8e06c3ce1"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a460bbb12aba13c3cea909eb8e06c3ce1">copy_from</a> (const <a class="el" href="classgko_1_1Executor.html">Executor</a> *src_exec, size_type num_elems, const T *src_ptr, T *dest_ptr) const </td></tr>
+<tr class="memitem:a460bbb12aba13c3cea909eb8e06c3ce1"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a460bbb12aba13c3cea909eb8e06c3ce1">copy_from</a> (const <a class="el" href="classgko_1_1Executor.html">Executor</a> *src_exec, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_elems, const T *src_ptr, T *dest_ptr) const </td></tr>
 <tr class="memdesc:a460bbb12aba13c3cea909eb8e06c3ce1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copies data from another <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>.  <a href="#a460bbb12aba13c3cea909eb8e06c3ce1">More...</a><br /></td></tr>
 <tr class="separator:a460bbb12aba13c3cea909eb8e06c3ce1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acaec4f999d52fc71e5e5a3d3ad93609c"><td class="memItemLeft" align="right" valign="top">virtual std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#acaec4f999d52fc71e5e5a3d3ad93609c">get_master</a> () noexcept=0</td></tr>
@@ -199,7 +199,7 @@ template&lt;typename T &gt; </div>
         <tr>
           <td class="memname">T* gko::Executor::alloc </td>
           <td>(</td>
-          <td class="paramtype">size_type&#160;</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
           <td class="paramname"><em>num_elems</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -244,7 +244,7 @@ template&lt;typename T &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">size_type&#160;</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
           <td class="paramname"><em>num_elems</em>, </td>
         </tr>
         <tr>

@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['value_5ftype',['value_type',['../classgko_1_1Array.html#ad40c95e429262175cae51bcabd291a5b',1,'gko::Array::value_type()'],['../classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba',1,'gko::accessor::row_major::value_type()']]],
-  ['view_5fdeleter',['view_deleter',['../classgko_1_1Array.html#af870dd6ab4ad4f7e0e20471cb17f4ad1',1,'gko::Array']]]
+  ['size_5ftype',['size_type',['../namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7',1,'gko']]],
+  ['storage_5ftype',['storage_type',['../classgko_1_1precision__reduction.html#a2a1a94a27fa69b4cc321136b56e7b7d9',1,'gko::precision_reduction']]]
 ];
