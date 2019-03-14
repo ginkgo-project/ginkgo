@@ -1,0 +1,13 @@
+<map id="gko::matrix::Identity&lt; ValueType &gt;" name="gko::matrix::Identity&lt; ValueType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Identity\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1621,49,1816,90"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Identity\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1341,5,1555,61"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Identity\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1047,5,1275,61"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="909,20,999,47"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="633,13,861,54"/>
+<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,20,585,47"/>
+<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,13,365,54"/>
+<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,20,144,47"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1323,85,1573,126"/>
+<area shape="rect" id="node11" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1065,85,1257,126"/>
+<area shape="rect" id="node12" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1623,114,1815,155"/>
+</map>

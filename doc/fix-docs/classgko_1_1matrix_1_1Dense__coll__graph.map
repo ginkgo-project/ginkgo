@@ -1,0 +1,28 @@
+<map id="gko::matrix::Dense&lt; ValueType &gt;" name="gko::matrix::Dense&lt; ValueType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Dense\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1634,51,1822,93"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Dense\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1333,15,1563,57"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Dense\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1047,5,1275,61"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="909,20,999,47"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="633,13,861,54"/>
+<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,20,585,47"/>
+<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,13,365,54"/>
+<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,20,144,47"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1323,83,1573,125"/>
+<area shape="rect" id="node11" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1067,85,1254,126"/>
+<area shape="rect" id="node12" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1635,117,1821,158"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="1623,182,1833,223"/>
+<area shape="rect" id="node14" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="1623,247,1833,289"/>
+<area shape="rect" id="node15" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="1625,313,1831,354"/>
+<area shape="rect" id="node16" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="1625,378,1831,419"/>
+<area shape="rect" id="node17" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="1629,443,1827,485"/>
+<area shape="rect" id="node18" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="1629,509,1827,550"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="1648,573,1808,629"/>
+<area shape="rect" id="node20" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="1648,653,1808,709"/>
+<area shape="rect" id="node21" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="1653,733,1803,789"/>
+<area shape="rect" id="node22" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="1653,813,1803,869"/>
+<area shape="rect" id="node23" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="1621,893,1835,934"/>
+<area shape="rect" id="node24" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="1621,958,1835,999"/>
+<area shape="rect" id="node25" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="1635,1023,1821,1065"/>
+<area shape="rect" id="node26" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="1635,1089,1821,1130"/>
+<area shape="rect" id="node27" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. " alt="" coords="1660,1155,1796,1181"/>
+</map>

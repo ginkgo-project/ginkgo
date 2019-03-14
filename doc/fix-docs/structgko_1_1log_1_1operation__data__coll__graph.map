@@ -1,0 +1,6 @@
+<map id="gko::log::operation_data" name="gko::log::operation_data">
+<area shape="rect" id="node2" href="$classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices..." alt="" coords="5,172,121,199"/>
+<area shape="rect" id="node3" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="146,172,255,199"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="114,81,287,123"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="131,5,270,32"/>
+</map>

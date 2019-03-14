@@ -1,0 +1,6 @@
+<map id="gko::AbstractFactory&lt; AbstractProductType, ComponentsType &gt;" name="gko::AbstractFactory&lt; AbstractProductType, ComponentsType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="633,5,939,61"/>
+<area shape="rect" id="node3" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,20,585,47"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,13,365,54"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,20,144,47"/>
+</map>

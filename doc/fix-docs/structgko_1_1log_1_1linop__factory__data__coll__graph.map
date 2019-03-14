@@ -1,0 +1,6 @@
+<map id="gko::log::linop_factory_data" name="gko::log::linop_factory_data">
+<area shape="rect" id="node2" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1131,27,1265,54"/>
+<area shape="rect" id="node5" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="416,27,588,54"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="193,20,367,61"/>
+<area shape="rect" id="node7" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,27,144,54"/>
+</map>

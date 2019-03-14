@@ -1,9 +1,0 @@
-digraph "gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_bounded_limit"
-{
- // INTERACTIVE_SVG=YES
-  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
-  node [fontname="Helvetica",fontsize="10",shape=record];
-  Node1 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::imbalance_bounded_limit",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
-  Node2 -> Node1 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
-  Node2 [label="gko::matrix::Hybrid\l\< ValueType, IndexType\l \>::strategy_type",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html",tooltip="strategy_type is to decide how to set the hybrid config. "];
-}

@@ -1,0 +1,8 @@
+<map id="gko::matrix::IdentityFactory&lt; ValueType &gt;" name="gko::matrix::IdentityFactory&lt; ValueType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="1583,13,1797,69"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="1307,13,1535,69"/>
+<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1124,27,1259,54"/>
+<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,27,585,54"/>
+<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,20,365,61"/>
+<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,27,144,54"/>
+</map>

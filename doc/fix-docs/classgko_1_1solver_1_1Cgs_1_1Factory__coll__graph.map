@@ -1,0 +1,7 @@
+<map id="gko::solver::Cgs&lt; ValueType &gt;::Factory" name="gko::solver::Cgs&lt; ValueType &gt;::Factory">
+<area shape="rect" id="node2" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. " alt="" coords="784,49,1032,90"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteFactory, PolymorphicBase \&gt;" alt="" coords="461,15,736,57"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteFactory,\l PolymorphicBase \&gt;" alt="" coords="185,5,413,61"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteFactory \&gt;" alt="" coords="473,82,724,123"/>
+<area shape="rect" id="node7" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteFactory \&gt;" alt="" coords="221,85,377,126"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="gko::stop::CriterionArgs" name="gko::stop::CriterionArgs">
+<area shape="rect" id="node2" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="75,339,164,365"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="5,248,233,289"/>
+<area shape="rect" id="node4" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="33,172,205,199"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="33,81,206,123"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="50,5,189,32"/>
+</map>

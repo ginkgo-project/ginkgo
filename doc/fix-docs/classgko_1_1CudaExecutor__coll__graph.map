@@ -1,0 +1,5 @@
+<map id="gko::CudaExecutor" name="gko::CudaExecutor">
+<area shape="rect" id="node3" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="413,13,523,39"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="192,5,365,47"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,13,144,39"/>
+</map>
