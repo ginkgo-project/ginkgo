@@ -46,8 +46,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The device specific kernels.
+ *
+ * @ingroup kernels
+ */
 namespace kernels {
+/**
+ * @brief The Reference namespace.
+ *
+ * @ingroup reference
+ */
 namespace reference {
+/**
+ * @brief The Dense matrix format.
+ * @ref Dense
+ * @ingroup dense
+ */
 namespace dense {
 
 

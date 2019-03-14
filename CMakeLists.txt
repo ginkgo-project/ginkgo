@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 0.0.0 DESCRIPTION "Numerical linear algebra software")
+project(Ginkgo LANGUAGES C CXX VERSION 0.0.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -115,14 +115,15 @@ add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
 
-if(GINKGO_BUILD_DOC)
-    add_subdirectory(doc)
-endif()
 
 # Installation
 include(cmake/information_helpers.cmake)
 ginkgo_interface_information()
 ginkgo_git_information()
+
+if(GINKGO_BUILD_DOC)
+    add_subdirectory(doc)
+endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
     ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)

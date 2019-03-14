@@ -9,8 +9,8 @@ The Ginkgo library can be grouped into [modules](modules.html) and these modules
     * @ref solvers : Solve a linear system for a given matrix.
     * @ref precond : Precondition a system for a solve. 
     * @ref mat_formats : Perform a sparse matrix vector multiplication with a particular matrix format.
-*   @ref log : Find out what your code does ?
-*   @ref stop : How do you want a particular operation to stop ?
+*   @ref log : Find out what your code does.
+*   @ref stop : When do you want a particular operation to stop ?
 
 @page authors    Authors and contributors
 

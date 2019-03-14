@@ -73,7 +73,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * {
  *     auto x = gko::clone(x0);
  *     auto tmp = gko::clone(x0);
- *     auto one = Dense<>::create(L->get_executor(), {1.0,});
+ *     auto one = Dense<>::create(L->get_executor(), {1.0});
  *     for (int i = 0; i < iters; ++i) {
  *         L->apply(gko::lend(tmp), gko::lend(x));
  *         x->add_scaled(gko::lend(one), gko::lend(b));
@@ -92,7 +92,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  *
- * @section linop_2 How does it work ?.
+ * @section linop_2 How does it work ?
  *
  * And the answer is runtime polymorphism. Each of the classes that derive from
  * the LinOp class implement an apply method which they override from the base
@@ -121,6 +121,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * For example, a matrix free implementation would require the user to provide
  * an apply implementation and instead of passing the generated matrix to the
  * solver, they would have to provide their apply implementation for all the
- * executors needed and not other code needs to be changed. See @ref
+ * executors needed and no other code needs to be changed. See @ref
  * custom_matrix_format example for more details.
  */

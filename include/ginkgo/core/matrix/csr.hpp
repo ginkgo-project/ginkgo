@@ -39,6 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The matrix namespace.
+ *
+ * @ingroup matrix
+ */
 namespace matrix {
 
 
@@ -69,6 +74,7 @@ class Sellp;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
+ * @ingroup csr
  * @ingroup mat_formats
  * @ingroup LinOp
  */

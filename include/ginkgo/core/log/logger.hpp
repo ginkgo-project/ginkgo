@@ -58,6 +58,11 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 
+/**
+ * @brief The Stopping criterion namespace .
+ * @ref stop
+ * @ingroup stop
+ */
 namespace stop {
 class Criterion;
 }  // namespace stop

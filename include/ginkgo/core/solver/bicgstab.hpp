@@ -48,6 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The ginkgo Solve namespace.
+ *
+ * @ingroup solvers
+ */
 namespace solver {
 
 
@@ -62,6 +67,7 @@ namespace solver {
  *
  * @tparam ValueType precision of the elements of the system matrix.
  *
+ * @ingroup bicgstab
  * @ingroup solvers
  * @ingroup LinOp
  */

@@ -47,6 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The matrix namespace.
+ *
+ * @ingroup matrix
+ */
 namespace matrix {
 
 
@@ -77,7 +82,7 @@ class Sellp;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- *
+ * @ingroup dense
  * @ingroup mat_formats
  * @ingroup LinOp
  */

@@ -1,9 +1,9 @@
 QUIET                  = YES
 
 # General project info
-PROJECT_NAME           = "Ginkgo"
-PROJECT_NUMBER         = "@PROJECT_VERSION_TAG@ @PROJECT_VERSION@"
-PROJECT_BRIEF          = "Ginkgo is a numerical linear algebra library targeting manycore architectures."
+PROJECT_NAME           = "@PROJECT_NAME@" 
+PROJECT_NUMBER         = "Generated from @GINKGO_GIT_BRANCH@ branch based on @PROJECT_VERSION_TAG@. Ginkgo version @PROJECT_VERSION@ "
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@" 
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
@@ -78,7 +78,6 @@ DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
 
 # HTML-specific configuration
-GENERATE_HTML          = YES
 HTML_OUTPUT            = .
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            =

@@ -40,8 +40,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The device specific kernels.
+ *
+ * @ingroup kernels
+ */
 namespace kernels {
+/**
+ * @brief The OpenMP namespace.
+ *
+ * @ingroup omp
+ */
 namespace omp {
+/**
+ * @brief The Residual norm reduction stopping criterion.
+ * @ref resnorm
+ * @ingroup resnorm
+ */
 namespace residual_norm_reduction {
 
 

@@ -40,6 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The Preconditioner namespace.
+ *
+ * @ingroup precond
+ */
 namespace preconditioner {
 
 
@@ -50,6 +55,7 @@ namespace preconditioner {
  *
  * @tparam IndexType  type used for storing indices of the matrix
  *
+ * @ingroup jacobi
  * @ingroup precond
  * @ingroup LinOp
  */
@@ -186,6 +192,7 @@ struct block_interleaved_storage_scheme {
  *       slightly longer preconditioner generation due to extra work required to
  *       detect the optimal precision of the blocks.
  *
+ * ingroup jacobi
  * @ingroup precond
  * @ingroup LinOp
  */

@@ -40,8 +40,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The device specific kernels.
+ *
+ * @ingroup kernels
+ */
 namespace kernels {
+/**
+ * @brief The Reference namespace.
+ *
+ * @ingroup reference
+ */
 namespace reference {
+/**
+ * @brief The ELL matrix format.
+ * @ref Ell
+ * @ingroup ell
+ */
 namespace ell {
 
 
