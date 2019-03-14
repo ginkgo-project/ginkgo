@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/dense_kernels.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -62,7 +63,14 @@ constexpr int classical_block_size = 64;
 constexpr int wsize = cuda_config::warp_size;
 
 
-namespace {
+/**
+ * A compile-time list of the number items per threads for which spmv kernel
+ * should be compiled.
+ */
+using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+
+
+namespace kernel {
 
 
 template <typename T>
@@ -147,13 +155,13 @@ __device__ __forceinline__ void find_next_row(
 template <typename ValueType, typename IndexType, typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<wsize> &group, bool force_write,
-    ValueType *__restrict__ val, IndexType ind, ValueType *__restrict__ out,
-    Closure scale)
+    ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
+    const size_type c_stride, const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(group, ind, val);
+    const bool need_write = segment_scan(group, row, val);
     if (need_write && force_write) {
-        atomic_add(out + ind, scale(*val));
+        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
     }
     if (!need_write || force_write) {
         *val = zero<ValueType>();
@@ -169,21 +177,23 @@ __device__ __forceinline__ void process_window(
     IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    ValueType *__restrict__ c, Closure scale)
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride, const IndexType column_id, Closure scale)
 {
     const IndexType curr_row = *row;
     find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
                         *nrow_end, row_ptrs);
     // segmented scan
     if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c, scale);
+        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
+                        c_stride, column_id, scale);
         *nrow = group.shfl(*row, wsize - 1);
         *nrow_end = group.shfl(*row_end, wsize - 1);
     }
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col];
+        *temp_val += val[ind] * b[col * b_stride + column_id];
     }
 }
 
@@ -202,9 +212,11 @@ __device__ __forceinline__ void spmv_kernel(
     const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c, Closure scale)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
 {
     const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
+    const IndexType column_id = blockIdx.y;
     if (warp_idx >= nwarps) {
         return;
     }
@@ -227,12 +239,14 @@ __device__ __forceinline__ void spmv_kernel(
     for (; ind < ind_end; ind += wsize) {
         process_window<false>(tile_block, num_rows, data_size, ind, &row,
                               &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, c, scale);
+                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
+                              column_id, scale);
     }
     process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
                          &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, c, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, scale);
+                         b, b_stride, c, c_stride, column_id, scale);
+    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
+                    scale);
 }
 
 
@@ -241,10 +255,11 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const IndexType nwarps, const IndexType num_rows,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride)
 {
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
-                [](const ValueType &x) { return x; });
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
+                c_stride, [](const ValueType &x) { return x; });
 }
 
 
@@ -254,12 +269,14 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, ValueType *__restrict__ c)
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride)
 {
     ValueType scale_factor = alpha[0];
-    spmv_kernel(
-        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; });
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
+                c_stride, [&scale_factor](const ValueType &x) {
+                    return scale_factor * x;
+                });
 }
 
 
@@ -297,11 +314,12 @@ __forceinline__ __device__ void merge_path_search(
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void reduce(
-    const IndexType nwarps, const ValueType *__restrict__ last_val,
-    const IndexType *__restrict__ last_row, ValueType *__restrict__ c,
-    const size_type c_stride)
+template <typename ValueType, typename IndexType, typename Alpha_op>
+__device__ void reduce(const IndexType nwarps,
+                       const ValueType *__restrict__ last_val,
+                       const IndexType *__restrict__ last_row,
+                       ValueType *__restrict__ c, const size_type c_stride,
+                       Alpha_op alpha_op)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = threadIdx.x;
@@ -314,7 +332,7 @@ __global__ __launch_bounds__(spmv_block_size) void reduce(
         row = last_row[start];
         for (IndexType i = start + 1; i < end; i++) {
             if (last_row[i] != row) {
-                c[row] += value;
+                c[row * c_stride] += alpha_op(value);
                 row = last_row[i];
                 value = last_val[i];
             } else {
@@ -331,19 +349,21 @@ __global__ __launch_bounds__(spmv_block_size) void reduce(
                                            static_cast<ValueType *>(tmp_val));
     __syncthreads();
     if (last) {
-        c[row] += tmp_val[threadIdx.x];
+        c[row * c_stride] += alpha_op(tmp_val[threadIdx.x]);
     }
 }
 
 
-template <int items_per_thread, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
+template <int items_per_thread, typename ValueType, typename IndexType,
+          typename Alpha_op, typename Beta_op>
+__device__ void merge_path_spmv(
     const IndexType num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride,
-    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out)
+    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out,
+    Alpha_op alpha_op, Beta_op beta_op)
 {
     const auto *row_end_ptrs = row_ptrs + 1;
     const auto nnz = row_ptrs[num_rows];
@@ -376,19 +396,22 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
                       block_num_rows, block_num_nonzeros, shared_row_ptrs,
                       block_start_y, &start_x, &start_y);
 
+
+    IndexType ind = block_start_y + start_y;
+    IndexType row_i = block_start_x + start_x;
     ValueType value = zero<ValueType>();
 #pragma unroll
     for (IndexType i = 0; i < items_per_thread; i++) {
-        const IndexType ind = block_start_y + start_y;
-        const IndexType row_i = block_start_x + start_x;
         if (row_i < num_rows) {
             if (start_x == block_num_rows || ind < shared_row_ptrs[start_x]) {
-                value += val[ind] * b[col_idxs[ind]];
-                start_y++;
+                value += val[ind] * b[col_idxs[ind] * b_stride];
+                ind++;
             } else {
-                c[row_i] = value;
-                value = zero<ValueType>();
+                c[row_i * c_stride] =
+                    alpha_op(value) + beta_op(c[row_i * c_stride]);
                 start_x++;
+                row_i++;
+                value = zero<ValueType>();
             }
         }
     }
@@ -397,7 +420,7 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
     ValueType *tmp_val =
         reinterpret_cast<ValueType *>(shared_row_ptrs + spmv_block_size);
     tmp_val[threadIdx.x] = value;
-    tmp_ind[threadIdx.x] = block_start_x + start_x;
+    tmp_ind[threadIdx.x] = row_i;
     __syncthreads();
     bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
                                            static_cast<ValueType *>(tmp_val));
@@ -405,18 +428,77 @@ __global__ __launch_bounds__(spmv_block_size) void merge_path_spmv(
         row_out[blockIdx.x] = min(end_x, num_rows - 1);
         val_out[blockIdx.x] = tmp_val[threadIdx.x];
     } else if (last) {
-        c[block_start_x + start_x] += tmp_val[threadIdx.x];
+        c[row_i * c_stride] += alpha_op(tmp_val[threadIdx.x]);
     }
+}
+
+template <int items_per_thread, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
+    const IndexType num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
+    const ValueType *__restrict__ b, const size_type b_stride,
+    ValueType *__restrict__ c, const size_type c_stride,
+    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out)
+{
+    merge_path_spmv<items_per_thread>(
+        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
+        row_out, val_out, [](ValueType &x) { return x; },
+        [](ValueType &x) { return zero<ValueType>(); });
+}
+
+
+template <int items_per_thread, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
+    const IndexType num_rows, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
+    const ValueType *__restrict__ b, const size_type b_stride,
+    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
+    const size_type c_stride, IndexType *__restrict__ row_out,
+    ValueType *__restrict__ val_out)
+{
+    const auto alpha_val = alpha[0];
+    const auto beta_val = beta[0];
+    merge_path_spmv<items_per_thread>(
+        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
+        row_out, val_out, [&alpha_val](ValueType &x) { return alpha_val * x; },
+        [&beta_val](ValueType &x) { return beta_val * x; });
 }
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(64) void classical_spmv(
-    const size_type num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
+__global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
+    const IndexType nwarps, const ValueType *__restrict__ last_val,
+    const IndexType *__restrict__ last_row, ValueType *__restrict__ c,
     const size_type c_stride)
+{
+    reduce(nwarps, last_val, last_row, c, c_stride,
+           [](ValueType &x) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
+    const IndexType nwarps, const ValueType *__restrict__ last_val,
+    const IndexType *__restrict__ last_row, const ValueType *__restrict__ alpha,
+    ValueType *__restrict__ c, const size_type c_stride)
+{
+    const auto alpha_val = alpha[0];
+    reduce(nwarps, last_val, last_row, c, c_stride,
+           [&alpha_val](ValueType &x) { return alpha_val * x; });
+}
+
+
+template <typename ValueType, typename IndexType, typename Closure>
+__device__ void classical_spmv(const size_type num_rows,
+                               const ValueType *__restrict__ val,
+                               const IndexType *__restrict__ col_idxs,
+                               const IndexType *__restrict__ row_ptrs,
+                               const ValueType *__restrict__ b,
+                               const size_type b_stride,
+                               ValueType *__restrict__ c,
+                               const size_type c_stride, Closure scale)
 {
     const auto tid =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
@@ -429,7 +511,143 @@ __global__ __launch_bounds__(64) void classical_spmv(
     for (auto ind = row_ptrs[tid]; ind < ind_end; ind++) {
         temp_value += val[ind] * b[col_idxs[ind] * b_stride + column_id];
     }
-    c[tid * c_stride + column_id] = temp_value;
+    c[tid * c_stride + column_id] =
+        scale(temp_value, c[tid * c_stride + column_id]);
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    classical_spmv(num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
+                   [](const ValueType &x, const ValueType &y) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
+    const size_type b_stride, const ValueType *__restrict__ beta,
+    ValueType *__restrict__ c, const size_type c_stride)
+{
+    const auto alpha_val = alpha[0];
+    const auto beta_val = beta[0];
+    classical_spmv(
+        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
+        [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
+            return alpha_val * x + beta_val * y;
+        });
+}
+
+
+}  // namespace kernel
+
+
+namespace {
+
+
+template <int items_per_thread, typename ValueType, typename IndexType>
+void merge_path_spmv(syn::value_list<int, items_per_thread>,
+                     std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Dense<ValueType> *b,
+                     matrix::Dense<ValueType> *c,
+                     const matrix::Dense<ValueType> *alpha = nullptr,
+                     const matrix::Dense<ValueType> *beta = nullptr)
+{
+    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+    const IndexType grid_num =
+        ceildiv(total, spmv_block_size * items_per_thread);
+    const dim3 grid(grid_num);
+    const dim3 block(spmv_block_size);
+    Array<IndexType> row_out(exec, grid_num);
+    Array<ValueType> val_out(exec, grid_num);
+
+    for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
+        if (alpha == nullptr && beta == nullptr) {
+            const auto b_vals = b->get_const_values() + column_id;
+            auto c_vals = c->get_values() + column_id;
+            kernel::abstract_merge_path_spmv<items_per_thread>
+                <<<grid, block, 0, 0>>>(
+                    static_cast<IndexType>(a->get_size()[0]),
+                    as_cuda_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_cuda_type(a->get_const_row_ptrs()),
+                    as_cuda_type(a->get_const_srow()), as_cuda_type(b_vals),
+                    b->get_stride(), as_cuda_type(c_vals), c->get_stride(),
+                    as_cuda_type(row_out.get_data()),
+                    as_cuda_type(val_out.get_data()));
+            kernel::abstract_reduce<<<1, spmv_block_size>>>(
+                grid_num, as_cuda_type(val_out.get_data()),
+                as_cuda_type(row_out.get_data()), as_cuda_type(c_vals),
+                c->get_stride());
+
+        } else if (alpha != nullptr && beta != nullptr) {
+            const auto b_vals = b->get_const_values() + column_id;
+            auto c_vals = c->get_values() + column_id;
+            kernel::abstract_merge_path_spmv<items_per_thread>
+                <<<grid, block, 0, 0>>>(
+                    static_cast<IndexType>(a->get_size()[0]),
+                    as_cuda_type(alpha->get_const_values()),
+                    as_cuda_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_cuda_type(a->get_const_row_ptrs()),
+                    as_cuda_type(a->get_const_srow()), as_cuda_type(b_vals),
+                    b->get_stride(), as_cuda_type(beta->get_const_values()),
+                    as_cuda_type(c_vals), c->get_stride(),
+                    as_cuda_type(row_out.get_data()),
+                    as_cuda_type(val_out.get_data()));
+            kernel::abstract_reduce<<<1, spmv_block_size>>>(
+                grid_num, as_cuda_type(val_out.get_data()),
+                as_cuda_type(row_out.get_data()),
+                as_cuda_type(alpha->get_const_values()), as_cuda_type(c_vals),
+                c->get_stride());
+        } else {
+            GKO_KERNEL_NOT_FOUND;
+        }
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
+
+
+template <typename IndexType>
+int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
+{
+    const int version = exec->get_major_version()
+                        << 4 + exec->get_minor_version();
+    // 128 threads/block the number of items per threads
+    // 3.0 3.5: 6
+    // 3.7: 14
+    // 5.0, 5.3, 6.0, 6.2: 8
+    // 5.2, 6.1, 7.0: 12
+    int num_item = 6;
+    switch (version) {
+    case 0x50:
+    case 0x53:
+    case 0x60:
+    case 0x62:
+        num_item = 8;
+        break;
+    case 0x52:
+    case 0x61:
+    case 0x70:
+        num_item = 12;
+        break;
+    case 0x37:
+        num_item = 14;
+    }
+    // The calculation is based on size(IndexType) = 4
+    constexpr int index_scale = sizeof(IndexType) / 4;
+    int items_per_thread = num_item / index_scale;
+    return items_per_thread;
 }
 
 
@@ -448,99 +666,29 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block));
-            abstract_spmv<<<csr_grid, csr_block>>>(
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
+            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()),
-                as_cuda_type(c->get_values()));
+                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
+                as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        const int version = exec->get_major_version()
-                            << 4 + exec->get_minor_version();
-        // 128 threads/block the number of items per threads
-        // 3.0 3.5: 6
-        // 3.7: 14
-        // 5.0, 5.3, 6.0, 6.2: 8
-        // 5.2, 6.1, 7.0: 12
-        int num_item = 6;
-        switch (version) {
-        case 0x50:
-        case 0x53:
-        case 0x60:
-        case 0x62:
-            num_item = 8;
-            break;
-        case 0x52:
-        case 0x61:
-        case 0x70:
-            num_item = 12;
-            break;
-        case 0x37:
-            num_item = 14;
-        }
-        // The calculation is based on size(IndexType) = 4
-        constexpr int index_scale = sizeof(IndexType) / 4;
-        const int items_per_thread = num_item / index_scale;
-
-        const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
-        const IndexType grid_num =
-            ceildiv(total, spmv_block_size * items_per_thread);
-        const dim3 grid(grid_num);
-        const dim3 block(spmv_block_size);
-        Array<IndexType> row_out(exec, grid_num);
-        Array<ValueType> val_out(exec, grid_num);
-        if (num_item == 6) {
-            merge_path_spmv<6 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 8) {
-            merge_path_spmv<8 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 12) {
-            merge_path_spmv<12 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        } else if (num_item == 14) {
-            merge_path_spmv<14 / index_scale><<<grid, block>>>(
-                static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride(),
-                as_cuda_type(row_out.get_data()),
-                as_cuda_type(val_out.get_data()));
-        }
-
-        reduce<<<1, spmv_block_size>>>(
-            grid_num, as_cuda_type(val_out.get_data()),
-            as_cuda_type(row_out.get_data()), as_cuda_type(c->get_values()),
-            c->get_stride());
+        int items_per_thread = compute_items_per_thread<IndexType>(exec);
+        select_merge_path_spmv(compiled_kernels(),
+                               [&items_per_thread](int compiled_info) {
+                                   return items_per_thread == compiled_info;
+                               },
+                               syn::value_list<int>(), syn::type_list<>(), exec,
+                               a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
-        classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
-                         classical_block_size>>>(
+        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
+                        b->get_size()[1]);
+        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
             a->get_size()[0], as_cuda_type(a->get_const_values()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -570,14 +718,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
             cusparse::destroy(descr);
-        } else {
-            // use classical implementation
-            classical_spmv<<<ceildiv(a->get_size()[0], classical_block_size),
-                             classical_block_size>>>(
-                a->get_size()[0], as_cuda_type(a->get_const_values()),
-                a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(b->get_const_values()), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
         }
     }
 }
@@ -600,15 +740,17 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
         if (nwarps > 0) {
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block));
-            abstract_spmv<<<csr_grid, csr_block>>>(
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
+            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_cuda_type(a->get_const_row_ptrs()),
                 as_cuda_type(a->get_const_srow()),
                 as_cuda_type(b->get_const_values()),
-                as_cuda_type(c->get_values()));
+                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
+                as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
@@ -633,6 +775,26 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         } else {
             GKO_NOT_IMPLEMENTED;
         }
+    } else if (a->get_strategy()->get_name() == "classical") {
+        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
+                        b->get_size()[1]);
+        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        int items_per_thread = compute_items_per_thread<IndexType>(exec);
+        select_merge_path_spmv(compiled_kernels(),
+                               [&items_per_thread](int compiled_info) {
+                                   return items_per_thread == compiled_info;
+                               },
+                               syn::value_list<int>(), syn::type_list<>(), exec,
+                               a, b, c, alpha, beta);
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 

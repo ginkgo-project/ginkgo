@@ -83,12 +83,13 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy)
+    void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy,
+                           int num_vectors = 1)
     {
         mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        expected = gen_mtx<Vec>(532, 1, 1);
-        y = gen_mtx<Vec>(231, 1, 1);
+        expected = gen_mtx<Vec>(532, num_vectors, 1);
+        y = gen_mtx<Vec>(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda, strategy);
@@ -131,6 +132,14 @@ protected:
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
 };
+
+
+TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    ASSERT_EQ(mtx->get_strategy()->get_name(),
+              dmtx->get_strategy()->get_name());
+}
 
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
@@ -188,6 +197,17 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 }
 
 
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
@@ -199,12 +219,89 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 }
 
 
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(32));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>(), 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>(), 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>(), 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>(), 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
