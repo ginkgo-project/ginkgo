@@ -1,5 +1,11 @@
 ![Ginkgo](/assets/logo.png)
 
+[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/build.svg)](https://github.com/ginkgo-project/ginkgo/commits/develop)
+[![Coverage](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
+[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
+[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/develop/)
+
+
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on sparse solution of linear systems. It is implemented using modern C++
 (you will need at least C++11 compliant compiler to build it), with GPU kernels
