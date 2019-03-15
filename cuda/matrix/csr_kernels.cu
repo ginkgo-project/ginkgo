@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <algorithm>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -48,6 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/synchronization.cuh"
 #include "cuda/components/uninitialized_array.hpp"
+#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -550,7 +554,7 @@ __global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
 }  // namespace kernel
 
 
-namespace {
+namespace host_kernel {
 
 
 template <int items_per_thread, typename ValueType, typename IndexType>
@@ -618,7 +622,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 
 
-template <typename IndexType>
+template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 {
     const int version = exec->get_major_version()
@@ -644,14 +648,17 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
     case 0x37:
         num_item = 14;
     }
-    // The calculation is based on size(IndexType) = 4
-    constexpr int index_scale = sizeof(IndexType) / 4;
-    int items_per_thread = num_item / index_scale;
-    return items_per_thread;
+    // Ensure that satisfy
+    // sizeof(IndexType) + sizeof(ValueType)
+    // <= items_per_thread * sizeof(IndexType)
+    constexpr int minimal_num =
+        ceildiv(sizeof(IndexType) + sizeof(ValueType), sizeof(IndexType));
+    int items_per_thread = num_item * 4 / sizeof(IndexType);
+    return std::max(minimal_num, items_per_thread);
 }
 
 
-}  // namespace
+}  // namespace host_kernel
 
 
 template <typename ValueType, typename IndexType>
@@ -660,9 +667,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMemset(c->get_values(), 0,
-                       c->get_num_stored_elements() * sizeof(ValueType)));
+        zero_array(c->get_num_stored_elements(), c->get_values());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
@@ -678,13 +683,14 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(c->get_stride()));
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        int items_per_thread = compute_items_per_thread<IndexType>(exec);
-        select_merge_path_spmv(compiled_kernels(),
-                               [&items_per_thread](int compiled_info) {
-                                   return items_per_thread == compiled_info;
-                               },
-                               syn::value_list<int>(), syn::type_list<>(), exec,
-                               a, b, c);
+        int items_per_thread =
+            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+        host_kernel::select_merge_path_spmv(
+            compiled_kernels(),
+            [&items_per_thread](int compiled_info) {
+                return items_per_thread == compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
@@ -786,13 +792,15 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(beta->get_const_values()),
             as_cuda_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "merge_path") {
-        int items_per_thread = compute_items_per_thread<IndexType>(exec);
-        select_merge_path_spmv(compiled_kernels(),
-                               [&items_per_thread](int compiled_info) {
-                                   return items_per_thread == compiled_info;
-                               },
-                               syn::value_list<int>(), syn::type_list<>(), exec,
-                               a, b, c, alpha, beta);
+        int items_per_thread =
+            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+        host_kernel::select_merge_path_spmv(
+            compiled_kernels(),
+            [&items_per_thread](int compiled_info) {
+                return items_per_thread == compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
+            beta);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
