@@ -14,7 +14,7 @@ var searchData=
   ['combine',['combine',['../group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2',1,'gko::stop']]],
   ['combined',['Combined',['../classgko_1_1stop_1_1Combined.html',1,'gko::stop']]],
   ['common',['common',['../classgko_1_1precision__reduction.html#aa0ac7ac5a2807f3a0e9bd245273be388',1,'gko::precision_reduction']]],
-  ['compiled_5fkernels',['compiled_kernels',['../namespacegko_1_1kernels_1_1cuda_1_1ell.html#a0973f9c5eb62626825f3e89f2a1ce9f9',1,'gko::kernels::cuda::ell::compiled_kernels()'],['../namespacegko_1_1kernels_1_1cuda.html#abb6a483e497df2ab104e90a630509386',1,'gko::kernels::cuda::compiled_kernels()']]],
+  ['compiled_5fkernels',['compiled_kernels',['../namespacegko_1_1kernels_1_1cuda_1_1csr.html#a64241181a6c193a4ac9759cf75f960f7',1,'gko::kernels::cuda::csr::compiled_kernels()'],['../namespacegko_1_1kernels_1_1cuda_1_1ell.html#a0973f9c5eb62626825f3e89f2a1ce9f9',1,'gko::kernels::cuda::ell::compiled_kernels()'],['../namespacegko_1_1kernels_1_1cuda.html#abb6a483e497df2ab104e90a630509386',1,'gko::kernels::cuda::compiled_kernels()']]],
   ['component_5fmask',['component_mask',['../classgko_1_1truncated.html#a185fc194281cf01876f43ce51b9aa186',1,'gko::truncated']]],
   ['component_5fposition',['component_position',['../classgko_1_1truncated.html#afaa79b9c1799da12a7f82dfd84a17ed8',1,'gko::truncated']]],
   ['component_5fsize',['component_size',['../classgko_1_1truncated.html#a6589bdd326ea891347e087ea09f6c4fa',1,'gko::truncated']]],
