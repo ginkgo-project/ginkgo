@@ -393,6 +393,7 @@ coverage:
   before_script: *default_before_script
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+    - bash <(curl -s https://codecov.io/bash)
   dependencies: []
   only:
     refs:

@@ -23,7 +23,8 @@ RUN apt-get update -y && \
         openssh-client \
         doxygen \
         curl \
-        valgrind && \
+        valgrind \
+        graphviz && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler
