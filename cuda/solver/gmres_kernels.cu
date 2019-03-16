@@ -694,10 +694,13 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
              const Array<size_type> *final_iter_nums,
              const LinOp *preconditioner)
 {
-    auto before_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
+    // The CUDA 10.1 compiler does not compile
+    // `matrix::Dense<ValueType>::create_with_config_of(x)`,
+    // therefore, the `create` method is directly called.
+    auto before_preconditioner = matrix::Dense<ValueType>::create(
+        x->get_executor(), x->get_size(), x->get_stride());
+    auto after_preconditioner = matrix::Dense<ValueType>::create(
+        x->get_executor(), x->get_size(), x->get_stride());
 
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
