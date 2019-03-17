@@ -627,6 +627,9 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 {
     const int version = exec->get_major_version()
                         << 4 + exec->get_minor_version();
+    // The num_item is decided to make the occupancy 100%
+    // TODO: Extend this list when new GPU is released
+    //       Tune this parameter
     // 128 threads/block the number of items per threads
     // 3.0 3.5: 6
     // 3.7: 14
@@ -648,7 +651,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
     case 0x37:
         num_item = 14;
     }
-    // Ensure that satisfy
+    // Ensure that satisfy:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
     constexpr int minimal_num =
