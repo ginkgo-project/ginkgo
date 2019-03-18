@@ -75,9 +75,9 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest)
-ginkgo_find_package(gflags)
-ginkgo_find_package(RapidJSON)
+ginkgo_find_package(GTest 1.8.1)
+ginkgo_find_package(gflags 2.2.2)
+ginkgo_find_package(RapidJSON 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
