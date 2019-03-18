@@ -727,6 +727,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
             cusparse::destroy(descr);
+        } else {
+            GKO_NOT_IMPLEMENTED;
         }
     }
 }
