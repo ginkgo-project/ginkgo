@@ -368,7 +368,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     __shared__ size_type prefix_helper[block_size];
     prefix_helper[threadIdx.x] =
         (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
-    __syncthreads();
+    group::this_thread_block().sync();
 
     // Do a normal reduction
     for (int i = 1; i < block_size; i <<= 1) {
@@ -377,7 +377,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
         if (bi < block_size) {
             prefix_helper[bi] += prefix_helper[ai];
         }
-        __syncthreads();
+        group::this_thread_block().sync();
     }
 
     if (threadIdx.x == 0) {
@@ -386,7 +386,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
         prefix_helper[block_size - 1] = zero<ValueType>();
     }
 
-    __syncthreads();
+    group::this_thread_block().sync();
 
     // Perform the down-sweep phase to get the true prefix sum
     for (int i = block_size >> 1; i > 0; i >>= 1) {
@@ -397,7 +397,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
             prefix_helper[ai] = prefix_helper[bi];
             prefix_helper[bi] += tmp;
         }
-        __syncthreads();
+        group::this_thread_block().sync();
     }
     if (tidx < num_elements) {
         elements[tidx] = prefix_helper[threadIdx.x];
@@ -845,14 +845,14 @@ __device__ void reduce_array(size_type size,
     }
     result[threadIdx.x] = thread_result;
 
-    __syncthreads();
+    group::this_thread_block().sync();
 
     for (auto i = blockDim.x >> 1; i >= 1; i >>= 1) {
         if (threadIdx.x < i && threadIdx.x + i < blockDim.x) {
             result[threadIdx.x] =
                 reduce_op(result[threadIdx.x + i], result[threadIdx.x]);
         }
-        __syncthreads();
+        group::this_thread_block().sync();
     }
 }
 

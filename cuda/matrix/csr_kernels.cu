@@ -46,7 +46,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/synchronization.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
 
@@ -121,9 +120,9 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
         if (threadIdx.x >= i && reg_ind == ind[threadIdx.x - i]) {
             temp = val[threadIdx.x - i];
         }
-        __syncthreads();
+        group::this_thread_block().sync();
         val[threadIdx.x] += temp;
-        __syncthreads();
+        group::this_thread_block().sync();
     }
 
     return last;
@@ -344,10 +343,10 @@ __device__ void reduce(const IndexType nwarps,
     __shared__ UninitializedArray<ValueType, spmv_block_size> tmp_val;
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row;
-    __syncthreads();
+    group::this_thread_block().sync();
     bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
                                            static_cast<ValueType *>(tmp_val));
-    __syncthreads();
+    group::this_thread_block().sync();
     if (last) {
         c[row * c_stride] += alpha_op(tmp_val[threadIdx.x]);
     }
@@ -388,7 +387,7 @@ __device__ void merge_path_spmv(
          i += spmv_block_size) {
         shared_row_ptrs[i] = row_end_ptrs[block_start_x + i];
     }
-    __syncthreads();
+    group::this_thread_block().sync();
 
     IndexType start_x;
     IndexType start_y;
@@ -415,13 +414,13 @@ __device__ void merge_path_spmv(
             }
         }
     }
-    __syncthreads();
+    group::this_thread_block().sync();
     IndexType *tmp_ind = shared_row_ptrs;
     ValueType *tmp_val =
         reinterpret_cast<ValueType *>(shared_row_ptrs + spmv_block_size);
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row_i;
-    __syncthreads();
+    group::this_thread_block().sync();
     bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
                                            static_cast<ValueType *>(tmp_val));
     if (threadIdx.x == spmv_block_size - 1) {
