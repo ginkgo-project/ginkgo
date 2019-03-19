@@ -1,4 +1,11 @@
 enable_language(CUDA)
+
+# Needed because of a known issue with CUDA while linking statically.
+# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
+if (NOT BUILD_SHARED_LIBS)
+    set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
+endif()
+
 include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

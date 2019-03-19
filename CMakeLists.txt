@@ -80,6 +80,11 @@ ginkgo_find_package(gflags)
 ginkgo_find_package(RapidJSON)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
+# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
+# propagated to the other parts of Ginkgo in case of building as static libraries
+if(GINKGO_BUILD_CUDA)
+    add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
+endif()
 # Ginkgo core libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (GINKGO_BUILD_REFERENCE)
@@ -87,9 +92,6 @@ if (GINKGO_BUILD_REFERENCE)
 endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
-endif()
-if(GINKGO_BUILD_CUDA)
-    add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 
 # Non core directories and targets
