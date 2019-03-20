@@ -128,8 +128,13 @@ public:
      */
     static std::unique_ptr<Dense> create_with_config_of(const Dense *other)
     {
-        return Dense::create(other->get_executor(), other->get_size(),
-                             other->get_stride());
+        // De-referencing `other` before calling the functions (instead of
+        // using operator `->`) is currently required to be compatible with
+        // CUDA 10.1.
+        // Otherwise, it results in a compile error.
+        // TODO Check if the compiler error is fixed and revert to `operator->`.
+        return Dense::create((*other).get_executor(), (*other).get_size(),
+                             (*other).get_stride());
     }
 
     void convert_to(Coo<ValueType, int32> *result) const override;
