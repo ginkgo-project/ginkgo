@@ -730,6 +730,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         } else {
             GKO_NOT_IMPLEMENTED;
         }
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
