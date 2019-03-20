@@ -79,8 +79,7 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_stored_elements_per_row = 0, int stride = 0,
-                           int num_vectors = 1)
+    void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231, 1));
@@ -157,7 +156,7 @@ TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -168,7 +167,7 @@ TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
