@@ -111,7 +111,7 @@ int main(int, char **)
     {
         using testType = double;
         static_assert(gko::is_complex<testType>() == false,
-                      "math.hpp nit included properly!");
+                      "math.hpp not included properly!");
     }
 
     // core/base/matrix_data.hpp
@@ -281,6 +281,16 @@ int main(int, char **)
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
+        auto test = Solver::build()
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(1u).on(
+                                refExec))
+                        .on(refExec);
+    }
+    
+    // core/solver/ir.hpp
+    {
+        using Solver = gko::solver::Ir<>;
         auto test = Solver::build()
                         .with_criteria(
                             gko::stop::Iteration::build().with_max_iters(1u).on(
