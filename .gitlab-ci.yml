@@ -4,7 +4,7 @@ stages:
   - sync
   - build
   - test
-  - warnings
+  - code_quality
   - deploy
   - QoS_tools
   - benchmark-build
@@ -336,7 +336,7 @@ test/nocuda/clang/omp/release:
 # Job with important warnings as error
 warnings:
   <<: *default_build
-  stage: warnings
+  stage: code_quality
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -345,6 +345,20 @@ warnings:
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   dependencies: []
   allow_failure: yes
+
+# Ensure kernel modules do not depend on core
+no-circular-deps:
+  <<: *default_build
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: '-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--no-undefined"
+      -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-undefined"'
+  dependencies: []
+  allow_failure: no
 
 
 # Deploy documentation to github-pages
