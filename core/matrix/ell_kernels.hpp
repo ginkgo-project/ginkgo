@@ -66,11 +66,6 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *result,   \
                         const matrix::Ell<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_ELL_MOVE_TO_CSR_KERNEL(ValueType, IndexType)  \
-    void move_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                     matrix::Csr<ValueType, IndexType> *result,   \
-                     const matrix::Ell<ValueType, IndexType> *source)
-
 #define GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Ell<ValueType, IndexType> *source, \
@@ -92,8 +87,6 @@ namespace kernels {
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_MOVE_TO_CSR_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>              \
