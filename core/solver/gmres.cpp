@@ -172,10 +172,10 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             auto after_preconditioner =
                 matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
-            exec->run(gmres::make_step_2(
-                residual_norm_collection.get(), krylov_bases.get(),
-                hessenberg.get(), y.get(), dense_x, before_preconditioner.get(),
-                &final_iter_nums));
+            exec->run(gmres::make_step_2(residual_norm_collection.get(),
+                                         krylov_bases.get(), hessenberg.get(),
+                                         y.get(), before_preconditioner.get(),
+                                         &final_iter_nums));
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
 
@@ -263,7 +263,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),
-        hessenberg_small.get(), y.get(), dense_x, before_preconditioner.get(),
+        hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection

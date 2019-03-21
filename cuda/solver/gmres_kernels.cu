@@ -688,10 +688,10 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void solve_x(const matrix::Dense<ValueType> *krylov_bases,
-             const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             matrix::Dense<ValueType> *before_preconditioner,
-             const Array<size_type> *final_iter_nums)
+void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
+                  const matrix::Dense<ValueType> *y,
+                  matrix::Dense<ValueType> *before_preconditioner,
+                  const Array<size_type> *final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
@@ -714,6 +714,8 @@ void solve_x(const matrix::Dense<ValueType> *krylov_bases,
         y->get_stride(), as_cuda_type(before_preconditioner->get_values()),
         stride_before_preconditioner,
         as_cuda_type(final_iter_nums->get_const_data()));
+    // Calculate qy
+    // before_preconditioner = krylov_bases * y
 }
 
 
@@ -722,13 +724,13 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
             const Array<size_type> *final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums);
-    solve_x(krylov_bases, y, x, before_preconditioner, final_iter_nums);
+    calculate_qy(krylov_bases, y, before_preconditioner, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
