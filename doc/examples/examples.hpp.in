@@ -1,0 +1,183 @@
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2005 - 2018 by the deal.II authors
+//
+// This file is part of the deal.II library.
+//
+// The deal.II library is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License as published by the Free Software Foundation; either
+// version 2.1 of the License, or (at your option) any later version.
+// The full text of the license can be found in the file LICENSE.md at
+// the top level directory of deal.II.
+//
+// ---------------------------------------------------------------------
+
+
+/**
+ * @page Examples Example programs
+ *
+ * New to deal.II? You might want to start with example Step-1 and work
+ * your way up to Step-5. At that point you can explore what features you
+ * are interested in and look at the large collection of programs listed
+ * below.
+ *
+ * The deal.II example contains a collection of programs, each more or
+ * less built atop of previous ones, which demonstrate various aspects of
+ * the library. Each such example has the following structure:
+ * <ol>
+ *   <li> <b>Introduction:</b> What the program does, including
+ *        the mathematical model, and
+ *        what programming techniques are new.
+ *   <li> <b>The commented program:</b> An extensively documented listing of the
+ *        source code.
+ *   <li> <b>Results:</b> The output of the program, with comments and
+ *        interpretation.
+ *   <li> <b>The plain program:</b> The source code stripped of
+ *        all comments.
+ * </ol>
+ * You can browse the available example programs
+ * <ol>
+ *   <li> as <b><a href="#graph">a graph</a></b> that shows how example programs build upon each other.
+ *   <li> as <b><a href="#list">a list</a></b> that provides a short
+ *     synopsis of each program.
+ *   <li> or <b><a href="#topic">grouped by topic</a></b>.
+ * </ol>
+ *
+ * The programs are in the <code>examples/</code> directory of your local
+ * deal.II installation. After compiling the library itself, if you go into
+ * one of the example directories, you can configure the program by typing
+ * <code>cmake .</code>, build it via <code>make</code> and run it using
+ * <code>make run</code>. The latter command also compiles the program if
+ * that has not already been done. The CMakeLists.txt files in the
+ * different directories are based on the
+ * <a href="../../users/cmakelists.html#cmakeauto" target="_top">autopilot
+ * style CMakeLists.txt example</a>.
+ *
+ * @note Some of the example programs also jointly form
+ *   the <a href="../../doxygen/deal.II/group__geodynamics.html">geodynamics
+ *   demonstration suite</a>. More, often more complex but less well documented,
+ *   deal.II-based programs than the ones that form the example can also be
+ *   found in the @ref CodeGallery .
+ *
+ *
+ * <a name="graph"></a>
+ * @anchor ExampleConnectionGraph
+ * <h3>Connections between example programs</h3>
+ *
+ * The following graph shows the connections between example programs and
+ * how they build on each other.
+ * Click on any of the boxes to go to one of the programs. If you hover
+ * your mouse pointer over a box, a brief description of the program
+ * should appear.
+ * @dot
+@@EXAMPLE_MAP@@
+ * @enddot
+ *
+ * <b>Legend:</b><br />
+ * @dot
+@@EXAMPLE_LEGEND@@
+ * @enddot
+ *
+ * <a name="list"></a>
+ * <h3>Example programs listed by number</h3>
+ *
+ * <table align="center" width="90%">
+ *   <tr valign="top">
+ *       <td width="100px">step-1</td>
+ *       <td> Creating a grid. A simple way to write it to a file.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-2</td>
+ *       <td> Associate degrees of freedom to
+ *       each vertex and compute the resulting sparsity pattern of
+ *       matrices. Show that renumbering reduces the bandwidth of
+ *       matrices significantly, i.e. clusters nonzero entries around the
+ *       diagonal.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-3</td>
+ *       <td> Actually solve Laplace's
+ *       problem. Object-orientation. Assembling matrices and
+ *       vectors. Boundary values.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-4</td>
+ *       <td> This example is programmed in a
+ *       way that it is independent of the dimension for which we want to
+ *       solve Laplace's equation; we will solve the equation in 2D and
+ *       3D, although the program is exactly the same. Non-constant right
+ *       hand side function. Non-homogeneous boundary values.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-5</td>
+ *       <td> Computations on successively
+ *       refined grids. Reading a grid from disk. Some optimizations.
+ *       Using assertions. Non-constant coefficient in
+ *       the elliptic operator (yielding the extended Poisson
+ *       equation). Preconditioning the CG solver for the
+ *       linear system of equations.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-6</td>
+ *       <td> Adaptive local
+ *       refinement. Handling of hanging nodes. Higher order elements.
+ *       Catching exceptions in the <code>main</code>; function.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-7</td>
+ *       <td> Helmholtz
+ *       equation. Non-homogeneous Neumann boundary conditions and
+ *       boundary integrals. Verification of correctness of computed
+ *       solutions. Computing the error between exact and numerical
+ *       solution and output of the data in tables. Using counted pointers.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-8</td>
+ *       <td> The elasticity equations will be
+ *       solved instead of Laplace's equation. The solution is
+ *       vector-valued and the equations form a system with as many
+ *       equations as the dimension of the space in which it is posed.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-9</td>
+ *       <td> Linear advection equation, assembling
+ *       the system of equations in parallel using multi-threading,
+ *       implementing a refinement criterion based on a finite difference
+ *       approximation of the gradient.
+ *
+ *   <tr valign="top">
+ *       <td>step-10</td>
+ *       <td> Higher order mappings. Do not
+ *       solve equations, but rather compute the value of pi to high
+ *       accuracy.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-11</td>
+ *       <td> Solving a Laplace problem with
+ *       higher order mappings. Using mean value constraints and
+ *       intermediate representations of sparsity patterns.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-12</td>
+ *       <td> Discontinuous Galerkin methods for linear advection problems.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>step-13</td>
+ *       <td> Software design questions and
+ *       how to write a modular, extensible finite element program.
+ *       </td></tr>
+ *
+ * </table>
+ */

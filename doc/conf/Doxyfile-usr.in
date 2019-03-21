@@ -3,6 +3,7 @@ GENERATE_HTML          = YES
 # this is used to hide protected members
 PREDEFINED = protected=private
 
+INPUT = @doxygen_base_input_str@ 
 EXTRACT_STATIC         = NO
 EXTRACT_LOCAL_CLASSES  = NO
 EXTRACT_PRIVATE        = NO

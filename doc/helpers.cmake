@@ -41,21 +41,30 @@ endmacro()
 function(ginkgo_doc_gen name in pdf mainpage)
     set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
     set(DIR_BASE "${CMAKE_SOURCE_DIR}")
+    set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
     set(MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/pages/${mainpage}")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
     set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
-    set(doxygen_input
+    set(doxygen_base_input
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/ "
       )
-    list(APPEND doxygen_input
-      ${DIR_BASE}/core
+    list(APPEND doxygen_base_input
       ${DIR_BASE}/include
+      ${MAINPAGE}
+      )
+    if(GINKGO_DOC_GENERATE_EXAMPLES)
+      list(APPEND doxygen_base_input
+        ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
+        )
+    endif()
+    set(doxygen_dev_input
+      "${DIR_BASE}/core"
+      )
+    list(APPEND doxygen_dev_input
       ${DIR_BASE}/omp
       ${DIR_BASE}/cuda
       ${DIR_BASE}/reference
-      ${MAINPAGE}
-      # ${CMAKE_CURRENT_BINARY_DIR}/tutorial/tutorial.hpp
       )
     set(doxygen_image_path "${CMAKE_CURRENT_SOURCE_DIR}/images/")
     file(GLOB doxygen_depend
@@ -64,15 +73,33 @@ function(ginkgo_doc_gen name in pdf mainpage)
       )
     list(APPEND doxygen_depend
       ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
-      # ${CMAKE_CURRRENT_BINARY_DIR}/tutorial/tutorial.hpp
       )
-    to_string(doxygen_input_str ${doxygen_input} )
+    if(GINKGO_DOC_GENERATE_EXAMPLES)
+      list(APPEND doxygen_depend
+        ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
+        )
+      FILE(GLOB _ginkgo_examples
+        ${CMAKE_SOURCE_DIR}/examples/example-*
+        )
+      FOREACH(_ex ${_ginkgo_examples})
+        GET_FILENAME_COMPONENT(_ex "${_ex}" NAME)
+        LIST(APPEND _doxygen_depend
+          ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
+          )
+        LIST(APPEND _doxygen_input
+          ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
+          )
+    endif()
+   ENDFOREACH()
+    to_string(doxygen_base_input_str ${doxygen_base_input} )
+    to_string(doxygen_dev_input_str ${doxygen_dev_input} )
     to_string(doxygen_image_path_str ${doxygen_image_path} )
     add_custom_target("${name}" ALL
-        #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
+      #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
         COMMAND "${DOXYGEN_EXECUTABLE}" ${doxyfile}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
+        examples
         ${doxyfile}
         ${layout}
         ${doxygen_depend}

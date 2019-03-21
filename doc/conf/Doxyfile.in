@@ -7,14 +7,14 @@ PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-INPUT                  = @doxygen_input_str@
+#INPUT                  = See the specific doxy files for usr and dev.  
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @DIR_BASE@/examples
+EXAMPLE_PATH           = @DIR_BASE@/examples @DIR_BASE/doc/examples@
 RECURSIVE              = YES
-EXAMPLE_RECURSIVE      = NO
+EXAMPLE_RECURSIVE      = YES
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
-EXAMPLE_PATTERNS       = *.cpp *.hpp
+EXAMPLE_PATTERNS       = *.cpp *.hpp *.cuh *.cu
 EXTENSION_MAPPING      = cu=c++ cuh=c++
 FULL_PATH_NAMES        = YES
 STRIP_FROM_PATH        = @DIR_BASE@

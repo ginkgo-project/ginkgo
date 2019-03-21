@@ -324,3 +324,7 @@ GPE.)
 @page wiki The Ginkgo wiki page.
 
 Ginkgo also has a [wiki page](https://github.com/ginkgo-project/ginkgo/wiki) 
+
+@page known_issues The known issues in Ginkgo.
+
+Please refer to the [Known Issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues). 
