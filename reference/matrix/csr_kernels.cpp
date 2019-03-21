@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "reference/components/format_conversion.hpp"
@@ -227,8 +228,8 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
                 break;
             }
             size_type sellp_ind = slice_sets[slice] * slice_size + row;
-            for (size_type csr_ind = source_row_ptrs[row];
-                 csr_ind < source_row_ptrs[row + 1]; csr_ind++) {
+            for (size_type csr_ind = source_row_ptrs[global_row];
+                 csr_ind < source_row_ptrs[global_row + 1]; csr_ind++) {
                 vals[sellp_ind] = source_values[csr_ind];
                 col_idxs[sellp_ind] = source_col_idxs[csr_ind];
                 sellp_ind += slice_size;
@@ -264,13 +265,15 @@ void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type slice = 0; slice < slice_num; slice++) {
         IndexType max_nnz_per_row_in_this_slice = 0;
-        for (size_type row = 0; row < slice_size; row++) {
-            size_type global_row = min(slice * slice_size + row, num_rows);
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            size_type global_row = slice * slice_size + row;
             max_nnz_per_row_in_this_slice =
                 max(row_ptrs[global_row + 1] - row_ptrs[global_row],
                     max_nnz_per_row_in_this_slice);
         }
-        total_cols += max_nnz_per_row_in_this_slice;
+        total_cols += ceildiv(max_nnz_per_row_in_this_slice, stride_factor) *
+                      stride_factor;
     }
 
     *result = total_cols;
