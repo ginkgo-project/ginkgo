@@ -84,8 +84,8 @@ namespace gmres {
                 const matrix::Dense<_type> *krylov_bases,             \
                 const matrix::Dense<_type> *hessenberg,               \
                 matrix::Dense<_type> *y, matrix::Dense<_type> *x,     \
-                const Array<size_type> *final_iter_nums,              \
-                const LinOp *preconditioner)
+                matrix::Dense<_type> *before_preconditioner,          \
+                const Array<size_type> *final_iter_nums)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

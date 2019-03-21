@@ -688,17 +688,11 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void solve_x(std::shared_ptr<const CudaExecutor> exec,
-             const matrix::Dense<ValueType> *krylov_bases,
+void solve_x(const matrix::Dense<ValueType> *krylov_bases,
              const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             const Array<size_type> *final_iter_nums,
-             const LinOp *preconditioner)
+             matrix::Dense<ValueType> *before_preconditioner,
+             const Array<size_type> *final_iter_nums)
 {
-    auto before_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
     const auto num_rhs = before_preconditioner->get_size()[1];
@@ -720,15 +714,6 @@ void solve_x(std::shared_ptr<const CudaExecutor> exec,
         y->get_stride(), as_cuda_type(before_preconditioner->get_values()),
         stride_before_preconditioner,
         as_cuda_type(final_iter_nums->get_const_data()));
-
-    preconditioner->apply(before_preconditioner.get(),
-                          after_preconditioner.get());
-
-    auto one_op =
-        initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-    x->add_scaled(one_op.get(), after_preconditioner.get());
-    // Solve x
-    // x = x + preconditioner_ * krylov_bases * y
 }
 
 
@@ -738,12 +723,12 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums,
-            const LinOp *preconditioner)
+            matrix::Dense<ValueType> *before_preconditioner,
+            const Array<size_type> *final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums);
-    solve_x(exec, krylov_bases, y, x, final_iter_nums, preconditioner);
+    solve_x(krylov_bases, y, x, before_preconditioner, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

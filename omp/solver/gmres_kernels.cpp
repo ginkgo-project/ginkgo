@@ -103,8 +103,8 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums,
-            const LinOp *preconditioner)
+            matrix::Dense<ValueType> *before_preconditionner,
+            const Array<size_type> *final_iter_nums)
 {
     GKO_NOT_IMPLEMENTED;
 }

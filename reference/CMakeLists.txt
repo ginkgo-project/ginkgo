@@ -23,11 +23,6 @@ ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)
 target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
-# Ensures that there are no circular dependency issues
-if(NOT BUILD_SHARED_LIBS)
-    target_link_libraries(ginkgo_reference PUBLIC ginkgo)
-endif()
-
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
