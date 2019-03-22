@@ -43,7 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/matrix/sellp_kernels.hpp"
 
 
 namespace {
@@ -259,6 +263,34 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
     dmtx->convert_to(ddense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+
+    mtx->convert_to(csr_mtx.get());
+    dmtx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    gko::size_type nnz;
+    gko::size_type dnnz;
+
+    gko::kernels::reference::sellp::count_nonzeros(ref, mtx.get(), &nnz);
+    gko::kernels::cuda::sellp::count_nonzeros(cuda, dmtx.get(), &dnnz);
+
+    ASSERT_EQ(nnz, dnnz);
 }
 
 
