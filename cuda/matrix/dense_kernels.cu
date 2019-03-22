@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
@@ -353,74 +354,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 namespace kernel {
 
 
-/*
- * Calculates the prefix sum of `elements` inside `default_block_size`
- * blocks in-place.
- * `default_block_size` must be a power of 2
- */
-template <int block_size = default_block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void start_prefix_sum(
-    size_type num_elements, ValueType *__restrict__ elements,
-    ValueType *__restrict__ block_sum)
-{
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-    __shared__ size_type prefix_helper[block_size];
-    prefix_helper[threadIdx.x] =
-        (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
-    group::this_thread_block().sync();
-
-    // Do a normal reduction
-    for (int i = 1; i < block_size; i <<= 1) {
-        const auto ai = i * (2 * threadIdx.x + 1) - 1;
-        const auto bi = i * (2 * threadIdx.x + 2) - 1;
-        if (bi < block_size) {
-            prefix_helper[bi] += prefix_helper[ai];
-        }
-        group::this_thread_block().sync();
-    }
-
-    if (threadIdx.x == 0) {
-        // Store the total sum
-        block_sum[blockIdx.x] = prefix_helper[block_size - 1];
-        prefix_helper[block_size - 1] = zero<ValueType>();
-    }
-
-    group::this_thread_block().sync();
-
-    // Perform the down-sweep phase to get the true prefix sum
-    for (int i = block_size >> 1; i > 0; i >>= 1) {
-        const auto ai = i * (2 * threadIdx.x + 1) - 1;
-        const auto bi = i * (2 * threadIdx.x + 2) - 1;
-        if (bi < block_size) {
-            auto tmp = prefix_helper[ai];
-            prefix_helper[ai] = prefix_helper[bi];
-            prefix_helper[bi] += tmp;
-        }
-        group::this_thread_block().sync();
-    }
-    if (tidx < num_elements) {
-        elements[tidx] = prefix_helper[threadIdx.x];
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void finalize_prefix_sum(
-    size_type num_elements, ValueType *__restrict__ elements,
-    const ValueType *__restrict__ block_sum)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tidx < num_elements) {
-        ValueType prefix_block_sum = zero<ValueType>();
-        for (size_type i = 0; i < blockIdx.x; i++) {
-            prefix_block_sum += block_sum[i];
-        }
-        elements[tidx] += prefix_block_sum;
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -467,11 +400,11 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     const size_type grid_dim = ceildiv(num_rows, default_block_size);
     auto add_values = Array<size_type>(exec, grid_dim);
 
-    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(nnz_prefix_sum.get_data()),
         as_cuda_type(add_values.get_data()));
 
-    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(nnz_prefix_sum.get_data()),
         as_cuda_type(add_values.get_data()));
 
@@ -567,11 +500,11 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(row_ptrs),
-        as_cuda_type(add_values.get_data()));
+    start_prefix_sum<default_block_size>
+        <<<grid_dim, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
+                                           as_cuda_type(add_values.get_data()));
 
-    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         num_rows + 1, as_cuda_type(row_ptrs),
         as_cuda_type(add_values.get_const_data()));
 
@@ -797,11 +730,11 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
     grid_dim = ceildiv(slice_num + 1, default_block_size);
 
-    kernel::start_prefix_sum<<<grid_dim, default_block_size>>>(
+    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         slice_num + 1, as_cuda_type(slice_sets),
         as_cuda_type(add_values.get_data()));
 
-    kernel::finalize_prefix_sum<<<grid_dim, default_block_size>>>(
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
         slice_num + 1, as_cuda_type(slice_sets),
         as_cuda_type(add_values.get_const_data()));
 
@@ -829,31 +762,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 namespace kernel {
-
-
-template <typename Operator, typename ValueType>
-__device__ void reduce_array(size_type size,
-                             const ValueType *__restrict__ source,
-                             ValueType *__restrict__ result,
-                             Operator reduce_op = Operator{})
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    auto thread_result = zero<ValueType>();
-    for (auto i = tidx; i < size; i += blockDim.x * gridDim.x) {
-        thread_result = reduce_op(thread_result, source[i]);
-    }
-    result[threadIdx.x] = thread_result;
-
-    group::this_thread_block().sync();
-
-    for (auto i = blockDim.x >> 1; i >= 1; i >>= 1) {
-        if (threadIdx.x < i && threadIdx.x + i < blockDim.x) {
-            result[threadIdx.x] =
-                reduce_op(result[threadIdx.x + i], result[threadIdx.x]);
-        }
-        group::this_thread_block().sync();
-    }
-}
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_nnz(
