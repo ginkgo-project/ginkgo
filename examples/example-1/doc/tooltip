@@ -1,1 +1,1 @@
-Creating a mesh. Refining it. Writing it to a file.
+Solve a simple linear system with CG. Read a matrix and right hand side from a file.

@@ -8,20 +8,21 @@ INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
 #INPUT                  = See the specific doxy files for usr and dev.  
-INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
+INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ @CMAKE_BINARY_DIR@
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @DIR_BASE@/examples @DIR_BASE/doc/examples@
+EXAMPLE_PATH           = @DIR_BASE/doc/examples@
 RECURSIVE              = YES
 EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
 EXAMPLE_PATTERNS       = *.cpp *.hpp *.cuh *.cu
 EXTENSION_MAPPING      = cu=c++ cuh=c++
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = @DIR_BASE@
-STRIP_FROM_INC_PATH    = @DIR_BASE@ @DIR_BASE@/include
+STRIP_FROM_PATH        = @DIR_BASE@/include @CMAKE_BINARY_DIR@/include
+STRIP_FROM_INC_PATH    = @DIR_BASE@/include @CMAKE_BINARY_DIR@/include
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
+
 
 # Parsing options
 JAVADOC_AUTOBRIEF      = Yes
@@ -52,6 +53,9 @@ SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
 FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
 CITE_BIB_FILES         = 
+INHERIT_DOCS           = YES
+
+BUILTIN_STL_SUPPORT    = YES
 
 WARN_NO_PARAMDOC       = YES
 WARN_AS_ERROR          = NO
@@ -66,6 +70,10 @@ VERBATIM_HEADERS       = YES
 # CLANG_ASSISTED_PARSING = NO
 # CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
 
+# External references
+ALLEXTERNALS           = NO
+EXTERNAL_GROUPS        = YES
+PERL_PATH              = /usr/bin/perl
 
 # Graph generation
 CLASS_DIAGRAMS         = YES
@@ -76,6 +84,14 @@ GRAPHICAL_HIERARCHY    = YES
 DIRECTORY_GRAPH        = YES
 DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
+GENERATE_LEGEND        = YES
+HAVE_DOT               = YES
+TEMPLATE_RELATIONS     = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+MAX_DOT_GRAPH_DEPTH    = 5
+
+DOT_CLEANUP            = YES
 
 # HTML-specific configuration
 HTML_OUTPUT            = .
