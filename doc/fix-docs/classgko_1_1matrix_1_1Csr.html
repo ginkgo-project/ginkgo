@@ -42,7 +42,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Tutorial</span></a></li>
+      <li><a href="Examples.html"><span>Examples</span></a></li>
+      <li><a href="benchmarking.html"><span>Benchmarking</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -180,12 +182,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a205fc391f4cf4f7718a55b0a61f62bc9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a205fc391f4cf4f7718a55b0a61f62bc9">write</a> (<a class="el" href="structgko_1_1matrix__data.html">mat_data</a> &amp;data) const override</td></tr>
 <tr class="memdesc:a205fc391f4cf4f7718a55b0a61f62bc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. ">matrix_data</a> structure.  <a href="#a205fc391f4cf4f7718a55b0a61f62bc9">More...</a><br /></td></tr>
 <tr class="separator:a205fc391f4cf4f7718a55b0a61f62bc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa850dcdfabfc020918fa870e50c0b11"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#aaa850dcdfabfc020918fa870e50c0b11">transpose</a> () const override</td></tr>
-<tr class="memdesc:aaa850dcdfabfc020918fa870e50c0b11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#aaa850dcdfabfc020918fa870e50c0b11">More...</a><br /></td></tr>
-<tr class="separator:aaa850dcdfabfc020918fa870e50c0b11"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af57eb59b5acb36cae0b3a16ffff9cf4f"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#af57eb59b5acb36cae0b3a16ffff9cf4f">conj_transpose</a> () const override</td></tr>
-<tr class="memdesc:af57eb59b5acb36cae0b3a16ffff9cf4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#af57eb59b5acb36cae0b3a16ffff9cf4f">More...</a><br /></td></tr>
-<tr class="separator:af57eb59b5acb36cae0b3a16ffff9cf4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab79e609214d6b4834d5961ee0a7d3519"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ab79e609214d6b4834d5961ee0a7d3519">transpose</a> () const override</td></tr>
+<tr class="memdesc:ab79e609214d6b4834d5961ee0a7d3519"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#ab79e609214d6b4834d5961ee0a7d3519">More...</a><br /></td></tr>
+<tr class="separator:ab79e609214d6b4834d5961ee0a7d3519"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38820451af5424f18b767667f3067d72"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">conj_transpose</a> () const override</td></tr>
+<tr class="memdesc:a38820451af5424f18b767667f3067d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a38820451af5424f18b767667f3067d72">More...</a><br /></td></tr>
+<tr class="separator:a38820451af5424f18b767667f3067d72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a929b0a194e6aeb1252b8e6781d162e83"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a929b0a194e6aeb1252b8e6781d162e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the matrix.  <a href="#a929b0a194e6aeb1252b8e6781d162e83">More...</a><br /></td></tr>
 <tr class="separator:a929b0a194e6aeb1252b8e6781d162e83"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -385,17 +387,17 @@ class gko::matrix::Csr&lt; ValueType, IndexType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="af57eb59b5acb36cae0b3a16ffff9cf4f"></a>
+<a class="anchor" id="a38820451af5424f18b767667f3067d72"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::conj_transpose </td>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::conj_transpose </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -412,8 +414,6 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
 
 <p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
-
-<p>References <a class="el" href="namespacegko.html#a9b6a9d7018703d6d1f2140054e2afe4a">gko::transpose()</a>.</p>
 
 </div>
 </div>
@@ -735,7 +735,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -765,21 +765,19 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1ReadableFromMatrixData.html#add5c12e23b3ac3c8fbd607fa5a9656bb">gko::ReadableFromMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p>References <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>, and <a class="el" href="structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b">gko::matrix_data&lt; ValueType, IndexType &gt;::size</a>.</p>
-
 </div>
 </div>
-<a class="anchor" id="aaa850dcdfabfc020918fa870e50c0b11"></a>
+<a class="anchor" id="ab79e609214d6b4834d5961ee0a7d3519"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::transpose </td>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::transpose </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -797,15 +795,13 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>
 
-<p>References <a class="el" href="namespacegko.html#a9b6a9d7018703d6d1f2140054e2afe4a">gko::transpose()</a>.</p>
-
 </div>
 </div>
 <a class="anchor" id="a205fc391f4cf4f7718a55b0a61f62bc9"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -835,14 +831,11 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">gko::WritableToMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p>References <a class="el" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone()</a>, and <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>.</p>
-
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>include/ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (9905d5f)</a></li>
-<li>include/ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (9905d5f)</a></li>
-<li>core/matrix/csr.cpp (b12a48e)</li>
+<li>include/ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (d82574c)</a></li>
+<li>include/ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (d82574c)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -1,12 +1,11 @@
 var searchData=
 [
   ['reference_20executor',['Reference Executor',['../group__exec__ref.html',1,'']]],
-  ['range',['range',['../structgko_1_1syn_1_1range.html',1,'gko::syn']]],
   ['range',['range',['../classgko_1_1range.html',1,'gko']]],
+  ['range',['range',['../structgko_1_1syn_1_1range.html',1,'gko::syn']]],
   ['range',['range',['../classgko_1_1range.html#ad51cc66500b972667d46ab7d70873d4a',1,'gko::range']]],
-  ['ratio',['ratio',['../namespacegko_1_1kernels_1_1cuda_1_1ell.html#af242c26da50202b8be324eaeb5e08b87',1,'gko::kernels::cuda::ell']]],
   ['read',['read',['../classgko_1_1ReadableFromMatrixData.html#add5c12e23b3ac3c8fbd607fa5a9656bb',1,'gko::ReadableFromMatrixData::read()'],['../classgko_1_1matrix_1_1Coo.html#ac0d4aeb19d9f55b62bea18bad1a408f5',1,'gko::matrix::Coo::read()'],['../classgko_1_1matrix_1_1Csr.html#ac4db41146ed3c3a8653b03d6b2c6c675',1,'gko::matrix::Csr::read()'],['../classgko_1_1matrix_1_1Ell.html#a2c877d9f7bbc57f97df5ab443954a6fd',1,'gko::matrix::Ell::read()'],['../classgko_1_1matrix_1_1Hybrid.html#a7eff2922ae21e9722b343ca1832d8bf5',1,'gko::matrix::Hybrid::read()'],['../classgko_1_1matrix_1_1Sellp.html#a2c5ff4a3f190daf7d70bbd8451d13edd',1,'gko::matrix::Sellp::read()'],['../namespacegko.html#a14f5ad24c86ae6798ea1113fe4fdfd52',1,'gko::read()']]],
-  ['read_5fraw',['read_raw',['../namespacegko.html#afddd8179d8034cce9a2f7e02bae33fd7',1,'gko']]],
+  ['read_5fraw',['read_raw',['../namespacegko.html#a0b476e0e3df616b08efe85000bff8da0',1,'gko']]],
   ['readablefrommatrixdata',['ReadableFromMatrixData',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
   ['readablefrommatrixdata_3c_20valuetype_2c_20int32_20_3e',['ReadableFromMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
   ['readablefrommatrixdata_3c_20valuetype_2c_20int64_20_3e',['ReadableFromMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],

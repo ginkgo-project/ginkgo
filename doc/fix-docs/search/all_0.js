@@ -9,8 +9,7 @@ var searchData=
   ['add',['add',['../structgko_1_1accessor_1_1add.html',1,'gko::accessor']]],
   ['add_5flogger',['add_logger',['../classgko_1_1log_1_1Loggable.html#aa2bb887b5ef7e75fa1a30ee1896ed932',1,'gko::log::Loggable::add_logger()'],['../classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2',1,'gko::log::EnableLogging::add_logger()']]],
   ['add_5fscaled',['add_scaled',['../classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d',1,'gko::matrix::Dense']]],
-  ['advanced_5fspmv',['advanced_spmv',['../namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e',1,'gko::kernels::cuda::ell']]],
-  ['all_5fevents_5fmask',['all_events_mask',['../classgko_1_1log_1_1Logger.html#a12d107dc6278e472d9eb1e52310991bf',1,'gko::log::Logger']]],
+  ['all_5fevents_5fmask',['all_events_mask',['../classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532',1,'gko::log::Logger']]],
   ['alloc',['alloc',['../classgko_1_1Executor.html#aea1773a0957ad79042e4ac60dd22d60a',1,'gko::Executor']]],
   ['allocationerror',['AllocationError',['../classgko_1_1AllocationError.html',1,'gko']]],
   ['allocationerror',['AllocationError',['../classgko_1_1AllocationError.html#ab06f1e22cd0cd39acab7cd5e96f2f9ca',1,'gko::AllocationError']]],
@@ -26,12 +25,10 @@ var searchData=
   ['array_3c_20size_5ftype_20_3e',['Array&lt; size_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['array_3c_20value_5ftype_20_3e',['Array&lt; value_type &gt;',['../classgko_1_1Array.html',1,'gko']]],
   ['as',['as',['../namespacegko.html#a73ce7e87aec389b5210630bb617b4baa',1,'gko::as(U *obj)'],['../namespacegko.html#a289e84ef5dea2f579dd12f27140a1470',1,'gko::as(const U *obj)']]],
-  ['as_5fcuda_5ftype',['as_cuda_type',['../namespacegko_1_1kernels_1_1cuda.html#ad9a8b90c3042b0351665f9dfce1cd241',1,'gko::kernels::cuda::as_cuda_type(T val)'],['../namespacegko_1_1kernels_1_1cuda.html#adb6b358852b4881ef769595f46a7d284',1,'gko::kernels::cuda::as_cuda_type(T val)']]],
-  ['as_5fculibs_5ftype',['as_culibs_type',['../namespacegko_1_1kernels_1_1cuda.html#a17132c5242146e5f91b82d26f8190308',1,'gko::kernels::cuda']]],
   ['at',['at',['../classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0',1,'gko::matrix::Dense::at(size_type row, size_type col) noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae0b30c42359a03805dee41a5cbf87b26',1,'gko::matrix::Dense::at(size_type row, size_type col) const noexcept'],['../classgko_1_1matrix_1_1Dense.html#ae6ce7585b533123b5572ddf502c9970f',1,'gko::matrix::Dense::at(size_type idx) noexcept'],['../classgko_1_1matrix_1_1Dense.html#a34ba8a7f392c65c481a93d9374cb5769',1,'gko::matrix::Dense::at(size_type idx) const noexcept']]],
   ['authors_20and_20contributors',['Authors and contributors',['../authors.html',1,'']]],
   ['autodetect',['autodetect',['../classgko_1_1precision__reduction.html#ac4109c61fadb24db7a1888c51ac483e9',1,'gko::precision_reduction']]],
-  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html#aadf787a2d56fe0e67c4108f14ee0cb6e',1,'gko::matrix::Hybrid::automatic']]],
   ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html',1,'gko::matrix::Hybrid']]],
+  ['automatic',['automatic',['../classgko_1_1matrix_1_1Hybrid_1_1automatic.html#aadf787a2d56fe0e67c4108f14ee0cb6e',1,'gko::matrix::Hybrid::automatic']]],
   ['automatical',['automatical',['../classgko_1_1matrix_1_1Csr_1_1automatical.html',1,'gko::matrix::Csr']]]
 ];

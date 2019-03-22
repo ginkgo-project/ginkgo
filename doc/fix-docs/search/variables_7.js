@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['header_5fversion',['header_version',['../classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378',1,'gko::version_info']]]
+  ['krylov_5fdim',['krylov_dim',['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#a5b88f3758ea7c21c535041289e1b09ce',1,'gko::solver::Gmres::parameters_type']]]
 ];

@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['enabledefaultcriterionfactory',['EnableDefaultCriterionFactory',['../group__stop.html#gab045b6fd7571f3234d9a63a5ee5a2252',1,'gko::stop']]],
-  ['enabledefaultlinopfactory',['EnableDefaultLinOpFactory',['../group__LinOp.html#ga24628d477cba68b31cea690572c51912',1,'gko']]]
+  ['float16',['float16',['../namespacegko.html#a86477c0acba18c50cac69112d791dfa6',1,'gko']]],
+  ['float32',['float32',['../namespacegko.html#a0b5dbd886493d4ccaba6a7a1ba74896c',1,'gko']]],
+  ['float64',['float64',['../namespacegko.html#a75c7a433d814b8b37d0bc2a9c57fbe65',1,'gko']]],
+  ['full_5fprecision',['full_precision',['../namespacegko.html#ae3257beda99ac9180b501912be5caa5f',1,'gko']]]
 ];

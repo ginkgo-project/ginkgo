@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>Ginkgo: include/ginkgo/core/base/executor.hpp (16519cb) Source File</title>
+<title>Ginkgo: include/ginkgo/core/base/executor.hpp (8b97f46) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -42,7 +42,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Tutorial</span></a></li>
+      <li><a href="Examples.html"><span>Examples</span></a></li>
+      <li><a href="benchmarking.html"><span>Benchmarking</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
@@ -107,7 +109,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="classgko_1_1CudaExecutor_html_a213c222fd8ef58952328fbe3a9b5ff39"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a213c222fd8ef58952328fbe3a9b5ff39">gko::CudaExecutor::get_num_cores_per_sm</a></div><div class="ttdeci">int get_num_cores_per_sm() const noexcept</div><div class="ttdoc">Get the number of cores per SM of this executor. </div><div class="ttdef"><b>Definition:</b> executor.hpp:843</div></div>
 <div class="ttc" id="classgko_1_1Executor_html_a460bbb12aba13c3cea909eb8e06c3ce1"><div class="ttname"><a href="classgko_1_1Executor.html#a460bbb12aba13c3cea909eb8e06c3ce1">gko::Executor::copy_from</a></div><div class="ttdeci">void copy_from(const Executor *src_exec, size_type num_elems, const T *src_ptr, T *dest_ptr) const </div><div class="ttdoc">Copies data from another Executor. </div><div class="ttdef"><b>Definition:</b> executor.hpp:499</div></div>
 <div class="ttc" id="classgko_1_1CudaExecutor_html_a449c2bf9c51b58a04fdb8b4a73377820"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a449c2bf9c51b58a04fdb8b4a73377820">gko::CudaExecutor::get_num_multiprocessor</a></div><div class="ttdeci">int get_num_multiprocessor() const noexcept</div><div class="ttdoc">Get the number of multiprocessor of this executor. </div><div class="ttdef"><b>Definition:</b> executor.hpp:848</div></div>
-<div class="ttc" id="namespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The ginkgo namespace . </div><div class="ttdef"><b>Definition:</b> combination.cpp:40</div></div>
+<div class="ttc" id="namespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The ginkgo namespace . </div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:46</div></div>
 <div class="ttc" id="classgko_1_1Executor_html_aea1773a0957ad79042e4ac60dd22d60a"><div class="ttname"><a href="classgko_1_1Executor.html#aea1773a0957ad79042e4ac60dd22d60a">gko::Executor::alloc</a></div><div class="ttdeci">T * alloc(size_type num_elems) const </div><div class="ttdoc">Allocates memory in this Executor. </div><div class="ttdef"><b>Definition:</b> executor.hpp:460</div></div>
 <div class="ttc" id="classgko_1_1ReferenceExecutor_html"><div class="ttname"><a href="classgko_1_1ReferenceExecutor.html">gko::ReferenceExecutor</a></div><div class="ttdoc">This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...</div><div class="ttdef"><b>Definition:</b> executor.hpp:772</div></div>
 <div class="ttc" id="classgko_1_1executor__deleter_html_af264c5d0a96ac940ea4ccd5c9e45c633"><div class="ttname"><a href="classgko_1_1executor__deleter.html#af264c5d0a96ac940ea4ccd5c9e45c633">gko::executor_deleter::operator()</a></div><div class="ttdeci">void operator()(pointer ptr) const </div><div class="ttdoc">Deletes the object. </div><div class="ttdef"><b>Definition:</b> executor.hpp:647</div></div>

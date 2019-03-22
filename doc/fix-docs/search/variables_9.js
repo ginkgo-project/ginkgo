@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['lengths',['lengths',['../classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9',1,'gko::accessor::row_major']]],
-  ['linop_5fevents_5fmask',['linop_events_mask',['../classgko_1_1log_1_1Logger.html#a26a0c3549810b9268d689e313c6615bb',1,'gko::log::Logger']]],
-  ['linop_5ffactory_5fevents_5fmask',['linop_factory_events_mask',['../classgko_1_1log_1_1Logger.html#a9441c99bbb78b62354b4cc1bcc5885ae',1,'gko::log::Logger']]]
+  ['major',['major',['../structgko_1_1version.html#a019ce1d31714612e0c77c8ef5eb4cfde',1,'gko::version']]],
+  ['max_5fblock_5fsize',['max_block_size',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e',1,'gko::preconditioner::Jacobi::parameters_type']]],
+  ['max_5fiters',['max_iters',['../structgko_1_1stop_1_1Iteration_1_1parameters__type.html#a7daf7ecb5cf107b9e7444b0898f691c4',1,'gko::stop::Iteration::parameters_type']]],
+  ['minor',['minor',['../structgko_1_1version.html#abb548e6dca39e0a3718ecf13cafbba36',1,'gko::version']]]
 ];

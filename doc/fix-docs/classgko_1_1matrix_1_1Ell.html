@@ -42,7 +42,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Tutorial</span></a></li>
+      <li><a href="Examples.html"><span>Examples</span></a></li>
+      <li><a href="benchmarking.html"><span>Benchmarking</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
@@ -500,7 +502,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 <p>References <a class="el" href="classgko_1_1Array.html#a5a46e0920b649cdb062f5e415922d1aa">gko::Array&lt; ValueType &gt;::get_const_data()</a>.</p>
 
-<p>Referenced by <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>, and <a class="el" href="classgko_1_1matrix_1_1Ell.html#a1ac1702011ead4e56857de130b4a5301">gko::matrix::Ell&lt; ValueType, IndexType &gt;::col_at()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Ell.html#a1ac1702011ead4e56857de130b4a5301">gko::matrix::Ell&lt; ValueType, IndexType &gt;::col_at()</a>.</p>
 
 </div>
 </div>
@@ -532,8 +534,6 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <dl class="section note"><dt>Note</dt><dd>This is the constant version of the function, which can be significantly more memory efficient than the non-constant version, so always prefer this version. </dd></dl>
 
 <p>References <a class="el" href="classgko_1_1Array.html#a5a46e0920b649cdb062f5e415922d1aa">gko::Array&lt; ValueType &gt;::get_const_data()</a>.</p>
-
-<p>Referenced by <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>.</p>
 
 </div>
 </div>
@@ -593,8 +593,6 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <p>Returns the number of stored elements per row. </p>
 <dl class="section return"><dt>Returns</dt><dd>the number of stored elements per row. </dd></dl>
 
-<p>Referenced by <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>.</p>
-
 </div>
 </div>
 <a class="anchor" id="a0be6e75dcea0975b10e3389a9eedacc1"></a>
@@ -622,8 +620,6 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 <p>Returns the stride of the matrix. </p>
 <dl class="section return"><dt>Returns</dt><dd>the stride of the matrix. </dd></dl>
-
-<p>Referenced by <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>.</p>
 
 </div>
 </div>
@@ -661,7 +657,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -690,8 +686,6 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 </dl>
 
 <p>Implements <a class="el" href="classgko_1_1ReadableFromMatrixData.html#add5c12e23b3ac3c8fbd607fa5a9656bb">gko::ReadableFromMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
-
-<p>References <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>, and <a class="el" href="structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b">gko::matrix_data&lt; ValueType, IndexType &gt;::size</a>.</p>
 
 </div>
 </div>
@@ -795,7 +789,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -825,14 +819,11 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
 
 <p>Implements <a class="el" href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">gko::WritableToMatrixData&lt; ValueType, IndexType &gt;</a>.</p>
 
-<p>References <a class="el" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone()</a>, and <a class="el" href="structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0">gko::matrix_data&lt; ValueType, IndexType &gt;::nonzeros</a>.</p>
-
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>include/ginkgo/core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (9905d5f)</a></li>
-<li>include/ginkgo/core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (9905d5f)</a></li>
-<li>core/matrix/ell.cpp (b12a48e)</li>
+<li>include/ginkgo/core/matrix/<a class="el" href="dense_8hpp_source.html">dense.hpp (d82574c)</a></li>
+<li>include/ginkgo/core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (d82574c)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

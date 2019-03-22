@@ -1,7 +1,6 @@
 var searchData=
 [
   ['temporary_5fclone',['temporary_clone',['../classgko_1_1temporary__clone.html',1,'gko']]],
-  ['thread_5fblock_5ftile',['thread_block_tile',['../structgko_1_1group_1_1thread__block__tile.html',1,'gko::group']]],
   ['time',['Time',['../classgko_1_1stop_1_1Time.html',1,'gko::stop']]],
   ['transposable',['Transposable',['../classgko_1_1Transposable.html',1,'gko']]],
   ['transpose_5foperation',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],

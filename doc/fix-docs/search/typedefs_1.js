@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['bits_5ftype',['bits_type',['../classgko_1_1truncated.html#ad26f99c9264dafeed42a018ce55d53a9',1,'gko::truncated']]]
+  ['criterionfactory',['CriterionFactory',['../group__stop.html#gab12a51109c50b35ec36dc5a393d6a9a0',1,'gko::stop']]]
 ];

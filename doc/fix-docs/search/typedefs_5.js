@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['float16',['float16',['../namespacegko.html#a86477c0acba18c50cac69112d791dfa6',1,'gko']]],
-  ['float32',['float32',['../namespacegko.html#a0b5dbd886493d4ccaba6a7a1ba74896c',1,'gko']]],
-  ['float64',['float64',['../namespacegko.html#a75c7a433d814b8b37d0bc2a9c57fbe65',1,'gko']]],
-  ['full_5fbits_5ftype',['full_bits_type',['../classgko_1_1truncated.html#ae7c585cb78fa85be8a965e836822c886',1,'gko::truncated']]],
-  ['full_5fprecision',['full_precision',['../namespacegko.html#ae3257beda99ac9180b501912be5caa5f',1,'gko']]]
+  ['increase_5fprecision',['increase_precision',['../namespacegko.html#a373c2b4782d95e675d7e91a75bab101d',1,'gko']]],
+  ['int16',['int16',['../namespacegko.html#a26d2e6df1a5280b092afd1e5d9fabeed',1,'gko']]],
+  ['int32',['int32',['../namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6',1,'gko']]],
+  ['int64',['int64',['../namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1',1,'gko']]],
+  ['int8',['int8',['../namespacegko.html#ad7a8c26c7cb547663bff3cc1df3c8db0',1,'gko']]]
 ];

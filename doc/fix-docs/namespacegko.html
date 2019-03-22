@@ -42,7 +42,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Examples</span></a></li>
+      <li><a href="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"><span>Tutorial</span></a></li>
+      <li><a href="Examples.html"><span>Examples</span></a></li>
+      <li><a href="benchmarking.html"><span>Benchmarking</span></a></li>
       <li><a href="modules.html"><span>Modules</span></a></li>
       <li class="current"><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
@@ -111,12 +113,6 @@ Namespaces</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:namespacegko_1_1detail"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1detail.html">detail</a></td></tr>
 <tr class="memdesc:namespacegko_1_1detail"><td class="mdescLeft">&#160;</td><td class="mdescRight">The detail namespace. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:namespacegko_1_1group"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1group.html">group</a></td></tr>
-<tr class="memdesc:namespacegko_1_1group"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ginkgo uses cooperative groups introduced in CUDA 9.0 to handle communication among the threads. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:namespacegko_1_1kernels"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1kernels.html">kernels</a></td></tr>
-<tr class="memdesc:namespacegko_1_1kernels"><td class="mdescLeft">&#160;</td><td class="mdescRight">The device specific kernels. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:namespacegko_1_1log"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1log.html">log</a></td></tr>
 <tr class="memdesc:namespacegko_1_1log"><td class="mdescLeft">&#160;</td><td class="mdescRight">The logger namespace . <br /></td></tr>
@@ -223,9 +219,6 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1executor__deleter_3_01T[]_4.html">executor_deleter&lt; T[]&gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1half.html">half</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A class providing basic support for half precision floating point types.  <a href="classgko_1_1half.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1KernelNotFound.html">KernelNotFound</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1KernelNotFound.html" title="KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the i...">KernelNotFound</a> is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the input arguments.  <a href="classgko_1_1KernelNotFound.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -295,7 +288,6 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Linear operators which support transposition should implement the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> interface.  <a href="classgko_1_1Transposable.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1truncated.html">truncated</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This template implements the truncated (or split) storage of a floating point type.  <a href="classgko_1_1truncated.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1version.html">version</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This structure is used to represent versions of various Ginkgo modules.  <a href="structgko_1_1version.html#details">More...</a><br /></td></tr>
@@ -373,7 +365,7 @@ using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nam
 using&#160;</td><td class="memItemRight" valign="bottom"><b>uintptr</b> = std::uintptr_t</td></tr>
 <tr class="separator:a0913bfb81622f6bdde52884015c2a4ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a86477c0acba18c50cac69112d791dfa6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a86477c0acba18c50cac69112d791dfa6"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#a86477c0acba18c50cac69112d791dfa6">float16</a> = <a class="el" href="classgko_1_1half.html">half</a></td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#a86477c0acba18c50cac69112d791dfa6">float16</a> = half</td></tr>
 <tr class="memdesc:a86477c0acba18c50cac69112d791dfa6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Half precision floating point type. <br /></td></tr>
 <tr class="separator:a86477c0acba18c50cac69112d791dfa6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b5dbd886493d4ccaba6a7a1ba74896c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0b5dbd886493d4ccaba6a7a1ba74896c"></a>
@@ -403,41 +395,6 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:afddd8179d8034cce9a2f7e02bae33fd7"><td class="memTemplParams" colspan="2">template&lt;typename ValueType , typename IndexType &gt; </td></tr>
-<tr class="memitem:afddd8179d8034cce9a2f7e02bae33fd7"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afddd8179d8034cce9a2f7e02bae33fd7">read_raw</a> (std::istream &amp;is)</td></tr>
-<tr class="memdesc:afddd8179d8034cce9a2f7e02bae33fd7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a matrix stored in matrix market format from an input stream.  <a href="#afddd8179d8034cce9a2f7e02bae33fd7">More...</a><br /></td></tr>
-<tr class="separator:afddd8179d8034cce9a2f7e02bae33fd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memTemplParams" colspan="2">template&lt;typename ValueType , typename IndexType &gt; </td></tr>
-<tr class="memitem:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab31feb99c64fc6df58ac09abd4af69b6">write_raw</a> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout=<a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">layout_type::array</a>)</td></tr>
-<tr class="memdesc:ab31feb99c64fc6df58ac09abd4af69b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. ">matrix_data</a> structure to a stream in matrix market format.  <a href="#ab31feb99c64fc6df58ac09abd4af69b6">More...</a><br /></td></tr>
-<tr class="separator:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1252e900133608a89951ab656da4d56"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1252e900133608a89951ab656da4d56"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; float, <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:ad1252e900133608a89951ab656da4d56"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa17a1a83c9a43aa9a67f6fbf2d6b7920"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa17a1a83c9a43aa9a67f6fbf2d6b7920"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; double, <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:aa17a1a83c9a43aa9a67f6fbf2d6b7920"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6ba448db1c30a96f3198d3efff44f2f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af6ba448db1c30a96f3198d3efff44f2f"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; std::complex&lt; float &gt;, <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:af6ba448db1c30a96f3198d3efff44f2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5fab21cae82aee715ecd5e56c48beacc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5fab21cae82aee715ecd5e56c48beacc"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; std::complex&lt; double &gt;, <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:a5fab21cae82aee715ecd5e56c48beacc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4e37d72800f48b0b34a656e510b3bd34"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4e37d72800f48b0b34a656e510b3bd34"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; float, <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:a4e37d72800f48b0b34a656e510b3bd34"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6b9d1aecc68ec2f61352e65d2bdf2276"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6b9d1aecc68ec2f61352e65d2bdf2276"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; double, <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:a6b9d1aecc68ec2f61352e65d2bdf2276"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3d41e2e6ab03333bd22e052121f6faf3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3d41e2e6ab03333bd22e052121f6faf3"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; std::complex&lt; float &gt;, <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:a3d41e2e6ab03333bd22e052121f6faf3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3cde03f42075cbceb0fad33fcc8fcb4f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3cde03f42075cbceb0fad33fcc8fcb4f"></a>
-template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; std::complex&lt; double &gt;, <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout)</td></tr>
-<tr class="separator:a3cde03f42075cbceb0fad33fcc8fcb4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a95f2df4e14987d3f8c17e90ea9d8d48a"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#a95f2df4e14987d3f8c17e90ea9d8d48a">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classgko_1_1version__info.html">version_info</a> &amp;ver_info)</td></tr>
-<tr class="memdesc:a95f2df4e14987d3f8c17e90ea9d8d48a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints library version information in human-readable format to a stream.  <a href="#a95f2df4e14987d3f8c17e90ea9d8d48a">More...</a><br /></td></tr>
-<tr class="separator:a95f2df4e14987d3f8c17e90ea9d8d48a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a74c3716da36cbedc000aa24006b0bd46"><td class="memTemplParams" colspan="2">template&lt;size_type Dimensionality, typename DimensionType &gt; </td></tr>
 <tr class="memitem:a74c3716da36cbedc000aa24006b0bd46"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a74c3716da36cbedc000aa24006b0bd46">operator!=</a> (const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;x, const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; Dimensionality, DimensionType &gt; &amp;y)</td></tr>
 <tr class="memdesc:a74c3716da36cbedc000aa24006b0bd46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if two dim objects are different.  <a href="#a74c3716da36cbedc000aa24006b0bd46">More...</a><br /></td></tr>
@@ -513,6 +470,14 @@ template void&#160;</td><td class="memItemRight" valign="bottom"><b>write_raw</b
 <tr class="memitem:ad39645fe8148a8a812a9528865a77600"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a> (const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</td></tr>
 <tr class="memdesc:ad39645fe8148a8a812a9528865a77600"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the smallest power of <code>base</code> not smaller than <code>limit</code>.  <a href="#ad39645fe8148a8a812a9528865a77600">More...</a><br /></td></tr>
 <tr class="separator:ad39645fe8148a8a812a9528865a77600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplParams" colspan="2">template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
+<tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">read_raw</a> (std::istream &amp;is)</td></tr>
+<tr class="memdesc:a0b476e0e3df616b08efe85000bff8da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a matrix stored in matrix market format from an input stream.  <a href="#a0b476e0e3df616b08efe85000bff8da0">More...</a><br /></td></tr>
+<tr class="separator:a0b476e0e3df616b08efe85000bff8da0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memTemplParams" colspan="2">template&lt;typename ValueType , typename IndexType &gt; </td></tr>
+<tr class="memitem:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab31feb99c64fc6df58ac09abd4af69b6">write_raw</a> (std::ostream &amp;os, const <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt; &amp;data, <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68">layout_type</a> layout=<a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">layout_type::array</a>)</td></tr>
+<tr class="memdesc:ab31feb99c64fc6df58ac09abd4af69b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. ">matrix_data</a> structure to a stream in matrix market format.  <a href="#ab31feb99c64fc6df58ac09abd4af69b6">More...</a><br /></td></tr>
+<tr class="separator:ab31feb99c64fc6df58ac09abd4af69b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14f5ad24c86ae6798ea1113fe4fdfd52"><td class="memTemplParams" colspan="2">template&lt;typename MatrixType , typename StreamType , typename... MatrixArgs&gt; </td></tr>
 <tr class="memitem:a14f5ad24c86ae6798ea1113fe4fdfd52"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; MatrixType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a14f5ad24c86ae6798ea1113fe4fdfd52">read</a> (StreamType &amp;&amp;is, MatrixArgs &amp;&amp;...args)</td></tr>
 <tr class="memdesc:a14f5ad24c86ae6798ea1113fe4fdfd52"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a matrix stored in matrix market format from an input stream.  <a href="#a14f5ad24c86ae6798ea1113fe4fdfd52">More...</a><br /></td></tr>
@@ -994,6 +959,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;</b> (con
 <tr class="memitem:ae0ef652f487afe43aebcf778038ff780"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#ae0ef652f487afe43aebcf778038ff780">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structgko_1_1version.html">version</a> &amp;ver)</td></tr>
 <tr class="memdesc:ae0ef652f487afe43aebcf778038ff780"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints version information to a stream.  <a href="#ae0ef652f487afe43aebcf778038ff780">More...</a><br /></td></tr>
 <tr class="separator:ae0ef652f487afe43aebcf778038ff780"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad9e3ba96a10fe47a03ceef39b45bd43c"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#ad9e3ba96a10fe47a03ceef39b45bd43c">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classgko_1_1version__info.html">version_info</a> &amp;ver_info)</td></tr>
+<tr class="memdesc:ad9e3ba96a10fe47a03ceef39b45bd43c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints library version information in human-readable format to a stream.  <a href="#ad9e3ba96a10fe47a03ceef39b45bd43c">More...</a><br /></td></tr>
+<tr class="separator:ad9e3ba96a10fe47a03ceef39b45bd43c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga06571a6dc284f0db2c47b38109ed3c83"><td class="memTemplParams" colspan="2">template&lt;typename Matrix , typename... TArgs&gt; </td></tr>
 <tr class="memitem:ga06571a6dc284f0db2c47b38109ed3c83"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__LinOp.html#ga06571a6dc284f0db2c47b38109ed3c83">initialize</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride, std::initializer_list&lt; typename Matrix::value_type &gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;...create_args)</td></tr>
 <tr class="memdesc:ga06571a6dc284f0db2c47b38109ed3c83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a column-vector.  <a href="group__LinOp.html#ga06571a6dc284f0db2c47b38109ed3c83">More...</a><br /></td></tr>
@@ -1194,7 +1162,7 @@ template&lt;typename T , typename U &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>returns the ceiled quotient. </dd></dl>
 
-<p>Referenced by <a class="el" href="namespacegko_1_1kernels_1_1cuda_1_1ell.html#a4da927378a4e68662d1f548d0b759d9e">gko::kernels::cuda::ell::advanced_spmv()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a5fb397d1dc15063dc4dc78bb9d9b4f72">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::col_at()</a>, <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::compute_storage_space()</a>, and <a class="el" href="namespacegko_1_1kernels_1_1cuda.html#afd4244cae185a4a8a7e81c2b46d1b12c">gko::kernels::cuda::zero_array()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a5fb397d1dc15063dc4dc78bb9d9b4f72">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::col_at()</a>, and <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::compute_storage_space()</a>.</p>
 
 </div>
 </div>
@@ -1230,7 +1198,7 @@ template&lt;typename Pointer &gt; </div>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>The difference between this function and directly calling LinOp::clone() is that this one preserves the static type of the object. </dd></dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">gko::temporary_clone&lt; T &gt;::temporary_clone()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#aae2355a2866318b154d017b1c51f30a5">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::write()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#afa9148a16a9255003055d8e9156ee941">gko::matrix::Ell&lt; ValueType, IndexType &gt;::write()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ae193466ca1a4a3c7d1383ddc5a2701ab">gko::matrix::Coo&lt; ValueType, IndexType &gt;::write()</a>, and <a class="el" href="classgko_1_1matrix_1_1Csr.html#a205fc391f4cf4f7718a55b0a61f62bc9">gko::matrix::Csr&lt; ValueType, IndexType &gt;::write()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">gko::temporary_clone&lt; T &gt;::temporary_clone()</a>.</p>
 
 </div>
 </div>
@@ -1710,7 +1678,7 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">gko::LinOp::apply()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ad2e97eee0ad21f8896f4a82cc5ac8a50">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac9bf644183d3ddb50034d77e710818e6">gko::matrix::Dense&lt; ValueType &gt;::compute_dot()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599">gko::matrix::Dense&lt; ValueType &gt;::compute_norm2()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>, and <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a626c07541641bcdfd9a7f61322a89cbe">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::write()</a>.</p>
+<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae6c4c15972b76bf7d8f6d50a96abda8d">gko::matrix::Dense&lt; ValueType &gt;::add_scaled()</a>, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">gko::LinOp::apply()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ad2e97eee0ad21f8896f4a82cc5ac8a50">gko::matrix::Coo&lt; ValueType, IndexType &gt;::apply2()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac9bf644183d3ddb50034d77e710818e6">gko::matrix::Dense&lt; ValueType &gt;::compute_dot()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab44278ff8eb701c4ad1d26029f3db599">gko::matrix::Dense&lt; ValueType &gt;::compute_norm2()</a>, and <a class="el" href="classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec">gko::matrix::Dense&lt; ValueType &gt;::scale()</a>.</p>
 
 </div>
 </div>
@@ -1981,44 +1949,6 @@ template&lt;size_type Dimensionality, typename DimensionType &gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a95f2df4e14987d3f8c17e90ea9d8d48a"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream &amp; gko::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classgko_1_1version__info.html">version_info</a> &amp;&#160;</td>
-          <td class="paramname"><em>ver_info</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Prints library version information in human-readable format to a stream. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">os</td><td>output stream </td></tr>
-    <tr><td class="paramname">ver_info</td><td>version information</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>os </dd></dl>
-
-<p>References <a class="el" href="classgko_1_1version__info.html#a85dd2724c9c37cb7f315a99dc03f0d72">gko::version_info::core_version</a>, <a class="el" href="classgko_1_1version__info.html#a75d283ac87b2f80abdc48fa48b3a5d51">gko::version_info::cuda_version</a>, <a class="el" href="classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378">gko::version_info::header_version</a>, <a class="el" href="classgko_1_1version__info.html#a795e1a6f8bdb0a4157b2d52b92e7b44e">gko::version_info::omp_version</a>, and <a class="el" href="classgko_1_1version__info.html#a772fcf25f93d719b733602b4bba7d7ec">gko::version_info::reference_version</a>.</p>
-
-</div>
-</div>
 <a class="anchor" id="ae0ef652f487afe43aebcf778038ff780"></a>
 <div class="memitem">
 <div class="memproto">
@@ -2054,6 +1984,42 @@ template&lt;size_type Dimensionality, typename DimensionType &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>os </dd></dl>
 
 <p>References <a class="el" href="structgko_1_1version.html#a019ce1d31714612e0c77c8ef5eb4cfde">gko::version::major</a>, <a class="el" href="structgko_1_1version.html#abb548e6dca39e0a3718ecf13cafbba36">gko::version::minor</a>, <a class="el" href="structgko_1_1version.html#a7580f68f7cf0600bc620c47ed6330c95">gko::version::patch</a>, and <a class="el" href="structgko_1_1version.html#a1bd0eaa4d551c145ff9cd0c10e555ac3">gko::version::tag</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ad9e3ba96a10fe47a03ceef39b45bd43c"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream&amp; gko::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1version__info.html">version_info</a> &amp;&#160;</td>
+          <td class="paramname"><em>ver_info</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Prints library version information in human-readable format to a stream. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">os</td><td>output stream </td></tr>
+    <tr><td class="paramname">ver_info</td><td>version information</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>os </dd></dl>
 
 </div>
 </div>
@@ -2189,18 +2155,18 @@ template&lt;typename MatrixType , typename StreamType , typename... MatrixArgs&g
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A MatrixType <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> filled with data from filename </dd></dl>
 
-<p>References <a class="el" href="namespacegko.html#afddd8179d8034cce9a2f7e02bae33fd7">read_raw()</a>.</p>
+<p>References <a class="el" href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">read_raw()</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="afddd8179d8034cce9a2f7e02bae33fd7"></a>
+<a class="anchor" id="a0b476e0e3df616b08efe85000bff8da0"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename IndexType &gt; </div>
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt; gko::read_raw </td>
+          <td class="memname"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt;ValueType, IndexType&gt; gko::read_raw </td>
           <td>(</td>
           <td class="paramtype">std::istream &amp;&#160;</td>
           <td class="paramname"><em>is</em></td><td>)</td>
@@ -2329,8 +2295,6 @@ template&lt;typename T &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the rounded up value </dd></dl>
 
-<p>References <a class="el" href="namespacegko.html#acae2e648052ec788bd8ba9e0192652a6">byte_size</a>.</p>
-
 </div>
 </div>
 <a class="anchor" id="a3ce296f73db0ff398bdea6009a3a5c58"></a>
@@ -2436,7 +2400,7 @@ template&lt;typename DimensionType &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a <a class="el" href="structgko_1_1dim.html">dim&lt;2&gt;</a> object with its dimensions swapped </dd></dl>
 
-<p>Referenced by <a class="el" href="classgko_1_1matrix_1_1Coo.html#a77810f90e29b3745f352a4c42c44bcfc">gko::matrix::Coo&lt; ValueType, IndexType &gt;::conj_transpose()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac0ae2a7dcb94eb0b32e494c970d1fc7c">gko::matrix::Dense&lt; ValueType &gt;::conj_transpose()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#af57eb59b5acb36cae0b3a16ffff9cf4f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::conj_transpose()</a>, <a class="el" href="structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8">gko::matrix_data&lt; ValueType, IndexType &gt;::ensure_row_major_order()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a2430e61f85b0d5b71a15281f2480d9ce">gko::matrix::Coo&lt; ValueType, IndexType &gt;::transpose()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ac31fee525813e3acbd6d5d8e20bad230">gko::matrix::Dense&lt; ValueType &gt;::transpose()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#aaa850dcdfabfc020918fa870e50c0b11">gko::matrix::Csr&lt; ValueType, IndexType &gt;::transpose()</a>, and <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::write()</a>.</p>
+<p>Referenced by <a class="el" href="structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8">gko::matrix_data&lt; ValueType, IndexType &gt;::ensure_row_major_order()</a>.</p>
 
 </div>
 </div>
@@ -2544,8 +2508,6 @@ template&lt;typename ValueType , typename IndexType &gt; </div>
   </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This is an advanced routine that writes the raw matrix data structure. If you are trying to write an existing matrix, consider using <a class="el" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148" title="Reads a matrix stored in matrix market format from an input stream. ">gko::write</a> instead. </dd></dl>
-
-<p>References <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a>.</p>
 
 <p>Referenced by <a class="el" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write()</a>.</p>
 

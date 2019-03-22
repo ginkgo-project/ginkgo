@@ -47,7 +47,6 @@ var searchData=
   ['criterionargs',['CriterionArgs',['../structgko_1_1stop_1_1CriterionArgs.html',1,'gko::stop']]],
   ['csr',['Csr',['../classgko_1_1matrix_1_1Csr.html',1,'gko::matrix']]],
   ['cublaserror',['CublasError',['../classgko_1_1CublasError.html',1,'gko']]],
-  ['cuda_5fconfig',['cuda_config',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html',1,'gko::kernels::cuda']]],
   ['cudaerror',['CudaError',['../classgko_1_1CudaError.html',1,'gko']]],
   ['cudaexecutor',['CudaExecutor',['../classgko_1_1CudaExecutor.html',1,'gko']]],
   ['cusparse',['cusparse',['../classgko_1_1matrix_1_1Csr_1_1cusparse.html',1,'gko::matrix::Csr']]],

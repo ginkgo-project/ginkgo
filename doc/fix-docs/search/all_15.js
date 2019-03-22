@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['warp_5fsize',['warp_size',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a9b76132012e485cc669f6cde9420750a',1,'gko::kernels::cuda::cuda_config']]],
   ['what',['what',['../classgko_1_1Error.html#a15930f925216ad519be09d86e22e283a',1,'gko::Error']]],
   ['writabletomatrixdata',['WritableToMatrixData',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
   ['writabletomatrixdata_3c_20valuetype_2c_20int32_20_3e',['WritableToMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
