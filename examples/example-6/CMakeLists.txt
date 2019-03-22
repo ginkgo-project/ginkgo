@@ -1,3 +1,4 @@
+if(GINKGO_BUILD_EXTLIB_EXAMPLE)
 # This is just an example of the CMakeLists.txt file that can be used after the
 # correct version of deal.ii has been installed.
 cmake_minimum_required(VERSION 3.8)
@@ -25,4 +26,4 @@ target_include_directories(${PROJECT_NAME}
      PRIVATE ${MPI_C_INCLUDE_PATH} ${GINKGO_INC_DIR} ${GINKGO_LIB_DIR} )
 
 DEAL_II_SETUP_TARGET(${PROJECT_NAME})
-
+endif()
