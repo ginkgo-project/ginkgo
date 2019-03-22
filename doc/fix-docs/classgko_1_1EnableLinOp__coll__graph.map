@@ -1,6 +1,11 @@
 <map id="gko::EnableLinOp&lt; ConcreteLinOp, PolymorphicBase &gt;" name="gko::EnableLinOp&lt; ConcreteLinOp, PolymorphicBase &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="492,15,756,57"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="185,5,444,61"/>
-<area shape="rect" id="node5" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="499,82,749,123"/>
-<area shape="rect" id="node6" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="241,85,388,126"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="1652,91,1916,132"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="697,12,955,68"/>
+<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,49,441,105"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,92,957,148"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1135,91,1404,132"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1659,156,1909,198"/>
+<area shape="rect" id="node9" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1196,156,1343,198"/>
+<area shape="rect" id="node10" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="757,192,895,234"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1144,222,1395,263"/>
 </map>

@@ -1,6 +1,8 @@
 <map id="gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type" name="gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type">
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="353,5,540,61"/>
-<area shape="rect" id="node4" href="$classgko_1_1Array.html" title="gko::Array\&lt; gko::precision\l_reduction \&gt;" alt="" coords="5,71,196,113"/>
-<area shape="rect" id="node5" href="$classgko_1_1precision__reduction.html" title="This class is used to encode storage precisions of low precision algorithms. " alt="" coords="12,137,189,164"/>
-<area shape="rect" id="node6" href="$classgko_1_1Array.html" title="gko::Array\&lt; index_type \&gt;" alt="" coords="353,181,540,208"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="917,7,1104,63"/>
+<area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="423,7,659,63"/>
+<area shape="rect" id="node5" href="$classgko_1_1Array.html" title="gko::Array\&lt; gko::precision\l_reduction \&gt;" alt="" coords="445,190,636,231"/>
+<area shape="rect" id="node6" href="$classgko_1_1Array.html" title="An Array is a container which encapsulates fixed&#45;sized arrays, stored on the Executor tied to the Arr..." alt="" coords="5,127,185,153"/>
+<area shape="rect" id="node8" href="$classgko_1_1Array.html" title="gko::Array\&lt; index_type \&gt;" alt="" coords="683,88,869,115"/>
+<area shape="rect" id="node7" href="$classgko_1_1precision__reduction.html" title="This class is used to encode storage precisions of low precision algorithms. " alt="" coords="452,139,629,165"/>
 </map>

@@ -1,3 +1,4 @@
 <map id="gko::stop::ResidualNormReduction&lt; ValueType &gt;::parameters_type" name="gko::stop::ResidualNormReduction&lt; ValueType &gt;::parameters_type">
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="31,5,218,61"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="31,139,218,195"/>
+<area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="7,5,243,61"/>
 </map>

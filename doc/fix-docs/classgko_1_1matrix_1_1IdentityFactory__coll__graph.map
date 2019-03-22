@@ -1,8 +1,9 @@
 <map id="gko::matrix::IdentityFactory&lt; ValueType &gt;" name="gko::matrix::IdentityFactory&lt; ValueType &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="1583,13,1797,69"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="1307,13,1535,69"/>
-<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1124,27,1259,54"/>
-<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,27,585,54"/>
-<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,20,365,61"/>
-<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,27,144,54"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="2304,207,2519,263"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="2027,166,2255,222"/>
+<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1656,122,1791,149"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,181,441,237"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,231,957,287"/>
+<area shape="rect" id="node9" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="740,101,912,157"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1363,239,1632,280"/>
 </map>

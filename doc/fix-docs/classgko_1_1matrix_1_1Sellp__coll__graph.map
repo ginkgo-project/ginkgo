@@ -1,16 +1,24 @@
 <map id="gko::matrix::Sellp&lt; ValueType, IndexType &gt;" name="gko::matrix::Sellp&lt; ValueType, IndexType &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Sellp\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1645,55,1845,97"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Sellp\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1340,8,1556,64"/>
-<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Sellp\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1047,5,1275,61"/>
-<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="909,20,999,47"/>
-<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="633,13,861,54"/>
-<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,20,585,47"/>
-<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,13,365,54"/>
-<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,20,144,47"/>
-<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1323,91,1573,133"/>
-<area shape="rect" id="node11" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1085,85,1236,141"/>
-<area shape="rect" id="node12" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1621,121,1868,162"/>
-<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1651,186,1838,227"/>
-<area shape="rect" id="node14" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure. " alt="" coords="1638,251,1851,293"/>
-<area shape="rect" id="node15" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="1651,317,1838,358"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Sellp\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="2426,215,2626,256"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Sellp\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="2005,319,2221,375"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Sellp\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1710,419,1938,475"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="1265,481,1354,507"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="712,479,940,520"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,385,441,441"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,335,957,391"/>
+<area shape="rect" id="node17" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="697,250,955,306"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1175,343,1444,384"/>
+<area shape="rect" id="node16" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="1692,257,1956,299"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1699,192,1949,233"/>
+<area shape="rect" id="node12" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1234,185,1385,241"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="757,83,895,124"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1184,120,1435,161"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1236,55,1383,96"/>
+<area shape="rect" id="node22" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1475,5,1661,47"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1699,89,1949,131"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2011,156,2216,197"/>
+<area shape="rect" id="node20" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="2403,280,2649,321"/>
+<area shape="rect" id="node21" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory..." alt="" coords="2020,399,2207,440"/>
+<area shape="rect" id="node23" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure. " alt="" coords="2419,345,2633,387"/>
+<area shape="rect" id="node24" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="2433,411,2619,452"/>
 </map>

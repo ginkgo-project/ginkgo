@@ -1,3 +1,5 @@
 <map id="gko::stop::Combined::parameters_type" name="gko::stop::Combined::parameters_type">
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="5,5,192,61"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="533,7,719,63"/>
+<area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="5,7,241,63"/>
+<area shape="rect" id="node5" title="STL class. " alt="" coords="60,93,187,120"/>
 </map>

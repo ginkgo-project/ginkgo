@@ -1,13 +1,21 @@
 <map id="gko::Composition&lt; ValueType &gt;" name="gko::Composition&lt; ValueType &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Composition\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1629,49,1856,90"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1349,5,1563,61"/>
-<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1047,5,1283,61"/>
-<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="909,20,999,47"/>
-<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="633,13,861,54"/>
-<area shape="rect" id="node7" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="413,20,585,47"/>
-<area shape="rect" id="node8" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="192,13,365,54"/>
-<area shape="rect" id="node9" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,20,144,47"/>
-<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1331,85,1581,126"/>
-<area shape="rect" id="node11" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1052,85,1277,126"/>
-<area shape="rect" id="node12" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1630,114,1855,155"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Composition\l\&lt; ValueType \&gt; \&gt;" alt="" coords="2523,238,2749,279"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="2052,107,2267,163"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1753,25,1989,81"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="1303,51,1393,77"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="712,47,940,89"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,67,441,123"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,116,957,172"/>
+<area shape="rect" id="node17" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="697,200,955,256"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1213,123,1483,165"/>
+<area shape="rect" id="node16" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="1739,205,2003,246"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1745,270,1996,311"/>
+<area shape="rect" id="node12" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1235,266,1461,307"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="757,331,895,373"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1223,331,1473,373"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1275,397,1421,438"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1745,346,1996,387"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2057,282,2262,323"/>
+<area shape="rect" id="node20" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="2523,318,2749,359"/>
+<area shape="rect" id="node21" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory..." alt="" coords="2066,347,2253,389"/>
 </map>

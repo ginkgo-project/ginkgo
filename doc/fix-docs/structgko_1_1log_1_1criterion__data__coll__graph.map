@@ -1,8 +1,12 @@
 <map id="gko::log::criterion_data" name="gko::log::criterion_data">
-<area shape="rect" id="node2" href="$classgko_1_1Array.html" title="gko::Array\&lt; gko::stopping\l_status \&gt;" alt="" coords="5,339,193,380"/>
-<area shape="rect" id="node3" href="$classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. " alt="" coords="217,346,360,373"/>
-<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Criterion \&gt;" alt="" coords="175,248,403,289"/>
-<area shape="rect" id="node5" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="203,172,375,199"/>
-<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="202,81,375,123"/>
-<area shape="rect" id="node7" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="219,5,358,32"/>
+<area shape="rect" id="node2" href="$classgko_1_1Array.html" title="gko::Array\&lt; gko::stopping\l_status \&gt;" alt="" coords="1692,5,1880,47"/>
+<area shape="rect" id="node3" href="$classgko_1_1Array.html" title="An Array is a container which encapsulates fixed&#45;sized arrays, stored on the Executor tied to the Arr..." alt="" coords="1272,13,1452,39"/>
+<area shape="rect" id="node5" title="STL class. " alt="" coords="1285,82,1439,109"/>
+<area shape="rect" id="node6" href="$classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. " alt="" coords="1715,141,1857,167"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Criterion \&gt;" alt="" coords="1248,133,1476,175"/>
+<area shape="rect" id="node8" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="897,111,1069,138"/>
+<area shape="rect" id="node9" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="633,104,807,145"/>
+<area shape="rect" id="node10" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,118,144,145"/>
+<area shape="rect" id="node11" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="193,143,432,199"/>
+<area shape="rect" id="node12" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="856,162,1111,218"/>
 </map>
