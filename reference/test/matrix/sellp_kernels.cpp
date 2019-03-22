@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -190,6 +191,20 @@ TEST_F(Sellp, MovesToDense)
     GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, ConvertsToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+
+    mtx1->convert_to(csr_mtx.get());
+
+    // clang-format off
+	GKO_ASSERT_MTX_NEAR(csr_mtx,
+	                    l({{1.0, 3.0, 2.0},
+	                       {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
 }
 

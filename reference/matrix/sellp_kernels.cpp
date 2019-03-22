@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -157,7 +158,43 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Sellp<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = source->get_size()[0];
+    auto slice_size = source->get_slice_size();
+    auto slice_num = ceildiv(num_rows, slice_size);
+
+    const auto source_vals = source->get_const_values();
+    const auto source_slice_lengths = source->get_const_slice_lengths();
+    const auto source_slice_sets = source->get_const_slice_sets();
+    const auto source_col_idxs = source->get_const_col_idxs();
+
+    auto result_vals = result->get_values();
+    auto result_row_ptrs = result->get_row_ptrs();
+    auto result_col_idxs = result->get_col_idxs();
+
+    size_type cur_ptr = 0;
+
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < slice_size; row++) {
+            auto global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            result_row_ptrs[global_row] = cur_ptr;
+            for (size_type sellp_ind =
+                     source_slice_sets[slice] * slice_size + row;
+                 sellp_ind < source_slice_sets[slice + 1] * slice_size + row;
+                 sellp_ind += slice_size) {
+                if (source_vals[sellp_ind] != zero<ValueType>()) {
+                    result_vals[cur_ptr] = source_vals[sellp_ind];
+                    result_col_idxs[cur_ptr] = source_col_idxs[sellp_ind];
+                    cur_ptr++;
+                }
+            }
+        }
+    }
+    result_row_ptrs[num_rows] = cur_ptr;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL);
@@ -166,7 +203,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Sellp<ValueType, IndexType> *source,
-                    size_type *result) GKO_NOT_IMPLEMENTED;
+                    size_type *result)
+{
+    auto num_rows = source->get_size()[0];
+    auto slice_size = source->get_slice_size();
+    auto slice_num = ceildiv(num_rows, slice_size);
+
+    const auto vals = source->get_const_values();
+    const auto slice_sets = source->get_const_slice_sets();
+
+    auto num_nonzeros = 0;
+
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0;
+             row < slice_size && slice_size * slice + row < num_rows; row++) {
+            for (size_type sellp_ind = slice_sets[slice] * slice_size + row;
+                 sellp_ind < slice_sets[slice + 1] * slice_size + row;
+                 sellp_ind += slice_size) {
+                if (vals[sellp_ind] != zero<ValueType>()) {
+                    num_nonzeros++;
+                }
+            }
+        }
+    }
+
+    *result = num_nonzeros;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL);
