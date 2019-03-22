@@ -62,6 +62,8 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
 
 *****************************<COMPILATION>**********************************/
 
+// @sect3{Include files}
+
 #include <ginkgo/ginkgo.hpp>
 
 

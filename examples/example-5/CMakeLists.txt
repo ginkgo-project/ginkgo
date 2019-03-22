@@ -1,3 +1,3 @@
-add_executable(3pt_stencil 3pt_stencil.cpp)
-target_link_libraries(3pt_stencil ginkgo)
-target_include_directories(3pt_stencil PRIVATE ${PROJECT_SOURCE_DIR})
+add_executable(example-5 example-5.cpp)
+target_link_libraries(example-5 ginkgo)
+target_include_directories(example-5 PRIVATE ${PROJECT_SOURCE_DIR})

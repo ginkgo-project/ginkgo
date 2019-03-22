@@ -14,7 +14,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 add_executable(${PROJECT_NAME} "")
-target_sources(${PROJECT_NAME} PRIVATE dealii-step-9.cc)
+target_sources(${PROJECT_NAME} PRIVATE example-6.cpp)
 target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall)
 target_compile_definitions(${PROJECT_NAME} PRIVATE OMPI_SKIP_MPICXX)
 

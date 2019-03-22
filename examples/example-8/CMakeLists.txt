@@ -1,4 +1,4 @@
-add_executable(inverse_iteration inverse_iteration.cpp)
-target_link_libraries(inverse_iteration ginkgo)
-target_include_directories(inverse_iteration PRIVATE ${PROJECT_SOURCE_DIR})
+add_executable(example-8 example-8.cpp)
+target_link_libraries(example-8 ginkgo)
+target_include_directories(example-8 PRIVATE ${PROJECT_SOURCE_DIR})
 configure_file(data/A.mtx data/A.mtx COPYONLY)

@@ -12,7 +12,7 @@ INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE@/examples @DIR_BASE/doc/examples@
 RECURSIVE              = YES
-EXAMPLE_RECURSIVE      = YES
+EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
 EXAMPLE_PATTERNS       = *.cpp *.hpp *.cuh *.cu
 EXTENSION_MAPPING      = cu=c++ cuh=c++

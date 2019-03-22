@@ -28,13 +28,12 @@ while (my $line = <EXAMPLE>)
 
 # List of additional node attributes to highlight purpose and state of the example
 my %style = (
- "basic"          => ',height=.8,width=.8,shape="octagon",fillcolor="green"',
- "techniques"     => ',height=.35,width=.35,fillcolor="orange"',
- "fluids"         => ',height=.25,width=.25,fillcolor="yellow"',
- "solids"         => ',height=.25,width=.25,fillcolor="lightblue"',
- "time dependent" => ',height=.25,width=.25,fillcolor="blue"',
- "unfinished"     => ',height=.25,width=.25,style="dashed"',
- "code-gallery"   => ',height=.08,width=.125,shape="circle"',
+    "basic"          => ',height=.8,width=.8,shape="octagon",fillcolor="green"',
+    "techniques"     => ',height=.35,width=.35,fillcolor="orange"',
+    "logging"         => ',height=.25,width=.25,fillcolor="yellow"',
+    "stopping-criteria"         => ',height=.25,width=.25,fillcolor="lightblue"',
+    "preconditioners" => ',height=.25,width=.25,fillcolor="blue"',
+    "unfinished"     => ',height=.25,width=.25,style="dashed"',
     );
 
 # Print a preamble setting common attributes
@@ -187,13 +186,12 @@ EOT
     ;
 
 my %kind_descriptions = (
- "basic"          => 'Basic techniques',
- "techniques"     => 'Advanced techniques',
- "fluids"         => 'Fluid dynamics',
- "solids"         => 'Solid mechanics',
- "time dependent" => 'Time dependent problems',
- "unfinished"     => 'Unfinished codes',
- "code-gallery"   => 'Code gallery',
+    "basic"          => 'Basic techniques',
+    "techniques"     => 'Advanced techniques',
+    "logging"         => 'Logging in Ginkgo',
+    "stopping-criteria"         => 'Stopping criteria',
+    "preconditioners" => 'Preconditioners',
+    "unfinished"     => 'Unfinished codes',
     );
 
 # for each kind, print a box in the same style as used in
@@ -210,12 +208,12 @@ foreach $kind (keys %style)
 }
 # now add connections to make sure they appear nicely next to each other
 # in the legend
-print "  basic -- techniques -- fluids -- solids -- time_dependent -- unfinished -- code_gallery;\n";
+print "  basic -- techniques -- logging -- stopping_criteria -- preconditioners -- unfinished;\n";
 
 # we need to tell 'dot' that all of these are at the same
 # rank to ensure they appear next to (as opposed to atop)
 # each other
-print "  {rank=same; basic, techniques, fluids, solids, time_dependent, unfinished, code_gallery}";
+print "  {rank=same; basic, techniques, logging, stopping_criteria, preconditioners, unfinished}";
 
 # end the graph
 print "}\n";
