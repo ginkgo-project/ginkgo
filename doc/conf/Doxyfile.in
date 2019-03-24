@@ -22,7 +22,8 @@ STRIP_FROM_INC_PATH    = @DIR_BASE@/include @CMAKE_BINARY_DIR@/include
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
-
+INPUT_FILTER           = @DIR_SCRIPT@/filter
+FILTER_SOURCE_FILES    = YES
 
 # Parsing options
 JAVADOC_AUTOBRIEF      = Yes

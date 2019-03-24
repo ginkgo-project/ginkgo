@@ -14,6 +14,7 @@
 ##
 ## ---------------------------------------------------------------------
 
+## This file was taken from the deal.II project and modified to suit Ginkgo.
 
 # read all lines of input. within the loop, first do some
 # easy substitutions that are confined to a single line; later
@@ -33,16 +34,16 @@ while (<>)
     s/\\\@f\$/\$/g;
 
     # We don't let doxygen put everything into a namespace
-    # dealii. consequently, doxygen can't link references that contain an
-    # explicit dealii:: qualification. remove it and replace it by the
+    # gko. consequently, doxygen can't link references that contain an
+    # explicit gko:: qualification. remove it and replace it by the
     # global scope.
     #
-    # Try to detect whether or not ::dealii:: is part of a macro (e.g., Assert)
+    # Try to detect whether or not ::gko:: is part of a macro (e.g., Assert)
     # continuation line (line ending in '\'): if it is then replace it with
     # spaces. This keeps the '\'s aligned, e.g., the following snippet (which is
     # part of the definition of Assert)
     #
-    # ::dealii::internals::abort(__LINE__,             \ # part of macro
+    # ::gko::internals::abort(__LINE__,             \ # part of macro
     #                            __PRETTY_FUNCTION__)
     #
     # will be converted to
@@ -55,23 +56,23 @@ while (<>)
     # Now, as of doxygen 1.5, this still produces the wrong result, but
     # that's not our fault. This is reported here:
     #    http://bugzilla.gnome.org/show_bug.cgi?id=365053
-    if (m/^ *(::)?dealii::.*\\$/)
+    if (m/^ *(::)?gko::.*\\$/)
     {
-        s/::dealii::(.*)\\$/::\1        \\/g;
-        s/dealii::(.*)\\$/\1        \\/g;
+        s/::gko::(.*)\\$/::\1        \\/g;
+        s/gko::(.*)\\$/\1        \\/g;
     }
     else
     {
-        s/(::)?dealii::/::/g;
+        s/(::)?gko::/::/g;
     }
 
-    # Replace all occurrences of something like step-xx by
-    #    @ref step_xx "step-xx"
+    # Replace all occurrences of something like example-xx by
+    #    @ref example_xx "example-xx"
     # so that doxygen properly cross references them. Before we had
     # this rule, we actually had to write this sequence out in our
     # documentation. Unfortunately, as a consequence, there are vestiges
     # of this style, so we can't substitute things that look like
-    # "step-xx". We therefore not substitute if step-xx is preceded or
+    # "example-xx". We therefore not substitute if example-xx is preceded or
     # followed by quotation marks, or if the text is explicitly
     # preceded by a backslash for escaping.
     #
@@ -79,15 +80,15 @@ while (<>)
     # - the scripts in doc/doxygen/tutorial produce files that have
     #   table of contents entries. We don't want these cross-linked
     #   to itself.
-    # - things like step-12.solution.png that typically appear in
+    # - things like example-12.solution.png that typically appear in
     #   @image commands.
     # - things in headings
-    s/(?<![\"\\\/])step-(\w+)(?!\")/\@ref step_\1 \"step-\1\"/gi
+    s/(?<![\"\\\/])example-(\w+)(?!\")/\@ref example_\1 \"example-\1\"/gi
         if !m/(\@page|\<img|\@image|<h\d>)/i;
 
-    # If step-xx was explicitly escaped with a backslash, remove the
+    # If example-xx was explicitly escaped with a backslash, remove the
     # latter
-    s/\\(step-\w+)/\1/g;
+    s/\\(example-\w+)/\1/g;
 
     # doxygen version 1.7.1 and later have the habit of thinking that
     # everything that starts with "file:" is the beginning of a link,
@@ -97,87 +98,6 @@ while (<>)
     # by replacing a "file:" at the end of a line with the text
     # "file :", which doxygen doesn't recognize:
     s#file:[ \t]*$#file :#g;
-
-    # handle tutorial DOIs of the form @dealiiTutorialDOI{link,imglink}
-    # and @dealiiTutorialDOI{link}
-    if (m/(\@dealiiTutorialDOI\{([^\}]+)\})/)
-    {
-	@args = split(',', $2, 2);
-	$doi = @args[0];
-	$url = "https://doi.org/" . $doi;
-	$imgurl = @args[1] || '';
-	$text = "\@note If you use this program as a basis for your own work, please consider citing it in your list of references. The initial version of this work was contributed to the deal.II project by the authors listed in the following citation: ";
-	# Note: We need to wrap the html in @htmlonly @endhtmlonly because doxygen
-	# will remove the embedded img tag completely otherwise. Don't ask me why.
-	$text = $text . "\@htmlonly <a href=\"$url\">";
-	if (length($imgurl) > 0)
-	{
-	    $text = $text . "<img src=\"$imgurl\" alt=\"$doi\"/>";
-	}
-	else
-	{
-	    $text = $text . "$doi";
-	}
-	$text = $text . "</a> \@endhtmlonly";
-	s/(\@dealiiTutorialDOI\{([^\}]+)\})/$text/;
-    }
-
-    # Handle commands such as @dealiiVideoLecture{20.5,33} by expanding it
-    # into a note with some text
-    if (m/(\@dealiiVideoLecture\{([0-9\.]+)((, *[0-9\.]+ *)*)\})/)
-    {
-        $substext = $1;
-
-        $text = "\@note The material presented here is also discussed in ";
-
-        # add links to the individual lectures
-        $text = $text . "<a href=\"http://www.math.colostate.edu/~bangerth/videos.676.$2.html\">video lecture $2</a>";
-        
-        if (length($3) > 0)
-        {
-            # if it is a list of lectures, also list the others.
-            $x = $3;
-            $x =~ s/^, *//g;
-            @otherlectures = split (',', "$x");
-
-            foreach $lecture (@otherlectures)
-            {
-                $text = $text . ", <a href=\"http://www.math.colostate.edu/~bangerth/videos.676.$lecture.html\">video lecture $lecture</a>";
-            }
-        }
-
-        $text = $text . ". (All video lectures are also available <a href=\"http://www.math.colostate.edu/~bangerth/videos.html\">here</a>.)";
-        s/(\@dealiiVideoLecture\{([0-9\.]+)((, *[0-9\.]+ *)*)\})/$text/;
-    }
-
-
-    # @dealiiVideoLectureSeeAlso works as above, but just expands into
-    # regular text, no @note
-    if (m/(\@dealiiVideoLectureSeeAlso\{([0-9\.]+)((, *[0-9\.]+ *)*)\})/)
-    {
-        $substext = $1;
-
-        $text = "See also ";
-
-        # add links to the individual lectures
-        $text = $text . "<a href=\"http://www.math.colostate.edu/~bangerth/videos.676.$2.html\">video lecture $2</a>";
-        
-        if (length($3) > 0)
-        {
-            $x = $3;
-            $x =~ s/^, *//g;
-            @otherlectures = split (',', "$x");
-
-            foreach $lecture (@otherlectures)
-            {
-                $text = $text . ", <a href=\"http://www.math.colostate.edu/~bangerth/videos.676.$lecture.html\">video lecture $lecture</a>";
-            }
-        }
-
-        $text = $text . ".";
-        s/(\@dealiiVideoLectureSeeAlso\{([0-9\.]+)((, *[0-9\.]+ *)*)\})/$text/;
-    }
-
 
 
     ########################################################
