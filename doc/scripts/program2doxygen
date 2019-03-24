@@ -15,9 +15,9 @@
 
 
 # skip header lines at the top of the file, such as copyright notices 
-# and license information, if the file is a step-xx.cc tutorial. don't
+# and license information, if the file is a example-xx.cpp tutorial. don't
 # skip for other files such as code-gallery files
-if ($ARGV[0] =~ /step-\d+.cc/)
+if ($ARGV[0] =~ /example-\d+.cpp/)
 {
   $_ = <>;
   while ( m!^/\*!  ||  m!\s*\*! || m/^$/ ) {

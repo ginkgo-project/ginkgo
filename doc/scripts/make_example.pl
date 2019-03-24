@@ -36,7 +36,7 @@ close BF;
 chop $buildson;
 
 # At the very top, print which other programs this one builds on. The
-# filter script will replace ocppurrences of example-XX by the appropriate
+# filter script will replace occurrences of example-XX by the appropriate
 # links.
 if ($buildson ne "")
 {
