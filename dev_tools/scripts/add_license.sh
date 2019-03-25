@@ -58,12 +58,14 @@ find "${GINKGO_ROOT_DIR}" \
     -type f -print \
     | \
     while IFS='' read -r i; do
-        if ! grep -q "${GINKGO_LICENSE_BEACON}" "${i}"
+        # `grep -F` is important here because the characters in the beacon should be matched against
+        # and not interpreted as an expression.
+        if ! grep -F -q -e "${GINKGO_LICENSE_BEACON}" "${i}"
         then
             cat "${COMMENTED_LICENSE_FILE}" "${i}" >"${i}.new" && mv "${i}.new" "${i}"
         else
-            beginning=$(grep -n "/\*${GINKGO_LICENSE_BEACON}" "${i}" | cut -d":" -f1)
-            end=$(grep -n "${GINKGO_LICENSE_BEACON}.*/" "${i}" | cut -d":" -f1)
+            beginning=$(grep -F -n -e "/*${GINKGO_LICENSE_BEACON}" "${i}" | cut -d":" -f1)
+            end=$(grep -F -n -e "${GINKGO_LICENSE_BEACON}*/" "${i}" | cut -d":" -f1)
             end=$((end+1))
             diff -u <(sed -n "${beginning},${end}p" "${i}") "${COMMENTED_LICENSE_FILE}" > "${DIFF_FILE}"
             if [ "$(cat "${DIFF_FILE}")" != "" ]

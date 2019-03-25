@@ -3,12 +3,10 @@
 PLACE_HOLDER="#PUBLIC_HEADER_PLACE_HOLDER"
 
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
-
-ROOT_DIR="${THIS_DIR}/../../"
-INCLUDE_DIR="${ROOT_DIR}/include"
+INCLUDE_DIR="${THIS_DIR}/../../include"
 
 # Use local paths, so there is less chance of a newline being in a path of a found file
-cd ${INCLUDE_DIR}
+cd "${INCLUDE_DIR}"
 TOP_HEADER_FOLDER="."
 
 GINKGO_HEADER_FILE="ginkgo/ginkgo.hpp"
