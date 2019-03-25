@@ -35,7 +35,7 @@ fi
 
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
-find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -fprint "${HEADER_LIST}"
+find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print > "${HEADER_LIST}"
 
 if [ ${?} -ne 0 ]; then
     echo 'Exiting due to an error being returned by `find`!' 1>&2
