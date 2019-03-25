@@ -13,7 +13,6 @@ var searchData=
   ['the_20example_2d7_20example_20program',['The example-7 example program',['../example_7.html',1,'']]],
   ['the_20example_2d8_20example_20program',['The example-8 example program',['../example_8.html',1,'']]],
   ['the_20example_2d9_20example_20program',['The example-9 example program',['../example_9.html',1,'']]],
-  ['the_20known_20issues_20in_20ginkgo_2e',['The known issues in Ginkgo.',['../known_issues.html',1,'']]],
   ['tag',['tag',['../structgko_1_1version.html#a1bd0eaa4d551c145ff9cd0c10e555ac3',1,'gko::version']]],
   ['temporary_5fclone',['temporary_clone',['../classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be',1,'gko::temporary_clone']]],
   ['temporary_5fclone',['temporary_clone',['../classgko_1_1temporary__clone.html',1,'gko']]],
@@ -25,6 +24,5 @@ var searchData=
   ['transpose_5foperation',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
   ['truncate_5ftype',['truncate_type',['../namespacegko.html#abf540a6830b3ac4cd6b193133510f4d7',1,'gko']]],
   ['truncated',['truncated',['../classgko_1_1truncated.html',1,'gko']]],
-  ['type_5flist',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]],
-  ['the_20ginkgo_20wiki_20page_2e',['The Ginkgo wiki page.',['../wiki.html',1,'']]]
+  ['type_5flist',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
 ];

@@ -110,7 +110,7 @@
 </g>
 <!-- Example9 -->
 <g id="node13" class="node"><title>Example9</title>
-<g id="a_node13"><a xlink:href="example_9.html" target="_top" xlink:title="Creating a mesh. Refining it. Writing it to a file.">
+<g id="a_node13"><a xlink:href="example_9.html" target="_top" xlink:title="Logging within Ginkgo.">
 <polygon fill="yellow" stroke="black" points="91,-99.5 68,-99.5 68,-80.5 91,-80.5 91,-99.5"/>
 <text text-anchor="middle" x="79.5" y="-87.5" font-family="FreeSans" font-size="10.00">9</text>
 </a>

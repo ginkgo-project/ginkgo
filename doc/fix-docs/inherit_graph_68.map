@@ -1,3 +1,8 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. " alt="" coords="5,5,217,47"/>
+<area shape="rect" id="node1" href="$classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::strategy_type" alt="" coords="5,136,211,177"/>
+<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Csr_1_1automatical.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::automatical" alt="" coords="259,5,464,47"/>
+<area shape="rect" id="node3" href="$classgko_1_1matrix_1_1Csr_1_1classical.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::classical" alt="" coords="259,71,464,112"/>
+<area shape="rect" id="node4" href="$classgko_1_1matrix_1_1Csr_1_1cusparse.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::cusparse" alt="" coords="259,136,464,177"/>
+<area shape="rect" id="node5" href="$classgko_1_1matrix_1_1Csr_1_1load__balance.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::load_balance" alt="" coords="259,201,464,243"/>
+<area shape="rect" id="node6" href="$classgko_1_1matrix_1_1Csr_1_1merge__path.html" title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::merge_path" alt="" coords="259,267,464,308"/>
 </map>

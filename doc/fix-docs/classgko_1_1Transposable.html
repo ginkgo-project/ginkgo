@@ -122,8 +122,8 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Linear operators which support transposition should implement the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> interface. </p>
 <p>It provides two functionalities, the normal transpose and the conjugate transpose.</p>
-<p>The normal transpose returns the transpose of the linear operator without changing any of its elements representing the operation, <img class="formulaInl" alt="$B = A^{T}$" src="form_13.png"/>.</p>
-<p>The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation, <img class="formulaInl" alt="$B = A^{H}$" src="form_14.png"/>.</p>
+<p>The normal transpose returns the transpose of the linear operator without changing any of its elements representing the operation,  <img class="formulaInl" alt="$B = A^{T}\f$" src="form_13.png"/>.</p>
+<p>The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation,  <img class="formulaInl" alt="$B = A^{H}\f$" src="form_14.png"/>.</p>
 <h2>Example: Transposing a Csr matrix: </h2>
 <div class="fragment"><div class="line">{c++}</div><div class="line"><span class="comment">//Transposing an object of LinOp type.</span></div><div class="line"><span class="comment">//The object you want to transpose.</span></div><div class="line"><span class="keyword">auto</span> op = matrix::Csr::create(exec);</div><div class="line"><span class="comment">//Transpose the object by first converting it to a transposable type.</span></div><div class="line"><span class="keyword">auto</span> trans = op-&gt;transpose();</div></div><!-- fragment --> </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="ab41b669288740cf2a6f7bf76e875b077"></a>

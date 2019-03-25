@@ -110,7 +110,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li><code>SEGMENT_ID=&lt;I&gt;</code> - used in combination with the <code>SEGMENTS</code> variable. <code>&lt;I&gt;</code> should be an integer between 1 and <code>&lt;N&gt;</code>. If specified, only the <code>&lt;I&gt;</code>-th segment of the benchmark suite will be run. Default is <code>1</code>.</li>
 <li><code>SYSTEM_NAME=&lt;name&gt;</code> - the name of the system where the benchmarks are being run. This option only changes the directory where the benchmark results are stored. It can be used to avoid overwriting the benchmarks if multiple systems share the same filesystem, or when copying the results between systems. Default is <code>unknown</code>.</li>
 </ul>
-<p>Once <code>make benchmark</code> completes, the results can be found in <code>&lt;Ginkgo build directory&gt;/benchmark/results/${SYSTEM_NAME}/</code>. The files are written in the JSON format, and can be analyzed using any of the data analysis tools that support JSON. Alternatively, they can be uploaded to an online repository, and analyzed using Ginkgo's free web tool <a href="https://ginkgo-project.github.io/gpe/">Ginkgo Performance Explorer (GPE)</a>. (Make sure to change the "Performance data URL" to your repository if using GPE.) </p>
+<p>Once <code>make benchmark</code> completes, the results can be found in `&lt;Ginkgo build="" directory&gt;=""&gt;/benchmark/results/ </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
