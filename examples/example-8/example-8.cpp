@@ -30,58 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
-
-Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
-
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -std=c++11 -o inverse_iteration inverse_iteration.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./inverse_iteration
-
-*****************************<COMPILATION>**********************************/
-
-/*****************************<DECSRIPTION>***********************************
-This example shows how components available in Ginkgo can be used to implement
-higher-level numerical methods. The method used here will be the shifted inverse
-iteration method for eigenvalue computation which find the eigenvalue and
-eigenvector of A closest to z, for some scalar z. The method requires repeatedly
-solving the shifted linear system (A - zI)x = b, as well as performing
-matrix-vector products with the matrix `A`. Here is the complete pseudocode of
-the method:
-
-```
-x_0 = initial guess
-for i = 0 .. max_iterations:
-    solve (A - zI) y_i = x_i for y_i+1
-    x_(i+1) = y_i / || y_i ||      # compute next eigenvector approximation
-    g_(i+1) = x_(i+1)^* A x_(i+1)  # approximate eigenvalue (Rayleigh quotient)
-    if ||A x_(i+1) - g_(i+1)x_(i+1)|| < tol * g_(i+1):  # check convergence
-        break
-```
- *****************************<DECSRIPTION>**********************************/
-
 #include <ginkgo/ginkgo.hpp>
 
 

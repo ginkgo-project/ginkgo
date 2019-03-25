@@ -1,8 +1,9 @@
 ## ---------------------------------------------------------------------
 ##
-## Copyright (C) 2013 - 2018 by the deal.II authors
+## Copyright (C) 2013 - 2019 by the deal.II authors
 ##
-## This file is part of the deal.II library.
+## The original file is from the deal.II library. It has been modified for
+## Ginkgo.
 ##
 ## The deal.II library is free software; you can use it, redistribute
 ## it, and/or modify it under the terms of the GNU Lesser General
@@ -12,6 +13,7 @@
 ## the top level directory of deal.II.
 ##
 ## ---------------------------------------------------------------------
+
 
 if ($#ARGV != 1) {
   print "\nUsage: make_example.pl example cmake_source_dir\n";

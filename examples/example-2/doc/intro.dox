@@ -1,5 +1,17 @@
 <a name="Intro"></a>
 <h1>Introduction</h1>
 
+This is a minimal example that solves a system with Ginkgo. The matrix, right
+hand side and initial guess are read from standard input, and the result is
+written to standard output. The system matrix is stored in CSR format, and the
+system solved using the CG method, preconditioned with the block-Jacobi
+preconditioner. All computations are done on the GPU.
+
+The easiest way to use the example data from the data/ folder is to concatenate
+the matrix, the right hand side and the initial solution (in that exact order),
+and pipe the result to the minimal_solver_cuda executable:
+
+@code{.cpp}cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda@endcode
+
 <h3> About the example </h3>
 

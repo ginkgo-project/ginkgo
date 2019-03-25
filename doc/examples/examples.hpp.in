@@ -34,7 +34,7 @@
  *
  * Ginkgo should be compiled with atleast <code>-DGINKGO_BUILD_REFERENCE=on</code> option, so that
  * there is an executor available. To execute on a GPU, you need to have a GPU on the system and must have
- * compiled Ginko with the <code>-DGINKGO_BUILD_CUDA=on</code> option.
+ * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=on</code> option.
  *
  * Alternatively, you can setup the configuration manually:
  *

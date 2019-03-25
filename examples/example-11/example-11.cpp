@@ -30,39 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
-
-Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
-
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -O3 -std=c++11 -o ginkgo_overhead ginkgo_overhead.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./ginkgo_overhead
-
-*****************************<COMPILATION>**********************************/
-
-
 #include <ginkgo/ginkgo.hpp>
 
 

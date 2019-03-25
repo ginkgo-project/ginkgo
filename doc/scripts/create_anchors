@@ -1,8 +1,9 @@
 ## ---------------------------------------------------------------------
 ##
-## Copyright (C) 2007 - 2014 by the deal.II authors
+## Copyright (C) 2013 - 2018 by the deal.II authors
 ##
-## This file is part of the deal.II library.
+## The original file is from the deal.II library. It has been modified for
+## Ginkgo.
 ##
 ## The deal.II library is free software; you can use it, redistribute
 ## it, and/or modify it under the terms of the GNU Lesser General

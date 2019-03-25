@@ -1,5 +1,22 @@
 <a name="Intro"></a>
 <h1>Introduction</h1>
+This example shows how components available in Ginkgo can be used to implement
+higher-level numerical methods. The method used here will be the shifted inverse
+iteration method for eigenvalue computation which find the eigenvalue and
+eigenvector of A closest to z, for some scalar z. The method requires repeatedly
+solving the shifted linear system (A - zI)x = b, as well as performing
+matrix-vector products with the matrix `A`. Here is the complete pseudocode of
+the method:
+
+@code{.cpp}
+x_0 = initial guess
+for i = 0 .. max_iterations:
+    solve (A - zI) y_i = x_i for y_i+1
+    x_(i+1) = y_i / || y_i ||      # compute next eigenvector approximation
+    g_(i+1) = x_(i+1)^* A x_(i+1)  # approximate eigenvalue (Rayleigh quotient)
+    if ||A x_(i+1) - g_(i+1)x_(i+1)|| < tol * g_(i+1):  # check convergence
+        break
+@endcode
 
 <h3> About the example </h3>
 
