@@ -33,39 +33,6 @@ while (<>)
     # however, undo that change if the dollar sign was escaped with a backslash
     s/\\\@f\$/\$/g;
 
-    # We don't let doxygen put everything into a namespace
-    # gko. consequently, doxygen can't link references that contain an
-    # explicit gko:: qualification. remove it and replace it by the
-    # global scope.
-    #
-    # Try to detect whether or not ::gko:: is part of a macro (e.g., Assert)
-    # continuation line (line ending in '\'): if it is then replace it with
-    # spaces. This keeps the '\'s aligned, e.g., the following snippet (which is
-    # part of the definition of Assert)
-    #
-    # ::gko::internals::abort(__LINE__,             \ # part of macro
-    #                            __PRETTY_FUNCTION__)
-    #
-    # will be converted to
-    #
-    #         ::internals::abort(__LINE__,             \ # part of macro
-    #                            __PRETTY_FUNCTION__)
-    #
-    # so the '\' is kept in the same column.
-    #
-    # Now, as of doxygen 1.5, this still produces the wrong result, but
-    # that's not our fault. This is reported here:
-    #    http://bugzilla.gnome.org/show_bug.cgi?id=365053
-    if (m/^ *(::)?gko::.*\\$/)
-    {
-        s/::gko::(.*)\\$/::\1        \\/g;
-        s/gko::(.*)\\$/\1        \\/g;
-    }
-    else
-    {
-        s/(::)?gko::/::/g;
-    }
-
     # Replace all occurrences of something like example-xx by
     #    @ref example_xx "example-xx"
     # so that doxygen properly cross references them. Before we had

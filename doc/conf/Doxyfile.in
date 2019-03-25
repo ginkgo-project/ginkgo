@@ -8,7 +8,7 @@ INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
 #INPUT                  = See the specific doxy files for usr and dev.  
-INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ @CMAKE_BINARY_DIR@
+INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ 
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @DIR_BASE/doc/examples@
 RECURSIVE              = YES
@@ -17,8 +17,8 @@ FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
 EXAMPLE_PATTERNS       = *.cpp *.hpp *.cuh *.cu
 EXTENSION_MAPPING      = cu=c++ cuh=c++
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = @DIR_BASE@/include @CMAKE_BINARY_DIR@/include
-STRIP_FROM_INC_PATH    = @DIR_BASE@/include @CMAKE_BINARY_DIR@/include
+STRIP_FROM_PATH        = @DIR_BASE@/include 
+STRIP_FROM_INC_PATH    = @DIR_BASE@/include 
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@

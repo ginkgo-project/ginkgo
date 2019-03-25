@@ -85,11 +85,11 @@ function(ginkgo_doc_gen name in pdf mainpage)
         GET_FILENAME_COMPONENT(_ex "${_ex}" NAME)
         LIST(APPEND doxygen_depend
           ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
-          # ${CMAKE_SOURCE_DIR}/examples/example-*/*.cpp
+          # ${CMAKE_SOURCE_DIR}/examples/**/*.cpp
           )
         LIST(APPEND doxygen_base_input
           ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
-          # ${CMAKE_SOURCE_DIR}/examples/example-*/*.cpp
+          # ${CMAKE_SOURCE_DIR}/examples/**/*.cpp
           )
       ENDFOREACH()
       list(APPEND doxygen_dev_input
