@@ -14,16 +14,7 @@
 ## ---------------------------------------------------------------------
 
 
-# skip header lines at the top of the file, such as copyright notices 
-# and license information, if the file is a example-xx.cpp tutorial. don't
-# skip for other files such as code-gallery files
-if ($ARGV[0] =~ /example-\d+.cpp/)
-{
-  $_ = <>;
-  while ( m!^/\*!  ||  m!\s*\*! || m/^$/ ) {
-      $_ = <>;
-  }
-}
+
 
 
 # have four states, in which the program can be:
@@ -37,6 +28,13 @@ $state =  $comment_mode;
 print " * \n";
 
 do {
+
+   # skip header lines at the top of the file, such as copyright notices 
+   # and license information, if the file is a example-xx.cpp tutorial. don't
+   # skip for other files such as code-gallery files
+   if($.==1..32){
+   $_="";
+   }
 
     # Make sure that we don't output comment end markers that might confuse
     # doxygen.
