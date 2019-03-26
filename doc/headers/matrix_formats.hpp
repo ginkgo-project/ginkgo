@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /**
- * @defgroup mat_formats SpMV with Matrix formats
+ * @defgroup mat_formats SpMV employing different Matrix formats
  *
  * @brief A module dedicated to the implementation and usage of the various
  * Matrix Formats in Ginkgo.
