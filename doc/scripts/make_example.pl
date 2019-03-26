@@ -28,8 +28,20 @@ $cmake_source_dir=$ARGV[1];
 
 print
 "/**
-  * \@page $example_underscore The $example example program
+  * \@page $example_underscore The $example program
 ";
+
+open intro, "$cmake_source_dir/examples/$example/doc/short-intro"
+    or die "Can't open builds-on file $cmake_source_dir/examples/$example/doc/short-intro";
+my $shortintro= <intro>;
+close intro;
+chop $shortintro;
+
+if ($shortintro ne "")
+{
+    # $shortintro =~ s/ /, /g;
+    print "$shortintro.\n\n";
+}
 
 open BF, "$cmake_source_dir/examples/$example/doc/builds-on"
     or die "Can't open builds-on file $cmake_source_dir/examples/$example/doc/builds-on";
