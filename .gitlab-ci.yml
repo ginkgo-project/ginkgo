@@ -342,6 +342,7 @@ no-circular-deps:
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
     PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
