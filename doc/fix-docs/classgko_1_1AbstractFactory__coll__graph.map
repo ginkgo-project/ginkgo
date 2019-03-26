@@ -1,8 +1,8 @@
 <map id="gko::AbstractFactory&lt; AbstractProductType, ComponentsType &gt;" name="gko::AbstractFactory&lt; AbstractProductType, ComponentsType &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="1304,31,1609,87"/>
-<area shape="rect" id="node3" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="897,13,1069,39"/>
-<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="633,5,807,47"/>
-<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,19,144,46"/>
-<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="193,45,432,101"/>
-<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="856,63,1111,119"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="1324,31,1633,87"/>
+<area shape="rect" id="node3" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="911,13,1089,39"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="644,5,821,47"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,22,147,49"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="196,39,439,95"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="871,63,1129,119"/>
 </map>

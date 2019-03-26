@@ -1,5 +1,5 @@
 <map id="gko::Executor" name="gko::Executor">
-<area shape="rect" id="node2" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="5,200,179,241"/>
-<area shape="rect" id="node3" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="48,5,187,32"/>
-<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="109,81,347,137"/>
+<area shape="rect" id="node2" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="5,200,183,241"/>
+<area shape="rect" id="node3" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="18,5,159,32"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="110,81,353,137"/>
 </map>

@@ -1,7 +1,7 @@
 <map id="gko::stop::Iteration" name="gko::stop::Iteration">
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Iteration, Criterion \&gt;" alt="" coords="1473,54,1688,95"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Iteration, Criterion \&gt;" alt="" coords="712,27,940,69"/>
-<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,64,441,120"/>
-<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,92,957,148"/>
-<area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1007,90,1276,131"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Iteration, Criterion \&gt;" alt="" coords="1497,58,1719,99"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Iteration, Criterion \&gt;" alt="" coords="723,26,956,67"/>
+<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,64,448,120"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,92,973,148"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1023,89,1296,130"/>
 </map>

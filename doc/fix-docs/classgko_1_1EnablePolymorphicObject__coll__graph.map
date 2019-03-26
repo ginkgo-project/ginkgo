@@ -1,4 +1,4 @@
 <map id="gko::EnablePolymorphicObject&lt; ConcreteObject, PolymorphicBase &gt;" name="gko::EnablePolymorphicObject&lt; ConcreteObject, PolymorphicBase &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="695,5,957,61"/>
-<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="187,41,441,97"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,5,973,61"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,41,448,97"/>
 </map>

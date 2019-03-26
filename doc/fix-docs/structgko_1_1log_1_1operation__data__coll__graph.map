@@ -1,7 +1,7 @@
 <map id="gko::log::operation_data" name="gko::log::operation_data">
-<area shape="rect" id="node2" href="$classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices..." alt="" coords="5,291,121,317"/>
-<area shape="rect" id="node3" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="146,291,255,317"/>
-<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="114,200,287,241"/>
-<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="157,5,295,32"/>
-<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="217,81,456,137"/>
+<area shape="rect" id="node2" href="$classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices..." alt="" coords="5,291,124,317"/>
+<area shape="rect" id="node3" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="148,291,259,317"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="115,200,292,241"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="127,5,269,32"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="219,81,462,137"/>
 </map>
