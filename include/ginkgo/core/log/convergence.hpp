@@ -48,7 +48,7 @@ namespace gko {
 /**
  * @brief The logger namespace .
  * @ref log
- * @ingroup log
+ * \ingroup log
  */
 namespace log {
 
@@ -62,7 +62,7 @@ namespace log {
  * This logger also computes the residual norm from the residual when the
  * residual norm was not available. This can add some slight overhead.
  *
- * @ingroup log
+ * \ingroup log
  */
 template <typename ValueType = default_precision>
 class Convergence : public Logger {

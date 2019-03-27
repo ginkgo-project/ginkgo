@@ -48,7 +48,7 @@ namespace gko {
 /**
  * @brief The namespace for functionalities after C++11 standard.
  * @internal
- * @ingroup xstd
+ * \ingroup xstd
  */
 namespace xstd {
 namespace detail {

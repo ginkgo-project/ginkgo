@@ -40,19 +40,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief Setting of all statuses.
  * @ref set_status
- * @ingroup set_all_statuses
+ * \ingroup set_all_statuses
  */
 namespace set_all_statuses {
 

@@ -47,7 +47,7 @@ namespace gko {
  * @tparam Dimensionality  number of dimensions of the object
  * @tparam DimensionType  datatype used to represent each dimension
  *
- * @ingroup dim
+ * \ingroup dim
  */
 template <size_type Dimensionality, typename DimensionType = size_type>
 struct dim {

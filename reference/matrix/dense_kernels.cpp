@@ -49,19 +49,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The Dense matrix format.
  * @ref Dense
- * @ingroup dense
+ * \ingroup dense
  */
 namespace dense {
 

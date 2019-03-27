@@ -44,19 +44,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The GMRES solver.
  * @ref Gmres
- * @ingroup gmres
+ * \ingroup gmres
  */
 namespace gmres {
 

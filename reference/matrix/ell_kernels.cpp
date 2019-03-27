@@ -43,19 +43,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The ELL matrix format.
  * @ref Ell
- * @ingroup ell
+ * \ingroup ell
  */
 namespace ell {
 

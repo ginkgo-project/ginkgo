@@ -53,7 +53,7 @@ namespace log {
  *                    template parameter of the concrete Loggable this class
  *                    will log)
  *
- * @ingroup log
+ * \ingroup log
  */
 template <typename ValueType = default_precision>
 class Stream : public Logger {

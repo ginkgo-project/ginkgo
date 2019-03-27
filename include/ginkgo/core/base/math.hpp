@@ -51,7 +51,7 @@ namespace gko {
 
 /**
  * @brief The detail namespace.
- * @ingroup detail
+ * \ingroup detail
  * @internal
  */
 namespace detail {

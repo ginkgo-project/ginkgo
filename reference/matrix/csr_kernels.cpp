@@ -54,19 +54,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The Compressed sparse row matrix format.
  * @ref Csr
- * @ingroup csr
+ * \ingroup csr
  */
 namespace csr {
 

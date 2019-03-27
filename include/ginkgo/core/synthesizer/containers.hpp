@@ -38,7 +38,7 @@ namespace gko {
 /**
  * @brief The Synthesizer namespace.
  *
- * @ingroup syn
+ * \ingroup syn
  */
 namespace syn {
 

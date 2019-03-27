@@ -80,7 +80,7 @@ namespace log {
  *
  * @tparam ValueType  the type of values stored in the class (e.g. residuals)
  *
- * @ingroup log
+ * \ingroup log
  */
 template <typename ValueType = default_precision>
 class Papi : public Logger {

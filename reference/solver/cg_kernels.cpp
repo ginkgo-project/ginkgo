@@ -43,19 +43,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The CG solver.
  * @ref Cg
- * @ingroup cg
+ * \ingroup cg
  */
 namespace cg {
 

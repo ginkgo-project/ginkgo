@@ -44,7 +44,7 @@ namespace gko {
 /**
  * This class is used to keep track of the stopping status of one vector.
  *
- * @ingroup stop
+ * \ingroup stop
  */
 class stopping_status {
     friend GKO_ATTRIBUTES GKO_INLINE bool operator==(

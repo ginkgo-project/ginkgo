@@ -47,7 +47,7 @@ namespace gko {
 /**
  * @brief The stopping criterion namespace.
  *
- * @ingroup stop
+ * \ingroup stop
  */
 namespace stop {
 
@@ -63,7 +63,7 @@ namespace stop {
  * `residual_norm` or the `residual` being set. When any of those is not
  * correctly provided, an exception ::gko::NotSupported() is thrown.
  *
- * @ingroup stop
+ * \ingroup stop
  */
 template <typename ValueType = default_precision>
 class ResidualNormReduction

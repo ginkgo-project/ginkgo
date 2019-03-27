@@ -42,7 +42,7 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
+ * \ingroup matrix
  */
 namespace matrix {
 
@@ -65,9 +65,9 @@ class Dense;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup coo
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup coo
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,

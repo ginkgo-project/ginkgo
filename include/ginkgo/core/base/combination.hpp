@@ -49,7 +49,7 @@ namespace gko {
  *
  * @tparam ValueType  precision of input and result vectors
  *
- * @ingroup LinOp
+ * \ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,

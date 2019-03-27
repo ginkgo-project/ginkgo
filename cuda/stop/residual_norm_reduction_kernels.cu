@@ -45,19 +45,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The CUDA namespace.
  *
- * @ingroup cuda
+ * \ingroup cuda
  */
 namespace cuda {
 /**
  * @brief The Residual norm reduction stopping criterion.
  * @ref resnorm
- * @ingroup resnorm
+ * \ingroup resnorm
  */
 namespace residual_norm_reduction {
 

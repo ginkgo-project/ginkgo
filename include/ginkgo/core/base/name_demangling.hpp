@@ -50,7 +50,7 @@ namespace gko {
 /**
  * @brief The name demangling namespace.
  * @internal
- * @ingroup name_demangling
+ * \ingroup name_demangling
  */
 namespace name_demangling {
 

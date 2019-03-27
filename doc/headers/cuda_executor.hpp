@@ -36,5 +36,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @brief A module dedicated to the implementation and usage of the CUDA
  * executor in Ginkgo.
- * @ingroup Executor
+ * \ingroup Executor
  */

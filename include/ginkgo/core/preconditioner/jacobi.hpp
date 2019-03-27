@@ -43,7 +43,7 @@ namespace gko {
 /**
  * @brief The Preconditioner namespace.
  *
- * @ingroup precond
+ * \ingroup precond
  */
 namespace preconditioner {
 
@@ -55,9 +55,9 @@ namespace preconditioner {
  *
  * @tparam IndexType  type used for storing indices of the matrix
  *
- * @ingroup jacobi
- * @ingroup precond
- * @ingroup LinOp
+ * \ingroup jacobi
+ * \ingroup precond
+ * \ingroup LinOp
  */
 template <typename IndexType>
 struct block_interleaved_storage_scheme {
@@ -193,8 +193,8 @@ struct block_interleaved_storage_scheme {
  *       detect the optimal precision of the blocks.
  *
  * ingroup jacobi
- * @ingroup precond
- * @ingroup LinOp
+ * \ingroup precond
+ * \ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,

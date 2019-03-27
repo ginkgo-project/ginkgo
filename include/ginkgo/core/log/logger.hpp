@@ -61,7 +61,7 @@ class stopping_status;
 /**
  * @brief The Stopping criterion namespace .
  * @ref stop
- * @ingroup stop
+ * \ingroup stop
  */
 namespace stop {
 class Criterion;
@@ -85,7 +85,7 @@ namespace log {
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
  *
- * @ingroup log
+ * \ingroup log
  */
 class Logger {
 public:

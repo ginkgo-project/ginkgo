@@ -47,7 +47,7 @@ namespace stop {
  * @note to use this stopping criterion, it is required to update the iteration
  * count for the ::check() method.
  *
- * @ingroup stop
+ * \ingroup stop
  */
 class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;

@@ -47,19 +47,19 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * @ingroup kernels
+ * \ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
+ * \ingroup reference
  */
 namespace reference {
 /**
  * @brief The Hybrid matrix format.
  * @ref Hybrid
- * @ingroup hybrid
+ * \ingroup hybrid
  */
 namespace hybrid {
 

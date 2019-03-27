@@ -50,7 +50,7 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
+ * \ingroup matrix
  */
 namespace matrix {
 
@@ -82,9 +82,9 @@ class Sellp;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- * @ingroup dense
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup dense
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
@@ -513,8 +513,8 @@ private:
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -552,8 +552,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -583,8 +583,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -632,8 +632,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
- * @ingroup LinOp
+ * \ingroup mat_formats
+ * \ingroup LinOp
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(

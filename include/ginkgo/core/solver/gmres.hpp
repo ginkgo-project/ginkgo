@@ -64,8 +64,8 @@ constexpr size_type default_krylov_dim = 100u;
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup solvers
- * @ingroup LinOp
+ * \ingroup solvers
+ * \ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Gmres : public EnableLinOp<Gmres<ValueType>>, public Preconditionable {
