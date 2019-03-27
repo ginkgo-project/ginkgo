@@ -1,4 +1,4 @@
-This is the main page for the Ginkgo library user documentation. The repository is hosted on [github](https://github.com/ginkgo-project/ginkgo). Documentation on aspects such as the build system, can be found at the @ref build page. The @ref Examples can help you get started with using Ginkgo. 
+This is the main page for the Ginkgo library user documentation. The repository is hosted on [github](https://github.com/ginkgo-project/ginkgo). Documentation on aspects such as the build system, can be found at the @ref using_ginkgo page. The @ref Examples can help you get started with using Ginkgo. 
 
 ### Modules
 
@@ -12,13 +12,12 @@ The Ginkgo library can be grouped into [modules](modules.html) and these modules
 *   @ref log : Monitor your code execution.
 *   @ref stop : Manage your iteration stopping criteria.
 
-@page authors    Authors and contributors
 
-Authors
+@page using_ginkgo Using Ginkgo.
 
-@page build    Building Ginkgo
+### Prerequisites
 
-### Linux and Mac OS 
+#### Linux and Mac OS 
 
 For Ginkgo core library:
 
@@ -41,7 +40,7 @@ following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
 
-### Windows
+#### Windows
 
 Windows is currently not supported, but we are working on porting the library
 there. If you are interested in helping us with this effort, feel free to
@@ -173,8 +172,6 @@ the call with `sudo`.
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
-@page test_bench Testing in Ginkgo.
-
 ### Running the unit tests
 You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to run the
 tests. 
@@ -230,7 +227,6 @@ The default settings are for our own CI system. Feel free to configure the
 script before launching it through variables or by directly changing its values.
 A documentation can be found in the script itself.
 
-@page benchmarking Benchmarking with Ginkgo.
 
 ### Running the benchmarks
 
