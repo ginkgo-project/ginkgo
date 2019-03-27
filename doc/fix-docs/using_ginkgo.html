@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: Building Ginkgo</title>
+<title>Ginkgo: Using Ginkgo.</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,10 +63,11 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">Building Ginkgo </div>  </div>
+<div class="title">Using Ginkgo. </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h3>Linux and Mac OS</h3>
+<div class="textblock"><h3>Prerequisites</h3>
+<h4>Linux and Mac OS</h4>
 <p>For Ginkgo core library:</p>
 <ul>
 <li>_cmake 3.9+_</li>
@@ -86,7 +87,7 @@ $(function() {
 <ul>
 <li><em>clang-format 5.0.1+_ (ships as part of _clang</em>)</li>
 </ul>
-<h3>Windows</h3>
+<h4>Windows</h4>
 <p>Windows is currently not supported, but we are working on porting the library there. If you are interested in helping us with this effort, feel free to contact one of the developers. (The library itself doesn't use any non-standard C++ features, so most of the effort here is in modifying the build system.)</p>
 <p><b>TODO:</b> Some restrictions will also apply on the version of C and C++ standard libraries installed on the system. We need to investigate this further.</p>
 <h2>Building Ginkgo </h2>
@@ -135,7 +136,42 @@ $(function() {
 <h3>Installation</h3>
 <p>To install Ginkgo into the specified folder, execute the following command in the build folder</p>
 <div class="fragment"><div class="line">make install</div></div><!-- fragment --><p>If the installation prefix (see <code>CMAKE_INSTALL_PREFIX</code>) is not writable for your user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix the call with <code>sudo</code>.</p>
-<p>After the installation, CMake can find ginkgo with <code>find_package(Ginkgo)</code>. An example can be found in the <a href="test_install/CMakeLists.txt"><code>test_install</code></a>. </p>
+<p>After the installation, CMake can find ginkgo with <code>find_package(Ginkgo)</code>. An example can be found in the <a href="test_install/CMakeLists.txt"><code>test_install</code></a>.</p>
+<h3>Running the unit tests</h3>
+<p>You need to compile ginkgo with <code>-DGINKGO_BUILD_TESTS=ON</code> option to be able to run the tests.</p>
+<h4>Using make test</h4>
+<p>After configuring Ginkgo, use the following command inside the build folder to run all tests:</p>
+<div class="fragment"><div class="line">make test</div></div><!-- fragment --><p>The output should contain several lines of the form:</p>
+<div class="fragment"><div class="line">    Start  1: path/to/test</div><div class="line">1/13 Test  #1: path/to/test .............................   Passed    0.01 sec</div></div><!-- fragment --><p>To run only a specific test and see more details results (e.g. if a test failed) run the following from the build folder:</p>
+<div class="fragment"><div class="line">./path/to/test</div></div><!-- fragment --><p>where <code>path/to/test</code> is the path returned by <code>make test</code>.</p>
+<h4>Using CTest</h4>
+<p>The tests can also be ran through CTest from the command line, for example when in a configured build directory:</p>
+<div class="fragment"><div class="line">ctest -T start -T build -T test -T submit</div></div><!-- fragment --><p>Will start a new test campaign (usually in <code>Experimental</code> mode), build Ginkgo with the set configuration, run the tests and submit the results to our CDash dashboard.</p>
+<p>Another option is to use Ginkgo's CTest script which is configured to build Ginkgo with default settings, runs the tests and submits the test to our CDash dashboard automatically.</p>
+<p>To run the script, use the following command:</p>
+<div class="fragment"><div class="line">ctest -S cmake/CTestScript.cmake</div></div><!-- fragment --><p>The default settings are for our own CI system. Feel free to configure the script before launching it through variables or by directly changing its values. A documentation can be found in the script itself.</p>
+<h3>Running the benchmarks</h3>
+<p>In addition to the unit tests designed to verify correctness, Ginkgo also includes a benchmark suite for checking its performance on the system. To compile the benchmarks, the flag <code>-DGINKGO_BUILD_BENCHMARKS=ON</code> has to be set during the <code>cmake</code> step. In addition, the <a href="https://github.com/ginkgo-project/ssget"><code>ssget</code> command-line utility</a> has to be installed on the system.</p>
+<p>The benchmark suite tests Ginkgo's performance using the <a href="https://sparse.tamu.edu/">SuiteSparse matrix collection</a> and artificially generated matrices. The suite sparse collection will be downloaded automatically when the benchmarks are run. Please note that the entire collection requires roughly 100GB of disk storage in its compressed format, and roughly 25GB of additional disk space for intermediate data (such us uncompressing the archive). Additionally, the benchmark runs usually take a long time (SpMV benchmarks on the complete collection take roughly 24h using the K20 GPU), and will stress the system.</p>
+<p>The benchmark suite is invoked using the <code>make benchmark</code> command in the build directory. The behavior of the suite can be modified using environment variables. Assuming the <code>bash</code> shell is used, these can either be specified via the <code>export</code> command to persist between multiple runs:</p>
+<div class="fragment"><div class="line">export VARIABLE=&quot;value&quot;</div><div class="line">...</div><div class="line">make benchmark</div></div><!-- fragment --><p>or specified on the fly, on the same line as the <code>make benchmark</code> command:</p>
+<div class="fragment"><div class="line">env VARIABLE=&quot;value&quot; ... make benchmark</div></div><!-- fragment --><p>Since <code>make</code> sets any variables passed to it as temporary environment variables, the following shorthand can also be used:</p>
+<div class="fragment"><div class="line">make benchmark VARIABLE=&quot;value&quot; ...</div></div><!-- fragment --><p>A combination of the above approaches is also possible (e.g. it may be useful to <code>export</code> the <code>SYSTEM_NAME</code> variable, and specify the others at every benchmark run).</p>
+<p>Supported environment variables are described in the following list:</p>
+<ul>
+<li><code>BENCHMARK={spmv, solver, preconditioner}</code> - The benchmark set to run. Default is <code>spmv</code>.<ul>
+<li><code>spmv</code> - Runs the sparse matrix-vector product benchmarks on the SuiteSparse collection.</li>
+<li><code>solver</code> - Runs the solver benchmarks on the SuiteSparse collection. The matrix format is determined by running the <code>spmv</code> benchmarks first, and using the fastest format determined by that benchmark. The maximum number of iterations for the iterative solvers is set to 10,000 and the requested residual reduction factor to 1e-6.</li>
+<li><code>preconditioner</code> - Runs the preconditioner benchmarks on artificially generated block-diagonal matrices.</li>
+</ul>
+</li>
+<li><code>DRY_RUN={true, false}</code> - If set to <code>true</code>, prepares the system for the benchmark runs (downloads the collections, creates the result structure, etc.) and outputs the list of commands that would normally be run, but does not run the benchmarks themselves. Default is <code>false</code>.</li>
+<li><code>EXECUTOR={reference,cuda,omp}</code> - The executor used for running the benchmarks. Default is <code>cuda</code>.</li>
+<li><code>SEGMENTS=&lt;N&gt;</code> - Splits the benchmark suite into <code>&lt;N&gt;</code> segments. This option is useful for running the benchmarks on an HPC system with a batch scheduler, as it enables partitioning of the benchmark suite and running it concurrently on multiple nodes of the system. If specified, <code>SEGMENT_ID</code> also has to be set. Default is <code>1</code>.</li>
+<li><code>SEGMENT_ID=&lt;I&gt;</code> - used in combination with the <code>SEGMENTS</code> variable. <code>&lt;I&gt;</code> should be an integer between 1 and <code>&lt;N&gt;</code>. If specified, only the <code>&lt;I&gt;</code>-th segment of the benchmark suite will be run. Default is <code>1</code>.</li>
+<li><code>SYSTEM_NAME=&lt;name&gt;</code> - the name of the system where the benchmarks are being run. This option only changes the directory where the benchmark results are stored. It can be used to avoid overwriting the benchmarks if multiple systems share the same filesystem, or when copying the results between systems. Default is <code>unknown</code>.</li>
+</ul>
+<p>Once <code>make benchmark</code> completes, the results can be found in `&lt;Ginkgo build="" directory&gt;=""&gt;/benchmark/results/ </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

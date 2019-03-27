@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['example_20programs',['Example programs',['../Examples.html',1,'']]]
+  ['using_20ginkgo_2e',['Using Ginkgo.',['../using_ginkgo.html',1,'']]]
 ];

@@ -2,7 +2,7 @@ var menudata={children:[
 {text:"Main Page",url:"index.html"},
 {text:"Tutorial",url:"https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"},
 {text:"Examples",url:"Examples.html"},
-{text:"Benchmarking",url:"benchmarking.html"},
+{text:"Using Ginkgo",url:"using_ginkgo.html"},
 {text:"Modules",url:"modules.html"},
 {text:"Namespaces",url:"namespaces.html",children:[
 {text:"Namespace List",url:"namespaces.html"},

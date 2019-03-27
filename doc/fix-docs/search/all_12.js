@@ -15,7 +15,6 @@ var searchData=
   ['the_20example_2d9_20program',['The example-9 program',['../example_9.html',1,'']]],
   ['tag',['tag',['../structgko_1_1version.html#a1bd0eaa4d551c145ff9cd0c10e555ac3',1,'gko::version']]],
   ['temporary_5fclone',['temporary_clone',['../classgko_1_1temporary__clone.html',1,'gko::temporary_clone&lt; T &gt;'],['../classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be',1,'gko::temporary_clone::temporary_clone()']]],
-  ['testing_20in_20ginkgo_2e',['Testing in Ginkgo.',['../test_bench.html',1,'']]],
   ['time',['Time',['../classgko_1_1stop_1_1Time.html',1,'gko::stop']]],
   ['time_5flimit',['time_limit',['../structgko_1_1stop_1_1Time_1_1parameters__type.html#aee1d09b9ec4e73561e46e94888cf885a',1,'gko::stop::Time::parameters_type']]],
   ['transposable',['Transposable',['../classgko_1_1Transposable.html',1,'gko']]],
