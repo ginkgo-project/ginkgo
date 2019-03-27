@@ -50,8 +50,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The easiest way to build the example that you want is to use the script provided:
  * <code>./build.sh PATH_TO_GINKGO_BUILD_DIR </code>
  *
- * Ginkgo should be compiled with atleast <code>-DGINKGO_BUILD_REFERENCE=on</code> option, so that
- * there is an executor available. To execute on a GPU, you need to have a GPU on the system and must have
+ * By default, Ginkgo is compiled with atleast <code>-DGINKGO_BUILD_REFERENCE=on</code>.
+ * To execute on a GPU, you need to have a GPU on the system and must have
  * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=on</code> option.
  *
  * Alternatively, you can setup the configuration manually:

@@ -7,10 +7,12 @@ PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
-#INPUT                  = See the specific doxy files for usr and dev.  
+#The INPUT variable is defined in the specific doxy files for usr and dev.
+INPUT                  = 
+
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ 
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @DIR_BASE/doc/examples@
+EXAMPLE_PATH           = @DIR_BASE@/doc/examples
 RECURSIVE              = YES
 EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
@@ -58,7 +60,7 @@ INHERIT_DOCS           = YES
 
 BUILTIN_STL_SUPPORT    = YES
 
-WARN_NO_PARAMDOC       = YES
+WARN_NO_PARAMDOC       = NO 
 WARN_AS_ERROR          = NO
 IMAGE_PATH             = @doxygen_image_path_str@
 INLINE_SOURCES         = NO
@@ -104,22 +106,3 @@ HTML_COLORSTYLE_SAT    = 200
 LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
 HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/stylesheet.css
 
-# LaTeX-specific configuration
-GENERATE_LATEX         = NO
-LATEX_OUTPUT           = .
-LATEX_CMD_NAME         = latex
-MAKEINDEX_CMD_NAME     = makeindex
-COMPACT_LATEX          = YES
-PAPER_TYPE             = a4wide
-EXTRA_PACKAGES         = amsmath amsfonts mathtools
-LATEX_HEADER           =
-LATEX_FOOTER           =
-LATEX_EXTRA_STYLESHEET =
-LATEX_EXTRA_FILES      =
-PDF_HYPERLINKS         = YES
-USE_PDFLATEX           = YES
-LATEX_BATCHMODE        = YES
-LATEX_HIDE_INDICES     = NO
-LATEX_SOURCE_CODE      = NO
-LATEX_BIB_STYLE        = plain
-LATEX_TIMESTAMP        = NO
