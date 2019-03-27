@@ -1,4 +1,24 @@
+INPUT = @doxygen_base_input_str@ 
+
+# LaTeX-specific configuration
 GENERATE_LATEX         = YES
+LATEX_OUTPUT           = .
+LATEX_CMD_NAME         = latex
+MAKEINDEX_CMD_NAME     = makeindex
+COMPACT_LATEX          = YES
+PAPER_TYPE             = a4wide
+EXTRA_PACKAGES         = amsmath amsfonts mathtools
+LATEX_HEADER           =
+LATEX_FOOTER           =
+LATEX_EXTRA_STYLESHEET =
+LATEX_EXTRA_FILES      =
+PDF_HYPERLINKS         = NO
+USE_PDFLATEX           = YES
+LATEX_BATCHMODE        = YES
+LATEX_HIDE_INDICES     = NO
+LATEX_SOURCE_CODE      = NO
+LATEX_BIB_STYLE        = plain
+LATEX_TIMESTAMP        = NO
 
 # this is used to hide protected members
 PREDEFINED = protected=private

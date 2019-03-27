@@ -50,21 +50,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * and preconditioners is that the most common operation performed on all of
  * them can be expressed as an application of a linear operator to a vector:
  *
- * +   the sparse matrix-vector product with a matrix \f$A\f$ is a linear
- *     operator application \f$y = Ax\f$;
+ * +   the sparse matrix-vector product with a matrix $A$ is a linear
+ *     operator application $y = Ax$;
  * +   the application of a preconditioner is a linear operator application
- *     \f$y = M^{-1}x\f$, where \f$M\f$ is an approximation of the original
- *     system matrix \f$A\f$ (thus a preconditioner represents an "approximate
- *     inverse" operator \f$M^{-1}\f$).
- * +   the system solve \f$Ax = b\f$ can be viewed as linear operator
+ *     $y = M^{-1}x$, where $M$ is an approximation of the original
+ *     system matrix $A$ (thus a preconditioner represents an "approximate
+ *     inverse" operator $M^{-1}$).
+ * +   the system solve $Ax = b$ can be viewed as linear operator
  *     application
- *     \f$x = A^{-1}b\f$ (it goes without saying that the implementation of
+ *     $x = A^{-1}b$ (it goes without saying that the implementation of
  *     linear system solves does not follow this conceptual idea), so a linear
  *     system solver can be viewed as a representation of the operator
- *     \f$A^{-1}\f$.
+ *     $A^{-1}$.
  *
  * Consider the following example of the fixed-point iteration
- * routine \f$x_{k+1} = Lx_k + b\f$ :
+ * routine $x_{k+1} = Lx_k + b$ :
  *
  * ```cpp
  * std::unique_ptr<matrix::Dense<>> calculate_fixed_point(
@@ -83,9 +83,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * }
  * ```
  *
- * Here, if \f$L\f$ is a matrix, LinOp::apply() refers to the matrix vector
- * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
- * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update \f$x:=x+b\f$.
+ * Here, if $L$ is a matrix, LinOp::apply() refers to the matrix vector
+ * product, and `L->apply(a, b)` computes $b = L \cdot a$.
+ * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update $x:=x+b$.
  *
  * The interesting part of this example is the apply() routine at line 4 of the
  * function body. This routine is made a part of the LinOp base class and hence
