@@ -357,6 +357,42 @@ __device__ __forceinline__ void multiply_vec(
 /**
  * @internal
  *
+ * This is the same as multiply_vec except this adds the result to res.
+ *
+ * @copydoc multiply_vec
+ */
+template <
+    int max_problem_size, typename Group, typename MatrixValueType,
+    typename VectorValueType,
+    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ void multiply_vec_add(
+    const Group &__restrict__ group, uint32 problem_size,
+    const VectorValueType &__restrict__ vec,
+    const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
+    VectorValueType *__restrict__ res, uint32 res_increment)
+{
+    GKO_ASSERT(problem_size <= max_problem_size);
+    auto mtx_elem = zero<VectorValueType>();
+    auto out = zero<VectorValueType>();
+#pragma unroll
+    for (int32 i = 0; i < max_problem_size; ++i) {
+        if (i >= problem_size) {
+            break;
+        }
+        if (group.thread_rank() < problem_size) {
+            mtx_elem = static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
+        }
+        out += mtx_elem * group.shfl(vec, i);
+    }
+    if (group.thread_rank() < problem_size) {
+        res[group.thread_rank() * res_increment] += out;
+    }
+}
+
+
+/**
+ * @internal
+ *
  * Computes the infinity norm of a matrix. Each thread in the group supplies
  * one row of the matrix.
  *
