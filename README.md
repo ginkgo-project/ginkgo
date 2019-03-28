@@ -132,9 +132,8 @@ there. If you are interested in helping us with this effort, feel free to
 contact one of the developers. (The library itself doesn't use any non-standard
 C++ features, so most of the effort here is in modifying the build system.)
 
-__TODO:__ Some restrictions will also apply on the version of C and C++ standard
-libraries installed on the system. We need to investigate this further.
-Use the standard cmake build procedure:
+__Note:__ Some restrictions will also apply on the version of C and C++ standard
+libraries installed on the system. This needs further investigation.
 
 ### Building Ginkgo
 

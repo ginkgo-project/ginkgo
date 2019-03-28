@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * By default, Ginkgo is compiled with atleast <code>-DGINKGO_BUILD_REFERENCE=on</code>.
  * To execute on a GPU, you need to have a GPU on the system and must have
- * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=on</code> option.
+ * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.
  *
  * Alternatively, you can setup the configuration manually:
  *
