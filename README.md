@@ -136,6 +136,8 @@ __TODO:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. We need to investigate this further.
 Use the standard cmake build procedure:
 
+### Building Ginkgo
+
 To build Ginkgo, you can use the standard CMake procedure. 
 
 ```sh

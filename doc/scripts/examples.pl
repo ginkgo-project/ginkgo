@@ -76,9 +76,7 @@ foreach $example (@ARGV)
     # otherwise assume it is a code gallery program. for
     # each of them, output something for 'dot' to generate
     # the dependencies graph from
-    if ($example =~ /example-/
-        &&
-        !($example =~ /code-gallery/))
+    if (!($example =~ /code-gallery/))
     {
       open KF, "$example/doc/kind"
           or die "Can't open kind file $example/doc/kind";
@@ -88,10 +86,14 @@ foreach $example (@ARGV)
 
       die "Unknown kind '$kind' in file $example/doc/kind" if (! defined $style{$kind});
 
-      my $number = $example;
-      $number =~ s/^.*-//;
+      # my $number = $example;
+      # $number =~ s/^.*-//;
+      my $name = $example;
+      $name =~ s/^.*examples\///;
+      my $tag = $name;
+      $tag=~ s/-/_/g;
 
-      printf "  Example$number [label=\"$number\", URL=\"\\ref example_$number\", tooltip=\"$tooltip\"";
+      printf "  $tag [label=\"$tag\", URL=\"\\ref $tag\", tooltip=\"$tooltip\"";
       print "$style{$kind}";
     }
     else
@@ -125,13 +127,17 @@ foreach $example (@ARGV)
     chop $buildson;
 
     my $destination;
-    if ($example =~ /example-/
-        &&
-        !($example =~ /code-gallery/))
+    if (!($example =~ /code-gallery/))
     {
-      my $number = $example;
-      $number =~ s/^.*-//;
-      $destination = "Example$number";
+      # my $number = $example;
+      # $number =~ s/^.*-//;
+      # $destination = "$example";
+        my $name = $example;
+        $name =~ s/^.*examples\///;
+        my $tag = $name;
+        $tag=~ s/-/_/g;
+        # $tag =~ s/[^a-zA-Z]/_/g;
+        $destination = "$tag";
     }
     else
     {
@@ -144,7 +150,9 @@ foreach $example (@ARGV)
 
     my $source;
     foreach $source (split ' ', $buildson) {
-        $source =~ s/example-/Example/g;
+        $source =~ $example; #s/example-/Example/g;
+        $source =~ s/^.*examples\///;
+        $source =~ s/-/_/g;
         print "  $source -> $destination";
         if ($destination =~ /code_gallery/)
         {

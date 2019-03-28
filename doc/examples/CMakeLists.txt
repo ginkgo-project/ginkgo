@@ -1,19 +1,20 @@
 # Collect all of the directory names for the examples programs
 FILE(GLOB _ginkgo_examples
-  ${CMAKE_SOURCE_DIR}/examples/example-*
+  ${CMAKE_SOURCE_DIR}/examples/**
   )
+LIST(REMOVE_ITEM _ginkgo_examples "${CMAKE_SOURCE_DIR}/examples/CMakeLists.txt")
 
 ADD_CUSTOM_TARGET(examples)
 
 file(GLOB _ginkgo_examples_tooltip
-  ${CMAKE_SOURCE_DIR}/examples/example-*/doc/tooltip
+  ${CMAKE_SOURCE_DIR}/examples/**/doc/tooltip
   )
 
 file(GLOB _ginkgo_examples_kind
-  ${CMAKE_SOURCE_DIR}/examples/example-*/doc/kind
+  ${CMAKE_SOURCE_DIR}/examples/**/doc/kind
   )
 file(GLOB _ginkgo_examples_buildson
-  ${CMAKE_SOURCE_DIR}/examples/example-*/doc/builds-on
+  ${CMAKE_SOURCE_DIR}/examples/**/doc/builds-on
   )
 
 ADD_CUSTOM_COMMAND(
