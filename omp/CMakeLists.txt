@@ -25,10 +25,6 @@ target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
-# Ensures that there are no circular dependency issues
-if(NOT BUILD_SHARED_LIBS)
-    target_link_libraries(ginkgo_omp PUBLIC ginkgo)
-endif()
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
 

@@ -304,12 +304,13 @@ __device__ __forceinline__ void multiply_transposed_vec(
  *
  * Multiplies a matrix and a vector stored in column-major order.
  *
- * In mathematical terms, performs the operation \f$ res = mtx \cdot vec\f$.
+ * In mathematical terms, performs the operation $res = mtx \cdot vec$.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam Group  type of the group of threads
  * @tparam MatrixValueType  type of values stored in the matrix
  * @tparam VectorValueType  type of values stored in the vectors
+ * @tparam Closure  type of the function used to write the result
  *
  * @param group  group of threads participating in the operation
  * @param problem_size  actual size of the matrix
@@ -323,16 +324,20 @@ __device__ __forceinline__ void multiply_transposed_vec(
  * @param res  pointer to a block of memory where the result will be written
  *             (only thread 0 of the group has to supply a valid value)
  * @param mtx_increment  offset between two consecutive elements of the result
+ * @param closure_op  Operation that is performed when writing to
+                     `res[group.thread_rank() * res_increment]` as
+                     `closure_op(res[group.thread_rank() * res_increment], out)`
+                      where `out` is the result of $mtx \cdot vec$.
  */
 template <
     int max_problem_size, typename Group, typename MatrixValueType,
-    typename VectorValueType,
+    typename VectorValueType, typename Closure,
     typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_vec(
     const Group &__restrict__ group, uint32 problem_size,
     const VectorValueType &__restrict__ vec,
     const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
-    VectorValueType *__restrict__ res, uint32 res_increment)
+    VectorValueType *__restrict__ res, uint32 res_increment, Closure closure_op)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<VectorValueType>();
@@ -348,7 +353,7 @@ __device__ __forceinline__ void multiply_vec(
         out += mtx_elem * group.shfl(vec, i);
     }
     if (group.thread_rank() < problem_size) {
-        res[group.thread_rank() * res_increment] = out;
+        closure_op(res[group.thread_rank() * res_increment], out);
     }
 }
 

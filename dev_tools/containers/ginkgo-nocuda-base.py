@@ -13,7 +13,7 @@ Contents:
 
 import os
 
-Stage0.baseimage('ubuntu:16.04')
+Stage0.baseimage('ubuntu:18.04')
 
 
 # Setup extra tools
@@ -26,7 +26,7 @@ gnu_version = USERARG.get('gnu', '8')
 Stage0 += gnu(version=gnu_version, extra_repository=True)
 
 # Clang compilers
-llvm_version = USERARG.get('llvm', '7.0')
+llvm_version = USERARG.get('llvm', '7')
 Stage0 += llvm(version=llvm_version, extra_repository=True)
 Stage0 += apt_get(ospackages=['libomp-dev']) #required for openmp+clang
 
@@ -34,6 +34,6 @@ Stage0 += apt_get(ospackages=['libomp-dev']) #required for openmp+clang
 add_papi = USERARG.get('papi', 'False')
 if os.path.isdir('papi/') and add_papi == 'True':
 	Stage0 += apt_get(ospackages=['libpfm4'])
-	Stage0 += copy(src='papi/include/*', dest='/usr/include/') 
-	Stage0 += copy(src='papi/lib/*', dest='/usr/lib/') 
-	Stage0 += copy(src='papi/bin/*', dest='/usr/bin/') 
+	Stage0 += copy(src='papi/include/*', dest='/usr/include/')
+	Stage0 += copy(src='papi/lib/*', dest='/usr/lib/')
+	Stage0 += copy(src='papi/bin/*', dest='/usr/bin/')

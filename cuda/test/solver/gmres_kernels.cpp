@@ -86,6 +86,7 @@ protected:
         preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
+        before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);
@@ -114,6 +115,7 @@ protected:
         d_preconditioner->copy_from(preconditioner.get());
         d_x = Mtx::create(cuda);
         d_x->copy_from(x.get());
+        d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
         d_y = Mtx::create(cuda);
         d_y->copy_from(y.get());
         d_b = Mtx::create(cuda);
@@ -152,6 +154,7 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> preconditioner;
+    std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
@@ -170,6 +173,7 @@ protected:
 
     std::unique_ptr<Mtx> d_preconditioner;
     std::unique_ptr<Mtx> d_x;
+    std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
@@ -260,14 +264,14 @@ TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gmres::step_2(
-        ref, residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg.get(), y.get(), x.get(), final_iter_nums.get(),
-        preconditioner.get());
-    gko::kernels::cuda::gmres::step_2(
-        cuda, d_residual_norm_collection.get(), d_krylov_bases.get(),
-        d_hessenberg.get(), d_y.get(), d_x.get(), d_final_iter_nums.get(),
-        d_preconditioner.get());
+    gko::kernels::reference::gmres::step_2(ref, residual_norm_collection.get(),
+                                           krylov_bases.get(), hessenberg.get(),
+                                           y.get(), before_preconditioner.get(),
+                                           final_iter_nums.get());
+    gko::kernels::cuda::gmres::step_2(cuda, d_residual_norm_collection.get(),
+                                      d_krylov_bases.get(), d_hessenberg.get(),
+                                      d_y.get(), d_before_preconditioner.get(),
+                                      d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);

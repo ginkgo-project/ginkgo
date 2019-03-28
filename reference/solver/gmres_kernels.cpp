@@ -206,27 +206,20 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void solve_x(const matrix::Dense<ValueType> *krylov_bases,
-             const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             const size_type *final_iter_nums, const LinOp *preconditioner)
+void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
+                  const matrix::Dense<ValueType> *y,
+                  matrix::Dense<ValueType> *before_preconditioner,
+                  const size_type *final_iter_nums)
 {
-    auto before_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-
-    for (size_type k = 0; k < x->get_size()[1]; ++k) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
+        for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
+                    krylov_bases->at(
+                        i, j * before_preconditioner->get_size()[1] + k) *
+                    y->at(j, k);
             }
-        }
-        preconditioner->apply(before_preconditioner.get(),
-                              after_preconditioner.get());
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            x->at(i, k) += after_preconditioner->at(i, k);
         }
     }
 }
@@ -342,14 +335,14 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums,
-            const LinOp *preconditioner)
+            matrix::Dense<ValueType> *y,
+            matrix::Dense<ValueType> *before_preconditioner,
+            const Array<size_type> *final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums->get_const_data());
-    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data(),
-            preconditioner);
+    calculate_qy(krylov_bases, y, before_preconditioner,
+                 final_iter_nums->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

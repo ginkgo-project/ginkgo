@@ -1,4 +1,4 @@
-FROM ubuntu:16.04 AS stage0
+FROM ubuntu:18.04 AS stage0
 
 # Python
 RUN apt-get update -y && \
@@ -44,10 +44,10 @@ RUN update-alternatives --install /usr/bin/gcc gcc $(which gcc-8) 30 && \
 # LLVM compiler
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        clang-6.0 && \
+        clang-7 && \
     rm -rf /var/lib/apt/lists/*
-RUN update-alternatives --install /usr/bin/clang clang $(which clang-6.0) 30 && \
-    update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-6.0) 30
+RUN update-alternatives --install /usr/bin/clang clang $(which clang-7) 30 && \
+    update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-7) 30
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
