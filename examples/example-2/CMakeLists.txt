@@ -1,6 +1,0 @@
-add_executable(example-2 example-2.cpp)
-target_link_libraries(example-2 ginkgo)
-target_include_directories(example-2 PRIVATE ${PROJECT_SOURCE_DIR})
-configure_file(data/A.mtx data/A.mtx COPYONLY)
-configure_file(data/b.mtx data/b.mtx COPYONLY)
-configure_file(data/x0.mtx data/x0.mtx COPYONLY)

@@ -1,8 +1,0 @@
-if (GINKGO_HAVE_PAPI_SDE)
-	add_executable(example-10 example-10.cpp)
-	target_link_libraries(example-10 ginkgo PAPI::PAPI)
-	target_include_directories(example-10 PRIVATE ${PROJECT_SOURCE_DIR})
-	configure_file(data/A.mtx data/A.mtx COPYONLY)
-	configure_file(data/b.mtx data/b.mtx COPYONLY)
-	configure_file(data/x0.mtx data/x0.mtx COPYONLY)
-endif()

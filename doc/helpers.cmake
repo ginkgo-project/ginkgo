@@ -82,8 +82,9 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
         )
       FILE(GLOB _ginkgo_examples
-        ${CMAKE_SOURCE_DIR}/examples/example-*
+        ${CMAKE_SOURCE_DIR}/examples/**
         )
+      LIST(REMOVE_ITEM _ginkgo_examples "${CMAKE_SOURCE_DIR}/examples/CMakeLists.txt")
       FOREACH(_ex ${_ginkgo_examples})
         GET_FILENAME_COMPONENT(_ex "${_ex}" NAME)
         LIST(APPEND doxygen_depend

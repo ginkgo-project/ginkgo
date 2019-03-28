@@ -101,71 +101,71 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * <table align="center" width="90%">
  *   <tr valign="top">
- *       <td width="100px">example-1</td>
+ *       <td width="100px">simple-solver</td>
  *       <td> Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-2</td>
+ *       <td>minimal-cuda-solver</td>
  *       <td> A first step solver with CUDA. Solve a linear system on NVIDIA GPU's.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-3</td>
+ *       <td>poisson-solver</td>
  *       <td> Solve an actual physically relevant problem. Solving the poisson problem.
  *       Generate matrix within Ginkgo.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-4</td>
+ *       <td>preconditioned-solver</td>
  *       <td> Using a preconditioner for a linear system solve. Using the Jacobi preconditioner.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-5</td>
+ *       <td>three-pt-stencil-solver</td>
  *       <td> Using a stencil to solve the poisson equation. Using array views.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-6</td>
+ *       <td>external-lib-interfacing</td>
  *       <td> Interfacing with an external library. Using ginkgo's solver with deal.ii.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-7</td>
+ *       <td>custom-matrix-format</td>
  *       <td> Creating a matrix-free stencil solver. Using ginkgo's advanced methods to
  *        create your own custom matrix format to create a matrix free solver.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-8</td>
+ *       <td>inverse-iteration</td>
  *       <td> Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-9</td>
+ *       <td>simple-solver-logging</td>
  *       <td> Using the logging functionality in ginkgo to get solver and other information to
  *        diagnose and debug your code.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-10</td>
+ *       <td>papi-logging</td>
  *       <td> Using the PAPI logging library in Ginkgo to get advanced information about your code
  *        and its behaviour.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-11</td>
+ *       <td>ginkgo-overhead</td>
  *       <td> Measuring the overhead of the ginkgo library.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-12</td>
+ *       <td>custom-stopping-criterion</td>
  *       <td> Creating a custom stopping criterion for the iterative solution process.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>example-13</td>
+ *       <td>ginkgo-ranges</td>
  *       <td> Using the ranges concept to factorize a matrix with the LU factorization.
  *       </td></tr>
  *
@@ -180,43 +180,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *     <td> Solving a simple linear system with choice of executors.
  *     </td>
- *     <td>example-1
+ *     <td>simple-solver
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td> Using the CUDA executor
  *     </td>
- *     <td>example-2
+ *     <td>minimal-cuda-solver
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td width="400px"> Using preconditioners
  *     </td>
- *     <td>example-4
+ *     <td>preconditioned-solver
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td width="400px"> Solving a physically relevant problem
  *     </td>
- *     <td>example-3,
- *         example-5,
- *         example-7
+ *     <td>poisson-solver,
+ *         three-pt-stencil-solver,
+ *         custom-matrix-format
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td width="400px"> Reading in a matrix and right hand side from a file.
  *     </td>
- *     <td>example-1,
- *         example-2,
- *         example-4,
- *         example-8,
- *         example-9,
- *         example-10,
- *         example-12
+ *     <td>simple-solver,
+ *         minimal-cuda-solver,
+ *         preconditioned-solver,
+ *         inverse-iteration,
+ *         simple-solver-logging,
+ *         papi-logging,
+ *         custom-stopping-criterion
  *     </td>
  *   </tr>
  *
@@ -228,43 +228,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *     <td> Using ginkgo with external libraries. 
  *     </td>
- *     <td>example-6
+ *     <td>external-lib-interfacing
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td width="400px"> Writing your own matrix format 
  *     </td>
- *     <td>example-7
+ *     <td>custom-matrix-format
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td> Using Ginkgo to construct more complex linear algebra routines.
  *     </td>
- *     <td> example-8
+ *     <td> inverse-iteration
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td> Logging within Ginkgo.
  *     </td>
- *     <td> example-9,
- *          example-10
+ *     <td> simple-solver-logging,
+ *          papi-logging
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td> Constructing your own stopping criterion.
  *     </td>
- *     <td> example-12
+ *     <td> custom-stopping-criterion
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
  *     <td> Using ranges in Ginkgo.
  *     </td>
- *     <td> example-13
+ *     <td> ginkgo-ranges
  *     </td>
  *   </tr>
  * </table>
