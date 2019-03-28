@@ -1,0 +1,41 @@
+\hypertarget{group__log}{}\section{Logging}
+\label{group__log}\index{Logging@{Logging}}
+
+
+A module dedicated to the implementation and usage of the Logging in Ginkgo.  
+
+
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespacegko_1_1log}{gko\+::log}
+\begin{DoxyCompactList}\small\item\em The logger namespace . \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1log_1_1Convergence}{gko\+::log\+::\+Convergence$<$ Value\+Type $>$}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1log_1_1Convergence}{Convergence} is a \hyperlink{classgko_1_1log_1_1Logger}{Logger} which logs data strictly from the {\ttfamily criterion\+\_\+check\+\_\+completed} event. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1iteration__complete__data}{gko\+::log\+::iteration\+\_\+complete\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing iteration complete related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1executor__data}{gko\+::log\+::executor\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing \hyperlink{classgko_1_1Executor}{Executor} related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1operation__data}{gko\+::log\+::operation\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing Operator related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{gko\+::log\+::polymorphic\+\_\+object\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1linop__data}{gko\+::log\+::linop\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing \hyperlink{classgko_1_1LinOp}{Lin\+Op} related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1linop__factory__data}{gko\+::log\+::linop\+\_\+factory\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing \hyperlink{classgko_1_1LinOp}{Lin\+Op} factory related data. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1log_1_1criterion__data}{gko\+::log\+::criterion\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct representing Criterion related data. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1log_1_1Record}{gko\+::log\+::\+Record}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1log_1_1Record}{Record} is a \hyperlink{classgko_1_1log_1_1Logger}{Logger} which logs every event to an object. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1log_1_1Stream}{gko\+::log\+::\+Stream$<$ Value\+Type $>$}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1log_1_1Stream}{Stream} is a \hyperlink{classgko_1_1log_1_1Logger}{Logger} which logs every event to a stream. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+A module dedicated to the implementation and usage of the Logging in Ginkgo. 
+
+The Logger class represents a simple Logger object. It comprises all masks and events internally. Every new logging event addition should be done here. The Logger class also provides a default implementation for most events which do nothing, therefore it is not an obligation to change all classes which derive from Logger, although it is good practice. The logger class is built using event masks to control which events should be logged, and which should not. 

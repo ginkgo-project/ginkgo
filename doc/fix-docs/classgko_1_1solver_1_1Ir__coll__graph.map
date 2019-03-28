@@ -2,7 +2,7 @@
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Ir\l\&lt; ValueType \&gt; \&gt;" alt="" coords="2413,255,2572,296"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Ir\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="2004,135,2225,176"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Ir\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1704,46,1937,102"/>
-<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="1253,17,1343,43"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1253,17,1343,43"/>
 <area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="723,5,956,47"/>
 <area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,106,448,162"/>
 <area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,134,973,190"/>

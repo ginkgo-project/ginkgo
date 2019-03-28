@@ -1,5 +1,5 @@
 <map id="gko::stop::Criterion::Updater" name="gko::stop::Criterion::Updater">
-<area shape="rect" id="node2" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="1532,46,1623,73"/>
+<area shape="rect" id="node2" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1532,46,1623,73"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="1249,39,1483,80"/>
 <area shape="rect" id="node4" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="911,13,1089,39"/>
 <area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="644,5,821,47"/>

@@ -152,10 +152,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memdesc:a205fc391f4cf4f7718a55b0a61f62bc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix. ">matrix_data</a> structure.  <a href="#a205fc391f4cf4f7718a55b0a61f62bc9">More...</a><br /></td></tr>
 <tr class="separator:a205fc391f4cf4f7718a55b0a61f62bc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab79e609214d6b4834d5961ee0a7d3519"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ab79e609214d6b4834d5961ee0a7d3519">transpose</a> () const override</td></tr>
-<tr class="memdesc:ab79e609214d6b4834d5961ee0a7d3519"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#ab79e609214d6b4834d5961ee0a7d3519">More...</a><br /></td></tr>
+<tr class="memdesc:ab79e609214d6b4834d5961ee0a7d3519"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#ab79e609214d6b4834d5961ee0a7d3519">More...</a><br /></td></tr>
 <tr class="separator:ab79e609214d6b4834d5961ee0a7d3519"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a38820451af5424f18b767667f3067d72"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">conj_transpose</a> () const override</td></tr>
-<tr class="memdesc:a38820451af5424f18b767667f3067d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a38820451af5424f18b767667f3067d72">More...</a><br /></td></tr>
+<tr class="memdesc:a38820451af5424f18b767667f3067d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a38820451af5424f18b767667f3067d72">More...</a><br /></td></tr>
 <tr class="separator:a38820451af5424f18b767667f3067d72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a929b0a194e6aeb1252b8e6781d162e83"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a929b0a194e6aeb1252b8e6781d162e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the matrix.  <a href="#a929b0a194e6aeb1252b8e6781d162e83">More...</a><br /></td></tr>
@@ -381,7 +381,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </table>
 </div><div class="memdoc">
 
-<p>Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
 
 <p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
@@ -787,7 +787,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </table>
 </div><div class="memdoc">
 
-<p>Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
 
 <p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>

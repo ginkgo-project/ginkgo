@@ -12,5 +12,7 @@ var searchData=
   ['the_20example_2d6_20program',['The example-6 program',['../example_6.html',1,'']]],
   ['the_20example_2d7_20program',['The example-7 program',['../example_7.html',1,'']]],
   ['the_20example_2d8_20program',['The example-8 program',['../example_8.html',1,'']]],
-  ['the_20example_2d9_20program',['The example-9 program',['../example_9.html',1,'']]]
+  ['the_20example_2d9_20program',['The example-9 program',['../example_9.html',1,'']]],
+  ['the_20known_20issues_20in_20ginkgo_2e',['The known issues in Ginkgo.',['../known_issues.html',1,'']]],
+  ['the_20ginkgo_20wiki_20page_2e',['The Ginkgo wiki page.',['../wiki.html',1,'']]]
 ];

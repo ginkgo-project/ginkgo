@@ -1,0 +1,34 @@
+\hypertarget{group__precond}{}\section{Preconditioners}
+\label{group__precond}\index{Preconditioners@{Preconditioners}}
+
+
+A module dedicated to the implementation and usage of the Preconditioners in Ginkgo.  
+
+
+Collaboration diagram for Preconditioners\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{group__precond}
+\end{center}
+\end{figure}
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespacegko_1_1preconditioner}{gko\+::preconditioner}
+\begin{DoxyCompactList}\small\item\em The Preconditioner namespace. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}
+\begin{DoxyCompactList}\small\item\em A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}
+\begin{DoxyCompactList}\small\item\em Defines the parameters of the interleaved block storage scheme used by block-\/\+Jacobi blocks. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}
+\begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. 
+

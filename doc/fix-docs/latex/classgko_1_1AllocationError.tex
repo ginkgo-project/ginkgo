@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1AllocationError}{}\section{gko\+:\+:Allocation\+Error Class Reference}
+\label{classgko_1_1AllocationError}\index{gko\+::\+Allocation\+Error@{gko\+::\+Allocation\+Error}}
+
+
+\hyperlink{classgko_1_1AllocationError}{Allocation\+Error} is thrown if a memory allocation fails.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:Allocation\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=193pt]{classgko_1_1AllocationError__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classgko_1_1AllocationError_ab06f1e22cd0cd39acab7cd5e96f2f9ca}{Allocation\+Error} (const std\+::string \&file, int line, const std\+::string \&device, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} bytes)
+\begin{DoxyCompactList}\small\item\em Initializes an allocation error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\hyperlink{classgko_1_1AllocationError}{Allocation\+Error} is thrown if a memory allocation fails. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1AllocationError_ab06f1e22cd0cd39acab7cd5e96f2f9ca}\label{classgko_1_1AllocationError_ab06f1e22cd0cd39acab7cd5e96f2f9ca}} 
+\index{gko\+::\+Allocation\+Error@{gko\+::\+Allocation\+Error}!Allocation\+Error@{Allocation\+Error}}
+\index{Allocation\+Error@{Allocation\+Error}!gko\+::\+Allocation\+Error@{gko\+::\+Allocation\+Error}}
+\subsubsection{\texorpdfstring{Allocation\+Error()}{AllocationError()}}
+{\footnotesize\ttfamily gko\+::\+Allocation\+Error\+::\+Allocation\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{device,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{bytes }\end{DoxyParamCaption})}
+
+
+
+Initializes an allocation error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em device} & The device on which the error occurred \\
+\hline
+{\em bytes} & The size of the memory block whose allocation failed. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (9f8f3063)\end{DoxyCompactItemize}

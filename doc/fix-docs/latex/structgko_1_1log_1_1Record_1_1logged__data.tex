@@ -1,0 +1,98 @@
+\hypertarget{structgko_1_1log_1_1Record_1_1logged__data}{}\section{gko\+:\+:log\+:\+:Record\+:\+:logged\+\_\+data Struct Reference}
+\label{structgko_1_1log_1_1Record_1_1logged__data}\index{gko\+::log\+::\+Record\+::logged\+\_\+data@{gko\+::log\+::\+Record\+::logged\+\_\+data}}
+
+
+Struct storing the actually logged data.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/log/record.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:log\+:\+:Record\+:\+:logged\+\_\+data\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1log_1_1Record_1_1logged__data__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_ad5daba4ec69cb54bbd7d3372e0925a6d}\label{structgko_1_1log_1_1Record_1_1logged__data_ad5daba4ec69cb54bbd7d3372e0925a6d}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ {\bfseries allocation\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a0442990cc7391e2a64bd91ec66c1714e}\label{structgko_1_1log_1_1Record_1_1logged__data_a0442990cc7391e2a64bd91ec66c1714e}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ {\bfseries allocation\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_ac699daf369561ab3941256ce57365957}\label{structgko_1_1log_1_1Record_1_1logged__data_ac699daf369561ab3941256ce57365957}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ {\bfseries free\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a65ce6c300d048317f67191c68b667e32}\label{structgko_1_1log_1_1Record_1_1logged__data_a65ce6c300d048317f67191c68b667e32}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ {\bfseries free\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a344272b69a3717472f89885258db9a14}\label{structgko_1_1log_1_1Record_1_1logged__data_a344272b69a3717472f89885258db9a14}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ std\+::tuple$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data}, \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ $>$ {\bfseries copy\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_acb75163d3a603ab711999122d65ef091}\label{structgko_1_1log_1_1Record_1_1logged__data_acb75163d3a603ab711999122d65ef091}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ std\+::tuple$<$ \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data}, \hyperlink{structgko_1_1log_1_1executor__data}{executor\+\_\+data} $>$ $>$ $>$ {\bfseries copy\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_af86d2b41efc6edefe7175ed22a7d6063}\label{structgko_1_1log_1_1Record_1_1logged__data_af86d2b41efc6edefe7175ed22a7d6063}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1operation__data}{operation\+\_\+data} $>$ $>$ {\bfseries operation\+\_\+launched}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_af4fa02728a22bba66dcac986e1086463}\label{structgko_1_1log_1_1Record_1_1logged__data_af4fa02728a22bba66dcac986e1086463}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1operation__data}{operation\+\_\+data} $>$ $>$ {\bfseries operation\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a81397efee745a6b99b571708927825eb}\label{structgko_1_1log_1_1Record_1_1logged__data_a81397efee745a6b99b571708927825eb}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{polymorphic\+\_\+object\+\_\+data} $>$ $>$ {\bfseries polymorphic\+\_\+object\+\_\+create\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a527693f20e8483842f9eb18fe4e1708e}\label{structgko_1_1log_1_1Record_1_1logged__data_a527693f20e8483842f9eb18fe4e1708e}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{polymorphic\+\_\+object\+\_\+data} $>$ $>$ {\bfseries polymorphic\+\_\+object\+\_\+create\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_ab6f3beebd910a65b81f61e77160eb17b}\label{structgko_1_1log_1_1Record_1_1logged__data_ab6f3beebd910a65b81f61e77160eb17b}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{polymorphic\+\_\+object\+\_\+data} $>$ $>$ {\bfseries polymorphic\+\_\+object\+\_\+copy\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a1a92ff64d66a2d35fb6230f126f5b575}\label{structgko_1_1log_1_1Record_1_1logged__data_a1a92ff64d66a2d35fb6230f126f5b575}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{polymorphic\+\_\+object\+\_\+data} $>$ $>$ {\bfseries polymorphic\+\_\+object\+\_\+copy\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a9d4b67ab1340cffe6633c31f380aa6e9}\label{structgko_1_1log_1_1Record_1_1logged__data_a9d4b67ab1340cffe6633c31f380aa6e9}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1polymorphic__object__data}{polymorphic\+\_\+object\+\_\+data} $>$ $>$ {\bfseries polymorphic\+\_\+object\+\_\+deleted}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_ae3d775a94131fbdd7a94821b17b6b3b0}\label{structgko_1_1log_1_1Record_1_1logged__data_ae3d775a94131fbdd7a94821b17b6b3b0}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__data}{linop\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+apply\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_ae39a65143824c08e63f4a076b1bd0873}\label{structgko_1_1log_1_1Record_1_1logged__data_ae39a65143824c08e63f4a076b1bd0873}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__data}{linop\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+apply\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a4158a08b810c816428b63cfc7cb48a90}\label{structgko_1_1log_1_1Record_1_1logged__data_a4158a08b810c816428b63cfc7cb48a90}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__data}{linop\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+advanced\+\_\+apply\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a1f52757c1003b053341c9766d4bf22e1}\label{structgko_1_1log_1_1Record_1_1logged__data_a1f52757c1003b053341c9766d4bf22e1}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__data}{linop\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+advanced\+\_\+apply\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a0b6e60c1ee1ea3493aac81ec4b416b4f}\label{structgko_1_1log_1_1Record_1_1logged__data_a0b6e60c1ee1ea3493aac81ec4b416b4f}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__factory__data}{linop\+\_\+factory\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+factory\+\_\+generate\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a043ccd4db0cb835dcdd0b1bfa4dbf24b}\label{structgko_1_1log_1_1Record_1_1logged__data_a043ccd4db0cb835dcdd0b1bfa4dbf24b}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1linop__factory__data}{linop\+\_\+factory\+\_\+data} $>$ $>$ {\bfseries linop\+\_\+factory\+\_\+generate\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_abfe68110796c0a094c937d3a8787cc04}\label{structgko_1_1log_1_1Record_1_1logged__data_abfe68110796c0a094c937d3a8787cc04}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1criterion__data}{criterion\+\_\+data} $>$ $>$ {\bfseries criterion\+\_\+check\+\_\+started}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_abf13cae8d7e797ae6c2b4ddf9a9cb33a}\label{structgko_1_1log_1_1Record_1_1logged__data_abf13cae8d7e797ae6c2b4ddf9a9cb33a}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1criterion__data}{criterion\+\_\+data} $>$ $>$ {\bfseries criterion\+\_\+check\+\_\+completed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1Record_1_1logged__data_a54f71b0aecebe7a7957eb5cfba7395e3}\label{structgko_1_1log_1_1Record_1_1logged__data_a54f71b0aecebe7a7957eb5cfba7395e3}} 
+std\+::deque$<$ std\+::unique\+\_\+ptr$<$ \hyperlink{structgko_1_1log_1_1iteration__complete__data}{iteration\+\_\+complete\+\_\+data} $>$ $>$ {\bfseries iteration\+\_\+completed}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Struct storing the actually logged data. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/log/record.\+hpp (9f8f3063)\end{DoxyCompactItemize}

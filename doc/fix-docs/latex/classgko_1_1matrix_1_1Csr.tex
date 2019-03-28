@@ -1,0 +1,381 @@
+\hypertarget{classgko_1_1matrix_1_1Csr}{}\section{gko\+:\+:matrix\+:\+:Csr$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Csr}\index{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$@{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}
+
+
+C\+SR is a matrix format which stores only the nonzero coefficients by compressing each row of the matrix (compressed sparse row format).  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/csr.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:matrix\+:\+:Csr$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Csr__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical}{automatical}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1classical}{classical}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse}{cusparse}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}
+\item 
+class \hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}
+\end{DoxyCompactItemize}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ae9e0b5332427a9a5a782aab4b6e2b60e}\label{classgko_1_1matrix_1_1Csr_ae9e0b5332427a9a5a782aab4b6e2b60e}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a47f9c8f2945fc5d50e1eac99a9511174}\label{classgko_1_1matrix_1_1Csr_a47f9c8f2945fc5d50e1eac99a9511174}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a4aeffed616fb42844161bd176f588785}\label{classgko_1_1matrix_1_1Csr_a4aeffed616fb42844161bd176f588785}} 
+using {\bfseries mat\+\_\+data} = \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a610dfb71907ee0e79ca6470571cb1d10}\label{classgko_1_1matrix_1_1Csr_a610dfb71907ee0e79ca6470571cb1d10}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}$<$ Value\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a794189da6f4443a991b7f68ed59c2f49}\label{classgko_1_1matrix_1_1Csr_a794189da6f4443a991b7f68ed59c2f49}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}$<$ Value\+Type $>$ $\ast$other) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ab0927bd9d5f77008d95891f266b9eb1d}\label{classgko_1_1matrix_1_1Csr_ab0927bd9d5f77008d95891f266b9eb1d}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, Index\+Type $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a79c4a2730c1ef576d75fb8f2d98aecf2}\label{classgko_1_1matrix_1_1Csr_a79c4a2730c1ef576d75fb8f2d98aecf2}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, Index\+Type $>$ $\ast$result) override
+\item 
+void \hyperlink{classgko_1_1matrix_1_1Csr_ac4db41146ed3c3a8653b03d6b2c6c675}{read} (const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) override
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{write} (\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) const override
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}{transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}{conj\+\_\+transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}{get\+\_\+values} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a1801347665214bbefc837b44ba0695ff}{get\+\_\+const\+\_\+values} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}{get\+\_\+col\+\_\+idxs} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_ac9d640d26449e0ee46c7cb2b80100d65}{get\+\_\+const\+\_\+col\+\_\+idxs} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}{get\+\_\+row\+\_\+ptrs} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row pointers of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a50c9ce521649450d7ae5ff488e42c190}{get\+\_\+const\+\_\+row\+\_\+ptrs} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row pointers of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a919fb1efdcbde6fba7eb18bdc39ba46a}{get\+\_\+srow} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the starting rows. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_ac046f27c47848bf31c9234567661ef48}{get\+\_\+const\+\_\+srow} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the starting rows. \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Csr_a5b8c25c2fb1bbea62a3afdec8f8340c5}{get\+\_\+num\+\_\+srow\+\_\+elements} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of the srow stored elements (involved warps) \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Csr_ab70c085fc3df11a4ed9fe74b40844c5c}{get\+\_\+num\+\_\+stored\+\_\+elements} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type} $>$ \hyperlink{classgko_1_1matrix_1_1Csr_ada0db14e65dfe027f483dc449f704a7e}{get\+\_\+strategy} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ad8cd96663ce0ef68ea6d54f3d163df35}\label{classgko_1_1matrix_1_1Csr_ad8cd96663ce0ef68ea6d54f3d163df35}} 
+class {\bfseries Enable\+Create\+Method$<$ Csr $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a6fa2ee2c326608dac42afed82be6713c}\label{classgko_1_1matrix_1_1Csr_a6fa2ee2c326608dac42afed82be6713c}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Csr, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ad2572ffab980b4728254b155909b3119}\label{classgko_1_1matrix_1_1Csr_ad2572ffab980b4728254b155909b3119}} 
+class {\bfseries Coo$<$ Value\+Type, Index\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a22a84c8f67f946aa60a2fa8bf5835a32}\label{classgko_1_1matrix_1_1Csr_a22a84c8f67f946aa60a2fa8bf5835a32}} 
+class {\bfseries Dense$<$ Value\+Type $>$}
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}
+
+C\+SR is a matrix format which stores only the nonzero coefficients by compressing each row of the matrix (compressed sparse row format). 
+
+The nonzero elements are stored in a 1D array row-\/wise, and accompanied with a row pointer array which stores the starting index of each row. An additional column index array is used to identify the column of each nonzero element.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}\label{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!conj\+\_\+transpose@{conj\+\_\+transpose}}
+\index{conj\+\_\+transpose@{conj\+\_\+transpose}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{conj\+\_\+transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}\label{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+col\+\_\+idxs@{get\+\_\+col\+\_\+idxs}}
+\index{get\+\_\+col\+\_\+idxs@{get\+\_\+col\+\_\+idxs}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+col\+\_\+idxs()}{get\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac9d640d26449e0ee46c7cb2b80100d65}\label{classgko_1_1matrix_1_1Csr_ac9d640d26449e0ee46c7cb2b80100d65}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+const\+\_\+col\+\_\+idxs@{get\+\_\+const\+\_\+col\+\_\+idxs}}
+\index{get\+\_\+const\+\_\+col\+\_\+idxs@{get\+\_\+const\+\_\+col\+\_\+idxs}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+col\+\_\+idxs()}{get\_const\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a50c9ce521649450d7ae5ff488e42c190}\label{classgko_1_1matrix_1_1Csr_a50c9ce521649450d7ae5ff488e42c190}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+const\+\_\+row\+\_\+ptrs@{get\+\_\+const\+\_\+row\+\_\+ptrs}}
+\index{get\+\_\+const\+\_\+row\+\_\+ptrs@{get\+\_\+const\+\_\+row\+\_\+ptrs}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+row\+\_\+ptrs()}{get\_const\_row\_ptrs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the row pointers of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the row pointers of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac046f27c47848bf31c9234567661ef48}\label{classgko_1_1matrix_1_1Csr_ac046f27c47848bf31c9234567661ef48}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+const\+\_\+srow@{get\+\_\+const\+\_\+srow}}
+\index{get\+\_\+const\+\_\+srow@{get\+\_\+const\+\_\+srow}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+srow()}{get\_const\_srow()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+srow (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the starting rows. 
+
+\begin{DoxyReturn}{Returns}
+the starting rows.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a1801347665214bbefc837b44ba0695ff}\label{classgko_1_1matrix_1_1Csr_a1801347665214bbefc837b44ba0695ff}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+const\+\_\+values@{get\+\_\+const\+\_\+values}}
+\index{get\+\_\+const\+\_\+values@{get\+\_\+const\+\_\+values}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+values()}{get\_const\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a5b8c25c2fb1bbea62a3afdec8f8340c5}\label{classgko_1_1matrix_1_1Csr_a5b8c25c2fb1bbea62a3afdec8f8340c5}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+num\+\_\+srow\+\_\+elements@{get\+\_\+num\+\_\+srow\+\_\+elements}}
+\index{get\+\_\+num\+\_\+srow\+\_\+elements@{get\+\_\+num\+\_\+srow\+\_\+elements}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+num\+\_\+srow\+\_\+elements()}{get\_num\_srow\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+srow\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the number of the srow stored elements (involved warps) 
+
+\begin{DoxyReturn}{Returns}
+the number of the srow stored elements (involved warps) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ab70c085fc3df11a4ed9fe74b40844c5c}\label{classgko_1_1matrix_1_1Csr_ab70c085fc3df11a4ed9fe74b40844c5c}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+num\+\_\+stored\+\_\+elements@{get\+\_\+num\+\_\+stored\+\_\+elements}}
+\index{get\+\_\+num\+\_\+stored\+\_\+elements@{get\+\_\+num\+\_\+stored\+\_\+elements}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+num\+\_\+stored\+\_\+elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}\label{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+row\+\_\+ptrs@{get\+\_\+row\+\_\+ptrs}}
+\index{get\+\_\+row\+\_\+ptrs@{get\+\_\+row\+\_\+ptrs}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+row\+\_\+ptrs()}{get\_row\_ptrs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the row pointers of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the row pointers of the matrix. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a919fb1efdcbde6fba7eb18bdc39ba46a}\label{classgko_1_1matrix_1_1Csr_a919fb1efdcbde6fba7eb18bdc39ba46a}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+srow@{get\+\_\+srow}}
+\index{get\+\_\+srow@{get\+\_\+srow}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+srow()}{get\_srow()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+srow (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the starting rows. 
+
+\begin{DoxyReturn}{Returns}
+the starting rows. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ada0db14e65dfe027f483dc449f704a7e}\label{classgko_1_1matrix_1_1Csr_ada0db14e65dfe027f483dc449f704a7e}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+strategy@{get\+\_\+strategy}}
+\index{get\+\_\+strategy@{get\+\_\+strategy}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+strategy()}{get\_strategy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}$>$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+strategy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the strategy. 
+
+\begin{DoxyReturn}{Returns}
+the strategy 
+\end{DoxyReturn}
+
+
+References gko\+::\+Lin\+Op\+::get\+\_\+size().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}\label{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!get\+\_\+values@{get\+\_\+values}}
+\index{get\+\_\+values@{get\+\_\+values}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{get\+\_\+values()}{get\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac4db41146ed3c3a8653b03d6b2c6c675}\label{classgko_1_1matrix_1_1Csr_ac4db41146ed3c3a8653b03d6b2c6c675}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!read@{read}}
+\index{read@{read}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{read()}{read()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}\label{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!transpose@{transpose}}
+\index{transpose@{transpose}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}\label{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}} 
+\index{gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}!write@{write}}
+\index{write@{write}!gko\+::matrix\+::\+Csr@{gko\+::matrix\+::\+Csr}}
+\subsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/coo.\+hpp (9f8f3063)\item 
+ginkgo/core/matrix/csr.\+hpp (9f8f3063)\end{DoxyCompactItemize}

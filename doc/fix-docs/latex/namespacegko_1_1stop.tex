@@ -1,0 +1,42 @@
+\hypertarget{namespacegko_1_1stop}{}\section{gko\+:\+:stop Namespace Reference}
+\label{namespacegko_1_1stop}\index{gko\+::stop@{gko\+::stop}}
+
+
+The Stopping criterion namespace .  
+
+
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1stop_1_1Combined}{Combined}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Combined}{Combined} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion} class is a base class for all stopping criteria. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1stop_1_1CriterionArgs}{Criterion\+Args}
+\begin{DoxyCompactList}\small\item\em This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factory\+Criterion\+Factory\+::generate() method. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Iteration}{Iteration} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction} class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Time}{Time}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Time}{Time} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+using \hyperlink{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory} = \hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}$<$ \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}, \hyperlink{structgko_1_1stop_1_1CriterionArgs}{Criterion\+Args} $>$
+\begin{DoxyCompactList}\small\item\em Declares an Abstract Factory specialized for Criterions. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Criterion , typename Parameters\+Type , typename Polymorphic\+Base  = Criterion\+Factory$>$ }\\using \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{Enable\+Default\+Criterion\+Factory} = \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}$<$ Concrete\+Factory, Concrete\+Criterion, Parameters\+Type, Polymorphic\+Base $>$
+\begin{DoxyCompactList}\small\item\em This is an alias for the \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory} mixin, which correctly sets the template parameters to enable a subclass of Criterion\+Factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename Factory\+Container $>$ }\\std\+::shared\+\_\+ptr$<$ const \hyperlink{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory} $>$ \hyperlink{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}{combine} (Factory\+Container \&\&factories)
+\begin{DoxyCompactList}\small\item\em Combines multiple criterion factories into a single combined criterion factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+The Stopping criterion namespace . 
+
+The stopping criterion namespace.
+
+\hyperlink{group__stop}{Stopping criteria} 

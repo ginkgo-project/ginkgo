@@ -1,0 +1,62 @@
+\hypertarget{classgko_1_1ReferenceExecutor}{}\section{gko\+:\+:Reference\+Executor Class Reference}
+\label{classgko_1_1ReferenceExecutor}\index{gko\+::\+Reference\+Executor@{gko\+::\+Reference\+Executor}}
+
+
+This is a specialization of the \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}, which runs the reference implementations of the kernels used for debugging purposes.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:Reference\+Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1ReferenceExecutor__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}{run} (const \hyperlink{classgko_1_1Operation}{Operation} \&op) const override
+\begin{DoxyCompactList}\small\item\em Runs the specified \hyperlink{classgko_1_1Operation}{Operation} using this \hyperlink{classgko_1_1Executor}{Executor}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1ReferenceExecutor_acf3e7c66635bd27e441677150199b72d}\label{classgko_1_1ReferenceExecutor_acf3e7c66635bd27e441677150199b72d}} 
+static std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor} $>$ {\bfseries create} ()
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+This is a specialization of the \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}, which runs the reference implementations of the kernels used for debugging purposes. 
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}\label{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}} 
+\index{gko\+::\+Reference\+Executor@{gko\+::\+Reference\+Executor}!run@{run}}
+\index{run@{run}!gko\+::\+Reference\+Executor@{gko\+::\+Reference\+Executor}}
+\subsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily void gko\+::\+Reference\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Operation}{Operation} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Runs the specified \hyperlink{classgko_1_1Operation}{Operation} using this \hyperlink{classgko_1_1Executor}{Executor}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em op} & the operation to run \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{gko\+::\+Executor}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (9f8f3063)\end{DoxyCompactItemize}

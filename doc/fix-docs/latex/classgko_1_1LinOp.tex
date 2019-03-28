@@ -1,0 +1,158 @@
+\hypertarget{classgko_1_1LinOp}{}\section{gko\+:\+:Lin\+Op Class Reference}
+\label{classgko_1_1LinOp}\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+
+
+Collaboration diagram for gko\+:\+:Lin\+Op\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1LinOp__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ \hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x)
+\begin{DoxyCompactList}\small\item\em Applies a linear operator to a vector (or a sequence of vectors). \end{DoxyCompactList}\item 
+const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ \hyperlink{classgko_1_1LinOp_a74afc0e94716dbf4f3e1d7182e37456f}{apply} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const
+\begin{DoxyCompactList}\small\item\em Applies a linear operator to a vector (or a sequence of vectors). \end{DoxyCompactList}\item 
+\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ \hyperlink{classgko_1_1LinOp_a7203185d7c8d1d9dfe63a39903f0149e}{apply} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$beta, \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x)
+\begin{DoxyCompactList}\small\item\em Performs the operation x = alpha $\ast$ op(b) + beta $\ast$ x. \end{DoxyCompactList}\item 
+const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ \hyperlink{classgko_1_1LinOp_a9bf4bf5dc6118e18f4c9ef1bc782b337}{apply} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$beta, \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const
+\begin{DoxyCompactList}\small\item\em Performs the operation x = alpha $\ast$ op(b) + beta $\ast$ x. \end{DoxyCompactList}\item 
+const \hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ \& \hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\+\_\+size} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the size of the operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}\label{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}} 
+\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}!apply@{apply}}
+\index{apply@{apply}!gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+\subsubsection{\texorpdfstring{apply()}{apply()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily \hyperlink{classgko_1_1LinOp}{Lin\+Op}$\ast$ gko\+::\+Lin\+Op\+::apply (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+Applies a linear operator to a vector (or a sequence of vectors). 
+
+Performs the operation x = op(b), where op is this linear operator.
+
+
+\begin{DoxyParams}{Parameters}
+{\em b} & the input vector(s) on which the operator is applied \\
+\hline
+{\em x} & the output vector(s) where the result is stored\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1LinOp_a74afc0e94716dbf4f3e1d7182e37456f}\label{classgko_1_1LinOp_a74afc0e94716dbf4f3e1d7182e37456f}} 
+\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}!apply@{apply}}
+\index{apply@{apply}!gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+\subsubsection{\texorpdfstring{apply()}{apply()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$\ast$ gko\+::\+Lin\+Op\+::apply (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const}
+
+
+
+Applies a linear operator to a vector (or a sequence of vectors). 
+
+Performs the operation x = op(b), where op is this linear operator.
+
+
+\begin{DoxyParams}{Parameters}
+{\em b} & the input vector(s) on which the operator is applied \\
+\hline
+{\em x} & the output vector(s) where the result is stored\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1LinOp_a7203185d7c8d1d9dfe63a39903f0149e}\label{classgko_1_1LinOp_a7203185d7c8d1d9dfe63a39903f0149e}} 
+\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}!apply@{apply}}
+\index{apply@{apply}!gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+\subsubsection{\texorpdfstring{apply()}{apply()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily \hyperlink{classgko_1_1LinOp}{Lin\+Op}$\ast$ gko\+::\+Lin\+Op\+::apply (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{beta,  }\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+Performs the operation x = alpha $\ast$ op(b) + beta $\ast$ x. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em alpha} & scaling of the result of op(b) \\
+\hline
+{\em b} & vector(s) on which the operator is applied \\
+\hline
+{\em beta} & scaling of the input x \\
+\hline
+{\em x} & output vector(s)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1LinOp_a9bf4bf5dc6118e18f4c9ef1bc782b337}\label{classgko_1_1LinOp_a9bf4bf5dc6118e18f4c9ef1bc782b337}} 
+\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}!apply@{apply}}
+\index{apply@{apply}!gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+\subsubsection{\texorpdfstring{apply()}{apply()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$\ast$ gko\+::\+Lin\+Op\+::apply (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{beta,  }\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const}
+
+
+
+Performs the operation x = alpha $\ast$ op(b) + beta $\ast$ x. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em alpha} & scaling of the result of op(b) \\
+\hline
+{\em b} & vector(s) on which the operator is applied \\
+\hline
+{\em beta} & scaling of the input x \\
+\hline
+{\em x} & output vector(s)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}\label{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}} 
+\index{gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}!get\+\_\+size@{get\+\_\+size}}
+\index{get\+\_\+size@{get\+\_\+size}!gko\+::\+Lin\+Op@{gko\+::\+Lin\+Op}}
+\subsubsection{\texorpdfstring{get\+\_\+size()}{get\_size()}}
+{\footnotesize\ttfamily const \hyperlink{structgko_1_1dim}{dim}$<$2$>$\& gko\+::\+Lin\+Op\+::get\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the size of the operator. 
+
+\begin{DoxyReturn}{Returns}
+size of the operator 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix(), gko\+::\+Combination$<$ Value\+Type $>$\+::get\+\_\+operators(), and gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+strategy().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp (6488e5e3)\end{DoxyCompactItemize}

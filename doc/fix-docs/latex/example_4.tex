@@ -1,0 +1,153 @@
+The preconditioned solver example.
+
+This example depends on \hyperlink{example_1}{example-\/1}.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\section*{Introduction}
+
+\label{_Abouttheexample}%
+\subsubsection*{About the example }
+
+\label{_CommProg}%
+ \section*{The commented program}
+
+
+\begin{DoxyCode}
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+
+
+\textcolor{preprocessor}{#include <fstream>}
+\textcolor{preprocessor}{#include <iostream>}
+\textcolor{preprocessor}{#include <string>}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}
+\textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>};
+\textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>};
+\textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>};
+\textcolor{keyword}{using} bj = \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>};
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}
+std::cout << \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}() << std::endl;
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}
+std::shared\_ptr<gko::Executor> exec;
+\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{
+    exec = gko::ReferenceExecutor::create();
+\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 && std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{
+    exec = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 && std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} &&
+           \hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}() > 0) \{
+    exec = \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, 
+      \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}());
+\} \textcolor{keywordflow}{else} \{
+    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;
+    std::exit(-1);
+\}
+\end{DoxyCode}
+
+
+Read data
+
+
+\begin{DoxyCode}
+\textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);
+\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);
+\end{DoxyCode}
+
+
+Create solver factory
+
+
+\begin{DoxyCode}
+\textcolor{keyword}{auto} solver\_gen =
+    cg::build()
+        .with\_criteria(
+            gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),
+            \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                .with\_reduction\_factor(1e-20)
+                .on(exec))
+\end{DoxyCode}
+
+
+Add preconditioner, these 2 lines are the only difference from the simple solver example
+
+
+\begin{DoxyCode}
+.with\_preconditioner(bj::build().with\_max\_block\_size(8u).on(exec))
+.on(exec);
+\end{DoxyCode}
+
+
+Create solver
+
+
+\begin{DoxyCode}
+\textcolor{keyword}{auto} solver = solver\_gen->generate(A);
+\end{DoxyCode}
+
+
+Solve system
+
+
+\begin{DoxyCode}
+solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+\end{DoxyCode}
+
+
+Print solution
+
+
+\begin{DoxyCode}
+std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};
+\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+\end{DoxyCode}
+
+
+Calculate residual
+
+
+\begin{DoxyCode}
+    \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = gko::initialize<vec>(\{1.0\}, exec);
+    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-1.0\}, exec);
+    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);
+    A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    b->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
+
+    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r^T r): \(\backslash\)n"};
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
+\}
+\end{DoxyCode}
+ \label{_Results}%
+\section*{Results}
+
+\label{_Commentsaboutprogramminganddebugging}%
+\paragraph*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \section*{The plain program}
+
+
+\begin{DoxyCodeInclude}
+\end{DoxyCodeInclude}
+ 

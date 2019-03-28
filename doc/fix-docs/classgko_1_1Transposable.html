@@ -82,17 +82,17 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a5c6b778b71b47d53e0bda6ccf894d318"><td class="memItemLeft" align="right" valign="top">virtual std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">transpose</a> () const =0</td></tr>
-<tr class="memdesc:a5c6b778b71b47d53e0bda6ccf894d318"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a5c6b778b71b47d53e0bda6ccf894d318">More...</a><br /></td></tr>
+<tr class="memdesc:a5c6b778b71b47d53e0bda6ccf894d318"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a5c6b778b71b47d53e0bda6ccf894d318">More...</a><br /></td></tr>
 <tr class="separator:a5c6b778b71b47d53e0bda6ccf894d318"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab41b669288740cf2a6f7bf76e875b077"><td class="memItemLeft" align="right" valign="top">virtual std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">conj_transpose</a> () const =0</td></tr>
-<tr class="memdesc:ab41b669288740cf2a6f7bf76e875b077"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#ab41b669288740cf2a6f7bf76e875b077">More...</a><br /></td></tr>
+<tr class="memdesc:ab41b669288740cf2a6f7bf76e875b077"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#ab41b669288740cf2a6f7bf76e875b077">More...</a><br /></td></tr>
 <tr class="separator:ab41b669288740cf2a6f7bf76e875b077"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Linear operators which support transposition should implement the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> interface. </p>
 <p>It provides two functionalities, the normal transpose and the conjugate transpose.</p>
-<p>The normal transpose returns the transpose of the linear operator without changing any of its elements representing the operation,  <img class="formulaInl" alt="$B = A^{T}\f$" src="form_13.png"/>.</p>
-<p>The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation,  <img class="formulaInl" alt="$B = A^{H}\f$" src="form_14.png"/>.</p>
+<p>The normal transpose returns the transpose of the linear operator without changing any of its elements representing the operation, <img class="formulaInl" alt="$B = A^{T}$" src="form_13.png"/>.</p>
+<p>The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation, <img class="formulaInl" alt="$B = A^{H}$" src="form_14.png"/>.</p>
 <h2>Example: Transposing a Csr matrix: </h2>
 <div class="fragment"><div class="line">{c++}</div><div class="line"><span class="comment">//Transposing an object of LinOp type.</span></div><div class="line"><span class="comment">//The object you want to transpose.</span></div><div class="line"><span class="keyword">auto</span> op = matrix::Csr::create(exec);</div><div class="line"><span class="comment">//Transpose the object by first converting it to a transposable type.</span></div><div class="line"><span class="keyword">auto</span> trans = op-&gt;transpose();</div></div><!-- fragment --> </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ab41b669288740cf2a6f7bf76e875b077"></a>
@@ -118,7 +118,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
 
 <p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a19890b1448497a50d57c16ed4c3bd820">gko::matrix::Dense&lt; ValueType &gt;</a>, and <a class="el" href="classgko_1_1matrix_1_1Coo.html#ac1d91c524ca616b4c9e5f2a62f3f55ce">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>.</p>
@@ -148,7 +148,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Returns a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object. </p>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
 
 <p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Csr.html#ab79e609214d6b4834d5961ee0a7d3519">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a64ea8e876f5390a535a2ef486bd5ab9a">gko::matrix::Dense&lt; ValueType &gt;</a>, and <a class="el" href="classgko_1_1matrix_1_1Coo.html#ae6533c08c7f818d3bdd80b2871784dab">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>.</p>
@@ -156,7 +156,7 @@ Public Member Functions</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="lin__op_8hpp_source.html">lin_op.hpp (9f8f3063)</a></li>
+<li>ginkgo/core/base/<a class="el" href="lin__op_8hpp_source.html">lin_op.hpp (6488e5e3)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

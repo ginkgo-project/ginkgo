@@ -1,0 +1,164 @@
+\hypertarget{group__stop}{}\section{Stopping criteria}
+\label{group__stop}\index{Stopping criteria@{Stopping criteria}}
+
+
+A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo.  
+
+
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespacegko_1_1stop}{gko\+::stop}
+\begin{DoxyCompactList}\small\item\em The Stopping criterion namespace . \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1stop_1_1Combined}{gko\+::stop\+::\+Combined}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Combined}{Combined} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Criterion}{gko\+::stop\+::\+Criterion}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion} class is a base class for all stopping criteria. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1stop_1_1CriterionArgs}{gko\+::stop\+::\+Criterion\+Args}
+\begin{DoxyCompactList}\small\item\em This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factory\+Criterion\+Factory\+::generate() method. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Iteration}{gko\+::stop\+::\+Iteration}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Iteration}{Iteration} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko\+::stop\+::\+Residual\+Norm\+Reduction$<$ Value\+Type $>$}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction} class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stopping__status}{gko\+::stopping\+\_\+status}
+\begin{DoxyCompactList}\small\item\em This class is used to keep track of the stopping status of one vector. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1stop_1_1Time}{Time} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{group__stop_ga5a998013602bad749e586a5664670cae}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY}(\+\_\+criterion,  \+\_\+parameters\+\_\+name,  \+\_\+factory\+\_\+name)
+\begin{DoxyCompactList}\small\item\em This macro will generate a default implementation of a Criterion\+Factory for the Criterion subclass it is defined in. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}\label{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}} 
+using \hyperlink{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}{gko\+::stop\+::\+Criterion\+Factory} = \hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}$<$ \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}, \hyperlink{structgko_1_1stop_1_1CriterionArgs}{Criterion\+Args} $>$
+\begin{DoxyCompactList}\small\item\em Declares an Abstract Factory specialized for Criterions. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Criterion , typename Parameters\+Type , typename Polymorphic\+Base  = Criterion\+Factory$>$ }\\using \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{gko\+::stop\+::\+Enable\+Default\+Criterion\+Factory} = \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}$<$ Concrete\+Factory, Concrete\+Criterion, Parameters\+Type, Polymorphic\+Base $>$
+\begin{DoxyCompactList}\small\item\em This is an alias for the \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory} mixin, which correctly sets the template parameters to enable a subclass of Criterion\+Factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename Factory\+Container $>$ }\\std\+::shared\+\_\+ptr$<$ const \hyperlink{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory} $>$ \hyperlink{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}{gko\+::stop\+::combine} (Factory\+Container \&\&factories)
+\begin{DoxyCompactList}\small\item\em Combines multiple criterion factories into a single combined criterion factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. 
+
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{group__stop_ga5a998013602bad749e586a5664670cae}\label{group__stop_ga5a998013602bad749e586a5664670cae}} 
+\index{Stopping criteria@{Stopping criteria}!G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY@{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY}}
+\index{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY@{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY}!Stopping criteria@{Stopping criteria}}
+\subsubsection{\texorpdfstring{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY}{GKO\_ENABLE\_CRITERION\_FACTORY}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY(\begin{DoxyParamCaption}\item[{}]{\+\_\+criterion,  }\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}
+\textcolor{keyword}{public}:                                                                      \(\backslash\)
+    const \_parameters\_name##\_type &get\_##\_parameters\_name() const            \(\backslash\)
+    \{                                                                        \(\backslash\)
+        return \_parameters\_name##\_;                                          \(\backslash\)
+    \}                                                                        \(\backslash\)
+                                                                             \(\backslash\)
+    class \_factory\_name                                                      \(\backslash\)
+        : \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{public ::gko::stop::EnableDefaultCriterionFactory}
+      <                 \(\backslash\)
+              \_factory\_name, \_criterion, \_parameters\_name##\_type> \{          \(\backslash\)
+        friend class ::gko::EnablePolymorphicObject<                         \(\backslash\)
+            \_factory\_name, \hyperlink{classgko_1_1AbstractFactory}{::gko::stop::CriterionFactory}>;                   \(\backslash\)
+        friend class ::gko::enable\_parameters\_type<\_parameters\_name##\_type,  \(\backslash\)
+                                                   \_factory\_name>;           \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{\(\backslash\)}
+\hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{        using ::gko::stop::EnableDefaultCriterionFactory}
+      <                    \(\backslash\)
+            \_factory\_name, \_criterion,                                       \(\backslash\)
+            \_parameters\_name##\_type>\hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{::EnableDefaultCriterionFactory};        
+       \(\backslash\)
+    \};                                                                       \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{\(\backslash\)}
+\hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{    friend ::gko::stop::EnableDefaultCriterionFactory}<
+                             \(\backslash\)
+        \_factory\_name, \_criterion, \_parameters\_name##\_type>;                 \(\backslash\)
+                                                                             \(\backslash\)
+private:                                                                     \(\backslash\)
+    \_parameters\_name##\_type \_parameters\_name##\_;                             \(\backslash\)
+                                                                             \(\backslash\)
+public:                                                                      \(\backslash\)
+    static\_assert(\textcolor{keyword}{true},                                                      \(\backslash\)
+                  \textcolor{stringliteral}{"This assert is used to counter the false positive extra "} \(\backslash\)
+                  \textcolor{stringliteral}{"semi-colon warnings"})
+\end{DoxyCode}
+
+
+This macro will generate a default implementation of a Criterion\+Factory for the Criterion subclass it is defined in. 
+
+This macro is very similar to the macro \#\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+R\+Y(). A more detailed description of the use of these type of macros can be found there.
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+criterion} & concrete operator for which the factory is to be created \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em \+\_\+parameters\+\_\+name} & name of the parameters member in the class (its type is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+type}, the protected member\textquotesingle{}s name is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+}, and the public getter\textquotesingle{}s name is {\ttfamily get\+\_\+$<$\+\_\+parameters\+\_\+name$>$()}) \\
+\hline
+{\em \+\_\+factory\+\_\+name} & name of the generated factory type \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}\label{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}} 
+\index{Stopping criteria@{Stopping criteria}!Enable\+Default\+Criterion\+Factory@{Enable\+Default\+Criterion\+Factory}}
+\index{Enable\+Default\+Criterion\+Factory@{Enable\+Default\+Criterion\+Factory}!Stopping criteria@{Stopping criteria}}
+\subsubsection{\texorpdfstring{Enable\+Default\+Criterion\+Factory}{EnableDefaultCriterionFactory}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Concrete\+Criterion , typename Parameters\+Type , typename Polymorphic\+Base  = Criterion\+Factory$>$ \\
+using \hyperlink{group__stop_gab045b6fd7571f3234d9a63a5ee5a2252}{gko\+::stop\+::\+Enable\+Default\+Criterion\+Factory} = typedef \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}$<$Concrete\+Factory, Concrete\+Criterion, Parameters\+Type, Polymorphic\+Base$>$}
+
+
+
+This is an alias for the \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory} mixin, which correctly sets the template parameters to enable a subclass of Criterion\+Factory. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Factory} & the concrete factory which is being implemented \mbox{[}C\+R\+TP parmeter\mbox{]} \\
+\hline
+{\em Concrete\+Criterion} & the concrete \hyperlink{classgko_1_1stop_1_1Criterion}{Criterion} type which this factory produces, needs to have a constructor which takes a const Concrete\+Factory $\ast$, and a const \hyperlink{structgko_1_1stop_1_1CriterionArgs}{Criterion\+Args} $\ast$ as parameters. \\
+\hline
+{\em Parameters\+Type} & a subclass of \hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type} template which defines all of the parameters of the factory \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Factory in the polymorphic hierarchy, has to be a subclass of Criterion\+Factory \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}\label{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}} 
+\index{Stopping criteria@{Stopping criteria}!combine@{combine}}
+\index{combine@{combine}!Stopping criteria@{Stopping criteria}}
+\subsubsection{\texorpdfstring{combine()}{combine()}}
+{\footnotesize\ttfamily template$<$typename Factory\+Container $>$ \\
+std\+::shared\+\_\+ptr$<$const \hyperlink{group__stop_gab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory}$>$ gko\+::stop\+::combine (\begin{DoxyParamCaption}\item[{Factory\+Container \&\&}]{factories }\end{DoxyParamCaption})}
+
+
+
+Combines multiple criterion factories into a single combined criterion factory. 
+
+This function treats a singleton container as a special case and avoids creating an additional object and just returns the input factory.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Factory\+Container} & a random access container type\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em factories} & a list of factories to combined\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a combined criterion factory if the input contains multiple factories or the input factory if the input contains only one factory 
+\end{DoxyReturn}

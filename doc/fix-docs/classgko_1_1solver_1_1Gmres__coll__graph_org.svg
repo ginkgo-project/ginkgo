@@ -68,7 +68,7 @@
 <!-- Node4 -->
 <g id="node5" class="node">
 <title>Node4</title>
-<g id="a_node5"><a xlink:href="classgko_1_1LinOp.html" target="_top" xlink:title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">
+<g id="a_node5"><a xlink:href="classgko_1_1LinOp.html" target="_top" xlink:title="gko::LinOp">
 <polygon fill="#ffffff" stroke="#000000" points="960.5,-312 960.5,-331 1028.5,-331 1028.5,-312 960.5,-312"/>
 <text text-anchor="middle" x="994.5" y="-319" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::LinOp</text>
 </a>

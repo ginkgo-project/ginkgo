@@ -1,0 +1,687 @@
+\hypertarget{classgko_1_1log_1_1Record}{}\section{gko\+:\+:log\+:\+:Record Class Reference}
+\label{classgko_1_1log_1_1Record}\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+
+
+\hyperlink{classgko_1_1log_1_1Record}{Record} is a \hyperlink{classgko_1_1log_1_1Logger}{Logger} which logs every event to an object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/log/record.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:log\+:\+:Record\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=175pt]{classgko_1_1log_1_1Record__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structgko_1_1log_1_1Record_1_1logged__data}{logged\+\_\+data}
+\begin{DoxyCompactList}\small\item\em Struct storing the actually logged data. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classgko_1_1log_1_1Record_af3817911ba7d0156173e81915475a3e9}{on\+\_\+allocation\+\_\+started} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+bytes) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s allocation started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a197ace14db88f4205ed389f3ab66f1e9}{on\+\_\+allocation\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+bytes, const uintptr \&location) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s allocation completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a8504ad719285da3e6058ac4605c26f78}{on\+\_\+free\+\_\+started} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const uintptr \&location) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s free started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_adf97da4b8dbc28cebb83c57a73204fe5}{on\+\_\+free\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const uintptr \&location) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s free completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a3ea958c37228262151197ac2daa61f89}{on\+\_\+copy\+\_\+started} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$from, const \hyperlink{classgko_1_1Executor}{Executor} $\ast$to, const uintptr \&location\+\_\+from, const uintptr \&location\+\_\+to, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+bytes) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s copy started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a38e2969938c346ae1e7df52c79d30e07}{on\+\_\+copy\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$from, const \hyperlink{classgko_1_1Executor}{Executor} $\ast$to, const uintptr \&location\+\_\+from, const uintptr \&location\+\_\+to, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+bytes) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s copy completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_ae6557085190b7d18419e08d4da3de7c7}{on\+\_\+operation\+\_\+launched} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1Operation}{Operation} $\ast$operation) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s operation launched event (method run). \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_af5c3f24742e70415e5af72f3f8e4e8ef}{on\+\_\+operation\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1Operation}{Operation} $\ast$operation) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s operation completed event (method run). \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a3def7ea0736331d84be5c14235a8e16b}{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$po) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s create started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_aca799db6b0a17fcd13c473bf2c9ca821}{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$input, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$output) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s create completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a6e153b45f7919acba75d9eee25e6ee69}{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$from, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$to) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s copy started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a55c3f4b9780293f6203de821570d1c91}{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$from, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$to) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s copy completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a04ad5d1551374ee6c9efdc2adc6a8a01}{on\+\_\+polymorphic\+\_\+object\+\_\+deleted} (const \hyperlink{classgko_1_1Executor}{Executor} $\ast$exec, const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$po) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s deleted event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a892b07a5387719e02d8b9f9c5d3844b8}{on\+\_\+linop\+\_\+apply\+\_\+started} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$A, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s apply started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a54adbb5c0abd1f2b08865a45857d4585}{on\+\_\+linop\+\_\+apply\+\_\+completed} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$A, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s apply completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a39c554168e6c84594ee9a91a7f9b0f9c}{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$A, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$beta, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s advanced apply started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a09aa11420a9774e495e8a97b8f29582c}{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$A, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$beta, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s advanced apply completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_aed1c3d83b9749ff53546a001e3b387b0}{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started} (const \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} $\ast$factory, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$input) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op} Factory\textquotesingle{}s generate started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a6120652247f008878e0aba35479f2c14}{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed} (const \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} $\ast$factory, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$input, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$output) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1LinOp}{Lin\+Op} Factory\textquotesingle{}s generate completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a895c10338a345d55f0264a1b4fc96073}{on\+\_\+criterion\+\_\+check\+\_\+started} (const \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion} $\ast$criterion, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+iterations, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual\+\_\+norm, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$solution, const \hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} \&stopping\+\_\+id, const bool \&set\+\_\+finalized) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}\textquotesingle{}s check started event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a5193e064d6541cde6b456d6d9d0f6162}{on\+\_\+criterion\+\_\+check\+\_\+completed} (const \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion} $\ast$criterion, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+iterations, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual\+\_\+norm, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$solution, const \hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} \&stopping\+\_\+id, const bool \&set\+\_\+finalized, const \hyperlink{classgko_1_1Array}{Array}$<$ \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} $>$ $\ast$status, const bool \&one\+\_\+changed, const bool \&all\+\_\+converged) const override
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}\textquotesingle{}s check completed event. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1Record_a98999c72a91fd2fc061b03a40ea1c3fd}{on\+\_\+iteration\+\_\+complete} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$solver, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&num\+\_\+iterations, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$solution=nullptr, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$residual\+\_\+norm=nullptr) const override
+\begin{DoxyCompactList}\small\item\em Register the {\ttfamily iteration\+\_\+complete} event which logs every completed iterations. \end{DoxyCompactList}\item 
+const \hyperlink{structgko_1_1log_1_1Record_1_1logged__data}{logged\+\_\+data} \& \hyperlink{classgko_1_1log_1_1Record_ae64de3b730322ec8be7353aba30899b2}{get} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the logged data. \end{DoxyCompactList}\item 
+\hyperlink{structgko_1_1log_1_1Record_1_1logged__data}{logged\+\_\+data} \& \hyperlink{classgko_1_1log_1_1Record_a714affcca3269fed88b982e7db011184}{get} () noexcept
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1log_1_1Record}{Record} $>$ \hyperlink{classgko_1_1log_1_1Record_ab3863ff409b8ceaefa2f226a4e26debc}{create} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, const mask\+\_\+type \&enabled\+\_\+events=\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{Logger\+::all\+\_\+events\+\_\+mask}, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} max\+\_\+storage=1)
+\begin{DoxyCompactList}\small\item\em Creates a \hyperlink{classgko_1_1log_1_1Record}{Record} logger. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\hyperlink{classgko_1_1log_1_1Record}{Record} is a \hyperlink{classgko_1_1log_1_1Logger}{Logger} which logs every event to an object. 
+
+The object can then be accessed at any time by asking the logger to return it.
+
+\begin{DoxyNote}{Note}
+Please note that this logger can have significant memory and performance overhead. In particular, when logging events such as the {\ttfamily check} events, all parameters are cloned. If it is sufficient to clone one parameter, consider implementing a specific logger for this. In addition, it is advised to tune the history size in order to control memory overhead. 
+\end{DoxyNote}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_ab3863ff409b8ceaefa2f226a4e26debc}\label{classgko_1_1log_1_1Record_ab3863ff409b8ceaefa2f226a4e26debc}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!create@{create}}
+\index{create@{create}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily static std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1log_1_1Record}{Record}$>$ gko\+::log\+::\+Record\+::create (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{const mask\+\_\+type \&}]{enabled\+\_\+events = {\ttfamily \hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{Logger\+::all\+\_\+events\+\_\+mask}},  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{max\+\_\+storage = {\ttfamily 1} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Creates a \hyperlink{classgko_1_1log_1_1Record}{Record} logger. 
+
+This dynamically allocates the memory, constructs the object and returns an std\+::unique\+\_\+ptr to this object.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor \\
+\hline
+{\em enabled\+\_\+events} & the events enabled for this logger. By default all events. \\
+\hline
+{\em max\+\_\+storage} & the size of storage (i.\+e. history) wanted by the user. By default 0 is used, which means unlimited storage. It is advised to control this to reduce memory overhead of this logger.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+an std\+::unique\+\_\+ptr to the the constructed object 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_ae64de3b730322ec8be7353aba30899b2}\label{classgko_1_1log_1_1Record_ae64de3b730322ec8be7353aba30899b2}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!get@{get}}
+\index{get@{get}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{get()}{get()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily const \hyperlink{structgko_1_1log_1_1Record_1_1logged__data}{logged\+\_\+data}\& gko\+::log\+::\+Record\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Returns the logged data. 
+
+\begin{DoxyReturn}{Returns}
+the logged data 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a714affcca3269fed88b982e7db011184}\label{classgko_1_1log_1_1Record_a714affcca3269fed88b982e7db011184}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!get@{get}}
+\index{get@{get}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{get()}{get()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily \hyperlink{structgko_1_1log_1_1Record_1_1logged__data}{logged\+\_\+data}\& gko\+::log\+::\+Record\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+
+
+
+
+References gko\+::log\+::\+Logger\+::all\+\_\+events\+\_\+mask.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a197ace14db88f4205ed389f3ab66f1e9}\label{classgko_1_1log_1_1Record_a197ace14db88f4205ed389f3ab66f1e9}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+allocation\+\_\+completed@{on\+\_\+allocation\+\_\+completed}}
+\index{on\+\_\+allocation\+\_\+completed@{on\+\_\+allocation\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+allocation\+\_\+completed()}{on\_allocation\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+allocation\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{num\+\_\+bytes,  }\item[{const uintptr \&}]{location }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s allocation completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em num\+\_\+bytes} & the number of bytes allocated \\
+\hline
+{\em location} & the address at which the data was allocated \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_af3817911ba7d0156173e81915475a3e9}\label{classgko_1_1log_1_1Record_af3817911ba7d0156173e81915475a3e9}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+allocation\+\_\+started@{on\+\_\+allocation\+\_\+started}}
+\index{on\+\_\+allocation\+\_\+started@{on\+\_\+allocation\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+allocation\+\_\+started()}{on\_allocation\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+allocation\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{num\+\_\+bytes }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s allocation started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em num\+\_\+bytes} & the number of bytes to allocate \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a38e2969938c346ae1e7df52c79d30e07}\label{classgko_1_1log_1_1Record_a38e2969938c346ae1e7df52c79d30e07}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+copy\+\_\+completed@{on\+\_\+copy\+\_\+completed}}
+\index{on\+\_\+copy\+\_\+completed@{on\+\_\+copy\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+copy\+\_\+completed()}{on\_copy\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+copy\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec\+\_\+from,  }\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec\+\_\+to,  }\item[{const uintptr \&}]{loc\+\_\+from,  }\item[{const uintptr \&}]{loc\+\_\+to,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{num\+\_\+bytes }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s copy completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec\+\_\+from} & the executor copied from \\
+\hline
+{\em exec\+\_\+to} & the executor copied to \\
+\hline
+{\em loc\+\_\+from} & the address at which the data was copied from \\
+\hline
+{\em loc\+\_\+to} & the address at which the data was copied to \\
+\hline
+{\em num\+\_\+bytes} & the number of bytes copied \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a3ea958c37228262151197ac2daa61f89}\label{classgko_1_1log_1_1Record_a3ea958c37228262151197ac2daa61f89}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+copy\+\_\+started@{on\+\_\+copy\+\_\+started}}
+\index{on\+\_\+copy\+\_\+started@{on\+\_\+copy\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+copy\+\_\+started()}{on\_copy\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+copy\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec\+\_\+from,  }\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec\+\_\+to,  }\item[{const uintptr \&}]{loc\+\_\+from,  }\item[{const uintptr \&}]{loc\+\_\+to,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{num\+\_\+bytes }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s copy started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec\+\_\+from} & the executor to be copied from \\
+\hline
+{\em exec\+\_\+to} & the executor to be copied to \\
+\hline
+{\em loc\+\_\+from} & the address at which the data will be copied from \\
+\hline
+{\em loc\+\_\+to} & the address at which the data will be copied to \\
+\hline
+{\em num\+\_\+bytes} & the number of bytes to be copied \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a5193e064d6541cde6b456d6d9d0f6162}\label{classgko_1_1log_1_1Record_a5193e064d6541cde6b456d6d9d0f6162}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+criterion\+\_\+check\+\_\+completed@{on\+\_\+criterion\+\_\+check\+\_\+completed}}
+\index{on\+\_\+criterion\+\_\+check\+\_\+completed@{on\+\_\+criterion\+\_\+check\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+criterion\+\_\+check\+\_\+completed()}{on\_criterion\_check\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+criterion\+\_\+check\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion} $\ast$}]{criterion,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{it,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{r,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{tau,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x,  }\item[{const \hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} \&}]{stopping\+\_\+id,  }\item[{const bool \&}]{set\+\_\+finalized,  }\item[{const \hyperlink{classgko_1_1Array}{Array}$<$ \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} $>$ $\ast$}]{status,  }\item[{const bool \&}]{one\+\_\+changed,  }\item[{const bool \&}]{all\+\_\+converged }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}\textquotesingle{}s check completed event. 
+
+Parameters are the Criterion, the stopping\+Id, the finalized boolean, the stopping status, plus the output one\+\_\+changed boolean and output all\+\_\+converged boolean.
+
+
+\begin{DoxyParams}{Parameters}
+{\em criterion} & the criterion used \\
+\hline
+{\em it} & the current iteration count \\
+\hline
+{\em r} & the residual \\
+\hline
+{\em tau} & the residual norm \\
+\hline
+{\em x} & the solution \\
+\hline
+{\em stopping\+\_\+id} & the id of the stopping criterion \\
+\hline
+{\em set\+\_\+finalized} & whether this finalizes the iteration \\
+\hline
+{\em status} & the stopping status of the right hand sides \\
+\hline
+{\em one\+\_\+changed} & whether at least one right hand side converged or not \\
+\hline
+{\em all\+\_\+converged} & whether all right hand sides \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a895c10338a345d55f0264a1b4fc96073}\label{classgko_1_1log_1_1Record_a895c10338a345d55f0264a1b4fc96073}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+criterion\+\_\+check\+\_\+started@{on\+\_\+criterion\+\_\+check\+\_\+started}}
+\index{on\+\_\+criterion\+\_\+check\+\_\+started@{on\+\_\+criterion\+\_\+check\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+criterion\+\_\+check\+\_\+started()}{on\_criterion\_check\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+criterion\+\_\+check\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion} $\ast$}]{criterion,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{it,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{r,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{tau,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x,  }\item[{const \hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} \&}]{stopping\+\_\+id,  }\item[{const bool \&}]{set\+\_\+finalized }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}\textquotesingle{}s check started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em criterion} & the criterion used \\
+\hline
+{\em it} & the current iteration count \\
+\hline
+{\em r} & the residual \\
+\hline
+{\em tau} & the residual norm \\
+\hline
+{\em x} & the solution \\
+\hline
+{\em stopping\+\_\+id} & the id of the stopping criterion \\
+\hline
+{\em set\+\_\+finalized} & whether this finalizes the iteration \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_adf97da4b8dbc28cebb83c57a73204fe5}\label{classgko_1_1log_1_1Record_adf97da4b8dbc28cebb83c57a73204fe5}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+free\+\_\+completed@{on\+\_\+free\+\_\+completed}}
+\index{on\+\_\+free\+\_\+completed@{on\+\_\+free\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+free\+\_\+completed()}{on\_free\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+free\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const uintptr \&}]{location }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s free completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em location} & the address at which the data was freed \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a8504ad719285da3e6058ac4605c26f78}\label{classgko_1_1log_1_1Record_a8504ad719285da3e6058ac4605c26f78}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+free\+\_\+started@{on\+\_\+free\+\_\+started}}
+\index{on\+\_\+free\+\_\+started@{on\+\_\+free\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+free\+\_\+started()}{on\_free\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+free\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const uintptr \&}]{location }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s free started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em location} & the address at which the data will be freed \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a98999c72a91fd2fc061b03a40ea1c3fd}\label{classgko_1_1log_1_1Record_a98999c72a91fd2fc061b03a40ea1c3fd}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+iteration\+\_\+complete@{on\+\_\+iteration\+\_\+complete}}
+\index{on\+\_\+iteration\+\_\+complete@{on\+\_\+iteration\+\_\+complete}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+iteration\+\_\+complete()}{on\_iteration\_complete()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+iteration\+\_\+complete (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{solver,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{it,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{r,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x = {\ttfamily nullptr},  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{tau = {\ttfamily nullptr} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Register the {\ttfamily iteration\+\_\+complete} event which logs every completed iterations. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em it} & the current iteration count \\
+\hline
+{\em r} & the residual \\
+\hline
+{\em x} & the solution vector (optional) \\
+\hline
+{\em tau} & the residual norm (optional) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a09aa11420a9774e495e8a97b8f29582c}\label{classgko_1_1log_1_1Record_a09aa11420a9774e495e8a97b8f29582c}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed@{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed}}
+\index{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed@{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed()}{on\_linop\_advanced\_apply\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{A,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{beta,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s advanced apply completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & the system matrix \\
+\hline
+{\em alpha} & scaling of the result of op(b) \\
+\hline
+{\em b} & the input vector(s) \\
+\hline
+{\em beta} & scaling of the input x \\
+\hline
+{\em x} & the output vector(s) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a39c554168e6c84594ee9a91a7f9b0f9c}\label{classgko_1_1log_1_1Record_a39c554168e6c84594ee9a91a7f9b0f9c}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started@{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started}}
+\index{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started@{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started()}{on\_linop\_advanced\_apply\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+advanced\+\_\+apply\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{A,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{beta,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s advanced apply started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & the system matrix \\
+\hline
+{\em alpha} & scaling of the result of op(b) \\
+\hline
+{\em b} & the input vector(s) \\
+\hline
+{\em beta} & scaling of the input x \\
+\hline
+{\em x} & the output vector(s) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a54adbb5c0abd1f2b08865a45857d4585}\label{classgko_1_1log_1_1Record_a54adbb5c0abd1f2b08865a45857d4585}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+apply\+\_\+completed@{on\+\_\+linop\+\_\+apply\+\_\+completed}}
+\index{on\+\_\+linop\+\_\+apply\+\_\+completed@{on\+\_\+linop\+\_\+apply\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+apply\+\_\+completed()}{on\_linop\_apply\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+apply\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{A,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s apply completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & the system matrix \\
+\hline
+{\em b} & the input vector(s) \\
+\hline
+{\em x} & the output vector(s) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a892b07a5387719e02d8b9f9c5d3844b8}\label{classgko_1_1log_1_1Record_a892b07a5387719e02d8b9f9c5d3844b8}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+apply\+\_\+started@{on\+\_\+linop\+\_\+apply\+\_\+started}}
+\index{on\+\_\+linop\+\_\+apply\+\_\+started@{on\+\_\+linop\+\_\+apply\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+apply\+\_\+started()}{on\_linop\_apply\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+apply\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{A,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{x }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op}\textquotesingle{}s apply started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & the system matrix \\
+\hline
+{\em b} & the input vector(s) \\
+\hline
+{\em x} & the output vector(s) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a6120652247f008878e0aba35479f2c14}\label{classgko_1_1log_1_1Record_a6120652247f008878e0aba35479f2c14}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed@{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed}}
+\index{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed@{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed()}{on\_linop\_factory\_generate\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} $\ast$}]{factory,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{input,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{output }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op} Factory\textquotesingle{}s generate completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em factory} & the factory used \\
+\hline
+{\em input} & the \hyperlink{classgko_1_1LinOp}{Lin\+Op} object used as input for the generation (usually a system matrix) \\
+\hline
+{\em output} & the generated \hyperlink{classgko_1_1LinOp}{Lin\+Op} object \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_aed1c3d83b9749ff53546a001e3b387b0}\label{classgko_1_1log_1_1Record_aed1c3d83b9749ff53546a001e3b387b0}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started@{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started}}
+\index{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started@{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started()}{on\_linop\_factory\_generate\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+linop\+\_\+factory\+\_\+generate\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} $\ast$}]{factory,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{input }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1LinOp}{Lin\+Op} Factory\textquotesingle{}s generate started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em factory} & the factory used \\
+\hline
+{\em input} & the \hyperlink{classgko_1_1LinOp}{Lin\+Op} object used as input for the generation (usually a system matrix) \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_af5c3f24742e70415e5af72f3f8e4e8ef}\label{classgko_1_1log_1_1Record_af5c3f24742e70415e5af72f3f8e4e8ef}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+operation\+\_\+completed@{on\+\_\+operation\+\_\+completed}}
+\index{on\+\_\+operation\+\_\+completed@{on\+\_\+operation\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+operation\+\_\+completed()}{on\_operation\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+operation\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1Operation}{Operation} $\ast$}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s operation completed event (method run). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em op} & the completed operation\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+For the G\+PU, to be certain that the operation completed it is required to call synchronize. This burden falls on the logger. Most of the loggers will do lightweight logging, and therefore this operation for the G\+PU just notes that the \hyperlink{classgko_1_1Operation}{Operation} has been sent to the G\+PU. 
+\end{DoxyNote}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_ae6557085190b7d18419e08d4da3de7c7}\label{classgko_1_1log_1_1Record_ae6557085190b7d18419e08d4da3de7c7}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+operation\+\_\+launched@{on\+\_\+operation\+\_\+launched}}
+\index{on\+\_\+operation\+\_\+launched@{on\+\_\+operation\+\_\+launched}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+operation\+\_\+launched()}{on\_operation\_launched()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+operation\+\_\+launched (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1Operation}{Operation} $\ast$}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1Executor}{Executor}\textquotesingle{}s operation launched event (method run). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em op} & the operation launched \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a55c3f4b9780293f6203de821570d1c91}\label{classgko_1_1log_1_1Record_a55c3f4b9780293f6203de821570d1c91}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed@{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed}}
+\index{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed@{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed()}{on\_polymorphic\_object\_copy\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{input,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{output }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s copy completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em input} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be copied from \\
+\hline
+{\em output} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be copied to \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a6e153b45f7919acba75d9eee25e6ee69}\label{classgko_1_1log_1_1Record_a6e153b45f7919acba75d9eee25e6ee69}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started@{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started}}
+\index{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started@{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started()}{on\_polymorphic\_object\_copy\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+polymorphic\+\_\+object\+\_\+copy\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{input,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{output }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s copy started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em input} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be copied from \\
+\hline
+{\em output} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be copied to \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_aca799db6b0a17fcd13c473bf2c9ca821}\label{classgko_1_1log_1_1Record_aca799db6b0a17fcd13c473bf2c9ca821}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed@{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed}}
+\index{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed@{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed()}{on\_polymorphic\_object\_create\_completed()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+completed (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{input,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{output }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s create completed event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em input} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} used as model for the creation \\
+\hline
+{\em output} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} which was created \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a3def7ea0736331d84be5c14235a8e16b}\label{classgko_1_1log_1_1Record_a3def7ea0736331d84be5c14235a8e16b}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started@{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started}}
+\index{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started@{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started()}{on\_polymorphic\_object\_create\_started()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+polymorphic\+\_\+object\+\_\+create\+\_\+started (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{po }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s create started event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em po} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be created \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Record_a04ad5d1551374ee6c9efdc2adc6a8a01}\label{classgko_1_1log_1_1Record_a04ad5d1551374ee6c9efdc2adc6a8a01}} 
+\index{gko\+::log\+::\+Record@{gko\+::log\+::\+Record}!on\+\_\+polymorphic\+\_\+object\+\_\+deleted@{on\+\_\+polymorphic\+\_\+object\+\_\+deleted}}
+\index{on\+\_\+polymorphic\+\_\+object\+\_\+deleted@{on\+\_\+polymorphic\+\_\+object\+\_\+deleted}!gko\+::log\+::\+Record@{gko\+::log\+::\+Record}}
+\subsubsection{\texorpdfstring{on\+\_\+polymorphic\+\_\+object\+\_\+deleted()}{on\_polymorphic\_object\_deleted()}}
+{\footnotesize\ttfamily void gko\+::log\+::\+Record\+::on\+\_\+polymorphic\+\_\+object\+\_\+deleted (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{exec,  }\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{po }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s deleted event. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used \\
+\hline
+{\em po} & the \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} to be deleted \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \hyperlink{classgko_1_1log_1_1Logger}{gko\+::log\+::\+Logger}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/log/record.\+hpp (9f8f3063)\end{DoxyCompactItemize}

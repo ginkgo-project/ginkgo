@@ -106,7 +106,7 @@
 <area shape="rect" id="node107" href="$classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. " alt="" coords="1082,2479,1229,2505"/>
 <area shape="rect" id="node108" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ByInteraction, gko\l::stop::Criterion \&gt;" alt="" coords="1303,2461,1537,2517"/>
 <area shape="rect" id="node109" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ByInteraction, gko::stop\l::Criterion \&gt;" alt="" coords="1619,2461,1841,2517"/>
-<area shape="rect" id="node111" href="$classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="1110,1297,1201,1324"/>
+<area shape="rect" id="node111" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1110,1297,1201,1324"/>
 <area shape="rect" id="node112" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Bicgstab\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,5,1537,61"/>
 <area shape="rect" id="node114" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cg\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,152,1537,208"/>
 <area shape="rect" id="node116" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cgs\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,364,1537,420"/>

@@ -70,14 +70,9 @@ $(function() {
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classgko_1_1LinOp-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">gko::LinOp Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span><div class="ingroups"><a class="el" href="group__LinOp.html">Linear Operators</a></div></div>  </div>
+<div class="title">gko::LinOp Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div>  </div>
 </div><!--header-->
 <div class="contents">
-
-<p>The linear operator (<a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a>) is a base class for all linear algebra objects in Ginkgo.  
- <a href="classgko_1_1LinOp.html#details">More...</a></p>
-
-<p><code>#include &lt;<a class="el" href="lin__op_8hpp_source.html">ginkgo/core/base/lin_op.hpp</a>&gt;</code></p>
 <div class="dynheader">
 Collaboration diagram for gko::LinOp:</div>
 <div class="dyncontent">
@@ -160,22 +155,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <tr class="memdesc:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes a logger from the list of subscribed loggers.  <a href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">More...</a><br /></td></tr>
 <tr class="separator:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>The linear operator (<a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a>) is a base class for all linear algebra objects in Ginkgo. </p>
-<p>The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.</p>
-<p>First, since all subclasses provide a common interface, the library users are exposed to a smaller set of routines. For example, a matrix-vector product, a preconditioner application, or even a system solve are just different terms given to the operation of applying a certain linear operator to a vector. As such, Ginkgo uses the same routine name, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">LinOp::apply()</a> for each of these operations, where the actual operation performed depends on the type of linear operator involved in the operation.</p>
-<p>Second, a common interface often allows for writing more generic code. If a user's routine requires only operations provided by the <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a>. This allows the user to supply a wide variety of preconditioners: either the ones which were designed to be used in this scenario (like ILU or block-Jacobi), a user-supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.g., if constructing a flexible GMRES solver).</p>
-<p>A key observation for providing a unified interface for matrices, solvers, and preconditioners is that the most common operation performed on all of them can be expressed as an application of a linear operator to a vector:</p>
-<ul>
-<li>the sparse matrix-vector product with a matrix  <img class="formulaInl" alt="$A\f$" src="form_0.png"/> is a linear operator application  <img class="formulaInl" alt="$y = Ax\f$" src="form_1.png"/>;</li>
-<li>the application of a preconditioner is a linear operator application  <img class="formulaInl" alt="$y = M^{-1}x\f$" src="form_2.png"/>, where  <img class="formulaInl" alt="$M\f$" src="form_3.png"/> is an approximation of the original system matrix  <img class="formulaInl" alt="$A\f$" src="form_0.png"/> (thus a preconditioner represents an "approximate
-    inverse" operator  <img class="formulaInl" alt="$M^{-1}\f$" src="form_4.png"/>).</li>
-<li>the system solve  <img class="formulaInl" alt="$Ax = b\f$" src="form_5.png"/> can be viewed as linear operator application  <img class="formulaInl" alt="$x = A^{-1}b\f$" src="form_6.png"/> (it goes without saying that the implementation of linear system solves does not follow this conceptual idea), so a linear system solver can be viewed as a representation of the operator  <img class="formulaInl" alt="$A^{-1}\f$" src="form_7.png"/>.</li>
-</ul>
-<p>Finally, direct manipulation of <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> objects is rarely required in simple scenarios. As an illustrative example, one could construct a fixed-point iteration routine  <img class="formulaInl" alt="$x_{k+1} = Lx_k + b\f$" src="form_8.png"/> as follows:</p>
-<div class="fragment"><div class="line">std::unique_ptr&lt;matrix::Dense&lt;&gt;&gt; calculate_fixed_point(</div><div class="line">        <span class="keywordtype">int</span> iters, <span class="keyword">const</span> LinOp *L, <span class="keyword">const</span> matrix::Dense&lt;&gt; *x0</div><div class="line">        <span class="keyword">const</span> matrix::Dense&lt;&gt; *b)</div><div class="line">{</div><div class="line">    <span class="keyword">auto</span> x = <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(x0);</div><div class="line">    <span class="keyword">auto</span> tmp = <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(x0);</div><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = Dense&lt;&gt;::create(L-&gt;get_executor(), {1.0,});</div><div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; iters; ++i) {</div><div class="line">        L-&gt;apply(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(tmp), <a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(x));</div><div class="line">        x-&gt;add_scaled(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(<a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a>), <a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(b));</div><div class="line">        tmp-&gt;copy_from(<a class="code" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">gko::lend</a>(x));</div><div class="line">    }</div><div class="line">    <span class="keywordflow">return</span> x;</div><div class="line">}</div></div><!-- fragment --><p>Here, if  <img class="formulaInl" alt="$L\f$" src="form_9.png"/> is a matrix, <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">LinOp::apply()</a> refers to the matrix vector product, and <code>L-&gt;apply(a, b)</code> computes  <img class="formulaInl" alt="$b = L \cdot a\f$" src="form_10.png"/>. <code>x-&gt;add_scaled(one.get(), b.get())</code> is the <code>axpy</code> vector update  <img class="formulaInl" alt="$x:=x+b\f$" src="form_11.png"/>.</p>
-<p>The interesting part of this example is the <a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e" title="Applies a linear operator to a vector (or a sequence of vectors). ">apply()</a> routine at line 4 of the function body. Since this routine is part of the <a class="el" href="classgko_1_1LinOp.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. ">LinOp</a> base class, the fixed-point iteration routine can calculate a fixed point not only for matrices, but for any type of linear operator. </p>
-</div><h2 class="groupheader">Member Function Documentation</h2>
+<h2 class="groupheader">Member Function Documentation</h2>
 <a id="a0449b2fc705d2f970855af23b5e2788e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0449b2fc705d2f970855af23b5e2788e">&#9670;&nbsp;</a></span>apply() <span class="overload">[1/4]</span></h2>
 
@@ -397,7 +377,7 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="lin__op_8hpp_source.html">lin_op.hpp (9f8f3063)</a></li>
+<li>ginkgo/core/base/<a class="el" href="lin__op_8hpp_source.html">lin_op.hpp (6488e5e3)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
