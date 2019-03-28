@@ -38,14 +38,17 @@ endmacro()
 
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
-function(ginkgo_doc_gen name in pdf mainpage)
+function(ginkgo_doc_gen name in pdf mainpage-in)
     set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
     set(DIR_BASE "${CMAKE_SOURCE_DIR}")
     set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
-    set(MAINPAGE "${CMAKE_CURRENT_SOURCE_DIR}/pages/${mainpage}")
+    set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
     set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
+    ginkgo_doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/pages"
+        "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
+        )
     set(doxygen_base_input
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/ "
       )
