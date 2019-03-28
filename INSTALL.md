@@ -26,6 +26,8 @@ Ginkgo adds the following additional switches to control what is being built:
     (requires CUDA), default is `OFF`
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
+*   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
+     in Ginkgo. The default is `ON`.
 *   `-DGINKGO_DOC_GENERATE_PDF={ON, OFF}` generates a PDF version of Ginkgo's
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
