@@ -50,7 +50,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
         )
     set(doxygen_base_input
-      "${CMAKE_CURRENT_SOURCE_DIR}/headers/ "
+      "${CMAKE_CURRENT_SOURCE_DIR}/headers/"
       )
     list(APPEND doxygen_base_input
       ${DIR_BASE}/include

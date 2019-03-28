@@ -19,7 +19,7 @@ Ginkgo adds the following additional switches to control what is being built:
     (will download gflags and rapidjson), default is `ON`
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
-    kernels, useful for testing, default is `OFF`
+    kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
@@ -100,9 +100,15 @@ packages can be turned off by disabling the relevant options.
   helper for code formatting.
 
 By default, Ginkgo uses the internal version of each package. For each of the
-packages `GTEST`, `GFLAGS` and `RAPIDJSON` and `CAS`, it is possible to force
+packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, set the CMake
 option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
+
+If the external packages were not installed to the default location, the
+CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon
+(`;`) separated list of install paths of these external packages. For more
+Information, see the [CMake documentation for CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
+for details.
 
 ### Installing Ginkgo
 
