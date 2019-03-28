@@ -61,6 +61,41 @@ C++ features, so most of the effort here is in modifying the build system.)
 __TODO:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. We need to investigate this further.
 
+Contributing to Ginkgo
+---------------------------
+
+### Licensing
+
+Ginkgo is available under the [3-clause BSD license](LICENSE). All contributions
+to the project are added under this license.
+
+Depending on the configuration options used when building Ginkgo, third party
+software may be pulled as additional dependencies, which have their own
+licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
+details.
+
+### Contributing
+
+When contributing for the first time, please add yourself to the list of
+external contributors like in the example below.
+
+#### Contributors
+I hereby place all my contributions in this codebase under a BSD-3-Clause
+license, as specified in the repository's LICENSE file.
+
+Name Surname <email@domain> Institution(s)
+
+#### Contributing guidelines
+
+Contributing guidelines can be accessed in our Wiki under the [Developer's
+Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
+This page also contains other information useful to developers, such as writing
+proper commit messages, understanding Ginkgo's library design, relevant C++
+information, and more.
+
+In general, always refer to this page for developer information. If you think
+that anything is missing, feel free to [create an
+issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
 
 Installation
 ------------
@@ -326,7 +361,3 @@ the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).
-
-### Licensing
-
-Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for details.

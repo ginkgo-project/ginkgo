@@ -1,5 +1,5 @@
 I hereby place all my contributions in this codebase under a BSD-3-Clause
-licence, as specified in the repository's LICENSE file.
+license, as specified in the repository's LICENSE file.
 
 Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology, The University of Tennessee Knoxville
 Boman Erik <egboman@sandia.gov> Sandia National Laboratories

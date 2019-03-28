@@ -15,9 +15,10 @@ licensing conditions (note that all of these are extra utilities, and it is
 possible to obtain a fully functional installation of Ginkgo without any of
 them). They include the following:
 
-When compiling Ginkgo with `-DBUILT_TEST=ON`, the build system will download and
-build [Google Test](https://github.com/google/googletest), and link the binary
-with Ginkgo's unit tests. Google Test is available under the following license:
+When compiling Ginkgo with `-DGINKGO_BUILD_TEST=ON`, the build system will
+download and build [Google Test](https://github.com/google/googletest), and link
+the binary with Ginkgo's unit tests. Google Test is available under the
+following license:
 
 > Copyright 2008, Google Inc.
 > All rights reserved.
