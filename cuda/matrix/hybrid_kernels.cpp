@@ -37,20 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-/**
- * @brief The device specific kernels.
- *
- * \ingroup kernels
- */
 namespace kernels {
-/**
- * @brief cuda namespace.
- *
- * \ingroup cuda
- */
 namespace cuda {
 /**
- * @brief The Hybrid matrix format.
+ * @brief The Hybrid matrix format namespace.
  *
  * \ingroup hybrid
  */

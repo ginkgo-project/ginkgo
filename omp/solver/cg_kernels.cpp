@@ -43,17 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-/**
- * @brief The device specific kernels.
- *
- * \ingroup kernels
- */
 namespace kernels {
-/**
- * @brief OpenMP namespace.
- *
- * \ingroup omp
- */
 namespace omp {
 /**
  * @brief The CG solver.

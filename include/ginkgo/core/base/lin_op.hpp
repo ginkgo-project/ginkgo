@@ -52,6 +52,8 @@ namespace gko {
 
 
 /**
+ * @defgroup linop_class
+ *
  * The linear operator (LinOp) is a base class for all linear algebra objects
  * in Ginkgo. The main benefit of having a single base class for the
  * entire collection of linear algebra objects (as opposed to having separate

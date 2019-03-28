@@ -42,17 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 
 namespace gko {
-/**
- * @brief The device specific kernels.
- *
- * \ingroup kernels
- */
 namespace kernels {
-/**
- * @brief The CUDA namespace.
- *
- * \ingroup cuda
- */
 namespace cuda {
 /**
  * @brief The Residual norm reduction stopping criterion.

@@ -62,6 +62,9 @@ BUILTIN_STL_SUPPORT    = YES
 
 WARN_NO_PARAMDOC       = NO 
 WARN_AS_ERROR          = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = NO
+WARNINGS               = NO
 IMAGE_PATH             = @doxygen_image_path_str@
 INLINE_SOURCES         = NO
 STRIP_CODE_COMMENTS    = YES

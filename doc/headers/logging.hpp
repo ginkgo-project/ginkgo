@@ -37,4 +37,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @brief A module dedicated to the implementation and usage of the Logging in
  * Ginkgo.
  *
+ * @copydoc logger_class
  */

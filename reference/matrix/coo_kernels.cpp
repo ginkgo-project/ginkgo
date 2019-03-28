@@ -43,11 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-/**
- * @brief The device specific kernels.
- *
- * \ingroup kernels
- */
 namespace kernels {
 /**
  * @brief The Reference namespace.
@@ -56,7 +51,7 @@ namespace kernels {
  */
 namespace reference {
 /**
- * @brief The Coordinate matrix format.
+ * @brief The Coordinate matrix format namespace.
  *
  * \ingroup coo
  */
