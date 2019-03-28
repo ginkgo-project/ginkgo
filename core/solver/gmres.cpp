@@ -152,6 +152,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int total_iter = -1;
     size_type restart_iter = 0;
 
+    auto before_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(dense_x);
+    auto after_preconditioner =
+        matrix::Dense<ValueType>::create_with_config_of(dense_x);
+
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
@@ -167,11 +172,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         if (restart_iter == krylov_dim_) {
             // Restart
-            auto before_preconditioner =
-                matrix::Dense<ValueType>::create_with_config_of(dense_x);
-            auto after_preconditioner =
-                matrix::Dense<ValueType>::create_with_config_of(dense_x);
-
             exec->run(gmres::make_step_2(residual_norm_collection.get(),
                                          krylov_bases.get(), hessenberg.get(),
                                          y.get(), before_preconditioner.get(),
@@ -255,11 +255,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
-
-    auto before_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(dense_x);
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),

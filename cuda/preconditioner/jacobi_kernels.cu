@@ -274,7 +274,8 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
         blocks + storage_scheme.get_global_block_offset(block_id) +
             subwarp.thread_rank(),
         storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
-        x_stride);
+        x_stride,
+        [](ValueType &result, const ValueType &out) { result = out; });
 }
 
 
@@ -302,12 +303,13 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
         v = alpha[0] *
             b[(block_ptrs[block_id] + subwarp.thread_rank()) * b_stride];
     }
-    multiply_vec_add<max_block_size>(
+    multiply_vec<max_block_size>(
         subwarp, block_size, v,
         blocks + storage_scheme.get_global_block_offset(block_id) +
             subwarp.thread_rank(),
         storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
-        x_stride);
+        x_stride,
+        [](ValueType &result, const ValueType &out) { result += out; });
 }
 
 
@@ -343,7 +345,8 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
                 storage_scheme.get_block_offset(block_id) +
                 subwarp.thread_rank(),
             storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
-            x_stride));
+            x_stride,
+            [](ValueType &result, const ValueType &out) { result = out; }));
 }
 
 
@@ -375,14 +378,15 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     }
     GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
         ValueType, block_precisions[block_id],
-        multiply_vec_add<max_block_size>(
+        multiply_vec<max_block_size>(
             subwarp, block_size, v,
             reinterpret_cast<const resolved_precision *>(
                 blocks + storage_scheme.get_group_offset(block_id)) +
                 storage_scheme.get_block_offset(block_id) +
                 subwarp.thread_rank(),
             storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
-            x_stride));
+            x_stride,
+            [](ValueType &result, const ValueType &out) { result += out; }));
 }
 
 
