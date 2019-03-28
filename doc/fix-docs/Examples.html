@@ -96,62 +96,62 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <p>Now you should be able to run the program using:</p>
 <div class="fragment"><div class="line">env LD_LIBRARY_PATH=.:$\{LD_LIBRARY_PATH\} ./example-*</div></div><!-- fragment --><p><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
 <p>The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. </p><div class="dotgraph">
-<iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="482" height="420"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="1071" height="420"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <p><b>Legend:</b><br />
  </p><div class="dotgraph">
 <iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_2.svg" width="951" height="162"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <p><a class="anchor" id="list"></a> </p><h3>Example programs listed by number</h3>
 <table align="center" width="90%">
 <tr valign="top">
-<td width="100px"><a class="el" href="example_1.html">example-1</a> </td><td><p class="starttd">Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. </p>
+<td width="100px">simple-solver </td><td><p class="starttd">Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_2.html">example-2</a> </td><td><p class="starttd">A first step solver with CUDA. Solve a linear system on NVIDIA GPU's. </p>
+<td>minimal-cuda-solver </td><td><p class="starttd">A first step solver with CUDA. Solve a linear system on NVIDIA GPU's. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_3.html">example-3</a> </td><td><p class="starttd">Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. </p>
+<td>poisson-solver </td><td><p class="starttd">Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_4.html">example-4</a> </td><td><p class="starttd">Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. </p>
+<td>preconditioned-solver </td><td><p class="starttd">Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_5.html">example-5</a> </td><td><p class="starttd">Using a stencil to solve the poisson equation. Using array views. </p>
+<td>three-pt-stencil-solver </td><td><p class="starttd">Using a stencil to solve the poisson equation. Using array views. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_6.html">example-6</a> </td><td><p class="starttd">Interfacing with an external library. Using ginkgo's solver with deal.ii. </p>
+<td>external-lib-interfacing </td><td><p class="starttd">Interfacing with an external library. Using ginkgo's solver with deal.ii. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_7.html">example-7</a> </td><td><p class="starttd">Creating a matrix-free stencil solver. Using ginkgo's advanced methods to create your own custom matrix format to create a matrix free solver. </p>
+<td>custom-matrix-format </td><td><p class="starttd">Creating a matrix-free stencil solver. Using ginkgo's advanced methods to create your own custom matrix format to create a matrix free solver. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_8.html">example-8</a> </td><td><p class="starttd">Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. </p>
+<td>inverse-iteration </td><td><p class="starttd">Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_9.html">example-9</a> </td><td><p class="starttd">Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. </p>
+<td>simple-solver-logging </td><td><p class="starttd">Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_10.html">example-10</a> </td><td><p class="starttd">Using the PAPI logging library in Ginkgo to get advanced information about your code and its behaviour. </p>
+<td>papi-logging </td><td><p class="starttd">Using the PAPI logging library in Ginkgo to get advanced information about your code and its behaviour. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_11.html">example-11</a> </td><td><p class="starttd">Measuring the overhead of the ginkgo library. </p>
+<td>ginkgo-overhead </td><td><p class="starttd">Measuring the overhead of the ginkgo library. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_12.html">example-12</a> </td><td><p class="starttd">Creating a custom stopping criterion for the iterative solution process. </p>
+<td>custom-stopping-criterion </td><td><p class="starttd">Creating a custom stopping criterion for the iterative solution process. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td><a class="el" href="example_13.html">example-13</a> </td><td><p class="starttd">Using the ranges concept to factorize a matrix with the LU factorization. </p>
+<td>ginkgo-ranges </td><td><p class="starttd">Using the ranges concept to factorize a matrix with the LU factorization. </p>
 <p class="endtd"></p>
 </td></tr>
 </table>
@@ -159,50 +159,50 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <h4><b>Basic techniques</b></h4>
 <table align="center" width="90%">
 <tr valign="top">
-<td>Solving a simple linear system with choice of executors.  </td><td><p class="starttd"><a class="el" href="example_1.html">example-1</a>  </p>
+<td>Solving a simple linear system with choice of executors.  </td><td><p class="starttd">simple-solver  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using the CUDA executor  </td><td><p class="starttd"><a class="el" href="example_2.html">example-2</a>  </p>
+<td>Using the CUDA executor  </td><td><p class="starttd">minimal-cuda-solver  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Using preconditioners  </td><td><p class="starttd"><a class="el" href="example_4.html">example-4</a>  </p>
+<td width="400px">Using preconditioners  </td><td><p class="starttd">preconditioned-solver  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Solving a physically relevant problem  </td><td><p class="starttd"><a class="el" href="example_3.html">example-3</a>, <a class="el" href="example_5.html">example-5</a>, <a class="el" href="example_7.html">example-7</a>  </p>
+<td width="400px">Solving a physically relevant problem  </td><td><p class="starttd">poisson-solver, three-pt-stencil-solver, custom-matrix-format  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Reading in a matrix and right hand side from a file.  </td><td><p class="starttd"><a class="el" href="example_1.html">example-1</a>, <a class="el" href="example_2.html">example-2</a>, <a class="el" href="example_4.html">example-4</a>, <a class="el" href="example_8.html">example-8</a>, <a class="el" href="example_9.html">example-9</a>, <a class="el" href="example_10.html">example-10</a>, <a class="el" href="example_12.html">example-12</a>  </p>
+<td width="400px">Reading in a matrix and right hand side from a file.  </td><td><p class="starttd">simple-solver, minimal-cuda-solver, preconditioned-solver, inverse-iteration, simple-solver-logging, papi-logging, custom-stopping-criterion  </p>
 <p class="endtd"></p>
 </td></tr>
 </table>
 <h4><b>Advanced techniques</b></h4>
 <table align="center" width="90%">
 <tr valign="top">
-<td>Using ginkgo with external libraries.  </td><td><p class="starttd"><a class="el" href="example_6.html">example-6</a>  </p>
+<td>Using ginkgo with external libraries.  </td><td><p class="starttd">external-lib-interfacing  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Writing your own matrix format  </td><td><p class="starttd"><a class="el" href="example_7.html">example-7</a>  </p>
+<td width="400px">Writing your own matrix format  </td><td><p class="starttd">custom-matrix-format  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using Ginkgo to construct more complex linear algebra routines.  </td><td><p class="starttd"><a class="el" href="example_8.html">example-8</a>  </p>
+<td>Using Ginkgo to construct more complex linear algebra routines.  </td><td><p class="starttd">inverse-iteration  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Logging within Ginkgo.  </td><td><p class="starttd"><a class="el" href="example_9.html">example-9</a>, <a class="el" href="example_10.html">example-10</a>  </p>
+<td>Logging within Ginkgo.  </td><td><p class="starttd">simple-solver-logging, papi-logging  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Constructing your own stopping criterion.  </td><td><p class="starttd"><a class="el" href="example_12.html">example-12</a>  </p>
+<td>Constructing your own stopping criterion.  </td><td><p class="starttd">custom-stopping-criterion  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using ranges in Ginkgo.  </td><td><a class="el" href="example_13.html">example-13</a>   </td></tr>
+<td>Using ranges in Ginkgo.  </td><td>ginkgo-ranges   </td></tr>
 </table>
 </div></div><!-- contents -->
 <!-- start footer part -->

@@ -63,43 +63,43 @@ The following graph shows the connections between example programs and how they 
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-\hyperlink{example_1}{example-\/1} &Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. 
+simple-\/solver &Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. 
 
 \\\cline{1-2}
-\hyperlink{example_2}{example-\/2} &A first step solver with C\+U\+DA. Solve a linear system on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
+minimal-\/cuda-\/solver &A first step solver with C\+U\+DA. Solve a linear system on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
 
 \\\cline{1-2}
-\hyperlink{example_3}{example-\/3} &Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. 
+poisson-\/solver &Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. 
 
 \\\cline{1-2}
-\hyperlink{example_4}{example-\/4} &Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. 
+preconditioned-\/solver &Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. 
 
 \\\cline{1-2}
-\hyperlink{example_5}{example-\/5} &Using a stencil to solve the poisson equation. Using array views. 
+three-\/pt-\/stencil-\/solver &Using a stencil to solve the poisson equation. Using array views. 
 
 \\\cline{1-2}
-\hyperlink{example_6}{example-\/6} &Interfacing with an external library. Using ginkgo\textquotesingle{}s solver with deal.\+ii. 
+external-\/lib-\/interfacing &Interfacing with an external library. Using ginkgo\textquotesingle{}s solver with deal.\+ii. 
 
 \\\cline{1-2}
-\hyperlink{example_7}{example-\/7} &Creating a matrix-\/free stencil solver. Using ginkgo\textquotesingle{}s advanced methods to create your own custom matrix format to create a matrix free solver. 
+custom-\/matrix-\/format &Creating a matrix-\/free stencil solver. Using ginkgo\textquotesingle{}s advanced methods to create your own custom matrix format to create a matrix free solver. 
 
 \\\cline{1-2}
-\hyperlink{example_8}{example-\/8} &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
+inverse-\/iteration &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
 
 \\\cline{1-2}
-\hyperlink{example_9}{example-\/9} &Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. 
+simple-\/solver-\/logging &Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. 
 
 \\\cline{1-2}
-\hyperlink{example_10}{example-\/10} &Using the P\+A\+PI logging library in Ginkgo to get advanced information about your code and its behaviour. 
+papi-\/logging &Using the P\+A\+PI logging library in Ginkgo to get advanced information about your code and its behaviour. 
 
 \\\cline{1-2}
-\hyperlink{example_11}{example-\/11} &Measuring the overhead of the ginkgo library. 
+ginkgo-\/overhead &Measuring the overhead of the ginkgo library. 
 
 \\\cline{1-2}
-\hyperlink{example_12}{example-\/12} &Creating a custom stopping criterion for the iterative solution process. 
+custom-\/stopping-\/criterion &Creating a custom stopping criterion for the iterative solution process. 
 
 \\\cline{1-2}
-\hyperlink{example_13}{example-\/13} &Using the ranges concept to factorize a matrix with the LU factorization. 
+ginkgo-\/ranges &Using the ranges concept to factorize a matrix with the LU factorization. 
 
 \\\cline{1-2}
 \end{longtabu}
@@ -113,19 +113,19 @@ The following graph shows the connections between example programs and how they 
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-Solving a simple linear system with choice of executors.  &\hyperlink{example_1}{example-\/1}  
+Solving a simple linear system with choice of executors.  &simple-\/solver  
 
 \\\cline{1-2}
-Using the C\+U\+DA executor  &\hyperlink{example_2}{example-\/2}  
+Using the C\+U\+DA executor  &minimal-\/cuda-\/solver  
 
 \\\cline{1-2}
-Using preconditioners  &\hyperlink{example_4}{example-\/4}  
+Using preconditioners  &preconditioned-\/solver  
 
 \\\cline{1-2}
-Solving a physically relevant problem  &\hyperlink{example_3}{example-\/3}, \hyperlink{example_5}{example-\/5}, \hyperlink{example_7}{example-\/7}  
+Solving a physically relevant problem  &poisson-\/solver, three-\/pt-\/stencil-\/solver, custom-\/matrix-\/format  
 
 \\\cline{1-2}
-Reading in a matrix and right hand side from a file.  &\hyperlink{example_1}{example-\/1}, \hyperlink{example_2}{example-\/2}, \hyperlink{example_4}{example-\/4}, \hyperlink{example_8}{example-\/8}, \hyperlink{example_9}{example-\/9}, \hyperlink{example_10}{example-\/10}, \hyperlink{example_12}{example-\/12}  
+Reading in a matrix and right hand side from a file.  &simple-\/solver, minimal-\/cuda-\/solver, preconditioned-\/solver, inverse-\/iteration, simple-\/solver-\/logging, papi-\/logging, custom-\/stopping-\/criterion  
 
 \\\cline{1-2}
 \end{longtabu}
@@ -136,20 +136,20 @@ Reading in a matrix and right hand side from a file.  &\hyperlink{example_1}{exa
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-Using ginkgo with external libraries.  &\hyperlink{example_6}{example-\/6}  
+Using ginkgo with external libraries.  &external-\/lib-\/interfacing  
 
 \\\cline{1-2}
-Writing your own matrix format  &\hyperlink{example_7}{example-\/7}  
+Writing your own matrix format  &custom-\/matrix-\/format  
 
 \\\cline{1-2}
-Using Ginkgo to construct more complex linear algebra routines.  &\hyperlink{example_8}{example-\/8}  
+Using Ginkgo to construct more complex linear algebra routines.  &inverse-\/iteration  
 
 \\\cline{1-2}
-Logging within Ginkgo.  &\hyperlink{example_9}{example-\/9}, \hyperlink{example_10}{example-\/10}  
+Logging within Ginkgo.  &simple-\/solver-\/logging, papi-\/logging  
 
 \\\cline{1-2}
-Constructing your own stopping criterion.  &\hyperlink{example_12}{example-\/12}  
+Constructing your own stopping criterion.  &custom-\/stopping-\/criterion  
 
 \\\cline{1-2}
-Using ranges in Ginkgo.  &\hyperlink{example_13}{example-\/13}   \\\cline{1-2}
+Using ranges in Ginkgo.  &ginkgo-\/ranges   \\\cline{1-2}
 \end{longtabu}
