@@ -22,7 +22,7 @@ if ($#ARGV != 1) {
 
 $example=$ARGV[0];
 $example_underscore=$example;
-$example_underscore=~ s/-/_/;
+$example_underscore=~ s/-/_/g;
 
 $cmake_source_dir=$ARGV[1];
 
@@ -39,7 +39,6 @@ chop $shortintro;
 
 if ($shortintro ne "")
 {
-    # $shortintro =~ s/ /, /g;
     print "$shortintro.\n\n";
 }
 

@@ -29,11 +29,11 @@ while (my $line = <EXAMPLE>)
 
 # List of additional node attributes to highlight purpose and state of the example
 my %style = (
-    "basic"          => ',height=.8,width=.8,shape="octagon",fillcolor="green"',
-    "techniques"     => ',height=.35,width=.35,fillcolor="orange"',
-    "logging"         => ',height=.25,width=.25,fillcolor="yellow"',
-    "stopping-criteria"         => ',height=.25,width=.25,fillcolor="lightblue"',
-    "preconditioners" => ',height=.25,width=.25,fillcolor="blue"',
+    "basic"          => ',height=.8,width=.8,shape="octagon",fillcolor="forestgreen",peripheries=3',
+    "techniques"     => ',height=.35,width=.35,fillcolor="coral"',
+    "logging"         => ',height=.25,width=.25,fillcolor="gold"',
+    "stopping-criteria"         => ',height=.25,width=.25,fillcolor="deepskyblue"',
+    "preconditioners" => ',height=.25,width=.25,fillcolor="crimson"',
     "unfinished"     => ',height=.25,width=.25,style="dashed"',
     );
 
@@ -42,14 +42,14 @@ print << 'EOT'
 digraph ExamplesMap
 {
   overlap=false;
-  edge [fontname="FreeSans",
-        fontsize="10",
-        labelfontname="FreeSans",
-        labelfontsize="10",
+  edge [fontname="Helvetica",
+        fontsize="13",
+        labelfontname="Helvetica",
+        labelfontsize="12",
         color="black",
         style="solid"];
-  node [fontname="FreeSans",
-        fontsize="10",
+  node [fontname="Helvetica",
+        fontsize="12",
         shape="rectangle",
         height=0.2,
         width=0.4,
@@ -86,8 +86,6 @@ foreach $example (@ARGV)
 
       die "Unknown kind '$kind' in file $example/doc/kind" if (! defined $style{$kind});
 
-      # my $number = $example;
-      # $number =~ s/^.*-//;
       my $name = $example;
       $name =~ s/^.*examples\///;
       my $tag = $name;
@@ -129,14 +127,10 @@ foreach $example (@ARGV)
     my $destination;
     if (!($example =~ /code-gallery/))
     {
-      # my $number = $example;
-      # $number =~ s/^.*-//;
-      # $destination = "$example";
         my $name = $example;
         $name =~ s/^.*examples\///;
         my $tag = $name;
         $tag=~ s/-/_/g;
-        # $tag =~ s/[^a-zA-Z]/_/g;
         $destination = "$tag";
     }
     else
@@ -150,7 +144,7 @@ foreach $example (@ARGV)
 
     my $source;
     foreach $source (split ' ', $buildson) {
-        $source =~ $example; #s/example-/Example/g;
+        $source =~ $example;
         $source =~ s/^.*examples\///;
         $source =~ s/-/_/g;
         print "  $source -> $destination";
@@ -177,13 +171,13 @@ print << 'EOT'
 graph ExamplesDescription
 {
   overlap=false;
-  edge [fontname="FreeSans",
+  edge [fontname="Helvetica",
         fontsize="10",
-        labelfontname="FreeSans",
+        labelfontname="Helvetica",
         labelfontsize="10",
         color="black",
         style="solid"];
-  node [fontname="FreeSans",
+  node [fontname="Helvetica",
         fontsize="10",
         shape="rectangle",
         height=0.2,
