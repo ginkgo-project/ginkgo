@@ -1,5 +1,6 @@
 Installation Instructions
 -------------------------------------
+### Building 
 
 Use the standard cmake build procedure:
 

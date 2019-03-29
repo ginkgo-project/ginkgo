@@ -223,4 +223,4 @@ under the problematic JSON license):
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
 third-party licensing. Refer to the [Installation section in
-README.md](README.md#installation) for more details.
+INSTALL.md](INSTALL.md#Building) for more details.

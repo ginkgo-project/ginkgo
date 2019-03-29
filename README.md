@@ -84,7 +84,7 @@ An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
 with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/). 
 
-More details about this can be found in the [documentation](TODO)
+More details about this can be found in the [documentation](https://ginkgo-project.github.io/ginkgo/doc/master/)
 
 Contributing to Ginkgo
 ---------------------------
