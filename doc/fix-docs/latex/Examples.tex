@@ -63,43 +63,43 @@ The following graph shows the connections between example programs and how they 
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-simple-\/solver &Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. 
+\hyperlink{simple_solver}{The simple-\/solver program} &Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. 
 
 \\\cline{1-2}
-minimal-\/cuda-\/solver &A first step solver with C\+U\+DA. Solve a linear system on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
+\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program} &A first step solver with C\+U\+DA. Solve a linear system on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
 
 \\\cline{1-2}
-poisson-\/solver &Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. 
+\hyperlink{poisson_solver}{The poisson-\/solver program} &Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. 
 
 \\\cline{1-2}
-preconditioned-\/solver &Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. 
+\hyperlink{preconditioned_solver}{The preconditioned-\/solver program} &Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. 
 
 \\\cline{1-2}
-three-\/pt-\/stencil-\/solver &Using a stencil to solve the poisson equation. Using array views. 
+\hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program} &Using a stencil to solve the poisson equation. Using array views. 
 
 \\\cline{1-2}
-external-\/lib-\/interfacing &Interfacing with an external library. Using ginkgo\textquotesingle{}s solver with deal.\+ii. 
+\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program} &Interfacing with an external library. Using ginkgo\textquotesingle{}s solver with deal.\+ii. 
 
 \\\cline{1-2}
-custom-\/matrix-\/format &Creating a matrix-\/free stencil solver. Using ginkgo\textquotesingle{}s advanced methods to create your own custom matrix format to create a matrix free solver. 
+\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} &Creating a matrix-\/free stencil solver. Using ginkgo\textquotesingle{}s advanced methods to create your own custom matrix format to create a matrix free solver. 
 
 \\\cline{1-2}
-inverse-\/iteration &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
+\hyperlink{inverse_iteration}{The inverse-\/iteration program} &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
 
 \\\cline{1-2}
-simple-\/solver-\/logging &Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. 
+\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program} &Using the logging functionality in ginkgo to get solver and other information to diagnose and debug your code. 
 
 \\\cline{1-2}
-papi-\/logging &Using the P\+A\+PI logging library in Ginkgo to get advanced information about your code and its behaviour. 
+\hyperlink{papi_logging}{The papi-\/logging program} &Using the P\+A\+PI logging library in Ginkgo to get advanced information about your code and its behaviour. 
 
 \\\cline{1-2}
-ginkgo-\/overhead &Measuring the overhead of the ginkgo library. 
+\hyperlink{ginkgo_overhead}{The ginkgo-\/overhead program} &Measuring the overhead of the ginkgo library. 
 
 \\\cline{1-2}
-custom-\/stopping-\/criterion &Creating a custom stopping criterion for the iterative solution process. 
+\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program} &Creating a custom stopping criterion for the iterative solution process. 
 
 \\\cline{1-2}
-ginkgo-\/ranges &Using the ranges concept to factorize a matrix with the LU factorization. 
+\hyperlink{ginkgo_ranges}{The ginkgo-\/ranges program} &Using the ranges concept to factorize a matrix with the LU factorization. 
 
 \\\cline{1-2}
 \end{longtabu}
@@ -113,19 +113,19 @@ ginkgo-\/ranges &Using the ranges concept to factorize a matrix with the LU fact
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-Solving a simple linear system with choice of executors.  &simple-\/solver  
+Solving a simple linear system with choice of executors.  &\hyperlink{simple_solver}{The simple-\/solver program}  
 
 \\\cline{1-2}
-Using the C\+U\+DA executor  &minimal-\/cuda-\/solver  
+Using the C\+U\+DA executor  &\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}  
 
 \\\cline{1-2}
-Using preconditioners  &preconditioned-\/solver  
+Using preconditioners  &\hyperlink{preconditioned_solver}{The preconditioned-\/solver program}  
 
 \\\cline{1-2}
-Solving a physically relevant problem  &poisson-\/solver, three-\/pt-\/stencil-\/solver, custom-\/matrix-\/format  
+Solving a physically relevant problem  &\hyperlink{poisson_solver}{The poisson-\/solver program}, \hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program}, \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}  
 
 \\\cline{1-2}
-Reading in a matrix and right hand side from a file.  &simple-\/solver, minimal-\/cuda-\/solver, preconditioned-\/solver, inverse-\/iteration, simple-\/solver-\/logging, papi-\/logging, custom-\/stopping-\/criterion  
+Reading in a matrix and right hand side from a file.  &\hyperlink{simple_solver}{The simple-\/solver program}, \hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}, \hyperlink{preconditioned_solver}{The preconditioned-\/solver program}, \hyperlink{inverse_iteration}{The inverse-\/iteration program}, \hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}, \hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}  
 
 \\\cline{1-2}
 \end{longtabu}
@@ -136,20 +136,20 @@ Reading in a matrix and right hand side from a file.  &simple-\/solver, minimal-
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-Using ginkgo with external libraries.  &external-\/lib-\/interfacing  
+Using ginkgo with external libraries.  &\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program}  
 
 \\\cline{1-2}
-Writing your own matrix format  &custom-\/matrix-\/format  
+Writing your own matrix format  &\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}  
 
 \\\cline{1-2}
-Using Ginkgo to construct more complex linear algebra routines.  &inverse-\/iteration  
+Using Ginkgo to construct more complex linear algebra routines.  &\hyperlink{inverse_iteration}{The inverse-\/iteration program}  
 
 \\\cline{1-2}
-Logging within Ginkgo.  &simple-\/solver-\/logging, papi-\/logging  
+Logging within Ginkgo.  &\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}  
 
 \\\cline{1-2}
-Constructing your own stopping criterion.  &custom-\/stopping-\/criterion  
+Constructing your own stopping criterion.  &\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}  
 
 \\\cline{1-2}
-Using ranges in Ginkgo.  &ginkgo-\/ranges   \\\cline{1-2}
+Using ranges in Ginkgo.  &\hyperlink{ginkgo_ranges}{The ginkgo-\/ranges program}   \\\cline{1-2}
 \end{longtabu}

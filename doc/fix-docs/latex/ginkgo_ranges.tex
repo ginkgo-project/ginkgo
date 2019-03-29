@@ -137,6 +137,29 @@ print the factorization on screen
  \label{_Results}%
 \section*{Results}
 
+This is the expected output\+:
+
+
+\begin{DoxyCode}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  0.0.0 (develop)
+    the CUDA      module is  not compiled
+L = [
+  1.00 0.00 0.00 
+  2.00 1.00 0.00 
+  3.00 4.00 1.00 
+]
+
+U = [
+  2.00 4.00 5.00 
+  0.00 3.00 2.00 
+  0.00 0.00 1.00 
+]
+\end{DoxyCode}
+
+
 \label{_Commentsaboutprogramminganddebugging}%
 \paragraph*{Comments about programming and debugging }
 
@@ -145,5 +168,94 @@ print the factorization on screen
 
 
 \begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+\textcolor{preprocessor}{#include <iomanip>}
+\textcolor{preprocessor}{#include <iostream>}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Accessor>
+\textcolor{keywordtype}{void} factorize(\textcolor{keyword}{const} \hyperlink{classgko_1_1range}{gko::range<Accessor>} &A)
+\{
+    \textcolor{keyword}{using} \hyperlink{structgko_1_1span}{gko::span};
+    assert(A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(0) == A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(1));
+    \textcolor{keywordflow}{for} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type} i = 0; i < A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(0) - 1; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} trail = span\{i + 1, A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(0)\};
+        A(trail, i) = A(trail, i) / A(i, i);
+        A(trail, trail) = A(trail, trail) - mmul(A(trail, i), A(i, trail));
+    \}
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Accessor>
+\textcolor{keywordtype}{void} print\_lu(\textcolor{keyword}{const} \hyperlink{classgko_1_1range}{gko::range<Accessor>} &A)
+\{
+    std::cout << std::setprecision(2) << std::fixed;
+    std::cout << \textcolor{stringliteral}{"L = ["};
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(0); ++i) \{
+        std::cout << \textcolor{stringliteral}{"\(\backslash\)n  "};
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(1); ++j) \{
+            std::cout << (i > j ? A(i, j) : (i == j) * 1.) << \textcolor{stringliteral}{" "};
+        \}
+    \}
+    std::cout << \textcolor{stringliteral}{"\(\backslash\)n]\(\backslash\)n\(\backslash\)nU = ["};
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(0); ++i) \{
+        std::cout << \textcolor{stringliteral}{"\(\backslash\)n  "};
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < A.\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}(1); ++j) \{
+            std::cout << (i <= j ? A(i, j) : 0.) << \textcolor{stringliteral}{" "};
+        \}
+    \}
+    std::cout << \textcolor{stringliteral}{"\(\backslash\)n]"} << std::endl;
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    std::cout << \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}() << std::endl;
+
+    \textcolor{keywordtype}{double} data[] = \{
+        2.,  4.,  5., -1.0,
+        4., 11., 12., -1.0,
+        6., 24., 24., -1.0
+    \};
+
+    \textcolor{keyword}{auto} A = \hyperlink{classgko_1_1range}{gko::range<gko::accessor::row\_major<double, 2>}>(
+      data, 3u, 3u, 4u);
+
+    factorize(A);
+
+    print\_lu(A);
+\}
 \end{DoxyCodeInclude}
  

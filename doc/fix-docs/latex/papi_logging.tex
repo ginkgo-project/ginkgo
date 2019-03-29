@@ -264,5 +264,190 @@ Calculate residual
 
 
 \begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{preprocessor}{#include <include/ginkgo/ginkgo.hpp>}
+
+
+\textcolor{preprocessor}{#include <papi.h>}
+\textcolor{preprocessor}{#include <fstream>}
+\textcolor{preprocessor}{#include <iostream>}
+\textcolor{preprocessor}{#include <string>}
+\textcolor{preprocessor}{#include <thread>}
+
+
+\textcolor{keyword}{namespace }\{
+
+
+\textcolor{keywordtype}{void} papi\_add\_event(\textcolor{keyword}{const} std::string &event\_name, \textcolor{keywordtype}{int} &eventset)
+\{
+    \textcolor{keywordtype}{int} code;
+    \textcolor{keywordtype}{int} ret\_val = PAPI\_event\_name\_to\_code(event\_name.c\_str(), &code);
+    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;
+        std::exit(-1);
+    \}
+
+    ret\_val = PAPI\_add\_event(eventset, code);
+    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;
+        std::exit(-1);
+    \}
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} T>
+std::string to\_string(T *ptr)
+\{
+    std::ostringstream os;
+    os << reinterpret\_cast<gko::uintptr>(ptr);
+    \textcolor{keywordflow}{return} os.str();
+\}
+
+
+\}  \textcolor{comment}{// namespace}
+
+
+\textcolor{keywordtype}{int} init\_papi\_counters(std::string solver\_name, std::string A\_name)
+\{
+    \textcolor{keywordtype}{int} eventset = PAPI\_NULL;
+    \textcolor{keywordtype}{int} ret\_val = PAPI\_library\_init(PAPI\_VER\_CURRENT);
+    \textcolor{keywordflow}{if} (ret\_val != PAPI\_VER\_CURRENT) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_library\_init()"} << std::endl;
+        std::exit(-1);
+    \}
+    ret\_val = PAPI\_create\_eventset(&eventset);
+    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_create\_eventset()"} << std::endl;
+        std::exit(-1);
+    \}
+
+    std::string simple\_apply\_string(\textcolor{stringliteral}{"sde:::ginkgo0::linop\_apply\_completed::"});
+    std::string advanced\_apply\_string(
+        \textcolor{stringliteral}{"sde:::ginkgo0::linop\_advanced\_apply\_completed::"});
+    papi\_add\_event(simple\_apply\_string + solver\_name, eventset);
+    papi\_add\_event(simple\_apply\_string + A\_name, eventset);
+    papi\_add\_event(advanced\_apply\_string + A\_name, eventset);
+
+    ret\_val = PAPI\_start(eventset);
+    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_start()"} << std::endl;
+        std::exit(-1);
+    \}
+    \textcolor{keywordflow}{return} eventset;
+\}
+
+
+\textcolor{keywordtype}{void} print\_papi\_counters(\textcolor{keywordtype}{int} eventset)
+\{
+    \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} values[3];
+    \textcolor{keywordtype}{int} ret\_val = PAPI\_stop(eventset, values);
+    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{
+        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_stop()"} << std::endl;
+        std::exit(-1);
+    \}
+
+    PAPI\_shutdown();
+
+    std::cout << \textcolor{stringliteral}{"PAPI SDE counters:"} << std::endl;
+    std::cout << \textcolor{stringliteral}{"solver did "} << values[0] << \textcolor{stringliteral}{" applies."} << std::endl;
+    std::cout << \textcolor{stringliteral}{"A did "} << values[1] << \textcolor{stringliteral}{" simple applies."} << std::endl;
+    std::cout << \textcolor{stringliteral}{"A did "} << values[2] << \textcolor{stringliteral}{" advanced applies."} << std::endl;
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>};
+    \textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>};
+    \textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>};
+
+    std::cout << \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}() << std::endl;
+
+    std::shared\_ptr<gko::Executor> exec;
+    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{
+        exec = gko::ReferenceExecutor::create();
+    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 && std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{
+        exec = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 && std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} &&
+               \hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}() > 0) \{
+        exec = \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, 
+      \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}());
+    \} \textcolor{keywordflow}{else} \{
+        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;
+        std::exit(-1);
+    \}
+
+    \textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);
+    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);
+
+    \textcolor{keyword}{auto} solver\_gen =
+        cg::build()
+            .with\_criteria(
+                gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),
+                \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                    .with\_reduction\_factor(1e-20)
+                    .on(exec))
+            .on(exec);
+    \textcolor{keyword}{auto} solver = solver\_gen->generate(A);
+
+    \textcolor{keywordtype}{int} eventset =
+        init\_papi\_counters(to\_string(solver.get()), to\_string(A.get()));
+
+
+    \textcolor{keyword}{auto} logger = gko::log::Papi<>::create(
+        exec, gko::log::Logger::linop\_apply\_completed\_mask |
+                  gko::log::Logger::linop\_advanced\_apply\_completed\_mask);
+    solver->add\_logger(logger);
+    A->add\_logger(logger);
+
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+
+
+    print\_papi\_counters(eventset);
+
+    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+
+    \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = gko::initialize<vec>(\{1.0\}, exec);
+    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-1.0\}, exec);
+    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);
+    A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    b->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
+
+    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r^T r): \(\backslash\)n"};
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
+\}
 \end{DoxyCodeInclude}
  

@@ -167,9 +167,9 @@ Some shortcuts
 
 
 \begin{DoxyCode}
-\textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>};
-\textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>};
-\textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>};
+\textcolor{keyword}{using} vec = gko::matrix::Dense<double>;
+\textcolor{keyword}{using} mtx = gko::matrix::Csr<double, int>;
+\textcolor{keyword}{using} cg = gko::solver::Cg<double>;
 \textcolor{keyword}{using} bj = \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<double, int>};
 \textcolor{keyword}{using} val\_array = \hyperlink{classgko_1_1Array}{gko::Array<double>};
 \textcolor{keyword}{using} idx\_array = \hyperlink{classgko_1_1Array}{gko::Array<int>};
@@ -338,6 +338,36 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
  \label{_Results}%
 \section*{Results}
 
+This is the expected output\+:
+
+
+\begin{DoxyCode}
+0
+0.00010798
+0.000863838
+0.00291545
+0.0069107
+0.0134975
+0.0233236
+0.037037
+0.0552856
+0.0787172
+0.10798
+0.143721
+0.186589
+0.237231
+0.296296
+0.364431
+0.442285
+0.530504
+0.629738
+0.740633
+0.863838
+1
+The average relative error is 1.87318e-15
+\end{DoxyCode}
+
+
 \label{_Commentsaboutprogramminganddebugging}%
 \paragraph*{Comments about programming and debugging }
 
@@ -346,5 +376,225 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
 
 
 \begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{comment}{/*****************************<DECSRIPTION>***********************************}
+\textcolor{comment}{This example solves a 1D Poisson equation:}
+\textcolor{comment}{}
+\textcolor{comment}{    u : [0, 1] -> R}
+\textcolor{comment}{    u'' = f}
+\textcolor{comment}{    u(0) = u0}
+\textcolor{comment}{    u(1) = u1}
+\textcolor{comment}{}
+\textcolor{comment}{using a finite difference method on an equidistant grid with `K` discretization}
+\textcolor{comment}{points (`K` can be controlled with a command line parameter). The discretization}
+\textcolor{comment}{is done via the second order Taylor polynomial:}
+\textcolor{comment}{}
+\textcolor{comment}{u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)}
+\textcolor{comment}{u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3)  / +}
+\textcolor{comment}{---------------------------------------------}
+\textcolor{comment}{-u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3)}
+\textcolor{comment}{}
+\textcolor{comment}{For an equidistant grid with K "inner" discretization points x1, ..., xk, and}
+\textcolor{comment}{step size h = 1 / (K + 1), the formula produces a system of linear equations}
+\textcolor{comment}{}
+\textcolor{comment}{           2u\_1 - u\_2     = -f\_1 h^2 + u0}
+\textcolor{comment}{-u\_(k-1) + 2u\_k - u\_(k+1) = -f\_k h^2,       k = 2, ..., K - 1}
+\textcolor{comment}{-u\_(K-1) + 2u\_K           = -f\_K h^2 + u1}
+\textcolor{comment}{}
+\textcolor{comment}{}
+\textcolor{comment}{which is then solved using Ginkgo's implementation of the CG method}
+\textcolor{comment}{preconditioned with block-Jacobi. It is also possible to specify on which}
+\textcolor{comment}{executor Ginkgo will solve the system via the command line.}
+\textcolor{comment}{The function `f` is set to `f(x) = 6x` (making the solution `u(x) = x^3`), but}
+\textcolor{comment}{that can be changed in the `main` function.}
+\textcolor{comment}{}
+\textcolor{comment}{The intention of the example is to show how Ginkgo can be integrated into}
+\textcolor{comment}{existing software - the `generate\_stencil\_matrix`, `generate\_rhs`,}
+\textcolor{comment}{`print\_solution`, `compute\_error` and `main` function do not reference Ginkgo at}
+\textcolor{comment}{all (i.e. they could have been there before the application developer decided to}
+\textcolor{comment}{use Ginkgo, and the only part where Ginkgo is introduced is inside the}
+\textcolor{comment}{`solve\_system` function.}
+\textcolor{comment}{*****************************<DECSRIPTION>**********************************/}
+
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+\textcolor{preprocessor}{#include <iostream>}
+\textcolor{preprocessor}{#include <map>}
+\textcolor{preprocessor}{#include <string>}
+\textcolor{preprocessor}{#include <vector>}
+
+
+\textcolor{keywordtype}{void} generate\_stencil\_matrix(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keywordtype}{int} *row\_ptrs,
+                             \textcolor{keywordtype}{int} *col\_idxs, \textcolor{keywordtype}{double} *values)
+\{
+    \textcolor{keywordtype}{int} pos = 0;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} coefs[] = \{-1, 2, -1\};
+    row\_ptrs[0] = pos;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} ofs : \{-1, 0, 1\}) \{
+            \textcolor{keywordflow}{if} (0 <= i + ofs && i + ofs < discretization\_points) \{
+                values[pos] = coefs[ofs + 1];
+                col\_idxs[pos] = i + ofs;
+                ++pos;
+            \}
+        \}
+        row\_ptrs[i + 1] = pos;
+    \}
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{void} generate\_rhs(\textcolor{keywordtype}{int} discretization\_points, Closure f, \textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1,
+                  \textcolor{keywordtype}{double} *rhs)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+        rhs[i] = -f(xi) * h * h;
+    \}
+    rhs[0] += u0;
+    rhs[discretization\_points - 1] += u1;
+\}
+
+
+\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1,
+                    \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u)
+\{
+    std::cout << u0 << \textcolor{charliteral}{'\(\backslash\)n'};
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        std::cout << u[i] << \textcolor{charliteral}{'\(\backslash\)n'};
+    \}
+    std::cout << u1 << std::endl;
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u,
+                       Closure correct\_u)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);
+    \textcolor{keyword}{auto} error = 0.0;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keyword}{using} std::abs;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+        error += \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(u[i] - correct\_u(xi)) / \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(correct\_u(xi));
+    \}
+    \textcolor{keywordflow}{return} error;
+\}
+
+
+\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string &executor\_string,
+                  \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points, \textcolor{keywordtype}{int} *row\_ptrs,
+                  \textcolor{keywordtype}{int} *col\_idxs, \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *u,
+                  \textcolor{keywordtype}{double} accuracy)
+\{
+    \textcolor{keyword}{using} vec = gko::matrix::Dense<double>;
+    \textcolor{keyword}{using} mtx = gko::matrix::Csr<double, int>;
+    \textcolor{keyword}{using} cg = gko::solver::Cg<double>;
+    \textcolor{keyword}{using} bj = \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<double, int>};
+    \textcolor{keyword}{using} val\_array = \hyperlink{classgko_1_1Array}{gko::Array<double>};
+    \textcolor{keyword}{using} idx\_array = \hyperlink{classgko_1_1Array}{gko::Array<int>};
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} &dp = discretization\_points;
+
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
+        \{\textcolor{stringliteral}{"omp"}, omp\},
+        \{\textcolor{stringliteral}{"cuda"}, \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, omp)\},
+        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];
+
+
+    \textcolor{keyword}{auto} matrix = mtx::create(exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp),
+                              val\_array::view(app\_exec, 3 * dp - 2, values),
+                              idx\_array::view(app\_exec, 3 * dp - 2, col\_idxs),
+                              idx\_array::view(app\_exec, dp + 1, row\_ptrs));
+
+    \textcolor{keyword}{auto} b = vec::create(exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp, 1),
+                         val\_array::view(app\_exec, dp, rhs), 1);
+
+    \textcolor{keyword}{auto} x = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp, 1),
+                         val\_array::view(app\_exec, dp, u), 1);
+
+    \textcolor{keyword}{auto} solver\_gen =
+        cg::build()
+            .with\_criteria(
+                gko::stop::Iteration::build().with\_max\_iters(dp).on(exec),
+                \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                    .with\_reduction\_factor(accuracy)
+                    .on(exec))
+            .with\_preconditioner(bj::build().on(exec))
+            .on(exec);
+    \textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
+
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keywordflow}{if} (argc < 2) \{
+        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}
+                  << std::endl;
+        std::exit(-1);
+    \}
+
+    \textcolor{keyword}{const} \textcolor{keywordtype}{int} discretization\_points = argc >= 2 ? std::atoi(argv[1]) : 100;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};
+
+    \textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} x * x * x; \};
+    \textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} 6 * x; \};
+    \textcolor{keyword}{auto} u0 = correct\_u(0);
+    \textcolor{keyword}{auto} u1 = correct\_u(1);
+
+    std::vector<int> row\_ptrs(discretization\_points + 1);
+    std::vector<int> col\_idxs(3 * discretization\_points - 2);
+    std::vector<double> values(3 * discretization\_points - 2);
+    std::vector<double> rhs(discretization\_points);
+    std::vector<double> u(discretization\_points, 0.0);
+
+    generate\_stencil\_matrix(discretization\_points, row\_ptrs.data(),
+                            col\_idxs.data(), values.data());
+    generate\_rhs(discretization\_points, f, u0, u1, rhs.data());
+
+    solve\_system(executor\_string, discretization\_points, row\_ptrs.data(),
+                 col\_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);
+
+    print\_solution(discretization\_points, 0, 1, u.data());
+    std::cout << \textcolor{stringliteral}{"The average relative error is "}
+              << calculate\_error(discretization\_points, u.data(), correct\_u) /
+                     discretization\_points
+              << std::endl;
+\}
 \end{DoxyCodeInclude}
  

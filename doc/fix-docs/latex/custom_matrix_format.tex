@@ -388,5 +388,243 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 
 
 \begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{preprocessor}{#include <iostream>}
+\textcolor{preprocessor}{#include <map>}
+\textcolor{preprocessor}{#include <string>}
+
+
+\textcolor{preprocessor}{#include <omp.h>}
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+
+
+\textcolor{keyword}{extern} \textcolor{keywordtype}{void} stencil\_kernel(std::size\_t size, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *coefs,
+                           \textcolor{keyword}{const} \textcolor{keywordtype}{double} *b, \textcolor{keywordtype}{double} *x);
+
+
+\textcolor{keyword}{class }StencilMatrix : \textcolor{keyword}{public} \hyperlink{classgko_1_1EnableLinOp}{gko::EnableLinOp}<StencilMatrix>,
+                      \textcolor{keyword}{public} \hyperlink{classgko_1_1EnableCreateMethod}{gko::EnableCreateMethod}<StencilMatrix> \{
+\textcolor{keyword}{public}:
+    StencilMatrix(std::shared\_ptr<const gko::Executor> exec,
+                  \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type} size = 0, \textcolor{keywordtype}{double} left = -1.0,
+                  \textcolor{keywordtype}{double} center = 2.0, \textcolor{keywordtype}{double} right = -1.0)
+        : \hyperlink{namespacegko}{gko}::EnableLinOp<StencilMatrix>(exec, \hyperlink{namespacegko}{gko}::dim<2>\{size\}),
+          coefficients(exec, \{left, center, right\})
+    \{\}
+
+\textcolor{keyword}{protected}:
+    \textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>};
+    \textcolor{keyword}{using} coef\_type = \hyperlink{classgko_1_1Array}{gko::Array<double>};
+
+    \textcolor{keywordtype}{void} apply\_impl(\textcolor{keyword}{const} \hyperlink{classgko_1_1LinOp}{gko::LinOp} *b, \hyperlink{classgko_1_1LinOp}{gko::LinOp} *x)\textcolor{keyword}{ const override}
+\textcolor{keyword}{    }\{
+        \textcolor{keyword}{auto} dense\_b = gko::as<vec>(b);
+        \textcolor{keyword}{auto} dense\_x = gko::as<vec>(x);
+
+        \textcolor{keyword}{struct }stencil\_operation : \hyperlink{classgko_1_1Operation}{gko::Operation} \{
+            stencil\_operation(\textcolor{keyword}{const} coef\_type &coefficients, \textcolor{keyword}{const} vec *b,
+                              vec *x)
+                : coefficients\{coefficients\}, b\{b\}, x\{x\}
+            \{\}
+
+            \textcolor{keywordtype}{void} run(std::shared\_ptr<const gko::OmpExecutor>)\textcolor{keyword}{ const override}
+\textcolor{keyword}{            }\{
+                \textcolor{keyword}{auto} b\_values = b->get\_const\_values();
+                \textcolor{keyword}{auto} x\_values = x->get\_values();
+\textcolor{preprocessor}{#pragma omp parallel for}
+                \textcolor{keywordflow}{for} (std::size\_t i = 0; i < x->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
+                    \textcolor{keyword}{auto} coefs = coefficients.get\_const\_data();
+                    \textcolor{keyword}{auto} result = coefs[1] * b\_values[i];
+                    \textcolor{keywordflow}{if} (i > 0) \{
+                        result += coefs[0] * b\_values[i - 1];
+                    \}
+                    \textcolor{keywordflow}{if} (i < x->get\_size()[0] - 1) \{
+                        result += coefs[2] * b\_values[i + 1];
+                    \}
+                    x\_values[i] = result;
+                \}
+            \}
+
+            \textcolor{keywordtype}{void} run(std::shared\_ptr<const gko::CudaExecutor>)\textcolor{keyword}{ const override}
+\textcolor{keyword}{            }\{
+                stencil\_kernel(x->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0], coefficients.get\_const\_data(),
+                               b->get\_const\_values(), x->get\_values());
+            \}
+
+
+            \textcolor{keyword}{const} coef\_type &coefficients;
+            \textcolor{keyword}{const} vec *b;
+            vec *x;
+        \};
+        this->get\_executor()->run(
+            stencil\_operation(coefficients, dense\_b, dense\_x));
+    \}
+
+    \textcolor{keywordtype}{void} apply\_impl(\textcolor{keyword}{const} \hyperlink{classgko_1_1LinOp}{gko::LinOp} *alpha, \textcolor{keyword}{const} \hyperlink{classgko_1_1LinOp}{gko::LinOp} *b,
+                    \textcolor{keyword}{const} \hyperlink{classgko_1_1LinOp}{gko::LinOp} *beta, \hyperlink{classgko_1_1LinOp}{gko::LinOp} *x)\textcolor{keyword}{ const override}
+\textcolor{keyword}{    }\{
+        \textcolor{keyword}{auto} dense\_b = gko::as<vec>(b);
+        \textcolor{keyword}{auto} dense\_x = gko::as<vec>(x);
+        \textcolor{keyword}{auto} tmp\_x = dense\_x->clone();
+        this->apply\_impl(b, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
+        dense\_x->scale(beta);
+        dense\_x->add\_scaled(alpha, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
+    \}
+
+\textcolor{keyword}{private}:
+    coef\_type coefficients;
+\};
+
+
+\textcolor{keywordtype}{void} generate\_stencil\_matrix(\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>} *matrix)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = matrix->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0];
+    \textcolor{keyword}{auto} row\_ptrs = matrix->\hyperlink{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}{get\_row\_ptrs}();
+    \textcolor{keyword}{auto} col\_idxs = matrix->\hyperlink{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}{get\_col\_idxs}();
+    \textcolor{keyword}{auto} values = matrix->\hyperlink{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}{get\_values}();
+    \textcolor{keywordtype}{int} pos = 0;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} coefs[] = \{-1, 2, -1\};
+    row\_ptrs[0] = pos;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} ofs : \{-1, 0, 1\}) \{
+            \textcolor{keywordflow}{if} (0 <= i + ofs && i + ofs < discretization\_points) \{
+                values[pos] = coefs[ofs + 1];
+                col\_idxs[pos] = i + ofs;
+                ++pos;
+            \}
+        \}
+        row\_ptrs[i + 1] = pos;
+    \}
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{void} generate\_rhs(Closure f, \textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>} *rhs)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = rhs->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0];
+    \textcolor{keyword}{auto} values = rhs->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}();
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+        values[i] = -f(xi) * h * h;
+    \}
+    values[0] += u0;
+    values[discretization\_points - 1] += u1;
+\}
+
+
+\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \textcolor{keyword}{const} \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>} *u)
+\{
+    std::cout << u0 << \textcolor{charliteral}{'\(\backslash\)n'};
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
+        std::cout << u->\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}()[i] << \textcolor{charliteral}{'\(\backslash\)n'};
+    \}
+    std::cout << u1 << std::endl;
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>} *u,
+                       Closure correct\_u)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);
+    \textcolor{keyword}{auto} error = 0.0;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{
+        \textcolor{keyword}{using} std::abs;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+        error +=
+            \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(u->\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}()[i] - correct\_u(xi)) / 
+      \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(correct\_u(xi));
+    \}
+    \textcolor{keywordflow}{return} error;
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>};
+    \textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>};
+    \textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>};
+
+    \textcolor{keywordflow}{if} (argc < 2) \{
+        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}
+                  << std::endl;
+        std::exit(-1);
+    \}
+
+    \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points =
+        argc >= 2 ? std::atoi(argv[1]) : 100u;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};
+
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
+        \{\textcolor{stringliteral}{"omp"}, omp\},
+        \{\textcolor{stringliteral}{"cuda"}, \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, omp)\},
+        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};
+
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];
+
+    \textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} x * x * x; \};
+    \textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} 6 * x; \};
+    \textcolor{keyword}{auto} u0 = correct\_u(0);
+    \textcolor{keyword}{auto} u1 = correct\_u(1);
+
+    \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
+    generate\_rhs(f, u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs));
+    \textcolor{keyword}{auto} u = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
+        u->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}()[i] = 0.0;
+    \}
+
+    cg::build()
+        .with\_criteria(gko::stop::Iteration::build()
+                           .with\_max\_iters(discretization\_points)
+                           .on(exec),
+                       \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                           .with\_reduction\_factor(1e-6)
+                           .on(exec))
+        .on(exec)
+        ->generate(
+            StencilMatrix::create(exec, discretization\_points, -1, 2, -1))
+        ->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+
+    print\_solution(u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+    std::cout << \textcolor{stringliteral}{"The average relative error is "}
+              << calculate\_error(discretization\_points, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u), correct\_u) /
+                     discretization\_points
+              << std::endl;
+\}
 \end{DoxyCodeInclude}
  

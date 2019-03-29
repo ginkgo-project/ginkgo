@@ -56,7 +56,6 @@ var searchData=
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20int32_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, int32 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20int64_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, int64 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
-  ['convertibleto_3c_20stencilmatrix_20_3e',['ConvertibleTo&lt; StencilMatrix &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['coo',['Coo',['../classgko_1_1matrix_1_1Coo.html',1,'gko::matrix']]],
   ['coordinate',['coordinate',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af5d7aa3ba4929cc12dc51a92c59fabd3',1,'gko']]],
   ['copy_5fand_5fconvert_5fto',['copy_and_convert_to',['../namespacegko.html#ac5cef6e5e9e02b8d77ce01be41117cc0',1,'gko::copy_and_convert_to(std::shared_ptr&lt; const Executor &gt; exec, T *obj)'],['../namespacegko.html#add859060efaa729c84788bb4f6582e9f',1,'gko::copy_and_convert_to(std::shared_ptr&lt; const Executor &gt; exec, const T *obj)']]],

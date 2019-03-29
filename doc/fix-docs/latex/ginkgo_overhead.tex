@@ -78,6 +78,20 @@ The ginkgo overhead measurement example.
  \label{_Results}%
 \section*{Results}
 
+This is the expected output\+:
+
+
+\begin{DoxyCode}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  0.0.0 (develop)
+    the CUDA      module is  not compiled
+Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
+        Average library overhead:     1505.35 [nanoseconds / iteration]
+\end{DoxyCode}
+
+
 \label{_Commentsaboutprogramminganddebugging}%
 \paragraph*{Comments about programming and debugging }
 
@@ -86,5 +100,99 @@ The ginkgo overhead measurement example.
 
 
 \begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+
+
+\textcolor{preprocessor}{#include <chrono>}
+\textcolor{preprocessor}{#include <cmath>}
+\textcolor{preprocessor}{#include <iostream>}
+
+
+[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)
+\{
+    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;
+    std::exit(-1);
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keyword}{using} vec = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>};
+    \textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>};
+    \textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>};
+
+    \textcolor{keywordtype}{long} \textcolor{keywordtype}{unsigned} num\_iters = 1000000;
+    \textcolor{keywordflow}{if} (argc > 2) \{
+        print\_usage\_and\_exit(argv[0]);
+    \}
+    \textcolor{keywordflow}{if} (argc == 2) \{
+        num\_iters = std::atol(argv[1]);
+        \textcolor{keywordflow}{if} (num\_iters == 0) \{
+            print\_usage\_and\_exit(argv[0]);
+        \}
+    \}
+
+    std::cout << \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}() << std::endl;
+
+    \textcolor{keyword}{auto} exec = gko::ReferenceExecutor::create();
+
+    \textcolor{keyword}{auto} cg\_factory =
+        cg::build()
+            .with\_criteria(
+                gko::stop::Iteration::build().with\_max\_iters(num\_iters).on(
+                    exec))
+            .on(exec);
+    \textcolor{keyword}{auto} A = gko::initialize<mtx>(\{1.0\}, exec);
+    \textcolor{keyword}{auto} b = gko::initialize<vec>(\{std::nan(\textcolor{stringliteral}{""})\}, exec);
+    \textcolor{keyword}{auto} x = gko::initialize<vec>(\{0.0\}, exec);
+
+    \textcolor{keyword}{auto} tic = std::chrono::system\_clock::now();
+
+    \textcolor{keyword}{auto} solver = cg\_factory->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    exec->synchronize();
+
+    \textcolor{keyword}{auto} tac = std::chrono::system\_clock::now();
+
+    \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac - tic);
+    std::cout << \textcolor{stringliteral}{"Running "} << num\_iters
+              << \textcolor{stringliteral}{" iterations of the CG solver took a total of "}
+              << 1.0 * time.count() / std::nano::den << \textcolor{stringliteral}{" seconds."} << std::endl
+              << \textcolor{stringliteral}{"\(\backslash\)tAverage library overhead:     "}
+              << 1.0 * time.count() / num\_iters << \textcolor{stringliteral}{" [nanoseconds / iteration]"}
+              << std::endl;
+\}
 \end{DoxyCodeInclude}
  
