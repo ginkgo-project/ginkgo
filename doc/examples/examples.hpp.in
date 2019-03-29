@@ -101,7 +101,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * <table align="center" width="90%">
  *   <tr valign="top">
- *       <td width="100px">@ref simple_solver</td>
+ *       <td width="260px">@ref simple_solver</td>
  *       <td> Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file.
  *       </td></tr>
  *
