@@ -27,7 +27,6 @@ reflect the current state of the library.
 Prerequisites
 -------------
 
-
 ### Linux and Mac OS 
 
 For Ginkgo core library:
@@ -58,82 +57,11 @@ there. If you are interested in helping us with this effort, feel free to
 contact one of the developers. (The library itself doesn't use any non-standard
 C++ features, so most of the effort here is in modifying the build system.)
 
-__TODO:__ Some restrictions will also apply on the version of C and C++ standard
-libraries installed on the system. We need to investigate this further.
-
-Contributing to Ginkgo
----------------------------
-
-### Licensing
-
-Ginkgo is available under the [3-clause BSD license](LICENSE). All contributions
-to the project are added under this license.
-
-Depending on the configuration options used when building Ginkgo, third party
-software may be pulled as additional dependencies, which have their own
-licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
-details.
-
-### Contributing
-
-When contributing for the first time, please add yourself to the list of
-external contributors like in the example below.
-
-#### Contributors
-I hereby place all my contributions in this codebase under a BSD-3-Clause
-license, as specified in the repository's LICENSE file.
-
-Name Surname <email@domain> Institution(s)
-
-#### Contributing guidelines
-
-Contributing guidelines can be accessed in our Wiki under the [Developer's
-Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
-This page also contains other information useful to developers, such as writing
-proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more.
-
-In general, always refer to this page for developer information. If you think
-that anything is missing, feel free to [create an
-issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
+__Note:__ Some restrictions will also apply on the version of C and C++ standard
+libraries installed on the system. This needs further investigation.
 
 Quick Install
 ------------
-
-### Prerequisites
-
-#### Linux and Mac OS 
-
-For Ginkgo core library:
-
-*   _cmake 3.9+_
-*   C++11 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
-    *   _clang 3.9+_
-    *   _Apple LLVM 8.0+_ (__TODO__: verify)
-
-The Ginkgo CUDA module has the following __additional__ requirements:
-
-*   _CUDA 9.0+_
-*   Any host compiler restrictions your version of CUDA may impose also apply
-    here. For the newest CUDA version, this information can be found in the
-    [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
-    or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
-
-In addition, if you want to contribute code to Ginkgo, you will also need the
-following:
-
-*   _clang-format 5.0.1+_ (ships as part of _clang_)
-
-#### Windows
-
-Windows is currently not supported, but we are working on porting the library
-there. If you are interested in helping us with this effort, feel free to
-contact one of the developers. (The library itself doesn't use any non-standard
-C++ features, so most of the effort here is in modifying the build system.)
-
-__Note:__ Some restrictions will also apply on the version of C and C++ standard
-libraries installed on the system. This needs further investigation.
 
 ### Building Ginkgo
 
@@ -158,6 +86,38 @@ with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.
 
 More details about this can be found in the [documentation](TODO)
 
+Contributing to Ginkgo
+---------------------------
+
+### Contributing
+
+When contributing for the first time, please add yourself to the list of
+external contributors like in the example below.
+
+#### Contributors
+I hereby place all my contributions in this codebase under a BSD-3-Clause
+license, as specified in the repository's LICENSE file.
+
+Name Surname <email@domain> Institution(s)
+
+#### Contributing guidelines
+
+Contributing guidelines can be accessed in our Wiki under the [Developer's
+Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
+This page also contains other information useful to developers, such as writing
+proper commit messages, understanding Ginkgo's library design, relevant C++
+information, and more.
+
+In general, always refer to this page for developer information. If you think
+that anything is missing, feel free to [create an
+issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
+
 ### Licensing
 
-Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for details.
+Ginkgo is available under the [3-clause BSD license](LICENSE). All contributions
+to the project are added under this license.
+
+Depending on the configuration options used when building Ginkgo, third party
+software may be pulled as additional dependencies, which have their own
+licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
+details.
