@@ -220,14 +220,17 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
         for (size_type row_in_slice = 0; row_in_slice < slice_size;
              row_in_slice++) {
             auto row = slice * slice_size + row_in_slice;
-            for (size_type i = 0; i < tmp->get_const_slice_lengths()[slice];
-                 i++) {
-                const auto val = tmp->val_at(
-                    row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                if (val != zero<ValueType>() && row < tmp->get_size()[0]) {
-                    const auto col = tmp->col_at(
+            if (row < tmp->get_size()[0]) {
+                for (size_type i = 0; i < tmp->get_const_slice_lengths()[slice];
+                     i++) {
+                    const auto val = tmp->val_at(
                         row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                    data.nonzeros.emplace_back(row, col, val);
+                    if (val != zero<ValueType>()) {
+                        const auto col =
+                            tmp->col_at(row_in_slice,
+                                        tmp->get_const_slice_sets()[slice], i);
+                        data.nonzeros.emplace_back(row, col, val);
+                    }
                 }
             }
         }
