@@ -45,7 +45,7 @@ namespace reference {
 /**
  * @brief The CG solver.
  * @ref Cg
- * \ingroup cg
+ * @ingroup cg
  */
 namespace cg {
 

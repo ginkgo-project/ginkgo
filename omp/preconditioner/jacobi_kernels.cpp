@@ -59,7 +59,7 @@ namespace omp {
 /**
  * @brief The Jacobi preconditioner.
  *
- * \ingroup jacobi
+ * @ingroup jacobi
  */
 namespace jacobi {
 

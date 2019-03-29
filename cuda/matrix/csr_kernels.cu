@@ -63,7 +63,7 @@ namespace cuda {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
- * \ingroup csr
+ * @ingroup csr
  */
 namespace csr {
 

@@ -42,7 +42,7 @@ namespace reference {
 /**
  * @brief Setting of all statuses.
  * @ref set_status
- * \ingroup set_all_statuses
+ * @ingroup set_all_statuses
  */
 namespace set_all_statuses {
 

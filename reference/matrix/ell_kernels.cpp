@@ -45,7 +45,7 @@ namespace reference {
 /**
  * @brief The ELL matrix format.
  * @ref Ell
- * \ingroup ell
+ * @ingroup ell
  */
 namespace ell {
 

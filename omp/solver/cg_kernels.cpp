@@ -48,7 +48,7 @@ namespace omp {
 /**
  * @brief The CG solver.
  *
- * \ingroup cg
+ * @ingroup cg
  */
 namespace cg {
 

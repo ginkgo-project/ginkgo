@@ -47,7 +47,7 @@ namespace cuda {
 /**
  * @brief The BICGSTAB solver.
  *
- * \ingroup bicgstab
+ * @ingroup bicgstab
  */
 namespace bicgstab {
 

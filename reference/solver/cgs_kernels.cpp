@@ -44,7 +44,7 @@ namespace reference {
 /**
  * @brief The CGS solver.
  * @ref Cgs
- * \ingroup cgs
+ * @ingroup cgs
  */
 namespace cgs {
 

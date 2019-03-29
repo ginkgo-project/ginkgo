@@ -127,7 +127,7 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
@@ -349,7 +349,7 @@ private:
  * cg->apply(gko::lend(b), gko::lend(x));
  * ```
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 class LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
@@ -418,7 +418,7 @@ public:
  * A LinOp implementing this interface can read its data from a matrix_data
  * structure.
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
 class ReadableFromMatrixData {
@@ -438,7 +438,7 @@ public:
  * A LinOp implementing this interface can write its data to a matrix_data
  * structure.
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
 class WritableToMatrixData {
@@ -457,8 +457,8 @@ public:
 /**
  * A LinOp implementing this interface can be preconditioned.
  *
- * \ingroup precond
- * \ingroup LinOp
+ * @ingroup precond
+ * @ingroup LinOp
  */
 class Preconditionable {
 public:
@@ -501,7 +501,7 @@ public:
  * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
  *                          hierarchy, has to be a subclass of LinOp
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
 class EnableLinOp
@@ -585,7 +585,7 @@ protected:
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
  *                          hierarchy, has to be a subclass of LinOpFactory
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 template <typename ConcreteFactory, typename ConcreteLinOp,
           typename ParametersType, typename PolymorphicBase = LinOpFactory>
@@ -604,7 +604,7 @@ using EnableDefaultLinOpFactory =
  * @param _parameters_name  name of the parameters member in the class
  * @param _factory_name  name of the generated factory type
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 #define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
 public:                                                                \
@@ -684,7 +684,7 @@ public:                                                                \
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \
@@ -723,7 +723,7 @@ public:                                                                      \
  *
  * @param _factory_name  the factory for which to define the method
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 #define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \
     static auto build()->decltype(Factory::create())                         \
@@ -744,7 +744,7 @@ public:                                                                      \
  *
  * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
  *
- * \ingroup LinOp
+ * @ingroup LinOp
  */
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
     mutable _name{__VA_ARGS__};                                              \

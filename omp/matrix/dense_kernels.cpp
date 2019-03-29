@@ -54,7 +54,7 @@ namespace omp {
 /**
  * @brief The Dense matrix format.
  *
- * \ingroup dense
+ * @ingroup dense
  */
 namespace dense {
 

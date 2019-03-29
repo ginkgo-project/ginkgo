@@ -47,7 +47,7 @@ namespace cuda {
 /**
  * @brief The Residual norm reduction stopping criterion.
  * @ref resnorm
- * \ingroup resnorm
+ * @ingroup resnorm
  */
 namespace residual_norm_reduction {
 

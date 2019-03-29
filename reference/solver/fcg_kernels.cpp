@@ -44,7 +44,7 @@ namespace reference {
 /**
  * @brief The FCG solver.
  * @ref Fcg
- * \ingroup fcg
+ * @ingroup fcg
  */
 namespace fcg {
 

@@ -53,13 +53,13 @@ namespace kernels {
 /**
  * @brief The Cuda namespace.
  *
- * \ingroup cuda
+ * @ingroup cuda
  */
 namespace cuda {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * \ingroup coo
+ * @ingroup coo
  */
 namespace coo {
 

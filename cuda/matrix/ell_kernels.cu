@@ -60,7 +60,7 @@ namespace cuda {
 /**
  * @brief The ELL matrix format namespace.
  *
- * \ingroup ell
+ * @ingroup ell
  */
 namespace ell {
 

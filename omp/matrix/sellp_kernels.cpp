@@ -45,7 +45,7 @@ namespace omp {
 /**
  * @brief The SELL-P matrix format.
  *
- * \ingroup sellp
+ * @ingroup sellp
  */
 namespace sellp {
 

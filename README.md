@@ -96,7 +96,7 @@ external contributors like in the example below.
 
 #### Contributors
 I hereby place all my contributions in this codebase under a BSD-3-Clause
-license, as specified in the repository's LICENSE file.
+license, as specified in the repository's [LICENSE](LICENSE) file.
 
 Name Surname <email@domain> Institution(s)
 

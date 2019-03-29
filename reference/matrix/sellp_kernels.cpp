@@ -45,7 +45,7 @@ namespace reference {
 /**
  * @brief The SELL-P matrix format.
  * @ref Sellp
- * \ingroup sellp
+ * @ingroup sellp
  */
 namespace sellp {
 

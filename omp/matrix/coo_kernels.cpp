@@ -50,13 +50,13 @@ namespace kernels {
 /**
  * @brief OpenMP namespace.
  *
- * \ingroup omp
+ * @ingroup omp
  */
 namespace omp {
 /**
  * @brief The Coordinate matrix format.
  *
- * \ingroup coo
+ * @ingroup coo
  */
 namespace coo {
 

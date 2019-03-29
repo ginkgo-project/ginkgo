@@ -56,7 +56,7 @@ namespace reference {
 /**
  * @brief The Compressed sparse row matrix format.
  * @ref Csr
- * \ingroup csr
+ * @ingroup csr
  */
 namespace csr {
 

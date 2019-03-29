@@ -39,7 +39,7 @@ namespace reference {
 /**
  * @brief The IR solver.
  *
- * \ingroup ir
+ * @ingroup ir
  */
 namespace ir {
 

@@ -47,7 +47,7 @@ namespace cuda {
 /**
  * @brief The FCG solver.
  *
- * \ingroup fcg
+ * @ingroup fcg
  */
 namespace fcg {
 

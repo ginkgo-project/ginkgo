@@ -41,7 +41,7 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * \ingroup matrix
+ * @ingroup matrix
  */
 namespace matrix {
 
@@ -60,9 +60,9 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * \ingroup identity
- * \ingroup mat_formats
- * \ingroup LinOp
+ * @ingroup identity
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>,
@@ -111,8 +111,8 @@ protected:
  *
  * @tparam ValueType  precision of matrix elements
  *
- * \ingroup mat_formats
- * \ingroup LinOp
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class IdentityFactory

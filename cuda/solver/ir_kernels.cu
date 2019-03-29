@@ -42,7 +42,7 @@ namespace cuda {
 /**
  * @brief The IR solver.
  *
- * \ingroup ir
+ * @ingroup ir
  */
 namespace ir {
 

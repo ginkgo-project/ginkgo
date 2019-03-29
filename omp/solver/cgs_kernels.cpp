@@ -48,7 +48,7 @@ namespace omp {
 /**
  * @brief The CGS solver.
  *
- * \ingroup cgs
+ * @ingroup cgs
  */
 namespace cgs {
 

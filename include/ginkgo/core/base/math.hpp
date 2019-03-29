@@ -50,9 +50,9 @@ namespace gko {
 
 
 /**
- * @brief The detail namespace.
- * \ingroup detail
  * @internal
+ * @brief The detail namespace.
+ * @ingroup detail
  */
 namespace detail {
 

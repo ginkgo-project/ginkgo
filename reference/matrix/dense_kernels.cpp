@@ -51,7 +51,7 @@ namespace reference {
 /**
  * @brief The Dense matrix format.
  * @ref Dense
- * \ingroup dense
+ * @ingroup dense
  */
 namespace dense {
 

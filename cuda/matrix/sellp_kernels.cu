@@ -52,7 +52,7 @@ namespace cuda {
 /**
  * @brief The SELL-P format namespace.
  *
- * \ingroup sellp
+ * @ingroup sellp
  */
 namespace sellp {
 

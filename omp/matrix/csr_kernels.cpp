@@ -56,7 +56,7 @@ namespace omp {
 /**
  * @brief The Compressed sparse row matrix format.
  *
- * \ingroup csr
+ * @ingroup csr
  */
 namespace csr {
 

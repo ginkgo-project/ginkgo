@@ -51,7 +51,7 @@ namespace omp {
 /**
  * @brief The Hybrid matrix format.
  *
- * \ingroup hybrid
+ * @ingroup hybrid
  */
 namespace hybrid {
 

@@ -45,7 +45,7 @@ namespace reference {
 /**
  * @brief The BiCGSTAB solver.
  * @ref Bicgstab
- * \ingroup bicgstab
+ * @ingroup bicgstab
  */
 namespace bicgstab {
 

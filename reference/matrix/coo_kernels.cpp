@@ -47,13 +47,13 @@ namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * \ingroup reference
+ * @ingroup reference
  */
 namespace reference {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * \ingroup coo
+ * @ingroup coo
  */
 namespace coo {
 

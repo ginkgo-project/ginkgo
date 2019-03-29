@@ -54,7 +54,7 @@ namespace cuda {
 /**
  * @brief The Dense matrix format namespace.
  *
- * \ingroup dense
+ * @ingroup dense
  */
 namespace dense {
 

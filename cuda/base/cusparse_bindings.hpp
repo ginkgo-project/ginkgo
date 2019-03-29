@@ -47,25 +47,25 @@ namespace gko {
 /**
  * @brief The device specific kernels.
  *
- * \ingroup kernels
+ * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The CUDA namespace.
  *
- * \ingroup cuda
+ * @ingroup cuda
  */
 namespace cuda {
 /**
  * @brief The CUSPARSE namespace.
  *
- * \ingroup cusparse
+ * @ingroup cusparse
  */
 namespace cusparse {
 /**
  * @brief The detail namespace.
  *
- * \ingroup detail
+ * @ingroup detail
  */
 namespace detail {
 

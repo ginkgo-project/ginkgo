@@ -11,5 +11,5 @@ INTERNAL_DOCS          = NO
 SOURCE_BROWSER         = NO
 CALL_GRAPH             = NO
 CALLER_GRAPH           = NO
-EXCLUDE_SYMBOLS        = *::detail::* std::*
+EXCLUDE_SYMBOLS        = *::detail::* *detail::* std::*
 WARN_LOGFILE           = @out@.log

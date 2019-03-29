@@ -49,7 +49,7 @@ namespace reference {
 /**
  * @brief The Hybrid matrix format.
  * @ref Hybrid
- * \ingroup hybrid
+ * @ingroup hybrid
  */
 namespace hybrid {
 

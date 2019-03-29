@@ -47,7 +47,7 @@ namespace omp {
 /**
  * @brief The FCG solver.
  *
- * \ingroup fcg
+ * @ingroup fcg
  */
 namespace fcg {
 

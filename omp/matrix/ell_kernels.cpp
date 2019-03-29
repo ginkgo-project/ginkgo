@@ -51,7 +51,7 @@ namespace omp {
 /**
  * @brief The ELL matrix format.
  *
- * \ingroup ell
+ * @ingroup ell
  */
 namespace ell {
 

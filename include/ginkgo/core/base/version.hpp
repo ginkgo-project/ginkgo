@@ -49,7 +49,7 @@ namespace gko {
  * This structure is used to represent versions of various Ginkgo modules.
  *
  * Version structures can be compared using the usual relational operators.
- * \ingroup ginkgo_version
+ * @ingroup ginkgo_version
  */
 struct version {
     /**

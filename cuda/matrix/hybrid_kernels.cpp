@@ -42,7 +42,7 @@ namespace cuda {
 /**
  * @brief The Hybrid matrix format namespace.
  *
- * \ingroup hybrid
+ * @ingroup hybrid
  */
 namespace hybrid {
 

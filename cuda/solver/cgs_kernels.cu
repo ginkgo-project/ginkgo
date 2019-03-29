@@ -47,7 +47,7 @@ namespace cuda {
 /**
  * @brief The CGS solver.
  *
- * \ingroup cgs
+ * @ingroup cgs
  */
 namespace cgs {
 

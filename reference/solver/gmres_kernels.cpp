@@ -46,7 +46,7 @@ namespace reference {
 /**
  * @brief The GMRES solver.
  * @ref Gmres
- * \ingroup gmres
+ * @ingroup gmres
  */
 namespace gmres {
 

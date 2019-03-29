@@ -40,7 +40,7 @@ namespace cuda {
 /**
  * @brief The CUDA thread namespace.
  *
- * \ingroup cuda_thread
+ * @ingroup cuda_thread
  */
 namespace thread {
 

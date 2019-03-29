@@ -44,7 +44,7 @@ namespace gko {
 /**
  * @brief The accessor namespace.
  *
- * \ingroup accessor
+ * @ingroup accessor
  */
 namespace accessor {
 

@@ -48,7 +48,7 @@ namespace omp {
 /**
  * @brief The GMRES solver.
  *
- * \ingroup gmres
+ * @ingroup gmres
  */
 namespace gmres {
 
