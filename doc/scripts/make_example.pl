@@ -15,8 +15,8 @@
 ## ---------------------------------------------------------------------
 
 
-if ($#ARGV != 1) {
-  print "\nUsage: make_example.pl example cmake_source_dir\n";
+if ($#ARGV != 2) {
+  print "\nUsage: make_example.pl example cmake_source_dir cmake_binary_dir\n";
   exit;
 }
 
@@ -25,6 +25,7 @@ $example_underscore=$example;
 $example_underscore=~ s/-/_/g;
 
 $cmake_source_dir=$ARGV[1];
+$cmake_build_dir=$ARGV[2];
 
 print
 "/**

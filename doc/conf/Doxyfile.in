@@ -12,7 +12,7 @@ INPUT                  =
 
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ 
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @DIR_BASE@/doc/examples
+EXAMPLE_PATH           = @CMAKE_BINARY_DIR@/doc/examples
 RECURSIVE              = YES
 EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md

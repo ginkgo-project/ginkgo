@@ -1,5 +1,33 @@
 <h1>Results</h1>
+This is the expected output:
 
+@code{.cpp}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  0.0.0 (develop)
+    the CUDA      module is  not compiled
+{ "system_residual": (+1.59066966e-14,+0.00000000e+00), "eigenvalue": (+2.03741410e+01,-5.42101086e-18), "residual": (+2.92231055e-01,+7.77548230e-20) },
+{ "system_residual": (+6.38877157e-15,+0.00000000e+00), "eigenvalue": (+1.94878474e+01,-4.34534678e-16), "residual": (+7.94370276e-02,+1.77126506e-18) },
+{ "system_residual": (+6.79215294e-15,+0.00000000e+00), "eigenvalue": (+1.93282121e+01,-3.68988781e-16), "residual": (+4.11149623e-02,+7.84912734e-19) },
+{ "system_residual": (+3.54015578e-15,+0.00000000e+00), "eigenvalue": (+1.92638912e+01,+2.03949917e-16), "residual": (+2.34717040e-02,-2.48498708e-19) },
+{ "system_residual": (+2.12400044e-15,+0.00000000e+00), "eigenvalue": (+1.92409166e+01,-7.59991100e-16), "residual": (+1.34709547e-02,+5.32085134e-19) },
+{ "system_residual": (+3.29202859e-15,+0.00000000e+00), "eigenvalue": (+1.92331106e+01,+2.90110055e-15), "residual": (+7.72060707e-03,-1.16456760e-18) },
+{ "system_residual": (+3.99088304e-15,+0.00000000e+00), "eigenvalue": (+1.92305014e+01,-3.21058733e-16), "residual": (+4.42106625e-03,+7.38109682e-20) },
+{ "system_residual": (+2.02648035e-15,+0.00000000e+00), "eigenvalue": (+1.92296339e+01,+5.11222288e-16), "residual": (+2.53081312e-03,-6.72819919e-20) },
+{ "system_residual": (+1.83840397e-15,+0.00000000e+00), "eigenvalue": (+1.92293461e+01,+3.51208924e-16), "residual": (+1.44862114e-03,-2.64579289e-20) },
+{ "system_residual": (+1.60253167e-15,+0.00000000e+00), "eigenvalue": (+1.92292506e+01,-2.02284978e-15), "residual": (+8.29183451e-04,+8.72271932e-20) },
+{ "system_residual": (+1.96758490e-15,+0.00000000e+00), "eigenvalue": (+1.92292190e+01,+8.90545453e-16), "residual": (+4.74636702e-04,-2.19814209e-20) },
+{ "system_residual": (+1.53327380e-14,+0.00000000e+00), "eigenvalue": (+1.92292085e+01,-8.25871947e-17), "residual": (+2.71701077e-04,+1.16692425e-21) },
+{ "system_residual": (+3.42985865e-15,+0.00000000e+00), "eigenvalue": (+1.92292051e+01,+1.63122796e-16), "residual": (+1.55539937e-04,-1.31945701e-21) },
+{ "system_residual": (+3.30861071e-11,+0.00000000e+00), "eigenvalue": (+1.92292039e+01,-5.49102025e-16), "residual": (+8.90457139e-05,+2.54275643e-21) },
+{ "system_residual": (+7.11155374e-14,+0.00000000e+00), "eigenvalue": (+1.92292035e+01,+1.16689376e-15), "residual": (+5.09805252e-05,-3.09367244e-21) },
+{ "system_residual": (+2.68204494e-15,+0.00000000e+00), "eigenvalue": (+1.92292034e+01,-4.07084034e-17), "residual": (+2.91887365e-05,+6.17928281e-23) },
+{ "system_residual": (+5.78377594e-13,+0.00000000e+00), "eigenvalue": (+1.92292034e+01,-3.38561848e-17), "residual": (+1.67126561e-05,+2.94253882e-23) },
+{ "system_residual": (+6.26422040e-12,+0.00000000e+00), "eigenvalue": (+1.92292034e+01,-3.14429218e-18), "residual": (+9.56961199e-06,+1.56478953e-24) },
+{ "system_residual": (+1.41104829e-12,+0.00000000e+00), "eigenvalue": (+1.92292033e+01,-6.54656730e-16), "residual": (+5.47975753e-06,+1.86557918e-22) },
+{ "system_residual": (+1.97926842e-10,+0.00000000e+00), "eigenvalue": (+1.92292033e+01,+1.58008702e-16), "residual": (+3.13794996e-06,-2.57849164e-23) },
+@endcode
 
 <h4> Comments about programming and debugging </h4>
 

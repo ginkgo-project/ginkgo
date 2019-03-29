@@ -119,7 +119,8 @@ int main(int argc, char *argv[])
     // read, but as the solver only effectively uses the apply() method within
     // the provided "matrix" object, you can effectively create a gko::LinOp
     // class with your own apply implementation to accomplish more tasks. We
-    // will see an example of how this can be done in example-7
+    // will see an example of how this can be done in the custom-matrix-format
+    // example
     auto solver = solver_gen->generate(A);
 
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied

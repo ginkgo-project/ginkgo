@@ -1,5 +1,15 @@
 <h1>Results</h1>
+This is the expected output:
 
+@code{.cpp}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  0.0.0 (develop)
+    the CUDA      module is  not compiled
+Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
+        Average library overhead:     1505.35 [nanoseconds / iteration]
+@endcode
 
 <h4> Comments about programming and debugging </h4>
 

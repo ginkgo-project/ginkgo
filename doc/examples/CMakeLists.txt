@@ -63,7 +63,7 @@ FOREACH(example ${_ginkgo_examples})
     COMMAND ${PERL_EXECUTABLE}
     ARGS
       ${CMAKE_SOURCE_DIR}/doc/scripts/make_example.pl
-      ${example} ${CMAKE_SOURCE_DIR}
+      ${example} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}
       > ${CMAKE_CURRENT_BINARY_DIR}/${example}.hpp
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_BINARY_DIR}
