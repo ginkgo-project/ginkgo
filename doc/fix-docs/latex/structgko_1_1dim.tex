@@ -64,7 +64,7 @@ A type representing the dimensions of a multidimensional object.
 \index{dim@{dim}!gko\+::dim@{gko\+::dim}}
 \subsubsection{\texorpdfstring{dim()}{dim()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
-constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::\hyperlink{structgko_1_1dim}{dim} (\begin{DoxyParamCaption}\item[{const dimension\+\_\+type \&}]{size = {\ttfamily dimension\+\_\+type\{\}} }\end{DoxyParamCaption})}
+constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::\hyperlink{structgko_1_1dim}{dim} (\begin{DoxyParamCaption}\item[{const dimension\+\_\+type \&}]{size = {\ttfamily dimension\+\_\+type\{\}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -81,7 +81,7 @@ Creates a dimension object with all dimensions set to the same value.
 \subsubsection{\texorpdfstring{dim()}{dim()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
 template$<$typename... Rest$>$ \\
-constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::\hyperlink{structgko_1_1dim}{dim} (\begin{DoxyParamCaption}\item[{const dimension\+\_\+type \&}]{first,  }\item[{const Rest \&...}]{rest }\end{DoxyParamCaption})}
+constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::\hyperlink{structgko_1_1dim}{dim} (\begin{DoxyParamCaption}\item[{const dimension\+\_\+type \&}]{first,  }\item[{const Rest \&...}]{rest }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -106,7 +106,7 @@ For example, in the context of matrices {\ttfamily dim$<$2$>$\{2, 3\}} creates t
 \index{operator bool@{operator bool}!gko\+::dim@{gko\+::dim}}
 \subsubsection{\texorpdfstring{operator bool()}{operator bool()}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
-constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator bool (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+constexpr \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator bool (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -122,7 +122,7 @@ true if and only if all dimensions evaluate to true
 \index{operator\mbox{[}\mbox{]}@{operator[]}!gko\+::dim@{gko\+::dim}}
 \subsubsection{\texorpdfstring{operator[]()}{operator[]()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
-constexpr const dimension\+\_\+type\& \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator\mbox{[}$\,$\mbox{]} (\begin{DoxyParamCaption}\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{dimension }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+constexpr const dimension\+\_\+type\& \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator\mbox{[}$\,$\mbox{]} (\begin{DoxyParamCaption}\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{dimension }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -143,7 +143,7 @@ the {\ttfamily dimension}-\/th dimension
 \index{operator\mbox{[}\mbox{]}@{operator[]}!gko\+::dim@{gko\+::dim}}
 \subsubsection{\texorpdfstring{operator[]()}{operator[]()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
-dimension\+\_\+type\& \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator\mbox{[}$\,$\mbox{]} (\begin{DoxyParamCaption}\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{dimension }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+dimension\+\_\+type\& \hyperlink{structgko_1_1dim}{gko\+::dim}$<$ Dimensionality, Dimension\+Type $>$\+::operator\mbox{[}$\,$\mbox{]} (\begin{DoxyParamCaption}\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \&}]{dimension }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -198,4 +198,4 @@ true if and only if all dimensions of both objects are equal.
 
 The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/dim.\+hpp (c828dca0)\end{DoxyCompactItemize}
+ginkgo/core/base/dim.\+hpp (c71510aa)\end{DoxyCompactItemize}

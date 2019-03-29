@@ -51,12 +51,6 @@ virtual std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executo
 \mbox{\Hypertarget{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}\label{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}} 
 virtual void \hyperlink{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}{synchronize} () const =0
 \begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Friends}
-\begin{DoxyCompactItemize}
-\item 
-\mbox{\Hypertarget{classgko_1_1Executor_aaeab680299cad69bf82df40b91b7dcd4}\label{classgko_1_1Executor_aaeab680299cad69bf82df40b91b7dcd4}} 
-{\footnotesize template$<$typename T $>$ }\\class {\bfseries detail\+::\+Executor\+Base}
-\end{DoxyCompactItemize}
 
 
 \subsection{Detailed Description}
@@ -113,7 +107,7 @@ Finally, if all the processing of the matrix is supposed to be done on the G\+PU
 \index{alloc@{alloc}!gko\+::\+Executor@{gko\+::\+Executor}}
 \subsubsection{\texorpdfstring{alloc()}{alloc()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-T$\ast$ gko\+::\+Executor\+::alloc (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+elems }\end{DoxyParamCaption}) const}
+T$\ast$ gko\+::\+Executor\+::alloc (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+elems }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -142,7 +136,7 @@ pointer to allocated memory
 \index{copy\+\_\+from@{copy\+\_\+from}!gko\+::\+Executor@{gko\+::\+Executor}}
 \subsubsection{\texorpdfstring{copy\+\_\+from()}{copy\_from()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-void gko\+::\+Executor\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{src\+\_\+exec,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+elems,  }\item[{const T $\ast$}]{src\+\_\+ptr,  }\item[{T $\ast$}]{dest\+\_\+ptr }\end{DoxyParamCaption}) const}
+void gko\+::\+Executor\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Executor}{Executor} $\ast$}]{src\+\_\+exec,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+elems,  }\item[{const T $\ast$}]{src\+\_\+ptr,  }\item[{T $\ast$}]{dest\+\_\+ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -168,7 +162,7 @@ Copies data from another \hyperlink{classgko_1_1Executor}{Executor}.
 \index{gko\+::\+Executor@{gko\+::\+Executor}!free@{free}}
 \index{free@{free}!gko\+::\+Executor@{gko\+::\+Executor}}
 \subsubsection{\texorpdfstring{free()}{free()}}
-{\footnotesize\ttfamily void gko\+::\+Executor\+::free (\begin{DoxyParamCaption}\item[{void $\ast$}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily void gko\+::\+Executor\+::free (\begin{DoxyParamCaption}\item[{void $\ast$}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -239,7 +233,7 @@ Implemented in \hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663
 \index{run@{run}!gko\+::\+Executor@{gko\+::\+Executor}}
 \subsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Closure\+Omp , typename Closure\+Cuda $>$ \\
-void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const Closure\+Omp \&}]{op\+\_\+omp,  }\item[{const Closure\+Cuda \&}]{op\+\_\+cuda }\end{DoxyParamCaption}) const}
+void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const Closure\+Omp \&}]{op\+\_\+omp,  }\item[{const Closure\+Cuda \&}]{op\+\_\+cuda }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -263,4 +257,4 @@ Runs one of the passed in functors, depending on the \hyperlink{classgko_1_1Exec
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/executor.\+hpp (c828dca0)\end{DoxyCompactItemize}
+ginkgo/core/base/executor.\+hpp (c71510aa)\end{DoxyCompactItemize}

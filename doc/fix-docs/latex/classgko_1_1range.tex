@@ -113,7 +113,7 @@ The range unit tests in core/test/base/range.\+cpp contain lots of simple 1-\/li
 \subsubsection{\texorpdfstring{range()}{range()}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
 template$<$typename... Accessor\+Params$>$ \\
-constexpr \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::\hyperlink{classgko_1_1range}{range} (\begin{DoxyParamCaption}\item[{Accessor\+Params \&\&...}]{params }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+constexpr \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::\hyperlink{classgko_1_1range}{range} (\begin{DoxyParamCaption}\item[{Accessor\+Params \&\&...}]{params }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
 
 
 
@@ -137,7 +137,7 @@ Creates a new range.
 \index{get\+\_\+accessor@{get\+\_\+accessor}!gko\+::range@{gko\+::range}}
 \subsubsection{\texorpdfstring{get\+\_\+accessor()}{get\_accessor()}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
-constexpr const \hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::get\+\_\+accessor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+constexpr const \hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::get\+\_\+accessor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -155,7 +155,7 @@ Referenced by gko\+::range$<$ Accessor $>$\+::operator=().
 \index{length@{length}!gko\+::range@{gko\+::range}}
 \subsubsection{\texorpdfstring{length()}{length()}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
-constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::length (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{dimension }\end{DoxyParamCaption}) const}
+constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::length (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{dimension }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -181,7 +181,7 @@ Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::ensure\
 template$<$typename... Dimension\+Types$>$ \\
 constexpr auto \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator() (\begin{DoxyParamCaption}\item[{Dimension\+Types \&\&...}]{dimensions }\end{DoxyParamCaption}) const -\/$>$ decltype(std\+::declval$<$\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}$>$()(
             std\+::forward$<$Dimension\+Types$>$(dimensions)...))
-    }
+    \hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -205,7 +205,7 @@ a value on position {\ttfamily (dimensions...)}.
 \index{operator-\/$>$@{operator-\/$>$}!gko\+::range@{gko\+::range}}
 \subsubsection{\texorpdfstring{operator-\/$>$()}{operator->()}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
-constexpr const \hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}$\ast$ \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator-\/$>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+constexpr const \hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}$\ast$ \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator-\/$>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -222,7 +222,7 @@ pointer to the accessor
 \subsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
 template$<$typename Other\+Accessor $>$ \\
-const \hyperlink{classgko_1_1range}{range}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1range}{range}$<$ Other\+Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const}
+const \hyperlink{classgko_1_1range}{range}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1range}{range}$<$ Other\+Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -240,7 +240,7 @@ This is a version of the function which allows to copy between ranges of differe
 \index{operator=@{operator=}!gko\+::range@{gko\+::range}}
 \subsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Accessor$>$ \\
-const \hyperlink{classgko_1_1range}{range}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1range}{range}$<$ Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const}
+const \hyperlink{classgko_1_1range}{range}\& \hyperlink{classgko_1_1range}{gko\+::range}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1range}{range}$<$ Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -264,4 +264,4 @@ References gko\+::range$<$ Accessor $>$\+::get\+\_\+accessor().
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/range.\+hpp (c828dca0)\end{DoxyCompactItemize}
+ginkgo/core/base/range.\+hpp (c71510aa)\end{DoxyCompactItemize}

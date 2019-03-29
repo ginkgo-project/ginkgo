@@ -62,10 +62,10 @@ Another example of a \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} is a
 \textcolor{comment}{// create a linear operator which represents the solver}
 \textcolor{keyword}{auto} cg = cg\_factory->generate(A);
 \textcolor{comment}{// solve the system}
-cg->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
+cg->apply(gko::lend(b), gko::lend(x));
 \end{DoxyCode}
  
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/lin\+\_\+op.\+hpp (a0b26c3c)\end{DoxyCompactItemize}
+ginkgo/core/base/lin\+\_\+op.\+hpp (c71510aa)\end{DoxyCompactItemize}

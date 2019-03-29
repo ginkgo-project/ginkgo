@@ -5,6 +5,8 @@ This is the main page for the Ginkgo library user documentation. The repository 
 
 The Ginkgo library can be grouped into [modules](modules.html) and these modules form the basic building blocks of Ginkgo. The modules can be summarized as follows:
 
+\dotfile modules.dot
+
 *   @ref Executor : Where do you want your code to be executed ?
 *   @ref LinOp : What kind of operation do you want Ginkgo to perform ?
     * @ref solvers : Solve a linear system for a given matrix.

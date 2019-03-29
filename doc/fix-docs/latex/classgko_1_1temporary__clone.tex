@@ -1,14 +1,5 @@
 \hypertarget{classgko_1_1temporary__clone}{}\section{gko\+:\+:temporary\+\_\+clone$<$ T $>$ Class Template Reference}
 \label{classgko_1_1temporary__clone}\index{gko\+::temporary\+\_\+clone$<$ T $>$@{gko\+::temporary\+\_\+clone$<$ T $>$}}
-
-
-A \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor.  
-
-
-
-
-{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
-
 \subsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -29,28 +20,13 @@ T $\ast$ \hyperlink{classgko_1_1temporary__clone_a007bc247a9a250dcec8cdadb547101
 \begin{DoxyCompactList}\small\item\em Calls a method on the underlying object. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
-\subsubsection*{template$<$typename T$>$\newline
-class gko\+::temporary\+\_\+clone$<$ T $>$}
-
-A \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor. 
-
-After the \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} goes out of scope, the stored object will be copied back to its original location. This class is optimized to avoid copies if the object is already on the correct executor, in which case it will just hold a reference to that object, without performing the copy.
-
-
-\begin{DoxyTemplParams}{Template Parameters}
-{\em T} & the type of object held in the \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} \\
-\hline
-\end{DoxyTemplParams}
-
-
 \subsection{Constructor \& Destructor Documentation}
 \mbox{\Hypertarget{classgko_1_1temporary__clone_a73b2e7db31555df95b827625f85da4be}\label{classgko_1_1temporary__clone_a73b2e7db31555df95b827625f85da4be}} 
 \index{gko\+::temporary\+\_\+clone@{gko\+::temporary\+\_\+clone}!temporary\+\_\+clone@{temporary\+\_\+clone}}
 \index{temporary\+\_\+clone@{temporary\+\_\+clone}!gko\+::temporary\+\_\+clone@{gko\+::temporary\+\_\+clone}}
 \subsubsection{\texorpdfstring{temporary\+\_\+clone()}{temporary\_clone()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-\hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{pointer}]{ptr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+\hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{pointer}]{ptr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
 
 
 
@@ -65,17 +41,13 @@ Creates a \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}.
 \end{DoxyParams}
 
 
-References gko\+::clone().
-
-
-
 \subsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1temporary__clone_a38042e39a039070cc97e225435d5ed9e}\label{classgko_1_1temporary__clone_a38042e39a039070cc97e225435d5ed9e}} 
 \index{gko\+::temporary\+\_\+clone@{gko\+::temporary\+\_\+clone}!get@{get}}
 \index{get@{get}!gko\+::temporary\+\_\+clone@{gko\+::temporary\+\_\+clone}}
 \subsubsection{\texorpdfstring{get()}{get()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-T$\ast$ \hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+T$\ast$ \hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -89,7 +61,7 @@ the object held by \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone
 \index{operator-\/$>$@{operator-\/$>$}!gko\+::temporary\+\_\+clone@{gko\+::temporary\+\_\+clone}}
 \subsubsection{\texorpdfstring{operator-\/$>$()}{operator->()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-T$\ast$ \hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::operator-\/$>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+T$\ast$ \hyperlink{classgko_1_1temporary__clone}{gko\+::temporary\+\_\+clone}$<$ T $>$\+::operator-\/$>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -102,4 +74,4 @@ the underlying object
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/utils.\+hpp (4bde4271)\end{DoxyCompactItemize}
+ginkgo/core/base/utils.\+hpp (c71510aa)\end{DoxyCompactItemize}

@@ -128,13 +128,13 @@ std::unique\_ptr<matrix::Dense<>> calculate\_fixed\_point(
         \textcolor{keywordtype}{int} iters, \textcolor{keyword}{const} LinOp *L, \textcolor{keyword}{const} matrix::Dense<> *x0
         \textcolor{keyword}{const} matrix::Dense<> *b)
 \{
-    \textcolor{keyword}{auto} x = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}(x0);
-    \textcolor{keyword}{auto} tmp = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}(x0);
+    \textcolor{keyword}{auto} x = gko::clone(x0);
+    \textcolor{keyword}{auto} tmp = gko::clone(x0);
     \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = Dense<>::create(L->get\_executor(), \{1.0,\});
     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < iters; ++i) \{
-        L->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(tmp), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
-        x->add\_scaled(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b));
-        tmp->copy\_from(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
+        L->apply(gko::lend(tmp), gko::lend(x));
+        x->add\_scaled(gko::lend(one), gko::lend(b));
+        tmp->copy\_from(gko::lend(x));
     \}
     \textcolor{keywordflow}{return} x;
 \}

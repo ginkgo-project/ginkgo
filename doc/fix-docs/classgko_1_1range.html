@@ -182,7 +182,7 @@ template&lt;typename... AccessorParams&gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -224,7 +224,7 @@ template&lt;typename Accessor&gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -243,6 +243,9 @@ template&lt;typename Accessor&gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename Accessor&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::length </td>
@@ -252,6 +255,11 @@ template&lt;typename Accessor&gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Returns the length of the specified dimension of the range. </p>
@@ -276,6 +284,9 @@ template&lt;typename Accessor&gt; </div>
 template&lt;typename Accessor&gt; </div>
 <div class="memtemplate">
 template&lt;typename... DimensionTypes&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">constexpr auto <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::operator() </td>
@@ -287,6 +298,11 @@ template&lt;typename... DimensionTypes&gt; </div>
     </td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Returns a value (or a sub-range) with the specified indexes. </p>
@@ -326,7 +342,7 @@ template&lt;typename Accessor&gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -346,6 +362,9 @@ template&lt;typename Accessor&gt; </div>
 template&lt;typename Accessor&gt; </div>
 <div class="memtemplate">
 template&lt;typename OtherAccessor &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">const <a class="el" href="classgko_1_1range.html">range</a>&amp; <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::operator= </td>
@@ -355,6 +374,11 @@ template&lt;typename OtherAccessor &gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p></p>
@@ -375,6 +399,9 @@ template&lt;typename OtherAccessor &gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename Accessor&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">const <a class="el" href="classgko_1_1range.html">range</a>&amp; <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; Accessor &gt;::operator= </td>
@@ -384,6 +411,11 @@ template&lt;typename Accessor&gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Assigns another range to this range. </p>
@@ -401,7 +433,7 @@ template&lt;typename Accessor&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="range_8hpp_source.html">range.hpp (c828dca0)</a></li>
+<li>ginkgo/core/base/<a class="el" href="range_8hpp_source.html">range.hpp (c71510aa)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

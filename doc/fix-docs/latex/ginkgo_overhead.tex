@@ -60,8 +60,8 @@ The ginkgo overhead measurement example.
 
     \textcolor{keyword}{auto} tic = std::chrono::system\_clock::now();
 
-    \textcolor{keyword}{auto} solver = cg\_factory->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
-    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    \textcolor{keyword}{auto} solver = cg\_factory->generate(gko::give(A));
+    solver->apply(lend(x), lend(b));
     exec->synchronize();
 
     \textcolor{keyword}{auto} tac = std::chrono::system\_clock::now();
@@ -180,8 +180,8 @@ Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
 
     \textcolor{keyword}{auto} tic = std::chrono::system\_clock::now();
 
-    \textcolor{keyword}{auto} solver = cg\_factory->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
-    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    \textcolor{keyword}{auto} solver = cg\_factory->generate(gko::give(A));
+    solver->apply(lend(x), lend(b));
     exec->synchronize();
 
     \textcolor{keyword}{auto} tac = std::chrono::system\_clock::now();

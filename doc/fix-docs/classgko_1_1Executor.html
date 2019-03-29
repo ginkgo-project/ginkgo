@@ -69,7 +69,6 @@ $(function() {
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#friends">Friends</a> &#124;
 <a href="classgko_1_1Executor-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">gko::Executor Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span><div class="ingroups"><a class="el" href="group__Executor.html">Executors</a></div></div>  </div>
@@ -136,13 +135,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <tr class="memitem:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><b>remove_logger</b> (const <a class="el" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger) override</td></tr>
 <tr class="memdesc:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes a logger from the list of subscribed loggers.  <a href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">More...</a><br /></td></tr>
 <tr class="separator:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
-Friends</h2></td></tr>
-<tr class="memitem:aaeab680299cad69bf82df40b91b7dcd4"><td class="memTemplParams" colspan="2"><a id="aaeab680299cad69bf82df40b91b7dcd4"></a>
-template&lt;typename T &gt; </td></tr>
-<tr class="memitem:aaeab680299cad69bf82df40b91b7dcd4"><td class="memTemplItemLeft" align="right" valign="top">class&#160;</td><td class="memTemplItemRight" valign="bottom"><b>detail::ExecutorBase</b></td></tr>
-<tr class="separator:aaeab680299cad69bf82df40b91b7dcd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The first step in using the Ginkgo library consists of creating an executor. </p>
@@ -168,6 +160,9 @@ template&lt;typename T &gt; </td></tr>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">T* gko::Executor::alloc </td>
@@ -177,6 +172,11 @@ template&lt;typename T &gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Allocates memory in this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>. </p>
@@ -209,6 +209,9 @@ template&lt;typename T &gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void gko::Executor::copy_from </td>
@@ -240,6 +243,11 @@ template&lt;typename T &gt; </div>
           <td></td><td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Copies data from another <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>. </p>
@@ -280,7 +288,7 @@ template&lt;typename T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -399,6 +407,9 @@ template&lt;typename T &gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename ClosureOmp , typename ClosureCuda &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void gko::Executor::run </td>
@@ -418,6 +429,11 @@ template&lt;typename ClosureOmp , typename ClosureCuda &gt; </div>
           <td></td><td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Runs one of the passed in functors, depending on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> type. </p>
@@ -439,7 +455,7 @@ template&lt;typename ClosureOmp , typename ClosureCuda &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (c828dca0)</a></li>
+<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (c71510aa)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

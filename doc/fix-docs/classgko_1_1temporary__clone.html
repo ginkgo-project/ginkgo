@@ -74,11 +74,6 @@ $(function() {
 <div class="title">gko::temporary_clone&lt; T &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-
-<p>A <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a> is a special smart pointer-like object that is designed to hold an object temporarily copied to another executor.  
- <a href="classgko_1_1temporary__clone.html#details">More...</a></p>
-
-<p><code>#include &lt;<a class="el" href="utils_8hpp_source.html">ginkgo/core/base/utils.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
@@ -92,28 +87,16 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>pointer</b> = T *</t
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a73b2e7db31555df95b827625f85da4be"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">temporary_clone</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, pointer ptr)</td></tr>
-<tr class="memdesc:a73b2e7db31555df95b827625f85da4be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>.  <a href="#a73b2e7db31555df95b827625f85da4be">More...</a><br /></td></tr>
+<tr class="memdesc:a73b2e7db31555df95b827625f85da4be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>.  <a href="#a73b2e7db31555df95b827625f85da4be">More...</a><br /></td></tr>
 <tr class="separator:a73b2e7db31555df95b827625f85da4be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a38042e39a039070cc97e225435d5ed9e"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">get</a> () const</td></tr>
-<tr class="memdesc:a38042e39a039070cc97e225435d5ed9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the object held by <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>.  <a href="#a38042e39a039070cc97e225435d5ed9e">More...</a><br /></td></tr>
+<tr class="memdesc:a38042e39a039070cc97e225435d5ed9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the object held by <a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>.  <a href="#a38042e39a039070cc97e225435d5ed9e">More...</a><br /></td></tr>
 <tr class="separator:a38042e39a039070cc97e225435d5ed9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a007bc247a9a250dcec8cdadb54710106"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">operator-&gt;</a> () const</td></tr>
 <tr class="memdesc:a007bc247a9a250dcec8cdadb54710106"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calls a method on the underlying object.  <a href="#a007bc247a9a250dcec8cdadb54710106">More...</a><br /></td></tr>
 <tr class="separator:a007bc247a9a250dcec8cdadb54710106"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;typename T&gt;<br />
-class gko::temporary_clone&lt; T &gt;</h3>
-
-<p>A <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a> is a special smart pointer-like object that is designed to hold an object temporarily copied to another executor. </p>
-<p>After the <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a> goes out of scope, the stored object will be copied back to its original location. This class is optimized to avoid copies if the object is already on the correct executor, in which case it will just hold a reference to that object, without performing the copy.</p>
-<dl class="tparams"><dt>Template Parameters</dt><dd>
-  <table class="tparams">
-    <tr><td class="paramname">T</td><td>the type of object held in the <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a> </td></tr>
-  </table>
-  </dd>
-</dl>
-</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a73b2e7db31555df95b827625f85da4be"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a73b2e7db31555df95b827625f85da4be">&#9670;&nbsp;</a></span>temporary_clone()</h2>
 
@@ -145,12 +128,12 @@ template&lt;typename T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
-<p>Creates a <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>. </p>
+<p>Creates a <a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">exec</td><td>the executor where the clone will be created </td></tr>
@@ -158,8 +141,6 @@ template&lt;typename T &gt; </div>
   </table>
   </dd>
 </dl>
-
-<p class="reference">References <a class="el" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone()</a>.</p>
 
 </div>
 </div>
@@ -171,6 +152,9 @@ template&lt;typename T &gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">T* <a class="el" href="classgko_1_1temporary__clone.html">gko::temporary_clone</a>&lt; T &gt;::get </td>
@@ -179,10 +163,15 @@ template&lt;typename T &gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>Returns the object held by <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>. </p>
-<dl class="section return"><dt>Returns</dt><dd>the object held by <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a> </dd></dl>
+<p>Returns the object held by <a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>. </p>
+<dl class="section return"><dt>Returns</dt><dd>the object held by <a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a> </dd></dl>
 
 </div>
 </div>
@@ -193,6 +182,9 @@ template&lt;typename T &gt; </div>
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">T* <a class="el" href="classgko_1_1temporary__clone.html">gko::temporary_clone</a>&lt; T &gt;::operator-&gt; </td>
@@ -201,6 +193,11 @@ template&lt;typename T &gt; </div>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Calls a method on the underlying object. </p>
@@ -209,7 +206,7 @@ template&lt;typename T &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="utils_8hpp_source.html">utils.hpp (4bde4271)</a></li>
+<li>ginkgo/core/base/<a class="el" href="utils_8hpp_source.html">utils.hpp (c71510aa)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

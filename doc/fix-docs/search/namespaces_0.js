@@ -1,7 +1,6 @@
 var searchData=
 [
   ['accessor',['accessor',['../namespacegko_1_1accessor.html',1,'gko']]],
-  ['detail',['detail',['../namespacegko_1_1detail.html',1,'gko']]],
   ['gko',['gko',['../namespacegko.html',1,'']]],
   ['log',['log',['../namespacegko_1_1log.html',1,'gko']]],
   ['matrix',['matrix',['../namespacegko_1_1matrix.html',1,'gko']]],

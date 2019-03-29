@@ -198,9 +198,9 @@ initialize matrix and vectors
 \begin{DoxyCode}
 \textcolor{keyword}{auto} matrix = mtx::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points),
                           3 * discretization\_points - 2);
-generate\_stencil\_matrix(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(matrix));
+generate\_stencil\_matrix(lend(matrix));
 \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
-generate\_rhs(f, u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs));
+generate\_rhs(f, u0, u1, lend(rhs));
 \textcolor{keyword}{auto} u = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
 \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
     u->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}()[i] = 0.0;
@@ -221,12 +221,12 @@ Generate solver and solve the system
                            .on(exec))
         .with\_preconditioner(bj::build().on(exec))
         .on(exec)
-        ->generate(\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}
-        ->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+        ->generate(clone(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}
+        ->apply(lend(rhs), lend(u));
 
-    print\_solution(u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+    print\_solution(u0, u1, lend(u));
     std::cout << \textcolor{stringliteral}{"The average relative error is "}
-              << calculate\_error(discretization\_points, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u), correct\_u) /
+              << calculate\_error(discretization\_points, lend(u), correct\_u) /
                      discretization\_points
               << std::endl;
 \}
@@ -408,9 +408,9 @@ The average relative error is 1.87318e-15
 
     \textcolor{keyword}{auto} matrix = mtx::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points),
                               3 * discretization\_points - 2);
-    generate\_stencil\_matrix(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(matrix));
+    generate\_stencil\_matrix(lend(matrix));
     \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
-    generate\_rhs(f, u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs));
+    generate\_rhs(f, u0, u1, lend(rhs));
     \textcolor{keyword}{auto} u = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
         u->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}()[i] = 0.0;
@@ -425,12 +425,12 @@ The average relative error is 1.87318e-15
                            .on(exec))
         .with\_preconditioner(bj::build().on(exec))
         .on(exec)
-        ->generate(\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}
-        ->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+        ->generate(clone(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}
+        ->apply(lend(rhs), lend(u));
 
-    print\_solution(u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
+    print\_solution(u0, u1, lend(u));
     std::cout << \textcolor{stringliteral}{"The average relative error is "}
-              << calculate\_error(discretization\_points, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u), correct\_u) /
+              << calculate\_error(discretization\_points, lend(u), correct\_u) /
                      discretization\_points
               << std::endl;
 \}
