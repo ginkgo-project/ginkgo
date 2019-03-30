@@ -148,9 +148,9 @@ __device__ void reduce(const Group &__restrict__ group,
 /**
  * @internal
  *
- * Computes a reduction using the binary operation 'reduce_op' on an array
- * 'source' of any size. Has to be called a second time on 'result' to reduce
- * an array larger than 'block_size'.
+ * Computes a reduction using the binary operation `reduce_op` on an array
+ * `source` of any size. Has to be called a second time on `result` to reduce
+ * an array larger than `block_size`.
  */
 template <typename Operator, typename ValueType>
 __device__ void reduce_array(size_type size,
