@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 
-#include <omp.h>
-
-
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -55,29 +52,17 @@ inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
                                           size_type num_nonzeros,
                                           IndexType *ptrs, size_type length)
 {
-#pragma omp parallel
-    {
-        const size_type tid = omp_get_thread_num();
-        const size_type work_size = ceildiv(length, omp_get_num_threads());
-        const size_type start = work_size * tid;
-        const size_type end = min(length, work_size * (tid + 1));
-        std::fill(ptrs + start, ptrs + end, 0);
+#pragma omp parallel for schedule(static, \
+                                  ceildiv(length, omp_get_num_threads()))
+    for (size_type i = 0; i < length; i++) {
+        ptrs[i] = 0;
     }
 
-#pragma omp parallel
-    {
-        const size_type tid = omp_get_thread_num();
-        const size_type work_size =
-            ceildiv(num_nonzeros, omp_get_num_threads());
-        const size_type start = work_size * tid;
-        const size_type end = min(num_nonzeros, work_size * (tid + 1));
-        std::for_each(idxs + start, idxs + end, [&](IndexType v) {
-            if (v + 1 < length) {
-#pragma omp atomic
-                ++ptrs[v + 1];
-            }
-        });
-    }
+    std::for_each(idxs, idxs + num_nonzeros, [&](IndexType v) {
+        if (v + 1 < length) {
+            ++ptrs[v + 1];
+        }
+    });
 
     std::partial_sum(ptrs, ptrs + length, ptrs);
 }
@@ -98,18 +83,11 @@ inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
     ptrs[0] = 0;
     ptrs[length - 1] = num_nonzeros;
 
-#pragma omp parallel
-    {
-        const size_type tid = omp_get_thread_num();
-        const size_type work_size =
-            ceildiv(num_nonzeros, omp_get_num_threads());
-        const size_type start = work_size * tid;
-        const size_type end = min(num_nonzeros - 1, work_size * (tid + 1));
-
-        for (size_type i = start; i < end; i++) {
-            for (size_type j = idxs[i] + 1; j <= idxs[i + 1]; j++) {
-                ptrs[j] = i + 1;
-            }
+#pragma omp parallel for schedule( \
+    static, ceildiv(num_nonzeros, omp_get_num_threads()))
+    for (size_type i = 0; i < num_nonzeros - 1; i++) {
+        for (size_type j = idxs[i] + 1; j <= idxs[i + 1]; j++) {
+            ptrs[j] = i + 1;
         }
     }
 }
