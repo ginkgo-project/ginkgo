@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
+#include "core/matrix/csr_kernels.hpp"
+
 
 namespace {
 
@@ -129,7 +131,7 @@ protected:
     }
 
     std::complex<double> i{0, 1};
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
 };
 
@@ -266,6 +268,19 @@ TEST_F(Csr, MovesToSellp)
     csr_ref->move_to(sellp_mtx.get());
 
     assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, CalculatesTotalCols)
+{
+    gko::size_type total_cols;
+    gko::size_type stride_factor = gko::matrix::default_stride_factor;
+    gko::size_type slice_size = gko::matrix::default_slice_size;
+
+    gko::kernels::reference::csr::calculate_total_cols(
+        exec, mtx.get(), &total_cols, stride_factor, slice_size);
+
+    ASSERT_EQ(total_cols, 3);
 }
 
 

@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/matrix/sellp_kernels.hpp"
+
+
 namespace {
 
 
@@ -66,7 +69,7 @@ protected:
         // clang-format on
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
 };
@@ -376,6 +379,16 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TEST_F(Sellp, CountsNonzeros)
+{
+    gko::size_type nonzeros;
+
+    gko::kernels::reference::sellp::count_nonzeros(exec, mtx1.get(), &nonzeros);
+
+    ASSERT_EQ(nonzeros, 4);
 }
 
 
