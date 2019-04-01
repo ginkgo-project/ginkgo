@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 
+#include <omp.h>
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
