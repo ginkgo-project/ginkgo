@@ -29,7 +29,7 @@ print " * \n";
 do {
 
    # skip header lines at the top of the file, such as copyright notices 
-   # and license information, if the file is a example-xx.cpp tutorial. don't
+   # and license information, if the file is a <example-name>.cpp tutorial. don't
    # skip for other files such as code-gallery files
    if($.==1..32){
    $_="";

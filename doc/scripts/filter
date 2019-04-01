@@ -49,12 +49,8 @@ while (<>)
     # - things like custom-stopping-criterion.solution.png that typically appear in
     #   @image commands.
     # - things in headings
-    s/(?<![\"\\\/])example-(\w+)(?!\")/\@ref example_\1 \"example-\1\"/gi
-        if !m/(\@page|\<img|\@image|<h\d>)/i;
-
-    # If example-xx was explicitly escaped with a backslash, remove the
-    # latter
-    s/\\(example-\w+)/\1/g;
+    # s/(?<![\"\\\/])example-(\w+)(?!\")/\@ref example_\1 \"example-\1\"/gi
+    #     if !m/(\@page|\<img|\@image|<h\d>)/i;
 
     # doxygen version 1.7.1 and later have the habit of thinking that
     # everything that starts with "file:" is the beginning of a link,

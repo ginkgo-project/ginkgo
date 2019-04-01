@@ -49,9 +49,7 @@ my $buildson = <BF>;
 close BF;
 chop $buildson;
 
-# At the very top, print which other programs this one builds on. The
-# filter script will replace occurrences of example-XX by the appropriate
-# links.
+# At the very top, print which other programs this one builds on.
 if ($buildson ne "")
 {
     $buildson =~ s/ /, /g;

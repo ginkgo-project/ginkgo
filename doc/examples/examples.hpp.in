@@ -68,14 +68,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Then compile the file with the following command line:
  * @code{.cpp}
- * c++ -std=c++11 -o example-* example-*.cpp -I../.. \
+ * c++ -std=c++11 -o <example-name> <example-name>.cpp -I../.. \
  * -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
  * @endcode
  * (if ginkgo was built in debug mode, append 'd' to every library name)
  *
  * Now you should be able to run the program using:
  *
- * @code{.cpp}env LD_LIBRARY_PATH=.:\$\{LD_LIBRARY_PATH\} ./example-*@endcode
+ * @code{.cpp}env LD_LIBRARY_PATH=.:\$\{LD_LIBRARY_PATH\} ./<example-name>@endcode
  *
  * <a name="graph"></a>
  * @anchor ExampleConnectionGraph

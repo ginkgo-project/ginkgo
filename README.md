@@ -78,6 +78,11 @@ to run with these executors. Please refer to the [Installation page](./INSTALL.m
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
+### Ginkgo Examples
+
+Various examples are available for you to understand and play with Ginkgo within the `examples/` directory. They can be compiled by passing the `-DGINKGO_BUILD_EXAMPLES=ON` to the cmake command. Documentation for the examples is available within the `doc/` folder in each of the example directory and a commented code with explanations can found in the [online documentation](https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html).
+
+
 ### Running the benchmarks
 
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
