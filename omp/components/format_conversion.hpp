@@ -56,7 +56,7 @@ inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
                                           IndexType *ptrs, size_type length)
 {
 #pragma omp parallel for schedule(static, \
-                                  ceildiv(length, omp_get_num_threads()))
+                                  ceildiv(length, omp_get_max_threads()))
     for (size_type i = 0; i < length; i++) {
         ptrs[i] = 0;
     }
@@ -87,7 +87,7 @@ inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
     ptrs[length - 1] = num_nonzeros;
 
 #pragma omp parallel for schedule( \
-    static, ceildiv(num_nonzeros, omp_get_num_threads()))
+    static, ceildiv(num_nonzeros, omp_get_max_threads()))
     for (size_type i = 0; i < num_nonzeros - 1; i++) {
         for (size_type j = idxs[i] + 1; j <= idxs[i + 1]; j++) {
             ptrs[j] = i + 1;
