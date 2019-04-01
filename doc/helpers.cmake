@@ -15,6 +15,21 @@ function(ginkgo_doc_conf_concat base_in in1 in2 out)
     file(WRITE "${out}" "${so}")
 endfunction()
 
+# writes the concatenated configured files <in1,2>
+# in <base_in> into <out>
+function(ginkgo_md_page_concat base_in in0 in1 in2 in3 in4 out)
+    ginkgo_configure_to_string("${base_in}/${in0}" s0)
+    ginkgo_configure_to_string("${base_in}/${in1}" s1)
+    ginkgo_configure_to_string("${base_in}/${in2}" s2)
+    ginkgo_configure_to_string("${base_in}/${in3}" s3)
+    ginkgo_configure_to_string("${base_in}/${in4}" s4)
+    set(${sep1} "@page install_ginkgo Installing Ginkgo. \n")
+    set(${sep2} "@page test_ginkgo Testing Ginkgo. \n")
+    set(${sep3} "@page benchmark_ginkgo Benchmarking Ginkgo. \n")
+    string(CONCAT so "${s0}" "\n" "${s1}" "@page install_ginkgo Installing Ginkgo. \n" "${s2}"  "@page test_ginkgo Testing Ginkgo. \n" "${s3}" "@page benchmark_ginkgo Benchmarking Ginkgo. \n" "${s4}")
+    file(WRITE "${out}" "${so}")
+endfunction()
+
 # adds a pdflatex build step
 function(ginkgo_doc_pdf name path)
     add_custom_command(TARGET "${name}" POST_BUILD
@@ -46,8 +61,8 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
     set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
-    ginkgo_doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/pages"
-        "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
+    ginkgo_md_page_concat("${CMAKE_CURRENT_SOURCE_DIR}/pages"
+        "${mainpage-in}" BASE_DOC.md "../../INSTALL.md" "../../TESTING.md" "../../BENCHMARKING.md" "${MAINPAGE}"
         )
     set(doxygen_base_input
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/"

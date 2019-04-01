@@ -7,7 +7,6 @@
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
-
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on sparse solution of linear systems. It is implemented using modern C++
 (you will need at least C++11 compliant compiler to build it), with GPU kernels
