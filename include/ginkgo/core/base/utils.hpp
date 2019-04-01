@@ -403,7 +403,6 @@ private:
 
 
 /**
- * @internal
  * A temporary_clone is a special smart pointer-like object that is designed to
  * hold an object temporarily copied to another executor.
  *
@@ -462,7 +461,6 @@ private:
 
 
 /**
- * @internal
  * Creates a temporary_clone.
  *
  * This is a helper function which avoids the need to explicitly specify the
