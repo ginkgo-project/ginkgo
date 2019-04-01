@@ -44,7 +44,7 @@ var searchData=
   ['enablecreatemethod_3c_20hybrid_3c_20valuetype_2c_20indextype_20_3e_20_3e',['EnableCreateMethod&lt; Hybrid&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1EnableCreateMethod.html',1,'gko']]],
   ['enablecreatemethod_3c_20identity_3c_20valuetype_20_3e_20_3e',['EnableCreateMethod&lt; Identity&lt; ValueType &gt; &gt;',['../classgko_1_1EnableCreateMethod.html',1,'gko']]],
   ['enablecreatemethod_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['EnableCreateMethod&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1EnableCreateMethod.html',1,'gko']]],
-  ['enabledefaultcriterionfactory',['EnableDefaultCriterionFactory',['../group__stop.html#gab045b6fd7571f3234d9a63a5ee5a2252',1,'gko::stop']]],
+  ['enabledefaultcriterionfactory',['EnableDefaultCriterionFactory',['../namespacegko_1_1stop.html#ab045b6fd7571f3234d9a63a5ee5a2252',1,'gko::stop']]],
   ['enabledefaultfactory',['EnableDefaultFactory',['../classgko_1_1EnableDefaultFactory.html',1,'gko']]],
   ['enabledefaultlinopfactory',['EnableDefaultLinOpFactory',['../group__LinOp.html#ga24628d477cba68b31cea690572c51912',1,'gko']]],
   ['enablelinop',['EnableLinOp',['../classgko_1_1EnableLinOp.html',1,'gko']]],

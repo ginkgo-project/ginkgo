@@ -171,7 +171,7 @@ Read data
 
 
 \begin{DoxyCode}
-\textcolor{keyword}{auto} A = share(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+\textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
 \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);
 \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);
 \end{DoxyCode}
@@ -218,7 +218,7 @@ Solve system
 
 
 \begin{DoxyCode}
-solver->apply(lend(b), lend(x));
+solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 \end{DoxyCode}
 
 
@@ -235,7 +235,7 @@ Print solution
 
 \begin{DoxyCode}
 std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};
-\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(x));
+\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 \end{DoxyCode}
 
 
@@ -246,11 +246,11 @@ Calculate residual
     \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = gko::initialize<vec>(\{1.0\}, exec);
     \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-1.0\}, exec);
     \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);
-    A->apply(lend(one), lend(x), lend(neg\_one), lend(b));
-    b->compute\_norm2(lend(res));
+    A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    b->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
 
     std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r^T r): \(\backslash\)n"};
-    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(res));
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
 \}
 \end{DoxyCode}
  \label{_Results}%
@@ -408,7 +408,7 @@ std::string to\_string(T *ptr)
         std::exit(-1);
     \}
 
-    \textcolor{keyword}{auto} A = share(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+    \textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
     \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);
     \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);
 
@@ -432,22 +432,22 @@ std::string to\_string(T *ptr)
     solver->add\_logger(logger);
     A->add\_logger(logger);
 
-    solver->apply(lend(b), lend(x));
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 
 
     print\_papi\_counters(eventset);
 
     std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};
-    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(x));
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 
     \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = gko::initialize<vec>(\{1.0\}, exec);
     \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-1.0\}, exec);
     \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);
-    A->apply(lend(one), lend(x), lend(neg\_one), lend(b));
-    b->compute\_norm2(lend(res));
+    A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
+    b->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
 
     std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r^T r): \(\backslash\)n"};
-    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(res));
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(res));
 \}
 \end{DoxyCodeInclude}
  

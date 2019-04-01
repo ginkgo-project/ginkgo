@@ -1,11 +1,9 @@
-This is the main page for the Ginkgo library user documentation. The repository is hosted on [github](https://github.com/ginkgo-project/ginkgo). Documentation on aspects such as the build system, can be found at the @ref using_ginkgo page. The @ref Examples can help you get started with using Ginkgo. 
+This is the main page for the Ginkgo library user documentation. The repository is hosted on [github](https://github.com/ginkgo-project/ginkgo). Documentation on aspects such as the build system, can be found at the @ref install_ginkgo page. The @ref Examples can help you get started with using Ginkgo. 
 
 
 ### Modules
 
 The Ginkgo library can be grouped into [modules](modules.html) and these modules form the basic building blocks of Ginkgo. The modules can be summarized as follows:
-
-\dotfile modules.dot
 
 *   @ref Executor : Where do you want your code to be executed ?
 *   @ref LinOp : What kind of operation do you want Ginkgo to perform ?
@@ -15,47 +13,10 @@ The Ginkgo library can be grouped into [modules](modules.html) and these modules
 *   @ref log : Monitor your code execution.
 *   @ref stop : Manage your iteration stopping criteria.
 
-
-@page using_ginkgo Using Ginkgo.
-
-### Prerequisites
-
-#### Linux and Mac OS 
-
-For Ginkgo core library:
-
-*   _cmake 3.9+_
-*   C++11 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
-    *   _clang 3.9+_
-    *   _Apple LLVM 8.0+_ (__TODO__: verify)
-
-The Ginkgo CUDA module has the following __additional__ requirements:
-
-*   _CUDA 9.0+_
-*   Any host compiler restrictions your version of CUDA may impose also apply
-    here. For the newest CUDA version, this information can be found in the
-    [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
-    or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
-
-In addition, if you want to contribute code to Ginkgo, you will also need the
-following:
-
-*   _clang-format 5.0.1+_ (ships as part of _clang_)
-
-#### Windows
-
-Windows is currently not supported, but we are working on porting the library
-there. If you are interested in helping us with this effort, feel free to
-contact one of the developers. (The library itself doesn't use any non-standard
-C++ features, so most of the effort here is in modifying the build system.)
-
-__Note:__ Some restrictions will also apply on the version of C and C++ standard
-libraries installed on the system. This needs further investigation.
-
-
-Building Ginkgo
----------------
+@page install_ginkgo Installing Ginkgo. 
+Installation Instructions
+-------------------------------------
+### Building 
 
 Use the standard cmake build procedure:
 
@@ -63,7 +24,6 @@ Use the standard cmake build procedure:
 mkdir build; cd build
 cmake -G "Unix Makefiles" [OPTIONS] .. && make
 ```
-
 Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
@@ -75,14 +35,17 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
     (will download gflags and rapidjson), default is `ON`
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
+*   `-DGINKGO_BUILD_EXTLIB_EXAMPLES={ON, OFF}` builds the interfacing example with deal.II, default is `OFF`
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
-    kernels, useful for testing, default is `OFF`
+    kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
     default is `OFF`
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
+*   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
+     in Ginkgo. The default is `ON`.
 *   `-DGINKGO_DOC_GENERATE_PDF={ON, OFF}` generates a PDF version of Ginkgo's
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
@@ -155,11 +118,17 @@ packages can be turned off by disabling the relevant options.
   helper for code formatting.
 
 By default, Ginkgo uses the internal version of each package. For each of the
-packages `GTEST`, `GFLAGS` and `RAPIDJSON` and `CAS`, it is possible to force
+packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, set the CMake
-option `-DGINKGO_USE_EXTERNAL_<package>=ON`.### Installing Ginkgo
+option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
 
-### Installation
+If the external packages were not installed to the default location, the
+CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon
+(`;`) separated list of install paths of these external packages. For more
+Information, see the [CMake documentation for CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
+for details.
+
+### Installing Ginkgo
 
 To install Ginkgo into the specified folder, execute the following command in
 the build folder
@@ -175,6 +144,9 @@ the call with `sudo`.
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
+@page test_ginkgo Testing Ginkgo. 
+Testing Instructions
+-------------------------------------
 ### Running the unit tests
 You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to run the
 tests. 
@@ -229,9 +201,9 @@ ctest -S cmake/CTestScript.cmake
 The default settings are for our own CI system. Feel free to configure the
 script before launching it through variables or by directly changing its values.
 A documentation can be found in the script itself.
-
-
-### Running the benchmarks
+@page benchmark_ginkgo Benchmarking Ginkgo. 
+Running the benchmarks
+----------------------
 
 In addition to the unit tests designed to verify correctness, Ginkgo also
 includes a benchmark suite for checking its performance on the system. To
@@ -319,11 +291,3 @@ online repository, and analyzed using Ginkgo's free web tool
 [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/).
 (Make sure to change the "Performance data URL" to your repository if using
 GPE.)
-
-@page wiki The Ginkgo wiki page.
-
-Ginkgo also has a [wiki page](https://github.com/ginkgo-project/ginkgo/wiki) 
-
-@page known_issues The known issues in Ginkgo.
-
-Please refer to the [Known Issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues). 

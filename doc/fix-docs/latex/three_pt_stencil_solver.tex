@@ -254,7 +254,7 @@ Generate solver
                 .on(exec))
         .with\_preconditioner(bj::build().on(exec))
         .on(exec);
-\textcolor{keyword}{auto} solver = solver\_gen->generate(gko::give(matrix));
+\textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
 \end{DoxyCode}
 
 
@@ -262,7 +262,7 @@ Solve system
 
 
 \begin{DoxyCode}
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
 \}
 
 
@@ -555,9 +555,9 @@ The average relative error is 1.87318e-15
                     .on(exec))
             .with\_preconditioner(bj::build().on(exec))
             .on(exec);
-    \textcolor{keyword}{auto} solver = solver\_gen->generate(gko::give(matrix));
+    \textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
 
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
 \}
 
 

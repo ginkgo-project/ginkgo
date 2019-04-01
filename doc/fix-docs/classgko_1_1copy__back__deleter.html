@@ -74,6 +74,11 @@ $(function() {
 <div class="title">gko::copy_back_deleter&lt; T &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p>A <a class="el" href="classgko_1_1copy__back__deleter.html" title="A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo...">copy_back_deleter</a> is a type of deleter that copies the data to an internally referenced object before performing the deletion.  
+ <a href="classgko_1_1copy__back__deleter.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="utils_8hpp_source.html">ginkgo/core/base/utils.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
@@ -90,7 +95,20 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a34bba76c78c23dccd814969e98c78b1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the object.  <a href="#a34bba76c78c23dccd814969e98c78b1b">More...</a><br /></td></tr>
 <tr class="separator:a34bba76c78c23dccd814969e98c78b1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><h3>template&lt;typename T&gt;<br />
+class gko::copy_back_deleter&lt; T &gt;</h3>
+
+<p>A <a class="el" href="classgko_1_1copy__back__deleter.html" title="A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo...">copy_back_deleter</a> is a type of deleter that copies the data to an internally referenced object before performing the deletion. </p>
+<p>The deleter will use the <code>copy_from</code> method to perform the copy, and then delete the passed object using the <code>delete</code> keyword. This kind of deleter is useful when temporarily copying an object with the intent of copying it back once it goes out of scope.</p>
+<p>There is also a specialization for constant objects that does not perform the copy, since a constant object couldn't have been changed.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>the type of object being deleted </td></tr>
+  </table>
+  </dd>
+</dl>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="affa618330dcb3a4e3aeaffb69c39df5f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#affa618330dcb3a4e3aeaffb69c39df5f">&#9670;&nbsp;</a></span>copy_back_deleter()</h2>
 
@@ -165,7 +183,7 @@ template&lt;typename T &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="utils_8hpp_source.html">utils.hpp (c71510aa)</a></li>
+<li>ginkgo/core/base/<a class="el" href="utils_8hpp_source.html">utils.hpp (eebc4a9b)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

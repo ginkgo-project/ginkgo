@@ -92,9 +92,9 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <code>cuda/</code> </li>
 </ol>
 <p>to this directory.</p>
-<p>Then compile the file with the following command line: </p><div class="fragment"><div class="line">c++ -<a class="code" href="namespacestd.html">std</a>=c++11 -o example-* example-*.cpp -I../.. \</div><div class="line">-L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda</div></div><!-- fragment --><p> (if ginkgo was built in debug mode, append 'd' to every library name)</p>
+<p>Then compile the file with the following command line: </p><div class="fragment"><div class="line">c++ -<a class="code" href="namespacestd.html">std</a>=c++11 -o &lt;example-name&gt; &lt;example-name&gt;.cpp -I../.. \</div><div class="line">-L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda</div></div><!-- fragment --><p> (if ginkgo was built in debug mode, append 'd' to every library name)</p>
 <p>Now you should be able to run the program using:</p>
-<div class="fragment"><div class="line">env LD_LIBRARY_PATH=.:$\{LD_LIBRARY_PATH\} ./example-*</div></div><!-- fragment --><p><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
+<div class="fragment"><div class="line">env LD_LIBRARY_PATH=.:$\{LD_LIBRARY_PATH\} ./&lt;example-name&gt;</div></div><!-- fragment --><p><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
 <p>The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. </p><div class="dotgraph">
 <iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="1255" height="484"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <p><b>Legend:</b><br />

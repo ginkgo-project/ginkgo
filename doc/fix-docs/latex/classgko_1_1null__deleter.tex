@@ -1,5 +1,14 @@
 \hypertarget{classgko_1_1null__deleter}{}\section{gko\+:\+:null\+\_\+deleter$<$ T $>$ Class Template Reference}
 \label{classgko_1_1null__deleter}\index{gko\+::null\+\_\+deleter$<$ T $>$@{gko\+::null\+\_\+deleter$<$ T $>$}}
+
+
+This is a deleter that does not delete the object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
+
 \subsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -12,6 +21,14 @@ using {\bfseries pointer} = T $\ast$
 void \hyperlink{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}{operator()} (pointer) const noexcept
 \begin{DoxyCompactList}\small\item\em Deletes the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::null\+\_\+deleter$<$ T $>$}
+
+This is a deleter that does not delete the object. 
+
+It is useful where the object has been allocated elsewhere and will be deleted manually. 
 
 \subsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}\label{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}} 
@@ -34,4 +51,4 @@ Deletes the object.
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/utils.\+hpp (c71510aa)\end{DoxyCompactItemize}
+ginkgo/core/base/utils.\+hpp (eebc4a9b)\end{DoxyCompactItemize}

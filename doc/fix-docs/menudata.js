@@ -2,7 +2,10 @@ var menudata={children:[
 {text:"Main Page",url:"index.html"},
 {text:"Tutorial",url:"https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"},
 {text:"Examples",url:"Examples.html"},
-{text:"Using Ginkgo",url:"using_ginkgo.html"},
+{text:"Using Ginkgo",url:"install_ginkgo.html",children:[
+{text:"Installing Ginkgo",url:"install_ginkgo.html"},
+{text:"Testing Ginkgo",url:"test_ginkgo.html"},
+{text:"Benchmarking Ginkgo",url:"benchmark_ginkgo.html"}]},
 {text:"Modules",url:"modules.html"},
 {text:"Namespaces",url:"namespaces.html",children:[
 {text:"Namespace List",url:"namespaces.html"},
@@ -30,6 +33,7 @@ var menudata={children:[
 {text:"c",url:"namespacemembers_func.html#index_c"},
 {text:"g",url:"namespacemembers_func.html#index_g"},
 {text:"i",url:"namespacemembers_func.html#index_i"},
+{text:"l",url:"namespacemembers_func.html#index_l"},
 {text:"m",url:"namespacemembers_func.html#index_m"},
 {text:"o",url:"namespacemembers_func.html#index_o"},
 {text:"r",url:"namespacemembers_func.html#index_r"},

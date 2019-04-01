@@ -2,7 +2,7 @@
 \label{namespacegko}\index{gko@{gko}}
 
 
-The ginkgo namespace .  
+The Ginkgo namespace.  
 
 
 \subsection*{Namespaces}
@@ -42,7 +42,7 @@ class \hyperlink{classgko_1_1Composition}{Composition}
 class \hyperlink{classgko_1_1ConvertibleTo}{Convertible\+To}
 \begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1ConvertibleTo}{Convertible\+To} interface is used to mark that the implementer can be converted to the object of Result\+Type. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}
-\item 
+\begin{DoxyCompactList}\small\item\em A \hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter} is a type of deleter that copies the data to an internally referenced object before performing the deletion. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1copy__back__deleter_3_01const_01T_01_4}{copy\+\_\+back\+\_\+deleter$<$ const T $>$}
 \item 
 class \hyperlink{classgko_1_1CublasError}{Cublas\+Error}
@@ -98,7 +98,7 @@ class \hyperlink{classgko_1_1NotImplemented}{Not\+Implemented}
 class \hyperlink{classgko_1_1NotSupported}{Not\+Supported}
 \begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1NotSupported}{Not\+Supported} is thrown in case it is not possible to perform the requested operation on the given object type. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1null__deleter}{null\+\_\+deleter}
-\item 
+\begin{DoxyCompactList}\small\item\em This is a deleter that does not delete the object. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1null__deleter_3_01T[]_4}{null\+\_\+deleter$<$ T\mbox{[}$\,$\mbox{]}$>$}
 \item 
 class \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}
@@ -126,7 +126,7 @@ class \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}
 class \hyperlink{classgko_1_1StreamError}{Stream\+Error}
 \begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1StreamError}{Stream\+Error} is thrown if accessing a stream failed. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}
-\item 
+\begin{DoxyCompactList}\small\item\em A \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1Transposable}{Transposable}
 \begin{DoxyCompactList}\small\item\em Linear operators which support transposition should implement the \hyperlink{classgko_1_1Transposable}{Transposable} interface. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1truncated}{truncated}
@@ -569,33 +569,24 @@ constexpr bool \hyperlink{namespacegko_a4dbafa6e062c2036991ec8c3f6b201cf}{operat
 \begin{DoxyCompactList}\small\item\em Checks if two \hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction} encodings are equal. \end{DoxyCompactList}\item 
 constexpr bool \hyperlink{namespacegko_a61d408b4cd77aae6cac7a40c8307fddb}{operator!=} (\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction} x, \hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction} y) noexcept
 \begin{DoxyCompactList}\small\item\em Checks if two \hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction} encodings are different. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_a1beb80750459e4201aa9d882d2d074c3}\label{namespacegko_a1beb80750459e4201aa9d882d2d074c3}} 
-{\footnotesize template$<$typename Pointer $>$ }\\detail\+::cloned\+\_\+type$<$ Pointer $>$ {\bfseries clone} (const Pointer \&p)
-\item 
-\mbox{\Hypertarget{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}\label{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}} 
-{\footnotesize template$<$typename Pointer $>$ }\\detail\+::cloned\+\_\+type$<$ Pointer $>$ {\bfseries clone} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, const Pointer \&p)
-\item 
-\mbox{\Hypertarget{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}\label{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}} 
-{\footnotesize template$<$typename Owning\+Pointer $>$ }\\detail\+::shared\+\_\+type$<$ Owning\+Pointer $>$ {\bfseries share} (Owning\+Pointer \&\&p)
-\item 
-\mbox{\Hypertarget{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}\label{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}} 
-{\footnotesize template$<$typename Owning\+Pointer $>$ }\\std\+::remove\+\_\+reference$<$ Owning\+Pointer $>$\+::type \&\& {\bfseries give} (Owning\+Pointer \&\&p)
-\item 
-\mbox{\Hypertarget{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}\label{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}} 
-{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$ detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type {\bfseries lend} (const Pointer \&p)
-\item 
-\mbox{\Hypertarget{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}\label{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}} 
-{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type {\bfseries lend} (const Pointer \&p)
-\item 
-\mbox{\Hypertarget{namespacegko_a73ce7e87aec389b5210630bb617b4baa}\label{namespacegko_a73ce7e87aec389b5210630bb617b4baa}} 
-{\footnotesize template$<$typename T , typename U $>$ }\\std\+::decay$<$ T $>$\+::type $\ast$ {\bfseries as} (U $\ast$obj)
-\item 
-\mbox{\Hypertarget{namespacegko_a289e84ef5dea2f579dd12f27140a1470}\label{namespacegko_a289e84ef5dea2f579dd12f27140a1470}} 
-{\footnotesize template$<$typename T , typename U $>$ }\\const std\+::decay$<$ T $>$\+::type $\ast$ {\bfseries as} (const U $\ast$obj)
-\item 
-\mbox{\Hypertarget{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}\label{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}} 
-{\footnotesize template$<$typename T $>$ }\\\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}$<$ T $>$ {\bfseries make\+\_\+temporary\+\_\+clone} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, T $\ast$ptr)
-\item 
+{\footnotesize template$<$typename Pointer $>$ }\\detail\+::cloned\+\_\+type$<$ Pointer $>$ \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone} (const Pointer \&p)
+\begin{DoxyCompactList}\small\item\em Creates a unique clone of the object pointed to by {\ttfamily p}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Pointer $>$ }\\detail\+::cloned\+\_\+type$<$ Pointer $>$ \hyperlink{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}{clone} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, const Pointer \&p)
+\begin{DoxyCompactList}\small\item\em Creates a unique clone of the object pointed to by {\ttfamily p} on \hyperlink{classgko_1_1Executor}{Executor} {\ttfamily exec}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Owning\+Pointer $>$ }\\detail\+::shared\+\_\+type$<$ Owning\+Pointer $>$ \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share} (Owning\+Pointer \&\&p)
+\begin{DoxyCompactList}\small\item\em Marks the object pointed to by {\ttfamily p} as shared. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Owning\+Pointer $>$ }\\std\+::remove\+\_\+reference$<$ Owning\+Pointer $>$\+::type \&\& \hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give} (Owning\+Pointer \&\&p)
+\begin{DoxyCompactList}\small\item\em Marks that the object pointed to by {\ttfamily p} can be given to the callee. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$ detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend} (const Pointer \&p)
+\begin{DoxyCompactList}\small\item\em Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \hyperlink{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}{lend} (const Pointer \&p)
+\begin{DoxyCompactList}\small\item\em Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename U $>$ }\\std\+::decay$<$ T $>$\+::type $\ast$ \hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{as} (U $\ast$obj)
+\begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename U $>$ }\\const std\+::decay$<$ T $>$\+::type $\ast$ \hyperlink{namespacegko_a289e84ef5dea2f579dd12f27140a1470}{as} (const U $\ast$obj)
+\begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}$<$ T $>$ \hyperlink{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}{make\+\_\+temporary\+\_\+clone} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, T $\ast$ptr)
+\begin{DoxyCompactList}\small\item\em Creates a \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}\label{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}} 
 bool {\bfseries operator$<$} (const \hyperlink{structgko_1_1version}{version} \&first, const \hyperlink{structgko_1_1version}{version} \&second)
 \item 
@@ -639,7 +630,7 @@ constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+t
 
 
 \subsection{Detailed Description}
-The ginkgo namespace . 
+The Ginkgo namespace. 
 
 \subsection{Enumeration Type Documentation}
 \mbox{\Hypertarget{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}\label{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}} 
@@ -689,6 +680,60 @@ Returns the absolute value of the object.
 \begin{DoxyReturn}{Returns}
 x $>$= \hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero$<$\+T$>$()} ? x \+: -\/x; 
 \end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a73ce7e87aec389b5210630bb617b4baa}\label{namespacegko_a73ce7e87aec389b5210630bb617b4baa}} 
+\index{gko@{gko}!as@{as}}
+\index{as@{as}!gko@{gko}}
+\subsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
+std\+::decay$<$T$>$\+::type$\ast$ gko\+::as (\begin{DoxyParamCaption}\item[{U $\ast$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Performs polymorphic type conversion. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & requested result type \\
+\hline
+{\em U} & static type of the passed object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em obj} & the object which should be converted\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+If successful, returns a pointer to the subtype, otherwise throws \hyperlink{classgko_1_1NotSupported}{Not\+Supported}. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a289e84ef5dea2f579dd12f27140a1470}\label{namespacegko_a289e84ef5dea2f579dd12f27140a1470}} 
+\index{gko@{gko}!as@{as}}
+\index{as@{as}!gko@{gko}}
+\subsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
+const std\+::decay$<$T$>$\+::type$\ast$ gko\+::as (\begin{DoxyParamCaption}\item[{const U $\ast$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Performs polymorphic type conversion. 
+
+This is the constant version of the function.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & requested result type \\
+\hline
+{\em U} & static type of the passed object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em obj} & the object which should be converted\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+If successful, returns a pointer to the subtype, otherwise throws \hyperlink{classgko_1_1NotSupported}{Not\+Supported}. 
+\end{DoxyReturn}
 \mbox{\Hypertarget{namespacegko_a93065a86872e6511b701b73b75823483}\label{namespacegko_a93065a86872e6511b701b73b75823483}} 
 \index{gko@{gko}!ceildiv@{ceildiv}}
 \index{ceildiv@{ceildiv}!gko@{gko}}
@@ -713,6 +758,64 @@ returns the ceiled quotient.
 
 Referenced by gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at(), and gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::compute\+\_\+storage\+\_\+space().
 
+\mbox{\Hypertarget{namespacegko_a1beb80750459e4201aa9d882d2d074c3}\label{namespacegko_a1beb80750459e4201aa9d882d2d074c3}} 
+\index{gko@{gko}!clone@{clone}}
+\index{clone@{clone}!gko@{gko}}
+\subsubsection{\texorpdfstring{clone()}{clone()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Pointer $>$ \\
+detail\+::cloned\+\_\+type$<$Pointer$>$ gko\+::clone (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a unique clone of the object pointed to by {\ttfamily p}. 
+
+The pointee (i.\+e. {\ttfamily $\ast$p}) needs to have a clone method that returns a std\+::unique\+\_\+ptr in order for this method to work.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Pointer} & type of pointer to the object (plain or smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The difference between this function and directly calling Lin\+Op\+::clone() is that this one preserves the static type of the object. 
+\end{DoxyNote}
+
+
+Referenced by gko\+::temporary\+\_\+clone$<$ T $>$\+::temporary\+\_\+clone().
+
+\mbox{\Hypertarget{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}\label{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}} 
+\index{gko@{gko}!clone@{clone}}
+\index{clone@{clone}!gko@{gko}}
+\subsubsection{\texorpdfstring{clone()}{clone()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Pointer $>$ \\
+detail\+::cloned\+\_\+type$<$Pointer$>$ gko\+::clone (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a unique clone of the object pointed to by {\ttfamily p} on \hyperlink{classgko_1_1Executor}{Executor} {\ttfamily exec}. 
+
+The pointee (i.\+e. {\ttfamily $\ast$p}) needs to have a clone method that takes an executor and returns a std\+::unique\+\_\+ptr in order for this method to work.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Pointer} & type of pointer to the object (plain or smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the cloned object should be stored \\
+\hline
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The difference between this function and directly calling Lin\+Op\+::clone() is that this one preserves the static type of the object. 
+\end{DoxyNote}
 \mbox{\Hypertarget{namespacegko_acdaec5c4f959a948a6d0f3e99a57c7ea}\label{namespacegko_acdaec5c4f959a948a6d0f3e99a57c7ea}} 
 \index{gko@{gko}!conj@{conj}}
 \index{conj@{conj}!gko@{gko}}
@@ -855,6 +958,32 @@ Returns the smallest power of {\ttfamily base} not smaller than {\ttfamily limit
 \begin{DoxyReturn}{Returns}
 the smallest power of {\ttfamily base} not smaller than {\ttfamily limit} 
 \end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}\label{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}} 
+\index{gko@{gko}!give@{give}}
+\index{give@{give}!gko@{gko}}
+\subsubsection{\texorpdfstring{give()}{give()}}
+{\footnotesize\ttfamily template$<$typename Owning\+Pointer $>$ \\
+std\+::remove\+\_\+reference$<$Owning\+Pointer$>$\+::type\&\& gko\+::give (\begin{DoxyParamCaption}\item[{Owning\+Pointer \&\&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Marks that the object pointed to by {\ttfamily p} can be given to the callee. 
+
+Effectively calls {\ttfamily std\+::move(p)}.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Owning\+Pointer} & type of pointer with ownership to the object (has to be a smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The original pointer {\ttfamily p} becomes invalid after this call. 
+\end{DoxyNote}
 \mbox{\Hypertarget{namespacegko_a7ff1061513b10ccd5122015d2e5f9faa}\label{namespacegko_a7ff1061513b10ccd5122015d2e5f9faa}} 
 \index{gko@{gko}!imag@{imag}}
 \index{imag@{imag}!gko@{gko}}
@@ -898,6 +1027,82 @@ Checks if T is a complex type.
 \begin{DoxyReturn}{Returns}
 {\ttfamily true} if T is a complex type, {\ttfamily false} otherwise 
 \end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}\label{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}} 
+\index{gko@{gko}!lend@{lend}}
+\index{lend@{lend}!gko@{gko}}
+\subsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Pointer $>$ \\
+std\+::enable\+\_\+if$<$detail\+::have\+\_\+ownership$<$Pointer$>$), detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Pointer} & type of pointer to the object (plain or smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This is the overload for owning (smart) pointers, that behaves the same as calling .get() on the smart pointer. 
+\end{DoxyNote}
+
+
+Referenced by gko\+::log\+::\+Enable\+Logging$<$ Executor $>$\+::remove\+\_\+logger().
+
+\mbox{\Hypertarget{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}\label{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}} 
+\index{gko@{gko}!lend@{lend}}
+\index{lend@{lend}!gko@{gko}}
+\subsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Pointer $>$ \\
+std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership$<$Pointer$>$), detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Pointer} & type of pointer to the object (plain or smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This is the overload for non-\/owning (plain) pointers, that just returns {\ttfamily p}. 
+\end{DoxyNote}
+\mbox{\Hypertarget{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}\label{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}} 
+\index{gko@{gko}!make\+\_\+temporary\+\_\+clone@{make\+\_\+temporary\+\_\+clone}}
+\index{make\+\_\+temporary\+\_\+clone@{make\+\_\+temporary\+\_\+clone}!gko@{gko}}
+\subsubsection{\texorpdfstring{make\+\_\+temporary\+\_\+clone()}{make\_temporary\_clone()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}$<$T$>$ gko\+::make\+\_\+temporary\+\_\+clone (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{T $\ast$}]{ptr }\end{DoxyParamCaption})}
+
+
+
+Creates a \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}. 
+
+This is a helper function which avoids the need to explicitly specify the type of the object, as would be the case if using the constructor of \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the clone will be created \\
+\hline
+{\em ptr} & a pointer to the object of which the clone will be created \\
+\hline
+\end{DoxyParams}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::add\+\_\+scaled(), gko\+::\+Lin\+Op\+::apply(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::apply2(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::compute\+\_\+dot(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::compute\+\_\+norm2(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::scale().
+
 \mbox{\Hypertarget{namespacegko_af1812df45c6ec07780d579a12b64c753}\label{namespacegko_af1812df45c6ec07780d579a12b64c753}} 
 \index{gko@{gko}!max@{max}}
 \index{max@{max}!gko@{gko}}
@@ -1286,6 +1491,32 @@ Increases the precision of the input parameter.
 \begin{DoxyReturn}{Returns}
 the rounded up value 
 \end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}\label{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}} 
+\index{gko@{gko}!share@{share}}
+\index{share@{share}!gko@{gko}}
+\subsubsection{\texorpdfstring{share()}{share()}}
+{\footnotesize\ttfamily template$<$typename Owning\+Pointer $>$ \\
+detail\+::shared\+\_\+type$<$Owning\+Pointer$>$ gko\+::share (\begin{DoxyParamCaption}\item[{Owning\+Pointer \&\&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Marks the object pointed to by {\ttfamily p} as shared. 
+
+Effectively converts a pointer with ownership to std\+::shared\+\_\+ptr.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Owning\+Pointer} & type of pointer with ownership to the object (has to be a smart pointer)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em p} & a pointer to the object\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The original pointer {\ttfamily p} becomes invalid after this call. 
+\end{DoxyNote}
 \mbox{\Hypertarget{namespacegko_abbb55709b10d707b2cbef803832aa834}\label{namespacegko_abbb55709b10d707b2cbef803832aa834}} 
 \index{gko@{gko}!squared\+\_\+norm@{squared\+\_\+norm}}
 \index{squared\+\_\+norm@{squared\+\_\+norm}!gko@{gko}}

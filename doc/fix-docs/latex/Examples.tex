@@ -26,7 +26,7 @@ Go to the {\ttfamily  P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U
 
 Then compile the file with the following command line\+: 
 \begin{DoxyCode}
-c++ -\hyperlink{namespacestd}{std}=c++11 -o example-* example-*.cpp -I../.. \(\backslash\)
+c++ -\hyperlink{namespacestd}{std}=c++11 -o <example-name> <example-name>.cpp -I../.. \(\backslash\)
 -L. -lginkgo -lginkgo\_reference -lginkgo\_omp -lginkgo\_cuda
 \end{DoxyCode}
  (if ginkgo was built in debug mode, append \textquotesingle{}d\textquotesingle{} to every library name)
@@ -35,7 +35,7 @@ Now you should be able to run the program using\+:
 
 
 \begin{DoxyCode}
-env LD\_LIBRARY\_PATH=.:$\(\backslash\)\{LD\_LIBRARY\_PATH\(\backslash\)\} ./example-*
+env LD\_LIBRARY\_PATH=.:$\(\backslash\)\{LD\_LIBRARY\_PATH\(\backslash\)\} ./<example-name>
 \end{DoxyCode}
 
 

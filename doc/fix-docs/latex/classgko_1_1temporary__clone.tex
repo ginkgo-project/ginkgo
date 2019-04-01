@@ -1,5 +1,14 @@
 \hypertarget{classgko_1_1temporary__clone}{}\section{gko\+:\+:temporary\+\_\+clone$<$ T $>$ Class Template Reference}
 \label{classgko_1_1temporary__clone}\index{gko\+::temporary\+\_\+clone$<$ T $>$@{gko\+::temporary\+\_\+clone$<$ T $>$}}
+
+
+A \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
+
 \subsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -18,6 +27,21 @@ T $\ast$ \hyperlink{classgko_1_1temporary__clone_a38042e39a039070cc97e225435d5ed
 \begin{DoxyCompactList}\small\item\em Returns the object held by \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}. \end{DoxyCompactList}\item 
 T $\ast$ \hyperlink{classgko_1_1temporary__clone_a007bc247a9a250dcec8cdadb54710106}{operator-\/$>$} () const
 \begin{DoxyCompactList}\small\item\em Calls a method on the underlying object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::temporary\+\_\+clone$<$ T $>$}
+
+A \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor. 
+
+After the \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} goes out of scope, the stored object will be copied back to its original location. This class is optimized to avoid copies if the object is already on the correct executor, in which case it will just hold a reference to that object, without performing the copy.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & the type of object held in the \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone} \\
+\hline
+\end{DoxyTemplParams}
 
 
 \subsection{Constructor \& Destructor Documentation}
@@ -39,6 +63,10 @@ Creates a \hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}.
 {\em ptr} & a pointer to the object of which the clone will be created \\
 \hline
 \end{DoxyParams}
+
+
+References gko\+::clone().
+
 
 
 \subsection{Member Function Documentation}
@@ -74,4 +102,4 @@ the underlying object
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/utils.\+hpp (c71510aa)\end{DoxyCompactItemize}
+ginkgo/core/base/utils.\+hpp (eebc4a9b)\end{DoxyCompactItemize}

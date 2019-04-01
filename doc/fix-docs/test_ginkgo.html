@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: The known issues in Ginkgo.</title>
+<title>Ginkgo: Testing Ginkgo.</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,10 +63,23 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">The known issues in Ginkgo. </div>  </div>
+<div class="title">Testing Ginkgo. </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Please refer to the <a href="https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues">Known Issues page</a>. </p>
+<div class="textblock"><h2>Testing Instructions </h2>
+<h3>Running the unit tests</h3>
+<p>You need to compile ginkgo with <code>-DGINKGO_BUILD_TESTS=ON</code> option to be able to run the tests.</p>
+<h4>Using make test</h4>
+<p>After configuring Ginkgo, use the following command inside the build folder to run all tests:</p>
+<div class="fragment"><div class="line">make test</div></div><!-- fragment --><p>The output should contain several lines of the form:</p>
+<div class="fragment"><div class="line">    Start  1: path/to/test</div><div class="line">1/13 Test  #1: path/to/test .............................   Passed    0.01 sec</div></div><!-- fragment --><p>To run only a specific test and see more details results (e.g. if a test failed) run the following from the build folder:</p>
+<div class="fragment"><div class="line">./path/to/test</div></div><!-- fragment --><p>where <code>path/to/test</code> is the path returned by <code>make test</code>.</p>
+<h4>Using CTest</h4>
+<p>The tests can also be ran through CTest from the command line, for example when in a configured build directory:</p>
+<div class="fragment"><div class="line">ctest -T start -T build -T test -T submit</div></div><!-- fragment --><p>Will start a new test campaign (usually in <code>Experimental</code> mode), build Ginkgo with the set configuration, run the tests and submit the results to our CDash dashboard.</p>
+<p>Another option is to use Ginkgo's CTest script which is configured to build Ginkgo with default settings, runs the tests and submits the test to our CDash dashboard automatically.</p>
+<p>To run the script, use the following command:</p>
+<div class="fragment"><div class="line">ctest -S cmake/CTestScript.cmake</div></div><!-- fragment --><p>The default settings are for our own CI system. Feel free to configure the script before launching it through variables or by directly changing its values. A documentation can be found in the script itself. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

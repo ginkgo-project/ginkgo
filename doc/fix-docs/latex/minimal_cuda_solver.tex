@@ -72,7 +72,7 @@ Solve system
 
 
 \begin{DoxyCode}
-solver->generate(give(A))->apply(lend(b), lend(x));
+solver->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give}(A))->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 \end{DoxyCode}
 
 
@@ -80,7 +80,7 @@ Write result
 
 
 \begin{DoxyCode}
-    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(x));
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 \}
 \end{DoxyCode}
  \label{_Results}%
@@ -146,8 +146,8 @@ Write result
                     .with\_reduction\_factor(1e-15)
                     .on(gpu))
             .on(gpu);
-    solver->generate(give(A))->apply(lend(b), lend(x));
-    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, lend(x));
+    solver->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give}(A))->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+    \hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}(std::cout, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
 \}
 \end{DoxyCodeInclude}
  

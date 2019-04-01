@@ -89,7 +89,7 @@ For simplicity, we assume that there is always only one right hand side and the 
 \end{DoxyCode}
 
 
-we only implement the operator for dense R\+HS. gko\+::as will throw an exception if its argument is not Dense.
+we only implement the operator for dense R\+HS. \hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko\+::as} will throw an exception if its argument is not Dense.
 
 
 \begin{DoxyCode}
@@ -170,9 +170,9 @@ There is also a version of the apply function which does the operation x = alpha
         \textcolor{keyword}{auto} dense\_b = gko::as<vec>(b);
         \textcolor{keyword}{auto} dense\_x = gko::as<vec>(x);
         \textcolor{keyword}{auto} tmp\_x = dense\_x->clone();
-        this->apply\_impl(b, lend(tmp\_x));
+        this->apply\_impl(b, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
         dense\_x->scale(beta);
-        dense\_x->add\_scaled(alpha, lend(tmp\_x));
+        dense\_x->add\_scaled(alpha, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
     \}
 
 \textcolor{keyword}{private}:
@@ -339,7 +339,7 @@ initialize vectors
 
 \begin{DoxyCode}
 \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
-generate\_rhs(f, u0, u1, lend(rhs));
+generate\_rhs(f, u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs));
 \textcolor{keyword}{auto} u = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
 \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
     u->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}()[i] = 0.0;
@@ -368,11 +368,11 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \begin{DoxyCode}
         ->generate(
             StencilMatrix::create(exec, discretization\_points, -1, 2, -1))
-        ->apply(lend(rhs), lend(u));
+        ->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
 
-    print\_solution(u0, u1, lend(u));
+    print\_solution(u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
     std::cout << \textcolor{stringliteral}{"The average relative error is "}
-              << calculate\_error(discretization\_points, lend(u), correct\_u) /
+              << calculate\_error(discretization\_points, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u), correct\_u) /
                      discretization\_points
               << std::endl;
 \}
@@ -497,9 +497,9 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
         \textcolor{keyword}{auto} dense\_b = gko::as<vec>(b);
         \textcolor{keyword}{auto} dense\_x = gko::as<vec>(x);
         \textcolor{keyword}{auto} tmp\_x = dense\_x->clone();
-        this->apply\_impl(b, lend(tmp\_x));
+        this->apply\_impl(b, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
         dense\_x->scale(beta);
-        dense\_x->add\_scaled(alpha, lend(tmp\_x));
+        dense\_x->add\_scaled(alpha, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp\_x));
     \}
 
 \textcolor{keyword}{private}:
@@ -602,7 +602,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
     \textcolor{keyword}{auto} u1 = correct\_u(1);
 
     \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
-    generate\_rhs(f, u0, u1, lend(rhs));
+    generate\_rhs(f, u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs));
     \textcolor{keyword}{auto} u = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(discretization\_points, 1));
     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u->\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}()[0]; ++i) \{
         u->\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}()[i] = 0.0;
@@ -618,11 +618,11 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
         .on(exec)
         ->generate(
             StencilMatrix::create(exec, discretization\_points, -1, 2, -1))
-        ->apply(lend(rhs), lend(u));
+        ->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(rhs), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
 
-    print\_solution(u0, u1, lend(u));
+    print\_solution(u0, u1, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u));
     std::cout << \textcolor{stringliteral}{"The average relative error is "}
-              << calculate\_error(discretization\_points, lend(u), correct\_u) /
+              << calculate\_error(discretization\_points, \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(u), correct\_u) /
                      discretization\_points
               << std::endl;
 \}

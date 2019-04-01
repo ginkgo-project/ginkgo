@@ -101,27 +101,70 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:gab12a51109c50b35ec36dc5a393d6a9a0"><td class="memItemLeft" align="right" valign="top">
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__stop.html#gab12a51109c50b35ec36dc5a393d6a9a0">CriterionFactory</a> = <a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a>&lt; <a class="el" href="classgko_1_1stop_1_1Criterion.html">Criterion</a>, <a class="el" href="structgko_1_1stop_1_1CriterionArgs.html">CriterionArgs</a> &gt;</td></tr>
-<tr class="memdesc:gab12a51109c50b35ec36dc5a393d6a9a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Declares an Abstract Factory specialized for Criterions. <br /></td></tr>
-<tr class="separator:gab12a51109c50b35ec36dc5a393d6a9a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab045b6fd7571f3234d9a63a5ee5a2252"><td class="memTemplParams" colspan="2">template&lt;typename ConcreteFactory , typename ConcreteCriterion , typename ParametersType , typename PolymorphicBase  = CriterionFactory&gt; </td></tr>
-<tr class="memitem:gab045b6fd7571f3234d9a63a5ee5a2252"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__stop.html#gab045b6fd7571f3234d9a63a5ee5a2252">EnableDefaultCriterionFactory</a> = <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt; ConcreteFactory, ConcreteCriterion, ParametersType, PolymorphicBase &gt;</td></tr>
-<tr class="memdesc:gab045b6fd7571f3234d9a63a5ee5a2252"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. ">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of CriterionFactory.  <a href="group__stop.html#gab045b6fd7571f3234d9a63a5ee5a2252">More...</a><br /></td></tr>
-<tr class="separator:gab045b6fd7571f3234d9a63a5ee5a2252"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab12a51109c50b35ec36dc5a393d6a9a0"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">CriterionFactory</a> = <a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a>&lt; <a class="el" href="classgko_1_1stop_1_1Criterion.html">Criterion</a>, <a class="el" href="structgko_1_1stop_1_1CriterionArgs.html">CriterionArgs</a> &gt;</td></tr>
+<tr class="memdesc:ab12a51109c50b35ec36dc5a393d6a9a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Declares an Abstract Factory specialized for Criterions.  <a href="#ab12a51109c50b35ec36dc5a393d6a9a0">More...</a><br /></td></tr>
+<tr class="separator:ab12a51109c50b35ec36dc5a393d6a9a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab045b6fd7571f3234d9a63a5ee5a2252"><td class="memTemplParams" colspan="2">template&lt;typename ConcreteFactory , typename ConcreteCriterion , typename ParametersType , typename PolymorphicBase  = CriterionFactory&gt; </td></tr>
+<tr class="memitem:ab045b6fd7571f3234d9a63a5ee5a2252"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko_1_1stop.html#ab045b6fd7571f3234d9a63a5ee5a2252">EnableDefaultCriterionFactory</a> = <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt; ConcreteFactory, ConcreteCriterion, ParametersType, PolymorphicBase &gt;</td></tr>
+<tr class="memdesc:ab045b6fd7571f3234d9a63a5ee5a2252"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. ">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of CriterionFactory.  <a href="#ab045b6fd7571f3234d9a63a5ee5a2252">More...</a><br /></td></tr>
+<tr class="separator:ab045b6fd7571f3234d9a63a5ee5a2252"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="memTemplParams" colspan="2">template&lt;typename FactoryContainer &gt; </td></tr>
-<tr class="memitem:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="group__stop.html#gab12a51109c50b35ec36dc5a393d6a9a0">CriterionFactory</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">combine</a> (FactoryContainer &amp;&amp;factories)</td></tr>
+<tr class="memitem:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">CriterionFactory</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">combine</a> (FactoryContainer &amp;&amp;factories)</td></tr>
 <tr class="memdesc:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Combines multiple criterion factories into a single combined criterion factory.  <a href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">More...</a><br /></td></tr>
 <tr class="separator:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The Stopping criterion namespace . </p>
-<p>The stopping criterion namespace.</p>
+<p>The Stopping criterion namespace.</p>
 <p><a class="el" href="group__stop.html">Stopping criteria</a> </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Typedef Documentation</h2>
+<a id="ab12a51109c50b35ec36dc5a393d6a9a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab12a51109c50b35ec36dc5a393d6a9a0">&#9670;&nbsp;</a></span>CriterionFactory</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">gko::stop::CriterionFactory</a> = typedef <a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a>&lt;<a class="el" href="classgko_1_1stop_1_1Criterion.html">Criterion</a>, <a class="el" href="structgko_1_1stop_1_1CriterionArgs.html">CriterionArgs</a>&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Declares an Abstract Factory specialized for Criterions. </p>
+
+</div>
+</div>
+<a id="ab045b6fd7571f3234d9a63a5ee5a2252"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab045b6fd7571f3234d9a63a5ee5a2252">&#9670;&nbsp;</a></span>EnableDefaultCriterionFactory</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ConcreteFactory , typename ConcreteCriterion , typename ParametersType , typename PolymorphicBase  = CriterionFactory&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko_1_1stop.html#ab045b6fd7571f3234d9a63a5ee5a2252">gko::stop::EnableDefaultCriterionFactory</a> = typedef <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt;ConcreteFactory, ConcreteCriterion, ParametersType, PolymorphicBase&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. ">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of CriterionFactory. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ConcreteFactory</td><td>the concrete factory which is being implemented [CRTP parmeter] </td></tr>
+    <tr><td class="paramname">ConcreteCriterion</td><td>the concrete <a class="el" href="classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. ">Criterion</a> type which this factory produces, needs to have a constructor which takes a const ConcreteFactory *, and a const <a class="el" href="structgko_1_1stop_1_1CriterionArgs.html" title="This struct is used to pass parameters to the EnableDefaultCriterionFactoryCriterionFactory::generate...">CriterionArgs</a> * as parameters. </td></tr>
+    <tr><td class="paramname">ParametersType</td><td>a subclass of <a class="el" href="structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">enable_parameters_type</a> template which defines all of the parameters of the factory </td></tr>
+    <tr><td class="paramname">PolymorphicBase</td><td>parent of ConcreteFactory in the polymorphic hierarchy, has to be a subclass of CriterionFactory </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

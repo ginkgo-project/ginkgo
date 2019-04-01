@@ -20,7 +20,7 @@ The external library(deal.\+II) interfacing example.
  *
  * The deal.II library is free software; you can use it, redistribute
  * it, and/or modify it under the terms of the GNU Lesser General
- * Public License as published by the Free Software Foundation; either
+ * Public License \hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{as} published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  * The full text of the license can be found in the file LICENSE at
  * the top level of the deal.II distribution.
@@ -854,7 +854,7 @@ Ginkgo solve The stopping criteria is set at maximum iterations of 1000 and a re
                 .on(exec))
         .with\_preconditioner(bj::build().on(exec))
         .on(exec);
-\textcolor{keyword}{auto} solver = solver\_gen->generate(gko::give(A));
+\textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
 \end{DoxyCode}
 
 
@@ -862,7 +862,7 @@ Solve system
 
 
 \begin{DoxyCode}
-solver->apply(gko::lend(b), gko::lend(x));
+solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
 \end{DoxyCode}
 
 
@@ -1908,9 +1908,9 @@ AdvectionProblem<dim>::AssemblyScratchData::AssemblyScratchData(
                     .on(exec))
             .with\_preconditioner(bj::build().on(exec))
             .on(exec);
-    \textcolor{keyword}{auto} solver = solver\_gen->generate(gko::give(A));
+    \textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
 
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
 
     std::copy(x->get\_values(), x->get\_values() + num\_rows, solution.begin());
 

@@ -1,5 +1,14 @@
 \hypertarget{classgko_1_1copy__back__deleter}{}\section{gko\+:\+:copy\+\_\+back\+\_\+deleter$<$ T $>$ Class Template Reference}
 \label{classgko_1_1copy__back__deleter}\index{gko\+::copy\+\_\+back\+\_\+deleter$<$ T $>$@{gko\+::copy\+\_\+back\+\_\+deleter$<$ T $>$}}
+
+
+A \hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter} is a type of deleter that copies the data to an internally referenced object before performing the deletion.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
+
 \subsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -13,6 +22,23 @@ using {\bfseries pointer} = T $\ast$
 \begin{DoxyCompactList}\small\item\em Creates a new deleter object. \end{DoxyCompactList}\item 
 void \hyperlink{classgko_1_1copy__back__deleter_a34bba76c78c23dccd814969e98c78b1b}{operator()} (pointer ptr) const
 \begin{DoxyCompactList}\small\item\em Deletes the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::copy\+\_\+back\+\_\+deleter$<$ T $>$}
+
+A \hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter} is a type of deleter that copies the data to an internally referenced object before performing the deletion. 
+
+The deleter will use the {\ttfamily copy\+\_\+from} method to perform the copy, and then delete the passed object using the {\ttfamily delete} keyword. This kind of deleter is useful when temporarily copying an object with the intent of copying it back once it goes out of scope.
+
+There is also a specialization for constant objects that does not perform the copy, since a constant object couldn\textquotesingle{}t have been changed.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & the type of object being deleted \\
+\hline
+\end{DoxyTemplParams}
 
 
 \subsection{Constructor \& Destructor Documentation}
@@ -55,4 +81,4 @@ Deletes the object.
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/utils.\+hpp (c71510aa)\end{DoxyCompactItemize}
+ginkgo/core/base/utils.\+hpp (eebc4a9b)\end{DoxyCompactItemize}

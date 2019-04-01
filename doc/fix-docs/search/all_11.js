@@ -4,6 +4,7 @@ var searchData=
   ['scale',['scale',['../classgko_1_1matrix_1_1Dense.html#a35cb8dfff52daf3aa8995597d26981ec',1,'gko::matrix::Dense']]],
   ['sellp',['Sellp',['../classgko_1_1matrix_1_1Sellp.html',1,'gko::matrix']]],
   ['set_5fexecutor',['set_executor',['../classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85',1,'gko::Array']]],
+  ['share',['share',['../namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58',1,'gko']]],
   ['size',['size',['../structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b',1,'gko::matrix_data']]],
   ['size_5ftype',['size_type',['../namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7',1,'gko']]],
   ['solver',['solver',['../structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82',1,'gko::solver::Ir::parameters_type']]],

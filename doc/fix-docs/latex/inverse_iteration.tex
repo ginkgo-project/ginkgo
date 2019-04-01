@@ -114,7 +114,7 @@ Read data
 
 
 \begin{DoxyCode}
-\textcolor{keyword}{auto} A = share(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+\textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
 \end{DoxyCode}
 
 
@@ -125,11 +125,11 @@ Generate shifted matrix A -\/ zI
 
 
 \begin{DoxyCode}
-\textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = share(gko::initialize<vec>(\{precision\{1.0\}\}, exec));
-\textcolor{keyword}{auto} neg\_one = share(gko::initialize<vec>(\{-precision\{1.0\}\}, exec));
+\textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::initialize<vec>(\{precision\{1.0\}\}, exec));
+\textcolor{keyword}{auto} neg\_one = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::initialize<vec>(\{-precision\{1.0\}\}, exec));
 \textcolor{keyword}{auto} neg\_z = gko::initialize<vec>(\{-z\}, exec);
 
-\textcolor{keyword}{auto} system\_matrix = share(\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}(
+\textcolor{keyword}{auto} system\_matrix = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}(
     one, A, gko::initialize<vec>(\{-z\}, exec),
     \hyperlink{classgko_1_1matrix_1_1Identity}{gko::matrix::Identity<precision>::create}(exec, A->get\_size()[0]
       )));
@@ -166,13 +166,13 @@ start with guess \mbox{[}1, 1, ..., 1\mbox{]}
     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; ++i) \{
         work->get\_values()[i] = precision\{1.0\} / sqrt(n);
     \}
-    \textcolor{keywordflow}{return} clone(exec, work);
+    \textcolor{keywordflow}{return} \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, work);
 \}();
-\textcolor{keyword}{auto} y = clone(x);
-\textcolor{keyword}{auto} tmp = clone(x);
-\textcolor{keyword}{auto} norm = clone(one);
-\textcolor{keyword}{auto} inv\_norm = clone(this\_exec, one);
-\textcolor{keyword}{auto} g = clone(one);
+\textcolor{keyword}{auto} y = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(x);
+\textcolor{keyword}{auto} tmp = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(x);
+\textcolor{keyword}{auto} norm = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(one);
+\textcolor{keyword}{auto} inv\_norm = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, one);
+\textcolor{keyword}{auto} g = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(one);
 
 \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0u; i < max\_iterations; ++i) \{
     std::cout << \textcolor{stringliteral}{"\{ "};
@@ -183,12 +183,12 @@ start with guess \mbox{[}1, 1, ..., 1\mbox{]}
 
 
 \begin{DoxyCode}
-solver->apply(lend(x), lend(y));
-system\_matrix->apply(lend(one), lend(y), lend(neg\_one), lend(x));
-x->compute\_norm2(lend(norm));
+solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y));
+system\_matrix->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+x->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
 std::cout << \textcolor{stringliteral}{"\(\backslash\)"system\_residual\(\backslash\)": "}
-          << clone(this\_exec, norm)->get\_values()[0] << \textcolor{stringliteral}{", "};
-x->copy\_from(lend(y));
+          << \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, norm)->get\_values()[0] << \textcolor{stringliteral}{", "};
+x->copy\_from(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y));
 \end{DoxyCode}
 
 
@@ -196,10 +196,10 @@ x = y / $\vert$$\vert$ y $\vert$$\vert$
 
 
 \begin{DoxyCode}
-x->compute\_norm2(lend(norm));
+x->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
 inv\_norm->get\_values()[0] =
-    precision\{1.0\} / clone(this\_exec, norm)->get\_values()[0];
-x->scale(lend(clone(exec, inv\_norm)));
+    precision\{1.0\} / \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, norm)->get\_values()[0];
+x->scale(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, inv\_norm)));
 \end{DoxyCode}
 
 
@@ -207,9 +207,9 @@ g = x$^\wedge$$\ast$ A x
 
 
 \begin{DoxyCode}
-A->apply(lend(x), lend(tmp));
-x->compute\_dot(lend(tmp), lend(g));
-\textcolor{keyword}{auto} g\_val = clone(this\_exec, g)->get\_values()[0];
+A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp));
+x->compute\_dot(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(g));
+\textcolor{keyword}{auto} g\_val = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, g)->get\_values()[0];
 std::cout << \textcolor{stringliteral}{"\(\backslash\)"eigenvalue\(\backslash\)": "} << g\_val << \textcolor{stringliteral}{", "};
 \end{DoxyCode}
 
@@ -219,9 +219,9 @@ $\vert$$\vert$\+Ax -\/ gx$\vert$$\vert$ $<$ tol $\ast$ g
 
 \begin{DoxyCode}
         \textcolor{keyword}{auto} v = gko::initialize<vec>(\{-g\_val\}, exec);
-        tmp->add\_scaled(lend(v), lend(x));
-        tmp->compute\_norm2(lend(norm));
-        \textcolor{keyword}{auto} res\_val = clone(exec->get\_master(), norm)->get\_values()[0];
+        tmp->add\_scaled(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(v), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+        tmp->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
+        \textcolor{keyword}{auto} res\_val = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec->get\_master(), norm)->get\_values()[0];
         std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;
         \textcolor{keywordflow}{if} (\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(res\_val) < residual\_goal * \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(g\_val)) \{
             \textcolor{keywordflow}{break};
@@ -373,13 +373,13 @@ This is Ginkgo 0.0.0 (develop)
     \textcolor{keyword}{auto} residual\_goal = real\_precision\{1e-8\};
     \textcolor{keyword}{auto} z = precision\{20.0, 2.0\};
 
-    \textcolor{keyword}{auto} A = share(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
+    \textcolor{keyword}{auto} A = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));
 
-    \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = share(gko::initialize<vec>(\{precision\{1.0\}\}, exec));
-    \textcolor{keyword}{auto} neg\_one = share(gko::initialize<vec>(\{-precision\{1.0\}\}, exec));
+    \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::initialize<vec>(\{precision\{1.0\}\}, exec));
+    \textcolor{keyword}{auto} neg\_one = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(gko::initialize<vec>(\{-precision\{1.0\}\}, exec));
     \textcolor{keyword}{auto} neg\_z = gko::initialize<vec>(\{-z\}, exec);
 
-    \textcolor{keyword}{auto} system\_matrix = share(\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}(
+    \textcolor{keyword}{auto} system\_matrix = \hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}(\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}(
         one, A, gko::initialize<vec>(\{-z\}, exec),
         \hyperlink{classgko_1_1matrix_1_1Identity}{gko::matrix::Identity<precision>::create}(exec, A->get\_size(
       )[0])));
@@ -403,34 +403,34 @@ This is Ginkgo 0.0.0 (develop)
         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; ++i) \{
             work->get\_values()[i] = precision\{1.0\} / sqrt(n);
         \}
-        \textcolor{keywordflow}{return} clone(exec, work);
+        \textcolor{keywordflow}{return} \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, work);
     \}();
-    \textcolor{keyword}{auto} y = clone(x);
-    \textcolor{keyword}{auto} tmp = clone(x);
-    \textcolor{keyword}{auto} norm = clone(one);
-    \textcolor{keyword}{auto} inv\_norm = clone(this\_exec, one);
-    \textcolor{keyword}{auto} g = clone(one);
+    \textcolor{keyword}{auto} y = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(x);
+    \textcolor{keyword}{auto} tmp = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(x);
+    \textcolor{keyword}{auto} norm = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(one);
+    \textcolor{keyword}{auto} inv\_norm = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, one);
+    \textcolor{keyword}{auto} g = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(one);
 
     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0u; i < max\_iterations; ++i) \{
         std::cout << \textcolor{stringliteral}{"\{ "};
-        solver->apply(lend(x), lend(y));
-        system\_matrix->apply(lend(one), lend(y), lend(neg\_one), lend(x));
-        x->compute\_norm2(lend(norm));
+        solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y));
+        system\_matrix->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(neg\_one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+        x->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
         std::cout << \textcolor{stringliteral}{"\(\backslash\)"system\_residual\(\backslash\)": "}
-                  << clone(this\_exec, norm)->get\_values()[0] << \textcolor{stringliteral}{", "};
-        x->copy\_from(lend(y));
-        x->compute\_norm2(lend(norm));
+                  << \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, norm)->get\_values()[0] << \textcolor{stringliteral}{", "};
+        x->copy\_from(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(y));
+        x->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
         inv\_norm->get\_values()[0] =
-            precision\{1.0\} / clone(this\_exec, norm)->get\_values()[0];
-        x->scale(lend(clone(exec, inv\_norm)));
-        A->apply(lend(x), lend(tmp));
-        x->compute\_dot(lend(tmp), lend(g));
-        \textcolor{keyword}{auto} g\_val = clone(this\_exec, g)->get\_values()[0];
+            precision\{1.0\} / \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, norm)->get\_values()[0];
+        x->scale(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec, inv\_norm)));
+        A->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp));
+        x->compute\_dot(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(tmp), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(g));
+        \textcolor{keyword}{auto} g\_val = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(this\_exec, g)->get\_values()[0];
         std::cout << \textcolor{stringliteral}{"\(\backslash\)"eigenvalue\(\backslash\)": "} << g\_val << \textcolor{stringliteral}{", "};
         \textcolor{keyword}{auto} v = gko::initialize<vec>(\{-g\_val\}, exec);
-        tmp->add\_scaled(lend(v), lend(x));
-        tmp->compute\_norm2(lend(norm));
-        \textcolor{keyword}{auto} res\_val = clone(exec->get\_master(), norm)->get\_values()[0];
+        tmp->add\_scaled(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(v), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x));
+        tmp->compute\_norm2(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(norm));
+        \textcolor{keyword}{auto} res\_val = \hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}(exec->get\_master(), norm)->get\_values()[0];
         std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;
         \textcolor{keywordflow}{if} (\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(res\_val) < residual\_goal * \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(g\_val)) \{
             \textcolor{keywordflow}{break};
