@@ -49,7 +49,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Dense matrix format.
+ * @brief The Dense matrix format namespace.
  * @ref Dense
  * @ingroup dense
  */

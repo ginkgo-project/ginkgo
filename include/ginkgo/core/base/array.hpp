@@ -56,6 +56,7 @@ namespace gko {
  * types.
  *
  * @tparam ValueType  the type of elements stored in the array
+ *
  * @ingroup array
  */
 template <typename ValueType>

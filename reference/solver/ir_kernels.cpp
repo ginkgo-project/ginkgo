@@ -37,7 +37,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The IR solver.
+ * @brief The IR solver namespace.
  *
  * @ingroup ir
  */

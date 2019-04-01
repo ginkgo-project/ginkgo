@@ -1,16 +1,16 @@
 QUIET                  = YES
 
 # General project info
-PROJECT_NAME           = "@PROJECT_NAME@" 
+PROJECT_NAME           = "@PROJECT_NAME@"
 PROJECT_NUMBER         = "Generated from @GINKGO_GIT_BRANCH@ branch based on @PROJECT_VERSION_TAG@. Ginkgo version @PROJECT_VERSION@ "
-PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@" 
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
 #The INPUT variable is defined in the specific doxy files for usr and dev.
-INPUT                  = 
+INPUT                  =
 
-INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@ 
+INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
 EXAMPLE_PATH           = @CMAKE_BINARY_DIR@/doc/examples
 RECURSIVE              = YES
@@ -19,8 +19,8 @@ FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
 EXAMPLE_PATTERNS       = *.cpp *.hpp *.cuh *.cu
 EXTENSION_MAPPING      = cu=c++ cuh=c++
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = @DIR_BASE@/include 
-STRIP_FROM_INC_PATH    = @DIR_BASE@/include 
+STRIP_FROM_PATH        = @DIR_BASE@/include
+STRIP_FROM_INC_PATH    = @DIR_BASE@/include
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
@@ -38,7 +38,7 @@ SUBGROUPING            = YES
 INLINE_GROUPED_CLASSES = NO
 MACRO_EXPANSION        = YES
 SKIP_FUNCTION_MACROS   = YES
-INLINE_INFO            = YES 
+INLINE_INFO            = YES
 SORT_MEMBER_DOCS       = YES
 SORT_BRIEF_DOCS        = NO
 SORT_MEMBERS_CTORS_1ST = NO
@@ -51,16 +51,16 @@ GENERATE_BUGLIST       = NO
 GENERATE_DEPRECATEDLIST= NO
 ENABLED_SECTIONS       =
 MAX_INITIALIZER_LINES  = 30
-SHOW_USED_FILES        = YES 
+SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
 FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
-CITE_BIB_FILES         = 
+CITE_BIB_FILES         =
 INHERIT_DOCS           = YES
 
 BUILTIN_STL_SUPPORT    = YES
 
-WARN_NO_PARAMDOC       = NO 
+WARN_NO_PARAMDOC       = NO
 WARN_AS_ERROR          = NO
 WARN_IF_UNDOCUMENTED   = NO
 WARN_IF_DOC_ERROR      = NO
@@ -79,7 +79,7 @@ VERBATIM_HEADERS       = YES
 # External references
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
-PERL_PATH              = @PERL_EXECUTABLE@ 
+PERL_PATH              = @PERL_EXECUTABLE@
 
 # Graph generation
 CLASS_DIAGRAMS         = YES
@@ -104,9 +104,8 @@ DOT_CLEANUP            = YES
 HTML_OUTPUT            = .
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            =
-HTML_FOOTER            = 
+HTML_FOOTER            =
 HTML_COLORSTYLE_HUE    = 220
 HTML_COLORSTYLE_SAT    = 200
 LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
 HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/stylesheet.css
-

@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The BICGSTAB solver.
+ * @brief The BICGSTAB solver namespace.
  *
  * @ingroup bicgstab
  */

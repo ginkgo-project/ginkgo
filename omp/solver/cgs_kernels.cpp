@@ -46,7 +46,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The CGS solver.
+ * @brief The CGS solver namespace.
  *
  * @ingroup cgs
  */

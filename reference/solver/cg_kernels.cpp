@@ -43,8 +43,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The CG solver.
- * @ref Cg
+ * @brief The CG solver namespace.
+ *
  * @ingroup cg
  */
 namespace cg {

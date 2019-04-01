@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The CG solver.
+ * @brief The CG solver namespace.
  *
  * @ingroup cg
  */

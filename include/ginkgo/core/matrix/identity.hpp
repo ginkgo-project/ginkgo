@@ -38,11 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-/**
- * @brief The matrix namespace.
- *
- * @ingroup matrix
- */
 namespace matrix {
 
 

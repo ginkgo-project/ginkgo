@@ -54,7 +54,7 @@ namespace kernels {
  */
 namespace omp {
 /**
- * @brief The Coordinate matrix format.
+ * @brief The Coordinate matrix format namespace.
  *
  * @ingroup coo
  */

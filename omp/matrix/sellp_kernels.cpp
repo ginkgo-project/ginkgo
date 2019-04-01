@@ -43,7 +43,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The SELL-P matrix format.
+ * @brief The SELL-P matrix format namespace.
  *
  * @ingroup sellp
  */

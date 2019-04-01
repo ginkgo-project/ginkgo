@@ -43,7 +43,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The SELL-P matrix format.
+ * @brief The SELL-P matrix format namespace.
  * @ref Sellp
  * @ingroup sellp
  */

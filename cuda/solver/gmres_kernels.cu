@@ -54,7 +54,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The GMRES solver.
+ * @brief The GMRES solver namespace.
  *
  * @ingroup gmres
  */

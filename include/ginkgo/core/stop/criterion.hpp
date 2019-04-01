@@ -44,6 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The Stopping criterion namespace.
+ *
+ * @ingroup stop
+ */
 namespace stop {
 
 
@@ -55,7 +60,6 @@ namespace stop {
  * Note that depending on the criterion, convergence may not have happened after
  * stopping.
  *
- * @ingroup stop
  */
 class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
@@ -210,7 +214,6 @@ protected:
  * `ResidualNormReduction` which really requires the `initial_residual` to be
  * set.
  *
- * @ingroup stop
  */
 struct CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
@@ -233,7 +236,6 @@ struct CriterionArgs {
 /**
  * Declares an Abstract Factory specialized for Criterions
  *
- * @ingroup stop
  */
 using CriterionFactory = AbstractFactory<Criterion, CriterionArgs>;
 
@@ -253,7 +255,6 @@ using CriterionFactory = AbstractFactory<Criterion, CriterionArgs>;
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
  *                          hierarchy, has to be a subclass of CriterionFactory
  *
- * @ingroup stop
  */
 template <typename ConcreteFactory, typename ConcreteCriterion,
           typename ParametersType, typename PolymorphicBase = CriterionFactory>

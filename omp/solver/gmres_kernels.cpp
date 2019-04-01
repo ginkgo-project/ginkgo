@@ -46,7 +46,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The GMRES solver.
+ * @brief The GMRES solver namespace.
  *
  * @ingroup gmres
  */

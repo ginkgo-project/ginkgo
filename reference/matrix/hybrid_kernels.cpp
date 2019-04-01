@@ -47,7 +47,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Hybrid matrix format.
+ * @brief The Hybrid matrix format namespace.
  * @ref Hybrid
  * @ingroup hybrid
  */

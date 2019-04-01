@@ -676,7 +676,7 @@ inline size_type agglomerate_supervariables(
 
 
 /**
- * @brief The Jacobi preconditioner.
+ * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
  * @ingroup jacobi
  */

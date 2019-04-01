@@ -42,8 +42,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The FCG solver.
- * @ref Fcg
+ * @brief The FCG solver namespace.
+ *
  * @ingroup fcg
  */
 namespace fcg {

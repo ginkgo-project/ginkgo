@@ -50,7 +50,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The SELL-P format namespace.
+ * @brief The SELL-P matrix format namespace.
  *
  * @ingroup sellp
  */

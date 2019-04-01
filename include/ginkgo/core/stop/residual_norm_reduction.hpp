@@ -44,11 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-/**
- * @brief The stopping criterion namespace.
- *
- * @ingroup stop
- */
 namespace stop {
 
 /**

@@ -139,7 +139,6 @@ using shared_type = std::shared_ptr<pointee<Pointer>>;
 
 
 /**
- * @internal
  * Creates a unique clone of the object pointed to by `p`.
  *
  * The pointee (i.e. `*p`) needs to have a clone method that returns a
@@ -165,7 +164,6 @@ inline detail::cloned_type<Pointer> clone(const Pointer &p)
 
 
 /**
- * @internal
  * Creates a unique clone of the object pointed to by `p` on Executor `exec`.
  *
  * The pointee (i.e. `*p`) needs to have a clone method that takes an
@@ -193,7 +191,6 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
 
 
 /**
- * @internal
  * Marks the object pointed to by `p` as shared.
  *
  * Effectively converts a pointer with ownership to std::shared_ptr.
@@ -215,7 +212,6 @@ inline detail::shared_type<OwningPointer> share(OwningPointer &&p)
 
 
 /**
- * @internal
  * Marks that the object pointed to by `p` can be given to the callee.
  *
  * Effectively calls `std::move(p)`.
@@ -238,7 +234,6 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
 
 
 /**
- * @internal
  * Returns a non-owning (plain) pointer to the object pointed to by `p`.
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
@@ -257,7 +252,6 @@ lend(const Pointer &p)
 }
 
 /**
- * @internal
  * Returns a non-owning (plain) pointer to the object pointed to by `p`.
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
@@ -277,7 +271,6 @@ lend(const Pointer &p)
 
 
 /**
- * @internal
  * Performs polymorphic type conversion.
  *
  * @tparam T  requested result type
@@ -299,7 +292,6 @@ inline typename std::decay<T>::type *as(U *obj)
 }
 
 /**
- * @internal
  * Performs polymorphic type conversion.
  *
  * This is the constant version of the function.
@@ -324,7 +316,6 @@ inline const typename std::decay<T>::type *as(const U *obj)
 
 
 /**
- * @internal
  * This is a deleter that does not delete the object.
  *
  * It is useful where the object has been allocated elsewhere and will be
@@ -354,7 +345,6 @@ public:
 
 
 /**
- * @internal
  * A copy_back_deleter is a type of deleter that copies the data to an
  * internally referenced object before performing the deletion.
  *

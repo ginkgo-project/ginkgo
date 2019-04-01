@@ -48,7 +48,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The BICGSTAB solver.
+ * @brief The BICGSTAB solver namespace.
  *
  * @ingroup bicgstab
  */

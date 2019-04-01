@@ -43,7 +43,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The ELL matrix format.
+ * @brief The ELL matrix format namespace.
  * @ref Ell
  * @ingroup ell
  */

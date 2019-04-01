@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * @brief The ginkgo namespace .
+ * @brief The Ginkgo namespace.
  *
  * @ingroup gko
  */

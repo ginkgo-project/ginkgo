@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The Residual norm reduction stopping criterion.
+ * @brief The Residual norm reduction stopping criterion namespace.
  * @ref resnorm
  * @ingroup resnorm
  */

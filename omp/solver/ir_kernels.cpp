@@ -40,7 +40,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The IR solver.
+ * @brief The IR solver namespace.
  *
  * @ingroup ir
  */

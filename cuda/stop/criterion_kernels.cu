@@ -46,7 +46,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief Setting of all statuses.
+ * @brief The Set all statuses namespace.
  * @ref set_status
  * @ingroup set_all_statuses
  */

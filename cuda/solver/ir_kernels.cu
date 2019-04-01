@@ -40,7 +40,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The IR solver.
+ * @brief The IR solver namespace.
  *
  * @ingroup ir
  */

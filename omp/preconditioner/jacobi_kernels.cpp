@@ -57,7 +57,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Jacobi preconditioner.
+ * @brief The Jacobi preconditioner namespace.
  *
  * @ingroup jacobi
  */

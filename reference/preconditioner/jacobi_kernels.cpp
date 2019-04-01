@@ -53,8 +53,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Jacobi preconditioner.
- * @ref Jacobi
+ * @brief The Jacobi preconditioner namespace.
+ *
  * @ingroup jacobi
  */
 namespace jacobi {

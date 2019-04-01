@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 /**
- * @brief The Cuda namespace.
+ * @brief The CUDA namespace.
  *
  * @ingroup cuda
  */

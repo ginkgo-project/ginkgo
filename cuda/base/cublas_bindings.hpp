@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 /**
- * @brief The device specific kernels.
+ * @brief The device specific kernels namespace.
  *
  * @ingroup kernels
  */

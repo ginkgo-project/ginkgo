@@ -42,8 +42,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The CGS solver.
- * @ref Cgs
+ * @brief The CGS solver namespace.
+ *
  * @ingroup cgs
  */
 namespace cgs {

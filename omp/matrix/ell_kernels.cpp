@@ -49,7 +49,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The ELL matrix format.
+ * @brief The ELL matrix format namespace.
  *
  * @ingroup ell
  */

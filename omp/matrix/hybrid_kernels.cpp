@@ -49,7 +49,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Hybrid matrix format.
+ * @brief The Hybrid matrix format namespace.
  *
  * @ingroup hybrid
  */

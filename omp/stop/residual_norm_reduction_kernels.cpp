@@ -43,7 +43,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Residual norm reduction stopping criterion.
+ * @brief The Residual norm reduction stopping criterion namespace.
  * @ref resnorm
  * @ingroup resnorm
  */

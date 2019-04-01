@@ -54,7 +54,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Compressed sparse row matrix format.
+ * @brief The Compressed sparse row matrix format namespace.
  *
  * @ingroup csr
  */

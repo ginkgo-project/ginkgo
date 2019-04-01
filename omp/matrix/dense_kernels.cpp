@@ -52,7 +52,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The Dense matrix format.
+ * @brief The Dense matrix format namespace.
  *
  * @ingroup dense
  */

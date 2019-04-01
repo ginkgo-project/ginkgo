@@ -43,8 +43,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The BiCGSTAB solver.
- * @ref Bicgstab
+ * @brief The BiCGSTAB solver namespace.
+ *
  * @ingroup bicgstab
  */
 namespace bicgstab {

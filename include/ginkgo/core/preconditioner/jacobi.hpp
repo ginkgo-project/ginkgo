@@ -192,7 +192,7 @@ struct block_interleaved_storage_scheme {
  *       slightly longer preconditioner generation due to extra work required to
  *       detect the optimal precision of the blocks.
  *
- * ingroup jacobi
+ * @ingroup jacobi
  * @ingroup precond
  * @ingroup LinOp
  */
