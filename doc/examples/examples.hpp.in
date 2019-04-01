@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * @page Examples Example programs
  *
- * Here you can find Examples programs that demonstrate the usage of Ginkgo.
- * Some examples are built on another and some are stand-alone and demonstrate a concept of
+ * Here you can find example programs that demonstrate the usage of Ginkgo.
+ * Some examples are built on one another and some are stand-alone and demonstrate a concept of
  * Ginkgo, which can be used in your own code.
  *
  * You can browse the available example programs
@@ -96,7 +96,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @enddot
  *
  * <a name="list"></a>
- * <h3>Example programs listed by number</h3>
+ * <h3>Example programs </h3>
  *
  * <table align="center" width="90%">
  *   <tr valign="top">
@@ -127,13 +127,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref external_lib_interfacing</td>
- *       <td> Interfacing with an external library. Using ginkgo's solver with deal.ii.
+ *       <td> Interfacing with an external library. Using Ginkgo's solver with deal.ii.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref custom_matrix_format</td>
- *       <td> Creating a matrix-free stencil solver. Using ginkgo's advanced methods to
- *        create your own custom matrix format to create a matrix free solver.
+ *       <td> Creating a matrix-free stencil solver. Using Ginkgo's advanced methods to
+ *        create your own custom matrix format.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -143,7 +143,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref simple_solver_logging</td>
- *       <td> Using the logging functionality in ginkgo to get solver and other information to
+ *       <td> Using the logging functionality in Ginkgo to get solver and other information to
  *        diagnose and debug your code.
  *       </td></tr>
  *
@@ -155,7 +155,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref ginkgo_overhead</td>
- *       <td> Measuring the overhead of the ginkgo library.
+ *       <td> Measuring the overhead of the Ginkgo library.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -225,7 +225,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
- *     <td> Using ginkgo with external libraries. 
+ *     <td> Using Ginkgo with external libraries. 
  *     </td>
  *     <td>@ref external_lib_interfacing
  *     </td>

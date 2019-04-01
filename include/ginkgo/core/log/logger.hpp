@@ -59,7 +59,7 @@ class Operation;
 class stopping_status;
 
 /**
- * @brief The Stopping criterion namespace .
+ * @brief The Stopping criterion namespace.
  * @ref stop
  * @ingroup stop
  */
