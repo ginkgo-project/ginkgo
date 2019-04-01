@@ -140,10 +140,9 @@ void Csr<ValueType, IndexType>::convert_to(
     const auto slice_size = (result->get_slice_size() == 0)
                                 ? default_slice_size
                                 : result->get_slice_size();
-    size_type total_columns = 0;
-    exec->run(csr::make_calculate_total_cols(this, &total_columns,
-                                             stride_factor, slice_size));
-    const auto total_cols = std::max(result->get_total_cols(), total_columns);
+    size_type total_cols = 0;
+    exec->run(csr::make_calculate_total_cols(this, &total_cols, stride_factor,
+                                             slice_size));
     auto tmp = Sellp<ValueType, IndexType>::create(
         exec, this->get_size(), slice_size, stride_factor, total_cols);
     exec->run(csr::make_convert_to_sellp(tmp.get(), this));
