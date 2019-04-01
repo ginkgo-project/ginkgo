@@ -43,10 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * separate hierarchies for matrices, solvers and preconditioners) is the
  * generality it provides.
  *
- * @section linop_1 Linear operator as a concept.
- *
- * @copydoc linop_class
- *
  * @section linop_3 Advantages of this approach and usage
  *
  * A common interface often allows for writing more generic code. If a

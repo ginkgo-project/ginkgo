@@ -72,7 +72,7 @@ namespace log {
 
 
 /**
- * @defgroup logger_class
+ * @addtogroup log
  *
  * The Logger class represents a simple Logger object. It comprises all masks
  * and events internally. Every new logging event addition should be done here.
@@ -86,8 +86,6 @@ namespace log {
  * to log. In addition, the class design allows to not propagate empty messages
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
- *
- * @ingroup log
  */
 class Logger {
 public:

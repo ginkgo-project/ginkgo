@@ -52,7 +52,9 @@ namespace gko {
 
 
 /**
- * @defgroup linop_class
+ * @addtogroup LinOp
+ *
+ * @section linop_concept Linear operator as a concept
  *
  * The linear operator (LinOp) is a base class for all linear algebra objects
  * in Ginkgo. The main benefit of having a single base class for the
@@ -127,7 +129,7 @@ namespace gko {
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  *
- * @ingroup LinOp
+ * @ref LinOp
  */
 class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
