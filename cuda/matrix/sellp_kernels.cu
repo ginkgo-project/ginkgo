@@ -290,7 +290,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_ins_csr(
+__global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type slice_size,
     const size_type *__restrict__ source_slice_sets,
     const IndexType *__restrict__ source_col_idxs,
@@ -360,7 +360,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     grid_dim = ceildiv(num_rows, default_block_size);
 
-    kernel::fill_ins_csr<<<grid_dim, default_block_size>>>(
+    kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
         num_rows, slice_size, as_cuda_type(source_slice_sets),
         as_cuda_type(source_col_idxs), as_cuda_type(source_values),
         as_cuda_type(result_row_ptrs), as_cuda_type(result_col_idxs),

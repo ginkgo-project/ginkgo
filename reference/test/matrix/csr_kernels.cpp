@@ -256,6 +256,19 @@ TEST_F(Csr, ConvertsToSellp)
 }
 
 
+TEST_F(Csr, MovesToSellp)
+{
+    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+
+    csr_ref->move_to(sellp_mtx.get());
+
+    assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
 TEST_F(Csr, MovesToCoo)
 {
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());

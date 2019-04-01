@@ -78,11 +78,6 @@ namespace kernels {
                           matrix::Sellp<ValueType, IndexType> *result, \
                           const matrix::Csr<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSR_MOVE_TO_SELLP_KERNEL(ValueType, IndexType)  \
-    void move_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
-                       matrix::Sellp<ValueType, IndexType> *result, \
-                       matrix::Csr<ValueType, IndexType> *source)
-
 #define GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)      \
     void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec,     \
                               const matrix::Csr<ValueType, IndexType> *source, \
@@ -112,8 +107,6 @@ namespace kernels {
     GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_CSR_MOVE_TO_SELLP_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                  \

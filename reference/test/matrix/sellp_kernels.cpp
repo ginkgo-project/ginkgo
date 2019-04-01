@@ -209,6 +209,20 @@ TEST_F(Sellp, ConvertsToCsr)
 }
 
 
+TEST_F(Sellp, MovesToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+
+    mtx1->move_to(csr_mtx.get());
+
+    // clang-format off
+	GKO_ASSERT_MTX_NEAR(csr_mtx,
+	                    l({{1.0, 3.0, 2.0},
+	                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
 TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
@@ -331,6 +345,34 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    mtx2->convert_to(csr_mtx.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(csr_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    mtx2->move_to(csr_mtx.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(csr_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
