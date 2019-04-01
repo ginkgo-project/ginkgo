@@ -50,13 +50,13 @@ namespace cuda {
 
 /**
  * @internal
- * Calculates the prefix sum of `elements` inside `block_size` sized blocks
- * in-place. Can be used together with `finalize_prefix_sum` to calculate the
- * prefix-sum of an array. `block_size` must be the thread block size used when
- * calling this kernel, which also dictates the size of blocks where the
- * in-place prefix sum will be calculated `block_sum` is used to store the total
- * sum of each block. It requires at least `ceildiv(num_elements, block_size)`
- * elements
+ * Calculates the prefix sum of @param elements inside @param block_size sized
+ * blocks in-place. Can be used together with `finalize_prefix_sum` to calculate
+ * the prefix-sum of an array. `block_size` must be the thread block size used
+ * when calling this kernel, which also dictates the size of blocks where the
+ * in-place prefix sum will be calculated. @param block_sum is used to store the
+ * total sum of each block. It requires at least `ceildiv(num_elements,
+ * block_size)` elements
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void start_prefix_sum(
@@ -64,8 +64,9 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     ValueType *__restrict__ block_sum)
 {
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto element_id = threadIdx.x;
     __shared__ size_type prefix_helper[block_size];
-    prefix_helper[threadIdx.x] =
+    prefix_helper[element_id] =
         (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block();
     this_block.sync();
@@ -73,15 +74,15 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     // Do a normal reduction
 #pragma unroll
     for (int i = 1; i < block_size; i <<= 1) {
-        const auto ai = i * (2 * threadIdx.x + 1) - 1;
-        const auto bi = i * (2 * threadIdx.x + 2) - 1;
+        const auto ai = i * (2 * element_id + 1) - 1;
+        const auto bi = i * (2 * element_id + 2) - 1;
         if (bi < block_size) {
             prefix_helper[bi] += prefix_helper[ai];
         }
         this_block.sync();
     }
 
-    if (threadIdx.x == 0) {
+    if (element_id == 0) {
         // Store the total sum
         block_sum[blockIdx.x] = prefix_helper[block_size - 1];
         prefix_helper[block_size - 1] = zero<ValueType>();
@@ -92,8 +93,8 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     // Perform the down-sweep phase to get the true prefix sum
 #pragma unroll
     for (int i = block_size >> 1; i > 0; i >>= 1) {
-        const auto ai = i * (2 * threadIdx.x + 1) - 1;
-        const auto bi = i * (2 * threadIdx.x + 2) - 1;
+        const auto ai = i * (2 * element_id + 1) - 1;
+        const auto bi = i * (2 * element_id + 2) - 1;
         if (bi < block_size) {
             auto tmp = prefix_helper[ai];
             prefix_helper[ai] = prefix_helper[bi];
@@ -102,21 +103,21 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
         this_block.sync();
     }
     if (tidx < num_elements) {
-        elements[tidx] = prefix_helper[threadIdx.x];
+        elements[tidx] = prefix_helper[element_id];
     }
 }
 
 
 /**
  * @internal
- * Increases the value of each entry of 'elements' by the total sum of all
- * preceding blocks of size 'block_size'. Can be used together with
- * `start_prefix_sum` to calculate the prefix-sum of an array. `block_size` must
- * be the thread block size used when calling this kernel, which also dictates
- * the size of blocks where the in-place prefix sum will be calculated by
- * 'start_prefix_sum' `block_sum` is used by 'start_prefix_sum'to store the
- * total sum of each block. It requires at least `ceildiv(num_elements,
- * block_size)` elements
+ * Increases the value of each entry of @param elements by the total sum of all
+ * preceding blocks of size @param block_size. Can be used together with
+ * `start_prefix_sum` to calculate the prefix-sum of an array. @param block_size
+ * must be the thread block size used when calling this kernel, which also
+ * dictates the size of blocks where the in-place prefix sum will be calculated
+ * by `start_prefix_sum`. @param block_sum is used by `start_prefix_sum` to
+ * store the total sum of each block. It requires at least
+ * `ceildiv(num_elements, block_size)` elements
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_prefix_sum(
