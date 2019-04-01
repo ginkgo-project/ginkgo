@@ -35,7 +35,7 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
     (will download gflags and rapidjson), default is `ON`
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
-*   `-DGINKGO_BUILD_EXTLIB_EXAMPLES={ON, OFF}` builds the interfacing example with deal.II, default is `OFF`
+*   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example with deal.II, default is `OFF`
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
