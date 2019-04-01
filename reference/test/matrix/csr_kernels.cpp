@@ -112,8 +112,12 @@ protected:
         auto c = m->get_const_col_idxs();
         auto slice_sets = m->get_const_slice_sets();
         auto slice_lengths = m->get_const_slice_lengths();
+        auto stride_factor = m->get_stride_factor();
+        auto slice_size = m->get_slice_size();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(stride_factor, 1);
+        ASSERT_EQ(slice_size, 64);
         EXPECT_EQ(slice_sets[0], 0);
         EXPECT_EQ(slice_lengths[0], 3);
         EXPECT_EQ(c[0], 0);
@@ -264,7 +268,6 @@ TEST_F(Csr, MovesToSellp)
     auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
 
     csr_ref->copy_from(mtx.get());
-
     csr_ref->move_to(sellp_mtx.get());
 
     assert_equal_to_mtx(sellp_mtx.get());
