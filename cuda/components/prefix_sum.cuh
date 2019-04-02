@@ -50,13 +50,18 @@ namespace cuda {
 
 /**
  * @internal
- * Calculates the prefix sum of @param elements inside @param block_size sized
- * blocks in-place. Can be used together with `finalize_prefix_sum` to calculate
- * the prefix-sum of an array. `block_size` must be the thread block size used
- * when calling this kernel, which also dictates the size of blocks where the
- * in-place prefix sum will be calculated. @param block_sum is used to store the
- * total sum of each block. It requires at least `ceildiv(num_elements,
- * block_size)` elements
+ * First step of the calculation of a prefix sum. Calculates the prefix sum
+ * in-place on parts of the array `elements`.
+ *
+ * @param block_size  thread block size for this kernel, also size of blocks on
+ * which this kernel calculates the prefix sum in-place
+ * @param elements  array on which the prefix sum is to be calculated
+ * @param block_sum  array which stores the total sum of each block, requires at
+ * least `ceildiv(num_elements, block_size)` elements
+ * @param num_elements  total number of entries in `elements`
+ *
+ * @note To calculate the prefix sum over an array of size bigger than
+ * `block_size`, `finalize_prefix_sum` has to be used as well.
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void start_prefix_sum(
@@ -110,14 +115,16 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
 
 /**
  * @internal
- * Increases the value of each entry of @param elements by the total sum of all
- * preceding blocks of size @param block_size. Can be used together with
- * `start_prefix_sum` to calculate the prefix-sum of an array. @param block_size
- * must be the thread block size used when calling this kernel, which also
- * dictates the size of blocks where the in-place prefix sum will be calculated
- * by `start_prefix_sum`. @param block_sum is used by `start_prefix_sum` to
- * store the total sum of each block. It requires at least
- * `ceildiv(num_elements, block_size)` elements
+ * Second step of the calculation of a prefix sum. Increases the value of each
+ * entry of `elements` by the total sum of all preceding blocks.
+ *
+ * @param block_size  thread block size for this kernel, has to be the same as
+ * for `start_prefix_sum`
+ * @param elements  array on which the prefix sum is to be calculated
+ * @param block_sum  array storing the total sum of each block
+ * @param num_elements  total number of entries in `elements`
+ *
+ * @note To calculate a prefix sum, first `start_prefix_sum` has to be called.
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_prefix_sum(
