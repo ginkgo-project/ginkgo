@@ -132,9 +132,6 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
     convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_ROW_IDXS_TO_PTRS_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
@@ -153,6 +150,26 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *result,
+                    const matrix::Coo<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+
+    auto row_ptrs = result->get_row_ptrs();
+    const auto nnz = result->get_num_stored_elements();
+
+    const auto source_row_idxs = source->get_const_row_idxs();
+
+    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
+                             num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

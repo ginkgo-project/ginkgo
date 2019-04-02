@@ -122,9 +122,22 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
     convert_ptrs_to_idxs(ptrs, num_rows, idxs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+
+    auto row_idxs = result->get_row_idxs();
+    const auto source_row_ptrs = source->get_const_row_ptrs();
+
+    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,

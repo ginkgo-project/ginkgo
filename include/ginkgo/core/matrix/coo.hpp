@@ -289,13 +289,6 @@ protected:
 
     void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
 
-    /**
-     * Simple helper function to factorize conversion code of COO matrix to CSR.
-     *
-     * @return this COO matrix in CSR format
-     */
-    std::unique_ptr<Csr<ValueType, IndexType>> make_csr() const;
-
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;

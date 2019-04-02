@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -190,6 +191,20 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
                         static_cast<ComplexMtx *>(trans.get()), 0.0);
+}
+
+
+TEST_F(Csr, ConvertToCooIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(omp);
+
+    mtx->convert_to(coo_mtx.get());
+    dmtx->convert_to(dcoo_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
 }
 
 

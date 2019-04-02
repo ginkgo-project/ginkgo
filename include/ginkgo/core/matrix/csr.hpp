@@ -460,13 +460,6 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Simple helper function to factorize conversion code of CSR matrix to COO.
-     *
-     * @return this CSR matrix in COO format
-     */
-    std::unique_ptr<Coo<ValueType, IndexType>> make_coo() const;
-
-    /**
      * Compute srow, it should be run after setting value.
      */
     void make_srow() { strategy_->process(row_ptrs_, &srow_); }

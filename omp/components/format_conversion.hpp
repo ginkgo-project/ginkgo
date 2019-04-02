@@ -34,22 +34,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 
+#include <omp.h>
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
 
 
+/**
+ * @internal
+ *
+ * Converts an array of indexes `idxs` in any order to an array of pointers
+ * `ptrs`. This is used for transposing a csr matrix when calculating the row
+ * pointers of the transposed matrix out of the column indices of the original
+ * matrix.
+ */
 template <typename IndexType>
-inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
-                                 IndexType *ptrs, size_type length)
+inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
+                                          size_type num_nonzeros,
+                                          IndexType *ptrs, size_type length)
 {
-    std::fill(ptrs, ptrs + length, 0);
-    std::for_each(idxs, idxs + num_nonzeros, [&](size_type v) {
+#pragma omp parallel for schedule(static, \
+                                  ceildiv(length, omp_get_max_threads()))
+    for (size_type i = 0; i < length; i++) {
+        ptrs[i] = 0;
+    }
+
+    std::for_each(idxs, idxs + num_nonzeros, [&](IndexType v) {
         if (v + 1 < length) {
             ++ptrs[v + 1];
         }
     });
+
     std::partial_sum(ptrs, ptrs + length, ptrs);
+}
+
+
+/**
+ * @internal
+ *
+ * Converts an array of indexes `idxs` which are already stored in an increasing
+ * order to an array of pointers `ptrs`. This is used to calculate the row
+ * pointers when converting a coo matrix to a csr matrix.
+ */
+template <typename IndexType>
+inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
+                                        size_type num_nonzeros, IndexType *ptrs,
+                                        size_type length)
+{
+    ptrs[0] = 0;
+    ptrs[length - 1] = num_nonzeros;
+
+#pragma omp parallel for schedule( \
+    static, ceildiv(num_nonzeros, omp_get_max_threads()))
+    for (size_type i = 0; i < num_nonzeros - 1; i++) {
+        for (size_type j = idxs[i] + 1; j <= idxs[i + 1]; j++) {
+            ptrs[j] = i + 1;
+        }
+    }
 }
 
 
@@ -57,12 +100,11 @@ template <typename IndexType>
 inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
                                  IndexType *idxs)
 {
-    size_type ind = 0;
-
+#pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type i = ptrs[row]; i < static_cast<size_type>(ptrs[row + 1]);
              ++i) {
-            idxs[ind++] = row;
+            idxs[i] = row;
         }
     }
 }

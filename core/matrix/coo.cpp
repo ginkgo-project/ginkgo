@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
-GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs, coo::convert_row_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(transpose, coo::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose);
@@ -106,25 +106,14 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
-    const
-{
-    auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_row_idxs_to_ptrs(
-        this->get_const_row_idxs(), this->get_num_stored_elements(),
-        tmp->get_row_ptrs(), this->get_size()[0] + 1));
-    return tmp;
-}
-
-
-template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
-    auto tmp = this->make_csr();
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -132,9 +121,11 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
-    auto tmp = this->make_csr();
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 

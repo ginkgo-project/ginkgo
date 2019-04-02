@@ -120,10 +120,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs) GKO_NOT_IMPLEMENTED;
+                              IndexType *idxs)
+{
+    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
+}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_ROW_PTRS_TO_IDXS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
+                    matrix::Coo<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+
+    auto row_idxs = result->get_row_idxs();
+    const auto source_row_ptrs = source->get_const_row_ptrs();
+
+    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -201,8 +218,8 @@ void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
     trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
+    convert_unsorted_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
+                                  orig_num_cols);
 
     convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
                        trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
