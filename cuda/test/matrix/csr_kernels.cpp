@@ -349,6 +349,7 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
+
 TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
@@ -361,6 +362,7 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
 }
+
 
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {

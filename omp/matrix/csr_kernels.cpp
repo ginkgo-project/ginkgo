@@ -55,6 +55,7 @@ namespace kernels {
 namespace omp {
 namespace csr {
 
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Csr<ValueType, IndexType> *a,
@@ -253,6 +254,7 @@ void transpose(std::shared_ptr<const OmpExecutor> exec,
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return x; });
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
@@ -286,6 +288,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
 
 }  // namespace csr
 }  // namespace omp

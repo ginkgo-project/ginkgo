@@ -141,6 +141,7 @@ void Ell<ValueType, IndexType>::convert_to(
     tmp->move_to(result);
 }
 
+
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {

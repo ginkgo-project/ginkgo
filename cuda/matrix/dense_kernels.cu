@@ -760,6 +760,7 @@ void move_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
 
+
 namespace kernel {
 
 

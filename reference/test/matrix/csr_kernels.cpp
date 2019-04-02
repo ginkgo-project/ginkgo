@@ -318,6 +318,7 @@ TEST_F(Csr, MovesToCoo)
     assert_equal_to_mtx(coo_mtx.get());
 }
 
+
 TEST_F(Csr, ConvertsToEll)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
