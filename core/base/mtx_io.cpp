@@ -61,19 +61,33 @@ namespace {
     }
 
 
-// this class encapsulates the complexity of reading and writing matrix market
-// format files
+/**
+ * The mtx_io class provides the functionality of reading and writing matrix
+ * market format files.
+ *
+ * @ingroup mtx_io
+ */
 template <typename ValueType, typename IndexType>
 class mtx_io {
 public:
-    // returns an instance of a mtx_io
+    /**
+     * Returns an instance of the matrix.
+     *
+     * @return an instance of the matrix.
+     */
     static const mtx_io &get()
     {
         static mtx_io instance;
         return instance;
     }
 
-    // reads a matrix from a stream
+    /**
+     * Reads a matrix from a stream.
+     *
+     * @param is  the input stream.
+     *
+     * @return the matrix data.
+     */
     matrix_data<ValueType, IndexType> read(std::istream &is) const
     {
         auto parsed_header = this->read_header(is);
@@ -84,7 +98,13 @@ public:
         return data;
     }
 
-    // writes a matrix to a stream
+    /**
+     * Writes a matrix to a stream.
+     *
+     * @param os  the output stream.
+     * @param data  the matrix data to be written.
+     * @param header  the header to be printed at the start of the file.
+     */
     void write(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
                const std::string &header) const
     {
@@ -507,6 +527,13 @@ private:
 }  // namespace
 
 
+/**
+ * Reads raw data from the stream.
+ *
+ * @param is  the input stream
+ *
+ * @return matrix_data  the matrix data.
+ */
 template <typename ValueType, typename IndexType>
 matrix_data<ValueType, IndexType> read_raw(std::istream &is)
 {
@@ -514,6 +541,13 @@ matrix_data<ValueType, IndexType> read_raw(std::istream &is)
 }
 
 
+/**
+ * Writes raw data to the stream.
+ *
+ * @param os  the output stream.
+ * @param data  the data to be written.
+ * @param layout  the layout type which the data should be written in.
+ */
 template <typename ValueType, typename IndexType>
 void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
                layout_type layout)
