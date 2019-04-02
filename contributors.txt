@@ -11,4 +11,5 @@ Grützmacher Thomas <thogru.kit@gmx.de> Karlsruhe Institute of Technology
 Heroux Mike <maherou@sandia.gov> Sandia National Laboratories
 Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
+Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
