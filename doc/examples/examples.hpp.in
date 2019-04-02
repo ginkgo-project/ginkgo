@@ -101,39 +101,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <table align="center" width="90%">
  *   <tr valign="top">
  *       <td width="260px">@ref simple_solver</td>
- *       <td> Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file.
+ *       <td> A minimal CG solver in Ginkgo, which reads a matrix from a file.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref minimal_cuda_solver</td>
- *       <td> A first step solver with CUDA. Solve a linear system on NVIDIA GPU's.
+ *       <td> A minimal solver on the CUDA executor than can be run on NVIDIA GPU's.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref poisson_solver</td>
- *       <td> Solve an actual physically relevant problem. Solving the poisson problem.
- *       Generate matrix within Ginkgo.
+ *       <td> Solve an actual physically relevant problem, the poisson problem.
+ *           The matrix is generated within Ginkgo.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref preconditioned_solver</td>
- *       <td> Using a preconditioner for a linear system solve. Using the Jacobi preconditioner.
+ *       <td> Using a Jacobi preconditioner to solve a linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref three_pt_stencil_solver</td>
- *       <td> Using a stencil to solve the poisson equation. Using array views.
+ *       <td> Using a three point stencil to solve the poisson equation with array views.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref external_lib_interfacing</td>
- *       <td> Interfacing with an external library. Using Ginkgo's solver with deal.ii.
+ *       <td> Using Ginkgo's solver with the external library deal.II.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref custom_matrix_format</td>
- *       <td> Creating a matrix-free stencil solver. Using Ginkgo's advanced methods to
- *        create your own custom matrix format.
+ *       <td> Creating a matrix-free stencil solver by using Ginkgo's advanced methods to build your own custom matrix format.
  *       </td></tr>
  *
  *   <tr valign="top">
