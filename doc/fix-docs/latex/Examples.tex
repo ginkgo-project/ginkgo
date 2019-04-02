@@ -63,25 +63,25 @@ The following graph shows the connections between example programs and how they 
 \tabulinesep=1mm
 \begin{longtabu} spread 0pt [c]{*{2}{|X[-1]}|}
 \hline
-\hyperlink{simple_solver}{The simple-\/solver program} &Simple solver. A minimal CG solver in Ginkgo. Read matrix from a file. 
+\hyperlink{simple_solver}{The simple-\/solver program} &A minimal CG solver in Ginkgo, which reads a matrix from a file. 
 
 \\\cline{1-2}
-\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program} &A first step solver with C\+U\+DA. Solve a linear system on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
+\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program} &A minimal solver on the C\+U\+DA executor than can be run on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
 
 \\\cline{1-2}
-\hyperlink{poisson_solver}{The poisson-\/solver program} &Solve an actual physically relevant problem. Solving the poisson problem. Generate matrix within Ginkgo. 
+\hyperlink{poisson_solver}{The poisson-\/solver program} &Solve an actual physically relevant problem, the poisson problem. The matrix is generated within Ginkgo. 
 
 \\\cline{1-2}
-\hyperlink{preconditioned_solver}{The preconditioned-\/solver program} &Using a preconditioner for a linear system solve. Using the Jacobi preconditioner. 
+\hyperlink{preconditioned_solver}{The preconditioned-\/solver program} &Using a Jacobi preconditioner to solve a linear system. 
 
 \\\cline{1-2}
-\hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program} &Using a stencil to solve the poisson equation. Using array views. 
+\hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program} &Using a three point stencil to solve the poisson equation with array views. 
 
 \\\cline{1-2}
-\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program} &Interfacing with an external library. Using Ginkgo\textquotesingle{}s solver with deal.\+ii. 
+\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program} &Using Ginkgo\textquotesingle{}s solver with the external library deal.\+II. 
 
 \\\cline{1-2}
-\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} &Creating a matrix-\/free stencil solver. Using Ginkgo\textquotesingle{}s advanced methods to create your own custom matrix format. 
+\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} &Creating a matrix-\/free stencil solver by using Ginkgo\textquotesingle{}s advanced methods to build your own custom matrix format. 
 
 \\\cline{1-2}
 \hyperlink{inverse_iteration}{The inverse-\/iteration program} &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
