@@ -54,9 +54,19 @@ stages:
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
   artifacts:
     paths:
-      - build/
+      - "build/*/*/*/*/*/CMakeCache.txt"
+      - "build/*/*/*/*/*/core/test"
+      - "build/*/*/*/*/*/cuda/test"
+      - "build/*/*/*/*/*/omp/test"
+      - "build/*/*/*/*/*/reference/test"
+      - "build/*/*/*/*/*/core/libginkgo*"
+      - "build/*/*/*/*/*/cuda/libginkgo*"
+      - "build/*/*/*/*/*/omp/libginkgo*"
+      - "build/*/*/*/*/*/reference/libginkgo*"
   except:
       - schedules
+# build paths are of the form: build/<cuda_version>/<compiler>/<module(s)>/{debug,release}/{shared,static}/
+# see: the name of our building jobs
 
 .test_template: &default_test
   stage: test
