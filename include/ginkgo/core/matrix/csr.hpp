@@ -224,21 +224,21 @@ public:
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow)
         {
-            // if the number of stored elements per row is larger than 1e6 or
+            // if the number of stored elements is larger than 1e6 or
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
-            const auto num = mtx_row_ptrs.get_num_elems();
+            const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             Array<index_type> host_row_ptrs(
                 mtx_row_ptrs.get_executor()->get_master());
             host_row_ptrs = mtx_row_ptrs;
             const auto row_val = host_row_ptrs.get_const_data();
-            if (row_val[num] > 1e6) {
+            if (row_val[num_rows] > static_cast<index_type>(1e6)) {
                 std::make_shared<load_balance>(nwarps_)->process(host_row_ptrs,
                                                                  mtx_srow);
                 this->set_name("load_balance");
             } else {
                 index_type maxnum = 0;
-                for (index_type i = 1; i < num; i++) {
+                for (index_type i = 1; i < num_rows + 1; i++) {
                     maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
                 }
                 if (maxnum > 64) {
