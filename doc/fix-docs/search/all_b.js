@@ -8,7 +8,6 @@ var searchData=
   ['less',['less',['../structgko_1_1accessor_1_1less.html',1,'gko::accessor']]],
   ['less_5for_5fequal',['less_or_equal',['../structgko_1_1accessor_1_1less__or__equal.html',1,'gko::accessor']]],
   ['linop',['LinOp',['../classgko_1_1LinOp.html',1,'gko::LinOp'],['../group__LinOp.html',1,'(Global Namespace)']]],
-  ['linop_5fclass',['Linop_class',['../group__linop__class.html',1,'']]],
   ['linop_5fdata',['linop_data',['../structgko_1_1log_1_1linop__data.html',1,'gko::log']]],
   ['linop_5fevents_5fmask',['linop_events_mask',['../classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba',1,'gko::log::Logger']]],
   ['linop_5ffactory_5fdata',['linop_factory_data',['../structgko_1_1log_1_1linop__factory__data.html',1,'gko::log']]],
@@ -19,7 +18,6 @@ var searchData=
   ['loggable',['Loggable',['../classgko_1_1log_1_1Loggable.html',1,'gko::log']]],
   ['logged_5fdata',['logged_data',['../structgko_1_1log_1_1Record_1_1logged__data.html',1,'gko::log::Record']]],
   ['logger',['Logger',['../classgko_1_1log_1_1Logger.html',1,'gko::log']]],
-  ['logger_5fclass',['Logger_class',['../group__logger__class.html',1,'']]],
   ['logical_5fand',['logical_and',['../structgko_1_1accessor_1_1logical__and.html',1,'gko::accessor']]],
   ['logical_5fnot',['logical_not',['../structgko_1_1accessor_1_1logical__not.html',1,'gko::accessor']]],
   ['logical_5for',['logical_or',['../structgko_1_1accessor_1_1logical__or.html',1,'gko::accessor']]]

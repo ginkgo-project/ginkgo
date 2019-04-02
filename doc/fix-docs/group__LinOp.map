@@ -1,6 +1,5 @@
 <map id="Linear Operators" name="Linear Operators">
-<area shape="rect" id="node1" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. " alt="" coords="399,56,522,83"/>
-<area shape="rect" id="node2" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo..." alt="" coords="365,258,556,299"/>
-<area shape="rect" id="node4" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo. " alt="" coords="425,360,496,387"/>
-<area shape="rect" id="node5" href="$group__linop__class.html" title="The linear operator (LinOp) is a base class for all linear algebra objects in Ginkgo. " alt="" coords="412,472,509,499"/>
+<area shape="rect" id="node1" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. " alt="" coords="399,54,522,80"/>
+<area shape="rect" id="node2" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo..." alt="" coords="365,254,556,296"/>
+<area shape="rect" id="node4" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo. " alt="" coords="425,359,496,386"/>
 </map>

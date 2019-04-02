@@ -21,9 +21,7 @@ Collaboration diagram for Linear Operators\+:
 \hyperlink{group__precond}{Preconditioners}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. \end{DoxyCompactList}\item 
 \hyperlink{group__solvers}{Solvers}
-\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Solvers in Ginkgo. \end{DoxyCompactList}\item 
-\hyperlink{group__linop__class}{Linop\+\_\+class}
-\begin{DoxyCompactList}\small\item\em The linear operator (\hyperlink{classgko_1_1LinOp}{Lin\+Op}) is a base class for all linear algebra objects in Ginkgo. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Solvers in Ginkgo. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
@@ -103,12 +101,15 @@ class \hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres$<$ Value\
 \subsection{Detailed Description}
 A module dedicated to the implementation and usage of the Linear operators in Ginkgo. 
 
-Below we elaborate on one of the most important concepts of Ginkgo, the linear operator. The linear operator (Lin\+Op) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.\hypertarget{group__LinOp_linop_1}{}\subsection{Linear operator as a concept.}\label{group__LinOp_linop_1}
-The linear operator (Lin\+Op) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.
+Below we elaborate on one of the most important concepts of Ginkgo, the linear operator. The linear operator (\hyperlink{classgko_1_1LinOp}{Lin\+Op}) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.\hypertarget{group__LinOp_linop_3}{}\subsection{Advantages of this approach and usage}\label{group__LinOp_linop_3}
+A common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the \hyperlink{classgko_1_1LinOp}{Lin\+Op} interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a \hyperlink{classgko_1_1LinOp}{Lin\+Op}. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
 
-First, since all subclasses provide a common interface, the library users are exposed to a smaller set of routines. For example, a matrix-\/vector product, a preconditioner application, or even a system solve are just different terms given to the operation of applying a certain linear operator to a vector. As such, Ginkgo uses the same routine name, Lin\+Op\+::apply() for each of these operations, where the actual operation performed depends on the type of linear operator involved in the operation.
+For example, a matrix free implementation would require the user to provide an apply implementation and instead of passing the generated matrix to the solver, they would have to provide their apply implementation for all the executors needed and no other code needs to be changed. See \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} example for more details.\hypertarget{group__LinOp_linop_concept}{}\subsection{Linear operator as a concept}\label{group__LinOp_linop_concept}
+The linear operator (\hyperlink{classgko_1_1LinOp}{Lin\+Op}) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.
 
-Second, a common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the Lin\+Op interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a Lin\+Op. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
+First, since all subclasses provide a common interface, the library users are exposed to a smaller set of routines. For example, a matrix-\/vector product, a preconditioner application, or even a system solve are just different terms given to the operation of applying a certain linear operator to a vector. As such, Ginkgo uses the same routine name, \hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{Lin\+Op\+::apply()} for each of these operations, where the actual operation performed depends on the type of linear operator involved in the operation.
+
+Second, a common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the \hyperlink{classgko_1_1LinOp}{Lin\+Op} interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a \hyperlink{classgko_1_1LinOp}{Lin\+Op}. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
 
 A key observation for providing a unified interface for matrices, solvers, and preconditioners is that the most common operation performed on all of them can be expressed as an application of a linear operator to a vector\+:
 
@@ -120,7 +121,7 @@ A key observation for providing a unified interface for matrices, solvers, and p
 \item the system solve $Ax = b$ can be viewed as linear operator application $x = A^{-1}b$ (it goes without saying that the implementation of linear system solves does not follow this conceptual idea), so a linear system solver can be viewed as a representation of the operator $A^{-1}$.
 \end{DoxyItemize}
 
-Finally, direct manipulation of Lin\+Op objects is rarely required in simple scenarios. As an illustrative example, one could construct a fixed-\/point iteration routine $x_{k+1} = Lx_k + b$ as follows\+:
+Finally, direct manipulation of \hyperlink{classgko_1_1LinOp}{Lin\+Op} objects is rarely required in simple scenarios. As an illustrative example, one could construct a fixed-\/point iteration routine $x_{k+1} = Lx_k + b$ as follows\+:
 
 
 \begin{DoxyCode}
@@ -133,7 +134,7 @@ std::unique\_ptr<matrix::Dense<>> calculate\_fixed\_point(
     \textcolor{keyword}{auto} \hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one} = Dense<>::create(L->get\_executor(), \{1.0,\});
     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < iters; ++i) \{
         L->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(tmp), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
-        x->add\_scaled(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(one), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b));
+        x->add\_scaled(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b));
         tmp->copy\_from(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
     \}
     \textcolor{keywordflow}{return} x;
@@ -141,12 +142,11 @@ std::unique\_ptr<matrix::Dense<>> calculate\_fixed\_point(
 \end{DoxyCode}
 
 
-Here, if $L$ is a matrix, Lin\+Op\+::apply() refers to the matrix vector product, and {\ttfamily L-\/$>$apply(a, b)} computes $b = L \cdot a$. {\ttfamily x-\/$>$add\+\_\+scaled(one.\+get(), b.\+get())} is the {\ttfamily axpy} vector update $x:=x+b$.
+Here, if $L$ is a matrix, \hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{Lin\+Op\+::apply()} refers to the matrix vector product, and {\ttfamily L-\/$>$apply(a, b)} computes $b = L \cdot a$. {\ttfamily x-\/$>$add\+\_\+scaled(one.\+get(), b.\+get())} is the {\ttfamily axpy} vector update $x:=x+b$.
 
-The interesting part of this example is the apply() routine at line 4 of the function body. Since this routine is part of the Lin\+Op base class, the fixed-\/point iteration routine can calculate a fixed point not only for matrices, but for any type of linear operator.\hypertarget{group__LinOp_linop_3}{}\subsection{Advantages of this approach and usage}\label{group__LinOp_linop_3}
-A common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the Lin\+Op interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a Lin\+Op. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
+The interesting part of this example is the apply() routine at line 4 of the function body. Since this routine is part of the \hyperlink{classgko_1_1LinOp}{Lin\+Op} base class, the fixed-\/point iteration routine can calculate a fixed point not only for matrices, but for any type of linear operator.
 
-For example, a matrix free implementation would require the user to provide an apply implementation and instead of passing the generated matrix to the solver, they would have to provide their apply implementation for all the executors needed and no other code needs to be changed. See \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} example for more details. 
+\hyperlink{group__LinOp}{Linear Operators} 
 
 \subsection{Macro Definition Documentation}
 \mbox{\Hypertarget{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}\label{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}} 
