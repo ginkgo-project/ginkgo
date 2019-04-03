@@ -30,22 +30,22 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include "core/matrix/csr_kernels.hpp"
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -273,7 +273,19 @@ TEST_F(Csr, MovesToDense)
 TEST_F(Csr, ConvertsToCoo)
 {
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+
     mtx->convert_to(coo_mtx.get());
+
+    assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToCoo)
+{
+    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+
+    mtx->move_to(coo_mtx.get());
+
     assert_equal_to_mtx(coo_mtx.get());
 }
 
@@ -281,7 +293,9 @@ TEST_F(Csr, ConvertsToCoo)
 TEST_F(Csr, ConvertsToSellp)
 {
     auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
+
     mtx->convert_to(sellp_mtx.get());
+
     assert_equal_to_mtx(sellp_mtx.get());
 }
 
@@ -311,14 +325,6 @@ TEST_F(Csr, CalculatesTotalCols)
 }
 
 
-TEST_F(Csr, MovesToCoo)
-{
-    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
-    mtx->move_to(coo_mtx.get());
-    assert_equal_to_mtx(coo_mtx.get());
-}
-
-
 TEST_F(Csr, ConvertsToEll)
 {
     auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
@@ -326,6 +332,19 @@ TEST_F(Csr, ConvertsToEll)
     auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
 
     mtx->convert_to(ell_mtx.get());
+
+    assert_equal_to_mtx(ell_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToEll)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->move_to(ell_mtx.get());
+
     assert_equal_to_mtx(ell_mtx.get());
 }
 

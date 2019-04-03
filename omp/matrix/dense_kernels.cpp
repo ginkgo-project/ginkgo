@@ -282,18 +282,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    omp::dense::convert_to_csr(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Ell<ValueType, IndexType> *result,
                     const matrix::Dense<ValueType> *source)
@@ -327,18 +315,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_ell(std::shared_ptr<const OmpExecutor> exec,
-                 matrix::Ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source)
-{
-    omp::dense::convert_to_ell(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
                        matrix::Hybrid<ValueType, IndexType> *result,
                        const matrix::Dense<ValueType> *source)
@@ -368,6 +344,8 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     }
 
     size_type coo_idx = 0;
+    // FIXME: This parallelization may cause the COO part to not being sorted by
+    //        row idx
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
         size_type col_idx = 0;
@@ -384,13 +362,17 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
         while (col < num_cols) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
+                size_type current_coo_idx;
+                // Use the critical section for accessing the coo_idx only, the
+                // rest can be performed in parallel since the index is unique
 #pragma omp critical
                 {
-                    coo_val[coo_idx] = val;
-                    coo_col[coo_idx] = col;
-                    coo_row[coo_idx] = row;
-                    coo_idx++;
+                    current_coo_idx = coo_idx;
+                    ++coo_idx;
                 }
+                coo_val[current_coo_idx] = val;
+                coo_col[current_coo_idx] = col;
+                coo_row[current_coo_idx] = row;
             }
             col++;
         }
@@ -399,18 +381,6 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Hybrid<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
-{
-    omp::dense::convert_to_hybrid(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -483,18 +453,6 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_sellp(std::shared_ptr<const OmpExecutor> exec,
-                   matrix::Sellp<ValueType, IndexType> *result,
-                   const matrix::Dense<ValueType> *source)
-{
-    omp::dense::convert_to_sellp(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
 
 
 template <typename ValueType>

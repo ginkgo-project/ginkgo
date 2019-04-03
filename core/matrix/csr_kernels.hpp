@@ -64,11 +64,6 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Csr<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void move_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                       matrix::Dense<ValueType> *result,            \
-                       matrix::Csr<ValueType, IndexType> *source)
-
 #define GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)  \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
                         matrix::Coo<ValueType, IndexType> *result,   \
@@ -112,8 +107,6 @@ namespace kernels {
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                  \

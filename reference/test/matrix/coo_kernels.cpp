@@ -30,17 +30,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/coo.hpp>
+#include "core/matrix/coo_kernels.hpp"
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -88,7 +91,9 @@ protected:
 TEST_F(Coo, ConvertsToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
+
     mtx->convert_to(csr_mtx.get());
+
     assert_equal_to_mtx_in_csr_format(csr_mtx.get());
 }
 
@@ -96,7 +101,9 @@ TEST_F(Coo, ConvertsToCsr)
 TEST_F(Coo, MovesToCsr)
 {
     auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
+
     mtx->move_to(csr_mtx.get());
+
     assert_equal_to_mtx_in_csr_format(csr_mtx.get());
 }
 
@@ -228,6 +235,7 @@ TEST_F(Coo, AppliesAddToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = gko::initialize<Vec>({2.0, 1.0}, exec);
+
     mtx->apply2(x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);

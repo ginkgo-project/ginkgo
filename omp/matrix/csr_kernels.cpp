@@ -178,18 +178,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                   matrix::Dense<ValueType> *result,
-                   matrix::Csr<ValueType, IndexType> *source)
-{
-    omp::csr::convert_to_dense(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
                       matrix::Sellp<ValueType, IndexType> *result,
                       const matrix::Csr<ValueType, IndexType> *source)

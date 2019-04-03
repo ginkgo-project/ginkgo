@@ -940,15 +940,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void move_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    matrix::Csr<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
-
-
 namespace kernel {
 
 

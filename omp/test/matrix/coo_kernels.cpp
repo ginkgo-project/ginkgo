@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/coo.hpp>
+#include "core/matrix/coo_kernels.hpp"
 
 
 #include <random>
@@ -39,12 +39,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -176,6 +179,7 @@ TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
+
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
@@ -208,7 +212,6 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
 
