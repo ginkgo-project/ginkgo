@@ -53,6 +53,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/"
       )
     list(APPEND doxygen_base_input
+      ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
       ${DIR_BASE}/include
       ${MAINPAGE}
       )

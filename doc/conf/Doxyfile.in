@@ -28,6 +28,7 @@ INPUT_FILTER           = @DIR_SCRIPT@/filter
 FILTER_SOURCE_FILES    = YES
 
 # Parsing options
+PREDEFINED             = GKO_HAVE_PAPI_SDE=1
 JAVADOC_AUTOBRIEF      = Yes
 TAB_SIZE               = 4
 MARKDOWN_SUPPORT       = YES
