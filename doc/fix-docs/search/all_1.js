@@ -1,7 +1,6 @@
 var searchData=
 [
   ['begin',['begin',['../structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7',1,'gko::span']]],
-  ['benchmarking_20ginkgo_2e',['Benchmarking Ginkgo.',['../benchmark_ginkgo.html',1,'']]],
   ['bicgstab',['Bicgstab',['../classgko_1_1solver_1_1Bicgstab.html',1,'gko::solver']]],
   ['bitwise_5fand',['bitwise_and',['../structgko_1_1accessor_1_1bitwise__and.html',1,'gko::accessor']]],
   ['bitwise_5fnot',['bitwise_not',['../structgko_1_1accessor_1_1bitwise__not.html',1,'gko::accessor']]],

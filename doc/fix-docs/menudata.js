@@ -4,8 +4,8 @@ var menudata={children:[
 {text:"Examples",url:"Examples.html"},
 {text:"Using Ginkgo",url:"install_ginkgo.html",children:[
 {text:"Installing Ginkgo",url:"install_ginkgo.html"},
-{text:"Testing Ginkgo",url:"test_ginkgo.html"},
-{text:"Benchmarking Ginkgo",url:"benchmark_ginkgo.html"}]},
+{text:"Testing Ginkgo",url:"testing_ginkgo.html"},
+{text:"Benchmarking Ginkgo",url:"benchmarking_ginkgo.html"}]},
 {text:"Modules",url:"modules.html"},
 {text:"Namespaces",url:"namespaces.html",children:[
 {text:"Namespace List",url:"namespaces.html"},

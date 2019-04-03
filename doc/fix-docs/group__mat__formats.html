@@ -63,7 +63,8 @@ $(function() {
 
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a>  </div>
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">SpMV employing different Matrix formats<div class="ingroups"><a class="el" href="group__LinOp.html">Linear Operators</a></div></div>  </div>
 </div><!--header-->
@@ -105,9 +106,263 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Sellp.html">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SELL-P is a matrix format similar to ELL format.  <a href="classgko_1_1matrix_1_1Sellp.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ga2f54bac1e95fb3ef03974fa9c9088491"><td class="memTemplParams" colspan="2">template&lt;typename Matrix , typename... TArgs&gt; </td></tr>
+<tr class="memitem:ga2f54bac1e95fb3ef03974fa9c9088491"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__mat__formats.html#ga2f54bac1e95fb3ef03974fa9c9088491">gko::initialize</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride, std::initializer_list&lt; typename Matrix::value_type &gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;... create_args)</td></tr>
+<tr class="memdesc:ga2f54bac1e95fb3ef03974fa9c9088491"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a column-vector.  <a href="group__mat__formats.html#ga2f54bac1e95fb3ef03974fa9c9088491">More...</a><br /></td></tr>
+<tr class="separator:ga2f54bac1e95fb3ef03974fa9c9088491"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaac5f7b4ff3b43dbc6918c687dd7d2d2e"><td class="memTemplParams" colspan="2">template&lt;typename Matrix , typename... TArgs&gt; </td></tr>
+<tr class="memitem:gaac5f7b4ff3b43dbc6918c687dd7d2d2e"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__mat__formats.html#gaac5f7b4ff3b43dbc6918c687dd7d2d2e">gko::initialize</a> (std::initializer_list&lt; typename Matrix::value_type &gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;... create_args)</td></tr>
+<tr class="memdesc:gaac5f7b4ff3b43dbc6918c687dd7d2d2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a column-vector.  <a href="group__mat__formats.html#gaac5f7b4ff3b43dbc6918c687dd7d2d2e">More...</a><br /></td></tr>
+<tr class="separator:gaac5f7b4ff3b43dbc6918c687dd7d2d2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaf2520e5921e1bea00853c290f4fc28f"><td class="memTemplParams" colspan="2">template&lt;typename Matrix , typename... TArgs&gt; </td></tr>
+<tr class="memitem:gaaf2520e5921e1bea00853c290f4fc28f"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__mat__formats.html#gaaf2520e5921e1bea00853c290f4fc28f">gko::initialize</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride, std::initializer_list&lt; std::initializer_list&lt; typename Matrix::value_type &gt;&gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;... create_args)</td></tr>
+<tr class="memdesc:gaaf2520e5921e1bea00853c290f4fc28f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a matrix.  <a href="group__mat__formats.html#gaaf2520e5921e1bea00853c290f4fc28f">More...</a><br /></td></tr>
+<tr class="separator:gaaf2520e5921e1bea00853c290f4fc28f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabe4ff67be5b3aae4e981b33ea9883385"><td class="memTemplParams" colspan="2">template&lt;typename Matrix , typename... TArgs&gt; </td></tr>
+<tr class="memitem:gabe4ff67be5b3aae4e981b33ea9883385"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; Matrix &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__mat__formats.html#gabe4ff67be5b3aae4e981b33ea9883385">gko::initialize</a> (std::initializer_list&lt; std::initializer_list&lt; typename Matrix::value_type &gt;&gt; vals, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, TArgs &amp;&amp;... create_args)</td></tr>
+<tr class="memdesc:gabe4ff67be5b3aae4e981b33ea9883385"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates and initializes a matrix.  <a href="group__mat__formats.html#gabe4ff67be5b3aae4e981b33ea9883385">More...</a><br /></td></tr>
+<tr class="separator:gabe4ff67be5b3aae4e981b33ea9883385"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo. </p>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="ga2f54bac1e95fb3ef03974fa9c9088491"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2f54bac1e95fb3ef03974fa9c9088491">&#9670;&nbsp;</a></span>initialize() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Matrix , typename... TArgs&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;Matrix&gt; gko::initialize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
+          <td class="paramname"><em>stride</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::initializer_list&lt; typename Matrix::value_type &gt;&#160;</td>
+          <td class="paramname"><em>vals</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">TArgs &amp;&amp;...&#160;</td>
+          <td class="paramname"><em>create_args</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates and initializes a column-vector. </p>
+<p>This function first creates a temporary Dense matrix, fills it with passed in values, and then converts the matrix to the requested type.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Matrix</td><td>matrix type to initialize (Dense has to implement the ConvertibleTo&lt;Matrix&gt; interface) </td></tr>
+    <tr><td class="paramname">TArgs</td><td>argument types for Matrix::create method (not including the implied <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> as the first argument)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stride</td><td>row stride for the temporary Dense matrix </td></tr>
+    <tr><td class="paramname">vals</td><td>values used to initialize the vector </td></tr>
+    <tr><td class="paramname">exec</td><td><a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> associated to the vector </td></tr>
+    <tr><td class="paramname">create_args</td><td>additional arguments passed to Matrix::create, not including the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>, which is passed as the first argument </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">gko::matrix::Dense&lt; ValueType &gt;::at()</a>.</p>
+
+</div>
+</div>
+<a id="gaac5f7b4ff3b43dbc6918c687dd7d2d2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaac5f7b4ff3b43dbc6918c687dd7d2d2e">&#9670;&nbsp;</a></span>initialize() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Matrix , typename... TArgs&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;Matrix&gt; gko::initialize </td>
+          <td>(</td>
+          <td class="paramtype">std::initializer_list&lt; typename Matrix::value_type &gt;&#160;</td>
+          <td class="paramname"><em>vals</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">TArgs &amp;&amp;...&#160;</td>
+          <td class="paramname"><em>create_args</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates and initializes a column-vector. </p>
+<p>This function first creates a temporary Dense matrix, fills it with passed in values, and then converts the matrix to the requested type. The stride of the intermediate Dense matrix is set to 1.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Matrix</td><td>matrix type to initialize (Dense has to implement the ConvertibleTo&lt;Matrix&gt; interface) </td></tr>
+    <tr><td class="paramname">TArgs</td><td>argument types for Matrix::create method (not including the implied <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> as the first argument)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">vals</td><td>values used to initialize the vector </td></tr>
+    <tr><td class="paramname">exec</td><td><a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> associated to the vector </td></tr>
+    <tr><td class="paramname">create_args</td><td>additional arguments passed to Matrix::create, not including the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>, which is passed as the first argument </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gaaf2520e5921e1bea00853c290f4fc28f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaaf2520e5921e1bea00853c290f4fc28f">&#9670;&nbsp;</a></span>initialize() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Matrix , typename... TArgs&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;Matrix&gt; gko::initialize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
+          <td class="paramname"><em>stride</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::initializer_list&lt; std::initializer_list&lt; typename Matrix::value_type &gt;&gt;&#160;</td>
+          <td class="paramname"><em>vals</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">TArgs &amp;&amp;...&#160;</td>
+          <td class="paramname"><em>create_args</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates and initializes a matrix. </p>
+<p>This function first creates a temporary Dense matrix, fills it with passed in values, and then converts the matrix to the requested type.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Matrix</td><td>matrix type to initialize (Dense has to implement the ConvertibleTo&lt;Matrix&gt; interface) </td></tr>
+    <tr><td class="paramname">TArgs</td><td>argument types for Matrix::create method (not including the implied <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> as the first argument)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stride</td><td>row stride for the temporary Dense matrix </td></tr>
+    <tr><td class="paramname">vals</td><td>values used to initialize the matrix </td></tr>
+    <tr><td class="paramname">exec</td><td><a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> associated to the matrix </td></tr>
+    <tr><td class="paramname">create_args</td><td>additional arguments passed to Matrix::create, not including the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>, which is passed as the first argument </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="reference">References <a class="el" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">gko::matrix::Dense&lt; ValueType &gt;::at()</a>.</p>
+
+</div>
+</div>
+<a id="gabe4ff67be5b3aae4e981b33ea9883385"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabe4ff67be5b3aae4e981b33ea9883385">&#9670;&nbsp;</a></span>initialize() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Matrix , typename... TArgs&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;Matrix&gt; gko::initialize </td>
+          <td>(</td>
+          <td class="paramtype">std::initializer_list&lt; std::initializer_list&lt; typename Matrix::value_type &gt;&gt;&#160;</td>
+          <td class="paramname"><em>vals</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">TArgs &amp;&amp;...&#160;</td>
+          <td class="paramname"><em>create_args</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates and initializes a matrix. </p>
+<p>This function first creates a temporary Dense matrix, fills it with passed in values, and then converts the matrix to the requested type. The stride of the intermediate Dense matrix is set to the number of columns of the initializer list.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Matrix</td><td>matrix type to initialize (Dense has to implement the ConvertibleTo&lt;Matrix&gt; interface) </td></tr>
+    <tr><td class="paramname">TArgs</td><td>argument types for Matrix::create method (not including the implied <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> as the first argument)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">vals</td><td>values used to initialize the matrix </td></tr>
+    <tr><td class="paramname">exec</td><td><a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> associated to the matrix </td></tr>
+    <tr><td class="paramname">create_args</td><td>additional arguments passed to Matrix::create, not including the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a>, which is passed as the first argument </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

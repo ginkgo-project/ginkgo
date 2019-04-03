@@ -12,6 +12,6 @@ var searchData=
   ['the_20preconditioned_2dsolver_20program',['The preconditioned-solver program',['../preconditioned_solver.html',1,'']]],
   ['the_20simple_2dsolver_20program',['The simple-solver program',['../simple_solver.html',1,'']]],
   ['the_20simple_2dsolver_2dlogging_20program',['The simple-solver-logging program',['../simple_solver_logging.html',1,'']]],
-  ['testing_20ginkgo_2e',['Testing Ginkgo.',['../test_ginkgo.html',1,'']]],
+  ['testing_20instructions',['Testing Instructions',['../testing_ginkgo.html',1,'']]],
   ['the_20three_2dpt_2dstencil_2dsolver_20program',['The three-pt-stencil-solver program',['../three_pt_stencil_solver.html',1,'']]]
 ];

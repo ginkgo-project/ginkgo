@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: Benchmarking Ginkgo.</title>
+<title>Ginkgo: Running the benchmarks</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,11 +63,10 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">Benchmarking Ginkgo. </div>  </div>
+<div class="title">Running the benchmarks </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>Running the benchmarks </h2>
-<p>In addition to the unit tests designed to verify correctness, Ginkgo also includes a benchmark suite for checking its performance on the system. To compile the benchmarks, the flag <code>-DGINKGO_BUILD_BENCHMARKS=ON</code> has to be set during the <code>cmake</code> step. In addition, the <a href="https://github.com/ginkgo-project/ssget"><code>ssget</code> command-line utility</a> has to be installed on the system.</p>
+<div class="textblock"><p>In addition to the unit tests designed to verify correctness, Ginkgo also includes a benchmark suite for checking its performance on the system. To compile the benchmarks, the flag <code>-DGINKGO_BUILD_BENCHMARKS=ON</code> has to be set during the <code>cmake</code> step. In addition, the <a href="https://github.com/ginkgo-project/ssget"><code>ssget</code> command-line utility</a> has to be installed on the system.</p>
 <p>The benchmark suite tests Ginkgo's performance using the <a href="https://sparse.tamu.edu/">SuiteSparse matrix collection</a> and artificially generated matrices. The suite sparse collection will be downloaded automatically when the benchmarks are run. Please note that the entire collection requires roughly 100GB of disk storage in its compressed format, and roughly 25GB of additional disk space for intermediate data (such us uncompressing the archive). Additionally, the benchmark runs usually take a long time (SpMV benchmarks on the complete collection take roughly 24h using the K20 GPU), and will stress the system.</p>
 <p>The benchmark suite is invoked using the <code>make benchmark</code> command in the build directory. The behavior of the suite can be modified using environment variables. Assuming the <code>bash</code> shell is used, these can either be specified via the <code>export</code> command to persist between multiple runs:</p>
 <div class="fragment"><div class="line">export VARIABLE=&quot;value&quot;</div><div class="line">...</div><div class="line">make benchmark</div></div><!-- fragment --><p>or specified on the fly, on the same line as the <code>make benchmark</code> command:</p>
@@ -87,7 +86,7 @@ $(function() {
 <li><code>SEGMENT_ID=&lt;I&gt;</code> - used in combination with the <code>SEGMENTS</code> variable. <code>&lt;I&gt;</code> should be an integer between 1 and <code>&lt;N&gt;</code>. If specified, only the <code>&lt;I&gt;</code>-th segment of the benchmark suite will be run. Default is <code>1</code>.</li>
 <li><code>SYSTEM_NAME=&lt;name&gt;</code> - the name of the system where the benchmarks are being run. This option only changes the directory where the benchmark results are stored. It can be used to avoid overwriting the benchmarks if multiple systems share the same filesystem, or when copying the results between systems. Default is <code>unknown</code>.</li>
 </ul>
-<p>Once <code>make benchmark</code> completes, the results can be found in <code>&lt;Ginkgo build directory&gt;/benchmark/results//</code>. The files are written in the JSON format, and can be analyzed using any of the data analysis tools that support JSON. Alternatively, they can be uploaded to an online repository, and analyzed using Ginkgo's free web tool <a href="https://ginkgo-project.github.io/gpe/">Ginkgo Performance Explorer (GPE)</a>. (Make sure to change the "Performance data URL" to your repository if using GPE.) </p>
+<p>Once <code>make benchmark</code> completes, the results can be found in <code>&lt;Ginkgo build directory&gt;/benchmark/results/&lt;SYSTEM_NAME&gt;/</code>. The files are written in the JSON format, and can be analyzed using any of the data analysis tools that support JSON. Alternatively, they can be uploaded to an online repository, and analyzed using Ginkgo's free web tool <a href="https://ginkgo-project.github.io/gpe/">Ginkgo Performance Explorer (GPE)</a>. (Make sure to change the "Performance data URL" to your repository if using GPE.) </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
