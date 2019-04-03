@@ -80,7 +80,7 @@ protected:
 
     void initialize_data()
     {
-        int m = 597;
+        int m = 197;
         int n = 43;
         preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
@@ -197,6 +197,7 @@ TEST_F(Gmres, OmpGmresInitialize1IsEquivalentToRef)
     gko::kernels::reference::gmres::initialize_1(
         ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
         givens_cos.get(), stop_status.get(), gko::solver::default_krylov_dim);
+
     gko::kernels::omp::gmres::initialize_1(
         omp, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
