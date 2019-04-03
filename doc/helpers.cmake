@@ -6,6 +6,12 @@ function(ginkgo_configure_to_string in variable)
     set(${variable} "${str_conf}" PARENT_SCOPE)
 endfunction()
 
+function(ginkgo_to_string in variable)
+    set(str "${in}")
+    string(CONFIGURE "${str}" str_conf)
+    set(${variable} "${str_conf}" PARENT_SCOPE)
+endfunction()
+
 # writes the concatenated configured files <in1,2>
 # in <base_in> into <out>
 function(ginkgo_doc_conf_concat base_in in1 in2 out)
@@ -15,6 +21,14 @@ function(ginkgo_doc_conf_concat base_in in1 in2 out)
     file(WRITE "${out}" "${so}")
 endfunction()
 
+macro(to_string variable)
+  set(${variable} "")
+  foreach(var  ${ARGN})
+    set(${variable} "${${variable}} ${var}")
+  endforeach()
+  string(STRIP "${${variable}}" ${variable})
+endmacro()
+
 # writes the concatenated configured files <in1,2>
 # in <base_in> into <out>
 function(ginkgo_md_page_concat base_in in0 in1 in2 in3 in4 out)
@@ -23,10 +37,10 @@ function(ginkgo_md_page_concat base_in in0 in1 in2 in3 in4 out)
     ginkgo_configure_to_string("${base_in}/${in2}" s2)
     ginkgo_configure_to_string("${base_in}/${in3}" s3)
     ginkgo_configure_to_string("${base_in}/${in4}" s4)
-    set(${sep1} "@page install_ginkgo Installing Ginkgo. \n")
-    set(${sep2} "@page test_ginkgo Testing Ginkgo. \n")
-    set(${sep3} "@page benchmark_ginkgo Benchmarking Ginkgo. \n")
-    string(CONCAT so "${s0}" "\n" "${s1}" "@page install_ginkgo Installing Ginkgo. \n" "${s2}"  "@page test_ginkgo Testing Ginkgo. \n" "${s3}" "@page benchmark_ginkgo Benchmarking Ginkgo. \n" "${s4}")
+    ginkgo_to_string("@page install_ginkgo Installing Ginkgo. \n" sep1)
+    ginkgo_to_string("@page test_ginkgo Testing Ginkgo. \n" sep2)
+    ginkgo_to_string("@page benchmark_ginkgo Benchmarking Ginkgo. \n" sep3)
+    string(CONCAT so "${s0}" "\n" "${s1}" "${sep1}" "${s2}" "${sep2}"  "${s3}" "${sep3}" "${s4}")
     file(WRITE "${out}" "${so}")
 endfunction()
 
@@ -41,14 +55,6 @@ function(ginkgo_doc_pdf name path)
         VERBATIM
         )
 endfunction()
-
-macro(to_string variable)
-  set(${variable} "")
-  foreach(var  ${ARGN})
-    set(${variable} "${${variable}} ${var}")
-  endforeach()
-  string(STRIP "${${variable}}" ${variable})
-endmacro()
 
 
 # generates the documentation named <name> with the additional
