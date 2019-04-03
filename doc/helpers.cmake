@@ -6,17 +6,19 @@ function(ginkgo_configure_to_string in variable)
     set(${variable} "${str_conf}" PARENT_SCOPE)
 endfunction()
 
-function(ginkgo_to_string in variable)
-    set(str "${in}")
-    string(CONFIGURE "${str}" str_conf)
-    set(${variable} "${str_conf}" PARENT_SCOPE)
-endfunction()
+macro(ginkgo_to_string variable)
+  set(${variable} "")
+  foreach(var  ${ARGN})
+    set(${variable} "${${variable}} ${var}")
+  endforeach()
+  string(STRIP "${${variable}}" ${variable})
+endmacro()
 
 # writes the concatenated configured files <in1,2>
 # in <base_in> into <out>
-function(ginkgo_doc_conf_concat base_in in1 in2 out)
-    ginkgo_configure_to_string("${base_in}/${in1}" s1)
-    ginkgo_configure_to_string("${base_in}/${in2}" s2)
+function(ginkgo_file_concat base_path in1 in2 out)
+    ginkgo_configure_to_string("${base_path}/${in1}" s1)
+    ginkgo_configure_to_string("${base_path}/${in2}" s2)
     string(CONCAT so "${s1}" "\n" "${s2}")
     file(WRITE "${out}" "${so}")
 endfunction()
@@ -44,6 +46,9 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
     set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
+    ginkgo_file_concat("${CMAKE_CURRENT_SOURCE_DIR}/pages"
+      "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
+      )
     set(doxygen_base_input
       "${CMAKE_CURRENT_SOURCE_DIR}/headers/"
       )
@@ -95,9 +100,9 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
       )
     # pick some markdown files we want as pages
     set(doxygen_markdown_files "../../INSTALL.md ../../TESTING.md ../../BENCHMARKING.md")
-    to_string(doxygen_base_input_str ${doxygen_base_input} )
-    to_string(doxygen_dev_input_str ${doxygen_dev_input} )
-    to_string(doxygen_image_path_str ${doxygen_image_path} )
+    ginkgo_to_string(doxygen_base_input_str ${doxygen_base_input} )
+    ginkgo_to_string(doxygen_dev_input_str ${doxygen_dev_input} )
+    ginkgo_to_string(doxygen_image_path_str ${doxygen_image_path} )
     add_custom_target("${name}" ALL
       #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
         COMMAND "${DOXYGEN_EXECUTABLE}" ${doxyfile}
@@ -114,7 +119,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     if(pdf)
         ginkgo_doc_pdf("${name}" "${DIR_OUT}")
     endif()
-    ginkgo_doc_conf_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
+    ginkgo_file_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
         Doxyfile.in "${in}" "${doxyfile}"
         )
 endfunction()
