@@ -49,6 +49,9 @@ constexpr int default_stride_factor = 1;
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
 /**
  * SELL-P is a matrix format similar to ELL format. The difference is that
  * SELL-P format divides rows into smaller slices and store each slice with ELL
@@ -62,11 +65,13 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
+              public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ReadableFromMatrixData<ValueType, IndexType>,
               public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Sellp>::convert_to;
@@ -79,6 +84,10 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void convert_to(Csr<ValueType, IndexType> *other) const override;
+
+    void move_to(Csr<ValueType, IndexType> *other) override;
 
     void read(const mat_data &data) override;
 

@@ -175,10 +175,9 @@ inline void conversion_helper(Sellp<ValueType, IndexType> *result,
     const auto slice_size = (result->get_slice_size() == 0)
                                 ? default_slice_size
                                 : result->get_slice_size();
-    size_type total_columns = 0;
-    exec->run(dense::make_calculate_total_cols(source, &total_columns,
+    size_type total_cols = 0;
+    exec->run(dense::make_calculate_total_cols(source, &total_cols,
                                                stride_factor, slice_size));
-    const auto total_cols = std::max(result->get_total_cols(), total_columns);
     auto tmp = Sellp<ValueType, IndexType>::create(
         exec, source->get_size(), slice_size, stride_factor, total_cols);
     exec->run(op(tmp.get(), source));

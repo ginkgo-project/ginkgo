@@ -40,7 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/matrix/sellp_kernels.hpp"
 
 
 namespace {
@@ -65,7 +69,7 @@ protected:
         // clang-format on
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
 };
@@ -190,6 +194,34 @@ TEST_F(Sellp, MovesToDense)
     GKO_ASSERT_MTX_NEAR(dense_mtx,
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, ConvertsToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+
+    mtx1->convert_to(csr_mtx.get());
+
+    // clang-format off
+	GKO_ASSERT_MTX_NEAR(csr_mtx,
+	                    l({{1.0, 3.0, 2.0},
+	                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, MovesToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+
+    mtx1->move_to(csr_mtx.get());
+
+    // clang-format off
+	GKO_ASSERT_MTX_NEAR(csr_mtx,
+	                    l({{1.0, 3.0, 2.0},
+	                       {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
 }
 
@@ -319,6 +351,44 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    mtx2->convert_to(csr_mtx.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(csr_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
+{
+    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    mtx2->move_to(csr_mtx.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(csr_mtx,
+                    l({{1.0, 3.0, 2.0},
+                       {0.0, 5.0, 0.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Sellp, CountsNonzeros)
+{
+    gko::size_type nonzeros;
+
+    gko::kernels::reference::sellp::count_nonzeros(exec, mtx1.get(), &nonzeros);
+
+    ASSERT_EQ(nonzeros, 4);
 }
 
 

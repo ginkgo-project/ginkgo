@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 namespace gko {
@@ -72,6 +73,17 @@ namespace kernels {
                         matrix::Coo<ValueType, IndexType> *result,   \
                         const matrix::Csr<ValueType, IndexType> *source)
 
+#define GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)  \
+    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Sellp<ValueType, IndexType> *result, \
+                          const matrix::Csr<ValueType, IndexType> *source)
+
+#define GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)      \
+    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec,     \
+                              const matrix::Csr<ValueType, IndexType> *source, \
+                              size_type *result, size_type stride_factor,      \
+                              size_type slice_size)
+
 #define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)  \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
                    matrix::Csr<ValueType, IndexType> *trans,    \
@@ -82,20 +94,24 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *trans,    \
                         const matrix::Csr<ValueType, IndexType> *orig)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>              \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                 \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 

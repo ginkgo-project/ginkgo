@@ -145,6 +145,33 @@ __device__ void reduce(const Group &__restrict__ group,
 }
 
 
+/**
+ * @internal
+ *
+ * Computes a reduction using the binary operation 'reduce_op' on an array
+ * 'source' of any size. Has to be called a second time on 'result' to reduce
+ * an array larger than 'block_size'.
+ */
+template <typename Operator, typename ValueType>
+__device__ void reduce_array(size_type size,
+                             const ValueType *__restrict__ source,
+                             ValueType *__restrict__ result,
+                             Operator reduce_op = Operator{})
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    auto thread_result = zero<ValueType>();
+    for (auto i = tidx; i < size; i += blockDim.x * gridDim.x) {
+        thread_result = reduce_op(thread_result, source[i]);
+    }
+    result[threadIdx.x] = thread_result;
+
+    group::this_thread_block().sync();
+
+    // Stores the result of the reduction inside `result[0]`
+    reduce(group::this_thread_block(), result, reduce_op);
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

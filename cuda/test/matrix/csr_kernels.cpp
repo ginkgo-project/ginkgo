@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include <random>
@@ -41,10 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
+
+
+#include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -358,6 +361,36 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
     dmtx->convert_to(dcoo_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    mtx->convert_to(sellp_mtx.get());
+    dmtx->convert_to(dsellp_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sellp_mtx.get(), dsellp_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+
+    gko::size_type total_cols;
+    gko::size_type dtotal_cols;
+
+    gko::kernels::reference::csr::calculate_total_cols(
+        ref, mtx.get(), &total_cols, 2, gko::matrix::default_slice_size);
+    gko::kernels::cuda::csr::calculate_total_cols(
+        cuda, dmtx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
+
+    ASSERT_EQ(total_cols, dtotal_cols);
 }
 
 

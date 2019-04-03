@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "core/matrix/csr_kernels.hpp"
@@ -46,8 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-
-
 namespace csr {
 
 
@@ -56,6 +55,8 @@ GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense);
+GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
+GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 
@@ -125,6 +126,34 @@ void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(csr::make_move_to_dense(tmp.get(), this));
     tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Sellp<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    const auto stride_factor = (result->get_stride_factor() == 0)
+                                   ? default_stride_factor
+                                   : result->get_stride_factor();
+    const auto slice_size = (result->get_slice_size() == 0)
+                                ? default_slice_size
+                                : result->get_slice_size();
+    size_type total_cols = 0;
+    exec->run(csr::make_calculate_total_cols(this, &total_cols, stride_factor,
+                                             slice_size));
+    auto tmp = Sellp<ValueType, IndexType>::create(
+        exec, this->get_size(), slice_size, stride_factor, total_cols);
+    exec->run(csr::make_convert_to_sellp(tmp.get(), this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType> *result)
+{
+    this->convert_to(result);
 }
 
 

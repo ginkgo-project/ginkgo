@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
+
+#include "core/matrix/csr_kernels.hpp"
 
 
 namespace {
@@ -50,6 +53,7 @@ class Csr : public ::testing::Test {
 protected:
     using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
+    using Sellp = gko::matrix::Sellp<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
@@ -102,8 +106,36 @@ protected:
         EXPECT_EQ(v[3], 5.0);
     }
 
+    void assert_equal_to_mtx(const Sellp *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto slice_sets = m->get_const_slice_sets();
+        auto slice_lengths = m->get_const_slice_lengths();
+        auto stride_factor = m->get_stride_factor();
+        auto slice_size = m->get_slice_size();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(stride_factor, 1);
+        ASSERT_EQ(slice_size, 64);
+        EXPECT_EQ(slice_sets[0], 0);
+        EXPECT_EQ(slice_lengths[0], 3);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[64], 1);
+        EXPECT_EQ(c[65], 0);
+        EXPECT_EQ(c[128], 2);
+        EXPECT_EQ(c[129], 0);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 5.0);
+        EXPECT_EQ(v[64], 3.0);
+        EXPECT_EQ(v[65], 0.0);
+        EXPECT_EQ(v[128], 2.0);
+        EXPECT_EQ(v[129], 0.0);
+    }
+
     std::complex<double> i{0, 1};
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
 };
 
@@ -219,6 +251,39 @@ TEST_F(Csr, ConvertsToCoo)
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
     mtx->convert_to(coo_mtx.get());
     assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToSellp)
+{
+    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
+    mtx->convert_to(sellp_mtx.get());
+    assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToSellp)
+{
+    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(sellp_mtx.get());
+
+    assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, CalculatesTotalCols)
+{
+    gko::size_type total_cols;
+    gko::size_type stride_factor = gko::matrix::default_stride_factor;
+    gko::size_type slice_size = gko::matrix::default_slice_size;
+
+    gko::kernels::reference::csr::calculate_total_cols(
+        exec, mtx.get(), &total_cols, stride_factor, slice_size);
+
+    ASSERT_EQ(total_cols, 3);
 }
 
 

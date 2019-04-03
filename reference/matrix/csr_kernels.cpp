@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "reference/components/format_conversion.hpp"
@@ -175,6 +176,111 @@ void move_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
+                      matrix::Sellp<ValueType, IndexType> *result,
+                      const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto vals = result->get_values();
+    auto col_idxs = result->get_col_idxs();
+    auto slice_lengths = result->get_slice_lengths();
+    auto slice_sets = result->get_slice_sets();
+    auto slice_size = (result->get_slice_size() == 0)
+                          ? matrix::default_slice_size
+                          : result->get_slice_size();
+    auto stride_factor = (result->get_stride_factor() == 0)
+                             ? matrix::default_stride_factor
+                             : result->get_stride_factor();
+
+    const auto source_row_ptrs = source->get_const_row_ptrs();
+    const auto source_col_idxs = source->get_const_col_idxs();
+    const auto source_values = source->get_const_values();
+
+    int slice_num = ceildiv(num_rows, slice_size);
+    slice_sets[0] = 0;
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        if (slice > 0) {
+            slice_sets[slice] =
+                slice_sets[slice - 1] + slice_lengths[slice - 1];
+        }
+        slice_lengths[slice] = 0;
+        for (size_type row = 0; row < slice_size; row++) {
+            size_type global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            slice_lengths[slice] =
+                (slice_lengths[slice] >
+                 source_row_ptrs[global_row + 1] - source_row_ptrs[global_row])
+                    ? slice_lengths[slice]
+                    : source_row_ptrs[global_row + 1] -
+                          source_row_ptrs[global_row];
+        }
+        slice_lengths[slice] =
+            stride_factor * ceildiv(slice_lengths[slice], stride_factor);
+        for (size_type row = 0; row < slice_size; row++) {
+            size_type global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            size_type sellp_ind = slice_sets[slice] * slice_size + row;
+            for (size_type csr_ind = source_row_ptrs[global_row];
+                 csr_ind < source_row_ptrs[global_row + 1]; csr_ind++) {
+                vals[sellp_ind] = source_values[csr_ind];
+                col_idxs[sellp_ind] = source_col_idxs[csr_ind];
+                sellp_ind += slice_size;
+            }
+            for (size_type i = sellp_ind;
+                 i <
+                 (slice_sets[slice] + slice_lengths[slice]) * slice_size + row;
+                 i += slice_size) {
+                col_idxs[i] = 0;
+                vals[i] = zero<ValueType>();
+            }
+        }
+    }
+    slice_sets[slice_num] =
+        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *source,
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size)
+{
+    size_type total_cols = 0;
+    const auto num_rows = source->get_size()[0];
+    const auto slice_num = ceildiv(num_rows, slice_size);
+
+    const auto row_ptrs = source->get_const_row_ptrs();
+
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        IndexType max_nnz_per_row_in_this_slice = 0;
+        for (size_type row = 0;
+             row < slice_size && row + slice * slice_size < num_rows; row++) {
+            size_type global_row = slice * slice_size + row;
+            max_nnz_per_row_in_this_slice =
+                max(row_ptrs[global_row + 1] - row_ptrs[global_row],
+                    max_nnz_per_row_in_this_slice);
+        }
+        total_cols += ceildiv(max_nnz_per_row_in_this_slice, stride_factor) *
+                      stride_factor;
+    }
+
+    *result = total_cols;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename IndexType, typename ValueType, typename UnaryOperator>
