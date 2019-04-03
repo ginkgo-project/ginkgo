@@ -32,26 +32,6 @@ while (<>)
     # however, undo that change if the dollar sign was escaped with a backslash
     s/\\\@f\$/\$/g;
 
-    # Replace all occurrences of something like example-xx by
-    #    @ref example_xx "example-xx"
-    # so that doxygen properly cross references them. Before we had
-    # this rule, we actually had to write this sequence out in our
-    # documentation. Unfortunately, as a consequence, there are vestiges
-    # of this style, so we can't substitute things that look like
-    # "example-xx". We therefore not substitute if example-xx is preceded or
-    # followed by quotation marks, or if the text is explicitly
-    # preceded by a backslash for escaping.
-    #
-    # There are other exceptions:
-    # - the scripts in doc/doxygen/tutorial produce files that have
-    #   table of contents entries. We don't want these cross-linked
-    #   to itself.
-    # - things like custom-stopping-criterion.solution.png that typically appear in
-    #   @image commands.
-    # - things in headings
-    # s/(?<![\"\\\/])example-(\w+)(?!\")/\@ref example_\1 \"example-\1\"/gi
-    #     if !m/(\@page|\<img|\@image|<h\d>)/i;
-
     # doxygen version 1.7.1 and later have the habit of thinking that
     # everything that starts with "file:" is the beginning of a link,
     # but we occasionally use this in our tutorials in the form

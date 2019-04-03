@@ -117,19 +117,31 @@ public:
     }
 
 private:
-    // entry format hierarchy provides algorithms for reading/writing a single
-    // entry of the matrix, depending on its storage scheme:
+    /**
+     * entry format hierarchy provides algorithms for reading/writing a single
+     * entry of the matrix, depending on its storage scheme:
+     */
     struct entry_format {
         virtual ValueType read_entry(std::istream &is) const = 0;
         virtual void write_entry(std::ostream &os,
                                  const ValueType &value) const = 0;
     };
 
-    // maps entry format specification strings to algorithms
+    /**
+     * maps entry format specification strings to algorithms
+     */
     std::map<std::string, const entry_format *> format_map;
 
-    // the value is encoded as a decimal number
+    /**
+     * the value is encoded as a decimal number
+     */
     struct : entry_format {
+        /**
+         * reads entry from the input stream
+         * @param  is the input stream
+         *
+         * @return the matrix entry.
+         */
         ValueType read_entry(std::istream &is) const override
         {
             double result{};
@@ -137,6 +149,11 @@ private:
             return static_cast<ValueType>(result);
         }
 
+        /**
+         * writes entry to the output stream
+         * @param  os the output stream
+         * @param  value the matrix entry to be written
+         */
         void write_entry(std::ostream &os,
                          const ValueType &value) const override
         {
@@ -162,13 +179,26 @@ private:
 
     } real_format{};
 
-    // the value is encoded as a pair of decimal numbers
+    /**
+     * the value is encoded as a pair of decimal numbers
+     */
     struct : entry_format {
+        /**
+         * reads entry from the input stream
+         * @param  is the input stream
+         *
+         * @return the matrix entry.
+         */
         ValueType read_entry(std::istream &is) const override
         {
             return read_entry_impl<ValueType>(is);
         }
 
+        /**
+         * writes entry to the output stream
+         * @param  os the output stream
+         * @param  value the matrix entry to be written
+         */
         void write_entry(std::ostream &os,
                          const ValueType &value) const override
         {
@@ -200,21 +230,36 @@ private:
 
     } complex_format{};
 
-    // the value is not stored - it is implicitly set to "1"
+    /**
+     * the value is not stored - it is implicitly set to "1"
+     */
     struct : entry_format {
+        /**
+         * reads entry from the input stream
+         * @param  dummy input stream
+         *
+         * @return the matrix entry(one).
+         */
         ValueType read_entry(std::istream &) const override
         {
             return one<ValueType>();
         }
 
+        /**
+         * writes entry to the output stream
+         * @param  dummy output stream
+         * @param  dummy matrix entry to be written
+         */
         void write_entry(std::ostream &, const ValueType &) const override {}
 
     } pattern_format{};
 
 
-    // storage modifier hierarchy provides algorithms for handling storage
-    // modifiers (general, symetric, skew symetric, hermitian) and filling the
-    // entire matrix from the stored parts
+    /**
+     * storage modifier hierarchy provides algorithms for handling storage
+     * modifiers (general, symetric, skew symetric, hermitian) and filling the
+     * entire matrix from the stored parts
+     */
     struct storage_modifier {
         virtual size_type get_reservation_size(
             size_type num_rows, size_type num_cols,
@@ -227,17 +272,36 @@ private:
         virtual size_type get_row_start(size_type col) const = 0;
     };
 
-    // maps storage modifier specification strings to algorithms
+    /**
+     * maps storage modifier specification strings to algorithms
+     */
     std::map<std::string, const storage_modifier *> modifier_map;
 
-    // all (nonzero) elements of the matrix are stored
+    /**
+     * all (nonzero) elements of the matrix are stored
+     */
     struct : storage_modifier {
+        /**
+         * get the reservation size
+         * @param num_rows  the number of rows
+         * @param num_cols  the number of columns
+         * @param num_nonzeros  the number of non-zeros
+         *
+         * @return the reservation size
+         */
         size_type get_reservation_size(size_type, size_type,
                                        size_type num_nonzeros) const override
         {
             return num_nonzeros;
         }
 
+        /**
+         * Insert an entry
+         * @param row  The row where the entry is to be inserted.
+         * @param col  The column where the entry is to be inserted.
+         * @param entry  the entry to be inserted.
+         * @param data  the data holding the matrix.
+         */
         void insert_entry(
             const IndexType &row, const IndexType &col, const ValueType &entry,
             matrix_data<ValueType, IndexType> &data) const override
@@ -245,18 +309,38 @@ private:
             data.nonzeros.emplace_back(row, col, entry);
         }
 
+        /**
+         * Get the start of the rows
+         */
         size_type get_row_start(size_type) const override { return 0; }
     } general_modifier{};
 
-    // the matrix is symmetric, only the lower triangle of the matrix is stored,
-    // the upper part is obtained through transposition
+    /**
+     * the matrix is symmetric, only the lower triangle of the matrix is stored,
+     * the upper part is obtained through transposition
+     */
     struct : storage_modifier {
+        /**
+         * get the reservation size
+         * @param num_rows
+         * @param num_cols
+         * @param num_nonzeros  the number of non-zeros
+         *
+         * @return the reservation size.
+         */
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
             return 2 * num_nonzeros - max(num_rows, num_cols);
         }
 
+        /**
+         * Insert an entry
+         * @param row  The row where the entry is to be inserted.
+         * @param col  The column where the entry is to be inserted.
+         * @param entry  the entry to be inserted.
+         * @param data  the data holding the matrix.
+         */
         void insert_entry(
             const IndexType &row, const IndexType &col, const ValueType &entry,
             matrix_data<ValueType, IndexType> &data) const override
@@ -267,19 +351,39 @@ private:
             }
         }
 
+        /**
+         * Get the start of the rows
+         */
         size_type get_row_start(size_type col) const override { return col; }
     } symmetric_modifier{};
 
-    // the matrix is skew-symmetric, only the strict lower triangle of the
-    // matrix is stored, the upper part is obtained through transposition, and
-    // sign change
+    /**
+     * the matrix is skew-symmetric, only the strict lower triangle of the
+     * matrix is stored, the upper part is obtained through transposition, and
+     * sign change
+     */
     struct : storage_modifier {
+        /**
+         * get the reservation size
+         * @param num_rows
+         * @param num_cols
+         * @param num_nonzeros  the number of non-zeros
+         *
+         * @return the reservation size.
+         */
         size_type get_reservation_size(size_type, size_type,
                                        size_type num_nonzeros) const override
         {
             return 2 * num_nonzeros;
         }
 
+        /**
+         * Insert an entry
+         * @param row  The row where the entry is to be inserted.
+         * @param col  The column where the entry is to be inserted.
+         * @param entry  the entry to be inserted.
+         * @param data  the data holding the matrix.
+         */
         void insert_entry(
             const IndexType &row, const IndexType &col, const ValueType &entry,
             matrix_data<ValueType, IndexType> &data) const override
@@ -288,21 +392,41 @@ private:
             data.nonzeros.emplace_back(col, row, -entry);
         }
 
+        /**
+         * Get the start of the rows
+         */
         size_type get_row_start(size_type col) const override
         {
             return col + 1;
         }
     } skew_symmetric_modifier{};
 
-    // the matrix is hermitian, only the lower triangle of the matrix is stored,
-    // the upper part is obtained through conjugate transposition
+    /**
+     * the matrix is hermitian, only the lower triangle of the matrix is stored,
+     * the upper part is obtained through conjugate transposition
+     */
     struct : storage_modifier {
+        /**
+         * get the reservation size
+         * @param num_rows
+         * @param num_cols
+         * @param num_nonzeros  the number of non-zeros
+         *
+         * @return the reservation size.
+         */
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
             return 2 * num_nonzeros - max(num_rows, num_cols);
         }
 
+        /**
+         * Insert an entry
+         * @param row  The row where the entry is to be inserted.
+         * @param col  The column where the entry is to be inserted.
+         * @param entry  the entry to be inserted.
+         * @param data  the data holding the matrix.
+         */
         void insert_entry(
             const IndexType &row, const IndexType &col, const ValueType &entry,
             matrix_data<ValueType, IndexType> &data) const override
@@ -313,31 +437,67 @@ private:
             }
         }
 
+        /**
+         * Get the start of the rows
+         */
         size_type get_row_start(size_type col) const override { return col; }
     } hermitian_modifier{};
 
 
-    // the storage layout hierarchy implements algorithms for reading/writing
-    // the matrix based on its storage layout (column-major dense or coordinate
-    // sparse)
+    /**
+     * the storage layout hierarchy implements algorithms for reading/writing
+     * the matrix based on its storage layout (column-major dense or coordinate
+     * sparse)
+     */
     struct storage_layout {
+        /**
+         * Read the matrix data
+         *
+         * @param header  The header in the matrix file
+         * @param content  The content in the matrix file
+         * @param entry_reader  The entry format in the matrix file
+         * @param modifier  The storage modifier for the matrix file
+         *
+         * @return the matrix data
+         */
         virtual matrix_data<ValueType, IndexType> read_data(
             std::istream &header, std::istream &content,
             const entry_format *entry_reader,
             const storage_modifier *modifier) const = 0;
-
+        /**
+         * Write the matrix data
+         *
+         * @param os  The output stream to write to
+         * @param data  The matrix data to write
+         * @param entry_writer  The entry format to write in.
+         * @param modifier  The strorage modifer
+         */
         virtual void write_data(std::ostream &os,
                                 const matrix_data<ValueType, IndexType> &data,
                                 const entry_format *entry_writer,
                                 const storage_modifier *modifier) const = 0;
     };
 
-    // maps storage layout specification strings to algorithms
+    /**
+     * maps storage layout specification strings to algorithms
+     */
     std::map<std::string, const storage_layout *> layout_map;
 
-    // the matrix is sparse, and every nonzero is stored together with its
-    // coordinates
+    /**
+     * the matrix is sparse, and every nonzero is stored together with its
+     * coordinates
+     */
     struct : storage_layout {
+        /**
+         * Read the matrix data
+         *
+         * @param header  The header in the matrix file
+         * @param content  The content in the matrix file
+         * @param entry_reader  The entry format in the matrix file
+         * @param modifier  The storage modifier for the matrix file
+         *
+         * @return the matrix data
+         */
         matrix_data<ValueType, IndexType> read_data(
             std::istream &header, std::istream &content,
             const entry_format *entry_reader,
@@ -367,6 +527,14 @@ private:
             return data;
         }
 
+        /**
+         * Write the matrix data
+         *
+         * @param os  The output stream to write to
+         * @param data  The matrix data to write
+         * @param entry_writer  The entry format to write in.
+         * @param modifier  The strorage modifer
+         */
         void write_data(std::ostream &os,
                         const matrix_data<ValueType, IndexType> &data,
                         const entry_format *entry_writer,
@@ -387,8 +555,20 @@ private:
 
     } coordinate_layout{};
 
-    // the matrix is dense, only the values are stored, without coordinates
+    /**
+     * the matrix is dense, only the values are stored, without coordinates
+     */
     struct : storage_layout {
+        /**
+         * Read the matrix data
+         *
+         * @param header  The header in the matrix file
+         * @param content  The content in the matrix file
+         * @param entry_reader  The entry format in the matrix file
+         * @param modifier  The storage modifier for the matrix file
+         *
+         * @return the matrix data
+         */
         matrix_data<ValueType, IndexType> read_data(
             std::istream &header, std::istream &content,
             const entry_format *entry_reader,
@@ -416,6 +596,14 @@ private:
             return data;
         }
 
+        /**
+         * Write the matrix data
+         *
+         * @param os  The output stream to write to
+         * @param data  The matrix data to write
+         * @param entry_writer  The entry format to write in.
+         * @param modifier  The strorage modifer
+         */
         void write_data(std::ostream &os,
                         const matrix_data<ValueType, IndexType> &data,
                         const entry_format *entry_writer,
@@ -448,8 +636,10 @@ private:
     } array_layout{};
 
 
-    // the constructors establishes the mapping between specification strings to
-    // classes representing algorithms
+    /**
+     * the constructors establishes the mapping between specification strings to
+     * classes representing algorithms
+     */
     mtx_io()
         : format_map{{"integer", &real_format},
                      {"real", &real_format},
@@ -463,8 +653,10 @@ private:
                      {"coordinate", &coordinate_layout}}
     {}
 
-    // represents the parsed header, whose components can then be used to
-    // read/write the rest of the file
+    /**
+     * represents the parsed header, whose components can then be used to
+     * read/write the rest of the file
+     */
     struct header_data {
         const entry_format *entry{};
         const storage_modifier *modifier{};
@@ -472,7 +664,12 @@ private:
         std::string dimensions_line{};
     };
 
-    // reads and parses the first line of the header
+    /**
+     * reads and parses the first line of the header
+     * @param is  the input stream
+     *
+     * @return the data containing the description
+     */
     header_data read_description_line(std::istream &is) const
     {
         header_data data{};
@@ -511,7 +708,12 @@ private:
         return data;
     }
 
-    // reads and parses the header
+    /**
+     * reads and parses the header
+     * @param is  The input stream to read the header from.
+     *
+     * @return the header data
+     */
     header_data read_header(std::istream &is) const
     {
         auto data = read_description_line(is);

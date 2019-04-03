@@ -508,8 +508,8 @@ private:
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
  * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -547,8 +547,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
  * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -578,8 +578,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
  * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -627,8 +627,8 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup mat_formats
  * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
