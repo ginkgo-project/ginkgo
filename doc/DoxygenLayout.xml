@@ -6,10 +6,10 @@
     <tab type="user" visible="yes" title="Tutorial" url="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver" />
     <tab type="user" visible="yes" title="Examples" url="@ref Examples" />
     <tab>
-      <tab type="user" visible="yes" title="Using Ginkgo" url="install_ginkgo.html" />
-      <tab type="user" visible="yes" title="Installing Ginkgo" url="install_ginkgo.html" />
-      <tab type="user" visible="yes" title="Testing Ginkgo" url="test_ginkgo.html" />
-      <tab type="user" visible="yes" title="Benchmarking Ginkgo" url="benchmark_ginkgo.html" />
+      <tab type="user" visible="yes" title="Using Ginkgo" url="@ref install_ginkgo" />
+      <tab type="user" visible="yes" title="Installing Ginkgo" url="@ref install_ginkgo" />
+      <tab type="user" visible="yes" title="Testing Ginkgo" url="@ref testing_ginkgo" />
+      <tab type="user" visible="yes" title="Benchmarking Ginkgo" url="@ref benchmarking_ginkgo" />
     </tab>
     <tab type="modules" visible="yes" title="" intro=""/>
     <tab type="namespaces" visible="yes" title="">
@@ -18,7 +18,7 @@
     </tab>
     <tab type="classes" visible="yes" title="">
       <tab type="classlist" visible="yes" title="" intro=""/>
-      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 
+      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/>
       <tab type="hierarchy" visible="yes" title="" intro=""/>
       <tab type="classmembers" visible="yes" title="" intro=""/>
     </tab>
@@ -27,7 +27,7 @@
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="examples" visible="yes" title="" intro=""/>  
+    <tab type="examples" visible="yes" title="" intro=""/>
     <tab type="user" visible="yes" title="Ginkgo" url="https://ginkgo-project.github.io/" />
   </navindex>
 

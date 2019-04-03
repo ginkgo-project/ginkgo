@@ -1,4 +1,4 @@
-Installation Instructions
+Installation Instructions                      {#install_ginkgo}
 -------------------------------------
 ### Building 
 

@@ -1,8 +1,8 @@
-Testing Instructions
+Testing Instructions                            {#testing_ginkgo}
 -------------------------------------
 ### Running the unit tests
-You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to run the
-tests. 
+You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to
+run the tests. 
 
 #### Using make test
 After configuring Ginkgo, use the following command inside the build folder to run all tests:

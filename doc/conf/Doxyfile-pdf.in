@@ -1,4 +1,4 @@
-INPUT = @doxygen_base_input_str@ 
+INPUT = @doxygen_markdown_files@ @doxygen_base_input_str@
 
 # LaTeX-specific configuration
 GENERATE_LATEX         = YES

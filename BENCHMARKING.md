@@ -1,4 +1,4 @@
-Running the benchmarks
+Running the benchmarks                         {#benchmarking_ginkgo}
 ----------------------
 
 In addition to the unit tests designed to verify correctness, Ginkgo also
@@ -80,7 +80,7 @@ Supported environment variables are described in the following list:
     systems. Default is `unknown`.
 
 Once `make benchmark` completes, the results can be found in
-`<Ginkgo build directory>/benchmark/results/${SYSTEM_NAME}/`. The files are
+`<Ginkgo build directory>/benchmark/results/<SYSTEM_NAME>/`. The files are
 written in the JSON format, and can be analyzed using any of the data
 analysis tools that support JSON. Alternatively, they can be uploaded to an
 online repository, and analyzed using Ginkgo's free web tool
