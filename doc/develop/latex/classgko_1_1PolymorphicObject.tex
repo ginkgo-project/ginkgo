@@ -1,0 +1,223 @@
+\hypertarget{classgko_1_1PolymorphicObject}{}\section{gko\+:\+:Polymorphic\+Object Class Reference}
+\label{classgko_1_1PolymorphicObject}\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+
+
+A \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} is the abstract base for all \char`\"{}heavy\char`\"{} objects in Ginkgo that behave polymorphically.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/polymorphic\+\_\+object.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:Polymorphic\+Object\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=341pt]{classgko_1_1PolymorphicObject__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_ab9abbed8b77c7b4b2feb2ec30dc65e47}\label{classgko_1_1PolymorphicObject_ab9abbed8b77c7b4b2feb2ec30dc65e47}} 
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} \& {\bfseries operator=} (const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} \&)
+\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$ \hyperlink{classgko_1_1PolymorphicObject_aca2ad91eee15e667cc0e7d1444a6de47}{create\+\_\+default} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec) const
+\begin{DoxyCompactList}\small\item\em Creates a new \char`\"{}default\char`\"{} object of the same dynamic type as this object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$ \hyperlink{classgko_1_1PolymorphicObject_a4f39c32375e3887fd4d7a9f02af42ca7}{create\+\_\+default} () const
+\begin{DoxyCompactList}\small\item\em Creates a new \char`\"{}default\char`\"{} object of the same dynamic type as this object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$ \hyperlink{classgko_1_1PolymorphicObject_ada90b9acf2e6b3201a9b2e09ac56217f}{clone} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec) const
+\begin{DoxyCompactList}\small\item\em Creates a clone of the object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$ \hyperlink{classgko_1_1PolymorphicObject_a298c488bcb1906877a3584d88713ba81}{clone} () const
+\begin{DoxyCompactList}\small\item\em Creates a clone of the object. \end{DoxyCompactList}\item 
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$ \hyperlink{classgko_1_1PolymorphicObject_a5e6f713938293cfbe788d00480eb4d81}{copy\+\_\+from} (const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$other)
+\begin{DoxyCompactList}\small\item\em Copies another object into this object. \end{DoxyCompactList}\item 
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$ \hyperlink{classgko_1_1PolymorphicObject_ae6ba40d3fb5e1e73cd92f4830a34c999}{copy\+\_\+from} (std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$ other)
+\begin{DoxyCompactList}\small\item\em Moves another object into this object. \end{DoxyCompactList}\item 
+\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$ \hyperlink{classgko_1_1PolymorphicObject_a8bb6f9995e8166099ca3ecab51d98df5}{clear} ()
+\begin{DoxyCompactList}\small\item\em Transforms the object into its default state. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ \hyperlink{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}{get\+\_\+executor} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the \hyperlink{classgko_1_1Executor}{Executor} of the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+A \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} is the abstract base for all \char`\"{}heavy\char`\"{} objects in Ginkgo that behave polymorphically. 
+
+It defines the basic utilities (copying moving, cloning, clearing the objects) for all such objects. It takes into account that these objects are dynamically allocated, managed by smart pointers, and used polymorphically. Additionally, it assumes their data can be allocated on different executors, and that they can be copied between those executors.
+
+\begin{DoxyNote}{Note}
+Most of the public methods of this class should not be overridden directly, and are thus not virtual. Instead, there are equivalent protected methods (ending in $<$method\+\_\+name$>$\+\_\+impl) that should be overriden instead. This allows polymorphic objects to implement default behavior around virtual methods (parameter checking, type casting).
+\end{DoxyNote}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{classgko_1_1EnablePolymorphicObject}{Enable\+Polymorphic\+Object} if you wish to implement a concrete polymorphic object and have sensible defaults generated automatically. \hyperlink{classgko_1_1EnableAbstractPolymorphicObject}{Enable\+Abstract\+Polymorphic\+Object} if you wish to implement a new abstract polymorphic object, and have the return types of the methods updated to your type (instead of having them return \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}). 
+\end{DoxySeeAlso}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_a8bb6f9995e8166099ca3ecab51d98df5}\label{classgko_1_1PolymorphicObject_a8bb6f9995e8166099ca3ecab51d98df5}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!clear@{clear}}
+\index{clear@{clear}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{clear()}{clear()}}
+{\footnotesize\ttfamily \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$\ast$ gko\+::\+Polymorphic\+Object\+::clear (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Transforms the object into its default state. 
+
+Equivalent to {\ttfamily this-\/$>$copy\+\_\+from(this-\/$>$\hyperlink{classgko_1_1PolymorphicObject_aca2ad91eee15e667cc0e7d1444a6de47}{create\+\_\+default()})}.
+
+\begin{DoxySeeAlso}{See also}
+clear\+\_\+impl() when implementing this method
+\end{DoxySeeAlso}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_ada90b9acf2e6b3201a9b2e09ac56217f}\label{classgko_1_1PolymorphicObject_ada90b9acf2e6b3201a9b2e09ac56217f}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!clone@{clone}}
+\index{clone@{clone}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{clone()}{clone()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$>$ gko\+::\+Polymorphic\+Object\+::clone (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a clone of the object. 
+
+This is the polymorphic equivalent of the {\itshape executor copy constructor} {\ttfamily decltype($\ast$this)(exec, this)}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the clone will be created\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+A clone of the \hyperlink{classgko_1_1LinOp}{Lin\+Op}. 
+\end{DoxyReturn}
+
+
+References create\+\_\+default().
+
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_a298c488bcb1906877a3584d88713ba81}\label{classgko_1_1PolymorphicObject_a298c488bcb1906877a3584d88713ba81}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!clone@{clone}}
+\index{clone@{clone}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{clone()}{clone()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$>$ gko\+::\+Polymorphic\+Object\+::clone (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a clone of the object. 
+
+This is a shorthand for clone(std\+::shared\+\_\+ptr$<$const Executor$>$) that uses the executor of this object to construct the new object.
+
+\begin{DoxyReturn}{Returns}
+A clone of the \hyperlink{classgko_1_1LinOp}{Lin\+Op}. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_a5e6f713938293cfbe788d00480eb4d81}\label{classgko_1_1PolymorphicObject_a5e6f713938293cfbe788d00480eb4d81}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!copy\+\_\+from@{copy\+\_\+from}}
+\index{copy\+\_\+from@{copy\+\_\+from}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{copy\+\_\+from()}{copy\_from()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$\ast$ gko\+::\+Polymorphic\+Object\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $\ast$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies another object into this object. 
+
+This is the polymorphic equivalent of the copy assignment operator.
+
+\begin{DoxySeeAlso}{See also}
+copy\+\_\+from\+\_\+impl(const Polymorphic\+Object $\ast$)
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the object to copy\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_ae6ba40d3fb5e1e73cd92f4830a34c999}\label{classgko_1_1PolymorphicObject_ae6ba40d3fb5e1e73cd92f4830a34c999}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!copy\+\_\+from@{copy\+\_\+from}}
+\index{copy\+\_\+from@{copy\+\_\+from}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{copy\+\_\+from()}{copy\_from()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$\ast$ gko\+::\+Polymorphic\+Object\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Moves another object into this object. 
+
+This is the polymorphic equivalent of the move assignment operator.
+
+\begin{DoxySeeAlso}{See also}
+copy\+\_\+from\+\_\+impl(std\+::unique\+\_\+ptr$<$\+Polymorphic\+Object$>$)
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the object to move from\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_aca2ad91eee15e667cc0e7d1444a6de47}\label{classgko_1_1PolymorphicObject_aca2ad91eee15e667cc0e7d1444a6de47}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!create\+\_\+default@{create\+\_\+default}}
+\index{create\+\_\+default@{create\+\_\+default}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{create\+\_\+default()}{create\_default()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$>$ gko\+::\+Polymorphic\+Object\+::create\+\_\+default (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a new \char`\"{}default\char`\"{} object of the same dynamic type as this object. 
+
+This is the polymorphic equivalent of the {\itshape executor default constructor} {\ttfamily decltype($\ast$this)(exec);}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the object will be created\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a polymorphic object of the same type as this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_a4f39c32375e3887fd4d7a9f02af42ca7}\label{classgko_1_1PolymorphicObject_a4f39c32375e3887fd4d7a9f02af42ca7}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!create\+\_\+default@{create\+\_\+default}}
+\index{create\+\_\+default@{create\+\_\+default}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{create\+\_\+default()}{create\_default()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}$>$ gko\+::\+Polymorphic\+Object\+::create\+\_\+default (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a new \char`\"{}default\char`\"{} object of the same dynamic type as this object. 
+
+This is a shorthand for create\+\_\+default(std\+::shared\+\_\+ptr$<$const Executor$>$) that uses the executor of this object to construct the new object.
+
+\begin{DoxyReturn}{Returns}
+a polymorphic object of the same type as this 
+\end{DoxyReturn}
+
+
+Referenced by clone().
+
+\mbox{\Hypertarget{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}\label{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}} 
+\index{gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}!get\+\_\+executor@{get\+\_\+executor}}
+\index{get\+\_\+executor@{get\+\_\+executor}!gko\+::\+Polymorphic\+Object@{gko\+::\+Polymorphic\+Object}}
+\subsubsection{\texorpdfstring{get\+\_\+executor()}{get\_executor()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1Executor}{Executor}$>$ gko\+::\+Polymorphic\+Object\+::get\+\_\+executor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the \hyperlink{classgko_1_1Executor}{Executor} of the object. 
+
+\begin{DoxyReturn}{Returns}
+\hyperlink{classgko_1_1Executor}{Executor} of the object 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::add\+\_\+scaled(), gko\+::\+Lin\+Op\+::apply(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::apply2(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::compute\+\_\+dot(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::compute\+\_\+norm2(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::scale().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/polymorphic\+\_\+object.\+hpp (4bde4271)\end{DoxyCompactItemize}

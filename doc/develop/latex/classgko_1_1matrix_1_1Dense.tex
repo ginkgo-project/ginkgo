@@ -1,0 +1,577 @@
+\hypertarget{classgko_1_1matrix_1_1Dense}{}\section{gko\+:\+:matrix\+:\+:Dense$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Dense}\index{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$@{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}
+
+
+\hyperlink{classgko_1_1matrix_1_1Dense}{Dense} is a matrix format which explicitly stores all values of the matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/dense.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:matrix\+:\+:Dense$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Dense__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_aa81a0b3798d10eb503eedd9c7ae658b5}\label{classgko_1_1matrix_1_1Dense_aa81a0b3798d10eb503eedd9c7ae658b5}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a48f92e035bf16c24ed664915f6648163}\label{classgko_1_1matrix_1_1Dense_a48f92e035bf16c24ed664915f6648163}} 
+using {\bfseries index\+\_\+type} = \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af3433222c8e30256d79f8984238921f4}\label{classgko_1_1matrix_1_1Dense_af3433222c8e30256d79f8984238921f4}} 
+using {\bfseries mat\+\_\+data} = \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a61214ecfce8de48207d1e291beb81c61}\label{classgko_1_1matrix_1_1Dense_a61214ecfce8de48207d1e291beb81c61}} 
+using {\bfseries mat\+\_\+data32} = \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}\label{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}} 
+using {\bfseries row\+\_\+major\+\_\+range} = \hyperlink{classgko_1_1range}{gko\+::range}$<$ \hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}$<$ Value\+Type, 2 $>$ $>$
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_adaaa152f7bf3566d858a2c81220329a3}\label{classgko_1_1matrix_1_1Dense_adaaa152f7bf3566d858a2c81220329a3}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_abff1b9260efc76c7bf1f0fe9831ddf6b}\label{classgko_1_1matrix_1_1Dense_abff1b9260efc76c7bf1f0fe9831ddf6b}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af231fda06f31db0bd8d7c7bbe2ad428e}\label{classgko_1_1matrix_1_1Dense_af231fda06f31db0bd8d7c7bbe2ad428e}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ac98a4016b066bcf524b7d391c01b69e6}\label{classgko_1_1matrix_1_1Dense_ac98a4016b066bcf524b7d391c01b69e6}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a78d637e4687f6b82380c0f690a0030b9}\label{classgko_1_1matrix_1_1Dense_a78d637e4687f6b82380c0f690a0030b9}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af5cd43fb7c68506437bbc168e160db3d}\label{classgko_1_1matrix_1_1Dense_af5cd43fb7c68506437bbc168e160db3d}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_adfcc9e20ce7a433d2c5a11da1b4e61ac}\label{classgko_1_1matrix_1_1Dense_adfcc9e20ce7a433d2c5a11da1b4e61ac}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad2385dcdb5c166b77866855f022bbfab}\label{classgko_1_1matrix_1_1Dense_ad2385dcdb5c166b77866855f022bbfab}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7cd52faa45bc713c4e2737b801d880c5}\label{classgko_1_1matrix_1_1Dense_a7cd52faa45bc713c4e2737b801d880c5}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a0472d464e3ccd92b63e5f3e6f09123b2}\label{classgko_1_1matrix_1_1Dense_a0472d464e3ccd92b63e5f3e6f09123b2}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4653654a5a57b6f76700f32a96eccf0f}\label{classgko_1_1matrix_1_1Dense_a4653654a5a57b6f76700f32a96eccf0f}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ae05e0feb80489d3d6d20e48b6da15500}\label{classgko_1_1matrix_1_1Dense_ae05e0feb80489d3d6d20e48b6da15500}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ade721b0fc2652a09870a18aebbfe29c3}\label{classgko_1_1matrix_1_1Dense_ade721b0fc2652a09870a18aebbfe29c3}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ac41b7bade9c7c8c4bc7d9aac7550f45d}\label{classgko_1_1matrix_1_1Dense_ac41b7bade9c7c8c4bc7d9aac7550f45d}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a6beb8bdb469276fc9c3afd0e3eb733b8}\label{classgko_1_1matrix_1_1Dense_a6beb8bdb469276fc9c3afd0e3eb733b8}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a45f6f17160b958ca738cca78fcb49d06}\label{classgko_1_1matrix_1_1Dense_a45f6f17160b958ca738cca78fcb49d06}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a2309884871bffc37072eeec06983727a}\label{classgko_1_1matrix_1_1Dense_a2309884871bffc37072eeec06983727a}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Sellp}{Sellp}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af4d0346014f1e228c00e9e5690431367}\label{classgko_1_1matrix_1_1Dense_af4d0346014f1e228c00e9e5690431367}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Sellp}{Sellp}$<$ Value\+Type, \hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a0886558f1291931425087891ee0ad6b8}\label{classgko_1_1matrix_1_1Dense_a0886558f1291931425087891ee0ad6b8}} 
+void {\bfseries convert\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Sellp}{Sellp}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a24628536cce9b10482971f9969f13df2}\label{classgko_1_1matrix_1_1Dense_a24628536cce9b10482971f9969f13df2}} 
+void {\bfseries move\+\_\+to} (\hyperlink{classgko_1_1matrix_1_1Sellp}{Sellp}$<$ Value\+Type, \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad8015737f260f0338e8a5c79a44f34c6}\label{classgko_1_1matrix_1_1Dense_ad8015737f260f0338e8a5c79a44f34c6}} 
+void {\bfseries read} (const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a61d639ee160909a2a9c1b0489508f353}\label{classgko_1_1matrix_1_1Dense_a61d639ee160909a2a9c1b0489508f353}} 
+void {\bfseries read} (const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data32} \&data) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a52c0237829d4407e2a6269fdef65533a}\label{classgko_1_1matrix_1_1Dense_a52c0237829d4407e2a6269fdef65533a}} 
+void {\bfseries write} (\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad53f369dd7235e521d9352b393772b24}\label{classgko_1_1matrix_1_1Dense_ad53f369dd7235e521d9352b393772b24}} 
+void {\bfseries write} (\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data32} \&data) const override
+\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Dense_a64ea8e876f5390a535a2ef486bd5ab9a}{transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Dense_a19890b1448497a50d57c16ed4c3bd820}{conj\+\_\+transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\+\_\+values} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\+\_\+const\+\_\+values} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Dense_a8c1b220b9b9292893d9be22d632a9a0e}{get\+\_\+stride} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the stride of the matrix. \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Dense_a7a6ce578c683841591718134e1ccd1b9}{get\+\_\+num\+\_\+stored\+\_\+elements} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
+value\+\_\+type \& \hyperlink{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}{at} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} row, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} col) noexcept
+\begin{DoxyCompactList}\small\item\em Returns a single element of the matrix. \end{DoxyCompactList}\item 
+value\+\_\+type \hyperlink{classgko_1_1matrix_1_1Dense_ae0b30c42359a03805dee41a5cbf87b26}{at} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} row, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} col) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a single element of the matrix. \end{DoxyCompactList}\item 
+Value\+Type \& \hyperlink{classgko_1_1matrix_1_1Dense_ae6ce7585b533123b5572ddf502c9970f}{at} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns a single element of the matrix. \end{DoxyCompactList}\item 
+Value\+Type \hyperlink{classgko_1_1matrix_1_1Dense_a34ba8a7f392c65c481a93d9374cb5769}{at} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a single element of the matrix. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Dense_a35cb8dfff52daf3aa8995597d26981ec}{scale} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha)
+\begin{DoxyCompactList}\small\item\em Scales the matrix with a scalar (aka\+: B\+L\+AS scal). \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Dense_ae6c4c15972b76bf7d8f6d50a96abda8d}{add\+\_\+scaled} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$alpha, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b)
+\begin{DoxyCompactList}\small\item\em Adds {\ttfamily b} scaled by {\ttfamily alpha} to the matrix (aka\+: B\+L\+AS axpy). \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Dense_acb568ff44addb095b82bbd2fbe704761}{compute\+\_\+dot} (const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$b, \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$result) const
+\begin{DoxyCompactList}\small\item\em Computes the column-\/wise dot product of this matrix and {\ttfamily b}. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Dense_a97fd354c4a26814586cd256b5f0d7bea}{compute\+\_\+norm2} (\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$result) const
+\begin{DoxyCompactList}\small\item\em Computes the Euclidian (L$^\wedge$2) norm of this matrix. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} $>$ \hyperlink{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}{create\+\_\+submatrix} (const \hyperlink{structgko_1_1span}{span} \&rows, const \hyperlink{structgko_1_1span}{span} \&columns, const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} stride)
+\begin{DoxyCompactList}\small\item\em Create a submatrix from the original matrix. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}\label{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}} 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} $>$ {\bfseries create\+\_\+submatrix} (const \hyperlink{structgko_1_1span}{span} \&rows, const \hyperlink{structgko_1_1span}{span} \&columns)
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} $>$ \hyperlink{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}{create\+\_\+with\+\_\+config\+\_\+of} (const \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} $\ast$other)
+\begin{DoxyCompactList}\small\item\em Creates a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix with the configuration of another \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_abd9e1a91c3032b40a099a6dfd8a20357}\label{classgko_1_1matrix_1_1Dense_abd9e1a91c3032b40a099a6dfd8a20357}} 
+class {\bfseries Enable\+Create\+Method$<$ Dense $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4a3589cf55dd24284a1efc83c364abdd}\label{classgko_1_1matrix_1_1Dense_a4a3589cf55dd24284a1efc83c364abdd}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Dense, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ae83eb9050ed525f7b709f0bdf5d7f42d}\label{classgko_1_1matrix_1_1Dense_ae83eb9050ed525f7b709f0bdf5d7f42d}} 
+class {\bfseries Coo$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a9e60da00466bd4fe8882eeb1353a0bda}\label{classgko_1_1matrix_1_1Dense_a9e60da00466bd4fe8882eeb1353a0bda}} 
+class {\bfseries Coo$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4df13336280c2189acd768b2c36a893d}\label{classgko_1_1matrix_1_1Dense_a4df13336280c2189acd768b2c36a893d}} 
+class {\bfseries Csr$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a56c2ebf8cdf7a7f1f17fc25dd47ea1e9}\label{classgko_1_1matrix_1_1Dense_a56c2ebf8cdf7a7f1f17fc25dd47ea1e9}} 
+class {\bfseries Csr$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad7ddb8eeb31b9072ddc018a8da4c35ea}\label{classgko_1_1matrix_1_1Dense_ad7ddb8eeb31b9072ddc018a8da4c35ea}} 
+class {\bfseries Ell$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af02a642014ce5fe127ea99e008261e5e}\label{classgko_1_1matrix_1_1Dense_af02a642014ce5fe127ea99e008261e5e}} 
+class {\bfseries Ell$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a0657cb0f724d51f6c0402314c9c65794}\label{classgko_1_1matrix_1_1Dense_a0657cb0f724d51f6c0402314c9c65794}} 
+class {\bfseries Hybrid$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_aa8a237ac1a805519c155815ea7b6319a}\label{classgko_1_1matrix_1_1Dense_aa8a237ac1a805519c155815ea7b6319a}} 
+class {\bfseries Hybrid$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a8973c263e45b8d6efc42c761a593ac13}\label{classgko_1_1matrix_1_1Dense_a8973c263e45b8d6efc42c761a593ac13}} 
+class {\bfseries Sellp$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a567a0b5cf006e176648442b07699ecf7}\label{classgko_1_1matrix_1_1Dense_a567a0b5cf006e176648442b07699ecf7}} 
+class {\bfseries Sellp$<$ Value\+Type, int64 $>$}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}
+
+\hyperlink{classgko_1_1matrix_1_1Dense}{Dense} is a matrix format which explicitly stores all values of the matrix. 
+
+The values are stored in row-\/major format (values belonging to the same row appear consecutive in the memory). Optionally, rows can be padded for better memory access.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyNote}{Note}
+While this format is not very useful for storing sparse matrices, it is often suitable to store vectors, and sets of vectors. 
+\end{DoxyNote}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ae6c4c15972b76bf7d8f6d50a96abda8d}\label{classgko_1_1matrix_1_1Dense_ae6c4c15972b76bf7d8f6d50a96abda8d}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!add\+\_\+scaled@{add\+\_\+scaled}}
+\index{add\+\_\+scaled@{add\+\_\+scaled}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{add\+\_\+scaled()}{add\_scaled()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::add\+\_\+scaled (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha,  }\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Adds {\ttfamily b} scaled by {\ttfamily alpha} to the matrix (aka\+: B\+L\+AS axpy). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em alpha} & If alpha is 1x1 \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix, the entire matrix is scaled by alpha. If it is a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} row vector of values, then i-\/th column of the matrix is scaled with the i-\/th element of alpha (the number of columns of alpha has to match the number of columns of the matrix). \\
+\hline
+{\em b} & a matrix of the same dimension as this \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}\label{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!at@{at}}
+\index{at@{at}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{at()}{at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+value\+\_\+type\& \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::at (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{row,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{col }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a single element of the matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em col} & the column of the requested element\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \hyperlink{classgko_1_1Executor}{Executor} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+
+
+Referenced by gko\+::initialize().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ae0b30c42359a03805dee41a5cbf87b26}\label{classgko_1_1matrix_1_1Dense_ae0b30c42359a03805dee41a5cbf87b26}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!at@{at}}
+\index{at@{at}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{at()}{at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+value\+\_\+type \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::at (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{row,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{col }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a single element of the matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em col} & the column of the requested element\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \hyperlink{classgko_1_1Executor}{Executor} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ae6ce7585b533123b5572ddf502c9970f}\label{classgko_1_1matrix_1_1Dense_ae6ce7585b533123b5572ddf502c9970f}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!at@{at}}
+\index{at@{at}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{at()}{at()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+Value\+Type\& \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::at (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a single element of the matrix. 
+
+Useful for iterating across all elements of the matrix. However, it is less efficient than the two-\/parameter variant of this method.
+
+
+\begin{DoxyParams}{Parameters}
+{\em idx} & a linear index of the requested element (ignoring the stride)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \hyperlink{classgko_1_1Executor}{Executor} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a34ba8a7f392c65c481a93d9374cb5769}\label{classgko_1_1matrix_1_1Dense_a34ba8a7f392c65c481a93d9374cb5769}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!at@{at}}
+\index{at@{at}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{at()}{at()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+Value\+Type \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::at (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a single element of the matrix. 
+
+Useful for iterating across all elements of the matrix. However, it is less efficient than the two-\/parameter variant of this method.
+
+
+\begin{DoxyParams}{Parameters}
+{\em idx} & a linear index of the requested element (ignoring the stride)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \hyperlink{classgko_1_1Executor}{Executor} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_acb568ff44addb095b82bbd2fbe704761}\label{classgko_1_1matrix_1_1Dense_acb568ff44addb095b82bbd2fbe704761}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!compute\+\_\+dot@{compute\+\_\+dot}}
+\index{compute\+\_\+dot@{compute\+\_\+dot}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{compute\+\_\+dot()}{compute\_dot()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::compute\+\_\+dot (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{b,  }\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{result }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Computes the column-\/wise dot product of this matrix and {\ttfamily b}. 
+
+The conjugate of this is taken.
+
+
+\begin{DoxyParams}{Parameters}
+{\em b} & a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix of same dimension as this \\
+\hline
+{\em result} & a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} row vector, used to store the dot product (the number of column in the vector must match the number of columns of this) \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a97fd354c4a26814586cd256b5f0d7bea}\label{classgko_1_1matrix_1_1Dense_a97fd354c4a26814586cd256b5f0d7bea}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!compute\+\_\+norm2@{compute\+\_\+norm2}}
+\index{compute\+\_\+norm2@{compute\+\_\+norm2}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{compute\+\_\+norm2()}{compute\_norm2()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::compute\+\_\+norm2 (\begin{DoxyParamCaption}\item[{\hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{result }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Computes the Euclidian (L$^\wedge$2) norm of this matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em result} & a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} row vector, used to store the norm (the number of columns in the vector must match the number of columns of this) \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a19890b1448497a50d57c16ed4c3bd820}\label{classgko_1_1matrix_1_1Dense_a19890b1448497a50d57c16ed4c3bd820}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!conj\+\_\+transpose@{conj\+\_\+transpose}}
+\index{conj\+\_\+transpose@{conj\+\_\+transpose}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{conj\+\_\+transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}.
+
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+with\+\_\+config\+\_\+of().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}\label{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!create\+\_\+submatrix@{create\+\_\+submatrix}}
+\index{create\+\_\+submatrix@{create\+\_\+submatrix}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{create\+\_\+submatrix()}{create\_submatrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}$>$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::create\+\_\+submatrix (\begin{DoxyParamCaption}\item[{const \hyperlink{structgko_1_1span}{span} \&}]{rows,  }\item[{const \hyperlink{structgko_1_1span}{span} \&}]{columns,  }\item[{const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{stride }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Create a submatrix from the original matrix. 
+
+Warning\+: defining stride for this create\+\_\+submatrix method might cause wrong memory access. Better use the create\+\_\+submatrix(rows, columns) method instead.
+
+
+\begin{DoxyParams}{Parameters}
+{\em rows} & row span \\
+\hline
+{\em columns} & column span \\
+\hline
+{\em stride} & stride of the new submatrix. \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::span\+::begin, gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems(), gko\+::\+Lin\+Op\+::get\+\_\+size(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), and gko\+::\+Array$<$ Value\+Type $>$\+::view().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}\label{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!create\+\_\+with\+\_\+config\+\_\+of@{create\+\_\+with\+\_\+config\+\_\+of}}
+\index{create\+\_\+with\+\_\+config\+\_\+of@{create\+\_\+with\+\_\+config\+\_\+of}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{create\+\_\+with\+\_\+config\+\_\+of()}{create\_with\_config\_of()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+static std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}$>$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::create\+\_\+with\+\_\+config\+\_\+of (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1matrix_1_1Dense}{Dense}$<$ Value\+Type $>$ $\ast$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Creates a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix with the configuration of another \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & The other matrix whose configuration needs to copied. \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::conj\+\_\+transpose(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::transpose().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}\label{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!get\+\_\+const\+\_\+values@{get\+\_\+const\+\_\+values}}
+\index{get\+\_\+const\+\_\+values@{get\+\_\+const\+\_\+values}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+values()}{get\_const\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+const value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the array of values
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7a6ce578c683841591718134e1ccd1b9}\label{classgko_1_1matrix_1_1Dense_a7a6ce578c683841591718134e1ccd1b9}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!get\+\_\+num\+\_\+stored\+\_\+elements@{get\+\_\+num\+\_\+stored\+\_\+elements}}
+\index{get\+\_\+num\+\_\+stored\+\_\+elements@{get\+\_\+num\+\_\+stored\+\_\+elements}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{get\+\_\+num\+\_\+stored\+\_\+elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a8c1b220b9b9292893d9be22d632a9a0e}\label{classgko_1_1matrix_1_1Dense_a8c1b220b9b9292893d9be22d632a9a0e}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!get\+\_\+stride@{get\+\_\+stride}}
+\index{get\+\_\+stride@{get\+\_\+stride}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{get\+\_\+stride()}{get\_stride()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::get\+\_\+stride (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the stride of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the stride of the matrix. 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}\label{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!get\+\_\+values@{get\+\_\+values}}
+\index{get\+\_\+values@{get\+\_\+values}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{get\+\_\+values()}{get\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::get\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the array of values 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a35cb8dfff52daf3aa8995597d26981ec}\label{classgko_1_1matrix_1_1Dense_a35cb8dfff52daf3aa8995597d26981ec}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!scale@{scale}}
+\index{scale@{scale}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{scale()}{scale()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::scale (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$}]{alpha }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Scales the matrix with a scalar (aka\+: B\+L\+AS scal). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em alpha} & If alpha is 1x1 \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} matrix, the entire matrix is scaled by alpha. If it is a \hyperlink{classgko_1_1matrix_1_1Dense}{Dense} row vector of values, then i-\/th column of the matrix is scaled with the i-\/th element of alpha (the number of columns of alpha has to match the number of columns of the matrix). \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a64ea8e876f5390a535a2ef486bd5ab9a}\label{classgko_1_1matrix_1_1Dense_a64ea8e876f5390a535a2ef486bd5ab9a}} 
+\index{gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}!transpose@{transpose}}
+\index{transpose@{transpose}!gko\+::matrix\+::\+Dense@{gko\+::matrix\+::\+Dense}}
+\subsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}.
+
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+with\+\_\+config\+\_\+of().
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/coo.\+hpp (f1a4eb68)\item 
+ginkgo/core/matrix/dense.\+hpp (664ab4d8)\end{DoxyCompactItemize}

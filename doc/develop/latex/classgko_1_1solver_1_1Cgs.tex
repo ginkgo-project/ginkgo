@@ -1,0 +1,114 @@
+\hypertarget{classgko_1_1solver_1_1Cgs}{}\section{gko\+:\+:solver\+:\+:Cgs$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Cgs}\index{gko\+::solver\+::\+Cgs$<$ Value\+Type $>$@{gko\+::solver\+::\+Cgs$<$ Value\+Type $>$}}
+
+
+C\+GS or the conjugate gradient square method is an iterative type Krylov subspace method which is suitable for general systems.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/cgs.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:solver\+:\+:Cgs$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Cgs__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1solver_1_1Cgs_1_1Factory}{Factory}
+\item 
+struct \hyperlink{structgko_1_1solver_1_1Cgs_1_1parameters__type}{parameters\+\_\+type}
+\end{DoxyCompactItemize}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_a4dce78f8e1e2330a4dc576fa68ea10da}\label{classgko_1_1solver_1_1Cgs_a4dce78f8e1e2330a4dc576fa68ea10da}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Cgs_aa537b2e6b7ccf95e96b4100866da1770}{get\+\_\+system\+\_\+matrix} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Cgs_ad349dc1381dfdcb7a47223908806dcc7}{get\+\_\+preconditioner} () const override
+\begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the solver. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_a9ac2a7b0f0b14f3308be1988221c22d0}\label{classgko_1_1solver_1_1Cgs_a9ac2a7b0f0b14f3308be1988221c22d0}} 
+const \hyperlink{structgko_1_1solver_1_1Cgs_1_1parameters__type}{parameters\+\_\+type} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_ace0362ace1d2d1fd2e6322af973bca08}\label{classgko_1_1solver_1_1Cgs_ace0362ace1d2d1fd2e6322af973bca08}} 
+static auto {\bfseries build} () -\/$>$ decltype(\hyperlink{classgko_1_1EnableDefaultFactory_a1d077101d9e788e6c65f088612d14cc3}{Factory\+::create}())
+\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_abd9976d7b04021c8ba86dc8cd3c7c21b}\label{classgko_1_1solver_1_1Cgs_abd9976d7b04021c8ba86dc8cd3c7c21b}} 
+class {\bfseries Enable\+Lin\+Op$<$ Cgs $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_af58c1f415ba0ca2591898b3913acd0d2}\label{classgko_1_1solver_1_1Cgs_af58c1f415ba0ca2591898b3913acd0d2}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Cgs, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Cgs$<$ Value\+Type $>$}
+
+C\+GS or the conjugate gradient square method is an iterative type Krylov subspace method which is suitable for general systems. 
+
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of C\+GS are merged into 3 separate steps.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_ad349dc1381dfdcb7a47223908806dcc7}\label{classgko_1_1solver_1_1Cgs_ad349dc1381dfdcb7a47223908806dcc7}} 
+\index{gko\+::solver\+::\+Cgs@{gko\+::solver\+::\+Cgs}!get\+\_\+preconditioner@{get\+\_\+preconditioner}}
+\index{get\+\_\+preconditioner@{get\+\_\+preconditioner}!gko\+::solver\+::\+Cgs@{gko\+::solver\+::\+Cgs}}
+\subsubsection{\texorpdfstring{get\+\_\+preconditioner()}{get\_preconditioner()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Cgs}{gko\+::solver\+::\+Cgs}$<$ Value\+Type $>$\+::get\+\_\+preconditioner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the preconditioner operator used by the solver. 
+
+\begin{DoxyReturn}{Returns}
+the preconditioner operator used by the solver 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Preconditionable_ad9545089aef0dfc83bc7a74e5bf1d748}{gko\+::\+Preconditionable}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cgs_aa537b2e6b7ccf95e96b4100866da1770}\label{classgko_1_1solver_1_1Cgs_aa537b2e6b7ccf95e96b4100866da1770}} 
+\index{gko\+::solver\+::\+Cgs@{gko\+::solver\+::\+Cgs}!get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}}
+\index{get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}!gko\+::solver\+::\+Cgs@{gko\+::solver\+::\+Cgs}}
+\subsubsection{\texorpdfstring{get\+\_\+system\+\_\+matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Cgs}{gko\+::solver\+::\+Cgs}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/cgs.\+hpp (f1a4eb68)\end{DoxyCompactItemize}

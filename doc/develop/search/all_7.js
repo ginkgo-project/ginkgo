@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['max_5fblock_5fsize',['max_block_size',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a41e62ed6df95087024217c1295010861',1,'gko::kernels::cuda::cuda_config']]],
-  ['min_5fwarps_5fper_5fblock',['min_warps_per_block',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a4b717d114681aa2bd96accc2e935cfae',1,'gko::kernels::cuda::cuda_config']]]
+  ['has_5fconverged',['has_converged',['../classgko_1_1stopping__status.html#a825e74142fdaf17e9570d06db0b378db',1,'gko::stopping_status']]],
+  ['has_5fstopped',['has_stopped',['../classgko_1_1stopping__status.html#af374c7164dcf3adb27a15a669714abcc',1,'gko::stopping_status']]],
+  ['header_5fversion',['header_version',['../classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378',1,'gko::version_info']]],
+  ['hybrid',['Hybrid',['../classgko_1_1matrix_1_1Hybrid.html',1,'gko::matrix']]]
 ];

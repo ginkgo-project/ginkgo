@@ -1,0 +1,50 @@
+\hypertarget{classgko_1_1WritableToMatrixData}{}\section{gko\+:\+:Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1WritableToMatrixData}\index{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$@{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}
+
+
+A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can write its data to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void \hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{write} (\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&data) const =0
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type, typename Index\+Type$>$\newline
+class gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}
+
+A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can write its data to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}\label{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}} 
+\index{gko\+::\+Writable\+To\+Matrix\+Data@{gko\+::\+Writable\+To\+Matrix\+Data}!write@{write}}
+\index{write@{write}!gko\+::\+Writable\+To\+Matrix\+Data@{gko\+::\+Writable\+To\+Matrix\+Data}}
+\subsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type, typename Index\+Type$>$ \\
+virtual void \hyperlink{classgko_1_1WritableToMatrixData}{gko\+::\+Writable\+To\+Matrix\+Data}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implemented in \hyperlink{classgko_1_1matrix_1_1Hybrid_a626c07541641bcdfd9a7f61322a89cbe}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1preconditioner_1_1Jacobi_ac52bb1c70d4882876da1ee21c3b124ee}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Coo_ae193466ca1a4a3c7d1383ddc5a2701ab}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee941}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}, and \hyperlink{classgko_1_1matrix_1_1Sellp_aae2355a2866318b154d017b1c51f30a5}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp (0d7578c9)\end{DoxyCompactItemize}

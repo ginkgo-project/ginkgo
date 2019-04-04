@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['warp_5fsize',['warp_size',['../structgko_1_1kernels_1_1cuda_1_1cuda__config.html#a9b76132012e485cc669f6cde9420750a',1,'gko::kernels::cuda::cuda_config']]]
+  ['data',['data',['../classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c',1,'gko::accessor::row_major']]],
+  ['dimensionality',['dimensionality',['../classgko_1_1range.html#a6796721a162561502474e3150f179167',1,'gko::range::dimensionality()'],['../classgko_1_1accessor_1_1row__major.html#ae969fbac55f5ba6e6f95f25a0aac483d',1,'gko::accessor::row_major::dimensionality()']]]
 ];

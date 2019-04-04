@@ -1,9 +1,10 @@
 var searchData=
 [
-  ['is_5fsupported',['is_supported',['../structgko_1_1kernels_1_1cuda_1_1cublas_1_1is__supported.html',1,'gko::kernels::cuda::cublas']]],
-  ['is_5fsupported',['is_supported',['../structgko_1_1kernels_1_1cuda_1_1cusparse_1_1is__supported.html',1,'gko::kernels::cuda::cusparse']]],
-  ['is_5fsupported_3c_20double_20_3e',['is_supported&lt; double &gt;',['../structgko_1_1kernels_1_1cuda_1_1cublas_1_1is__supported_3_01double_01_4.html',1,'gko::kernels::cuda::cublas']]],
-  ['is_5fsupported_3c_20double_2c_20int32_20_3e',['is_supported&lt; double, int32 &gt;',['../structgko_1_1kernels_1_1cuda_1_1cusparse_1_1is__supported_3_01double_00_01int32_01_4.html',1,'gko::kernels::cuda::cusparse']]],
-  ['is_5fsupported_3c_20float_20_3e',['is_supported&lt; float &gt;',['../structgko_1_1kernels_1_1cuda_1_1cublas_1_1is__supported_3_01float_01_4.html',1,'gko::kernels::cuda::cublas']]],
-  ['is_5fsupported_3c_20float_2c_20int32_20_3e',['is_supported&lt; float, int32 &gt;',['../structgko_1_1kernels_1_1cuda_1_1cusparse_1_1is__supported_3_01float_00_01int32_01_4.html',1,'gko::kernels::cuda::cusparse']]]
+  ['default_5fconverter',['default_converter',['../structgko_1_1default__converter.html',1,'gko']]],
+  ['dense',['Dense',['../classgko_1_1matrix_1_1Dense.html',1,'gko::matrix']]],
+  ['dim',['dim',['../structgko_1_1dim.html',1,'gko']]],
+  ['dim_3c_201u_2c_20dimensiontype_20_3e',['dim&lt; 1u, DimensionType &gt;',['../structgko_1_1dim_3_011u_00_01DimensionType_01_4.html',1,'gko']]],
+  ['dim_3c_202_20_3e',['dim&lt; 2 &gt;',['../structgko_1_1dim.html',1,'gko']]],
+  ['dimensionmismatch',['DimensionMismatch',['../classgko_1_1DimensionMismatch.html',1,'gko']]],
+  ['div',['div',['../structgko_1_1accessor_1_1div.html',1,'gko::accessor']]]
 ];

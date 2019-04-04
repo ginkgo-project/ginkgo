@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['component_5fmask',['component_mask',['../classgko_1_1truncated.html#a185fc194281cf01876f43ce51b9aa186',1,'gko::truncated']]],
-  ['component_5fposition',['component_position',['../classgko_1_1truncated.html#afaa79b9c1799da12a7f82dfd84a17ed8',1,'gko::truncated']]],
-  ['component_5fsize',['component_size',['../classgko_1_1truncated.html#a6589bdd326ea891347e087ea09f6c4fa',1,'gko::truncated']]]
+  ['accuracy',['accuracy',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73',1,'gko::preconditioner::Jacobi::parameters_type']]],
+  ['all_5fevents_5fmask',['all_events_mask',['../classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532',1,'gko::log::Logger']]]
 ];
