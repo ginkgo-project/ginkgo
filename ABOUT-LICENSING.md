@@ -225,18 +225,20 @@ For generating the documentation of Ginkgo, some scripts from the deal.II
 library are used. You can refer to the `doc/` folder to see which files are a
 modified version of deal.II's documentation generation scripts. Additionally,
 an example of interfacing Ginkgo with an external library is available in the
-`examples/` folder of Ginkgo. This uses the `example-9` of deal.II which is
+`examples/` folder of Ginkgo. This uses the `step-9` of deal.II which is
 also licensed the same as the deal.II library.
 
-
->The deal.II library is free software; you can use it, redistribute it, and/or
->modify it under the terms of the GNU Lesser General Public License as published
->by the Free Software Foundation; either version 2.1 of the License, or (at your
->option) any later version. The full text of the GNU Lesser General Public
->version 2.1 is available on the [deal.II repository
->page](https://github.com/dealii/dealii/blob/master/LICENSE.md) or on the
->official [GNU license
->page](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
+> Copyright (C) 2000 - 2019 by the deal.II authors
+>
+> The deal.II library is free software; you can use it, redistribute it, and/or
+> modify it under the terms of the GNU Lesser General Public License as published
+> by the Free Software Foundation; either version 2.1 of the License, or (at your
+> option) any later version.
+> 
+> The full text of the GNU Lesser General Public
+> version 2.1 is available on the [deal.II repository
+> page](https://github.com/dealii/dealii/blob/master/LICENSE.md) or on the
+> official [GNU license page](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
 
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
