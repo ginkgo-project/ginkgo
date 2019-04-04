@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {
@@ -78,6 +79,11 @@ namespace kernels {
                           matrix::Sellp<ValueType, IndexType> *result, \
                           const matrix::Csr<ValueType, IndexType> *source)
 
+#define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)  \
+    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Ell<ValueType, IndexType> *result,   \
+                        const matrix::Csr<ValueType, IndexType> *source)
+
 #define GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)      \
     void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec,     \
                               const matrix::Csr<ValueType, IndexType> *source, \
@@ -94,6 +100,11 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *trans,    \
                         const matrix::Csr<ValueType, IndexType> *orig)
 
+#define GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType) \
+    void calculate_max_nnz_per_row(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Csr<ValueType, IndexType> *source, size_type *result)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                 \
@@ -108,11 +119,15 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

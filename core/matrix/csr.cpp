@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 #include "core/matrix/csr_kernels.hpp"
@@ -57,8 +58,11 @@ GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(move_to_dense, csr::move_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
+GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
+GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
+                       csr::calculate_max_nnz_per_row);
 
 
 }  // namespace csr
@@ -152,6 +156,27 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Ell<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    size_type max_nnz_per_row;
+    exec->run(csr::make_calculate_max_nnz_per_row(this, &max_nnz_per_row));
+    auto tmp = Ell<ValueType, IndexType>::create(exec, this->get_size(),
+                                                 max_nnz_per_row);
+    exec->run(csr::make_convert_to_ell(tmp.get(), this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType> *result)
 {
     this->convert_to(result);
 }

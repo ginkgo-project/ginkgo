@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+
 
 #include "core/matrix/csr_kernels.hpp"
 
@@ -54,6 +56,7 @@ protected:
     using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
+    using Ell = gko::matrix::Ell<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
@@ -132,6 +135,27 @@ protected:
         EXPECT_EQ(v[65], 0.0);
         EXPECT_EQ(v[128], 2.0);
         EXPECT_EQ(v[129], 0.0);
+    }
+
+    void assert_equal_to_mtx(const Ell *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 6);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 1);
+        EXPECT_EQ(c[3], 0);
+        EXPECT_EQ(c[4], 2);
+        EXPECT_EQ(c[5], 0);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 5.0);
+        EXPECT_EQ(v[2], 3.0);
+        EXPECT_EQ(v[3], 0.0);
+        EXPECT_EQ(v[4], 2.0);
+        EXPECT_EQ(v[5], 0.0);
     }
 
     std::complex<double> i{0, 1};
@@ -292,6 +316,17 @@ TEST_F(Csr, MovesToCoo)
     auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
     mtx->move_to(coo_mtx.get());
     assert_equal_to_mtx(coo_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToEll)
+{
+    auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
+    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+
+    mtx->convert_to(ell_mtx.get());
+    assert_equal_to_mtx(ell_mtx.get());
 }
 
 

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 #include "reference/components/format_conversion.hpp"
@@ -283,6 +284,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto vals = source->get_const_values();
+    const auto col_idxs = source->get_const_col_idxs();
+    const auto row_ptrs = source->get_const_row_ptrs();
+
+    const auto num_stored_elements_per_row =
+        result->get_num_stored_elements_per_row();
+
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+            result->val_at(row, i) = zero<ValueType>();
+            result->col_at(row, i) = 0;
+        }
+        for (size_type col_idx = 0; col_idx < row_ptrs[row + 1] - row_ptrs[row];
+             col_idx++) {
+            result->val_at(row, col_idx) = vals[row_ptrs[row] + col_idx];
+            result->col_at(row, col_idx) = col_idxs[row_ptrs[row] + col_idx];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+
+
 template <typename IndexType, typename ValueType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
                                const IndexType *col_idxs,
@@ -349,6 +381,26 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                               const matrix::Csr<ValueType, IndexType> *source,
+                               size_type *result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto row_ptrs = source->get_const_row_ptrs();
+    IndexType max_nnz = 0;
+
+    for (size_type i = 0; i < num_rows; i++) {
+        max_nnz = max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
+    }
+
+    *result = max_nnz;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 }  // namespace csr

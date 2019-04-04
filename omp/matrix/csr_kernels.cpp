@@ -55,6 +55,7 @@ namespace kernels {
 namespace omp {
 namespace csr {
 
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Csr<ValueType, IndexType> *a,
@@ -194,13 +195,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *source,
-                          size_type *result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
+                    matrix::Ell<ValueType, IndexType> *result,
+                    const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename IndexType, typename ValueType, typename UnaryOperator>
@@ -254,6 +255,7 @@ void transpose(std::shared_ptr<const OmpExecutor> exec,
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return x; });
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
@@ -268,6 +270,26 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *source,
+                          size_type *result, size_type stride_factor,
+                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
+                               const matrix::Csr<ValueType, IndexType> *source,
+                               size_type *result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
 
 }  // namespace csr
 }  // namespace omp

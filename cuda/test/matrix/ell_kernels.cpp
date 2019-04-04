@@ -43,7 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/matrix/ell_kernels.hpp"
 
 
 namespace {
@@ -218,6 +222,58 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
     dmtx->convert_to(ddense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+
+    mtx->convert_to(csr_mtx.get());
+    dmtx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::Array<gko::size_type> nnz_per_row;
+    nnz_per_row.set_executor(ref);
+    nnz_per_row.resize_and_reset(mtx->get_size()[0]);
+
+    gko::Array<gko::size_type> dnnz_per_row;
+    dnnz_per_row.set_executor(cuda);
+    dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
+
+    gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
+                                                             &nnz_per_row);
+    gko::kernels::cuda::ell::calculate_nonzeros_per_row(cuda, dmtx.get(),
+                                                        &dnnz_per_row);
+
+    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
+    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
+        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
+    }
+}
+
+
+TEST_F(Ell, CountNNZIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type nnz;
+    gko::size_type dnnz;
+
+    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
+    gko::kernels::cuda::ell::count_nonzeros(cuda, dmtx.get(), &dnnz);
+
+    ASSERT_EQ(nnz, dnnz);
 }
 
 

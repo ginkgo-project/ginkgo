@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_ELL_KERNELS_HPP_
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
@@ -60,13 +61,36 @@ namespace kernels {
                           matrix::Dense<ValueType> *result,            \
                           const matrix::Ell<ValueType, IndexType> *source)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)  \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                        matrix::Csr<ValueType, IndexType> *result,   \
+                        const matrix::Ell<ValueType, IndexType> *source)
+
+#define GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
+    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Ell<ValueType, IndexType> *source, \
+                        size_type *result)
+
+#define GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
+                                                          IndexType) \
+    void calculate_nonzeros_per_row(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        const matrix::Ell<ValueType, IndexType> *source,             \
+        Array<size_type> *result)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

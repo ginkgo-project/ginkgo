@@ -45,6 +45,9 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
 
 /**
  * ELL is a matrix format where stride with explicit zeros is used such that
@@ -65,11 +68,13 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public EnableCreateMethod<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
@@ -82,6 +87,10 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void convert_to(Csr<ValueType, IndexType> *other) const override;
+
+    void move_to(Csr<ValueType, IndexType> *other) override;
 
     void read(const mat_data &data) override;
 

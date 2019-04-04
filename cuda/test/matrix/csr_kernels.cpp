@@ -44,8 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 
@@ -345,6 +347,37 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
     dmtx->convert_to(ddense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, ConvertToEllIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+
+    auto ell_mtx = gko::matrix::Ell<>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+
+    mtx->convert_to(ell_mtx.get());
+    dmtx->convert_to(dell_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+
+    gko::size_type max_nnz_per_row;
+    gko::size_type dmax_nnz_per_row;
+
+    gko::kernels::reference::csr::calculate_max_nnz_per_row(ref, mtx.get(),
+                                                            &max_nnz_per_row);
+
+    gko::kernels::cuda::csr::calculate_max_nnz_per_row(cuda, dmtx.get(),
+                                                       &dmax_nnz_per_row);
+
+    ASSERT_EQ(max_nnz_per_row, dmax_nnz_per_row);
 }
 
 
