@@ -57,8 +57,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
+/**
+ * @brief The ELL matrix format namespace.
+ *
+ * @ingroup ell
+ */
 namespace ell {
 
 

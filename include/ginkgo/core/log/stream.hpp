@@ -52,6 +52,8 @@ namespace log {
  * @tparam ValueType  the type of values stored in the class (i.e. ValueType
  *                    template parameter of the concrete Loggable this class
  *                    will log)
+ *
+ * @ingroup log
  */
 template <typename ValueType = default_precision>
 class Stream : public Logger {

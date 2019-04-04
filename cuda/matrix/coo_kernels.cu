@@ -50,7 +50,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
+/**
+ * @brief The CUDA namespace.
+ *
+ * @ingroup cuda
+ */
 namespace cuda {
+/**
+ * @brief The Coordinate matrix format namespace.
+ *
+ * @ingroup coo
+ */
 namespace coo {
 
 

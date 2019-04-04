@@ -58,6 +58,11 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 
+/**
+ * @brief The Stopping criterion namespace.
+ * @ref stop
+ * @ingroup stop
+ */
 namespace stop {
 class Criterion;
 }  // namespace stop
@@ -67,6 +72,8 @@ namespace log {
 
 
 /**
+ * @addtogroup log
+ *
  * The Logger class represents a simple Logger object. It comprises all masks
  * and events internally. Every new logging event addition should be done here.
  * The Logger class also provides a default implementation for most events which

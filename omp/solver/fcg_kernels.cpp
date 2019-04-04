@@ -44,6 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
+/**
+ * @brief The FCG solver namespace.
+ *
+ * @ingroup fcg
+ */
 namespace fcg {
 
 

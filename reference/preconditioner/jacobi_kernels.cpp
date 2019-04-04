@@ -52,6 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
+/**
+ * @brief The Jacobi preconditioner namespace.
+ *
+ * @ingroup jacobi
+ */
 namespace jacobi {
 namespace {
 

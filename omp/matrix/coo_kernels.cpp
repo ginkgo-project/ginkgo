@@ -47,7 +47,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
+/**
+ * @brief OpenMP namespace.
+ *
+ * @ingroup omp
+ */
 namespace omp {
+/**
+ * @brief The Coordinate matrix format namespace.
+ *
+ * @ingroup coo
+ */
 namespace coo {
 
 

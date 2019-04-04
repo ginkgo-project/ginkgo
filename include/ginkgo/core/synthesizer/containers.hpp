@@ -35,6 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The Synthesizer namespace.
+ *
+ * @ingroup syn
+ */
 namespace syn {
 
 

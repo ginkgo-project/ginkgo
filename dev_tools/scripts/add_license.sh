@@ -53,7 +53,7 @@ echo -e "/*${GINKGO_LICENSE_BEACON}\n$(cat ${LICENSE_FILE})\n${GINKGO_LICENSE_BE
 
 # Does not work if a found file (including the path) contains a newline
 find "${GINKGO_ROOT_DIR}" \
-    ! \( -name "build" -prune -o -name "third_party" -prune \) \
+    ! \( -name "build" -prune -o -name "third_party" -prune -o -name "external-lib-interfacing.cpp" -prune \) \
     \( -name '*.cuh' -o -name '*.hpp' -o -name '*.hpp.in' -o -name '*.cpp' -o -name '*.cu' \) \
     -type f -print \
     | \

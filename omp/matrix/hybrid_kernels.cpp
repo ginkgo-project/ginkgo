@@ -48,6 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
+/**
+ * @brief The Hybrid matrix format namespace.
+ *
+ * @ingroup hybrid
+ */
 namespace hybrid {
 
 

@@ -45,6 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The Set all statuses namespace.
+ * @ref set_status
+ * @ingroup set_all_statuses
+ */
 namespace set_all_statuses {
 
 

@@ -51,6 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The Dense matrix format namespace.
+ *
+ * @ingroup dense
+ */
 namespace dense {
 
 

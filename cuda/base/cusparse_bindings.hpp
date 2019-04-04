@@ -46,7 +46,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The CUSPARSE namespace.
+ *
+ * @ingroup cusparse
+ */
 namespace cusparse {
+/**
+ * @brief The detail namespace.
+ *
+ * @ingroup detail
+ */
 namespace detail {
 
 

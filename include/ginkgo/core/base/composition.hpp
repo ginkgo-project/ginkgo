@@ -48,6 +48,8 @@ namespace gko {
  * opn` and obtain the operator `op1 * op2 * ... * opn`.
  *
  * @tparam ValueType  precision of input and result vectors
+ *
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,

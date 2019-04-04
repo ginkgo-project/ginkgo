@@ -1,0 +1,19 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This simple solver example should help you get started with Ginkgo. This example is meant for you to understand
+how Ginkgo works and how you can solve a simple linear system with Ginkgo. We encourage you to play with the code,
+change the parameters and see what is best suited for your purposes.
+
+<h3> About the example </h3>
+Each example has the following sections:
+<ol>
+  <li> <b>Introduction:</b>This gives an overview of the example and mentions
+  any interesting aspects in the example that might help the reader.
+  <li> <b>The commented program:</b> This section is intended for you to
+  understand the details of the example so that you can play with it and understand
+  Ginkgo and its features better.
+  <li> <b>Results:</b> This section shows the results of the code when run. Though the
+  results may not be completely the same, you can expect the behaviour to be similar. 
+  <li> <b>The plain program:</b> This is the complete code without any comments to have
+  an complete overview of the code.
+  </ol>

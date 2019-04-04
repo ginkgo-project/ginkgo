@@ -1,6 +1,0 @@
-add_executable(preconditioned_solver preconditioned_solver.cpp)
-target_link_libraries(preconditioned_solver ginkgo)
-target_include_directories(preconditioned_solver PRIVATE ${PROJECT_SOURCE_DIR})
-configure_file(data/A.mtx data/A.mtx COPYONLY)
-configure_file(data/b.mtx data/b.mtx COPYONLY)
-configure_file(data/x0.mtx data/x0.mtx COPYONLY)

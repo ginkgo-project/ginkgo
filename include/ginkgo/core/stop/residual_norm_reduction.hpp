@@ -57,6 +57,8 @@ namespace stop {
  * relative residual norm. The check method depends on either the
  * `residual_norm` or the `residual` being set. When any of those is not
  * correctly provided, an exception ::gko::NotSupported() is thrown.
+ *
+ * @ingroup stop
  */
 template <typename ValueType = default_precision>
 class ResidualNormReduction

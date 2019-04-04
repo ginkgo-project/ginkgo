@@ -67,6 +67,8 @@ namespace gko {
  * In addition, `<=` is a distinct order from `<`, and not just an extension
  * of the strict order to its weak equivalent. Thus, `x <= y` is not equivalent
  * to `x < y || x == y`.
+ *
+ * @ingroup ranges
  */
 struct span {
     /**
@@ -287,6 +289,8 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
  * are used to implement a simple version of the right-looking LU factorization.
  *
  * @tparam Accessor  underlying accessor of the range
+ *
+ * @ingroup ranges
  */
 template <typename Accessor>
 class range {

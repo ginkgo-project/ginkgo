@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
+/**
+ * @brief The SELL-P matrix format namespace.
+ * @ref Sellp
+ * @ingroup sellp
+ */
 namespace sellp {
 
 

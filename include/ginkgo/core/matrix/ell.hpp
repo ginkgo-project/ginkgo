@@ -63,6 +63,9 @@ class Csr;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
+ * @ingroup ell
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,

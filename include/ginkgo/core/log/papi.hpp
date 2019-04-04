@@ -79,6 +79,8 @@ namespace log {
  * + iteration_complete event: the number of iteration is counted (per solver)
  *
  * @tparam ValueType  the type of values stored in the class (e.g. residuals)
+ *
+ * @ingroup log
  */
 template <typename ValueType = default_precision>
 class Papi : public Logger {

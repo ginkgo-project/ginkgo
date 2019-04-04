@@ -1,0 +1,35 @@
+ digraph G
+{
+  graph[rankdir="TB",bgcolor="transparent"];
+
+  edge [fontname="Times-Roman",fontsize=15,labelfontname="Times-Roman",labelfontsize=14];
+  node [fontname="Times-Roman",fontsize=15,
+        shape=record,height=0.2,width=0.4,
+        color="black", fillcolor="white", style="filled"];
+
+  exec [label="Executors",URL="\ref Executor"];
+  omp [label="OpenMP Executor",URL="\ref exec_omp "];
+  ref [label="Reference Executor",URL="\ref exec_ref"];
+  cuda [label="CUDA Executor",URL="\ref exec_cuda"];
+  linop [label="Linear Operators",URL="\ref LinOp"];
+  solvers [label="Solvers",URL="\ref solvers"];
+  precond [label="Preconditioners",URL="\ref precond"];
+  matformat [label="Matrix Formats",URL="\ref mat_formats "];
+  // log [label="Logging",URL="\ref log"];
+  stop [label="Stopping Criteria",URL="\ref stop"];
+
+  // log -> exec [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  exec -> ref [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  exec -> cuda[color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  exec -> omp [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  omp -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  cuda -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  ref -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  omp -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  cuda -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  ref -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  linop -> matformat [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  linop -> solvers [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  linop -> precond [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  stop -> solvers [color="black",fontsize=14,style="dashed",fontname="Times-Roman"];
+}

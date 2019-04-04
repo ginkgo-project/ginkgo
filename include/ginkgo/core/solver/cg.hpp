@@ -63,6 +63,9 @@ namespace solver {
  * into 2 separate steps.
  *
  * @tparam ValueType  precision of matrix elements
+ *
+ * @ingroup solvers
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Cg : public EnableLinOp<Cg<ValueType>>, public Preconditionable {

@@ -44,6 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The Stopping criterion namespace.
+ *
+ * @ingroup stop
+ */
 namespace stop {
 
 
@@ -269,6 +274,8 @@ using EnableDefaultCriterionFactory =
  *                          and the public getter's name is
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
+ *
+ * @ingroup stop
  */
 #define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,           \
                                      _factory_name)                          \

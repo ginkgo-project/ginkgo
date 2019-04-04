@@ -44,6 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The Residual norm reduction stopping criterion namespace.
+ * @ref resnorm
+ * @ingroup resnorm
+ */
 namespace residual_norm_reduction {
 
 

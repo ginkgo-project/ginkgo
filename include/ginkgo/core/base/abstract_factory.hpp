@@ -37,6 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
 
+/**
+ * @brief The Ginkgo namespace.
+ *
+ * @ingroup gko
+ */
 namespace gko {
 
 

@@ -49,6 +49,11 @@ namespace gko {
 // type manipulations
 
 
+/**
+ * @internal
+ * @brief The detail namespace.
+ * @ingroup detail
+ */
 namespace detail {
 
 

@@ -1,0 +1,24 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  0.0.0 (develop)
+    the CUDA      module is  not compiled
+L = [
+  1.00 0.00 0.00 
+  2.00 1.00 0.00 
+  3.00 4.00 1.00 
+]
+
+U = [
+  2.00 4.00 5.00 
+  0.00 3.00 2.00 
+  0.00 0.00 1.00 
+]
+@endcode
+
+<h4> Comments about programming and debugging </h4>
+

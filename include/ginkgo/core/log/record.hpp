@@ -46,6 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+/**
+ * @brief The Logging namespace.
+ *
+ * @ingroup log
+ */
 namespace log {
 
 

@@ -80,6 +80,8 @@ namespace gko {
  *     return 0;
  * }
  * ```
+ *
+ * @ingroup error
  */
 class Error : public std::exception {
 public:

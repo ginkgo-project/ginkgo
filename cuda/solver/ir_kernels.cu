@@ -39,6 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The IR solver namespace.
+ *
+ * @ingroup ir
+ */
 namespace ir {
 
 

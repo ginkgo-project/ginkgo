@@ -45,6 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The namespace for functionalities after C++11 standard.
+ * @internal
+ * @ingroup xstd
+ */
 namespace xstd {
 namespace detail {
 

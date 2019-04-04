@@ -60,6 +60,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The Compressed sparse row matrix format namespace.
+ *
+ * @ingroup csr
+ */
 namespace csr {
 
 
