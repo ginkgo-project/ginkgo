@@ -39,18 +39,18 @@ endfunction()
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
 function(ginkgo_doc_gen name in pdf mainpage-in)
-    set(DIR_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
     set(DIR_BASE "${CMAKE_SOURCE_DIR}")
     set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(DIR_SCRIPT "${DOC_BASE}/scripts")
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
     set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
-    set(layout "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
-    ginkgo_file_concat("${CMAKE_CURRENT_SOURCE_DIR}/pages"
+    set(layout "${DOC_BASE}/DoxygenLayout.xml")
+    ginkgo_file_concat("${DOC_BASE}/pages"
       "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
       )
     set(doxygen_base_input
-      "${CMAKE_CURRENT_SOURCE_DIR}/headers/"
+      "${DOC_BASE}/headers/"
       )
     list(APPEND doxygen_base_input
       ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
@@ -70,10 +70,10 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
       ${DIR_BASE}/cuda
       ${DIR_BASE}/reference
       )
-    set(doxygen_image_path "${CMAKE_CURRENT_SOURCE_DIR}/images/")
+    set(doxygen_image_path "${CMAKE_SOURCE_DIR}/doc/images/")
     file(GLOB doxygen_depend
-      ${CMAKE_CURRENT_SOURCE_DIR}/headers/*.hpp
-      ${CMAKE_SOURCE_DIR}/include/ginkgo/**/*.hpp
+      ${DOC_BASE}/headers/*.hpp
+      ${DIR_BASE}/include/ginkgo/**/*.hpp
       )
     list(APPEND doxygen_depend
       ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
@@ -83,9 +83,9 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
         )
       FILE(GLOB _ginkgo_examples
-        ${CMAKE_SOURCE_DIR}/examples/*
+        ${DIR_BASE}/examples/*
         )
-      LIST(REMOVE_ITEM _ginkgo_examples "${CMAKE_SOURCE_DIR}/examples/CMakeLists.txt")
+      LIST(REMOVE_ITEM _ginkgo_examples "${DIR_BASE}/examples/CMakeLists.txt")
       FOREACH(_ex ${_ginkgo_examples})
         GET_FILENAME_COMPONENT(_ex "${_ex}" NAME)
         LIST(APPEND doxygen_depend
@@ -120,7 +120,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     if(pdf)
         ginkgo_doc_pdf("${name}" "${DIR_OUT}")
     endif()
-    ginkgo_file_concat("${CMAKE_CURRENT_SOURCE_DIR}/conf"
+    ginkgo_file_concat("${DOC_BASE}/conf"
         Doxyfile.in "${in}" "${doxyfile}"
         )
 endfunction()

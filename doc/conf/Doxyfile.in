@@ -108,5 +108,5 @@ HTML_HEADER            =
 HTML_FOOTER            =
 HTML_COLORSTYLE_HUE    = 220
 HTML_COLORSTYLE_SAT    = 200
-LAYOUT_FILE            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml
-HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/stylesheet.css
+LAYOUT_FILE            = @DOC_BASE@/DoxygenLayout.xml
+HTML_EXTRA_STYLESHEET  = @DOC_BASE@/stylesheet.css
