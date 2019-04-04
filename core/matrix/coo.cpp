@@ -61,8 +61,6 @@ GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
-GKO_REGISTER_OPERATION(transpose, coo::transpose);
-GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose);
 
 
 }  // namespace coo
@@ -189,30 +187,6 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
         const auto val = tmp->values_.get_const_data()[i];
         data.nonzeros.emplace_back(row, col, val);
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(coo::make_transpose(trans_cpy.get(), this));
-    return std::move(trans_cpy);
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(coo::make_conj_transpose(trans_cpy.get(), this));
-    return std::move(trans_cpy);
 }
 
 

@@ -72,13 +72,9 @@ GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
-GKO_REGISTER_OPERATION(move_to_csr, dense::move_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
-GKO_REGISTER_OPERATION(move_to_ell, dense::move_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
-GKO_REGISTER_OPERATION(move_to_hybrid, dense::move_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
-GKO_REGISTER_OPERATION(move_to_sellp, dense::move_to_sellp);
 
 
 }  // namespace dense
@@ -268,9 +264,7 @@ void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Coo<ValueType, int32> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_convert_to_coo<decltype(result),
-                                                          Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -287,9 +281,7 @@ void Dense<ValueType>::convert_to(Coo<ValueType, int64> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Coo<ValueType, int64> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_convert_to_coo<decltype(result),
-                                                          Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -307,10 +299,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_csr<decltype(result),
-                                                       Dense<ValueType> *&>);
-    result->make_srow();
+    this->convert_to(result);
 }
 
 
@@ -328,10 +317,7 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_csr<decltype(result),
-                                                       Dense<ValueType> *&>);
-    result->make_srow();
+    this->convert_to(result);
 }
 
 
@@ -348,9 +334,7 @@ void Dense<ValueType>::convert_to(Ell<ValueType, int32> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Ell<ValueType, int32> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_ell<decltype(result),
-                                                       Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -367,9 +351,7 @@ void Dense<ValueType>::convert_to(Ell<ValueType, int64> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_ell<decltype(result),
-                                                       Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -386,9 +368,7 @@ void Dense<ValueType>::convert_to(Hybrid<ValueType, int32> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Hybrid<ValueType, int32> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_hybrid<decltype(result),
-                                                          Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -405,9 +385,7 @@ void Dense<ValueType>::convert_to(Hybrid<ValueType, int64> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Hybrid<ValueType, int64> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_hybrid<decltype(result),
-                                                          Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -424,9 +402,7 @@ void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_sellp<decltype(result),
-                                                         Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 
@@ -443,9 +419,7 @@ void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
 {
-    conversion_helper(result, this,
-                      dense::template make_move_to_sellp<decltype(result),
-                                                         Dense<ValueType> *&>);
+    this->convert_to(result);
 }
 
 

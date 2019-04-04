@@ -33,6 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <utility>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -42,12 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "reference/components/format_conversion.hpp"
-
-
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <utility>
 
 
 namespace gko {
@@ -170,18 +170,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                   matrix::Dense<ValueType> *result,
-                   matrix::Csr<ValueType, IndexType> *source)
-{
-    reference::csr::convert_to_dense(exec, result, source);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_MOVE_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

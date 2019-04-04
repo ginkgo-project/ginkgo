@@ -30,8 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include "core/matrix/csr_kernels.hpp"
 
 
 #include <random>
@@ -42,13 +41,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "core/matrix/dense_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -142,6 +141,7 @@ protected:
 TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+
     ASSERT_EQ(mtx->get_strategy()->get_name(),
               dmtx->get_strategy()->get_name());
 }
@@ -339,7 +339,6 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
 
@@ -350,10 +349,22 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, MoveToDenseIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+
+    mtx->move_to(dense_mtx.get());
+    dmtx->move_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(cuda);
 
@@ -364,16 +375,27 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, MoveToEllIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto ell_mtx = gko::matrix::Ell<>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+
+    mtx->move_to(ell_mtx.get());
+    dmtx->move_to(dell_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
     gko::size_type max_nnz_per_row;
     gko::size_type dmax_nnz_per_row;
 
     gko::kernels::reference::csr::calculate_max_nnz_per_row(ref, mtx.get(),
                                                             &max_nnz_per_row);
-
     gko::kernels::cuda::csr::calculate_max_nnz_per_row(cuda, dmtx.get(),
                                                        &dmax_nnz_per_row);
 
@@ -384,14 +406,24 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
 
-    mtx->convert_to(dense_mtx.get());
-    dense_mtx->convert_to(coo_mtx.get());
+    mtx->convert_to(coo_mtx.get());
     dmtx->convert_to(dcoo_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToCooIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+
+    mtx->move_to(coo_mtx.get());
+    dmtx->move_to(dcoo_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
 }
@@ -400,7 +432,6 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
 
@@ -411,10 +442,22 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, MoveToSellpIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    mtx->move_to(sellp_mtx.get());
+    dmtx->move_to(dsellp_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sellp_mtx.get(), dsellp_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-
     gko::size_type total_cols;
     gko::size_type dtotal_cols;
 

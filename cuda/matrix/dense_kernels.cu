@@ -524,15 +524,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void move_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_CSR_KERNEL);
-
-
 namespace kernel {
 
 
@@ -597,15 +588,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void move_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                 matrix::Ell<ValueType, IndexType> *result,
-                 const matrix::Dense<ValueType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
                        matrix::Hybrid<ValueType, IndexType> *result,
                        const matrix::Dense<ValueType> *source)
@@ -613,15 +595,6 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Hybrid<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_HYBRID_KERNEL);
 
 
 namespace kernel {
@@ -755,15 +728,6 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void move_to_sellp(std::shared_ptr<const CudaExecutor> exec,
-                   matrix::Sellp<ValueType, IndexType> *result,
-                   const matrix::Dense<ValueType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_MOVE_TO_SELLP_KERNEL);
 
 
 namespace kernel {

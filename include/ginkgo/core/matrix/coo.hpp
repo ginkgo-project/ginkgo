@@ -75,8 +75,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable {
+            public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
@@ -101,10 +100,6 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Returns the values of the matrix.

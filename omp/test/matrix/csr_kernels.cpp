@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include "core/matrix/csr_kernels.hpp"
 
 
 #include <random>
@@ -39,11 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -197,7 +200,6 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(omp);
 
@@ -205,6 +207,45 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
     dmtx->convert_to(dcoo_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToCooIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(omp);
+
+    mtx->move_to(coo_mtx.get());
+    dmtx->move_to(dcoo_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(omp);
+
+    mtx->convert_to(ddense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), dense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToDenseIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(omp);
+
+    mtx->move_to(ddense_mtx.get());
+    dmtx->move_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), dense_mtx.get(), 1e-14);
 }
 
 
