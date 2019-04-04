@@ -43,6 +43,7 @@ HIDE_UNDOC_MEMBERS     = YES
 HIDE_UNDOC_RELATIONS   = YES
 
 # hide local, private, internal or static stuff
+INLINE_SOURCES         = YES
 EXTRACT_STATIC         = NO
 EXTRACT_LOCAL_CLASSES  = NO
 EXTRACT_PRIVATE        = NO
