@@ -5,8 +5,7 @@
     <tab type="mainpage" visible="yes" title=""/>
     <tab type="user" visible="yes" title="Tutorial" url="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver" />
     <tab type="user" visible="yes" title="Examples" url="@ref Examples" />
-    <tab>
-      <tab type="user" visible="yes" title="Using Ginkgo" url="@ref install_ginkgo" />
+    <tab type="user" visible="yes" title="Using Ginkgo" url="@ref install_ginkgo">
       <tab type="user" visible="yes" title="Installing Ginkgo" url="@ref install_ginkgo" />
       <tab type="user" visible="yes" title="Testing Ginkgo" url="@ref testing_ginkgo" />
       <tab type="user" visible="yes" title="Benchmarking Ginkgo" url="@ref benchmarking_ginkgo" />
