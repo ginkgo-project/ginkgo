@@ -22,5 +22,4 @@
 <area shape="rect" id="node21" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory..." alt="" coords="2336,481,2525,523"/>
 <area shape="rect" id="node24" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure. " alt="" coords="2833,599,3051,640"/>
 <area shape="rect" id="node25" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="2845,664,3039,705"/>
-<area shape="rect" id="node26" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. " alt="" coords="2873,730,3011,757"/>
 </map>
