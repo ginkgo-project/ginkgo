@@ -234,6 +234,8 @@ TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
 {
     initialize_data();
 
+    int iter = 5;
+
     gko::kernels::reference::gmres::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
