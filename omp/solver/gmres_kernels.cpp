@@ -65,53 +65,87 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
 {
 #pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
 
-    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
-        if (stop_status[i].has_stopped()) {
-            continue;
-        }
-        for (size_type k = 0; k < iter + 1; ++k) {
-            ValueType hessenberg_iter_entry = 0;
+    for (size_type k = 0; k < iter + 1; ++k) {
+        ValueType hessenberg_iter_entries[next_krylov_basis->get_size()[1]] =
+            {};
 
-#pragma omp parallel for reduction(add : hessenberg_iter_entry)
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                hessenberg_iter_entry +=
+#pragma omp parallel for reduction( \
+    add                             \
+    : hessenberg_iter_entries[:next_krylov_basis->get_size()[1]])
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+                if (stop_status[i].has_stopped()) {
+                    continue;
+                }
+                hessenberg_iter_entries[i] +=
                     next_krylov_basis->at(j, i) *
                     krylov_bases->at(j,
                                      next_krylov_basis->get_size()[1] * k + i);
             }
-            hessenberg_iter->at(k, i) = hessenberg_iter_entry;
+        }
+#pragma omp parallel for
+        for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+            if (stop_status[i].has_stopped()) {
+                continue;
+            }
+            hessenberg_iter->at(k, i) = hessenberg_iter_entries[i];
+        }
 
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+#pragma omp parallel for
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+                if (stop_status[i].has_stopped()) {
+                    continue;
+                }
                 next_krylov_basis->at(j, i) -=
                     hessenberg_iter->at(k, i) *
                     krylov_bases->at(j,
                                      next_krylov_basis->get_size()[1] * k + i);
             }
         }
-        // for i in 1:iter
-        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
-        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
-        // end
+    }
+    // for i in 1:iter
+    //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+    //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+    // end
 
-        ValueType hessenberg_iter_entry = 0;
+    ValueType hessenberg_iter_entries[next_krylov_basis->get_size()[1]] = {};
 
-#pragma omp parallel for reduction(add : hessenberg_iter_entry)
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            hessenberg_iter_entry +=
+#pragma omp parallel for reduction( \
+    add                             \
+    : hessenberg_iter_entries[:next_krylov_basis->get_size()[1]])
+    for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+        for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+            if (stop_status[i].has_stopped()) {
+                continue;
+            }
+            hessenberg_iter_entries[i] +=
                 next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
         }
-        hessenberg_iter->at(iter + 1, i) = sqrt(hessenberg_iter_entry);
-        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+    }
+
 #pragma omp parallel for
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+        hessenberg_iter->at(iter + 1, i) = sqrt(hessenberg_iter_entries[i]);
+    }
+    // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+#pragma omp parallel for
+    for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+        for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+            if (stop_status[i].has_stopped()) {
+                continue;
+            }
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
             krylov_bases->at(j, next_krylov_basis->get_size()[1] * (iter + 1) +
                                     i) = next_krylov_basis->at(j, i);
         }
-        // next_krylov_basis /= hessenberg(iter, iter + 1)
-        // krylov_bases(:, iter + 1) = next_krylov_basis
-        // End of arnoldi
     }
+    // next_krylov_basis /= hessenberg(iter, iter + 1)
+    // krylov_bases(:, iter + 1) = next_krylov_basis
+    // End of arnoldi
 }
 
 
