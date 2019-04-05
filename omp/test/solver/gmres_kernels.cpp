@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <chrono>
+#include <iostream>
 #include <random>
 
 
@@ -82,7 +84,6 @@ protected:
     {
         int m = 597;
         int n = 43;
-        preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
@@ -110,8 +111,6 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_preconditioner = Mtx::create(omp);
-        d_preconditioner->copy_from(preconditioner.get());
         d_x = Mtx::create(omp);
         d_x->copy_from(x.get());
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
@@ -152,7 +151,6 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> preconditioner;
     std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
@@ -170,7 +168,6 @@ protected:
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
     std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
 
-    std::unique_ptr<Mtx> d_preconditioner;
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
@@ -219,6 +216,7 @@ TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get(), gko::solver::default_krylov_dim);
+
     gko::kernels::omp::gmres::initialize_2(
         omp, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
@@ -235,13 +233,13 @@ TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
 TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
 {
     initialize_data();
-    int iter = 5;
 
     gko::kernels::reference::gmres::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
         stop_status.get());
+
     gko::kernels::omp::gmres::step_1(
         omp, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
@@ -268,6 +266,7 @@ TEST_F(Gmres, OmpGmresStep2IsEquivalentToRef)
                                            krylov_bases.get(), hessenberg.get(),
                                            y.get(), before_preconditioner.get(),
                                            final_iter_nums.get());
+
     gko::kernels::omp::gmres::step_2(omp, d_residual_norm_collection.get(),
                                      d_krylov_bases.get(), d_hessenberg.get(),
                                      d_y.get(), d_before_preconditioner.get(),

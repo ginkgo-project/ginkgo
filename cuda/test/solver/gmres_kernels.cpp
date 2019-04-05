@@ -83,7 +83,6 @@ protected:
     {
         int m = 597;
         int n = 43;
-        preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
@@ -111,8 +110,6 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_preconditioner = Mtx::create(cuda);
-        d_preconditioner->copy_from(preconditioner.get());
         d_x = Mtx::create(cuda);
         d_x->copy_from(x.get());
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
@@ -153,7 +150,6 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> preconditioner;
     std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
@@ -171,7 +167,6 @@ protected:
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
     std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
 
-    std::unique_ptr<Mtx> d_preconditioner;
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
