@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 
 
-#include <gtest/gtest.h>
-
-
 #include <random>
+
+
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -231,7 +231,6 @@ TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
 TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
 {
     initialize_data();
-
     int iter = 5;
 
     gko::kernels::reference::gmres::step_1(
