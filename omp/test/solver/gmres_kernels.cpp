@@ -30,25 +30,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/gmres.hpp>
+#include "core/solver/gmres_kernels.hpp"
 
 
 #include <gtest/gtest.h>
 
 
-#include <chrono>
-#include <iostream>
 #include <random>
 
 
-#include <core/solver/gmres_kernels.hpp>
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -194,7 +194,6 @@ TEST_F(Gmres, OmpGmresInitialize1IsEquivalentToRef)
     gko::kernels::reference::gmres::initialize_1(
         ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
         givens_cos.get(), stop_status.get(), gko::solver::default_krylov_dim);
-
     gko::kernels::omp::gmres::initialize_1(
         omp, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
@@ -216,7 +215,6 @@ TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get(), gko::solver::default_krylov_dim);
-
     gko::kernels::omp::gmres::initialize_2(
         omp, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
@@ -241,7 +239,6 @@ TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
         stop_status.get());
-
     gko::kernels::omp::gmres::step_1(
         omp, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
@@ -268,7 +265,6 @@ TEST_F(Gmres, OmpGmresStep2IsEquivalentToRef)
                                            krylov_bases.get(), hessenberg.get(),
                                            y.get(), before_preconditioner.get(),
                                            final_iter_nums.get());
-
     gko::kernels::omp::gmres::step_2(omp, d_residual_norm_collection.get(),
                                      d_krylov_bases.get(), d_hessenberg.get(),
                                      d_y.get(), d_before_preconditioner.get(),
