@@ -231,9 +231,9 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
 {
-    for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
 #pragma omp parallel for
-        for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
+    for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
+        for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
@@ -325,10 +325,10 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         final_iter_nums->get_data()[j] = 0;
     }
 
-    for (size_type j = residual->get_size()[1]; j < krylov_bases->get_size()[1];
-         ++j) {
 #pragma omp parallel for
-        for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
+    for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
+        for (size_type j = residual->get_size()[1];
+             j < krylov_bases->get_size()[1]; ++j) {
             krylov_bases->at(i, j) = zero<ValueType>();
         }
     }
