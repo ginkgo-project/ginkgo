@@ -70,7 +70,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             continue;
         }
         for (size_type k = 0; k < iter + 1; ++k) {
-            ValueType hessenberg_iter_entry = 0;
+            ValueType hessenberg_iter_entry = zero<ValueType>();
 
 #pragma omp parallel for reduction(add : hessenberg_iter_entry)
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
@@ -94,7 +94,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
 
-        ValueType hessenberg_iter_entry = 0;
+        ValueType hessenberg_iter_entry = zero<ValueType>();
 
 #pragma omp parallel for reduction(add : hessenberg_iter_entry)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
@@ -298,7 +298,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
-        ValueType res_norm = 0;
+        ValueType res_norm = zero<ValueType>();
 
 #pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
 
