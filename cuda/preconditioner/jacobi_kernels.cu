@@ -45,8 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
+/**
+ * @brief The Jacobi preconditioner namespace.
+ * @ref Jacobi
+ * @ingroup jacobi
+ */
+namespace jacobi {
 namespace {
 
 
@@ -212,14 +216,6 @@ inline size_type agglomerate_supervariables(
 
 
 }  // namespace
-
-
-/**
- * @brief The Jacobi preconditioner namespace.
- * @ref Jacobi
- * @ingroup jacobi
- */
-namespace jacobi {
 
 
 void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,

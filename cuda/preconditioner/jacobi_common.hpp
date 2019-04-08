@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+namespace jacobi {
 
 
 /**
@@ -51,16 +52,13 @@ using compiled_kernels = syn::value_list<int, 1, 2, 4, 8, 13, 16, 32>;
 #endif
 
 
-namespace {
-
-
 constexpr int get_larger_power(int value, int guess = 1)
 {
     return guess >= value ? guess : get_larger_power(value, guess << 1);
 }
 
 
-}  // namespace
+}  // namespace jacobi
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

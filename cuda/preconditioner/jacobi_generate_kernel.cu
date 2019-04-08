@@ -53,8 +53,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+/**
+ * @brief The Jacobi preconditioner namespace.
+ * @ref Jacobi
+ * @ingroup jacobi
+ */
+namespace jacobi {
 namespace kernel {
-namespace {
 
 
 template <int max_block_size, typename ReducedType, typename Group,
@@ -241,7 +246,6 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
 }
 
 
-}  // namespace
 }  // namespace kernel
 
 
@@ -288,14 +292,6 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 }  // namespace
-
-
-/**
- * @brief The Jacobi preconditioner namespace.
- * @ref Jacobi
- * @ingroup jacobi
- */
-namespace jacobi {
 
 
 template <typename ValueType, typename IndexType>
