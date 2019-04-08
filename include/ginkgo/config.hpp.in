@@ -54,6 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine GKO_HAVE_CXXABI_H
 
 
+/* Should we use all optimizations for Jacobi? */
+#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
+
+
 /* Is PAPI SDE available for Logging? */
 // clang-format off
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@

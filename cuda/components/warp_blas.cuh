@@ -144,7 +144,11 @@ __device__ __forceinline__ bool invert_block(const Group &__restrict__ group,
     // prevent rows after problem_size to become pivots
     auto pivoted = group.thread_rank() >= problem_size;
     auto status = true;
+#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
 #pragma unroll
+#else
+#pragma unroll 1
+#endif
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i >= problem_size) {
             break;
@@ -387,7 +391,11 @@ __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
     using result_type = remove_complex<ValueType>;
     auto sum = zero<result_type>();
     if (group.thread_rank() < num_rows) {
+#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
 #pragma unroll
+#else
+#pragma unroll 1
+#endif
         for (uint32 i = 0; i < max_problem_size; ++i) {
             if (i >= num_cols) {
                 break;

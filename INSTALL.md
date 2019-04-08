@@ -47,6 +47,10 @@ Ginkgo adds the following additional switches to control what is being built:
 	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`
+*   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations
+    for the CUDA Jacobi algorithm. `OFF` by default. Setting this option to `ON`
+    may lead to very slow compile time (>20 minutes) for the
+    `jacobi_generate_kernels.cu` file and high memory usage.
 *   `-DCMAKE_CUDA_HOST_COMPILER=path` instructs the build system to explicitly
     set CUDA's host compiler to the path given as argument. By default, CUDA
     uses its toolchain's host compiler. Setting this option may help if you're
