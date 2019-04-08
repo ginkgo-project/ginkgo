@@ -37,72 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
-#include "core/matrix/dense_kernels.hpp"
-#include "core/preconditioner/jacobi_utils.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/diagonal_block_manipulation.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/warp_blas.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 
-
-namespace {
-
-
-template <int max_block_size, typename ReducedType, typename Group,
-          typename ValueType, typename IndexType>
-__device__ __forceinline__ bool validate_precision_reduction_feasibility(
-    Group &__restrict__ group, IndexType block_size,
-    ValueType *__restrict__ row, ValueType *__restrict__ work, size_type stride)
-{
-    using gko::detail::float_traits;
-    // save original data and reduce precision
-    if (group.thread_rank() < block_size) {
-#pragma unroll
-        for (auto i = 0u; i < max_block_size; ++i) {
-            if (i >= block_size) {
-                break;
-            }
-            work[i * stride + group.thread_rank()] = row[i];
-            row[i] = static_cast<ValueType>(static_cast<ReducedType>(row[i]));
-        }
-    }
-
-    // compute the condition number
-    auto perm = group.thread_rank();
-    auto trans_perm = perm;
-    auto block_cond = compute_infinity_norm<max_block_size>(group, block_size,
-                                                            block_size, row);
-    auto succeeded =
-        invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
-    block_cond *= compute_infinity_norm<max_block_size>(group, block_size,
-                                                        block_size, row);
-
-    // restore original data
-    if (group.thread_rank() < block_size) {
-#pragma unroll
-        for (auto i = 0u; i < max_block_size; ++i) {
-            if (i >= block_size) {
-                break;
-            }
-            row[i] = work[i * stride + group.thread_rank()];
-        }
-    }
-
-    return succeeded && block_cond >= 1.0 &&
-           block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
-}
-
-
-}  // namespace
 
 namespace {
 
