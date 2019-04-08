@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -46,24 +47,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
+#include "cuda/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-/**
- * A compile-time list of block sizes for which dedicated generate kernels
- * should be compiled.
- */
-using compiled_kernels =
-    syn::value_list<int, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                    17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-                    32>;
-
-
 namespace kernel {
+namespace {
 
 
 template <int max_block_size, typename ReducedType, typename Group,
@@ -250,16 +241,11 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
 }
 
 
+}  // namespace
 }  // namespace kernel
 
 
 namespace {
-
-
-constexpr int get_larger_power(int value, int guess = 1)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,
