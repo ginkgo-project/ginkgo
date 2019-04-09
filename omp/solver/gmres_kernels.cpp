@@ -262,7 +262,6 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
         // Calculate b norm
         ValueType norm = zero<ValueType>();
 
-
 #pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(add : norm)
