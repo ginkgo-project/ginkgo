@@ -30,23 +30,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/gmres.hpp>
-
-
-#include <gtest/gtest.h>
+#include "core/solver/gmres_kernels.hpp"
 
 
 #include <random>
 
 
-#include <core/solver/gmres_kernels.hpp>
-#include <core/test/utils.hpp>
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -59,15 +61,14 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        omp = gko::OmpExecutor::create();
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (omp != nullptr) {
+            ASSERT_NO_THROW(omp->synchronize());
         }
     }
 
@@ -110,43 +111,43 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_x = Mtx::create(cuda);
+        d_x = Mtx::create(omp);
         d_x->copy_from(x.get());
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(cuda);
+        d_y = Mtx::create(omp);
         d_y->copy_from(y.get());
-        d_b = Mtx::create(cuda);
+        d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
-        d_b_norm = Mtx::create(cuda);
+        d_b_norm = Mtx::create(omp);
         d_b_norm->copy_from(b_norm.get());
-        d_krylov_bases = Mtx::create(cuda);
+        d_krylov_bases = Mtx::create(omp);
         d_krylov_bases->copy_from(krylov_bases.get());
-        d_next_krylov_basis = Mtx::create(cuda);
+        d_next_krylov_basis = Mtx::create(omp);
         d_next_krylov_basis->copy_from(next_krylov_basis.get());
-        d_hessenberg = Mtx::create(cuda);
+        d_hessenberg = Mtx::create(omp);
         d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(cuda);
+        d_hessenberg_iter = Mtx::create(omp);
         d_hessenberg_iter->copy_from(hessenberg_iter.get());
-        d_residual = Mtx::create(cuda);
+        d_residual = Mtx::create(omp);
         d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(cuda);
+        d_residual_norm = Mtx::create(omp);
         d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(cuda);
+        d_residual_norm_collection = Mtx::create(omp);
         d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(cuda);
+        d_givens_sin = Mtx::create(omp);
         d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(cuda);
+        d_givens_cos = Mtx::create(omp);
         d_givens_cos->copy_from(givens_cos.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda, n));
+            new gko::Array<gko::stopping_status>(omp, n));
         *d_stop_status = *stop_status;
         d_final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(cuda, n));
+            new gko::Array<gko::size_type>(omp, n));
         *d_final_iter_nums = *final_iter_nums;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::ranlux48 rand_engine;
 
@@ -186,15 +187,15 @@ protected:
 };
 
 
-TEST_F(Gmres, CudaGmresInitialize1IsEquivalentToRef)
+TEST_F(Gmres, OmpGmresInitialize1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::gmres::initialize_1(
         ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
         givens_cos.get(), stop_status.get(), gko::solver::default_krylov_dim);
-    gko::kernels::cuda::gmres::initialize_1(
-        cuda, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
+    gko::kernels::omp::gmres::initialize_1(
+        omp, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
         gko::solver::default_krylov_dim);
 
@@ -206,7 +207,7 @@ TEST_F(Gmres, CudaGmresInitialize1IsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
+TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -214,8 +215,8 @@ TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get(), gko::solver::default_krylov_dim);
-    gko::kernels::cuda::gmres::initialize_2(
-        cuda, d_residual.get(), d_residual_norm.get(),
+    gko::kernels::omp::gmres::initialize_2(
+        omp, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
         d_final_iter_nums.get(), gko::solver::default_krylov_dim);
 
@@ -227,7 +228,7 @@ TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
+TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
 {
     initialize_data();
     int iter = 5;
@@ -237,8 +238,8 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
         stop_status.get());
-    gko::kernels::cuda::gmres::step_1(
-        cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
+    gko::kernels::omp::gmres::step_1(
+        omp, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), d_b_norm.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
@@ -255,7 +256,7 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
+TEST_F(Gmres, OmpGmresStep2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -263,10 +264,10 @@ TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
                                            krylov_bases.get(), hessenberg.get(),
                                            y.get(), before_preconditioner.get(),
                                            final_iter_nums.get());
-    gko::kernels::cuda::gmres::step_2(cuda, d_residual_norm_collection.get(),
-                                      d_krylov_bases.get(), d_hessenberg.get(),
-                                      d_y.get(), d_before_preconditioner.get(),
-                                      d_final_iter_nums.get());
+    gko::kernels::omp::gmres::step_2(omp, d_residual_norm_collection.get(),
+                                     d_krylov_bases.get(), d_hessenberg.get(),
+                                     d_y.get(), d_before_preconditioner.get(),
+                                     d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
