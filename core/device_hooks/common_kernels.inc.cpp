@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/factorization/ilu_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -556,6 +557,31 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace jacobi
+
+
+namespace par_ilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
+
+
+}  // namespace par_ilu_factorization
 
 
 namespace set_all_statuses {
