@@ -728,9 +728,9 @@ public:                                                                      \
  * @ingroup LinOp
  */
 #define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \
-    static auto build()->decltype(Factory::create())                         \
+    static auto build()->decltype(_factory_name::create())                   \
     {                                                                        \
-        return Factory::create();                                            \
+        return _factory_name::create();                                      \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
