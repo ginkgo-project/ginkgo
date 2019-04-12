@@ -34,6 +34,7 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
   "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))

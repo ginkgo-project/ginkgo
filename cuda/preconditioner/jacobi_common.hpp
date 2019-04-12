@@ -30,38 +30,35 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
 
-// clang-format off
-#define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
-#define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@
-#define GKO_VERSION_PATCH @Ginkgo_VERSION_PATCH@
-#define GKO_VERSION_TAG "@Ginkgo_VERSION_TAG@"
-// clang-format on
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
 
-/*
- * Controls the amount of messages output by Ginkgo.
- * 0 disables all output (except for test, benchmarks and examples).
- * 1 activates important messages.
+
+namespace gko {
+namespace kernels {
+namespace cuda {
+namespace jacobi {
+
+
+/**
+ * A compile-time list of block sizes for which dedicated generate and apply
+ * kernels should be compiled.
  */
-// clang-format off
-#define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
-// clang-format on
+#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
+using compiled_kernels = syn::as_list<syn::range<1, 33, 1>>;
+#else
+using compiled_kernels = syn::value_list<int, 1, 2, 4, 8, 13, 16, 32>;
+#endif
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
+constexpr int get_larger_power(int value, int guess = 1)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
 
 
-/* Should we use all optimizations for Jacobi? */
-#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
-
-
-/* Is PAPI SDE available for Logging? */
-// clang-format off
-#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
-// clang-format on
-
-
-#endif  // GKO_INCLUDE_CONFIG_H
+}  // namespace jacobi
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko
