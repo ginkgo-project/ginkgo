@@ -64,18 +64,9 @@ namespace kernel {
 
 template <int max_block_size, typename ReducedType, typename Group,
           typename ValueType, typename IndexType>
-__device__
-#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
-    __forceinline__
-#else
-    __noinline__
-#endif
-    bool
-    validate_precision_reduction_feasibility(Group &__restrict__ group,
-                                             IndexType block_size,
-                                             ValueType *__restrict__ row,
-                                             ValueType *__restrict__ work,
-                                             size_type stride)
+__device__ __forceinline__ bool validate_precision_reduction_feasibility(
+    Group &__restrict__ group, IndexType block_size,
+    ValueType *__restrict__ row, ValueType *__restrict__ work, size_type stride)
 {
     using gko::detail::float_traits;
     // save original data and reduce precision
