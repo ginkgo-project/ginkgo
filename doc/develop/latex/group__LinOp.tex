@@ -173,9 +173,9 @@ For more details, see \hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309
 
 {\bfseries Value\+:}
 \begin{DoxyCode}
-\textcolor{keyword}{static} \textcolor{keyword}{auto} build()->decltype(Factory::create())                         \(\backslash\)
+\textcolor{keyword}{static} \textcolor{keyword}{auto} build()->decltype(\_factory\_name::create())                   \(\backslash\)
     \{                                                                        \(\backslash\)
-        return Factory::create();                                            \(\backslash\)
+        return \_factory\_name::create();                                      \(\backslash\)
     \}                                                                        \(\backslash\)
     static\_assert(\textcolor{keyword}{true},                                                      \(\backslash\)
                   \textcolor{stringliteral}{"This assert is used to counter the false positive extra "} \(\backslash\)
