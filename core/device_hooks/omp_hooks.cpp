@@ -38,9 +38,9 @@ namespace gko {
 
 version version_info::get_omp_version() noexcept
 {
-    // We just return 0.0.0 with a special "not compiled" tag in placeholder
+    // We just return 1.0.0 with a special "not compiled" tag in placeholder
     // modules.
-    return {0, 0, 0, "not compiled"};
+    return {1, 0, 0, "not compiled"};
 }
 
 
