@@ -2,11 +2,6 @@
 This is the expected output:
 
 @code{.cpp}
-This is Ginkgo 0.0.0 (develop)
-    running with core module 0.0.0 (develop)
-    the reference module is  0.0.0 (develop)
-    the OpenMP    module is  0.0.0 (develop)
-    the CUDA      module is  not compiled
 { "system_residual": (+1.59066966e-14,+0.00000000e+00), "eigenvalue": (+2.03741410e+01,-5.42101086e-18), "residual": (+2.92231055e-01,+7.77548230e-20) },
 { "system_residual": (+6.38877157e-15,+0.00000000e+00), "eigenvalue": (+1.94878474e+01,-4.34534678e-16), "residual": (+7.94370276e-02,+1.77126506e-18) },
 { "system_residual": (+6.79215294e-15,+0.00000000e+00), "eigenvalue": (+1.93282121e+01,-3.68988781e-16), "residual": (+4.11149623e-02,+7.84912734e-19) },
