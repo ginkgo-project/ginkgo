@@ -85,7 +85,7 @@ struct ResidualLogger : gko::log::Logger {
         std::cout << '|' << std::setw(10) << "Iteration" << '|' << std::setw(25)
                   << "Recurrent Residual Norm" << '|' << std::setw(25)
                   << "Real Residual Norm" << '|' << std::endl;
-        // Print a separation line. Note that for creating `10` caracters
+        // Print a separation line. Note that for creating `10` characters
         // `std::setw()` should be set to `11`.
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
                   << std::setw(26) << '|' << std::setw(26) << '|'
