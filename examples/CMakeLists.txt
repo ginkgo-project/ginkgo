@@ -1,4 +1,5 @@
 option(GINKGO_BUILD_EXTLIB_EXAMPLE "Build the external-lib-interfacing with deal.II, you need to link the deal.II library." OFF)
+add_subdirectory(custom-logger)
 add_subdirectory(custom-matrix-format)
 add_subdirectory(custom-stopping-criterion)
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)

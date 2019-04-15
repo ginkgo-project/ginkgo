@@ -1,0 +1,63 @@
+<h1>Results</h1>
+The following is the expected result:
+
+@code{.cpp}
+This is Ginkgo 0.0.0 (develop)
+    running with core module 0.0.0 (develop)
+    the reference module is  0.0.0 (develop)
+    the OpenMP    module is  not compiled
+    the CUDA      module is  not compiled
+Solution (x):
+%%MatrixMarket matrix array real general
+19 1
+0.252218
+0.108645
+0.0662811
+0.0630433
+0.0384088
+0.0396536
+0.0402648
+0.0338935
+0.0193098
+0.0234653
+0.0211499
+0.0196413
+0.0199151
+0.0181674
+0.0162722
+0.0150714
+0.0107016
+0.0121141
+0.0123025
+Recurrent vs real residual norm:
+| Iteration|  Recurrent Residual Norm|       Real Residual Norm|
+|----------|-------------------------|-------------------------|
+|         0|             4.358899e+00|             4.358899e+00|
+|         1|             2.304548e+00|             2.304548e+00|
+|         2|             1.467706e+00|             1.467706e+00|
+|         3|             9.848751e-01|             9.848751e-01|
+|         4|             7.418330e-01|             7.418330e-01|
+|         5|             5.136231e-01|             5.136231e-01|
+|         6|             3.841650e-01|             3.841650e-01|
+|         7|             3.164394e-01|             3.164394e-01|
+|         8|             2.277088e-01|             2.277088e-01|
+|         9|             1.703121e-01|             1.703121e-01|
+|        10|             9.737220e-02|             9.737220e-02|
+|        11|             6.168306e-02|             6.168306e-02|
+|        12|             4.541231e-02|             4.541231e-02|
+|        13|             3.195304e-02|             3.195304e-02|
+|        14|             1.616058e-02|             1.616058e-02|
+|        15|             6.570152e-03|             6.570152e-03|
+|        16|             2.643669e-03|             2.643669e-03|
+|        17|             8.588089e-04|             8.588089e-04|
+|        18|             2.864613e-04|             2.864613e-04|
+|        19|             1.641952e-15|             2.107881e-15|
+|----------|-------------------------|-------------------------|
+Residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+2.10788e-15
+@endcode
+
+<h4> Comments about programming and debugging </h4>
+
