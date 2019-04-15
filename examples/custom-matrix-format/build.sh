@@ -27,11 +27,11 @@ if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
 else
     LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced"
 fi
-if [ -z "${CXX}" ]; then
-    CXX="c++"
-fi
+
+CXX="nvcc"
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/custom_matrix_format \
-    ${THIS_DIR}/custom_matrix_format.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+${CXX} -std=c++11 -o ${THIS_DIR}/custom-matrix-format \
+       ${THIS_DIR}/custom-matrix-format.cpp ${THIS_DIR}/stencil_kernel.cu \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+       -L${THIS_DIR} ${LINK_FLAGS}

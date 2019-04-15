@@ -35,47 +35,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @page Examples Example programs
  *
  * Here you can find example programs that demonstrate the usage of Ginkgo.
- * Some examples are built on one another and some are stand-alone and demonstrate a concept of
+ * Some examples are built on one another and some are stand-alone and
+ * demonstrate a concept of
  * Ginkgo, which can be used in your own code.
  *
  * You can browse the available example programs
  * <ol>
- *   <li> as <b><a href="#graph">a graph</a></b> that shows how example programs build upon each other.
+ *   <li> as <b><a href="#graph">a graph</a></b> that shows how example programs
+ *     build upon each other.
  *   <li> as <b><a href="#list">a list</a></b> that provides a short
  *     synopsis of each program.
  *   <li> or <b><a href="#topic">grouped by topic</a></b>.
  * </ol>
  *
- * The easiest way to build the example that you want is to use the script provided:
+ * By default, all Ginkgo examples are built using CMake.
+ *
+ * An example for building the examples and using Ginkgo as an external library
+ * without CMake can be found in the script provided for each example, which
+ * should be called with the form:
  * <code>./build.sh PATH_TO_GINKGO_BUILD_DIR </code>
  *
- * By default, Ginkgo is compiled with atleast <code>-DGINKGO_BUILD_REFERENCE=on</code>.
+ * By default, Ginkgo is compiled with at least
+ * <code>-DGINKGO_BUILD_REFERENCE=on</code>.
  * To execute on a GPU, you need to have a GPU on the system and must have
  * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.
- *
- * Alternatively, you can setup the configuration manually:
- *
- * Go to the <code> PATH_TO_GINKGO_BUILD_DIR </code> directory and copy the shared
- * libraries located in the following subdirectories:
- * <ol>
- *   <li> <code>core/</code>
- *   <li> <code>core/device_hooks/</code>
- *   <li> <code>reference/</code>
- *   <li> <code>omp/</code>
- *   <li> <code>cuda/</code>
- * </ol>
- * to this directory.
- *
- * Then compile the file with the following command line:
- * @code{.cpp}
- * c++ -std=c++11 -o <example-name> <example-name>.cpp -I../.. \
- * -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
- * @endcode
- * (if ginkgo was built in debug mode, append 'd' to every library name)
- *
- * Now you should be able to run the program using:
- *
- * @code{.cpp}env LD_LIBRARY_PATH=.:\$\{LD_LIBRARY_PATH\} ./<example-name>@endcode
  *
  * <a name="graph"></a>
  * @anchor ExampleConnectionGraph
@@ -106,13 +89,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref minimal_cuda_solver</td>
- *       <td> A minimal solver on the CUDA executor than can be run on NVIDIA GPU's.
+ *       <td> A minimal solver on the CUDA executor than can be run on NVIDIA
+ *            GPU's.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref poisson_solver</td>
  *       <td> Solve an actual physically relevant problem, the poisson problem.
- *           The matrix is generated within Ginkgo.
+ *            The matrix is generated within Ginkgo.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -122,7 +106,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref three_pt_stencil_solver</td>
- *       <td> Using a three point stencil to solve the poisson equation with array views.
+ *       <td> Using a three point stencil to solve the poisson equation with
+ *            array views.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -131,24 +116,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       </td></tr>
  *
  *   <tr valign="top">
+ *       <td width="260px">@ref custom_logger</td>
+ *       <td> Creating a custom logger specifically for comparing the recurrent
+ *            and the real residual norms.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
  *       <td>@ref custom_matrix_format</td>
- *       <td> Creating a matrix-free stencil solver by using Ginkgo's advanced methods to build your own custom matrix format.
+ *       <td> Creating a matrix-free stencil solver by using Ginkgo's advanced
+ *            methods to build your own custom matrix format.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref inverse_iteration</td>
- *       <td> Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method.
+ *       <td> Using Ginkgo to compute eigenvalues of a matrix with the inverse
+ *            iteration method.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref simple_solver_logging</td>
- *       <td> Using the logging functionality in Ginkgo to get solver and other information to
- *        diagnose and debug your code.
+ *       <td> Using the logging functionality in Ginkgo to get solver and other
+ *            information to diagnose and debug your code.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref papi_logging</td>
- *       <td> Using the PAPI logging library in Ginkgo to get advanced information about your code
+ *       <td> Using the PAPI logging library in Ginkgo to get advanced
+ *            information about your code
  *        and its behaviour.
  *       </td></tr>
  *
@@ -159,12 +153,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref custom_stopping_criterion</td>
- *       <td> Creating a custom stopping criterion for the iterative solution process.
+ *       <td> Creating a custom stopping criterion for the iterative solution
+ *            process.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref ginkgo_ranges</td>
- *       <td> Using the ranges concept to factorize a matrix with the LU factorization.
+ *       <td> Using the ranges concept to factorize a matrix with the LU
+ *            factorization.
  *       </td></tr>
  *
  * </table>
@@ -214,7 +210,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *         @ref inverse_iteration,
  *         @ref simple_solver_logging,
  *         @ref papi_logging,
- *         @ref custom_stopping_criterion
+ *         @ref custom_stopping_criterion,
+ *         @ref custom_logger
  *     </td>
  *   </tr>
  *
@@ -224,14 +221,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
- *     <td> Using Ginkgo with external libraries. 
+ *     <td> Using Ginkgo with external libraries.
  *     </td>
  *     <td>@ref external_lib_interfacing
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
- *     <td width="400px"> Writing your own matrix format 
+ *     <td width="400px"> Customizing Ginkgo
+ *     </td>
+ *     <td>@ref custom_logger,
+ *         @ref custom_stopping_criterion,
+ *         @ref custom_matrix_format
+ *     </td>
+ *   </tr>
+ *
+ *   <tr valign="top">
+ *     <td width="400px"> Writing your own matrix format
  *     </td>
  *     <td>@ref custom_matrix_format
  *     </td>
@@ -248,7 +254,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td> Logging within Ginkgo.
  *     </td>
  *     <td> @ref simple_solver_logging,
- *          @ref papi_logging
+ *          @ref papi_logging,
+ *          @ref custom_logger
  *     </td>
  *   </tr>
  *
