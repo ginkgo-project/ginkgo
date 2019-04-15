@@ -23,15 +23,16 @@ done
 
 # figure out correct compiler flags
 if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
-    LINK_FLAGS="-lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference"
+    LINK_FLAGS="-lpthread -lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference"
 else
-    LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced"
+    LINK_FLAGS="-lpthread -lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced"
 fi
 if [ -z "${CXX}" ]; then
     CXX="c++"
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/asynchronous_stopping_criterion \
-    ${THIS_DIR}/asynchronous_stopping_criterion.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+${CXX} -std=c++11 -o ${THIS_DIR}/custom-stopping-criterion \
+       ${THIS_DIR}/custom-stopping-criterion.cpp \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+       -L${THIS_DIR} ${LINK_FLAGS}

@@ -32,5 +32,7 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/3pt_stencil ${THIS_DIR}/3pt_stencil.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+${CXX} -std=c++11 -o ${THIS_DIR}/three-pt-stencil-solver \
+       ${THIS_DIR}/three-pt-stencil-solver.cpp \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+       -L${THIS_DIR} ${LINK_FLAGS}

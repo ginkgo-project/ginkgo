@@ -32,5 +32,6 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/ranges ${THIS_DIR}/ranges.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+${CXX} -std=c++11 -o ${THIS_DIR}/ginkgo-ranges ${THIS_DIR}/ginkgo-ranges.cpp \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+       -L${THIS_DIR} ${LINK_FLAGS}

@@ -32,5 +32,6 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/simple_solver ${THIS_DIR}/simple_solver.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+${CXX} -std=c++11 -o ${THIS_DIR}/simple-solver ${THIS_DIR}/simple-solver.cpp \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+       -L${THIS_DIR} ${LINK_FLAGS}

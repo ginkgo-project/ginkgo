@@ -33,5 +33,6 @@ fi
 
 # build
 ${CXX} -std=c++11 -o \
-    ${THIS_DIR}/inverse_iteration ${THIS_DIR}/inverse_iteration.cpp \
-    -I${THIS_DIR}/../.. -L${THIS_DIR} ${LINK_FLAGS}
+    ${THIS_DIR}/inverse-iteration ${THIS_DIR}/inverse-iteration.cpp \
+    -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
+    -L${THIS_DIR} ${LINK_FLAGS}
