@@ -9,35 +9,11 @@ You can browse the available example programs
 \item or {\bfseries \href{#topic}{\tt grouped by topic}}. 
 \end{DoxyEnumerate}
 
-The easiest way to build the example that you want is to use the script provided\+: {\ttfamily ./build.sh P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR }
+By default, all Ginkgo examples are built using C\+Make.
 
-By default, Ginkgo is compiled with atleast {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=on}. To execute on a G\+PU, you need to have a G\+PU on the system and must have compiled Ginkgo with the {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=ON} option.
+An example for building the examples and using Ginkgo as an external library without C\+Make can be found in the script provided for each example, which should be called with the form\+: {\ttfamily ./build.sh P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR }
 
-Alternatively, you can setup the configuration manually\+:
-
-Go to the {\ttfamily  P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR } directory and copy the shared libraries located in the following subdirectories\+: 
-\begin{DoxyEnumerate}
-\item {\ttfamily core/} 
-\item {\ttfamily core/device\+\_\+hooks/} 
-\item {\ttfamily reference/} 
-\item {\ttfamily omp/} 
-\item {\ttfamily cuda/} 
-\end{DoxyEnumerate}to this directory.
-
-Then compile the file with the following command line\+: 
-\begin{DoxyCode}
-c++ -\hyperlink{namespacestd}{std}=c++11 -o <example-name> <example-name>.cpp -I../.. \(\backslash\)
--L. -lginkgo -lginkgo\_reference -lginkgo\_omp -lginkgo\_cuda
-\end{DoxyCode}
- (if ginkgo was built in debug mode, append \textquotesingle{}d\textquotesingle{} to every library name)
-
-Now you should be able to run the program using\+:
-
-
-\begin{DoxyCode}
-env LD\_LIBRARY\_PATH=.:$\(\backslash\)\{LD\_LIBRARY\_PATH\(\backslash\)\} ./<example-name>
-\end{DoxyCode}
-
+By default, Ginkgo is compiled with at least {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=on}. To execute on a G\+PU, you need to have a G\+PU on the system and must have compiled Ginkgo with the {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=ON} option.
 
 \label{_graph}%
  \label{Examples_ExampleConnectionGraph}%
@@ -79,6 +55,9 @@ The following graph shows the connections between example programs and how they 
 
 \\\cline{1-2}
 \hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program} &Using Ginkgo\textquotesingle{}s solver with the external library deal.\+II. 
+
+\\\cline{1-2}
+\hyperlink{custom_logger}{The custom-\/logger program} &Creating a custom logger specifically for comparing the recurrent and the real residual norms. 
 
 \\\cline{1-2}
 \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program} &Creating a matrix-\/free stencil solver by using Ginkgo\textquotesingle{}s advanced methods to build your own custom matrix format. 
@@ -125,7 +104,7 @@ Using preconditioners  &\hyperlink{preconditioned_solver}{The preconditioned-\/s
 Solving a physically relevant problem  &\hyperlink{poisson_solver}{The poisson-\/solver program}, \hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program}, \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}  
 
 \\\cline{1-2}
-Reading in a matrix and right hand side from a file.  &\hyperlink{simple_solver}{The simple-\/solver program}, \hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}, \hyperlink{preconditioned_solver}{The preconditioned-\/solver program}, \hyperlink{inverse_iteration}{The inverse-\/iteration program}, \hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}, \hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}  
+Reading in a matrix and right hand side from a file.  &\hyperlink{simple_solver}{The simple-\/solver program}, \hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}, \hyperlink{preconditioned_solver}{The preconditioned-\/solver program}, \hyperlink{inverse_iteration}{The inverse-\/iteration program}, \hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}, \hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}, \hyperlink{custom_logger}{The custom-\/logger program}  
 
 \\\cline{1-2}
 \end{longtabu}
@@ -139,13 +118,16 @@ Reading in a matrix and right hand side from a file.  &\hyperlink{simple_solver}
 Using Ginkgo with external libraries.  &\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program}  
 
 \\\cline{1-2}
+Customizing Ginkgo  &\hyperlink{custom_logger}{The custom-\/logger program}, \hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}, \hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}  
+
+\\\cline{1-2}
 Writing your own matrix format  &\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}  
 
 \\\cline{1-2}
 Using Ginkgo to construct more complex linear algebra routines.  &\hyperlink{inverse_iteration}{The inverse-\/iteration program}  
 
 \\\cline{1-2}
-Logging within Ginkgo.  &\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}  
+Logging within Ginkgo.  &\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}, \hyperlink{papi_logging}{The papi-\/logging program}, \hyperlink{custom_logger}{The custom-\/logger program}  
 
 \\\cline{1-2}
 Constructing your own stopping criterion.  &\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}  

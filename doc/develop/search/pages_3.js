@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['the_20custom_2dlogger_20program',['The custom-logger program',['../custom_logger.html',1,'']]],
   ['the_20custom_2dmatrix_2dformat_20program',['The custom-matrix-format program',['../custom_matrix_format.html',1,'']]],
   ['the_20custom_2dstopping_2dcriterion_20program',['The custom-stopping-criterion program',['../custom_stopping_criterion.html',1,'']]],
   ['the_20external_2dlib_2dinterfacing_20program',['The external-lib-interfacing program',['../external_lib_interfacing.html',1,'']]],
