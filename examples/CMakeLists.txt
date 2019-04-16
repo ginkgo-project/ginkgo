@@ -15,4 +15,6 @@ add_subdirectory(preconditioned-solver)
 add_subdirectory(simple-solver)
 add_subdirectory(simple-solver-logging)
 add_subdirectory(three-pt-stencil-solver)
+add_subdirectory(nine-pt-stencil-solver)
+add_subdirectory(twentyseven-pt-stencil-solver)
 
