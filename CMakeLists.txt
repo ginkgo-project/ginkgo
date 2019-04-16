@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 
 project(Ginkgo LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
-set(Ginkgo_VERSION_TAG "develop")
+set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Load CMake helpers and modules

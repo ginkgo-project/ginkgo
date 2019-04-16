@@ -1,9 +1,9 @@
 ![Ginkgo](/assets/logo.png)
 
-[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/build.svg)](https://github.com/ginkgo-project/ginkgo/commits/develop)
-[![Coverage](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
+[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/build.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
+[![Coverage](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
-[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/develop/)
+[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
@@ -80,7 +80,7 @@ An example can be found in the [`test_install`](test_install/CMakeLists.txt).
 
 ### Ginkgo Examples
 
-Various examples are available for you to understand and play with Ginkgo within the `examples/` directory. They can be compiled by passing the `-DGINKGO_BUILD_EXAMPLES=ON` to the cmake command. Documentation for the examples is available within the `doc/` folder in each of the example directory and a commented code with explanations can found in the [online documentation](https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html).
+Various examples are available for you to understand and play with Ginkgo within the `examples/` directory. They can be compiled by passing the `-DGINKGO_BUILD_EXAMPLES=ON` to the cmake command. Documentation for the examples is available within the `doc/` folder in each of the example directory and a commented code with explanations can found in the [online documentation](https://ginkgo-project.github.io/ginkgo/doc/master/Examples.html).
 
 ### Ginkgo Testing
 
