@@ -31,34 +31,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
+ By default, all Ginkgo examples are built using CMake.
 
-Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
+An example for building the examples and using Ginkgo as an external library
+without CMake can be found in the script provided for each example, which
+should be called with the form:
+`./build.sh PATH_TO_GINKGO_BUILD_DIR`
 
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
+By default, Ginkgo is compiled with at least `-DGINKGO_BUILD_REFERENCE=ON`.
+To execute on a GPU, you need to have a GPU on the system and must have
+compiled Ginkgo with the `-DGINKGO_BUILD_CUDA=ON` option.
 
 If you want to check cuda memory first before setting value in the function
 `read`, you can use additional_check.patch:
