@@ -56,7 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <code>./build.sh PATH_TO_GINKGO_BUILD_DIR </code>
  *
  * By default, Ginkgo is compiled with at least
- * <code>-DGINKGO_BUILD_REFERENCE=on</code>.
+ * <code>-DGINKGO_BUILD_REFERENCE=ON</code>.
  * To execute on a GPU, you need to have a GPU on the system and must have
  * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.
  *

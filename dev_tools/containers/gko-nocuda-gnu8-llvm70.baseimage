@@ -23,8 +23,31 @@ RUN apt-get update -y && \
         openssh-client \
         doxygen \
         curl \
-        valgrind \
-        graphviz && \
+        valgrind && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        graphviz \
+        ghostscript \
+        texlive \
+        texlive-latex-extra && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive \
+        texlive-latex-extra \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler
@@ -44,10 +67,10 @@ RUN update-alternatives --install /usr/bin/gcc gcc $(which gcc-8) 30 && \
 # LLVM compiler
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        clang-7 && \
+        clang-6.0 && \
     rm -rf /var/lib/apt/lists/*
-RUN update-alternatives --install /usr/bin/clang clang $(which clang-7) 30 && \
-    update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-7) 30
+RUN update-alternatives --install /usr/bin/clang clang $(which clang-6.0) 30 && \
+    update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-6.0) 30
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
