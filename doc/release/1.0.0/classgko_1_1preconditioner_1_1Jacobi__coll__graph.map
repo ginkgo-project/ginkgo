@@ -1,0 +1,21 @@
+<map id="gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;" name="gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Jacobi\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="2545,281,2752,322"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Jacobi\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="2123,193,2353,249"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1823,193,2056,249"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1335,216,1426,243"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="723,217,956,258"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,123,448,179"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,85,973,141"/>
+<area shape="rect" id="node17" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="708,5,971,61"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1244,93,1517,134"/>
+<area shape="rect" id="node16" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="1805,50,2073,91"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Jacobi\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1809,362,2070,403"/>
+<area shape="rect" id="node12" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1300,399,1461,455"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="768,375,911,417"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1253,333,1509,374"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1307,267,1454,309"/>
+<area shape="rect" id="node20" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; matrix::Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1541,459,1781,501"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="1811,274,2067,315"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2134,91,2342,133"/>
+<area shape="rect" id="node21" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="2551,498,2746,539"/>
+</map>
