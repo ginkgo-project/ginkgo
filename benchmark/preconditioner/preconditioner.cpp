@@ -219,7 +219,7 @@ void run_preconditioner(const char *precond_name,
         }
 
         exec->synchronize();
-        auto g_tic = std::chrono::system_clock::now();
+        auto g_tic = std::chrono::steady_clock::now();
 
         std::unique_ptr<gko::LinOp> precond_op;
         for (auto i = 0u; i < FLAGS_repetitions; ++i) {
@@ -227,7 +227,7 @@ void run_preconditioner(const char *precond_name,
         }
 
         exec->synchronize();
-        auto g_tac = std::chrono::system_clock::now();
+        auto g_tac = std::chrono::steady_clock::now();
 
         auto generate_time =
             std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
@@ -237,14 +237,14 @@ void run_preconditioner(const char *precond_name,
                           generate_time.count(), allocator);
 
         exec->synchronize();
-        auto a_tic = std::chrono::system_clock::now();
+        auto a_tic = std::chrono::steady_clock::now();
 
         for (auto i = 0u; i < FLAGS_repetitions; ++i) {
             precond_op->apply(lend(b), lend(x_clone));
         }
 
         exec->synchronize();
-        auto a_tac = std::chrono::system_clock::now();
+        auto a_tac = std::chrono::steady_clock::now();
 
         auto apply_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               a_tac - a_tic) /
