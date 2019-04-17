@@ -1,0 +1,192 @@
+\hypertarget{classgko_1_1accessor_1_1row__major}{}\section{gko\+:\+:accessor\+:\+:row\+\_\+major$<$ Value\+Type, Dimensionality $>$ Class Template Reference}
+\label{classgko_1_1accessor_1_1row__major}\index{gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$@{gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$}}
+
+
+A \hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major} accessor is a bridge between a range and the row-\/major memory layout.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/range\+\_\+accessors.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:accessor\+:\+:row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=283pt]{classgko_1_1accessor_1_1row__major__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}\label{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}} 
+using \hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type} = Value\+Type
+\begin{DoxyCompactList}\small\item\em Type of values returned by the accessor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}\label{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}} 
+using \hyperlink{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}{data\+\_\+type} = \hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type} $\ast$
+\begin{DoxyCompactList}\small\item\em Type of underlying data storage. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+constexpr \hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type} \& \hyperlink{classgko_1_1accessor_1_1row__major_a669d87e6198b1bdb4c915b909a61f756}{operator()} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} row, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} col) const
+\begin{DoxyCompactList}\small\item\em Returns the data element at position (row, col) \end{DoxyCompactList}\item 
+constexpr \hyperlink{classgko_1_1range}{range}$<$ \hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major} $>$ \hyperlink{classgko_1_1accessor_1_1row__major_ad1a38f9d96e849ae10de733809a3494d}{operator()} (const \hyperlink{structgko_1_1span}{span} \&rows, const \hyperlink{structgko_1_1span}{span} \&cols) const
+\begin{DoxyCompactList}\small\item\em Returns the sub-\/range spanning the range (rows, cols) \end{DoxyCompactList}\item 
+constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1accessor_1_1row__major_a438bb22bf86a33db403119bcb914dacc}{length} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} dimension) const
+\begin{DoxyCompactList}\small\item\em Returns the length in dimension {\ttfamily dimension}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Other\+Accessor $>$ }\\void \hyperlink{classgko_1_1accessor_1_1row__major_a878a175c452549107d9db2521e481efe}{copy\+\_\+from} (const Other\+Accessor \&other) const
+\begin{DoxyCompactList}\small\item\em Copies data from another accessor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_aa83eec10535e8ac7f79c6a04c0c05b4c}\label{classgko_1_1accessor_1_1row__major_aa83eec10535e8ac7f79c6a04c0c05b4c}} 
+const \hyperlink{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}{data\+\_\+type} \hyperlink{classgko_1_1accessor_1_1row__major_aa83eec10535e8ac7f79c6a04c0c05b4c}{data}
+\begin{DoxyCompactList}\small\item\em Reference to the underlying data. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a4912695f06056d9e46cb335168bf28c9}\label{classgko_1_1accessor_1_1row__major_a4912695f06056d9e46cb335168bf28c9}} 
+const \hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{std\+::array}$<$ const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}, \hyperlink{classgko_1_1accessor_1_1row__major_ae969fbac55f5ba6e6f95f25a0aac483d}{dimensionality} $>$ \hyperlink{classgko_1_1accessor_1_1row__major_a4912695f06056d9e46cb335168bf28c9}{lengths}
+\begin{DoxyCompactList}\small\item\em An array of dimension sizes. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a651793392dc0327f324289bb096b3316}\label{classgko_1_1accessor_1_1row__major_a651793392dc0327f324289bb096b3316}} 
+const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1accessor_1_1row__major_a651793392dc0327f324289bb096b3316}{stride}
+\begin{DoxyCompactList}\small\item\em Distance between consecutive rows. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_ae969fbac55f5ba6e6f95f25a0aac483d}\label{classgko_1_1accessor_1_1row__major_ae969fbac55f5ba6e6f95f25a0aac483d}} 
+static constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1accessor_1_1row__major_ae969fbac55f5ba6e6f95f25a0aac483d}{dimensionality} = 2
+\begin{DoxyCompactList}\small\item\em Number of dimensions of the accessor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a770bcb0f86577602cd97f1ff8ccd7211}\label{classgko_1_1accessor_1_1row__major_a770bcb0f86577602cd97f1ff8ccd7211}} 
+class {\bfseries range$<$ row\+\_\+major $>$}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type, size\+\_\+type Dimensionality$>$\newline
+class gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$}
+
+A \hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major} accessor is a bridge between a range and the row-\/major memory layout. 
+
+You should never try to explicitly create an instance of this accessor. Instead, supply it as a template parameter to a range, and pass the constructor parameters for this class to the range (it will forward it to this class).
+
+\begin{DoxyWarning}{Warning}
+The current implementation is incomplete, and only allows for 2-\/dimensional ranges.
+\end{DoxyWarning}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & type of values this accessor returns \\
+\hline
+{\em Dimensionality} & number of dimensions of this accessor (has to be 2) \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a878a175c452549107d9db2521e481efe}\label{classgko_1_1accessor_1_1row__major_a878a175c452549107d9db2521e481efe}} 
+\index{gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}!copy\+\_\+from@{copy\+\_\+from}}
+\index{copy\+\_\+from@{copy\+\_\+from}!gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}}
+\subsubsection{\texorpdfstring{copy\+\_\+from()}{copy\_from()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type Dimensionality$>$ \\
+template$<$typename Other\+Accessor $>$ \\
+void \hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}$<$ Value\+Type, Dimensionality $>$\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{const Other\+Accessor \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies data from another accessor. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Other\+Accessor} & type of the other accessor\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em other} & other accessor \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::lengths.
+
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a438bb22bf86a33db403119bcb914dacc}\label{classgko_1_1accessor_1_1row__major_a438bb22bf86a33db403119bcb914dacc}} 
+\index{gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}!length@{length}}
+\index{length@{length}!gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}}
+\subsubsection{\texorpdfstring{length()}{length()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type Dimensionality$>$ \\
+constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}$<$ Value\+Type, Dimensionality $>$\+::length (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{dimension }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the length in dimension {\ttfamily dimension}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dimension} & a dimension index\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+length in dimension {\ttfamily dimension} 
+\end{DoxyReturn}
+
+
+References gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::lengths.
+
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a669d87e6198b1bdb4c915b909a61f756}\label{classgko_1_1accessor_1_1row__major_a669d87e6198b1bdb4c915b909a61f756}} 
+\index{gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}!operator()@{operator()}}
+\index{operator()@{operator()}!gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}}
+\subsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type Dimensionality$>$ \\
+constexpr \hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type}\& \hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}$<$ Value\+Type, Dimensionality $>$\+::operator() (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{row,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{col }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the data element at position (row, col) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & row index \\
+\hline
+{\em col} & column index\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+data element at (row, col) 
+\end{DoxyReturn}
+
+
+References gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::data, gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::lengths, and gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::stride.
+
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_ad1a38f9d96e849ae10de733809a3494d}\label{classgko_1_1accessor_1_1row__major_ad1a38f9d96e849ae10de733809a3494d}} 
+\index{gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}!operator()@{operator()}}
+\index{operator()@{operator()}!gko\+::accessor\+::row\+\_\+major@{gko\+::accessor\+::row\+\_\+major}}
+\subsubsection{\texorpdfstring{operator()()}{operator()()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type Dimensionality$>$ \\
+constexpr \hyperlink{classgko_1_1range}{range}$<$\hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major}$>$ \hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}$<$ Value\+Type, Dimensionality $>$\+::operator() (\begin{DoxyParamCaption}\item[{const \hyperlink{structgko_1_1span}{span} \&}]{rows,  }\item[{const \hyperlink{structgko_1_1span}{span} \&}]{cols }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the sub-\/range spanning the range (rows, cols) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em rows} & row span \\
+\hline
+{\em cols} & column span\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+sub-\/range spanning the range (rows, cols) 
+\end{DoxyReturn}
+
+
+References gko\+::span\+::begin, gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::data, gko\+::span\+::end, gko\+::span\+::is\+\_\+valid(), gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::lengths, and gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::stride.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/range\+\_\+accessors.\+hpp (f1a4eb68)\end{DoxyCompactItemize}

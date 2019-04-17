@@ -1,0 +1,96 @@
+\hypertarget{classgko_1_1log_1_1EnableLogging}{}\section{gko\+:\+:log\+:\+:Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1log_1_1EnableLogging}\index{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$@{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}}
+
+
+\hyperlink{classgko_1_1log_1_1EnableLogging}{Enable\+Logging} is a mixin which should be inherited by any class which wants to enable logging.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/log/logger.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:log\+:\+:Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=262pt]{classgko_1_1log_1_1EnableLogging__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{add\+\_\+logger} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $>$ logger) override
+\begin{DoxyCompactList}\small\item\em Adds a new logger to the list of subscribed loggers. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{remove\+\_\+logger} (const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $\ast$logger) override
+\begin{DoxyCompactList}\small\item\em Removes a logger from the list of subscribed loggers. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Loggable, typename Polymorphic\+Base = Loggable$>$\newline
+class gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}
+
+\hyperlink{classgko_1_1log_1_1EnableLogging}{Enable\+Logging} is a mixin which should be inherited by any class which wants to enable logging. 
+
+All the received events are passed to the loggers this class contains.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Loggable} & the object being logged \mbox{[}C\+R\+TP parameter\mbox{]}\\
+\hline
+{\em Polymorphic\+Base} & the polymorphic base of this class. By default it is \hyperlink{classgko_1_1log_1_1Loggable}{Loggable}. Change it if you want to use a new superclass of {\ttfamily \hyperlink{classgko_1_1log_1_1Loggable}{Loggable}} as polymorphic base of this class. \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}\label{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}} 
+\index{gko\+::log\+::\+Enable\+Logging@{gko\+::log\+::\+Enable\+Logging}!add\+\_\+logger@{add\+\_\+logger}}
+\index{add\+\_\+logger@{add\+\_\+logger}!gko\+::log\+::\+Enable\+Logging@{gko\+::log\+::\+Enable\+Logging}}
+\subsubsection{\texorpdfstring{add\+\_\+logger()}{add\_logger()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Loggable, typename Polymorphic\+Base = Loggable$>$ \\
+void \hyperlink{classgko_1_1log_1_1EnableLogging}{gko\+::log\+::\+Enable\+Logging}$<$ Concrete\+Loggable, Polymorphic\+Base $>$\+::add\+\_\+logger (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $>$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Adds a new logger to the list of subscribed loggers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & the logger to add \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}{gko\+::log\+::\+Loggable}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}\label{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}} 
+\index{gko\+::log\+::\+Enable\+Logging@{gko\+::log\+::\+Enable\+Logging}!remove\+\_\+logger@{remove\+\_\+logger}}
+\index{remove\+\_\+logger@{remove\+\_\+logger}!gko\+::log\+::\+Enable\+Logging@{gko\+::log\+::\+Enable\+Logging}}
+\subsubsection{\texorpdfstring{remove\+\_\+logger()}{remove\_logger()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Loggable, typename Polymorphic\+Base = Loggable$>$ \\
+void \hyperlink{classgko_1_1log_1_1EnableLogging}{gko\+::log\+::\+Enable\+Logging}$<$ Concrete\+Loggable, Polymorphic\+Base $>$\+::remove\+\_\+logger (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $\ast$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Removes a logger from the list of subscribed loggers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & the logger to remove\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The comparison is done using the logger\textquotesingle{}s object unique identity. Thus, two loggers constructed in the same way are not considered equal. 
+\end{DoxyNote}
+
+
+Implements \hyperlink{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}{gko\+::log\+::\+Loggable}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/log/logger.\+hpp (0d7578c9)\end{DoxyCompactItemize}

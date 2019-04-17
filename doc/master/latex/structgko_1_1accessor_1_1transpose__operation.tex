@@ -1,0 +1,40 @@
+\hypertarget{structgko_1_1accessor_1_1transpose__operation}{}\section{gko\+:\+:accessor\+:\+:transpose\+\_\+operation$<$ Accessor $>$ Struct Template Reference}
+\label{structgko_1_1accessor_1_1transpose__operation}\index{gko\+::accessor\+::transpose\+\_\+operation$<$ Accessor $>$@{gko\+::accessor\+::transpose\+\_\+operation$<$ Accessor $>$}}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_a4c58a0b571a8926648dd109c9427e893}\label{structgko_1_1accessor_1_1transpose__operation_a4c58a0b571a8926648dd109c9427e893}} 
+using {\bfseries accessor} = Accessor
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_a7282a12879818e2f34ef8b2a67d4af84}\label{structgko_1_1accessor_1_1transpose__operation_a7282a12879818e2f34ef8b2a67d4af84}} 
+constexpr {\bfseries transpose\+\_\+operation} (const Accessor \&operand)
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_ac44c06fc6b062dbdab202ad90b16e459}\label{structgko_1_1accessor_1_1transpose__operation_ac44c06fc6b062dbdab202ad90b16e459}} 
+{\footnotesize template$<$typename First\+Dimension\+Type , typename Second\+Dimension\+Type , typename... Dimension\+Types$>$ }\\constexpr auto {\bfseries operator()} (const First\+Dimension\+Type \&first\+\_\+dim, const Second\+Dimension\+Type \&second\+\_\+dim, const Dimension\+Types \&... dims) const -\/$>$ decltype(std\+::declval$<$ accessor $>$()(second\+\_\+dim, first\+\_\+dim, dims...))
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_a9bab2e4cfc2bb2da896f7e7a087da884}\label{structgko_1_1accessor_1_1transpose__operation_a9bab2e4cfc2bb2da896f7e7a087da884}} 
+constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} {\bfseries length} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} dimension) const
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_a81d351daab2008659335c9190043e32b}\label{structgko_1_1accessor_1_1transpose__operation_a81d351daab2008659335c9190043e32b}} 
+{\footnotesize template$<$typename Other\+Accessor $>$ }\\void {\bfseries copy\+\_\+from} (const Other\+Accessor \&other) const =delete
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_a2b4c2d5172d31e787f8d4965251743b3}\label{structgko_1_1accessor_1_1transpose__operation_a2b4c2d5172d31e787f8d4965251743b3}} 
+const accessor {\bfseries operand}
+\end{DoxyCompactItemize}
+\subsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1accessor_1_1transpose__operation_aee04484bec2b33a04e2482077a5925a5}\label{structgko_1_1accessor_1_1transpose__operation_aee04484bec2b33a04e2482077a5925a5}} 
+static constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} {\bfseries dimensionality} = accessor\+::dimensionality
+\end{DoxyCompactItemize}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/range.\+hpp (f1a4eb68)\end{DoxyCompactItemize}

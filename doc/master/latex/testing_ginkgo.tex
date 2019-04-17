@@ -1,0 +1,56 @@
+\subsubsection*{Running the unit tests}
+
+You need to compile ginkgo with {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+T\+E\+S\+TS=ON} option to be able to run the tests.
+
+\paragraph*{Using make test}
+
+After configuring Ginkgo, use the following command inside the build folder to run all tests\+:
+
+
+\begin{DoxyCode}
+make test
+\end{DoxyCode}
+
+
+The output should contain several lines of the form\+:
+
+
+\begin{DoxyCode}
+    Start  1: path/to/test
+1/13 Test  #1: path/to/test .............................   Passed    0.01 sec
+\end{DoxyCode}
+
+
+To run only a specific test and see more details results (e.\+g. if a test failed) run the following from the build folder\+:
+
+
+\begin{DoxyCode}
+./path/to/test
+\end{DoxyCode}
+
+
+where {\ttfamily path/to/test} is the path returned by {\ttfamily make test}.
+
+\paragraph*{Using C\+Test}
+
+The tests can also be ran through C\+Test from the command line, for example when in a configured build directory\+:
+
+
+\begin{DoxyCode}
+ctest -T start -T build -T test -T submit
+\end{DoxyCode}
+
+
+Will start a new test campaign (usually in {\ttfamily Experimental} mode), build Ginkgo with the set configuration, run the tests and submit the results to our C\+Dash dashboard.
+
+Another option is to use Ginkgo\textquotesingle{}s C\+Test script which is configured to build Ginkgo with default settings, runs the tests and submits the test to our C\+Dash dashboard automatically.
+
+To run the script, use the following command\+:
+
+
+\begin{DoxyCode}
+ctest -S cmake/CTestScript.cmake
+\end{DoxyCode}
+
+
+The default settings are for our own CI system. Feel free to configure the script before launching it through variables or by directly changing its values. A documentation can be found in the script itself. 

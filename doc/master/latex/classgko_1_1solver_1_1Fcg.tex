@@ -1,0 +1,118 @@
+\hypertarget{classgko_1_1solver_1_1Fcg}{}\section{gko\+:\+:solver\+:\+:Fcg$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Fcg}\index{gko\+::solver\+::\+Fcg$<$ Value\+Type $>$@{gko\+::solver\+::\+Fcg$<$ Value\+Type $>$}}
+
+
+F\+CG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/fcg.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:solver\+:\+:Fcg$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Fcg__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classgko_1_1solver_1_1Fcg_1_1Factory}{Factory}
+\item 
+struct \hyperlink{structgko_1_1solver_1_1Fcg_1_1parameters__type}{parameters\+\_\+type}
+\end{DoxyCompactItemize}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_aacc2d9bd24b654a16f9eb6719d5de1bb}\label{classgko_1_1solver_1_1Fcg_aacc2d9bd24b654a16f9eb6719d5de1bb}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Fcg_aae8c67d27df239c18750845275605c87}{get\+\_\+system\+\_\+matrix} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Fcg_a2dec8d13548e8b316d6598c9ee8b0881}{get\+\_\+preconditioner} () const override
+\begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the solver. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_a1beba109f32b69b3de58ecdfc17c1505}\label{classgko_1_1solver_1_1Fcg_a1beba109f32b69b3de58ecdfc17c1505}} 
+const \hyperlink{structgko_1_1solver_1_1Fcg_1_1parameters__type}{parameters\+\_\+type} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_ab8fb2a9a8405e40b4f3d8b6d8cf77029}\label{classgko_1_1solver_1_1Fcg_ab8fb2a9a8405e40b4f3d8b6d8cf77029}} 
+static auto {\bfseries build} () -\/$>$ decltype(\hyperlink{classgko_1_1solver_1_1Fcg_1_1Factory}{Factory} \+::create())
+\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_a6bf004d0a3aa4e0763da2c239ffd4d67}\label{classgko_1_1solver_1_1Fcg_a6bf004d0a3aa4e0763da2c239ffd4d67}} 
+class {\bfseries Enable\+Lin\+Op$<$ Fcg $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_a5f1e6df5b9f436dafaf1d60c6005a8be}\label{classgko_1_1solver_1_1Fcg_a5f1e6df5b9f436dafaf1d60c6005a8be}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Fcg, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Fcg$<$ Value\+Type $>$}
+
+F\+CG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. 
+
+Though this method performs very well for symmetric positive definite matrices, it is in general not suitable for general matrices.
+
+In contrast to the standard CG based on the Polack-\/\+Ribiere formula, the flexible CG uses the Fletcher-\/\+Reeves formula for creating the orthonormal vectors spanning the Krylov subspace. This increases the computational cost of every Krylov solver iteration but allows for non-\/constant preconditioners.
+
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of F\+CG are merged into 2 separate steps.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_a2dec8d13548e8b316d6598c9ee8b0881}\label{classgko_1_1solver_1_1Fcg_a2dec8d13548e8b316d6598c9ee8b0881}} 
+\index{gko\+::solver\+::\+Fcg@{gko\+::solver\+::\+Fcg}!get\+\_\+preconditioner@{get\+\_\+preconditioner}}
+\index{get\+\_\+preconditioner@{get\+\_\+preconditioner}!gko\+::solver\+::\+Fcg@{gko\+::solver\+::\+Fcg}}
+\subsubsection{\texorpdfstring{get\+\_\+preconditioner()}{get\_preconditioner()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Fcg}{gko\+::solver\+::\+Fcg}$<$ Value\+Type $>$\+::get\+\_\+preconditioner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the preconditioner operator used by the solver. 
+
+\begin{DoxyReturn}{Returns}
+the preconditioner operator used by the solver 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Preconditionable_ad9545089aef0dfc83bc7a74e5bf1d748}{gko\+::\+Preconditionable}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Fcg_aae8c67d27df239c18750845275605c87}\label{classgko_1_1solver_1_1Fcg_aae8c67d27df239c18750845275605c87}} 
+\index{gko\+::solver\+::\+Fcg@{gko\+::solver\+::\+Fcg}!get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}}
+\index{get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}!gko\+::solver\+::\+Fcg@{gko\+::solver\+::\+Fcg}}
+\subsubsection{\texorpdfstring{get\+\_\+system\+\_\+matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Fcg}{gko\+::solver\+::\+Fcg}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/fcg.\+hpp (f1a4eb68)\end{DoxyCompactItemize}
