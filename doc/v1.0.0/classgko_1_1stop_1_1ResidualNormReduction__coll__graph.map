@@ -1,0 +1,7 @@
+<map id="gko::stop::ResidualNormReduction&lt; ValueType &gt;" name="gko::stop::ResidualNormReduction&lt; ValueType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ResidualNormReduction\&lt;\l ValueType \&gt;, Criterion \&gt;" alt="" coords="1520,63,1741,119"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ResidualNormReduction\l\&lt; ValueType \&gt;, Criterion \&gt;" alt="" coords="722,31,957,87"/>
+<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,79,448,135"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,111,973,167"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1023,102,1296,143"/>
+</map>

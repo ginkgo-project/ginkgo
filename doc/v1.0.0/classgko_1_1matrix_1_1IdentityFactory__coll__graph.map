@@ -1,0 +1,9 @@
+<map id="gko::matrix::IdentityFactory&lt; ValueType &gt;" name="gko::matrix::IdentityFactory&lt; ValueType &gt;">
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="2345,215,2567,271"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="2063,166,2296,222"/>
+<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1683,115,1821,142"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,181,448,237"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,231,973,287"/>
+<area shape="rect" id="node9" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="752,101,927,157"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1385,239,1659,280"/>
+</map>

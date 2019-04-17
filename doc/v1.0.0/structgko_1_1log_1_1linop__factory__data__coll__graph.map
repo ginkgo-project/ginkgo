@@ -1,0 +1,9 @@
+<map id="gko::log::linop_factory_data" name="gko::log::linop_factory_data">
+<area shape="rect" id="node2" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1802,73,1941,99"/>
+<area shape="rect" id="node5" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="273,13,450,39"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="700,111,1009,167"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="5,5,183,47"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="232,99,491,155"/>
+<area shape="rect" id="node9" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="1059,95,1233,151"/>
+<area shape="rect" id="node12" title="STL class. " alt="" coords="1433,137,1591,163"/>
+</map>
