@@ -47,6 +47,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+# Ensure we have a debug postfix
+if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
 
 if(GINKGO_BUILD_TESTS)
     # Configure CTest
@@ -139,11 +143,7 @@ add_custom_target(test_install
     COMMAND ${Ginkgo_BINARY_DIR}/test_install/test_install
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
-# Setup CPack and ensure we have a debug postfix
-if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX "d")
-endif()
-
+# Setup CPack
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${Ginkgo_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")
