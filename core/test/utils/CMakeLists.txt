@@ -1,0 +1,2 @@
+ginkgo_create_test(matrix_generator_test)
+ginkgo_create_test(assertions_test)

@@ -1,0 +1,16 @@
+I hereby place all my contributions in this codebase under a BSD-3-Clause
+license, as specified in the repository's LICENSE file.
+
+Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology, The University of Tennessee Knoxville
+Boman Erik <egboman@sandia.gov> Sandia National Laboratories
+Chen Yenchen <yanjen224@gmail.com> National Taiwan University
+Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
+Drzaic Jelena <jelena.drzaic1@gmail.com> University of Zagreb
+Flegar Goran <flegar@uji.es> Universitat Jaume I
+Göbel Fritz <goebel.fritz@gmail.com> Karlsruhe Institute of Technology
+Grützmacher Thomas <thogru.kit@gmx.de> Karlsruhe Institute of Technology
+Heroux Mike <maherou@sandia.gov> Sandia National Laboratories
+Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
+Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
+Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
+Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University

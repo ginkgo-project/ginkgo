@@ -1,0 +1,2 @@
+ginkgo_create_cuda_test(cuda_executor)
+ginkgo_create_cuda_test(exception_helpers)

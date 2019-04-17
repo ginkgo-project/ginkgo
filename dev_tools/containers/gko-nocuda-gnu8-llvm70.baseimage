@@ -1,0 +1,91 @@
+FROM ubuntu:18.04 AS stage0
+
+# Python
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        python \
+        python3 && \
+    rm -rf /var/lib/apt/lists/*
+
+# CMake version 3.11.1
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        wget && \
+    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://cmake.org/files/v3.11/cmake-3.11.1-Linux-x86_64.sh && \
+    /bin/sh /var/tmp/cmake-3.11.1-Linux-x86_64.sh --prefix=/usr/local --skip-license && \
+    rm -rf /var/tmp/cmake-3.11.1-Linux-x86_64.sh
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        openssh-client \
+        doxygen \
+        curl \
+        valgrind && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        graphviz \
+        ghostscript \
+        texlive \
+        texlive-latex-extra && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive \
+        texlive-latex-extra \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
+    rm -rf /var/lib/apt/lists/*
+
+# GNU compiler
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    apt-add-repository ppa:ubuntu-toolchain-r/test -y && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        gcc-8 \
+        g++-8 \
+        gfortran-8 && \
+    rm -rf /var/lib/apt/lists/*
+RUN update-alternatives --install /usr/bin/gcc gcc $(which gcc-8) 30 && \
+    update-alternatives --install /usr/bin/g++ g++ $(which g++-8) 30 && \
+    update-alternatives --install /usr/bin/gfortran gfortran $(which gfortran-8) 30
+
+# LLVM compiler
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        clang-6.0 && \
+    rm -rf /var/lib/apt/lists/*
+RUN update-alternatives --install /usr/bin/clang clang $(which clang-6.0) 30 && \
+    update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-6.0) 30
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        libomp-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        libpfm4 && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY papi/include/* /usr/include/
+
+COPY papi/lib/* /usr/lib/
+
+COPY papi/bin/* /usr/bin/
+
+

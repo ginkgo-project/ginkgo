@@ -1,0 +1,175 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+[LOG] >>> apply started on A LinOp[gko::solver::Cg<double>,0x55ae09d923f0] with b LinOp[gko::matrix::Dense<double>,0x55ae09d928b0] and x LinOp[gko::matrix::Dense<double>,0x55ae09d92f10]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d91750] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d977e0] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97b40] with Bytes[152]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97d10] with Bytes[152]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ee0] with Bytes[152]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d980b0] with Bytes[152]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98090] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98260] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d983b0] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98500] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[1]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98650] with Bytes[1]
+[LOG] >>> Operation[gko::solver::cg::initialize_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko:
+:Array<gko::stopping_status>*>,0x7ffcab765d60] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::solver::cg::initialize_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko::matrix::Dense<double>*, gko:
+:Array<gko::stopping_status>*>,0x7ffcab765d60] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::csr::advanced_spmv_operation<gko::matrix::Dense<double> const*, gko::matrix::Csr<double, int> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765980] started on Executor[gk
+o::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::csr::advanced_spmv_operation<gko::matrix::Dense<double> const*, gko::matrix::Csr<double, int> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765980] completed on Executor[
+gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[2]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98690] with Bytes[2]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99310] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99350] with Bytes[8]
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab7657c0] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab7657c0] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] to Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] from Location[0x55ae09d97b40] to Location[0x55ae09d97d10] with Bytes[152]
+[LOG] >>> copy completed from Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] to Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] from Location[0x55ae09d97b40] to Location[0x55ae09d97d10] with Bytes[152]
+[LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab7659a0] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab7659a0] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> iteration 0 completed with solver LinOp[gko::solver::Cg<double>,0x55ae09d923f0] with residual LinOp[gko::matrix::Dense<double>,0x55ae09d930c0], solution LinOp[gko::matrix::Dense<double>,0x55ae09d92f10] and residual_norm LinOp[gko::LinOp const*,0]
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765740] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765740] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::stop::residual_norm_reduction::residual_norm_reduction_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
+ started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::stop::residual_norm_reduction::residual_norm_reduction_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
+ completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99820] with Bytes[152]
+
+.
+.
+.
+.
+.
+.
+
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98690]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98690]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99350]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99350]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99310]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99310]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98650]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98650]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98500]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98500]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d983b0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d983b0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98260]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98260]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98090]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d98090]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d980b0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d980b0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ee0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ee0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97d10]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97d10]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97b40]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97b40]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d977e0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d977e0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d91750]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d91750]
+[LOG] >>> apply completed on A LinOp[gko::solver::Cg<double>,0x55ae09d923f0] with b LinOp[gko::matrix::Dense<double>,0x55ae09d928b0] and x LinOp[gko::matrix::Dense<double>,0x55ae09d92f10]
+Last memory copied was of size 98 FROM executor 0x55ae09d8f2a0 pointer 55ae09d931d0 TO executor 0x55ae09d8f2a0 pointer 55ae09d998c0
+Residual = [
+    1.3067e-18
+    -1.34263e-18
+    -2.7754e-19
+    2.35392e-20
+    -2.25114e-19
+    -1.35474e-20
+    -1.82049e-19
+    -2.48092e-19
+    -4.57754e-19
+    -1.28163e-18
+    -1.04918e-18
+    -5.88231e-19
+    -8.463e-19
+    -2.87785e-18
+    -4.06072e-18
+    -9.40979e-18
+    -1.07071e-17
+    -4.14666e-17
+    -2.75923e-17
+];
+Solution (x):
+%%MatrixMarket matrix array real general
+19 1
+0.252218
+0.108645
+0.0662811
+0.0630433
+0.0384088
+0.0396536
+0.0402648
+0.0338935
+0.0193098
+0.0234653
+0.0211499
+0.0196413
+0.0199151
+0.0181674
+0.0162722
+0.0150714
+0.0107016
+0.0121141
+0.0123025
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0] with Bytes[8]
+[LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]
+[LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370] with Bytes[8]
+[LOG] >>> Operation[gko::matrix::csr::advanced_spmv_operation<gko::matrix::Dense<double> const*, gko::matrix::Csr<double, int> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765d50] started on Executor[gk
+o::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::csr::advanced_spmv_operation<gko::matrix::Dense<double> const*, gko::matrix::Csr<double, int> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765d50] completed on Executor[
+gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765dc0] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+[LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765dc0] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
+Residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+8.87107e-16
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d931d0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d931d0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93020]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93020]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d92830]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d92830]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d925b0]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d925b0]
+[LOG] >>> free started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93360]
+[LOG] >>> free completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93360]
+
+@endcode
+
+<h4> Comments about programming and debugging </h4>

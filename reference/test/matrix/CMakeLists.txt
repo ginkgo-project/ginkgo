@@ -1,0 +1,7 @@
+ginkgo_create_test(coo_kernels)
+ginkgo_create_test(csr_kernels)
+ginkgo_create_test(dense_kernels)
+ginkgo_create_test(ell_kernels)
+ginkgo_create_test(hybrid_kernels)
+ginkgo_create_test(identity)
+ginkgo_create_test(sellp_kernels)

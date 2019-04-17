@@ -1,0 +1,2 @@
+ginkgo_create_test(combination)
+ginkgo_create_test(composition)

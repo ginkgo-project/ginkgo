@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+## ---------------------------------------------------------------------
+##
+## Copyright (C) 2013 - 2019 by the deal.II authors
+##
+## The original file is from the deal.II library. It has been modified for
+## Ginkgo.
+##
+## The deal.II library is free software; you can use it, redistribute
+## it, and/or modify it under the terms of the GNU Lesser General
+## Public License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+## The full text of the license can be found in the file LICENSE.md at
+## the top level directory of deal.II.
+##
+## ---------------------------------------------------------------------
+
+# read all lines of input. within the loop, first do some
+# easy substitutions that are confined to a single line; later
+# do some multi-line substitutions as well
+
+while (<>)
+{
+    ########################################################
+    # Step 1: substitutions within a single line
+    ########################################################
+
+
+    # make sure we can just write $...$ for formulas.
+    s/\$/\@f\$/g;
+
+    # however, undo that change if the dollar sign was escaped with a backslash
+    s/\\\@f\$/\$/g;
+
+    # doxygen version 1.7.1 and later have the habit of thinking that
+    # everything that starts with "file:" is the beginning of a link,
+    # but we occasionally use this in our tutorials in the form
+    # "...this functionality is declared in the following header file:",
+    # where it leads to a non-functional link. We can avoid the problem
+    # by replacing a "file:" at the end of a line with the text
+    # "file :", which doxygen doesn't recognize:
+    s#file:[ \t]*$#file :#g;
+
+    # Finally output the last line of what has been substituted
+    print;
+}

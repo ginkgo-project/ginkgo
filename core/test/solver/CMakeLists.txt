@@ -1,0 +1,6 @@
+ginkgo_create_test(bicgstab)
+ginkgo_create_test(cg)
+ginkgo_create_test(cgs)
+ginkgo_create_test(fcg)
+ginkgo_create_test(gmres)
+ginkgo_create_test(ir)

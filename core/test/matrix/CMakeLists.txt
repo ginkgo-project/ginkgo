@@ -1,0 +1,7 @@
+ginkgo_create_test(coo)
+ginkgo_create_test(csr)
+ginkgo_create_test(dense)
+ginkgo_create_test(ell)
+ginkgo_create_test(hybrid)
+ginkgo_create_test(identity)
+ginkgo_create_test(sellp)

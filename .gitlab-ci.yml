@@ -1,0 +1,583 @@
+image: localhost:5000/gko-cuda100-gnu7-llvm60
+
+stages:
+  - sync
+  - build
+  - test
+  - code_quality
+  - deploy
+  - QoS_tools
+  - benchmark-build
+  - benchmark-cuda
+  - benchmark-omp
+  - benchmark-reference
+  - on-failure
+
+# Templates with reasonable defaults for builds and tests
+.variables_template: &default_variables
+  BENCHMARK_SERVER: "FINECI"
+  C_COMPILER: gcc
+  CXX_COMPILER: g++
+  BUILD_TYPE: Debug
+  BUILD_REFERENCE: "ON"
+  BUILD_OMP: "OFF"
+  BUILD_CUDA: "OFF"
+  CXX_FLAGS: ""
+  EXTRA_CMAKE_FLAGS: ""
+
+.before_script_template: &default_before_script
+  - export OMP_NUM_THREADS=4
+
+.before_script_git_template: &git_before_script
+    # set up identities
+  - eval $(ssh-agent -s)
+  - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
+  - git config --global user.name "${BOT_USER}"
+  - git config --global user.email "${BOT_EMAIL}"
+
+.build_template: &default_build
+  stage: build
+  variables: *default_variables
+  before_script: *default_before_script
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - cmake ${CI_PROJECT_DIR}
+        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
+        -DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER}) ${EXTRA_CMAKE_FLAGS}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+    - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+  artifacts:
+    paths:
+      - "build/*/*/*/*/*/CMakeCache.txt"
+      - "build/*/*/*/*/*/core/test"
+      - "build/*/*/*/*/*/cuda/test"
+      - "build/*/*/*/*/*/omp/test"
+      - "build/*/*/*/*/*/reference/test"
+      - "build/*/*/*/*/*/core/libginkgo*"
+      - "build/*/*/*/*/*/cuda/libginkgo*"
+      - "build/*/*/*/*/*/omp/libginkgo*"
+      - "build/*/*/*/*/*/reference/libginkgo*"
+  except:
+      - schedules
+# build paths are of the form: build/<cuda_version>/<compiler>/<module(s)>/{debug,release}/{shared,static}/
+# see: the name of our building jobs
+
+.test_template: &default_test
+  stage: test
+  before_script: *default_before_script
+  script:
+    - cd ${CI_JOB_NAME/test/build}
+    - ctest -V
+  except:
+      - schedules
+
+sync:
+  stage: sync
+  variables:
+    GIT_STRATEGY: none
+    PRIVATE_REPO: git@gitlab.com:ginkgo-project/ginkgo.git
+    PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
+  before_script: *git_before_script
+  script:
+    - git clone ${PRIVATE_REPO} -b ${CI_COMMIT_REF_NAME} repo_sync
+    - cd repo_sync
+    - git pull --ff-only ${PUBLIC_REPO} ${CI_COMMIT_REF_NAME}
+    - git push ${PRIVATE_REPO} ${CI_COMMIT_REF_NAME}
+    - git push ${PUBLIC_REPO} ${CI_COMMIT_REF_NAME}
+  only:
+    - master
+    - develop
+  except:
+    - schedules
+
+# Build jobs
+build/cuda90/gcc/all/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: &cuda_flags_shared
+      "-DGINKGO_CUDA_ARCHITECTURES=35 -DBUILD_SHARED_LIBS=ON"
+
+build/cuda90/clang/all/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: &cuda_flags_static
+      "-DGINKGO_CUDA_ARCHITECTURES=35 -DBUILD_SHARED_LIBS=OFF"
+
+# cuda 9.1 and friends
+build/cuda91/gcc/all/debug/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+
+build/cuda91/clang/all/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+
+# cuda 9.2 and friends
+build/cuda92/gcc/all/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+
+build/cuda92/clang/all/debug/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+
+# cuda 10.0 and friends
+build/cuda100/gcc/all/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+
+build/cuda100/clang/all/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+
+# no cuda but latest gcc and "soon" clang 7
+build/nocuda/gcc/core/debug/static:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_REFERENCE: "OFF"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: &flags_static
+      -DBUILD_SHARED_LIBS=OFF
+
+build/nocuda/clang/core/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_REFERENCE: "OFF"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: &flags_shared
+      -DBUILD_SHARED_LIBS=ON
+
+build/nocuda/gcc/omp/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_REFERENCE: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *flags_shared
+
+build/nocuda/clang/omp/debug/static:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_REFERENCE: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *flags_static
+
+# Test jobs
+test/cuda90/gcc/all/debug/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  dependencies:
+    - build/cuda90/gcc/all/debug/shared
+
+test/cuda90/clang/all/release/static:
+  <<: *default_test
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  dependencies:
+    - build/cuda90/clang/all/release/static
+
+# cuda 9.1 and friends
+test/cuda91/gcc/all/debug/static:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/gcc/all/debug/static
+
+test/cuda91/clang/all/release/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/clang/all/release/shared
+
+# cuda 9.2 and friends
+test/cuda92/gcc/all/release/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  dependencies:
+    - build/cuda92/gcc/all/release/shared
+
+test/cuda92/clang/all/debug/static:
+  <<: *default_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  dependencies:
+    - build/cuda92/clang/all/debug/static
+
+# cuda 10.0 and friends
+test/cuda100/gcc/all/debug/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  dependencies:
+    - build/cuda100/gcc/all/debug/shared
+
+test/cuda100/clang/all/release/static:
+  <<: *default_test
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  dependencies:
+    - build/cuda100/clang/all/release/static
+
+# no cuda but latest gcc and "soon" clang 7
+test/nocuda/gcc/core/debug/static:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/core/debug/static
+
+test/nocuda/clang/core/release/shared:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/clang/core/release/shared
+
+test/nocuda/gcc/omp/release/shared:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/gcc/omp/release/shared
+
+test/nocuda/clang/omp/debug/static:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/clang/omp/debug/static
+
+
+# Job with important warnings as error
+warnings:
+  <<: *default_build
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+  dependencies: []
+  allow_failure: yes
+
+# Ensure kernel modules do not depend on core
+no-circular-deps:
+  <<: *default_build
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: '-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--no-undefined"
+      -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-undefined"'
+  dependencies: []
+  allow_failure: no
+
+
+# Deploy documentation to github-pages
+gh-pages:
+  stage: deploy
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
+  before_script: *git_before_script
+  script:
+    # build docs
+    - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
+    - cmake ${CI_PROJECT_DIR}
+        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
+        ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=OFF
+        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_TESTS=OFF
+        -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
+    - make usr
+    - make pdf
+    - popd
+    # publish it
+    - git clone ${PUBLIC_REPO} -b gh-pages gh-pages-repo
+    - rm -rf gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
+    - mkdir -p gh-pages-repo/doc
+    - mkdir -p gh-pages-repo/doc/pdf
+    - cp -r ${CI_JOB_NAME}/doc/usr gh-pages-repo/doc/${CI_COMMIT_REF_NAME}
+    - cp ${CI_JOB_NAME}/doc/pdf.pdf gh-pages-repo/doc/pdf/${CI_COMMIT_REF_NAME}.pdf
+    - export CURRENT_SHA="$(git rev-parse --short HEAD)"
+    - cd gh-pages-repo
+    - git add -A
+    - git diff --quiet HEAD ||
+      (git commit -m "Update documentation from ${CURRENT_SHA}" && git push)
+  dependencies: []
+  only:
+    refs:
+      - develop
+      - master
+      - tags
+    variables:
+      - $PUBLIC_CI_TAG
+  except:
+      - schedules
+
+
+coverage:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+    - bash <(curl -s https://codecov.io/bash)
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+threadsanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - export CC=clang
+    - export CXX=clang++
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+addresssanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - export CC=clang
+    - export CXX=clang++
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+valgrind:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+    variables:
+      - $PUBLIC_CI_TAG
+
+
+# Benchmark build
+.benchmark_before_script_template: &default_benchmark_before_script
+  # set up identities
+  - eval $(ssh-agent -s)
+  - tmp_key=${BENCHMARK_SERVER}_SSH_KEY
+  - echo "${!tmp_key}" | tr -d '\r' | ssh-add - >/dev/null
+  - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - tmp_name=${BENCHMARK_SERVER}_SSH_NAME
+  - ssh-keyscan -t rsa "${!tmp_name}" >>~/.ssh/known_hosts
+  - ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+  - tmp_user=${BENCHMARK_SERVER}_SSH_USER
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  - SSH_COMMAND="ssh ${!tmp_user}@${!tmp_name}"
+  - git config --global user.name "${BOT_USER}"
+  - git config --global user.email "${BOT_EMAIL}"
+
+fineci-benchmark-build:
+  stage: benchmark-build
+  variables:
+    <<: *default_variables
+    BENCHMARK_SERVER: FINECI
+    BUILD_TYPE: Release
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+    BENCHMARK_REPO: https://github.com/ginkgo-project/ginkgo-data.git
+  before_script: *default_benchmark_before_script
+  script:
+    - |
+      ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' << EOT
+        set -xe
+        rm -rf ginkgo
+        git clone ${PUBLIC_REPO} ginkgo
+        cd ginkgo
+        git checkout ${CI_COMMIT_SHA}
+        mkdir build
+        cd build
+        cmake3 .. -DCMAKE_C_COMPILER=${C_COMPILER} \\
+                  -DCMAKE_CXX_COMPILER=${CXX_COMPILER} \\
+                  -DCMAKE_CUDA_COMPILER=/usr/local/cuda-9.2/bin/nvcc \\
+                  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \\
+                  -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} \\
+                  -DGINKGO_DEVEL_TOOLS=OFF \\
+                  -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE} \\
+                  -DGINKGO_BUILD_OMP=${BUILD_OMP} \\
+                  -DGINKGO_BUILD_CUDA=${BUILD_CUDA} \\
+                  -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF \\
+                  -DGINKGO_BUILD_BENCHMARKS=ON
+        make -j$(grep 'core id' /proc/cpuinfo | sort -u | wc -l)
+      EOT
+  dependencies: []
+  only:
+    - schedules
+#    - develop
+#    - master
+
+
+# Benchmark runs
+.benchmark_template: &default_benchmark
+  before_script: *default_benchmark_before_script
+  script:
+    # run benchmarks
+    - |
+      ${SSH_COMMAND} 'tee /dev/stderr | scl enable devtoolset-7 bash' \
+            >results.json << EOT
+        module load cuda/cuda-10.0
+        set -xe
+        cd ginkgo/build/benchmark
+        make benchmark SYSTEM_NAME=${SYSTEM_NAME} EXECUTOR=${EXECUTOR}
+        tar -czf data.tar.gz results
+      EOT
+    # publish them
+    - export CURRENT_SHA="$(git rev-parse --short HEAD)"
+    - git clone ${BENCHMARK_REPO} data-repo
+    - cd data-repo/data/
+    - scp ${!tmp_user}@${!tmp_name}:ginkgo/build/benchmark/data.tar.gz .
+    - tar -xzf data.tar.gz --strip-components=1
+    - rm data.tar.gz
+    - ./build-list . >list.json
+    - ./agregate <list.json >agregate.json
+    - git add -A
+    - git diff --quiet HEAD ||
+      (git commit -m
+         "Benchmark ${EXECUTOR} of ginkgo-project/ginkgo@${CURRENT_SHA}"
+       && git push)
+  dependencies: []
+  only:
+    - schedules
+#    - develop
+#    - master
+
+fineci-benchmark-cuda:
+  stage: benchmark-cuda
+  variables:
+    <<: *default_variables
+    BENCHMARK_SERVER: FINECI
+    EXECUTOR: cuda
+    PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+    SYSTEM_NAME: K20Xm
+  <<: *default_benchmark
+
+# fineci-benchmark-omp:
+#   stage: benchmark-omp
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: omp
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
+
+# fineci-benchmark-reference:
+#   stage: benchmark-reference
+#   variables:
+#     <<: *default_variables
+#     BENCHMARK_SERVER: FINECI
+#     EXECUTOR: reference
+#     PUBLIC_REPO: https://github.com/ginkgo-project/ginkgo.git
+#     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+#     SYSTEM_NAME: E5-2670
+#   <<: *default_benchmark
+
+new-issue-on-failure:
+  stage: on-failure
+  script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20in%20${CI_PROJECT_NAME}%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels&description=${CI_PIPELINE_URL}"
+  when: on_failure
+  only:
+    refs:
+      - develop
+      - master
+  dependencies: []
