@@ -338,26 +338,26 @@ void solve_system(
         auto x_clone = clone(x);
 
         exec->synchronize();
-        auto g_tic = std::chrono::system_clock::now();
+        auto g_tic = std::chrono::steady_clock::now();
 
         auto precond = precond_factory.at(precond_name)(exec);
         auto solver = solver_factory.at(solver_name)(exec, give(precond))
                           ->generate(system_matrix);
 
         exec->synchronize();
-        auto g_tac = std::chrono::system_clock::now();
+        auto g_tac = std::chrono::steady_clock::now();
         auto generate_time =
             std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac - g_tic);
         add_or_set_member(solver_json["generate"], "time",
                           generate_time.count(), allocator);
 
         exec->synchronize();
-        auto a_tic = std::chrono::system_clock::now();
+        auto a_tic = std::chrono::steady_clock::now();
 
         solver->apply(lend(b), lend(x_clone));
 
         exec->synchronize();
-        auto a_tac = std::chrono::system_clock::now();
+        auto a_tac = std::chrono::steady_clock::now();
         auto apply_time =
             std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac - a_tic);
         add_or_set_member(solver_json["apply"], "time", apply_time.count(),

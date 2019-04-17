@@ -452,11 +452,11 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         dy->copy_from(y);
         // make sure copy is finished
         exec->synchronize();
-        auto start = std::chrono::system_clock::now();
+        auto start = std::chrono::steady_clock::now();
         A->apply(dx.get(), dy.get());
         // make sure apply is finished
         exec->synchronize();
-        auto finish = std::chrono::system_clock::now();
+        auto finish = std::chrono::steady_clock::now();
         duration += std::chrono::duration_cast<duration_type>(finish - start);
     }
     output(A->get_num_stored_elements(),
