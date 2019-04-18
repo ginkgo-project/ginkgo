@@ -2,11 +2,6 @@
 The following is the expected result:
 
 @code{.cpp}
-This is Ginkgo 0.0.0 (develop)
-    running with core module 0.0.0 (develop)
-    the reference module is  0.0.0 (develop)
-    the OpenMP    module is  not compiled
-    the CUDA      module is  not compiled
 Solution (x):
 %%MatrixMarket matrix array real general
 19 1

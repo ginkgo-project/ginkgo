@@ -76,13 +76,13 @@ int main(int argc, char *argv[])
     auto b = gko::initialize<vec>({std::nan("")}, exec);
     auto x = gko::initialize<vec>({0.0}, exec);
 
-    auto tic = std::chrono::system_clock::now();
+    auto tic = std::chrono::steady_clock::now();
 
     auto solver = cg_factory->generate(gko::give(A));
     solver->apply(lend(x), lend(b));
     exec->synchronize();
 
-    auto tac = std::chrono::system_clock::now();
+    auto tac = std::chrono::steady_clock::now();
 
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
     std::cout << "Running " << num_iters

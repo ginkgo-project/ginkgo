@@ -125,13 +125,13 @@ private:
     {
         nested.emplace_back(0);
         exec->synchronize();
-        start[name] = std::chrono::system_clock::now();
+        start[name] = std::chrono::steady_clock::now();
     }
 
     void end_operation(const gko::Executor *exec, const std::string &name) const
     {
         exec->synchronize();
-        const auto end = std::chrono::system_clock::now();
+        const auto end = std::chrono::steady_clock::now();
         const auto diff = end - start[name];
         // make sure timings for nested operations are not counted twice
         total[name] += diff - nested.back();
@@ -141,11 +141,11 @@ private:
         }
     }
 
-    mutable std::map<std::string, std::chrono::system_clock::time_point> start;
-    mutable std::map<std::string, std::chrono::system_clock::duration> total;
+    mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
+    mutable std::map<std::string, std::chrono::steady_clock::duration> total;
     // the position i of this vector holds the total time spend on child
     // operations on nesting level i
-    mutable std::vector<std::chrono::system_clock::duration> nested;
+    mutable std::vector<std::chrono::steady_clock::duration> nested;
 };
 
 

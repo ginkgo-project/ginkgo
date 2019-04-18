@@ -206,11 +206,11 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
     for (unsigned i = 0; i < run_iter; i++) {
         auto x_clone = clone(x);
         exec->synchronize();
-        auto tic = std::chrono::system_clock::now();
+        auto tic = std::chrono::steady_clock::now();
         system_matrix->apply(lend(b), lend(x_clone));
 
         exec->synchronize();
-        auto toc = std::chrono::system_clock::now();
+        auto toc = std::chrono::steady_clock::now();
         time += std::chrono::duration_cast<duration_type>(toc - tic);
     }
     add_or_set_member(spmv_case[format_name], "time",

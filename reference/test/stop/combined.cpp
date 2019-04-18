@@ -121,7 +121,7 @@ TEST_F(Combined, WaitsTillTime)
     stop_status.get_data()[0].reset();
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    auto start = std::chrono::system_clock::now();
+    auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < testiters; i++) {
         std::this_thread::sleep_for(
@@ -130,7 +130,7 @@ TEST_F(Combined, WaitsTillTime)
                 RelativeStoppingId, true, &stop_status, &one_changed))
             break;
     }
-    auto time = std::chrono::system_clock::now() - start;
+    auto time = std::chrono::steady_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
 
