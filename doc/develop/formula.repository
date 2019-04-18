@@ -1,0 +1,23 @@
+\form#0:$A$
+\form#1:$y = Ax$
+\form#2:$y = M^{-1}x$
+\form#3:$M$
+\form#4:$M^{-1}$
+\form#5:$Ax = b$
+\form#6:$x = A^{-1}b$
+\form#7:$A^{-1}$
+\form#8:$x_{k+1} = Lx_k + b$
+\form#9:$L$
+\form#10:$b = L \cdot a$
+\form#11:$x:=x+b$
+\form#12:$x = M^{-1}b$
+\form#13:$B = A^{T}$
+\form#14:$B = A^{H}$
+\form#15:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
+\form#16:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+\form#17:$x1, ..., xk, $
+\form#18:$ h = 1 / (K + 1)$
+\form#19:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+\form#20:$`f` $
+\form#21:$`f(x) = 6x`$
+\form#22:$`u(x) = x^3`$

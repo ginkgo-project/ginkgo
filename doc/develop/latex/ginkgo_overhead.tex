@@ -58,13 +58,13 @@ The ginkgo overhead measurement example.
     \textcolor{keyword}{auto} b = gko::initialize<vec>(\{std::nan(\textcolor{stringliteral}{""})\}, exec);
     \textcolor{keyword}{auto} x = gko::initialize<vec>(\{0.0\}, exec);
 
-    \textcolor{keyword}{auto} tic = std::chrono::system\_clock::now();
+    \textcolor{keyword}{auto} tic = std::chrono::steady\_clock::now();
 
     \textcolor{keyword}{auto} solver = cg\_factory->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
     solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
     exec->synchronize();
 
-    \textcolor{keyword}{auto} tac = std::chrono::system\_clock::now();
+    \textcolor{keyword}{auto} tac = std::chrono::steady\_clock::now();
 
     \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac - tic);
     std::cout << \textcolor{stringliteral}{"Running "} << num\_iters
@@ -82,11 +82,6 @@ This is the expected output\+:
 
 
 \begin{DoxyCode}
-This is Ginkgo 0.0.0 (develop)
-    running with core module 0.0.0 (develop)
-    the reference module is  0.0.0 (develop)
-    the OpenMP    module is  0.0.0 (develop)
-    the CUDA      module is  not compiled
 Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
         Average library overhead:     1505.35 [nanoseconds / iteration]
 \end{DoxyCode}
@@ -178,13 +173,13 @@ Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
     \textcolor{keyword}{auto} b = gko::initialize<vec>(\{std::nan(\textcolor{stringliteral}{""})\}, exec);
     \textcolor{keyword}{auto} x = gko::initialize<vec>(\{0.0\}, exec);
 
-    \textcolor{keyword}{auto} tic = std::chrono::system\_clock::now();
+    \textcolor{keyword}{auto} tic = std::chrono::steady\_clock::now();
 
     \textcolor{keyword}{auto} solver = cg\_factory->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(A));
     solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(x), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}(b));
     exec->synchronize();
 
-    \textcolor{keyword}{auto} tac = std::chrono::system\_clock::now();
+    \textcolor{keyword}{auto} tac = std::chrono::steady\_clock::now();
 
     \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac - tic);
     std::cout << \textcolor{stringliteral}{"Running "} << num\_iters
