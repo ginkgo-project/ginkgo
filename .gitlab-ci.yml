@@ -73,7 +73,7 @@ stages:
 # see: the name of our building jobs
 #
 # All CTestTestfile.cmake files have to be added for the `ctest` command to
-# work. These tests can files are found starting from the build directory in
+# work. These files are found recursively starting from the build directory in
 # every subdirectory.
 
 .test_template: &default_test
