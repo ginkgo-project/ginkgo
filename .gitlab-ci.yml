@@ -81,6 +81,8 @@ stages:
   before_script: *default_before_script
   script:
     - cd ${CI_JOB_NAME/test/build}
+    - |
+        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
   except:
       - schedules
