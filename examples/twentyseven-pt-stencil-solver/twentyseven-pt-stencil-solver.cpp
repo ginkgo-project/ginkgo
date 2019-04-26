@@ -44,6 +44,13 @@ constexpr double default_beta = -4.0 / 6.0;
 constexpr double default_gamma = -1.0 / 6.0;
 constexpr double default_delta = -1.0 / 24.0;
 
+/* Possible alternative values can be for example
+ * default_alpha = 28.0;
+ * default_beta = -1.0;
+ * default_gamma = -1.0;
+ * default_delta = -1.0;
+ */
+
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
@@ -287,9 +294,10 @@ void solve_system(const std::string &executor_string,
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << "\nSTENCIL_VALUES [alpha, beta, gamma, delta]"
-                  << std::endl;
+        std::cerr
+            << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+            << " [stencil_alpha] [stencil_beta] [stencil_gamma] [stencil_delta]"
+            << std::endl;
         std::exit(-1);
     }
 
