@@ -177,9 +177,9 @@ void print_solution(int dp, const double *u)
             for (size_t i = 0; i < dp; ++i) {
                 std::cout << u[i + dp * (j + dp * k)] << ' ';
             }
-            std::cout << std::endl;
+            std::cout << '\n';
         }
-        std::cout << ':' << std::endl;
+        std::cout << ":\n";
     }
     std::cout << std::endl;
 }
