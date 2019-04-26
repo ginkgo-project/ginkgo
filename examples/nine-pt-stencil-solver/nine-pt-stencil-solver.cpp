@@ -131,7 +131,7 @@ void print_solution(int dp, const double *u)
         for (int j = 0; j < dp; ++j) {
             std::cout << u[i * dp + j] << ' ';
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
     std::cout << std::endl;
 }
