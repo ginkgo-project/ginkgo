@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 
-// May change these by passing additional parameters
+// Can be changed by passing additional parameters when executing the program
 constexpr double default_alpha = 38 / 6.0;
 constexpr double default_beta = -4.0 / 6.0;
 constexpr double default_gamma = -1.0 / 6.0;

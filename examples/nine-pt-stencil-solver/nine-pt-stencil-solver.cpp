@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 // Stencil values. Ordering can be seen in the main function
+// Can also be changed by passing additional parameter when executing
 constexpr double default_alpha = 10.0 / 3.0;
 constexpr double default_beta = -2.0 / 3.0;
 constexpr double default_gamma = -1.0 / 6.0;
