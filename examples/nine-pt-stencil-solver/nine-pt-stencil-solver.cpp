@@ -1,67 +1,38 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
+/******************************<DESCRIPTION>*********************************
 
-Ginkgo should be compiled with `-DBUILD_REFERENCE=on` option.
-
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -std=c++11 -o nine-pt-stencil-solver nine-pt-stencil-solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./nine-pt-stencil-solver
-
-*****************************<COMPILATION>**********************************/
+*******************************<DESCRIPTION>*********************************/
 
 #include <array>
 #include <chrono>
@@ -73,14 +44,17 @@ env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./nine-pt-stencil-solver
 
 // Comment or uncomment to choose a stencil.
 
+// clang-format off
 /*std::array<double,9> coefs{
     -1.0/6.0, -2.0/3.0, -1.0/6.0,
     -2.0/3.0, 10.0/3.0, -2.0/3.0,
     -1.0/6.0, -2.0/3.0, -1.0/6.0};
 */
-std::array<double, 9> coefs{-1.0, -1.0, -1.0, -1.0, 8.0,
-                            -1.0, -1.0, -1.0, -1.0};
-
+std::array<double, 9> coefs{
+    -1.0, -1.0, -1.0,
+    -1.0, 8.0, -1.0,
+    -1.0, -1.0, -1.0};
+// clang-format on
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
