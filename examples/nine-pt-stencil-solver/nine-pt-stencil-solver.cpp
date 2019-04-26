@@ -51,7 +51,7 @@ void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
                              double *values)
 {
     int pos = 0;
-    size_t dp_2 = dp * dp;
+    const size_t dp_2 = dp * dp;
     row_ptrs[0] = pos;
     for (int k = 0; k < dp; ++k) {
         for (int i = 0; i < dp; ++i) {
