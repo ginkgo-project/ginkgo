@@ -55,6 +55,7 @@ stages:
   artifacts:
     paths:
       - "build/*/*/*/*/*/CMakeCache.txt"
+      - "build/*/*/*/*/*/*.cmake"
       - "build/*/*/*/*/*/core/test"
       - "build/*/*/*/*/*/cuda/test"
       - "build/*/*/*/*/*/omp/test"
@@ -63,16 +64,25 @@ stages:
       - "build/*/*/*/*/*/cuda/libginkgo*"
       - "build/*/*/*/*/*/omp/libginkgo*"
       - "build/*/*/*/*/*/reference/libginkgo*"
+      - "build/*/*/*/*/*/core/device_hooks/libginkgo*"
+      - "build/*/*/*/*/*/*/CTestTestfile.cmake"
+      - "build/*/*/*/*/*/*/*/CTestTestfile.cmake"
   except:
       - schedules
 # build paths are of the form: build/<cuda_version>/<compiler>/<module(s)>/{debug,release}/{shared,static}/
 # see: the name of our building jobs
+#
+# All CTestTestfile.cmake files have to be added for the `ctest` command to
+# work. These files are found recursively starting from the build directory in
+# every subdirectory.
 
 .test_template: &default_test
   stage: test
   before_script: *default_before_script
   script:
     - cd ${CI_JOB_NAME/test/build}
+    - |
+        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
   except:
       - schedules
