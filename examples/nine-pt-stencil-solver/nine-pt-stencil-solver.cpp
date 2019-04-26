@@ -39,16 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 // Stencil values. Ordering can be seen in the main function
-double alpha_c = 10.0 / 3.0;
-double beta_c = -2.0 / 3.0;
-double gamma_c = -1.0 / 6.0;
-
-std::array<double, 9> coefs;
+constexpr double default_alpha = 10.0 / 3.0;
+constexpr double default_beta = -2.0 / 3.0;
+constexpr double default_gamma = -1.0 / 6.0;
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
-                             double *values)
+                             double *values, double *coefs)
 {
     int pos = 0;
     size_t dp_2 = dp * dp;
@@ -75,7 +73,7 @@ void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
 
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ClosureT>
-void generate_rhs(int dp, Closure f, ClosureT u, double *rhs)
+void generate_rhs(int dp, Closure f, ClosureT u, double *rhs, double *coefs)
 {
     const size_t dp_2 = dp * dp;
     const auto h = 1.0 / (dp + 1.0);
@@ -236,18 +234,18 @@ int main(int argc, char *argv[])
 {
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << std::endl;
+                  << "\nSTENCIL_VALUES [alpha, beta, gamma]" << std::endl;
         std::exit(-1);
     }
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
-    alpha_c = argc >= 4 ? std::atof(argv[3]) : alpha_c;
-    beta_c = argc >= 5 ? std::atof(argv[4]) : beta_c;
-    gamma_c = argc >= 6 ? std::atof(argv[5]) : gamma_c;
+    const double alpha_c = argc >= 4 ? std::atof(argv[3]) : default_alpha;
+    const double beta_c = argc >= 5 ? std::atof(argv[4]) : default_beta;
+    const double gamma_c = argc >= 6 ? std::atof(argv[5]) : default_gamma;
 
     // clang-format off
-    coefs = std::array<double, 9>{
+    std::array<double, 9> coefs{
         gamma_c, beta_c, gamma_c,
 	beta_c, alpha_c, beta_c,
         gamma_c, beta_c, gamma_c};
@@ -269,10 +267,10 @@ int main(int argc, char *argv[])
     // solution
     std::vector<double> u(dp_2, 0.0);
 
-    generate_stencil_matrix(dp, row_ptrs.data(), col_idxs.data(),
-                            values.data());
+    generate_stencil_matrix(dp, row_ptrs.data(), col_idxs.data(), values.data(),
+                            coefs.data());
     // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
-    generate_rhs(dp, f, correct_u, rhs.data());
+    generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
     auto start_time = std::chrono::steady_clock::now();
 

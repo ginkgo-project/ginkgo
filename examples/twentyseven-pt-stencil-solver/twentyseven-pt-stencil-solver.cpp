@@ -38,22 +38,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 
-/*
-double alpha_c = 38.0/6.0;
-double beta_c = -4.0/6.0;
-double gamma_c = -1.0/6.0;
-double delta_c = -1.0/24.0;
-*/
-double alpha_c = 26;
-double beta_c = -1;
-double gamma_c = -1;
-double delta_c = -1;
-std::array<double, 27> coefs;
+// May change these by passing additional parameters
+constexpr double default_alpha = 38 / 6.0;
+constexpr double default_beta = -4.0 / 6.0;
+constexpr double default_gamma = -1.0 / 6.0;
+constexpr double default_delta = -1.0 / 24.0;
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
-                             double *values)
+                             double *values, double *coefs)
 {
     int pos = 0;
     size_t dp_2 = dp * dp;
@@ -87,7 +81,7 @@ void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
 
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ClosureT>
-void generate_rhs(int dp, Closure f, ClosureT u, double *rhs)
+void generate_rhs(int dp, Closure f, ClosureT u, double *rhs, double *coefs)
 {
     const size_t dp_2 = dp * dp;
     const auto h = 1.0 / (dp + 1.0);
@@ -294,19 +288,20 @@ int main(int argc, char *argv[])
 {
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+                  << "\nSTENCIL_VALUES [alpha, beta, gamma, delta]"
                   << std::endl;
         std::exit(-1);
     }
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
-    alpha_c = argc >= 4 ? std::atof(argv[3]) : alpha_c;
-    beta_c = argc >= 5 ? std::atof(argv[4]) : beta_c;
-    gamma_c = argc >= 6 ? std::atof(argv[5]) : gamma_c;
-    delta_c = argc >= 7 ? std::atof(argv[6]) : delta_c;
+    const double alpha_c = argc >= 4 ? std::atof(argv[3]) : default_alpha;
+    const double beta_c = argc >= 5 ? std::atof(argv[4]) : default_beta;
+    const double gamma_c = argc >= 6 ? std::atof(argv[5]) : default_gamma;
+    const double delta_c = argc >= 7 ? std::atof(argv[6]) : default_delta;
 
     // clang-format off
-    coefs = std::array<double,27>{
+    std::array<double,27> coefs{
         delta_c, gamma_c, delta_c,
         gamma_c, beta_c, gamma_c,
         delta_c, gamma_c, delta_c,
@@ -317,7 +312,8 @@ int main(int argc, char *argv[])
 
         delta_c, gamma_c, delta_c,
         gamma_c, beta_c, gamma_c,
-        delta_c, gamma_c, delta_c};
+        delta_c, gamma_c, delta_c
+    };
     // clang-format on
 
     const auto dp = discretization_points;
@@ -339,10 +335,10 @@ int main(int argc, char *argv[])
     // solution
     std::vector<double> u(dp_3, 0.0);
 
-    generate_stencil_matrix(dp, row_ptrs.data(), col_idxs.data(),
-                            values.data());
+    generate_stencil_matrix(dp, row_ptrs.data(), col_idxs.data(), values.data(),
+                            coefs.data());
     // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
-    generate_rhs(dp, f, correct_u, rhs.data());
+    generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
     auto start_time = std::chrono::steady_clock::now();
 
