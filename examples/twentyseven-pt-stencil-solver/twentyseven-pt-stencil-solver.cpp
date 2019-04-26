@@ -49,6 +49,7 @@ double beta_c = -1;
 double gamma_c = -1;
 double delta_c = -1;
 std::array<double, 27> coefs;
+
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
