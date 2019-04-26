@@ -250,8 +250,12 @@ int main(int argc, char *argv[])
     beta_c = argc >= 5 ? std::atof(argv[4]) : beta_c;
     gamma_c = argc >= 6 ? std::atof(argv[5]) : gamma_c;
 
-    coefs = std::array<double, 9>{gamma_c, beta_c,  gamma_c, beta_c, alpha_c,
-                                  beta_c,  gamma_c, beta_c,  gamma_c};
+    // clang-format off
+    coefs = std::array<double, 9>{
+        gamma_c, beta_c, gamma_c,
+	beta_c, alpha_c, beta_c,
+        gamma_c, beta_c, gamma_c};
+    // clang-format on
 
     const auto dp = discretization_points;
     const size_t dp_2 = dp * dp;
