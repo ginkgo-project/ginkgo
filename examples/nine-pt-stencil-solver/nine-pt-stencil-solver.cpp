@@ -44,17 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Comment or uncomment to choose a stencil.
 
-// clang-format off
 /*std::array<double,9> coefs{
     -1.0/6.0, -2.0/3.0, -1.0/6.0,
     -2.0/3.0, 10.0/3.0, -2.0/3.0,
     -1.0/6.0, -2.0/3.0, -1.0/6.0};
 */
-std::array<double, 9> coefs{
-    -1.0, -1.0, -1.0,
-    -1.0, 8.0, -1.0,
-    -1.0, -1.0, -1.0};
-// clang-format on
+double alpha_c = 8.0;
+double beta_c = 8.0;
+double gamma_c = 8.0;
+
+std::array<double, 9> coefs{gamma_c, beta_c,  gamma_c, beta_c, alpha_c,
+                            beta_c,  gamma_c, beta_c,  gamma_c};
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
@@ -253,6 +253,13 @@ int main(int argc, char *argv[])
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
+    alpha_c = argc >= 4 ? std::atof(argv[3]) : alpha_c;
+    beta_c = argc >= 5 ? std::atof(argv[4]) : beta_c;
+    gamma_c = argc >= 6 ? std::atof(argv[5]) : gamma_c;
+
+    coefs = std::array<double, 9>{gamma_c, beta_c,  gamma_c, beta_c, alpha_c,
+                                  beta_c,  gamma_c, beta_c,  gamma_c};
+
     const auto dp = discretization_points;
     const size_t dp_2 = dp * dp;
 
