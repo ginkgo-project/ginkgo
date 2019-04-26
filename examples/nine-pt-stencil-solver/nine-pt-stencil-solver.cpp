@@ -42,19 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 
-// Comment or uncomment to choose a stencil.
+// Stencil values. Ordering can be seen in the main function
+double alpha_c = 10.0 / 3.0;
+double beta_c = -2.0 / 3.0;
+double gamma_c = -1.0 / 6.0;
 
-/*std::array<double,9> coefs{
-    -1.0/6.0, -2.0/3.0, -1.0/6.0,
-    -2.0/3.0, 10.0/3.0, -2.0/3.0,
-    -1.0/6.0, -2.0/3.0, -1.0/6.0};
-*/
-double alpha_c = 8.0;
-double beta_c = 8.0;
-double gamma_c = 8.0;
-
-std::array<double, 9> coefs{gamma_c, beta_c,  gamma_c, beta_c, alpha_c,
-                            beta_c,  gamma_c, beta_c,  gamma_c};
+std::array<double, 9> coefs;
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
