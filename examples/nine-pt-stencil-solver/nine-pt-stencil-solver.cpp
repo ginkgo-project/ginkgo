@@ -289,6 +289,6 @@ int main(int argc, char *argv[])
     print_solution(dp, u.data());
     std::cout << "The average relative error is "
               << calculate_error(dp, u.data(), correct_u) / dp_2 << std::endl;
-    std::cout << "The runtime is " << std::to_string(runtime_duration)
+    std::cout << "The runtime is " << std::to_string(runtime_duration) << " ms"
               << std::endl;
 }
