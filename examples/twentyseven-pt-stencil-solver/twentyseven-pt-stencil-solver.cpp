@@ -44,24 +44,11 @@ double beta_c = -4.0/6.0;
 double gamma_c = -1.0/6.0;
 double delta_c = -1.0/24.0;
 */
-const double alpha_c = 26;
-const double beta_c = -1;
-const double gamma_c = -1;
-const double delta_c = -1;
-// clang-format off
-std::array<double, 27> coefs{
-        delta_c, gamma_c, delta_c,
-        gamma_c, beta_c, gamma_c,
-        delta_c, gamma_c, delta_c,
-
-        gamma_c, beta_c,  gamma_c,
-        beta_c,  alpha_c, beta_c,
-        gamma_c, beta_c,  gamma_c,
-
-        delta_c, gamma_c, delta_c,
-        gamma_c, beta_c, gamma_c,
-        delta_c, gamma_c, delta_c};
-// clang-format on
+double alpha_c = 26;
+double beta_c = -1;
+double gamma_c = -1;
+double delta_c = -1;
+std::array<double, 27> coefs;
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 void generate_stencil_matrix(int dp, int *row_ptrs, int *col_idxs,
@@ -302,7 +289,6 @@ void solve_system(const std::string &executor_string,
     solver->apply(gko::lend(b), gko::lend(x));
 }
 
-
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
@@ -313,6 +299,26 @@ int main(int argc, char *argv[])
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
+    alpha_c = argc >= 4 ? std::atof(argv[3]) : alpha_c;
+    beta_c = argc >= 5 ? std::atof(argv[4]) : beta_c;
+    gamma_c = argc >= 6 ? std::atof(argv[5]) : gamma_c;
+    delta_c = argc >= 7 ? std::atof(argv[6]) : delta_c;
+
+    // clang-format off
+    coefs = std::array<double,27>{
+        delta_c, gamma_c, delta_c,
+        gamma_c, beta_c, gamma_c,
+        delta_c, gamma_c, delta_c,
+
+        gamma_c, beta_c,  gamma_c,
+        beta_c,  alpha_c, beta_c,
+        gamma_c, beta_c,  gamma_c,
+
+        delta_c, gamma_c, delta_c,
+        gamma_c, beta_c, gamma_c,
+        delta_c, gamma_c, delta_c};
+    // clang-format on
+
     const auto dp = discretization_points;
     const size_t dp_2 = dp * dp;
     const size_t dp_3 = dp * dp * dp;
