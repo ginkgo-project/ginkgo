@@ -10,8 +10,6 @@ include(cmake/create_test.cmake)
 include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-include(cmake/build_type_helpers.cmake)
-
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -26,6 +24,8 @@ option(GINKGO_SKIP_DEPENDENCY_UPDATE
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
+option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
+option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
   "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
@@ -49,7 +49,7 @@ endif()
 
 # Ensure we have a debug postfix
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX "d")
+    set(CMAKE_DEBUG_POSTFIX "d")
 endif()
 
 if(GINKGO_BUILD_TESTS)
@@ -61,6 +61,17 @@ if(GINKGO_BUILD_TESTS)
     enable_testing()
     include(CTest)
 endif()
+
+if (GINKGO_WITH_CLANG_TIDY)
+  find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
+endif()
+
+if (GINKGO_WITH_IWYU)
+  find_program(GINKGO_IWYU_PATH iwyu)
+endif()
+
+
+include(cmake/build_type_helpers.cmake)
 
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in

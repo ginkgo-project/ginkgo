@@ -48,6 +48,8 @@ In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
+*   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
+*   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
 ### Windows
 
