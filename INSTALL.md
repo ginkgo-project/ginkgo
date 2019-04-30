@@ -36,6 +36,12 @@ Ginkgo adds the following additional switches to control what is being built:
     Ginkgo's documentation. The default is `OFF`.
 *   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
     CMake package registry. The default is `OFF`.
+*   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
+    programming issues. The path can be manually controlled with the CMake
+    variable `-DGINKGO_CLANG_TIDY_PATH=<path>`.
+*   `-DGINKGO_WITH_IWYU={ON, OFF}` makes Ginkgo call `iwyu` to find include
+    issues. The path can be manually controlled with the CMake variable
+    `-DGINKGO_IWYU_PATH=<path>`. 
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
