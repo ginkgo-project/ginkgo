@@ -26,6 +26,12 @@ RUN apt-get update -y && \
         graphviz && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        clang-tidy \
+        iwyu && \
+    rm -rf /var/lib/apt/lists/*
+
 # GNU compiler
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends software-properties-common && \

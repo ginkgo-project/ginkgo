@@ -8,6 +8,7 @@ Contents:
 	Python 2 and 3 (upstream)
 	cmake (upstream)
 	git, openssh, doxygen, curl, valgrind, graphviz latest apt version
+	clang-tidy, iwyu, latest apt version
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
 
@@ -21,6 +22,7 @@ Stage0.baseimage(image)
 Stage0 += python()
 Stage0 += cmake(eula=True)
 Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl', 'valgrind', 'graphviz'])
+Stage0 += apt_get(ospackages=['clang-tidy', 'iwyu'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '7')
