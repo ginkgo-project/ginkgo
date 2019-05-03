@@ -348,6 +348,30 @@ no-circular-deps:
   dependencies: []
   allow_failure: no
 
+# Run clang-tidy and iwyu
+clang-tidy:
+  <<: *default_build
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
+  dependencies: []
+  allow_failure: yes
+
+iwyu:
+  <<: *default_build
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
+  dependencies: []
+  allow_failure: yes
 
 # Deploy documentation to github-pages
 gh-pages:

@@ -43,11 +43,8 @@ RUN apt-get update -y && \
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        texlive \
-        texlive-latex-extra \
-        texlive-science \
-        texlive-fonts-extra \
-        texlive-publishers && \
+        clang-tidy \
+        iwyu && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler
