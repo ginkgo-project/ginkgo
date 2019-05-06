@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /*****************************<DECSRIPTION>***********************************
-This example solves a 3D Poisson equation:
+This example solves a 2D Poisson equation:
 
     \Omega = (0,1)^2
     \Omega_b = [0,1]^2   (with boundary)
