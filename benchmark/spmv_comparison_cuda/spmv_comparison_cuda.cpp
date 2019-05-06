@@ -1,65 +1,46 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 /*****************************<COMPILATION>***********************************
-The easiest way to build the example solver is to use the script provided:
-./build.sh <PATH_TO_GINKGO_BUILD_DIR>
+ By default, all Ginkgo examples are built using CMake.
 
-Ginkgo should be compiled with `-DGINKGO_BUILD_REFERENCE=on` option.
+An example for building the examples and using Ginkgo as an external library
+without CMake can be found in the script provided for each example, which
+should be called with the form:
+`./build.sh PATH_TO_GINKGO_BUILD_DIR`
 
-Alternatively, you can setup the configuration manually:
-
-Go to the <PATH_TO_GINKGO_BUILD_DIR> directory and copy the shared
-libraries located in the following subdirectories:
-
-    + core/
-    + core/device_hooks/
-    + reference/
-    + omp/
-    + cuda/
-
-to this directory.
-
-Then compile the file with the following command line:
-
-c++ -std=c++11 -o simple_solver simple_solver.cpp -I../.. \
-    -L. -lginkgo -lginkgo_reference -lginkgo_omp -lginkgo_cuda
-
-(if ginkgo was built in debug mode, append 'd' to every library name)
-
-Now you should be able to run the program using:
-
-env LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH} ./simple_solver
+By default, Ginkgo is compiled with at least `-DGINKGO_BUILD_REFERENCE=ON`.
+To execute on a GPU, you need to have a GPU on the system and must have
+compiled Ginkgo with the `-DGINKGO_BUILD_CUDA=ON` option.
 
 If you want to check cuda memory first before setting value in the function
 `read`, you can use additional_check.patch:
@@ -471,11 +452,11 @@ void testing(std::shared_ptr<gko::Executor> exec, const int warm_iter,
         dy->copy_from(y);
         // make sure copy is finished
         exec->synchronize();
-        auto start = std::chrono::system_clock::now();
+        auto start = std::chrono::steady_clock::now();
         A->apply(dx.get(), dy.get());
         // make sure apply is finished
         exec->synchronize();
-        auto finish = std::chrono::system_clock::now();
+        auto finish = std::chrono::steady_clock::now();
         duration += std::chrono::duration_cast<duration_type>(finish - start);
     }
     output(A->get_num_stored_elements(),

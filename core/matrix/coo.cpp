@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/coo.hpp>
@@ -60,10 +59,8 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
-GKO_REGISTER_OPERATION(convert_row_idxs_to_ptrs, coo::convert_row_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
-GKO_REGISTER_OPERATION(transpose, coo::transpose);
-GKO_REGISTER_OPERATION(conj_transpose, coo::conj_transpose);
 
 
 }  // namespace coo
@@ -107,25 +104,14 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> Coo<ValueType, IndexType>::make_csr()
-    const
-{
-    auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_row_idxs_to_ptrs(
-        this->get_const_row_idxs(), this->get_num_stored_elements(),
-        tmp->get_row_ptrs(), this->get_size()[0] + 1));
-    return tmp;
-}
-
-
-template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
-    auto tmp = this->make_csr();
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -133,9 +119,11 @@ void Coo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
-    auto tmp = this->make_csr();
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
+    exec->run(coo::make_convert_to_csr(tmp.get(), this));
     tmp->move_to(result);
 }
 
@@ -199,30 +187,6 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
         const auto val = tmp->values_.get_const_data()[i];
         data.nonzeros.emplace_back(row, col, val);
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(coo::make_transpose(trans_cpy.get(), this));
-    return std::move(trans_cpy);
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
-{
-    auto exec = this->get_executor();
-    auto trans_cpy = Coo::create(exec, gko::transpose(this->get_size()),
-                                 this->get_num_stored_elements());
-
-    exec->run(coo::make_conj_transpose(trans_cpy.get(), this));
-    return std::move(trans_cpy);
 }
 
 

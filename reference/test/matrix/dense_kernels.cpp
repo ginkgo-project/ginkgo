@@ -1,59 +1,56 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/dense.hpp>
+#include "core/matrix/dense_kernels.hpp"
 
 
 #include <complex>
+#include <random>
 
 
 #include <gtest/gtest.h>
 
 
-#include <random>
-
-
-#include <core/test/utils.hpp>
-
-
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -286,7 +283,6 @@ TEST_F(Dense, ConvertsToCoo)
     auto coo_mtx = gko::matrix::Coo<>::create(mtx4->get_executor());
 
     mtx4->convert_to(coo_mtx.get());
-
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -313,7 +309,6 @@ TEST_F(Dense, MovesToCoo)
     auto coo_mtx = gko::matrix::Coo<>::create(mtx4->get_executor());
 
     mtx4->move_to(coo_mtx.get());
-
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();
@@ -340,7 +335,6 @@ TEST_F(Dense, ConvertsToCsr)
     auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
 
     mtx4->convert_to(csr_mtx.get());
-
     auto v = csr_mtx->get_const_values();
     auto c = csr_mtx->get_const_col_idxs();
     auto r = csr_mtx->get_const_row_ptrs();
@@ -366,7 +360,6 @@ TEST_F(Dense, MovesToCsr)
     auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
 
     mtx4->move_to(csr_mtx.get());
-
     auto v = csr_mtx->get_const_values();
     auto c = csr_mtx->get_const_col_idxs();
     auto r = csr_mtx->get_const_row_ptrs();
@@ -392,7 +385,6 @@ TEST_F(Dense, ConvertsToEll)
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor());
 
     mtx7->convert_to(ell_mtx.get());
-
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -416,7 +408,6 @@ TEST_F(Dense, MovesToEll)
     auto ell_mtx = gko::matrix::Ell<>::create(mtx7->get_executor());
 
     mtx7->move_to(ell_mtx.get());
-
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -441,7 +432,6 @@ TEST_F(Dense, ConvertsToEllWithStride)
         gko::matrix::Ell<>::create(mtx7->get_executor(), gko::dim<2>{}, 0, 3);
 
     mtx7->convert_to(ell_mtx.get());
-
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -470,7 +460,6 @@ TEST_F(Dense, MovesToEllWithStride)
         gko::matrix::Ell<>::create(mtx7->get_executor(), gko::dim<2>{}, 0, 3);
 
     mtx7->move_to(ell_mtx.get());
-
     auto v = ell_mtx->get_const_values();
     auto c = ell_mtx->get_const_col_idxs();
 
@@ -498,12 +487,12 @@ TEST_F(Dense, MovesToHybridAutomatically)
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
 
     mtx4->move_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
@@ -529,12 +518,12 @@ TEST_F(Dense, ConvertsToHybridAutomatically)
     auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx4->get_executor());
 
     mtx4->convert_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
@@ -561,12 +550,12 @@ TEST_F(Dense, MovesToHybridWithStrideAutomatically)
                                                     gko::dim<2>{}, 0, 3);
 
     mtx4->move_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
@@ -593,12 +582,12 @@ TEST_F(Dense, ConvertsToHybridWithStrideAutomatically)
                                                     gko::dim<2>{}, 0, 3);
 
     mtx4->convert_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_coo_values();
     auto c = hybrid_mtx->get_const_coo_col_idxs();
     auto r = hybrid_mtx->get_const_coo_row_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 0);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 4);
@@ -626,11 +615,11 @@ TEST_F(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
         std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
 
     mtx4->move_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 3);
@@ -667,11 +656,11 @@ TEST_F(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
         std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
 
     mtx4->convert_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 6);
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 3);
@@ -708,11 +697,14 @@ TEST_F(Dense, MovesToHybridWithStrideByPercent40)
         std::make_shared<gko::matrix::Hybrid<>::imbalance_limit>(0.4));
 
     mtx4->move_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+    auto coo_v = hybrid_mtx->get_const_coo_values();
+    auto coo_c = hybrid_mtx->get_const_coo_col_idxs();
+    auto coo_r = hybrid_mtx->get_const_coo_row_idxs();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 3);
     EXPECT_EQ(n, 1);
@@ -723,10 +715,6 @@ TEST_F(Dense, MovesToHybridWithStrideByPercent40)
     EXPECT_EQ(v[0], 1.0);
     EXPECT_EQ(v[1], 5.0);
     EXPECT_EQ(v[2], 0.0);
-
-    auto coo_v = hybrid_mtx->get_const_coo_values();
-    auto coo_c = hybrid_mtx->get_const_coo_col_idxs();
-    auto coo_r = hybrid_mtx->get_const_coo_row_idxs();
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(coo_v[0], 3.0);
     EXPECT_EQ(coo_v[1], 2.0);
@@ -744,11 +732,14 @@ TEST_F(Dense, ConvertsToHybridWithStrideByPercent40)
         std::make_shared<gko::matrix::Hybrid<>::imbalance_limit>(0.4));
 
     mtx4->convert_to(hybrid_mtx.get());
-
     auto v = hybrid_mtx->get_const_ell_values();
     auto c = hybrid_mtx->get_const_ell_col_idxs();
     auto n = hybrid_mtx->get_ell_num_stored_elements_per_row();
     auto p = hybrid_mtx->get_ell_stride();
+    auto coo_v = hybrid_mtx->get_const_coo_values();
+    auto coo_c = hybrid_mtx->get_const_coo_col_idxs();
+    auto coo_r = hybrid_mtx->get_const_coo_row_idxs();
+
     ASSERT_EQ(hybrid_mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(hybrid_mtx->get_ell_num_stored_elements(), 3);
     EXPECT_EQ(n, 1);
@@ -759,10 +750,6 @@ TEST_F(Dense, ConvertsToHybridWithStrideByPercent40)
     EXPECT_EQ(v[0], 1.0);
     EXPECT_EQ(v[1], 5.0);
     EXPECT_EQ(v[2], 0.0);
-
-    auto coo_v = hybrid_mtx->get_const_coo_values();
-    auto coo_c = hybrid_mtx->get_const_coo_col_idxs();
-    auto coo_r = hybrid_mtx->get_const_coo_row_idxs();
     ASSERT_EQ(hybrid_mtx->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(coo_v[0], 3.0);
     EXPECT_EQ(coo_v[1], 2.0);
@@ -778,7 +765,6 @@ TEST_F(Dense, ConvertsToSellp)
     auto sellp_mtx = gko::matrix::Sellp<>::create(mtx8->get_executor());
 
     mtx8->convert_to(sellp_mtx.get());
-
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -814,7 +800,6 @@ TEST_F(Dense, MovesToSellp)
     auto sellp_mtx = gko::matrix::Sellp<>::create(mtx8->get_executor());
 
     mtx8->move_to(sellp_mtx.get());
-
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -851,7 +836,6 @@ TEST_F(Dense, ConvertsToSellpWithSliceSizeAndStrideFactor)
                                                   gko::dim<2>{}, 2, 2, 0);
 
     mtx8->convert_to(sellp_mtx.get());
-
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -890,7 +874,6 @@ TEST_F(Dense, MovesToSellpWithSliceSizeAndStrideFactor)
                                                   gko::dim<2>{}, 2, 2, 0);
 
     mtx8->move_to(sellp_mtx.get());
-
     auto v = sellp_mtx->get_const_values();
     auto c = sellp_mtx->get_const_col_idxs();
     auto s = sellp_mtx->get_const_slice_sets();
@@ -962,7 +945,6 @@ TEST_F(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
 
     auto sellp_mtx = gko::matrix::Sellp<>::create(exec);
     auto dense_mtx = gko::matrix::Dense<>::create(exec);
-
     x->convert_to(sellp_mtx.get());
     sellp_mtx->convert_to(dense_mtx.get());
 

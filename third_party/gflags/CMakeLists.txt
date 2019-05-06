@@ -1,5 +1,7 @@
 ginkgo_load_git_package(gflags_external
     "https://github.com/gflags/gflags.git"
-    "660603a3df1c400437260b51c55490a046a12e8a"
-    "-DBUILD_TESTING=OFF" "-DBUILD_gflags_LIB=OFF" "-DBUILD_gflags_nothreads_LIB=ON" "-DBUILD_STATIC_LIBS=ON")
-ginkgo_add_external_target(gflags gflags_nothreads build/include build/lib STATIC "" gflags_external FALSE)
+    "e171aa2d15ed9eb17054558e0b3a6a413bb01067"
+    "-DGFLAGS_BUILD_TESTING=OFF" "-DGFLAGS_BUILD_gflags_LIB=OFF"
+    "-DGFLAGS_BUILD_gflags_nothreads_LIB=ON" "-DGFLAGS_BUILD_STATIC_LIBS=ON"
+    "-DGFLAGS_BUILD_PACKAGING=OFF")
+ginkgo_add_external_target(gflags gflags_nothreads build/include build/lib STATIC "_debug" gflags_external FALSE)

@@ -1,0 +1,32 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+0
+0.00010798
+0.000863838
+0.00291545
+0.0069107
+0.0134975
+0.0233236
+0.037037
+0.0552856
+0.0787172
+0.10798
+0.143721
+0.186589
+0.237231
+0.296296
+0.364431
+0.442285
+0.530504
+0.629738
+0.740633
+0.863838
+1
+The average relative error is 1.87318e-15
+
+@endcode
+
+<h4> Comments about programming and debugging </h4>
+

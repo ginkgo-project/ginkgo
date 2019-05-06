@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/gmres_kernels.hpp"
@@ -44,6 +43,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
+/**
+ * @brief The GMRES solver namespace.
+ *
+ * @ingroup gmres
+ */
 namespace gmres {
 
 
@@ -207,27 +211,20 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void solve_x(const matrix::Dense<ValueType> *krylov_bases,
-             const matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-             const size_type *final_iter_nums, const LinOp *preconditioner)
+void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
+                  const matrix::Dense<ValueType> *y,
+                  matrix::Dense<ValueType> *before_preconditioner,
+                  const size_type *final_iter_nums)
 {
-    auto before_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-    auto after_preconditioner =
-        matrix::Dense<ValueType>::create_with_config_of(x);
-
-    for (size_type k = 0; k < x->get_size()[1]; ++k) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
+        for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases->at(i, j * x->get_size()[1] + k) * y->at(j, k);
+                    krylov_bases->at(
+                        i, j * before_preconditioner->get_size()[1] + k) *
+                    y->at(j, k);
             }
-        }
-        preconditioner->apply(before_preconditioner.get(),
-                              after_preconditioner.get());
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            x->at(i, k) += after_preconditioner->at(i, k);
         }
     }
 }
@@ -343,14 +340,14 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y, matrix::Dense<ValueType> *x,
-            const Array<size_type> *final_iter_nums,
-            const LinOp *preconditioner)
+            matrix::Dense<ValueType> *y,
+            matrix::Dense<ValueType> *before_preconditioner,
+            const Array<size_type> *final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums->get_const_data());
-    solve_x(krylov_bases, y, x, final_iter_nums->get_const_data(),
-            preconditioner);
+    calculate_qy(krylov_bases, y, before_preconditioner,
+                 final_iter_nums->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

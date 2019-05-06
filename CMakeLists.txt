@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 0.0.0 DESCRIPTION "Numerical linear algebra software")
+project(Ginkgo LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -17,7 +17,7 @@ option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
-option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" OFF)
+option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
@@ -34,6 +34,7 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
   "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
@@ -46,6 +47,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+# Ensure we have a debug postfix
+if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
 
 if(GINKGO_BUILD_TESTS)
     # Configure CTest
@@ -75,11 +80,16 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest)
-ginkgo_find_package(gflags)
-ginkgo_find_package(RapidJSON)
+ginkgo_find_package(GTest 1.8.1)
+ginkgo_find_package(gflags 2.2.2)
+ginkgo_find_package(RapidJSON 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
+# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
+# propagated to the other parts of Ginkgo in case of building as static libraries
+if(GINKGO_BUILD_CUDA)
+    add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
+endif()
 # Ginkgo core libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (GINKGO_BUILD_REFERENCE)
@@ -87,9 +97,6 @@ if (GINKGO_BUILD_REFERENCE)
 endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
-endif()
-if(GINKGO_BUILD_CUDA)
-    add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 
 # Non core directories and targets
@@ -113,14 +120,15 @@ add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
 
-if(GINKGO_BUILD_DOC)
-    add_subdirectory(doc)
-endif()
 
 # Installation
 include(cmake/information_helpers.cmake)
 ginkgo_interface_information()
 ginkgo_git_information()
+
+if(GINKGO_BUILD_DOC)
+    add_subdirectory(doc)
+endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
     ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
@@ -135,11 +143,7 @@ add_custom_target(test_install
     COMMAND ${Ginkgo_BINARY_DIR}/test_install/test_install
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
-# Setup CPack and ensure we have a debug postfix
-if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX "d")
-endif()
-
+# Setup CPack
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${Ginkgo_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")

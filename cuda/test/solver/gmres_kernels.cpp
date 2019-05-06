@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/solver/gmres.hpp>
@@ -84,9 +83,9 @@ protected:
     {
         int m = 597;
         int n = 43;
-        preconditioner = gen_mtx(m, m);
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
+        before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);
@@ -111,10 +110,9 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_preconditioner = Mtx::create(cuda);
-        d_preconditioner->copy_from(preconditioner.get());
         d_x = Mtx::create(cuda);
         d_x->copy_from(x.get());
+        d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
         d_y = Mtx::create(cuda);
         d_y->copy_from(y.get());
         d_b = Mtx::create(cuda);
@@ -152,7 +150,7 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> preconditioner;
+    std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
@@ -169,8 +167,8 @@ protected:
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
     std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
 
-    std::unique_ptr<Mtx> d_preconditioner;
     std::unique_ptr<Mtx> d_x;
+    std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
@@ -261,14 +259,14 @@ TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::gmres::step_2(
-        ref, residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg.get(), y.get(), x.get(), final_iter_nums.get(),
-        preconditioner.get());
-    gko::kernels::cuda::gmres::step_2(
-        cuda, d_residual_norm_collection.get(), d_krylov_bases.get(),
-        d_hessenberg.get(), d_y.get(), d_x.get(), d_final_iter_nums.get(),
-        d_preconditioner.get());
+    gko::kernels::reference::gmres::step_2(ref, residual_norm_collection.get(),
+                                           krylov_bases.get(), hessenberg.get(),
+                                           y.get(), before_preconditioner.get(),
+                                           final_iter_nums.get());
+    gko::kernels::cuda::gmres::step_2(cuda, d_residual_norm_collection.get(),
+                                      d_krylov_bases.get(), d_hessenberg.get(),
+                                      d_y.get(), d_before_preconditioner.get(),
+                                      d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);

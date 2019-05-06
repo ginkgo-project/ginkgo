@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
@@ -53,6 +52,10 @@ namespace gko {
 
 
 /**
+ * @addtogroup LinOp
+ *
+ * @section linop_concept Linear operator as a concept
+ *
  * The linear operator (LinOp) is a base class for all linear algebra objects
  * in Ginkgo. The main benefit of having a single base class for the
  * entire collection of linear algebra objects (as opposed to having separate
@@ -83,22 +86,22 @@ namespace gko {
  * and preconditioners is that the most common operation performed on all of
  * them can be expressed as an application of a linear operator to a vector:
  *
- * +   the sparse matrix-vector product with a matrix \f$A\f$ is a linear
- *     operator application \f$y = Ax\f$;
+ * +   the sparse matrix-vector product with a matrix $A$ is a linear
+ *     operator application $y = Ax$;
  * +   the application of a preconditioner is a linear operator application
- *     \f$y = M^{-1}x\f$, where \f$M\f$ is an approximation of the original
- *     system matrix \f$A\f$ (thus a preconditioner represents an "approximate
- *     inverse" operator \f$M^{-1}\f$).
- * +   the system solve \f$Ax = b\f$ can be viewed as linear operator
+ *     $y = M^{-1}x$, where $M$ is an approximation of the original
+ *     system matrix $A$ (thus a preconditioner represents an "approximate
+ *     inverse" operator $M^{-1}$).
+ * +   the system solve $Ax = b$ can be viewed as linear operator
  *     application
- *     \f$x = A^{-1}b\f$ (it goes without saying that the implementation of
+ *     $x = A^{-1}b$ (it goes without saying that the implementation of
  *     linear system solves does not follow this conceptual idea), so a linear
  *     system solver can be viewed as a representation of the operator
- *     \f$A^{-1}\f$.
+ *     $A^{-1}$.
  *
  * Finally, direct manipulation of LinOp objects is rarely required in
  * simple scenarios. As an illustrative example, one could construct a
- * fixed-point iteration routine \f$x_{k+1} = Lx_k + b\f$ as follows:
+ * fixed-point iteration routine $x_{k+1} = Lx_k + b$ as follows:
  *
  * ```cpp
  * std::unique_ptr<matrix::Dense<>> calculate_fixed_point(
@@ -117,14 +120,16 @@ namespace gko {
  * }
  * ```
  *
- * Here, if \f$L\f$ is a matrix, LinOp::apply() refers to the matrix vector
- * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
- * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update \f$x:=x+b\f$.
+ * Here, if $L$ is a matrix, LinOp::apply() refers to the matrix vector
+ * product, and `L->apply(a, b)` computes $b = L \cdot a$.
+ * `x->add_scaled(one.get(), b.get())` is the `axpy` vector update $x:=x+b$.
  *
  * The interesting part of this example is the apply() routine at line 4 of the
  * function body. Since this routine is part of the LinOp base class, the
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
+ *
+ * @ref LinOp
  */
 class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
@@ -299,34 +304,34 @@ private:
  * linear operator into another.
  *
  * In Ginkgo, every linear solver is viewed as a mapping. For example,
- * given an s.p.d linear system \f$Ax = b\f$, the solution \f$x = A^{-1}b\f$
+ * given an s.p.d linear system $Ax = b$, the solution $x = A^{-1}b$
  * can be computed using the CG method. This algorithm can be represented in
  * terms of linear operators and mappings between them as follows:
  *
  * -   A Cg::Factory is a higher order mapping which, given an input operator
- *     \f$A\f$, returns a new linear operator \f$A^{-1}\f$ stored in "CG
+ *     $A$, returns a new linear operator $A^{-1}$ stored in "CG
  *     format"
- * -   Storing the operator \f$A^{-1}\f$ in "CG format" means that the data
+ * -   Storing the operator $A^{-1}$ in "CG format" means that the data
  *     structure used to store the operator is just a simple pointer to the
- *     original matrix \f$A\f$. The application \f$x = A^{-1}b\f$ of such an
+ *     original matrix $A$. The application $x = A^{-1}b$ of such an
  *     operator can then be implemented by solving the linear system
- *     \f$Ax = b\f$ using the CG method. This is achieved in code by having a
+ *     $Ax = b$ using the CG method. This is achieved in code by having a
  *     special class for each of those "formats" (e.g. the "Cg" class defines
  *     such a format for the CG solver).
  *
  * Another example of a LinOpFactory is a preconditioner. A preconditioner for
- * a linear operator \f$A\f$ is a linear operator \f$M^{-1}\f$, which
- * approximates \f$A^{-1}\f$. In addition, it is stored in a way such that
- * both the data of \f$M^{-1}\f$ is cheap to compute from \f$A\f$, and the
- * operation \f$x = M^{-1}b\f$ can be computed quickly. These operators are
+ * a linear operator $A$ is a linear operator $M^{-1}$, which
+ * approximates $A^{-1}$. In addition, it is stored in a way such that
+ * both the data of $M^{-1}$ is cheap to compute from $A$, and the
+ * operation $x = M^{-1}b$ can be computed quickly. These operators are
  * useful to accelerate the convergence of  Krylov solvers.
  * Thus, a preconditioner also fits into the LinOpFactory framework:
  *
- * -   The factory maps a linear operator \f$A\f$ into a preconditioner
- *     \f$M^{-1}\f$ which is stored in suitable format (e.g. as a product of
+ * -   The factory maps a linear operator $A$ into a preconditioner
+ *     $M^{-1}$ which is stored in suitable format (e.g. as a product of
  *     two factors in case of ILU preconditioners).
  * -   The resulting linear operator implements the application operation
- *     \f$x = M^{-1}b\f$ depending on the format the preconditioner is stored
+ *     $x = M^{-1}b$ depending on the format the preconditioner is stored
  *     in (e.g. as two triangular solves in case of ILU)
  *
  * Example: using CG in Ginkgo
@@ -345,6 +350,8 @@ private:
  * // solve the system
  * cg->apply(gko::lend(b), gko::lend(x));
  * ```
+ *
+ * @ingroup LinOp
  */
 class LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
@@ -371,11 +378,11 @@ public:
  * conjugate transpose.
  *
  * The normal transpose returns the transpose of the linear operator without
- * changing any of its elements representing the operation, \f$B = A^{T}\f$.
+ * changing any of its elements representing the operation, $B = A^{T}$.
  *
  * The conjugate transpose returns the conjugate of each of the elements and
- * additionally transposes the linear operator representing the operation, \f$B
- * = A^{H}\f$.
+ * additionally transposes the linear operator representing the operation, $B
+ * = A^{H}$.
  *
  * Example: Transposing a Csr matrix:
  * ------------------------------------
@@ -412,6 +419,8 @@ public:
 /**
  * A LinOp implementing this interface can read its data from a matrix_data
  * structure.
+ *
+ * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
 class ReadableFromMatrixData {
@@ -430,6 +439,8 @@ public:
 /**
  * A LinOp implementing this interface can write its data to a matrix_data
  * structure.
+ *
+ * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
 class WritableToMatrixData {
@@ -447,6 +458,9 @@ public:
 
 /**
  * A LinOp implementing this interface can be preconditioned.
+ *
+ * @ingroup precond
+ * @ingroup LinOp
  */
 class Preconditionable {
 public:
@@ -488,6 +502,8 @@ public:
  *                        [CRTP parameter]
  * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
  *                          hierarchy, has to be a subclass of LinOp
+ *
+ * @ingroup LinOp
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
 class EnableLinOp
@@ -570,6 +586,8 @@ protected:
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
  *                          hierarchy, has to be a subclass of LinOpFactory
+ *
+ * @ingroup LinOp
  */
 template <typename ConcreteFactory, typename ConcreteLinOp,
           typename ParametersType, typename PolymorphicBase = LinOpFactory>
@@ -587,6 +605,8 @@ using EnableDefaultLinOpFactory =
  *
  * @param _parameters_name  name of the parameters member in the class
  * @param _factory_name  name of the generated factory type
+ *
+ * @ingroup LinOp
  */
 #define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
 public:                                                                \
@@ -665,6 +685,8 @@ public:                                                                \
  *                          and the public getter's name is
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
+ *
+ * @ingroup LinOp
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \
@@ -702,11 +724,13 @@ public:                                                                      \
  * removing the repetitive typing of factory's name.
  *
  * @param _factory_name  the factory for which to define the method
+ *
+ * @ingroup LinOp
  */
 #define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \
-    static auto build()->decltype(Factory::create())                         \
+    static auto build()->decltype(_factory_name::create())                   \
     {                                                                        \
-        return Factory::create();                                            \
+        return _factory_name::create();                                      \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -721,6 +745,8 @@ public:                                                                      \
  * @param __VA_ARGS__  default value of the parameter
  *
  * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ *
+ * @ingroup LinOp
  */
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
     mutable _name{__VA_ARGS__};                                              \

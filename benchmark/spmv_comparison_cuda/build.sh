@@ -33,5 +33,6 @@ fi
 
 # build
 ${CXX} -std=c++11 -o ${THIS_DIR}/spmv_comparison_cuda \
-    ${THIS_DIR}/spmv_comparison_cuda.cpp -I${THIS_DIR}/../.. -L${THIS_DIR} \
-    ${LINK_FLAGS}
+       ${THIS_DIR}/spmv_comparison_cuda.cpp \
+       -I${THIS_DIR}/../../include -I${BUILD_DIR}/include -L${THIS_DIR} \
+       ${LINK_FLAGS}

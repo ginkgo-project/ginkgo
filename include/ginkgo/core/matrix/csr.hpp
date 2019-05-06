@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_CORE_MATRIX_CSR_HPP_
@@ -50,6 +49,13 @@ class Dense;
 template <typename ValueType, typename IndexType>
 class Coo;
 
+template <typename ValueType, typename IndexType>
+class Ell;
+
+
+template <typename ValueType, typename IndexType>
+class Sellp;
+
 
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
@@ -63,12 +69,17 @@ class Coo;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
+ * @ingroup csr
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
+            public ConvertibleTo<Sellp<ValueType, IndexType>>,
+            public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
@@ -76,6 +87,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
+    friend class Sellp<ValueType, IndexType>;
+    friend class Ell<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Csr>::convert_to;
@@ -225,21 +238,21 @@ public:
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow)
         {
-            // if the number of stored elements per row is larger than 1e6 or
+            // if the number of stored elements is larger than 1e6 or
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
-            const auto num = mtx_row_ptrs.get_num_elems();
+            const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             Array<index_type> host_row_ptrs(
                 mtx_row_ptrs.get_executor()->get_master());
             host_row_ptrs = mtx_row_ptrs;
             const auto row_val = host_row_ptrs.get_const_data();
-            if (row_val[num] > 1e6) {
+            if (row_val[num_rows] > static_cast<index_type>(1e6)) {
                 std::make_shared<load_balance>(nwarps_)->process(host_row_ptrs,
                                                                  mtx_srow);
                 this->set_name("load_balance");
             } else {
                 index_type maxnum = 0;
-                for (index_type i = 1; i < num; i++) {
+                for (index_type i = 1; i < num_rows + 1; i++) {
                     maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
                 }
                 if (maxnum > 64) {
@@ -270,6 +283,14 @@ public:
     void convert_to(Coo<ValueType, IndexType> *result) const override;
 
     void move_to(Coo<ValueType, IndexType> *result) override;
+
+    void convert_to(Sellp<ValueType, IndexType> *result) const override;
+
+    void move_to(Sellp<ValueType, IndexType> *result) override;
+
+    void convert_to(Ell<ValueType, IndexType> *result) const override;
+
+    void move_to(Ell<ValueType, IndexType> *result) override;
 
     void read(const mat_data &data) override;
 
@@ -459,13 +480,6 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
-
-    /**
-     * Simple helper function to factorize conversion code of CSR matrix to COO.
-     *
-     * @return this CSR matrix in COO format
-     */
-    std::unique_ptr<Coo<ValueType, IndexType>> make_coo() const;
 
     /**
      * Compute srow, it should be run after setting value.

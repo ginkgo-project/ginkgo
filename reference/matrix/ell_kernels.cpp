@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/ell_kernels.hpp"
@@ -36,12 +35,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
 namespace kernels {
 namespace reference {
+/**
+ * @brief The ELL matrix format namespace.
+ * @ref Ell
+ * @ingroup ell
+ */
 namespace ell {
 
 
@@ -121,6 +126,86 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *result,
+                    const matrix::Ell<ValueType, IndexType> *source)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    size_type cur_ptr = 0;
+    row_ptrs[0] = 0;
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
+            const auto val = source->val_at(row, i);
+            const auto col = source->col_at(row, i);
+            if (val != zero<ValueType>()) {
+                values[cur_ptr] = val;
+                col_idxs[cur_ptr] = col;
+                cur_ptr++;
+            }
+        }
+        row_ptrs[row + 1] = cur_ptr;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Ell<ValueType, IndexType> *source,
+                    size_type *result)
+{
+    size_type nonzeros = 0;
+    const auto num_rows = source->get_size()[0];
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+    const auto stride = source->get_stride();
+
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
+            nonzeros += (source->val_at(row, i) != zero<ValueType>());
+        }
+    }
+
+    *result = nonzeros;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                                const matrix::Ell<ValueType, IndexType> *source,
+                                Array<size_type> *result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+    const auto stride = source->get_stride();
+
+    auto row_nnz_val = result->get_data();
+
+    for (size_type row = 0; row < num_rows; row++) {
+        size_type nonzeros_in_this_row = 0;
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
+            nonzeros_in_this_row +=
+                (source->val_at(row, i) != zero<ValueType>());
+        }
+        row_nnz_val[row] = nonzeros_in_this_row;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 }  // namespace ell

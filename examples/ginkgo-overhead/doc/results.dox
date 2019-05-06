@@ -1,0 +1,10 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
+        Average library overhead:     1505.35 [nanoseconds / iteration]
+@endcode
+
+<h4> Comments about programming and debugging </h4>
+

@@ -1,4 +1,4 @@
-FROM ubuntu:16.04 AS stage0
+FROM ubuntu:18.04 AS stage0
 
 # Python
 RUN apt-get update -y && \
@@ -24,6 +24,30 @@ RUN apt-get update -y && \
         doxygen \
         curl \
         valgrind && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        graphviz \
+        ghostscript \
+        texlive \
+        texlive-latex-extra && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        texlive \
+        texlive-latex-extra \
+        texlive-science \
+        texlive-fonts-extra \
+        texlive-publishers && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler

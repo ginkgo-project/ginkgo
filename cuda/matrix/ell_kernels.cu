@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/ell_kernels.hpp"
@@ -40,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -49,6 +49,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/zero_array.hpp"
 
@@ -56,8 +57,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
+/**
+ * @brief The ELL matrix format namespace.
+ *
+ * @ingroup ell
+ */
 namespace ell {
 
 
@@ -403,6 +407,191 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
+
+
+namespace kernel {
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
+    size_type num_rows, size_type max_nnz_per_row, size_type stride,
+    const ValueType *__restrict__ values, IndexType *__restrict__ result)
+{
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row_idx = tidx / warp_size;
+
+    if (row_idx < num_rows) {
+        IndexType part_result{};
+        for (auto i = threadIdx.x % warp_size; i < max_nnz_per_row;
+             i += warp_size) {
+            if (values[stride * i + row_idx] != zero<ValueType>()) {
+                part_result += 1;
+            }
+        }
+
+        auto warp_tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        result[row_idx] = reduce(
+            warp_tile, part_result,
+            [](const size_type &a, const size_type &b) { return a + b; });
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_csr(
+    size_type num_rows, size_type max_nnz_per_row, size_type stride,
+    const ValueType *__restrict__ source_values,
+    const IndexType *__restrict__ source_col_idxs,
+    IndexType *__restrict__ result_row_ptrs,
+    IndexType *__restrict__ result_col_idxs,
+    ValueType *__restrict__ result_values)
+{
+    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (tidx < num_rows) {
+        auto write_to = result_row_ptrs[tidx];
+        for (auto i = 0; i < max_nnz_per_row; i++) {
+            const auto source_idx = tidx + stride * i;
+            if (source_values[source_idx] != zero<ValueType>()) {
+                result_values[write_to] = source_values[source_idx];
+                result_col_idxs[write_to] = source_col_idxs[source_idx];
+                write_to++;
+            }
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *result,
+                    const matrix::Ell<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    const auto stride = source->get_stride();
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+
+    constexpr auto rows_per_block =
+        ceildiv(default_block_size, cuda_config::warp_size);
+    const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
+
+    kernel::count_nnz_per_row<<<grid_dim_nnz, default_block_size>>>(
+        num_rows, max_nnz_per_row, stride,
+        as_cuda_type(source->get_const_values()), as_cuda_type(row_ptrs));
+
+    size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
+    auto add_values = Array<IndexType>(exec, grid_dim);
+
+    start_prefix_sum<default_block_size>
+        <<<grid_dim, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
+                                           as_cuda_type(add_values.get_data()));
+
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
+        num_rows + 1, as_cuda_type(row_ptrs),
+        as_cuda_type(add_values.get_const_data()));
+
+    kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
+        num_rows, max_nnz_per_row, stride,
+        as_cuda_type(source->get_const_values()),
+        as_cuda_type(source->get_const_col_idxs()), as_cuda_type(row_ptrs),
+        as_cuda_type(col_idxs), as_cuda_type(values));
+
+    add_values.clear();
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
+
+
+namespace kernel {
+
+
+__global__ __launch_bounds__(default_block_size) void reduce_nnz(
+    size_type size, const size_type *__restrict__ nnz_per_row,
+    size_type *__restrict__ result)
+{
+    extern __shared__ size_type block_sum[];
+    reduce_array(size, nnz_per_row, block_sum,
+                 [](const size_type &x, const size_type &y) { return x + y; });
+
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] = block_sum[0];
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::Ell<ValueType, IndexType> *source,
+                    size_type *result)
+{
+    const auto num_rows = source->get_size()[0];
+    auto nnz_per_row = Array<size_type>(exec, num_rows);
+
+    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
+
+    const auto n = ceildiv(num_rows, default_block_size);
+    const size_type grid_dim =
+        (n <= default_block_size) ? n : default_block_size;
+
+    auto block_results = Array<size_type>(exec, grid_dim);
+
+    kernel::reduce_nnz<<<grid_dim, default_block_size,
+                         default_block_size * sizeof(size_type)>>>(
+        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
+        as_cuda_type(block_results.get_data()));
+
+    auto d_result = Array<size_type>(exec, 1);
+
+    kernel::reduce_nnz<<<1, default_block_size,
+                         default_block_size * sizeof(size_type)>>>(
+        grid_dim, as_cuda_type(block_results.get_const_data()),
+        as_cuda_type(d_result.get_data()));
+
+    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
+                                  result);
+    d_result.clear();
+    block_results.clear();
+    nnz_per_row.clear();
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
+                                const matrix::Ell<ValueType, IndexType> *source,
+                                Array<size_type> *result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+    const auto stride = source->get_stride();
+    const auto values = source->get_const_values();
+
+    const auto warp_size = cuda_config::warp_size;
+    const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
+
+    kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(
+        num_rows, max_nnz_per_row, stride, as_cuda_type(values),
+        as_cuda_type(result->get_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 }  // namespace ell

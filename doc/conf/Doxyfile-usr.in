@@ -3,6 +3,7 @@ GENERATE_HTML          = YES
 # this is used to hide protected members
 PREDEFINED = protected=private
 
+INPUT = @doxygen_markdown_files@ @doxygen_base_input_str@
 EXTRACT_STATIC         = NO
 EXTRACT_LOCAL_CLASSES  = NO
 EXTRACT_PRIVATE        = NO
@@ -10,5 +11,5 @@ INTERNAL_DOCS          = NO
 SOURCE_BROWSER         = NO
 CALL_GRAPH             = NO
 CALLER_GRAPH           = NO
-EXCLUDE_SYMBOLS        = *::detail::* std::*
+EXCLUDE_SYMBOLS        = *detail::* std::*
 WARN_LOGFILE           = @out@.log

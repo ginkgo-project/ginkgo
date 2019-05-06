@@ -1,0 +1,21 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+The custom-logger example shows how Ginkgo's API can be leveraged to implement application-specific callbacks for Ginkgo's events. This is the most basic way of extending Ginkgo and a good first step for any application developer who wants to adapt Ginkgo to his specific needs.
+
+Ginkgo's gko::log::Logger abstraction provides hooks to the events that happen during the library execution. These hooks concern any low-level event such as memory allocations, deallocations, copies and kernel launches up to high-level events such as linear operator applications and completion of solver iterations.
+
+In this example, a simple logger is implemented to track the solver's recurrent residual norm and compute the true residual norm. At the end of the solver execution, a comparison table is shown on-screen.
+
+<h3> About the example </h3>
+Each example has the following sections:
+<ol>
+  <li> <b>Introduction:</b>This gives an overview of the example and mentions
+  any interesting aspects in the example that might help the reader.
+  <li> <b>The commented program:</b> This section is intended for you to
+  understand the details of the example so that you can play with it and understand
+  Ginkgo and its features better.
+  <li> <b>Results:</b> This section shows the results of the code when run. Though the
+  results may not be completely the same, you can expect the behaviour to be similar. 
+  <li> <b>The plain program:</b> This is the complete code without any comments to have
+  an complete overview of the code.
+  </ol>

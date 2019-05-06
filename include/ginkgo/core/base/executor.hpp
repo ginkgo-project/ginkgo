@@ -1,34 +1,33 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_CORE_EXECUTOR_HPP_
@@ -168,6 +167,8 @@ class ExecutorBase;
  *
  * Using this approach, however, it is impossible to distinguish between
  * a OmpExecutor and ReferenceExecutor, as both of them call the OMP closure.
+ *
+ * @ingroup Executor
  */
 class Operation {
 public:
@@ -281,6 +282,8 @@ private:                                                                     \
  *     ref->run(op);  // run reference kernel
  * }
  * ```
+ *
+ * @ingroup Executor
  */
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
@@ -401,6 +404,8 @@ private:                                                                     \
  * This approach makes using the library more concise, as explicit copies are
  * not required by the user. Nevertheless, this feature should be taken into
  * account when considering performance implications of using such operations.
+ *
+ * @ingroup Executor
  */
 class Executor : public log::EnableLogging<Executor> {
     template <typename T>
@@ -616,6 +621,8 @@ private:
  * data.
  *
  * @tparam T  the type of object being deleted
+ *
+ * @ingroup Executor
  */
 template <typename T>
 class executor_deleter {
@@ -713,6 +720,9 @@ private:
 /**
  * This is the Executor subclass which represents the OpenMP device
  * (typically CPU).
+ *
+ * @ingroup exec_omp
+ * @ingroup Executor
  */
 class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
                     public std::enable_shared_from_this<OmpExecutor> {
@@ -754,6 +764,9 @@ using DefaultExecutor = OmpExecutor;
 /**
  * This is a specialization of the OmpExecutor, which runs the reference
  * implementations of the kernels used for debugging purposes.
+ *
+ * @ingroup exec_ref
+ * @ingroup Executor
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
@@ -784,6 +797,9 @@ using DefaultExecutor = ReferenceExecutor;
 
 /**
  * This is the Executor subclass which represents the CUDA device.
+ *
+ * @ingroup exec_cuda
+ * @ingroup Executor
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor> {

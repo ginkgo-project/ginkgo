@@ -1,35 +1,43 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright 2017-2019
+Copyright (c) 2017-2019, the Ginkgo authors
+All rights reserved.
 
-Karlsruhe Institute of Technology
-Universitat Jaume I
-University of Tennessee
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include "core/matrix/dense_kernels.hpp"
+
+
+#include <random>
+
+
+#include <gtest/gtest.h>
+
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -39,16 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "core/matrix/dense_kernels.hpp"
-
-
-#include <gtest/gtest.h>
-
-
-#include <random>
-
-
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -149,12 +148,12 @@ protected:
 TEST_F(Dense, SingleVectorCudaScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
+    auto result = Mtx::create(ref);
 
     x->scale(alpha.get());
     dx->scale(dalpha.get());
-
-    auto result = Mtx::create(ref);
     result->copy_from(dx.get());
+
     GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
 }
 
@@ -296,7 +295,6 @@ TEST_F(Dense, IsConjugateTransposable)
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
 
@@ -309,10 +307,24 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MoveToCooIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+
+    x->move_to(coo_mtx.get());
+    dx->move_to(dcoo_mtx.get());
+
+    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
+              coo_mtx->get_num_stored_elements());
+    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
 
@@ -323,10 +335,22 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MoveToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+
+    x->move_to(csr_mtx.get());
+    dx->move_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(cuda);
 
@@ -337,10 +361,22 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MoveToEllIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto ell_mtx = gko::matrix::Ell<>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+
+    x->move_to(ell_mtx.get());
+    dx->move_to(dell_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+}
+
+
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
 
@@ -351,10 +387,22 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MoveToSellpIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    x->move_to(sellp_mtx.get());
+    dx->move_to(dsellp_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+}
+
+
 TEST_F(Dense, CountNNZIsEquivalentToRef)
 {
     set_up_apply_data();
-
     gko::size_type nnz;
     gko::size_type dnnz;
 
@@ -368,13 +416,9 @@ TEST_F(Dense, CountNNZIsEquivalentToRef)
 TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
-
-    gko::Array<gko::size_type> nnz_per_row;
-    nnz_per_row.set_executor(ref);
+    gko::Array<gko::size_type> nnz_per_row(ref);
     nnz_per_row.resize_and_reset(x->get_size()[0]);
-
-    gko::Array<gko::size_type> dnnz_per_row;
-    dnnz_per_row.set_executor(cuda);
+    gko::Array<gko::size_type> dnnz_per_row(cuda);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
     gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
@@ -392,7 +436,6 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
-
     gko::size_type max_nnz;
     gko::size_type dmax_nnz;
 
@@ -408,7 +451,6 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
 {
     set_up_apply_data();
-
     gko::size_type total_cols;
     gko::size_type dtotal_cols;
 

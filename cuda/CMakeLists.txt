@@ -1,4 +1,11 @@
 enable_language(CUDA)
+
+# Needed because of a known issue with CUDA while linking statically.
+# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
+if (NOT BUILD_SHARED_LIBS)
+    set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
+endif()
+
 include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
@@ -29,7 +36,10 @@ target_sources(ginkgo_cuda
         matrix/ell_kernels.cu
         matrix/hybrid_kernels.cpp
         matrix/sellp_kernels.cu
+        preconditioner/jacobi_advanced_apply_kernel.cu
+        preconditioner/jacobi_generate_kernel.cu
         preconditioner/jacobi_kernels.cu
+        preconditioner/jacobi_simple_apply_kernel.cu
         solver/bicgstab_kernels.cu
         solver/cg_kernels.cu
         solver/cgs_kernels.cu
@@ -53,11 +63,6 @@ ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
-
-# Ensures that there are no circular dependency issues
-if(NOT BUILD_SHARED_LIBS)
-    target_link_libraries(ginkgo_cuda PUBLIC ginkgo)
-endif()
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}

@@ -7,7 +7,7 @@ Contents:
 	OpenMP latest apt version for Clang+OpenMP
 	Python 2 and 3 (upstream)
 	cmake (upstream)
-	git, openssh, doxygen, curl latest apt version
+	git, openssh, doxygen, curl, valgrind, graphviz latest apt version
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
 
@@ -20,7 +20,7 @@ Stage0.baseimage(image)
 # Setup extra tools
 Stage0 += python()
 Stage0 += cmake(eula=True)
-Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl', 'valgrind'])
+Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl', 'valgrind', 'graphviz'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '7')

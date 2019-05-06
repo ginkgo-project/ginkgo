@@ -1,5 +1,6 @@
 GENERATE_HTML          = YES
 
+INPUT = @doxygen_markdown_files@ @doxygen_base_input_str@ @doxygen_dev_input_str@
 EXTRACT_STATIC         = YES
 EXTRACT_LOCAL_CLASSES  = YES
 EXTRACT_PRIVATE        = YES
