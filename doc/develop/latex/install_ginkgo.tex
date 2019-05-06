@@ -24,6 +24,8 @@ cmake -G "Unix Makefiles" [OPTIONS] .. && make
 \item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+P\+DF=\{ON, O\+FF\}} generates a P\+DF version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+D\+EV=\{ON, O\+FF\}} generates the developer version of Ginkgo\textquotesingle{}s documentation. The default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+E\+X\+P\+O\+R\+T\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR=\{ON, O\+FF\}} adds the Ginkgo build directory to the C\+Make package registry. The default is {\ttfamily O\+FF}.
+\item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+T\+H\+\_\+\+C\+L\+A\+N\+G\+\_\+\+T\+I\+DY=\{ON, O\+FF\}} makes Ginkgo call {\ttfamily clang-\/tidy} to find programming issues. The path can be manually controlled with the C\+Make variable {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+L\+A\+N\+G\+\_\+\+T\+I\+D\+Y\+\_\+\+P\+A\+TH=$<$path$>$}.
+\item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+T\+H\+\_\+\+I\+W\+YU=\{ON, O\+FF\}} makes Ginkgo call {\ttfamily iwyu} to find include issues. The path can be manually controlled with the C\+Make variable {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+I\+W\+Y\+U\+\_\+\+P\+A\+TH=$<$path$>$}.
 \item {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+V\+E\+R\+B\+O\+S\+E\+\_\+\+L\+E\+V\+EL=integer} sets the verbosity of Ginkgo.
 \begin{DoxyItemize}
 \item {\ttfamily 0} disables all output in the main libraries,

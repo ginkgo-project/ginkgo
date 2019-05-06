@@ -83,6 +83,8 @@ $(function() {
 <li><code>-DGINKGO_DOC_GENERATE_PDF={ON, OFF}</code> generates a PDF version of Ginkgo's documentation from inline comments in the code. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_DOC_GENERATE_DEV={ON, OFF}</code> generates the developer version of Ginkgo's documentation. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}</code> adds the Ginkgo build directory to the CMake package registry. The default is <code>OFF</code>.</li>
+<li><code>-DGINKGO_WITH_CLANG_TIDY={ON, OFF}</code> makes Ginkgo call <code>clang-tidy</code> to find programming issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_CLANG_TIDY_PATH=&lt;path&gt;</code>.</li>
+<li><code>-DGINKGO_WITH_IWYU={ON, OFF}</code> makes Ginkgo call <code>iwyu</code> to find include issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_IWYU_PATH=&lt;path&gt;</code>.</li>
 <li><code>-DGINKGO_VERBOSE_LEVEL=integer</code> sets the verbosity of Ginkgo.<ul>
 <li><code>0</code> disables all output in the main libraries,</li>
 <li><code>1</code> enables a few important messages related to unexpected behavior (default).</li>
