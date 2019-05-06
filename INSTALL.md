@@ -113,14 +113,26 @@ packages can be turned off by disabling the relevant options.
 
 By default, Ginkgo uses the internal version of each package. For each of the
 packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
-Ginkgo to try to use an external version of a package. For this, set the CMake
-option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
-
-If the external packages were not installed to the default location, the
-CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon
-(`;`) separated list of install paths of these external packages. For more
-Information, see the [CMake documentation for CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
+Ginkgo to try to use an external version of a package. For this, Ginkgo provides
+two ways to find packages. To rely on the CMake `find_package` command, use the
+CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. Note that, if the external
+packages were not installed to the default location, the CMake option
+`-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon (`;`)
+separated list of install paths of these external packages. For more
+Information, see the [CMake documentation for
+CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
+
+To manually configure the paths Ginkgo relies on the [standard xSDK Installation
+policies](https://xsdk.info/policies/) for all packages except `CAS` (as it is
+neither a library nor a header, it cannot be expressed through the `TPL`
+format):
++ `-DTPL_ENABLE_<package>=ON`
++ `-DTPL_<package>_LIBRARIES=/path/to/libraries.{so|a}`
++ `-DTPL_<package>_INCLUDE_DIRS=/path/to/header/directory`
+
+When applicable (e.g. for `GTest` libraries), a `;` separated list can be given
+to the `TPL_<package>_{LIBRARIES|INCLUDE_DIRS}` variables.
 
 ### Installing Ginkgo
 
