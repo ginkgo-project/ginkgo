@@ -4,12 +4,6 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-# Load CMake helpers and modules
-include(cmake/build_helpers.cmake)
-include(cmake/create_test.cmake)
-include(cmake/install_helpers.cmake)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -71,7 +65,12 @@ if (GINKGO_WITH_IWYU)
 endif()
 
 
+# Load CMake helpers and modules
+include(cmake/build_helpers.cmake)
 include(cmake/build_type_helpers.cmake)
+include(cmake/create_test.cmake)
+include(cmake/install_helpers.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
@@ -91,12 +90,12 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest 1.8.1)
-ginkgo_find_package(gflags 2.2.2)
-ginkgo_find_package(RapidJSON 1.1.0)
+ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
+ginkgo_find_package(gflags gflags FALSE 2.2.2)
+ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
-# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
+# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
