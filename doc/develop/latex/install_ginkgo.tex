@@ -71,9 +71,16 @@ Ginkgo relies on third party packages in different cases. These third party pack
 \item G\+I\+N\+K\+G\+O\+\_\+\+D\+E\+V\+E\+L\+\_\+\+T\+O\+O\+LS=ON\+: \href{https://github.com/gflegar/git-cmake-format}{\tt git-\/cmake-\/format} is our C\+Make helper for code formatting.
 \end{DoxyItemize}
 
-By default, Ginkgo uses the internal version of each package. For each of the packages {\ttfamily G\+T\+E\+ST}, {\ttfamily G\+F\+L\+A\+GS}, {\ttfamily R\+A\+P\+I\+D\+J\+S\+ON} and {\ttfamily C\+AS}, it is possible to force Ginkgo to try to use an external version of a package. For this, set the C\+Make option {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+U\+S\+E\+\_\+\+E\+X\+T\+E\+R\+N\+A\+L\+\_\+$<$package$>$=ON}.
+By default, Ginkgo uses the internal version of each package. For each of the packages {\ttfamily G\+T\+E\+ST}, {\ttfamily G\+F\+L\+A\+GS}, {\ttfamily R\+A\+P\+I\+D\+J\+S\+ON} and {\ttfamily C\+AS}, it is possible to force Ginkgo to try to use an external version of a package. For this, Ginkgo provides two ways to find packages. To rely on the C\+Make {\ttfamily find\+\_\+package} command, use the C\+Make option {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+U\+S\+E\+\_\+\+E\+X\+T\+E\+R\+N\+A\+L\+\_\+$<$package$>$=ON}. Note that, if the external packages were not installed to the default location, the C\+Make option {\ttfamily -\/\+D\+C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH=$<$path-\/list$>$} needs to be set to the semicolon ({\ttfamily ;}) separated list of install paths of these external packages. For more Information, see the \href{https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html}{\tt C\+Make documentation for C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH} for details.
 
-If the external packages were not installed to the default location, the C\+Make option {\ttfamily -\/\+D\+C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH=$<$path-\/list$>$} needs to be set to the semicolon ({\ttfamily ;}) separated list of install paths of these external packages. For more Information, see the \href{https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html}{\tt C\+Make documentation for C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH} for details.
+To manually configure the paths Ginkgo relies on the \href{https://xsdk.info/policies/}{\tt standard x\+S\+DK Installation policies} for all packages except {\ttfamily C\+AS} (as it is neither a library nor a header, it cannot be expressed through the {\ttfamily T\+PL} format)\+:
+\begin{DoxyItemize}
+\item {\ttfamily -\/\+D\+T\+P\+L\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+$<$package$>$=ON}
+\item {\ttfamily -\/\+D\+T\+P\+L\+\_\+$<$package$>$\+\_\+\+L\+I\+B\+R\+A\+R\+I\+ES=/path/to/libraries.\{so$\vert$a\}}
+\item {\ttfamily -\/\+D\+T\+P\+L\+\_\+$<$package$>$\+\_\+\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS=/path/to/header/directory}
+\end{DoxyItemize}
+
+When applicable (e.\+g. for {\ttfamily G\+Test} libraries), a {\ttfamily ;} separated list can be given to the {\ttfamily T\+P\+L\+\_\+$<$package$>$\+\_\+\{L\+I\+B\+R\+A\+R\+I\+E\+S$\vert$\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS\}} variables.
 
 \subsubsection*{Installing Ginkgo}
 
