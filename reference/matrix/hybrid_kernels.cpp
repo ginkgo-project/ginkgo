@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/matrix/ell_kernels.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -94,7 +95,41 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *result,
                     const matrix::Hybrid<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto csr_val = result->get_values();
+    auto csr_col_idxs = result->get_col_idxs();
+    auto csr_row_ptrs = result->get_row_ptrs();
+    const auto ell = source->get_ell();
+    const auto max_nnz_per_row = ell->get_num_stored_elements_per_row();
+    const auto coo_val = source->get_const_coo_values();
+    const auto coo_col = source->get_const_coo_col_idxs();
+    const auto coo_row = source->get_const_coo_row_idxs();
+    const auto coo_nnz = source->get_coo_num_stored_elements();
+    csr_row_ptrs[0] = 0;
+    size_type csr_idx = 0;
+    size_type coo_idx = 0;
+    for (IndexType row = 0; row < source->get_size()[0]; row++) {
+        // Ell part
+        for (IndexType col = 0; col < max_nnz_per_row; col++) {
+            auto val = ell->val_at(row, col);
+            if (val != zero<ValueType>()) {
+                csr_val[csr_idx] = val;
+                csr_col_idxs[csr_idx] = ell->col_at(row, col);
+                csr_idx++;
+            }
+        }
+        // Coo part (row should be ascending)
+        while (coo_idx < coo_nnz && coo_row[coo_idx] == row) {
+            if (coo_val[coo_idx] != zero<ValueType>()) {
+                csr_val[csr_idx] = coo_val[coo_idx];
+                csr_col_idxs[csr_idx] = coo_col[coo_idx];
+                csr_idx++;
+            }
+            coo_idx++;
+        }
+        csr_row_ptrs[row + 1] = csr_idx;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
@@ -103,7 +138,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
-                    size_type *result) GKO_NOT_IMPLEMENTED;
+                    size_type *result)
+{
+    size_type ell_nnz = 0;
+    size_type coo_nnz = 0;
+    gko::kernels::reference::ell::count_nonzeros(exec, source->get_ell(),
+                                                 &ell_nnz);
+    const auto coo_val = source->get_const_coo_values();
+    const auto coo_max_nnz = source->get_coo_num_stored_elements();
+    for (size_type ind = 0; ind < coo_max_nnz; ind++) {
+        coo_nnz += (coo_val[ind] != zero<ValueType>());
+    }
+    *result = ell_nnz + coo_nnz;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
