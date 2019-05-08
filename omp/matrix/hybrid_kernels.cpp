@@ -96,6 +96,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
+                    matrix::Csr<ValueType, IndexType> *result,
+                    const matrix::Hybrid<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Hybrid<ValueType, IndexType> *source,
+                    size_type *result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
+
+
 }  // namespace hybrid
 }  // namespace omp
 }  // namespace kernels

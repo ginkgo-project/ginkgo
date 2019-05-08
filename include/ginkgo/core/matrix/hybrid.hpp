@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 
@@ -49,6 +50,9 @@ namespace matrix {
 
 template <typename ValueType>
 class Dense;
+
+template <typename ValueType, typename IndexType>
+class Csr;
 
 
 /**
@@ -67,11 +71,13 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid : public EnableLinOp<Hybrid<ValueType, IndexType>>,
                public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
                public ConvertibleTo<Dense<ValueType>>,
+               public ConvertibleTo<Csr<ValueType, IndexType>>,
                public ReadableFromMatrixData<ValueType, IndexType>,
                public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Hybrid>::convert_to;
@@ -327,6 +333,10 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void convert_to(Csr<ValueType, IndexType> *other) const override;
+
+    void move_to(Csr<ValueType, IndexType> *other) override;
 
     void read(const mat_data &data) override;
 
