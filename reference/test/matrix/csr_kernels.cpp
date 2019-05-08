@@ -36,12 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
@@ -57,6 +59,7 @@ protected:
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
     using Ell = gko::matrix::Ell<>;
+    using Hybrid = gko::matrix::Hybrid<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
@@ -156,6 +159,33 @@ protected:
         EXPECT_EQ(v[3], 0.0);
         EXPECT_EQ(v[4], 2.0);
         EXPECT_EQ(v[5], 0.0);
+    }
+
+    void assert_equal_to_mtx(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 4);
+        EXPECT_EQ(n, 0);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 0);
+        EXPECT_EQ(r[2], 0);
+        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
     }
 
     std::complex<double> i{0, 1};
@@ -309,6 +339,39 @@ TEST_F(Csr, MovesToSellp)
     csr_ref->move_to(sellp_mtx.get());
 
     assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+
+    mtx->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    gko::Array<gko::size_type> row_nnz(exec, mtx->get_size()[0]);
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(exec, mtx.get(),
+                                                             &row_nnz);
+    auto row_nnz_val = row_nnz.get_data();
+    ASSERT_EQ(row_nnz_val[0], 3);
+    ASSERT_EQ(row_nnz_val[1], 1);
 }
 
 
