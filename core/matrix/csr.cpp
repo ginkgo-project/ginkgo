@@ -58,10 +58,13 @@ GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        csr::calculate_max_nnz_per_row);
+GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
+                       csr::calculate_nonzeros_per_row);
 
 
 }  // namespace csr
@@ -118,6 +121,36 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Hybrid<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    Array<size_type> row_nnz(exec, this->get_size()[0]);
+    exec->run(csr::make_calculate_nonzeros_per_row(this, &row_nnz));
+    size_type ell_lim = zero<size_type>();
+    size_type coo_lim = zero<size_type>();
+    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
+    const auto max_nnz_per_row =
+        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
+    const auto stride = std::max(result->get_ell_stride(), this->get_size()[0]);
+    const auto coo_nnz =
+        std::max(result->get_coo_num_stored_elements(), coo_lim);
+    auto tmp = Hybrid<ValueType, IndexType>::create(
+        exec, this->get_size(), max_nnz_per_row, stride, coo_nnz,
+        result->get_strategy());
+    exec->run(csr::make_convert_to_hybrid(tmp.get(), this));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Hybrid<ValueType, IndexType> *result)
 {
     this->convert_to(result);
 }
