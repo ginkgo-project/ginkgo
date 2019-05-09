@@ -35,6 +35,11 @@ if [ ! "${SYSTEM_NAME}" ]; then
     SYSTEM_NAME="unknown"
 fi
 
+if [ ! "${DEVICE_ID}" ]; then
+    echo "DEVICE_ID environment variable not set - assuming \"0\"" 1>&2
+    DEVICE_ID="0"
+fi
+
 
 ################################################################################
 # Utilities
@@ -83,6 +88,7 @@ run_spmv_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -100,6 +106,7 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="cg,bicgstab,cgs,fcg" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=10000 --rel_res_goal=1e-6 \
+                    --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -125,6 +132,7 @@ run_preconditioner_benchmarks() {
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
                 --max_block_size="${bsize}" \
                 --storage_optimization="${prec}" \
+                --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
         done
