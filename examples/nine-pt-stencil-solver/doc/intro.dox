@@ -14,7 +14,7 @@ $
 
 using a finite difference method on an equidistant grid with `K` discretization
 points (`K` can be controlled with a command line parameter). The discretization
-may be done by any order Taylor polinomial.
+may be done by any order Taylor polynomial.
 For an equidistant grid with K "inner" discretization points (x1,y1), ...,
 (xk,y1),(x1,y2), ..., (xk,yk,z1) step size h = 1 / (K + 1) and a stencil \in
 \R^{3 x 3}, the formula produces a system of linear equations

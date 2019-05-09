@@ -42,16 +42,16 @@ This example solves a 2D Poisson equation:
 
 using a finite difference method on an equidistant grid with `K` discretization
 points (`K` can be controlled with a command line parameter). The discretization
-may be done by any order Taylor polinomial.
+may be done by any order Taylor polynomial.
 For an equidistant grid with K "inner" discretization points (x1,y1), ...,
-(xk,y1),(x1,y2), ..., (xk,yk,z1) step size h = 1 / (K + 1) and a stencil \in
+(xk,y1),(x1,y2), ..., (xk,yk) step size h = 1 / (K + 1) and a stencil \in
 \R^{3 x 3}, the formula produces a system of linear equations
 
 \sum_{a,b=-1}^1 stencil(a,b) * u_{(i+a,j+b} = -f_k h^2,  on any inner node with
 a neighborhood of inner nodes
 
 On any node, where neighbor is on the border, the neighbor is replaced with a
-'-stencil(a,b) * u_{i+a,j+b}' and added to the right hand sight vector. For
+'-stencil(a,b) * u_{i+a,j+b}' and added to the right hand side vector. For
 example a node with a neighborhood of only edge nodes may look like this
 
 \sum_{a,b=-1}^(1,0) stencil(a,b) * u_{(i+a,j+b} = -f_k h^2 - \sum_{a=-1}^1

@@ -1,1 +1,1 @@
-Use array views to generate stencil matrix. Solve a linear system.
+Use array views to generate a nine point 2D stencil matrix. Solve a linear system.

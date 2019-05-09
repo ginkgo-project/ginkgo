@@ -111,6 +111,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       </td></tr>
  *
  *   <tr valign="top">
+ *       <td>@ref nine_pt_stencil_solver</td>
+ *       <td> Using a nine point 2D stencil to solve the poisson equation with
+ *            array views.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref twentyseven_pt_stencil_solver</td>
+ *       <td> Using a twentyseven point 3D stencil to solve the poisson equation with
+ *            array views.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
  *       <td>@ref external_lib_interfacing</td>
  *       <td> Using Ginkgo's solver with the external library deal.II.
  *       </td></tr>
@@ -197,6 +209,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     </td>
  *     <td>@ref poisson_solver,
  *         @ref three_pt_stencil_solver,
+ *         @ref nine_pt_stencil_solver,
+ *         @ref twentyseven_pt_stencil_solver,
  *         @ref custom_matrix_format
  *     </td>
  *   </tr>
