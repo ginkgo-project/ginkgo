@@ -1,1 +1,1 @@
-simple-solver poisson-solver
+simple-solver poisson-solver three-pt-stencil-solver

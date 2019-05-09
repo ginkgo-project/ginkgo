@@ -42,7 +42,7 @@ This example solves a 3D Poisson equation:
 
 using a finite difference method on an equidistant grid with `K` discretization
 points (`K` can be controlled with a command line parameter). The discretization
-may be done by any order Taylor polinomial.
+may be done by any order Taylor polynomial.
 For an equidistant grid with K "inner" discretization points (x1,y1,z1), ...,
 (xk,y1,z1),(x1,y2,z1), ..., (xk,yk,z1), (x1,y1,z2), ..., (xk,yk,zk), step size h
 = 1 / (K + 1) and a stencil \in \R^{3 x 3 x 3}, the formula produces a system of
@@ -52,7 +52,7 @@ linear equations
 node with a neighborhood of inner nodes
 
 On any node, where neighbor is on the border, the neighbor is replaced with a
-'-stencil(a,b,c) * u_{i+a,j+b,k+c}' and added to the right hand sight vector.
+'-stencil(a,b,c) * u_{i+a,j+b,k+c}' and added to the right hand side vector.
 For example a node with a neighborhood of only face nodes may look like this
 
 \sum_{a,b,c=-1}^(1,1,0) stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2 -
