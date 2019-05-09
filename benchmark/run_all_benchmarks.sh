@@ -103,7 +103,7 @@ run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --executor="${EXECUTOR}" --formats="csr,csri,csrm,csrc,coo,hybrid,sellp,ell,cusp_coo,cusp_ell,cusp_hybrid,cusp_csr,cusp_csrmp,cusp_csrex,cusp_csrmm" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
