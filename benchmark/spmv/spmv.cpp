@@ -47,10 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 
 
-// Some shortcuts
+#ifdef HAS_CUDA
+#include "cuda_linops.hpp"
+#endif  // HAS_CUDA
+
+
 using etype = double;
 using duration_type = std::chrono::nanoseconds;
 using hybrid = gko::matrix::Hybrid<>;
+using csr = gko::matrix::Csr<>;
+
 
 // input validation
 void print_config_error_and_exit()
@@ -148,9 +154,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
     matrix_factory{
-        {"csr", read_matrix<gko::matrix::Csr<>>},
+        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
+        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
+        {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
+        {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix<gko::matrix::Coo<>>},
         {"ell", read_matrix<gko::matrix::Ell<>>},
+#ifdef HAS_CUDA
+        {"cusp_csr", read_matrix<cusp_csr>},
+        {"cusp_csrmp", read_matrix<cusp_csrmp>},
+        {"cusp_csrex", read_matrix<cusp_csrex>},
+        {"cusp_csrmm", read_matrix<cusp_csrmm>},
+        {"cusp_hybrid", read_matrix<cusp_hybrid>},
+        {"cusp_coo", read_matrix<cusp_coo>},
+        {"cusp_ell", read_matrix<cusp_ell>},
+#endif  // HAS_CUDA
         {"hybrid", read_matrix<hybrid>},
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
@@ -159,6 +177,12 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybrid33",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
+        {"hybrid40",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.4))},
+        {"hybrid60",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.6))},
+        {"hybrid80",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.8))},
         {"hybridlimit0",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::imbalance_bounded_limit>(0))},
