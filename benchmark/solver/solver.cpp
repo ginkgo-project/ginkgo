@@ -370,7 +370,7 @@ void solve_system(
 
     // compute and write benchmark data
     add_or_set_member(solver_json, "completed", true, allocator);
-} catch (std::exception e) {
+} catch (std::exception &e) {
     add_or_set_member(test_case["solver"][precond_solver_name], "completed",
                       false, allocator);
     std::cerr << "Error when processing test case " << test_case << "\n"
