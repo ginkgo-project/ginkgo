@@ -86,7 +86,7 @@ protected:
                 GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
                 GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(id));
                 gko::kernels::cuda::cusparse::destroy(descr);
-                cudaSetDevice(original_device_id);
+                GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
             });
     }
 
@@ -112,8 +112,8 @@ public:
 
     void read(const mat_data &data) override
     {
-        Csr_->read(data);
-        this->set_size(gko::dim<2>{Csr_->get_size()});
+        csr_->read(data);
+        this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -127,27 +127,27 @@ public:
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
-            Csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            Csr_->get_const_values(), Csr_->get_const_row_ptrs(),
-            Csr_->get_const_col_idxs(), db, &beta, dx));
+            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx));
     }
 
     gko::size_type get_num_stored_elements() const noexcept
     {
-        return Csr_->get_num_stored_elements();
+        return csr_->get_num_stored_elements();
     }
 
     CuspCsrmp(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmp, CuspBase>(exec, size),
-          Csr_(std::move(
+          csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
 
 private:
-    std::shared_ptr<csr> Csr_;
+    std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
 
@@ -166,8 +166,8 @@ public:
 
     void read(const mat_data &data) override
     {
-        Csr_->read(data);
-        this->set_size(gko::dim<2>{Csr_->get_size()});
+        csr_->read(data);
+        this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -181,26 +181,26 @@ public:
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
-            Csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            Csr_->get_const_values(), Csr_->get_const_row_ptrs(),
-            Csr_->get_const_col_idxs(), db, &beta, dx));
+            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx));
     }
 
     gko::size_type get_num_stored_elements() const noexcept
     {
-        return Csr_->get_num_stored_elements();
+        return csr_->get_num_stored_elements();
     }
 
     CuspCsr(std::shared_ptr<const gko::Executor> exec,
             const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsr, CuspBase>(exec, size),
-          Csr_(std::move(
+          csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
-    std::shared_ptr<csr> Csr_;
+    std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
 
@@ -219,8 +219,8 @@ public:
 
     void read(const mat_data &data) override
     {
-        Csr_->read(data);
-        this->set_size(gko::dim<2>{Csr_->get_size()});
+        csr_->read(data);
+        this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -235,27 +235,27 @@ public:
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
-            Csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            Csr_->get_const_values(), Csr_->get_const_row_ptrs(),
-            Csr_->get_const_col_idxs(), db, dense_b->get_size()[0], &beta, dx,
+            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, dense_b->get_size()[0], &beta, dx,
             dense_x->get_size()[0]));
     }
 
     gko::size_type get_num_stored_elements() const noexcept
     {
-        return Csr_->get_num_stored_elements();
+        return csr_->get_num_stored_elements();
     }
 
     CuspCsrmm(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmm, CuspBase>(exec, size),
-          Csr_(std::move(
+          csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
-    std::shared_ptr<csr> Csr_;
+    std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
 
@@ -274,18 +274,18 @@ public:
 
     void read(const mat_data &data) override
     {
-        Csr_->read(data);
+        csr_->read(data);
         size_t buffer_size;
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
-        this->set_size(gko::dim<2>{Csr_->get_size()});
+        this->set_size(gko::dim<2>{csr_->get_size()});
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
-            Csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
-            this->get_descr(), Csr_->get_const_values(), CUDA_R_64F,
-            Csr_->get_const_row_ptrs(), Csr_->get_const_col_idxs(), nullptr,
+            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
+            this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), nullptr,
             CUDA_R_64F, &beta, CUDA_R_64F, nullptr, CUDA_R_64F, CUDA_R_64F,
             &buffer_size));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
@@ -303,9 +303,9 @@ public:
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
-            Csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
-            this->get_descr(), Csr_->get_const_values(), CUDA_R_64F,
-            Csr_->get_const_row_ptrs(), Csr_->get_const_col_idxs(), db,
+            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
+            this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
             CUDA_R_64F, &beta, CUDA_R_64F, dx, CUDA_R_64F, CUDA_R_64F,
             buffer_));
     }
@@ -317,19 +317,21 @@ public:
 
     gko::size_type get_num_stored_elements() const noexcept
     {
-        return Csr_->get_num_stored_elements();
+        return csr_->get_num_stored_elements();
     }
 
     CuspCsrEx(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrEx, CuspBase>(exec, size),
-          Csr_(std::move(
+          csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           set_buffer_(false)
     {
 #ifdef ALLOWMP
-        cusparseAlgMode_t algmode_ = CUSPARSE_ALG_MERGE_PATH;
+        algmode_ = CUSPARSE_ALG_MERGE_PATH;
+#else
+        algmode_ = CUSPARSE_ALG1;
 #endif
     }
 
@@ -347,7 +349,7 @@ public:
     }
 
 private:
-    std::shared_ptr<csr> Csr_;
+    std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
     void *buffer_;
@@ -373,14 +375,14 @@ public:
 
     void read(const mat_data &data) override
     {
-        auto t_Csr = csr::create(this->get_executor(),
+        auto t_csr = csr::create(this->get_executor(),
                                  std::make_shared<typename csr::classical>());
-        t_Csr->read(data);
-        this->set_size(gko::dim<2>{t_Csr->get_size()});
+        t_csr->read(data);
+        this->set_size(gko::dim<2>{t_csr->get_size()});
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
-            this->get_size()[1], this->get_descr(), t_Csr->get_const_values(),
-            t_Csr->get_const_row_ptrs(), t_Csr->get_const_col_idxs(), hyb_,
+            this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
+            t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
             Threshold, Partition));
     }
 
