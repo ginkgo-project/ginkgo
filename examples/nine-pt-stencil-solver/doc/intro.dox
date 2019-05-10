@@ -23,7 +23,7 @@ For an equidistant grid with K "inner" discretization points (x1,y1), ...,
 a neighborhood of inner nodes
 
 On any node, where neighbor is on the border, the neighbor is replaced with a
-'-stencil(a,b) * u_{i+a,j+b}' and added to the right hand sight vector. For
+'-stencil(a,b) * u_{i+a,j+b}' and added to the right hand side vector. For
 example a node with a neighborhood of only edge nodes may look like this
 
 \sum_{a,b=-1}^(1,0) stencil(a,b) * u_{(i+a,j+b} = -f_k h^2 - \sum_{a=-1}^1
