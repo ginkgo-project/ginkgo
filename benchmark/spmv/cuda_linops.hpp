@@ -36,12 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
-#include "cuda/base/cusparse_bindings.hpp"
-
-
 #include <cuda_runtime.h>
 #include <cusparse.h>
 #include <memory>
+
+
+#include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/device_guard.hpp"
 
 
 namespace detail {
@@ -79,14 +80,12 @@ protected:
     void initialize_descr()
     {
         const auto id = this->gpu_exec->get_device_id();
+        gko::device_guard g{id};
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
             [id](cusparseMatDescr_t descr) {
-                int original_device_id{};
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(id));
+                gko::device_guard g{id};
                 gko::kernels::cuda::cusparse::destroy(descr);
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
             });
     }
 
@@ -124,6 +123,9 @@ public:
         auto dx = dense_x->get_values();
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
+
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -178,6 +180,9 @@ public:
         auto dx = dense_x->get_values();
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
+
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -232,6 +237,8 @@ public:
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
 
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -280,6 +287,8 @@ public:
         auto beta = gko::zero<ValueType>();
         this->set_size(gko::dim<2>{csr_->get_size()});
 
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
@@ -300,6 +309,9 @@ public:
         auto dx = dense_x->get_values();
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
+
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
@@ -337,6 +349,8 @@ public:
 
     ~CuspCsrEx() override
     {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         if (set_buffer_) {
             try {
                 GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
@@ -379,6 +393,9 @@ public:
                                  std::make_shared<typename csr::classical>());
         t_csr->read(data);
         this->set_size(gko::dim<2>{t_csr->get_size()});
+
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -394,6 +411,8 @@ public:
         auto dx = dense_x->get_values();
         auto alpha = gko::one<ValueType>();
         auto beta = gko::zero<ValueType>();
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseDhybmv(this->get_gpu_exec()->get_cusparse_handle(), trans_,
                            &alpha, this->get_descr(), hyb_, db, &beta, dx));
@@ -404,11 +423,15 @@ public:
         : gko::EnableLinOp<CuspHybrid, CuspBase>(exec, size),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
     }
 
     ~CuspHybrid() override
     {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
         try {
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (std::exception &e) {
