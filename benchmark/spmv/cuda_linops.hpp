@@ -342,8 +342,6 @@ public:
     {
 #ifdef ALLOWMP
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
-#else
-        algmode_ = CUSPARSE_ALG1;
 #endif
     }
 
