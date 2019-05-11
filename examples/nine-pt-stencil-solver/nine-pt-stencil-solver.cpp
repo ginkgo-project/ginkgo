@@ -162,7 +162,6 @@ void generate_rhs(int dp, Closure f, ClosureT u, double *rhs, double *coefs)
     }
 
     // remove the double corner values
-
     rhs[0] += u(0.0, 0.0) * coefs[0];
     rhs[(dp - 1)] += u(1.0, 0.0) * coefs[2];
     rhs[(dp - 1) * dp] += u(0.0, 1.0) * coefs[6];
