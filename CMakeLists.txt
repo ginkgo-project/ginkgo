@@ -145,6 +145,12 @@ if (GINKGO_BUILD_HIP)
     elseif (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
         set(GINKGO_HIP_PLATFORM_NVCC 1)
     endif()
+
+# Automatically find HWLOC
+set(GINKGO_HAVE_HWLOC 0)
+find_package(HWLOC)
+if (HWLOC_FOUND)
+    set(GINKGO_HAVE_HWLOC 1)
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
