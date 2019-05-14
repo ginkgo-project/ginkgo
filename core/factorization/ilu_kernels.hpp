@@ -55,7 +55,7 @@ namespace kernels {
 #define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,              \
+        const matrix::Coo<ValueType, IndexType> *system_matrix,              \
         matrix::Csr<ValueType, IndexType> *l_factor,                         \
         matrix::Csr<ValueType, IndexType> *u_factor)
 
@@ -66,7 +66,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType);
+    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
@@ -79,20 +79,20 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 
 namespace cuda {
-namespace ilu_factorization {
+namespace par_ilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace ilu_factorization
+}  // namespace par_ilu_factorization
 }  // namespace cuda
 
 
 namespace reference {
-namespace ilu_factorization {
+namespace par_ilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace ilu_factorization
+}  // namespace par_ilu_factorization
 }  // namespace reference
 
 

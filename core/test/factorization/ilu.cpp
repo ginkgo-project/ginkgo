@@ -71,7 +71,7 @@ public:
     using value_type = double;
     using index_type = gko::int32;
     using ilu_factory_type =
-        gko::factorization::ParIluFactory<value_type, index_type>;
+        gko::factorization::ParIluFactors<value_type, index_type>;
 
 protected:
     ParIluFactory()
@@ -85,10 +85,9 @@ protected:
 
 TEST_F(ParIluFactory, ThrowNotSupportedForWrongLinOp)
 {
-    auto factory = ilu_factory_type(ref);
+    auto factory = ilu_factory_type::build().on(ref);
 
-    auto test = factory.generate(gko::share(linOp));
-    // ASSERT_THROW(factory.generate(gko::lend(linOp)), gko::NotSupported);
+    ASSERT_THROW(factory->generate(gko::share(linOp)), gko::NotSupported);
 }
 
 
