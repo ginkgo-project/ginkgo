@@ -59,8 +59,9 @@ GKO_REGISTER_OPERATION(compute_l_u_factors,
 
 
 template <typename ValueType, typename IndexType>
-void ParIluFactory<ValueType, IndexType>::generate_impl(
-    std::shared_ptr<const LinOp> system)
+std::unique_ptr<Composition<ValueType>>
+ParIluFactors<ValueType, IndexType>::generate_l_u(
+    std::shared_ptr<const LinOp> system) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -68,41 +69,47 @@ void ParIluFactory<ValueType, IndexType>::generate_impl(
     const auto exec = this->get_executor();
     // only copies if it is not on the same executor (or was not in the right
     // format)
-    auto csr_system_matrix = copy_and_convert_to<CsrMatrix>(system.get());
+    auto csr_system_matrix = copy_and_convert_to<CsrMatrix>(exec, system.get());
 
     const auto matrix_size = csr_system_matrix->get_size();
     size_t l_nnz{};
     size_t u_nnz{};
-    exec->run(ilu_factorization::make_compute_nnz_l_u(csr_system_matrix.get(),
-                                                      &l_nnz, &u_nnz));
+    exec->run(par_ilu_factorization::make_compute_nnz_l_u(
+        csr_system_matrix.get(), &l_nnz, &u_nnz));
     auto l_factor =
         l_matrix_type::create(exec, matrix_size, l_nnz /* TODO set strategy */);
     auto u_factor =
         u_matrix_type::create(exec, matrix_size, u_nnz /* TODO set strategy */);
 
     // TODO create a new kernel that does the fill-in
-    exec->run(ilu_factorization::make_initialize_l_u(
+    exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix.get(), l_factor.get(), u_factor.get()));
-    auto u_factor_trans = u_factor->transpose();
+    auto u_factor_transpose_lin_op = u_factor->transpose();
+    std::unique_ptr<u_matrix_type> u_factor_transpose{
+        static_cast<u_matrix_type *>(u_factor_transpose_lin_op.release())};
     // TODO compute l_factor and u_factor
 
     // Use copy_and_convert_to again in case it was originally a COO matrix, so
     // the conversion would not be necessary
-    auto coo_system_matrix = copy_and_convert_to<CooMatrix>(system.get());
+    auto coo_system_matrix = copy_and_convert_to<CooMatrix>(exec, system.get());
 
-    exec->run(ilu_factorization::make_compute_l_u_factors(
+    exec->run(par_ilu_factorization::make_compute_l_u_factors(
         coo_system_matrix.get(), l_factor.get(), u_factor_transpose.get()));
 
     // TODO maybe directly call the csr kernel for transpose so there is one
     // less allocation and deletion!
-    u_factor = u_factor_trans->transpose();
+    // u_factor = u_factor_transpose->transpose();
+    auto u_factor_lin_op = u_factor->transpose();
+    u_factor = std::unique_ptr<u_matrix_type>{
+        static_cast<u_matrix_type *>(u_factor_lin_op.release())};
 
-    return ComposedLinOp::create(std::move(l_factor), std::move(u_factor));
+    return Composition<ValueType>::create(std::move(l_factor),
+                                          std::move(u_factor));
 }
 
 
 #define GKO_DECLARE_PAR_ILU_FACTORY(ValueType, IndexType) \
-    class ParIluFactory<ValueType, IndexType>
+    class ParIluFactors<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PAR_ILU_FACTORY);
 
 

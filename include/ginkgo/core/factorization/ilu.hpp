@@ -66,42 +66,45 @@ namespace factorization {
  * @ingroup factor
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ParIluFactors
-    :  // public EnableDefaultLinOpFactory<ParIluFactory, ComposedLinOp, >
-{
+class ParIluFactors : public Composition<ValueType> {
 public:
-    friend class EnablePolymorphicObject<ParIluFactory<ValueType, IndexType>,
-                                         LinOpFactory>;
     using value_type = ValueType;
     using index_type = IndexType;
     using l_matrix_type = matrix::Csr<ValueType, IndexType>;
     using u_matrix_type = matrix::Csr<ValueType, IndexType>;
 
-    using EnablePolymorphicObject<ParIluFactory<ValueType, IndexType>,
-                                  LinOpFactory>::EnablePolymorphicObject;
-    /**
-     * Creates a factory for an incomplete LU factorization.
-     * @param exec  the executor for the LU decomposition
-     * @param TODO  parameters created by the `GKO_CREATE_FACTORY_PARAMETERS`
-     */
-    explicit ParIluFactory(
-        std::shared_ptr<const Executor> exec
-        /* TODO list other parameters needed for the factory */)
-        : EnablePolymorphicObject(std::move(exec))
-    {
-        // TODO use the parameters to properly instantiate this object
-    }
+    // Remove the possibility of calling `create`, which was enabled by
+    // `Composition`
+    template <typename... Args>
+    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
+        delete;
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){
+        // TODO: Insert all needed parameters in here
+    };
+    GKO_ENABLE_LIN_OP_FACTORY(ParIluFactors, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
+    explicit ParIluFactors(const Factory *factory,
+                           std::shared_ptr<const LinOp> system_matrix)
+        : Composition<ValueType>(factory->get_executor())
+    {
+        // TODO: Fill in potential parameters here
+
+        generate_l_u(std::move(system_matrix))->move_to(this);
+    }
+
     /**
+     * TODO
      * Generates the incomplete LU factors and returns a composition of the
      * lower and the upper factor.
      *
      * @param system_matrix  the source matrix used to generate the
      *                       factors
      */
-    std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> system) const override;
+    std::unique_ptr<Composition<ValueType>> generate_l_u(
+        std::shared_ptr<const LinOp> system) const;
 };
 
 
