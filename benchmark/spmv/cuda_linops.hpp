@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef __CUDA_LINOPS__
-#define __CUDA_LINOPS__
+#ifndef GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
+#define GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -50,15 +50,17 @@ namespace detail {
 
 class CuspBase : public gko::LinOp {
 public:
-    void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
-                    gko::LinOp *) const override
-    {}
-
     cusparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
     const gko::CudaExecutor *get_gpu_exec() const { return gpu_exec; }
 
 protected:
+    void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
+                    gko::LinOp *) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
     CuspBase(std::shared_ptr<const gko::Executor> exec,
              const gko::dim<2> &size = gko::dim<2>{})
         : gko::LinOp(exec, size)
@@ -104,6 +106,7 @@ class CuspCsrmp
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CuspCsrmp<ValueType, IndexType>> {
     friend class gko::EnableCreateMethod<CuspCsrmp>;
+    friend class gko::EnablePolymorphicObject<CuspCsrmp, CuspBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -115,6 +118,12 @@ public:
         this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<double>>(b);
@@ -133,11 +142,6 @@ public:
             &scalars.get_const_data()[1], dx));
     }
 
-    gko::size_type get_num_stored_elements() const noexcept
-    {
-        return csr_->get_num_stored_elements();
-    }
-
     CuspCsrmp(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmp, CuspBase>(exec, size),
@@ -145,7 +149,6 @@ public:
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
-
 
 private:
     // Contains {alpha, beta}
@@ -163,6 +166,7 @@ class CuspCsr
       public gko::EnableCreateMethod<CuspCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CuspCsr>;
+    friend class gko::EnablePolymorphicObject<CuspCsr, CuspBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -174,6 +178,12 @@ public:
         this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
@@ -190,11 +200,6 @@ public:
             this->get_descr(), csr_->get_const_values(),
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
             &scalars.get_const_data()[1], dx));
-    }
-
-    gko::size_type get_num_stored_elements() const noexcept
-    {
-        return csr_->get_num_stored_elements();
     }
 
     CuspCsr(std::shared_ptr<const gko::Executor> exec,
@@ -221,6 +226,7 @@ class CuspCsrmm
       public gko::EnableCreateMethod<CuspCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CuspCsrmm>;
+    friend class gko::EnablePolymorphicObject<CuspCsrmm, CuspBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -232,6 +238,12 @@ public:
         this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
@@ -249,11 +261,6 @@ public:
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
             dense_b->get_size()[0], &scalars.get_const_data()[1], dx,
             dense_x->get_size()[0]));
-    }
-
-    gko::size_type get_num_stored_elements() const noexcept
-    {
-        return csr_->get_num_stored_elements();
     }
 
     CuspCsrmm(std::shared_ptr<const gko::Executor> exec,
@@ -280,6 +287,7 @@ class CuspCsrEx
       public gko::EnableCreateMethod<CuspCsrEx<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CuspCsrEx>;
+    friend class gko::EnablePolymorphicObject<CuspCsrEx, CuspBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -288,8 +296,33 @@ public:
     void read(const mat_data &data) override
     {
         csr_->read(data);
-        size_t buffer_size;
         this->set_size(gko::dim<2>{csr_->get_size()});
+    }
+
+    ~CuspCsrEx() override
+    {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
+        if (set_buffer_) {
+            try {
+                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+            } catch (const std::exception &e) {
+                std::cerr
+                    << "Error when unallocating CuspCsrEx temporary buffer: "
+                    << e.what() << std::endl;
+            }
+        }
+    }
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    {
+        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
+        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        gko::size_type buffer_size = 0;
+        auto data_type = gko::kernels::cuda::cuda_data_type<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
@@ -298,31 +331,21 @@ public:
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
-            CUDA_R_64F, this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
-            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), nullptr,
-            CUDA_R_64F, &scalars.get_const_data()[1], CUDA_R_64F, nullptr,
-            CUDA_R_64F, CUDA_R_64F, &buffer_size));
+            data_type, this->get_descr(), csr_->get_const_values(), data_type,
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
+            data_type, &scalars.get_const_data()[1], data_type, dx, data_type,
+            data_type, &buffer_size));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
         set_buffer_ = true;
-    }
 
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
-    {
-        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
-        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
-        auto db = dense_b->get_const_values();
-        auto dx = dense_x->get_values();
-
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
-            CUDA_R_64F, this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
+            data_type, this->get_descr(), csr_->get_const_values(), data_type,
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            CUDA_R_64F, &scalars.get_const_data()[1], CUDA_R_64F, dx,
-            CUDA_R_64F, CUDA_R_64F, buffer_));
+            data_type, &scalars.get_const_data()[1], data_type, dx, data_type,
+            data_type, buffer_));
     }
 
 
@@ -344,21 +367,6 @@ public:
 #endif
     }
 
-    ~CuspCsrEx() override
-    {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
-        if (set_buffer_) {
-            try {
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
-            } catch (std::exception &e) {
-                std::cout
-                    << "Error when unallocating CuspCsrEx temporary buffer"
-                    << std::endl;
-            }
-        }
-    }
-
 private:
     // Contains {alpha, beta}
     gko::Array<ValueType> scalars{
@@ -366,8 +374,8 @@ private:
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
-    void *buffer_;
-    bool set_buffer_;
+    mutable void *buffer_;
+    mutable bool set_buffer_;
 };
 
 
@@ -382,6 +390,7 @@ class CuspHybrid
           CuspHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CuspHybrid>;
+    friend class gko::EnablePolymorphicObject<CuspHybrid, CuspBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -403,6 +412,19 @@ public:
             Threshold, Partition));
     }
 
+    ~CuspHybrid() override
+    {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::device_guard g{id};
+        try {
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
+        } catch (const std::exception &e) {
+            std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
+                      << e.what() << std::endl;
+        }
+    }
+
+protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
@@ -426,18 +448,6 @@ public:
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
-    }
-
-    ~CuspHybrid() override
-    {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
-        try {
-            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
-        } catch (std::exception &e) {
-            std::cout << "Error when unallocating CuspHybrid hyb_ matrix"
-                      << std::endl;
-        }
     }
 
 private:
@@ -465,4 +475,4 @@ using cusp_ell =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_hybrid = detail::CuspHybrid<>;
 
-#endif  // __CUDA_LINOPS__
+#endif  // GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_

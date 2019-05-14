@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
             extract_matrix_statistics(matrix, test_case["problem"], allocator);
 
             backup_results(test_cases);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error extracting statistics, what(): " << e.what()
                       << std::endl;
         }
