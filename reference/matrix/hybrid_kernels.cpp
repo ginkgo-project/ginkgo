@@ -111,7 +111,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     for (IndexType row = 0; row < source->get_size()[0]; row++) {
         // Ell part
         for (IndexType col = 0; col < max_nnz_per_row; col++) {
-            auto val = ell->val_at(row, col);
+            const auto val = ell->val_at(row, col);
             if (val != zero<ValueType>()) {
                 csr_val[csr_idx] = val;
                 csr_col_idxs[csr_idx] = ell->col_at(row, col);
