@@ -432,7 +432,7 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
     for (IndexType row = 0; row < num_rows; row++) {
         size_type ell_idx = 0;
         while (csr_idx < csr_row_ptrs[row + 1]) {
-            auto val = csr_vals[csr_idx];
+            const auto val = csr_vals[csr_idx];
             if (val != zero<ValueType>()) {
                 if (ell_idx < ell_lim) {
                     result->ell_val_at(row, ell_idx) = val;
