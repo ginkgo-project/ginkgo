@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
             auto mdata = generator[type](config["problem"], engine);
             std::ofstream ofs(filename);
             gko::write_raw(ofs, mdata, gko::layout_type::coordinate);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error generating matrix, what(): " << e.what()
                       << std::endl;
         }
