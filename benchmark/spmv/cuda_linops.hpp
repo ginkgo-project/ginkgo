@@ -121,17 +121,16 @@ public:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            csr_->get_const_values(), csr_->get_const_row_ptrs(),
-            csr_->get_const_col_idxs(), db, &beta, dx));
+            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
+            this->get_descr(), csr_->get_const_values(),
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
+            &scalars.get_const_data()[1], dx));
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -149,6 +148,9 @@ public:
 
 
 private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
@@ -178,17 +180,16 @@ public:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            csr_->get_const_values(), csr_->get_const_row_ptrs(),
-            csr_->get_const_col_idxs(), db, &beta, dx));
+            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
+            this->get_descr(), csr_->get_const_values(),
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
+            &scalars.get_const_data()[1], dx));
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -205,6 +206,9 @@ public:
     {}
 
 private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
@@ -234,17 +238,16 @@ public:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
-            csr_->get_const_values(), csr_->get_const_row_ptrs(),
-            csr_->get_const_col_idxs(), db, dense_b->get_size()[0], &beta, dx,
+            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
+            this->get_descr(), csr_->get_const_values(),
+            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
+            dense_b->get_size()[0], &scalars.get_const_data()[1], dx,
             dense_x->get_size()[0]));
     }
 
@@ -262,6 +265,9 @@ public:
     {}
 
 private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
 };
@@ -283,20 +289,19 @@ public:
     {
         csr_->read(data);
         size_t buffer_size;
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
         this->set_size(gko::dim<2>{csr_->get_size()});
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
+        // TODO: There is a problem here !
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
-            this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
+            CUDA_R_64F, this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), nullptr,
-            CUDA_R_64F, &beta, CUDA_R_64F, nullptr, CUDA_R_64F, CUDA_R_64F,
-            &buffer_size));
+            CUDA_R_64F, &scalars.get_const_data()[1], CUDA_R_64F, nullptr,
+            CUDA_R_64F, CUDA_R_64F, &buffer_size));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
         set_buffer_ = true;
     }
@@ -307,25 +312,19 @@ public:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
             this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
             this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, CUDA_R_64F,
-            this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
+            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
+            CUDA_R_64F, this->get_descr(), csr_->get_const_values(), CUDA_R_64F,
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            CUDA_R_64F, &beta, CUDA_R_64F, dx, CUDA_R_64F, CUDA_R_64F,
-            buffer_));
+            CUDA_R_64F, &scalars.get_const_data()[1], CUDA_R_64F, dx,
+            CUDA_R_64F, CUDA_R_64F, buffer_));
     }
 
-
-    void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
-                    gko::LinOp *) const override
-    {}
 
     gko::size_type get_num_stored_elements() const noexcept
     {
@@ -361,6 +360,9 @@ public:
     }
 
 private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
@@ -407,13 +409,13 @@ public:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
-        auto alpha = gko::one<ValueType>();
-        auto beta = gko::zero<ValueType>();
+
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseDhybmv(this->get_gpu_exec()->get_cusparse_handle(), trans_,
-                           &alpha, this->get_descr(), hyb_, db, &beta, dx));
+                           &scalars.get_const_data()[0], this->get_descr(),
+                           hyb_, db, &scalars.get_const_data()[1], dx));
     }
 
     CuspHybrid(std::shared_ptr<const gko::Executor> exec,
@@ -439,6 +441,9 @@ public:
     }
 
 private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     cusparseOperation_t trans_;
     cusparseHybMat_t hyb_;
 };
