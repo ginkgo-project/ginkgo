@@ -73,6 +73,20 @@ public:
     using l_matrix_type = matrix::Csr<ValueType, IndexType>;
     using u_matrix_type = matrix::Csr<ValueType, IndexType>;
 
+    const l_matrix_type *get_l_factor() const
+    {
+        // Can be `static_cast` since the type is guaranteed in this class
+        return static_cast<const l_matrix_type *>(
+            this->get_operators()[0].get());
+    }
+
+    const u_matrix_type *get_u_factor() const
+    {
+        // Can be `static_cast` since the type is guaranteed in this class
+        return static_cast<const u_matrix_type *>(
+            this->get_operators()[1].get());
+    }
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>

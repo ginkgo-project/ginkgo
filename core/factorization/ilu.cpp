@@ -72,8 +72,8 @@ ParIluFactors<ValueType, IndexType>::generate_l_u(
     auto csr_system_matrix = copy_and_convert_to<CsrMatrix>(exec, system.get());
 
     const auto matrix_size = csr_system_matrix->get_size();
-    size_t l_nnz{};
-    size_t u_nnz{};
+    size_type l_nnz{};
+    size_type u_nnz{};
     exec->run(par_ilu_factorization::make_compute_nnz_l_u(
         csr_system_matrix.get(), &l_nnz, &u_nnz));
     auto l_factor =

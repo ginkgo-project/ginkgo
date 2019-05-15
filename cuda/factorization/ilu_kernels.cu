@@ -52,7 +52,7 @@ namespace par_ilu_factorization {
 template <typename ValueType, typename IndexType>
 void compute_nnz_l_u(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *system_matrix,
-                     size_t *l_nnz, size_t *u_nnz) GKO_NOT_IMPLEMENTED;
+                     size_type *l_nnz, size_type *u_nnz) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL);

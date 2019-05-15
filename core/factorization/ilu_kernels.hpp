@@ -41,11 +41,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL(ValueType, IndexType)       \
-    void compute_nnz_l_u(                                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Csr<ValueType, IndexType> *system_matrix, size_t *l_nnz, \
-        size_t *u_nnz)
+#define GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL(ValueType, IndexType) \
+    void compute_nnz_l_u(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType> *system_matrix,          \
+        size_type *l_nnz, size_type *u_nnz)
 #define GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
     void initialize_l_u(                                                \
         std::shared_ptr<const DefaultExecutor> exec,                    \

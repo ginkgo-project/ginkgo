@@ -52,7 +52,7 @@ namespace par_ilu_factorization {
 template <typename ValueType, typename IndexType>
 void compute_nnz_l_u(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *system_matrix,
-                     size_t *l_nnz, size_t *u_nnz)
+                     size_type *l_nnz, size_type *u_nnz)
 {
     auto rowpts = system_matrix->get_const_row_ptrs();
     auto cols = system_matrix->get_const_col_idxs();
@@ -81,9 +81,9 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
 {
-    auto rowpts = system_matrix->get_const_row_ptrs();
-    auto cols = system_matrix->get_const_col_idxs();
-    auto vals = system_matrix->get_const_values();
+    const auto rowpts = system_matrix->get_const_row_ptrs();
+    const auto cols = system_matrix->get_const_col_idxs();
+    const auto vals = system_matrix->get_const_values();
 
     auto rowpts_l = csr_l->get_row_ptrs();
     auto cols_l = csr_l->get_col_idxs();
@@ -134,37 +134,40 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          matrix::Csr<ValueType, IndexType> *l_factor,
                          matrix::Csr<ValueType, IndexType> *u_factor)
 {
-    auto cols = system_matrix->get_const_col_idxs();
-    auto rows = system_matrix->get_const_row_idxs();
-    auto vals = system_matrix->get_const_values();
-    auto l_rowpts = l_factor->get_const_row_ptrs();
-    auto u_rowpts = u_factor->get_const_row_ptrs();
-    auto l_cols = l_factor->get_const_col_idxs();
-    auto u_cols = u_factor->get_const_col_idxs();
+    const auto cols = system_matrix->get_const_col_idxs();
+    const auto rows = system_matrix->get_const_row_idxs();
+    const auto vals = system_matrix->get_const_values();
+    const auto l_rowpts = l_factor->get_const_row_ptrs();
+    const auto u_rowpts = u_factor->get_const_row_ptrs();
+    const auto l_cols = l_factor->get_const_col_idxs();
+    const auto u_cols = u_factor->get_const_col_idxs();
     auto l_vals = l_factor->get_values();
     auto u_vals = u_factor->get_values();
     ValueType sum{};
     ValueType tmp{};
-    for (size_type el = 0; el < system_matrix->get_num_stored_elements; ++el) {
-        auto row = rows[el];
-        auto col = cols[el];
-        auto val = vals[el];
+    for (size_type el = 0; el < system_matrix->get_num_stored_elements();
+         ++el) {
+        const auto row = rows[el];
+        const auto col = cols[el];
+        const auto val = vals[el];
         auto il = l_rowpts[row];
         auto iu = u_rowpts[col];
         while (il < l_rowpts[row + 1] && iu < u_rowpts[col + 1]) {
-            tmp = zero<ValueTye>();
+            tmp = zero<ValueType>();
             auto jl = l_cols[il];
             auto ju = u_cols[iu];
-            tmp = (jl == ju) ? l_vals[il] * u_vals[iu] : sp;
+            tmp = (jl == ju) ? l_vals[il] * u_vals[iu] : tmp;
             sum = (jl == ju) ? sum - tmp : sum;
             il = (jl <= ju) ? il + 1 : il;
             iu = (jl >= ju) ? iu + 1 : iu;
         }
         sum += tmp;  // undo the last operation (it must be the last)
-        if (i > j)   // modify entry in L
+        // TODO: Check if this is the correct comparison
+        if (iu > il) {  // modify entry in L
             l_vals[il - 1] = sum / u_vals[u_rowpts[col + 1] - 1];
-        else  // modify entry in U
+        } else {  // modify entry in U
             u_vals[iu - 1] = sum;
+        }
     }
 }
 
