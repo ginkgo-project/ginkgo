@@ -8,11 +8,13 @@ var searchData=
   ['the_20ginkgo_2dranges_20program',['The ginkgo-ranges program',['../ginkgo_ranges.html',1,'']]],
   ['the_20inverse_2diteration_20program',['The inverse-iteration program',['../inverse_iteration.html',1,'']]],
   ['the_20minimal_2dcuda_2dsolver_20program',['The minimal-cuda-solver program',['../minimal_cuda_solver.html',1,'']]],
+  ['the_20nine_2dpt_2dstencil_2dsolver_20program',['The nine-pt-stencil-solver program',['../nine_pt_stencil_solver.html',1,'']]],
   ['the_20papi_2dlogging_20program',['The papi-logging program',['../papi_logging.html',1,'']]],
   ['the_20poisson_2dsolver_20program',['The poisson-solver program',['../poisson_solver.html',1,'']]],
   ['the_20preconditioned_2dsolver_20program',['The preconditioned-solver program',['../preconditioned_solver.html',1,'']]],
   ['the_20simple_2dsolver_20program',['The simple-solver program',['../simple_solver.html',1,'']]],
   ['the_20simple_2dsolver_2dlogging_20program',['The simple-solver-logging program',['../simple_solver_logging.html',1,'']]],
   ['testing_20instructions',['Testing Instructions',['../testing_ginkgo.html',1,'']]],
-  ['the_20three_2dpt_2dstencil_2dsolver_20program',['The three-pt-stencil-solver program',['../three_pt_stencil_solver.html',1,'']]]
+  ['the_20three_2dpt_2dstencil_2dsolver_20program',['The three-pt-stencil-solver program',['../three_pt_stencil_solver.html',1,'']]],
+  ['the_20twentyseven_2dpt_2dstencil_2dsolver_20program',['The twentyseven-pt-stencil-solver program',['../twentyseven_pt_stencil_solver.html',1,'']]]
 ];

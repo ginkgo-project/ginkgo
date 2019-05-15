@@ -1,0 +1,774 @@
+The 9-\/point stencil example.
+
+This example depends on simple-\/solver, poisson-\/solver, three-\/pt-\/stencil-\/solve.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\section*{Introduction}
+
+This example solves a 2D Poisson equation\+:
+
+$ \Omega = (0,1)^2 \Omega_b = [0,1]^2 (with boundary) \partial\Omega = \Omega_b \backslash \Omega u : \Omega_b -> R u'' = f in \Omega u = u_D on \partial\Omega $
+
+using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points (x1,y1), ..., (xk,y1),(x1,y2), ..., (xk,yk,z1) step size h = 1 / (K + 1) and a stencil  $^\wedge$\{3 x 3\}, the formula produces a system of linear equations
+
+\{a,b=-\/1\}$^\wedge$1 stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2, on any inner node with a neighborhood of inner nodes
+
+On any node, where neighbor is on the border, the neighbor is replaced with a \textquotesingle{}-\/stencil(a,b) $\ast$ u\+\_\+\{i+a,j+b\}\textquotesingle{} and added to the right hand side vector. For example a node with a neighborhood of only edge nodes may look like this
+
+\{a,b=-\/1\}$^\wedge$(1,0) stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2 -\/ \{a=-\/1\}$^\wedge$1 stencil(a,1) $\ast$ $\ast$ u\+\_\+\{(i+a,j+1\}
+
+which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to {\ttfamily f(x,y) = 6x + 6y} (making the solution {\ttfamily u(x,y) = x$^\wedge$3
+\begin{DoxyItemize}
+\item y$^\wedge$3), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
+\end{DoxyItemize}}
+
+{\ttfamily The intention of this is to show how generation of stencil values and the right hand side vector changes when increasing the dimension.}
+
+{\ttfamily \label{_Abouttheexample}%
+\subsubsection*{About the example }}
+
+{\ttfamily }
+
+{\ttfamily  \label{_CommProg}%
+ \section*{The commented program}}
+
+{\ttfamily }
+
+{\ttfamily 
+\begin{DoxyCode}
+/ *****************************<DECSRIPTION>***********************************
+This example solves a 2D Poisson equation:
+
+    \(\backslash\)Omega = (0,1)^2
+    \(\backslash\)Omega\_b = [0,1]^2   (with boundary)
+    \(\backslash\)partial\(\backslash\)Omega = \(\backslash\)Omega\_b \(\backslash\)backslash \(\backslash\)Omega
+    u : \(\backslash\)Omega\_b -> R
+    u\textcolor{stringliteral}{''} = f in \(\backslash\)Omega
+    u = u\_D on \(\backslash\)partial\(\backslash\)Omega
+
+\textcolor{keyword}{using} a finite difference method on an equidistant grid with `K` discretization
+points (`K` can be controlled with a command line parameter). The discretization
+may be done by any order Taylor polynomial.
+For an equidistant grid with K \textcolor{stringliteral}{"inner"} discretization points (x1,y1), ...,
+(xk,y1),(x1,y2), ..., (xk,yk) step size h = 1 / (K + 1) and a stencil \(\backslash\)in
+\(\backslash\)R^\{3 x 3\}, the formula produces a system of linear equations
+
+\(\backslash\)sum\_\{a,b=-1\}^1 stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2,  on any inner node with
+a neighborhood of inner nodes
+
+On any node, where neighbor is on the border, the neighbor is replaced with a
+\textcolor{stringliteral}{'-stencil(a,b) * u\_\{i+a,j+b\}'} and added to the right hand side vector. For
+example a node with a neighborhood of only edge nodes may look like this
+
+\(\backslash\)sum\_\{a,b=-1\}^(1,0) stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2 - \(\backslash\)sum\_\{a=-1\}^1
+stencil(a,1) * * u\_\{(i+a,j+1\}
+
+which is then solved \textcolor{keyword}{using} Ginkgo\textcolor{stringliteral}{'s implementation of the CG method}
+\textcolor{stringliteral}{preconditioned with block-Jacobi. It is also possible to specify on which}
+\textcolor{stringliteral}{executor Ginkgo will solve the system via the command line.}
+\textcolor{stringliteral}{The function `f` is set to `f(x,y) = 6x + 6y` (making the solution `u(x,y) = x^3}
+\textcolor{stringliteral}{+ y^3`), but that can be changed in the `main` function. Also the stencil values}
+\textcolor{stringliteral}{for the core, the faces, the edge and the corners can be changed when passing}
+\textcolor{stringliteral}{additional parameters.}
+\textcolor{stringliteral}{}
+\textcolor{stringliteral}{The intention of this is to show how generation of stencil values and the right}
+\textcolor{stringliteral}{hand side vector changes when increasing the dimension.}
+\textcolor{stringliteral}{*****************************<DECSRIPTION>********************************** /}
+\textcolor{stringliteral}{}
+\textcolor{stringliteral}{#include <array>}
+\textcolor{stringliteral}{#include <chrono>}
+\textcolor{stringliteral}{#include <ginkgo/ginkgo.hpp>}
+\textcolor{stringliteral}{#include <iostream>}
+\textcolor{stringliteral}{#include <map>}
+\textcolor{stringliteral}{#include <string>}
+\textcolor{stringliteral}{#include <vector>}
+\end{DoxyCode}
+}
+
+{\ttfamily  Stencil values. Ordering can be seen in the main function Can also be changed by passing additional parameter when executing}
+
+{\ttfamily 
+\begin{DoxyCode}
+constexpr \textcolor{keywordtype}{double} default\_alpha = 10.0 / 3.0;
+constexpr \textcolor{keywordtype}{double} default\_beta = -2.0 / 3.0;
+constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
+
+/ * Possible alternative \textcolor{keywordflow}{default} values are \textcolor{keywordflow}{for} example
+ * default\_alpha = 8.0;
+ * default\_beta = -1.0;
+ * default\_gamma = -1.0;
+ * /
+\end{DoxyCode}
+}
+
+{\ttfamily  Creates a stencil matrix in C\+SR format for the given number of discretization points.}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keywordtype}{void} generate\_stencil\_matrix(\textcolor{keywordtype}{int} dp, \textcolor{keywordtype}{int} *row\_ptrs, \textcolor{keywordtype}{int} *col\_idxs,
+                             \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *coefs)
+\{
+    \textcolor{keywordtype}{int} pos = 0;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+    row\_ptrs[0] = pos;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < dp; ++k) \{
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+            \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} index = i + k * dp;
+            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = -1; j <= 1; ++j) \{
+                \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = -1; l <= 1; ++l) \{
+                    \textcolor{keyword}{const} int64\_t offset = l + 1 + 3 * (j + 1);
+                    \textcolor{keywordflow}{if} ((k + j) >= 0 && (k + j) < dp && (i + l) >= 0 &&
+                        (i + l) < dp) \{
+                        values[pos] = coefs[offset];
+                        col\_idxs[pos] = index + l + dp * j;
+                        ++pos;
+                    \}
+                \}
+            \}
+            row\_ptrs[index + 1] = pos;
+        \}
+    \}
+\}
+\end{DoxyCode}
+}
+
+{\ttfamily  Generates the R\+HS vector given {\ttfamily f} and the boundary conditions.}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ClosureT>
+\textcolor{keywordtype}{void} generate\_rhs(\textcolor{keywordtype}{int} dp, Closure f, ClosureT u, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *coefs)
+\{
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1.0);
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (j + 1) * h;
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} index = i * dp + j;
+            rhs[index] = -f(xi, yi) * h * h;
+        \}
+    \}
+\end{DoxyCode}
+}
+
+{\ttfamily  Iterating over the edges to add boundary values and adding the overlapping 3x1 to the rhs}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_top = i;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_bot = i + dp * (dp - 1);
+
+    rhs[index\_top] -= u(xi - h, 0.0) * coefs[0];
+    rhs[index\_top] -= u(xi, 0.0) * coefs[1];
+    rhs[index\_top] -= u(xi + h, 0.0) * coefs[2];
+
+    rhs[index\_bot] -= u(xi - h, 1.0) * coefs[6];
+    rhs[index\_bot] -= u(xi, 1.0) * coefs[7];
+    rhs[index\_bot] -= u(xi + h, 1.0) * coefs[8];
+\}
+\textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_left = i * dp;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_right = i * dp + (dp - 1);
+
+    rhs[index\_left] -= u(0.0, yi - h) * coefs[0];
+    rhs[index\_left] -= u(0.0, yi) * coefs[3];
+    rhs[index\_left] -= u(0.0, yi + h) * coefs[6];
+
+    rhs[index\_right] -= u(1.0, yi - h) * coefs[2];
+    rhs[index\_right] -= u(1.0, yi) * coefs[5];
+    rhs[index\_right] -= u(1.0, yi + h) * coefs[8];
+\}
+\end{DoxyCode}
+}
+
+{\ttfamily  remove the double corner values}
+
+{\ttfamily 
+\begin{DoxyCode}
+    rhs[0] += u(0.0, 0.0) * coefs[0];
+    rhs[(dp - 1)] += u(1.0, 0.0) * coefs[2];
+    rhs[(dp - 1) * dp] += u(0.0, 1.0) * coefs[6];
+    rhs[dp * dp - 1] += u(1.0, 1.0) * coefs[8];
+\}
+\end{DoxyCode}
+}
+
+{\ttfamily  Prints the solution {\ttfamily u}.}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u)
+\{
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+            std::cout << u[i * dp + j] << \textcolor{charliteral}{' '};
+        \}
+        std::cout << \textcolor{charliteral}{'\(\backslash\)n'};
+    \}
+    std::cout << std::endl;
+\}
+\end{DoxyCode}
+}
+
+{\ttfamily  Computes the 1-\/norm of the error given the computed {\ttfamily u} and the correct solution function {\ttfamily correct\+\_\+u}.}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u, Closure correct\_u)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1);
+    \textcolor{keyword}{auto} error = 0.0;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (j + 1) * h;
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+            \textcolor{keyword}{using} std::abs;
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+            error +=
+                \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(u[i * dp + j] - correct\_u(xi, yi)) / \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(correct\_u(xi, yi));
+        \}
+    \}
+    \textcolor{keywordflow}{return} error;
+\}
+
+
+\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string &executor\_string,
+                  \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points, \textcolor{keywordtype}{int} *row\_ptrs,
+                  \textcolor{keywordtype}{int} *col\_idxs, \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *u,
+                  \textcolor{keywordtype}{double} accuracy)
+\{
+\end{DoxyCode}
+}
+
+{\ttfamily  Some shortcuts}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{using} vec = gko::matrix::Dense<double>;
+\textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>};
+\textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>};
+\textcolor{keyword}{using} bj = \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<double, int>};
+\textcolor{keyword}{using} val\_array = \hyperlink{classgko_1_1Array}{gko::Array<double>};
+\textcolor{keyword}{using} idx\_array = \hyperlink{classgko_1_1Array}{gko::Array<int>};
+\textcolor{keyword}{const} \textcolor{keyword}{auto} &dp = discretization\_points;
+\textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+\end{DoxyCode}
+}
+
+{\ttfamily  Figure out where to run the code}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
+    \{\textcolor{stringliteral}{"omp"}, omp\},
+    \{\textcolor{stringliteral}{"cuda"}, \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, omp)\},
+    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};
+\end{DoxyCode}
+}
+
+{\ttfamily  executor where Ginkgo will perform the computation}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}
+\end{DoxyCode}
+}
+
+{\ttfamily  executor where the application initialized the data}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];
+\end{DoxyCode}
+}
+
+{\ttfamily  Tell Ginkgo to use the data in our application}
+
+{\ttfamily  Matrix\+: we have to set the executor of the matrix to the one where we want Sp\+M\+Vs to run (in this case {\ttfamily exec}). When creating array views, we have to specify the executor where the data is (in this case {\ttfamily app\+\_\+exec}).}
+
+{\ttfamily  If the two do not match, Ginkgo will automatically create a copy of the data on {\ttfamily exec} (however, it will not copy the data back once it is done
+\begin{DoxyItemize}
+\item here this is not important since we are not modifying the matrix).
+\end{DoxyItemize}}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{auto} matrix = mtx::create(
+    exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2),
+    val\_array::view(app\_exec, (3 * dp - 2) * (3 * dp - 2), values),
+    idx\_array::view(app\_exec, (3 * dp - 2) * (3 * dp - 2), col\_idxs),
+    idx\_array::view(app\_exec, dp\_2 + 1, row\_ptrs));
+\end{DoxyCode}
+}
+
+{\ttfamily  R\+HS\+: similar to matrix}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{auto} b = vec::create(exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
+                     val\_array::view(app\_exec, dp\_2, rhs), 1);
+\end{DoxyCode}
+}
+
+{\ttfamily  Solution\+: we have to be careful here -\/ if the executors are different, once we compute the solution the array will not be automatically copied back to the original memory locations. Fortunately, whenever {\ttfamily apply} is called on a linear operator (e.\+g. matrix, solver) the arguments automatically get copied to the executor where the operator is, and copied back once the operation is completed. Thus, in this case, we can just define the solution on {\ttfamily app\+\_\+exec}, and it will be automatically transferred to/from {\ttfamily exec} if needed.}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{auto} x = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
+                     val\_array::view(app\_exec, dp\_2, u), 1);
+\end{DoxyCode}
+}
+
+{\ttfamily  Generate solver}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{auto} solver\_gen =
+    cg::build()
+        .with\_criteria(
+            gko::stop::Iteration::build().with\_max\_iters(dp\_2).on(exec),
+            \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                .with\_reduction\_factor(accuracy)
+                .on(exec))
+        .with\_preconditioner(bj::build().on(exec))
+        .on(exec);
+\textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
+\end{DoxyCode}
+}
+
+{\ttfamily  Solve system}
+
+{\ttfamily 
+\begin{DoxyCode}
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keywordflow}{if} (argc < 2) \{
+        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}
+                  << \textcolor{stringliteral}{" [stencil\_alpha] [stencil\_beta] [stencil\_gamma]"}
+                  << std::endl;
+        std::exit(-1);
+    \}
+
+    \textcolor{keyword}{const} \textcolor{keywordtype}{int} discretization\_points = argc >= 2 ? std::atoi(argv[1]) : 100;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} alpha\_c = argc >= 4 ? std::atof(argv[3]) : default\_alpha;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} beta\_c = argc >= 5 ? std::atof(argv[4]) : default\_beta;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} gamma\_c = argc >= 6 ? std::atof(argv[5]) : default\_gamma;
+\end{DoxyCode}
+}
+
+{\ttfamily  clang-\/format off}
+
+{\ttfamily 
+\begin{DoxyCode}
+std::array<double, 9> coefs\{
+    gamma\_c, beta\_c, gamma\_c,
+    beta\_c, alpha\_c, beta\_c,
+    gamma\_c, beta\_c, gamma\_c\};
+\end{DoxyCode}
+}
+
+{\ttfamily  clang-\/format on}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{const} \textcolor{keyword}{auto} dp = discretization\_points;
+\textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+\end{DoxyCode}
+}
+
+{\ttfamily  problem\+:}
+
+{\ttfamily 
+\begin{DoxyCode}
+\textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} x * x * x + y * y * y; \};
+\textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} 6 * x + 6 * y; \};
+\end{DoxyCode}
+}
+
+{\ttfamily  matrix}
+
+{\ttfamily 
+\begin{DoxyCode}
+std::vector<int> row\_ptrs(dp\_2 + 1);
+std::vector<int> col\_idxs((3 * dp - 2) * (3 * dp - 2));
+std::vector<double> values((3 * dp - 2) * (3 * dp - 2));
+\end{DoxyCode}
+}
+
+{\ttfamily  right hand side}
+
+{\ttfamily 
+\begin{DoxyCode}
+std::vector<double> rhs(dp\_2);
+\end{DoxyCode}
+}
+
+{\ttfamily  solution}
+
+{\ttfamily 
+\begin{DoxyCode}
+std::vector<double> u(dp\_2, 0.0);
+
+generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),
+                        coefs.data());
+\end{DoxyCode}
+}
+
+{\ttfamily  looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1}
+
+{\ttfamily 
+\begin{DoxyCode}
+    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());
+
+    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();
+
+    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),
+                 values.data(), rhs.data(), u.data(), 1e-12);
+
+    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();
+    \textcolor{keywordtype}{double} runtime\_duration =
+        std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -
+                                                             start\_time)
+            .count() *
+        1e-6;
+
+    print\_solution(dp, u.data());
+    std::cout << \textcolor{stringliteral}{"The average relative error is "}
+              << calculate\_error(dp, u.data(), correct\_u) / dp\_2 << std::endl;
+    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}
+              << std::endl;
+\}
+\end{DoxyCode}
+ \label{_Results}%
+\section*{Results}}
+
+{\ttfamily }
+
+{\ttfamily The expected output of the relative error at K=10 should be}
+
+{\ttfamily 
+\begin{DoxyCode}
+The average relative error is 1.45687e-13
+\end{DoxyCode}
+}
+
+{\ttfamily \label{_Commentsaboutprogramminganddebugging}%
+\paragraph*{Comments about programming and debugging }}
+
+{\ttfamily }
+
+{\ttfamily \label{_PlainProg}%
+ \section*{The plain program}}
+
+{\ttfamily  
+\begin{DoxyCodeInclude}
+\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
+\textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
+\textcolor{comment}{All rights reserved.}
+\textcolor{comment}{}
+\textcolor{comment}{Redistribution and use in source and binary forms, with or without}
+\textcolor{comment}{modification, are permitted provided that the following conditions}
+\textcolor{comment}{are met:}
+\textcolor{comment}{}
+\textcolor{comment}{1. Redistributions of source code must retain the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer.}
+\textcolor{comment}{}
+\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}
+\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}
+\textcolor{comment}{documentation and/or other materials provided with the distribution.}
+\textcolor{comment}{}
+\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}
+\textcolor{comment}{contributors may be used to endorse or promote products derived from}
+\textcolor{comment}{this software without specific prior written permission.}
+\textcolor{comment}{}
+\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}
+\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}
+\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}
+\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}
+\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}
+\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}
+\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}
+\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}
+\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}
+\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}
+\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}
+\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}
+
+\textcolor{comment}{/*****************************<DECSRIPTION>***********************************}
+\textcolor{comment}{This example solves a 2D Poisson equation:}
+\textcolor{comment}{}
+\textcolor{comment}{    \(\backslash\)Omega = (0,1)^2}
+\textcolor{comment}{    \(\backslash\)Omega\_b = [0,1]^2   (with boundary)}
+\textcolor{comment}{    \(\backslash\)partial\(\backslash\)Omega = \(\backslash\)Omega\_b \(\backslash\)backslash \(\backslash\)Omega}
+\textcolor{comment}{    u : \(\backslash\)Omega\_b -> R}
+\textcolor{comment}{    u'' = f in \(\backslash\)Omega}
+\textcolor{comment}{    u = u\_D on \(\backslash\)partial\(\backslash\)Omega}
+\textcolor{comment}{}
+\textcolor{comment}{using a finite difference method on an equidistant grid with `K` discretization}
+\textcolor{comment}{points (`K` can be controlled with a command line parameter). The discretization}
+\textcolor{comment}{may be done by any order Taylor polynomial.}
+\textcolor{comment}{For an equidistant grid with K "inner" discretization points (x1,y1), ...,}
+\textcolor{comment}{(xk,y1),(x1,y2), ..., (xk,yk) step size h = 1 / (K + 1) and a stencil \(\backslash\)in}
+\textcolor{comment}{\(\backslash\)R^\{3 x 3\}, the formula produces a system of linear equations}
+\textcolor{comment}{}
+\textcolor{comment}{\(\backslash\)sum\_\{a,b=-1\}^1 stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2,  on any inner node with}
+\textcolor{comment}{a neighborhood of inner nodes}
+\textcolor{comment}{}
+\textcolor{comment}{On any node, where neighbor is on the border, the neighbor is replaced with a}
+\textcolor{comment}{'-stencil(a,b) * u\_\{i+a,j+b\}' and added to the right hand side vector. For}
+\textcolor{comment}{example a node with a neighborhood of only edge nodes may look like this}
+\textcolor{comment}{}
+\textcolor{comment}{\(\backslash\)sum\_\{a,b=-1\}^(1,0) stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2 - \(\backslash\)sum\_\{a=-1\}^1}
+\textcolor{comment}{stencil(a,1) * * u\_\{(i+a,j+1\}}
+\textcolor{comment}{}
+\textcolor{comment}{which is then solved using Ginkgo's implementation of the CG method}
+\textcolor{comment}{preconditioned with block-Jacobi. It is also possible to specify on which}
+\textcolor{comment}{executor Ginkgo will solve the system via the command line.}
+\textcolor{comment}{The function `f` is set to `f(x,y) = 6x + 6y` (making the solution `u(x,y) = x^3}
+\textcolor{comment}{+ y^3`), but that can be changed in the `main` function. Also the stencil values}
+\textcolor{comment}{for the core, the faces, the edge and the corners can be changed when passing}
+\textcolor{comment}{additional parameters.}
+\textcolor{comment}{}
+\textcolor{comment}{The intention of this is to show how generation of stencil values and the right}
+\textcolor{comment}{hand side vector changes when increasing the dimension.}
+\textcolor{comment}{*****************************<DECSRIPTION>**********************************/}
+
+\textcolor{preprocessor}{#include <array>}
+\textcolor{preprocessor}{#include <chrono>}
+\textcolor{preprocessor}{#include <ginkgo/ginkgo.hpp>}
+\textcolor{preprocessor}{#include <iostream>}
+\textcolor{preprocessor}{#include <map>}
+\textcolor{preprocessor}{#include <string>}
+\textcolor{preprocessor}{#include <vector>}
+
+constexpr \textcolor{keywordtype}{double} default\_alpha = 10.0 / 3.0;
+constexpr \textcolor{keywordtype}{double} default\_beta = -2.0 / 3.0;
+constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
+
+\textcolor{comment}{/* Possible alternative default values are for example}
+\textcolor{comment}{ * default\_alpha = 8.0;}
+\textcolor{comment}{ * default\_beta = -1.0;}
+\textcolor{comment}{ * default\_gamma = -1.0;}
+\textcolor{comment}{ */}
+
+\textcolor{keywordtype}{void} generate\_stencil\_matrix(\textcolor{keywordtype}{int} dp, \textcolor{keywordtype}{int} *row\_ptrs, \textcolor{keywordtype}{int} *col\_idxs,
+                             \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *coefs)
+\{
+    \textcolor{keywordtype}{int} pos = 0;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+    row\_ptrs[0] = pos;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < dp; ++k) \{
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+            \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} index = i + k * dp;
+            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = -1; j <= 1; ++j) \{
+                \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} l = -1; l <= 1; ++l) \{
+                    \textcolor{keyword}{const} int64\_t offset = l + 1 + 3 * (j + 1);
+                    \textcolor{keywordflow}{if} ((k + j) >= 0 && (k + j) < dp && (i + l) >= 0 &&
+                        (i + l) < dp) \{
+                        values[pos] = coefs[offset];
+                        col\_idxs[pos] = index + l + dp * j;
+                        ++pos;
+                    \}
+                \}
+            \}
+            row\_ptrs[index + 1] = pos;
+        \}
+    \}
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ClosureT>
+\textcolor{keywordtype}{void} generate\_rhs(\textcolor{keywordtype}{int} dp, Closure f, ClosureT u, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *coefs)
+\{
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1.0);
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (j + 1) * h;
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} index = i * dp + j;
+            rhs[index] = -f(xi, yi) * h * h;
+        \}
+    \}
+
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_top = i;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_bot = i + dp * (dp - 1);
+
+        rhs[index\_top] -= u(xi - h, 0.0) * coefs[0];
+        rhs[index\_top] -= u(xi, 0.0) * coefs[1];
+        rhs[index\_top] -= u(xi + h, 0.0) * coefs[2];
+
+        rhs[index\_bot] -= u(xi - h, 1.0) * coefs[6];
+        rhs[index\_bot] -= u(xi, 1.0) * coefs[7];
+        rhs[index\_bot] -= u(xi + h, 1.0) * coefs[8];
+    \}
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_left = i * dp;
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_right = i * dp + (dp - 1);
+
+        rhs[index\_left] -= u(0.0, yi - h) * coefs[0];
+        rhs[index\_left] -= u(0.0, yi) * coefs[3];
+        rhs[index\_left] -= u(0.0, yi + h) * coefs[6];
+
+        rhs[index\_right] -= u(1.0, yi - h) * coefs[2];
+        rhs[index\_right] -= u(1.0, yi) * coefs[5];
+        rhs[index\_right] -= u(1.0, yi + h) * coefs[8];
+    \}
+
+    rhs[0] += u(0.0, 0.0) * coefs[0];
+    rhs[(dp - 1)] += u(1.0, 0.0) * coefs[2];
+    rhs[(dp - 1) * dp] += u(0.0, 1.0) * coefs[6];
+    rhs[dp * dp - 1] += u(1.0, 1.0) * coefs[8];
+\}
+
+
+\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u)
+\{
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+            std::cout << u[i * dp + j] << \textcolor{charliteral}{' '};
+        \}
+        std::cout << \textcolor{charliteral}{'\(\backslash\)n'};
+    \}
+    std::cout << std::endl;
+\}
+
+
+\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
+\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u, Closure correct\_u)
+\{
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1);
+    \textcolor{keyword}{auto} error = 0.0;
+    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < dp; ++j) \{
+        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (j + 1) * h;
+        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < dp; ++i) \{
+            \textcolor{keyword}{using} std::abs;
+            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = (i + 1) * h;
+            error +=
+                \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(u[i * dp + j] - correct\_u(xi, yi)) / \hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}(correct\_u(xi, yi));
+        \}
+    \}
+    \textcolor{keywordflow}{return} error;
+\}
+
+
+\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string &executor\_string,
+                  \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points, \textcolor{keywordtype}{int} *row\_ptrs,
+                  \textcolor{keywordtype}{int} *col\_idxs, \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *u,
+                  \textcolor{keywordtype}{double} accuracy)
+\{
+    \textcolor{keyword}{using} vec = gko::matrix::Dense<double>;
+    \textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>};
+    \textcolor{keyword}{using} cg = \hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>};
+    \textcolor{keyword}{using} bj = \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<double, int>};
+    \textcolor{keyword}{using} val\_array = \hyperlink{classgko_1_1Array}{gko::Array<double>};
+    \textcolor{keyword}{using} idx\_array = \hyperlink{classgko_1_1Array}{gko::Array<int>};
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} &dp = discretization\_points;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
+    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
+        \{\textcolor{stringliteral}{"omp"}, omp\},
+        \{\textcolor{stringliteral}{"cuda"}, \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, omp)\},
+        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];
+
+
+    \textcolor{keyword}{auto} matrix = mtx::create(
+        exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2),
+        val\_array::view(app\_exec, (3 * dp - 2) * (3 * dp - 2), values),
+        idx\_array::view(app\_exec, (3 * dp - 2) * (3 * dp - 2), col\_idxs),
+        idx\_array::view(app\_exec, dp\_2 + 1, row\_ptrs));
+
+    \textcolor{keyword}{auto} b = vec::create(exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
+                         val\_array::view(app\_exec, dp\_2, rhs), 1);
+
+    \textcolor{keyword}{auto} x = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
+                         val\_array::view(app\_exec, dp\_2, u), 1);
+
+    \textcolor{keyword}{auto} solver\_gen =
+        cg::build()
+            .with\_criteria(
+                gko::stop::Iteration::build().with\_max\_iters(dp\_2).on(exec),
+                \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}()
+                    .with\_reduction\_factor(accuracy)
+                    .on(exec))
+            .with\_preconditioner(bj::build().on(exec))
+            .on(exec);
+    \textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
+
+    solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
+\}
+
+
+\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])
+\{
+    \textcolor{keywordflow}{if} (argc < 2) \{
+        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}
+                  << \textcolor{stringliteral}{" [stencil\_alpha] [stencil\_beta] [stencil\_gamma]"}
+                  << std::endl;
+        std::exit(-1);
+    \}
+
+    \textcolor{keyword}{const} \textcolor{keywordtype}{int} discretization\_points = argc >= 2 ? std::atoi(argv[1]) : 100;
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} alpha\_c = argc >= 4 ? std::atof(argv[3]) : default\_alpha;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} beta\_c = argc >= 5 ? std::atof(argv[4]) : default\_beta;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{double} gamma\_c = argc >= 6 ? std::atof(argv[5]) : default\_gamma;
+
+    std::array<double, 9> coefs\{
+        gamma\_c, beta\_c, gamma\_c,
+    beta\_c, alpha\_c, beta\_c,
+        gamma\_c, beta\_c, gamma\_c\};
+
+    \textcolor{keyword}{const} \textcolor{keyword}{auto} dp = discretization\_points;
+    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
+
+    \textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} x * x * x + y * y * y; \};
+    \textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} 6 * x + 6 * y; \};
+
+    std::vector<int> row\_ptrs(dp\_2 + 1);
+    std::vector<int> col\_idxs((3 * dp - 2) * (3 * dp - 2));
+    std::vector<double> values((3 * dp - 2) * (3 * dp - 2));
+    std::vector<double> rhs(dp\_2);
+    std::vector<double> u(dp\_2, 0.0);
+
+    generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),
+                            coefs.data());
+    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());
+
+    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();
+
+    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),
+                 values.data(), rhs.data(), u.data(), 1e-12);
+
+    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();
+    \textcolor{keywordtype}{double} runtime\_duration =
+        std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -
+                                                             start\_time)
+            .count() *
+        1e-6;
+
+    print\_solution(dp, u.data());
+    std::cout << \textcolor{stringliteral}{"The average relative error is "}
+              << calculate\_error(dp, u.data(), correct\_u) / dp\_2 << std::endl;
+    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}
+              << std::endl;
+\}
+\end{DoxyCodeInclude}
+ }

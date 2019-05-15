@@ -8,6 +8,7 @@ var searchData=
   ['the_20ginkgo_2dranges_20program',['The ginkgo-ranges program',['../ginkgo_ranges.html',1,'']]],
   ['the_20inverse_2diteration_20program',['The inverse-iteration program',['../inverse_iteration.html',1,'']]],
   ['the_20minimal_2dcuda_2dsolver_20program',['The minimal-cuda-solver program',['../minimal_cuda_solver.html',1,'']]],
+  ['the_20nine_2dpt_2dstencil_2dsolver_20program',['The nine-pt-stencil-solver program',['../nine_pt_stencil_solver.html',1,'']]],
   ['the_20papi_2dlogging_20program',['The papi-logging program',['../papi_logging.html',1,'']]],
   ['the_20poisson_2dsolver_20program',['The poisson-solver program',['../poisson_solver.html',1,'']]],
   ['the_20preconditioned_2dsolver_20program',['The preconditioned-solver program',['../preconditioned_solver.html',1,'']]],
@@ -24,5 +25,6 @@ var searchData=
   ['transpose_5foperation',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
   ['truncate_5ftype',['truncate_type',['../namespacegko.html#abf540a6830b3ac4cd6b193133510f4d7',1,'gko']]],
   ['truncated',['truncated',['../classgko_1_1truncated.html',1,'gko']]],
+  ['the_20twentyseven_2dpt_2dstencil_2dsolver_20program',['The twentyseven-pt-stencil-solver program',['../twentyseven_pt_stencil_solver.html',1,'']]],
   ['type_5flist',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
 ];
