@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
 #define GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
 
+
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -74,8 +75,8 @@ protected:
 
     CuspBase &operator=(const CuspBase &other)
     {
-        this->gpu_exec_ = std::dynamic_pointer_cast<const gko::CudaExecutor>(
-            other.get_executor());
+        gko::LinOp::operator=(other);
+        this->gpu_exec_ = other.gpu_exec_;
         this->initialize_descr();
         return *this;
     }
@@ -300,6 +301,11 @@ public:
         this->set_size(gko::dim<2>{csr_->get_size()});
     }
 
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
     ~CuspCsrEx() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
@@ -357,11 +363,6 @@ protected:
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
     }
 
-
-    gko::size_type get_num_stored_elements() const noexcept
-    {
-        return csr_->get_num_stored_elements();
-    }
 
     CuspCsrEx(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2> &size = gko::dim<2>{})
