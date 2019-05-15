@@ -130,61 +130,61 @@ struct cuda_type_impl<cuComplex> {
 
 
 template <typename T>
-inline cudaDataType_t cuda_data_type_impl()
+constexpr cudaDataType_t cuda_data_type_impl()
 {
     return CUDA_C_8U;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<float16>()
+constexpr cudaDataType_t cuda_data_type_impl<float16>()
 {
     return CUDA_R_16F;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<float>()
+constexpr cudaDataType_t cuda_data_type_impl<float>()
 {
     return CUDA_R_32F;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<double>()
+constexpr cudaDataType_t cuda_data_type_impl<double>()
 {
     return CUDA_R_64F;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<std::complex<float>>()
+constexpr cudaDataType_t cuda_data_type_impl<std::complex<float>>()
 {
     return CUDA_C_32F;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<std::complex<double>>()
+constexpr cudaDataType_t cuda_data_type_impl<std::complex<double>>()
 {
     return CUDA_C_64F;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<int32>()
+constexpr cudaDataType_t cuda_data_type_impl<int32>()
 {
     return CUDA_R_32I;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<uint32>()
+constexpr cudaDataType_t cuda_data_type_impl<uint32>()
 {
     return CUDA_R_32U;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<int8>()
+constexpr cudaDataType_t cuda_data_type_impl<int8>()
 {
     return CUDA_R_8I;
 }
 
 template <>
-inline cudaDataType_t cuda_data_type_impl<uint8>()
+constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 {
     return CUDA_R_8U;
 }
@@ -202,7 +202,7 @@ inline cudaDataType_t cuda_data_type_impl<uint8>()
  * @returns the actual `cudaDataType_t`
  */
 template <typename T>
-inline cudaDataType_t cuda_data_type()
+constexpr cudaDataType_t cuda_data_type()
 {
     return detail::cuda_data_type_impl<T>();
 }
