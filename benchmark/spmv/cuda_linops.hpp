@@ -321,31 +321,39 @@ protected:
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
+        ValueType alpha = gko::one<ValueType>();
+        ValueType beta = gko::zero<ValueType>();
         gko::size_type buffer_size = 0;
         auto data_type = gko::kernels::cuda::cuda_data_type<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        // TODO: There is a problem here !
+        // This function seems to require the pointer mode to be set to HOST.
+        // Ginkgo use pointer mode DEVICE by default, so we change this
+        // temporarily.
+        auto handle = this->get_gpu_exec()->get_cusparse_handle();
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
-            this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
-            this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
-            data_type, this->get_descr(), csr_->get_const_values(), data_type,
+            handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, data_type,
+            this->get_descr(), csr_->get_const_values(), data_type,
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            data_type, &scalars.get_const_data()[1], data_type, dx, data_type,
-            data_type, &buffer_size));
+            data_type, &beta, data_type, dx, data_type, data_type,
+            &buffer_size));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
         set_buffer_ = true;
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
-            this->get_gpu_exec()->get_cusparse_handle(), algmode_, trans_,
-            this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
-            data_type, this->get_descr(), csr_->get_const_values(), data_type,
+            handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
+            csr_->get_num_stored_elements(), &alpha, data_type,
+            this->get_descr(), csr_->get_const_values(), data_type,
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            data_type, &scalars.get_const_data()[1], data_type, dx, data_type,
-            data_type, buffer_));
+            data_type, &beta, data_type, dx, data_type, data_type, buffer_));
+
+        // Set the pointer mode back to the default DEVICE for Ginkgo
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
     }
 
 
@@ -368,9 +376,6 @@ protected:
     }
 
 private:
-    // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
-        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
