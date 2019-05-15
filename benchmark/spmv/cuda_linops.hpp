@@ -52,7 +52,7 @@ class CuspBase : public gko::LinOp {
 public:
     cusparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
-    const gko::CudaExecutor *get_gpu_exec() const { return gpu_exec; }
+    const gko::CudaExecutor *get_gpu_exec() const { return gpu_exec_.get(); }
 
 protected:
     void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
@@ -65,8 +65,8 @@ protected:
              const gko::dim<2> &size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
-        gpu_exec = dynamic_cast<const gko::CudaExecutor *>(exec.get());
-        if (gpu_exec == nullptr) {
+        gpu_exec_ = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec);
+        if (gpu_exec_ == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
         this->initialize_descr();
@@ -74,14 +74,15 @@ protected:
 
     CuspBase &operator=(const CuspBase &other)
     {
-        this->gpu_exec = other.get_gpu_exec();
+        this->gpu_exec_ = std::dynamic_pointer_cast<const gko::CudaExecutor>(
+            other.get_executor());
         this->initialize_descr();
         return *this;
     }
 
     void initialize_descr()
     {
-        const auto id = this->gpu_exec->get_device_id();
+        const auto id = this->gpu_exec_->get_device_id();
         gko::device_guard g{id};
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
@@ -92,7 +93,7 @@ protected:
     }
 
 private:
-    const gko::CudaExecutor *gpu_exec;
+    std::shared_ptr<const gko::CudaExecutor> gpu_exec_;
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
     handle_manager<cusparseMatDescr> descr_;
