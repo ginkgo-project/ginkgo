@@ -87,6 +87,7 @@ stages:
   except:
       - schedules
 
+
 sync:
   stage: sync
   variables:
@@ -105,6 +106,7 @@ sync:
     - develop
   except:
     - schedules
+
 
 # Build jobs
 build/cuda90/gcc/all/debug/shared:
@@ -373,6 +375,27 @@ iwyu:
   dependencies: []
   allow_failure: yes
 
+# Code analysis, coverage and reporting tool
+sonarqube_cov:
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+      -DGINKGO_SONARQUBE_TEST=ON
+    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+      -Dsonar.cfamily.build-wrapper-output=build/bw-output
+      -Dsonar.branch.name=${CI_COMMIT_REF_NAME} -Dsonar.branch.target=develop
+      -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
+      -Dsonar.pullrequest.branch=${CI_COMMIT_REF_NAME}
+      -Dsonar.pullrequest.base=develop
+    - bash <(curl -s https://codecov.io/bash)
+  dependencies: []
+  only:
+    variables:
+      - $PUBLIC_CI_TAG
+
+
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
@@ -416,21 +439,6 @@ gh-pages:
   except:
       - schedules
 
-
-coverage:
-  stage: QoS_tools
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  before_script: *default_before_script
-  script:
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
-    - bash <(curl -s https://codecov.io/bash)
-  dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-    variables:
-      - $PUBLIC_CI_TAG
 
 threadsanitizer:
   stage: QoS_tools
