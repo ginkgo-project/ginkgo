@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/par_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -70,11 +70,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
-    GKO_NOT_IMPLEMENTED;
+void compute_l_u_factors(
+    std::shared_ptr<const DefaultExecutor> exec, unsigned int iterations,
+    const matrix::Coo<ValueType, IndexType> *system_matrix,
+    matrix::Csr<ValueType, IndexType> *l_factor,
+    matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);

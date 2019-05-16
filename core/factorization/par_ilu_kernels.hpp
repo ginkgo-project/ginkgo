@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_PAR_ILU_FACTORY_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_PAR_ILU_FACTORY_KERNELS_HPP_
+#ifndef GKO_CORE_FACTORIZATION_PAR_ILU_KERNELS_HPP_
+#define GKO_CORE_FACTORIZATION_PAR_ILU_KERNELS_HPP_
 
 
-#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
 
 
 namespace gko {
@@ -52,11 +52,11 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType> *system_matrix,         \
         matrix::Csr<ValueType, IndexType> *l_factor,                    \
         matrix::Csr<ValueType, IndexType> *u_factor)
-#define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
-    void compute_l_u_factors(                                                \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Coo<ValueType, IndexType> *system_matrix,              \
-        matrix::Csr<ValueType, IndexType> *l_factor,                         \
+#define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)  \
+    void compute_l_u_factors(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec, unsigned int iterations, \
+        const matrix::Coo<ValueType, IndexType> *system_matrix,               \
+        matrix::Csr<ValueType, IndexType> *l_factor,                          \
         matrix::Csr<ValueType, IndexType> *u_factor)
 
 
@@ -103,4 +103,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_FACTORY_KERNELS_HPP_
+#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_KERNELS_HPP_

@@ -30,13 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
 
 
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -50,44 +54,98 @@ public:
         : EnableLinOp<DummyLinOp>(exec, size)
     {}
 
-    void access() const {}
-
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
-    {
-        this->access();
-    }
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
 
     void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
                     const gko::LinOp *beta, gko::LinOp *x) const override
-    {
-        this->access();
-    }
+    {}
 };
 
 
-class ParIluFactory : public ::testing::Test {
+class ParIlu : public ::testing::Test {
 public:
-    using value_type = double;
+    using value_type = gko::default_precision;
     using index_type = gko::int32;
-    using ilu_factory_type =
-        gko::factorization::ParIluFactors<value_type, index_type>;
+    using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
 
 protected:
-    ParIluFactory()
-        : ref{gko::ReferenceExecutor::create()}, linOp{DummyLinOp::create(ref)}
-    {}
+    ParIlu()
+        : ref(gko::ReferenceExecutor::create()),
+          linOp(DummyLinOp::create(ref)),
+          dense_mtx(gko::initialize<Dense>({{1., 0.}, {0., 1.}}, ref)),
+          coo_mtx(Coo::create(ref)),
+          csr_mtx(Csr::create(ref))
+    {
+        dense_mtx->convert_to(coo_mtx.get());
+        dense_mtx->convert_to(csr_mtx.get());
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::unique_ptr<DummyLinOp> linOp;
+    std::shared_ptr<const Dense> dense_mtx;
+    std::shared_ptr<Coo> coo_mtx;
+    std::shared_ptr<Csr> csr_mtx;
 };
 
 
-TEST_F(ParIluFactory, ThrowNotSupportedForWrongLinOp)
+TEST_F(ParIlu, ThrowNotSupportedForWrongLinOp)
 {
     auto factory = ilu_factory_type::build().on(ref);
 
     ASSERT_THROW(factory->generate(gko::share(linOp)), gko::NotSupported);
+}
+
+
+TEST_F(ParIlu, NoThrowCooMatrix)
+{
+    auto factory = ilu_factory_type::build().on(ref);
+
+    ASSERT_NO_THROW(factory->generate(gko::share(coo_mtx)));
+}
+
+
+TEST_F(ParIlu, NoThrowCsrMatrix)
+{
+    auto factory = ilu_factory_type::build().on(ref);
+
+    ASSERT_NO_THROW(factory->generate(gko::share(csr_mtx)));
+}
+
+
+TEST_F(ParIlu, NoThrowDenseMatrix)
+{
+    auto factory = ilu_factory_type::build().on(ref);
+
+    ASSERT_NO_THROW(factory->generate(gko::share(dense_mtx)));
+}
+
+
+TEST_F(ParIlu, SetIterationsForDenseMatrix)
+{
+    auto factory = ilu_factory_type::build().with_iterations(5u).on(ref);
+
+    ASSERT_NO_THROW(factory->generate(gko::share(dense_mtx)));
+}
+
+
+TEST_F(ParIlu, LUFactorFunctionsSetProperly)
+{
+    auto factory = ilu_factory_type::build().on(ref);
+
+    auto factors = factory->generate(gko::share(dense_mtx));
+    auto lin_op_l_factor =
+        static_cast<const gko::LinOp *>(factors->get_l_factor());
+    auto lin_op_u_factor =
+        static_cast<const gko::LinOp *>(factors->get_u_factor());
+    auto first_operator = factors->get_operators()[0].get();
+    auto second_operator = factors->get_operators()[1].get();
+
+    ASSERT_EQ(lin_op_l_factor, first_operator);
+    ASSERT_EQ(lin_op_u_factor, second_operator);
 }
 
 
