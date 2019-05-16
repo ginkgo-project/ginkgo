@@ -9,7 +9,7 @@ target_sources(ginkgo
         base/executor.cpp
         base/mtx_io.cpp
         base/version.cpp
-        factorization/ilu.cpp
+        factorization/par_ilu.cpp
         log/convergence.cpp
         log/logger.cpp
         log/record.cpp

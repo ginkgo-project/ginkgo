@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/par_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -130,6 +130,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
+                         unsigned int iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,
                          matrix::Csr<ValueType, IndexType> *u_factor)
@@ -143,30 +144,32 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
     const auto u_cols = u_factor->get_const_col_idxs();
     auto l_vals = l_factor->get_values();
     auto u_vals = u_factor->get_values();
-    ValueType sum{};
-    ValueType tmp{};
-    for (size_type el = 0; el < system_matrix->get_num_stored_elements();
-         ++el) {
-        const auto row = rows[el];
-        const auto col = cols[el];
-        const auto val = vals[el];
-        auto il = l_rowpts[row];
-        auto iu = u_rowpts[col];
-        while (il < l_rowpts[row + 1] && iu < u_rowpts[col + 1]) {
-            tmp = zero<ValueType>();
-            auto jl = l_cols[il];
-            auto ju = u_cols[iu];
-            tmp = (jl == ju) ? l_vals[il] * u_vals[iu] : tmp;
-            sum = (jl == ju) ? sum - tmp : sum;
-            il = (jl <= ju) ? il + 1 : il;
-            iu = (jl >= ju) ? iu + 1 : iu;
-        }
-        sum += tmp;  // undo the last operation (it must be the last)
-        // TODO: Check if this is the correct comparison
-        if (iu > il) {  // modify entry in L
-            l_vals[il - 1] = sum / u_vals[u_rowpts[col + 1] - 1];
-        } else {  // modify entry in U
-            u_vals[iu - 1] = sum;
+    for (decltype(iterations) iter = 0; iter < iterations; ++iter) {
+        for (size_type el = 0; el < system_matrix->get_num_stored_elements();
+             ++el) {
+            ValueType sum{};
+            ValueType tmp{};
+            const auto row = rows[el];
+            const auto col = cols[el];
+            const auto val = vals[el];
+            auto il = l_rowpts[row];
+            auto iu = u_rowpts[col];
+            while (il < l_rowpts[row + 1] && iu < u_rowpts[col + 1]) {
+                tmp = zero<ValueType>();
+                auto jl = l_cols[il];
+                auto ju = u_cols[iu];
+                tmp = (jl == ju) ? l_vals[il] * u_vals[iu] : tmp;
+                sum = (jl == ju) ? sum - tmp : sum;
+                il = (jl <= ju) ? il + 1 : il;
+                iu = (jl >= ju) ? iu + 1 : iu;
+            }
+            sum += tmp;  // undo the last operation (it must be the last)
+            // TODO: Check if this is the correct comparison
+            if (iu > il) {  // modify entry in L
+                l_vals[il - 1] = sum / u_vals[u_rowpts[col + 1] - 1];
+            } else {  // modify entry in U
+                u_vals[iu - 1] = sum;
+            }
         }
     }
 }
