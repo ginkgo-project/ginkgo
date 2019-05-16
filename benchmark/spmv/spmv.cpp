@@ -83,8 +83,9 @@ DEFINE_string(
     formats, "coo",
     "A comma-separated list of formats to run."
     "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
-    "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
-    "hybridminstorage.\n"
+    "hybrid25, hybrid33, hybrid40, hybrid60, hybrid80, hybridlimit0, "
+    "hybridlimit25, hybridlimit33, hybridminstorage, cusp_csr, cusp_csrex, "
+    "cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, cusp_hybrid.\n"
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
@@ -94,11 +95,20 @@ DEFINE_string(
     "Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
-    "hybrid0, hybrid25, hybrid33: Hybrid uses the row distribution to decide "
-    "the partition.\n"
+    "hybrid0, hybrid25, hybrid33, hybrid40, hybrid60, hybrid80: Hybrid uses "
+    "the row distribution to decide the partition.\n"
     "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
     "part of hybrid0, hybrid25, hybrid33.\n"
-    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.");
+    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.\n"
+    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
+    "partition.\n"
+    "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
+    "partition.\n"
+    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
+    "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
+    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
+    "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
+    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 

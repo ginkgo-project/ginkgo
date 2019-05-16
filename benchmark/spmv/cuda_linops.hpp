@@ -135,13 +135,13 @@ protected:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv_mp(
+        gko::kernels::cuda::cusparse::spmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            &scalars.get_const_data()[1], dx));
+            &scalars.get_const_data()[1], dx);
     }
 
     CuspCsrmp(std::shared_ptr<const gko::Executor> exec,
@@ -195,13 +195,13 @@ protected:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmv(
+        gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            &scalars.get_const_data()[1], dx));
+            &scalars.get_const_data()[1], dx);
     }
 
     CuspCsr(std::shared_ptr<const gko::Executor> exec,
@@ -255,14 +255,14 @@ protected:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsrmm(
+        gko::kernels::cuda::cusparse::spmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
             csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
             dense_b->get_size()[0], &scalars.get_const_data()[1], dx,
-            dense_x->get_size()[0]));
+            dense_x->get_size()[0]);
     }
 
     CuspCsrmm(std::shared_ptr<const gko::Executor> exec,
@@ -331,7 +331,6 @@ protected:
         ValueType alpha = gko::one<ValueType>();
         ValueType beta = gko::zero<ValueType>();
         gko::size_type buffer_size = 0;
-        auto data_type = gko::kernels::cuda::cuda_data_type<ValueType>();
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
@@ -341,22 +340,19 @@ protected:
         auto handle = this->get_gpu_exec()->get_cusparse_handle();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx_bufferSize(
+        gko::kernels::cuda::cusparse::spmv_buffersize<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, data_type,
-            this->get_descr(), csr_->get_const_values(), data_type,
-            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            data_type, &beta, data_type, dx, data_type, data_type,
-            &buffer_size));
+            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx, &buffer_size);
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
         set_buffer_ = true;
 
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCsrmvEx(
+        gko::kernels::cuda::cusparse::spmv<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
-            csr_->get_num_stored_elements(), &alpha, data_type,
-            this->get_descr(), csr_->get_const_values(), data_type,
-            csr_->get_const_row_ptrs(), csr_->get_const_col_idxs(), db,
-            data_type, &beta, data_type, dx, data_type, data_type, buffer_));
+            csr_->get_num_stored_elements(), &alpha, this->get_descr(),
+            csr_->get_const_values(), csr_->get_const_row_ptrs(),
+            csr_->get_const_col_idxs(), db, &beta, dx, buffer_);
 
         // Set the pointer mode back to the default DEVICE for Ginkgo
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -412,11 +408,11 @@ public:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDcsr2hyb(
+        gko::kernels::cuda::cusparse::csr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
             t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
-            Threshold, Partition));
+            Threshold, Partition);
     }
 
     ~CuspHybrid() override
@@ -441,10 +437,10 @@ protected:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseDhybmv(this->get_gpu_exec()->get_cusparse_handle(), trans_,
-                           &scalars.get_const_data()[0], this->get_descr(),
-                           hyb_, db, &scalars.get_const_data()[1], dx));
+        gko::kernels::cuda::cusparse::spmv(
+            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
+            &scalars.get_const_data()[1], dx);
     }
 
     CuspHybrid(std::shared_ptr<const gko::Executor> exec,
