@@ -47,10 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 
 
-// Some shortcuts
+#ifdef HAS_CUDA
+#include "cuda_linops.hpp"
+#endif  // HAS_CUDA
+
+
 using etype = double;
 using duration_type = std::chrono::nanoseconds;
 using hybrid = gko::matrix::Hybrid<>;
+using csr = gko::matrix::Csr<>;
+
 
 // input validation
 void print_config_error_and_exit()
@@ -77,8 +83,9 @@ DEFINE_string(
     formats, "coo",
     "A comma-separated list of formats to run."
     "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
-    "hybrid25, hybrid33, hybridlimit0, hybridlimit25, hybridlimit33, "
-    "hybridminstorage.\n"
+    "hybrid25, hybrid33, hybrid40, hybrid60, hybrid80, hybridlimit0, "
+    "hybridlimit25, hybridlimit33, hybridminstorage, cusp_csr, cusp_csrex, "
+    "cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, cusp_hybrid.\n"
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
@@ -88,11 +95,20 @@ DEFINE_string(
     "Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
-    "hybrid0, hybrid25, hybrid33: Hybrid uses the row distribution to decide "
-    "the partition.\n"
+    "hybrid0, hybrid25, hybrid33, hybrid40, hybrid60, hybrid80: Hybrid uses "
+    "the row distribution to decide the partition.\n"
     "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
     "part of hybrid0, hybrid25, hybrid33.\n"
-    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.");
+    "hybridminstorage: Hybrid uses the minimal storage to store the matrix.\n"
+    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
+    "partition.\n"
+    "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
+    "partition.\n"
+    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
+    "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
+    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
+    "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
+    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
@@ -148,9 +164,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
     matrix_factory{
-        {"csr", read_matrix<gko::matrix::Csr<>>},
+        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
+        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
+        {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
+        {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix<gko::matrix::Coo<>>},
         {"ell", read_matrix<gko::matrix::Ell<>>},
+#ifdef HAS_CUDA
+        {"cusp_csr", read_matrix<cusp_csr>},
+        {"cusp_csrmp", read_matrix<cusp_csrmp>},
+        {"cusp_csrex", read_matrix<cusp_csrex>},
+        {"cusp_csrmm", read_matrix<cusp_csrmm>},
+        {"cusp_hybrid", read_matrix<cusp_hybrid>},
+        {"cusp_coo", read_matrix<cusp_coo>},
+        {"cusp_ell", read_matrix<cusp_ell>},
+#endif  // HAS_CUDA
         {"hybrid", read_matrix<hybrid>},
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
@@ -159,6 +187,12 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybrid33",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
+        {"hybrid40",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.4))},
+        {"hybrid60",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.6))},
+        {"hybrid80",
+         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.8))},
         {"hybridlimit0",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::imbalance_bounded_limit>(0))},
@@ -218,7 +252,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
     // compute and write benchmark data
     add_or_set_member(spmv_case[format_name], "completed", true, allocator);
-} catch (std::exception e) {
+} catch (const std::exception &e) {
     add_or_set_member(test_case["spmv"][format_name], "completed", false,
                       allocator);
     std::cerr << "Error when processing test case " << test_case << "\n"
@@ -310,7 +344,7 @@ int main(int argc, char *argv[])
                 }
                 backup_results(test_cases);
             }
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
         }

@@ -9,7 +9,6 @@ add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
 add_subdirectory(solver)
 add_subdirectory(spmv)
-add_subdirectory(spmv_comparison_cuda)
 
 add_custom_target(make_run_all_benchmarks ALL)
 add_custom_command(

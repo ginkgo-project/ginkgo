@@ -281,7 +281,7 @@ void run_preconditioner(const char *precond_name,
     }
 
     add_or_set_member(this_precond_data, "completed", true, allocator);
-} catch (std::exception e) {
+} catch (const std::exception &e) {
     auto encoded_name = encode_parameters(precond_name);
     add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
                       rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }
