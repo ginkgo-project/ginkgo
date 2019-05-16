@@ -45,6 +45,8 @@ Stage0 += shell(commands=clangtidyln)
 if os.path.isdir('bin/'):
         Stage0 += copy(src='bin/*', dest='/usr/bin/')
 
+if os.path.isdir('sonar-scanner/'):
+        Stage0 += copy(src='sonar-scanner/', dest='/')
 
 # Correctly set the LIBRARY_PATH
 Stage0 += environment(variables={'LIBRARY_PATH': '/usr/local/cuda/lib64/stubs'})
