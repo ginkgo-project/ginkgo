@@ -66,12 +66,20 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<Mtx::load_balance>(2)))
+                          std::make_shared<Mtx::load_balance>(2))),
+          mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
+                           std::make_shared<Mtx::classical>()))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_ptrs();
-        auto *s = mtx->get_srow();
+        this->create_mtx(mtx.get());
+        this->create_mtx2(mtx2.get());
+    }
+
+    void create_mtx(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        auto *s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -88,6 +96,31 @@ protected:
         v[2] = 2.0;
         v[3] = 5.0;
         s[0] = 0;
+    }
+
+    void create_mtx2(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        // It keep a explict zero
+        /*
+         *  1    3   2
+         * {0}   5   0
+         */
+        r[0] = 0;
+        r[1] = 3;
+        r[2] = 5;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 2;
+        c[3] = 0;
+        c[4] = 1;
+        v[0] = 1.0;
+        v[1] = 3.0;
+        v[2] = 2.0;
+        v[3] = 0.0;
+        v[4] = 5.0;
     }
 
     void assert_equal_to_mtx(const Coo *m)
@@ -188,9 +221,40 @@ protected:
         EXPECT_EQ(v[3], 5.0);
     }
 
+    void assert_equal_to_mtx2(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+        auto ell_v = m->get_const_ell_values();
+        auto ell_c = m->get_const_ell_col_idxs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
+
+        EXPECT_EQ(n, 2);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(c[0], 2);
+        EXPECT_EQ(v[0], 2.0);
+
+        EXPECT_EQ(ell_v[0], 1);
+        EXPECT_EQ(ell_v[1], 0);
+        EXPECT_EQ(ell_v[2], 3);
+        EXPECT_EQ(ell_v[3], 5);
+        EXPECT_EQ(ell_c[0], 0);
+        EXPECT_EQ(ell_c[1], 0);
+        EXPECT_EQ(ell_c[2], 1);
+        EXPECT_EQ(ell_c[3], 1);
+    }
+
     std::complex<double> i{0, 1};
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx2;
 };
 
 
@@ -361,6 +425,32 @@ TEST_F(Csr, MovesToHybridAutomatically)
     csr_ref->move_to(hybrid_mtx.get());
 
     assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+
+    mtx2->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+    auto csr_ref = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    csr_ref->copy_from(mtx2.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
 }
 
 
