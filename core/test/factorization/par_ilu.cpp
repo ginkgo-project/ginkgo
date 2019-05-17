@@ -77,18 +77,22 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           linOp(DummyLinOp::create(ref)),
           dense_mtx(gko::initialize<Dense>({{1., 0.}, {0., 1.}}, ref)),
-          coo_mtx(Coo::create(ref)),
-          csr_mtx(Csr::create(ref))
+          coo_mtx(nullptr),
+          csr_mtx(nullptr)
     {
-        dense_mtx->convert_to(coo_mtx.get());
-        dense_mtx->convert_to(csr_mtx.get());
+        auto tmp_coo = Coo::create(ref);
+        auto tmp_csr = Csr::create(ref);
+        dense_mtx->convert_to(tmp_coo.get());
+        dense_mtx->convert_to(tmp_csr.get());
+        coo_mtx = std::move(tmp_coo);
+        csr_mtx = std::move(tmp_csr);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::unique_ptr<DummyLinOp> linOp;
+    std::unique_ptr<const DummyLinOp> linOp;
     std::shared_ptr<const Dense> dense_mtx;
-    std::shared_ptr<Coo> coo_mtx;
-    std::shared_ptr<Csr> csr_mtx;
+    std::shared_ptr<const Coo> coo_mtx;
+    std::shared_ptr<const Csr> csr_mtx;
 };
 
 
