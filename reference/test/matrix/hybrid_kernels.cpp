@@ -56,7 +56,8 @@ protected:
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
           mtx1(Mtx::create(exec)),
-          mtx2(Mtx::create(exec))
+          mtx2(Mtx::create(exec)),
+          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 2))
     {
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
@@ -65,6 +66,28 @@ protected:
             {{1.0, 3.0, 2.0},
              {0.0, 5.0, 0.0}}, exec, gko::dim<2>{}, 0, 16);
         // clang-format on
+
+        auto ell_val = mtx3->get_ell_values();
+        auto ell_col = mtx3->get_ell_col_idxs();
+        auto coo_val = mtx3->get_coo_values();
+        auto coo_col = mtx3->get_coo_col_idxs();
+        auto coo_row = mtx3->get_coo_row_idxs();
+
+        ell_val[0] = 1.0;
+        ell_val[1] = 0.0;
+        ell_val[2] = 3.0;
+        ell_val[3] = 5.0;
+        ell_col[0] = 0;
+        ell_col[1] = 0;
+        ell_col[2] = 1;
+        ell_col[3] = 1;
+
+        coo_val[0] = 2.0;
+        coo_val[1] = 0.0;
+        coo_col[0] = 2;
+        coo_col[1] = 2;
+        coo_row[0] = 0;
+        coo_row[1] = 1;
     }
 
     void assert_equal_to_mtx(const Csr *m)
@@ -90,6 +113,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> mtx3;
 };
 
 
@@ -231,6 +255,26 @@ TEST_F(Hybrid, MovesToCsr)
     auto csr_mtx = Csr::create(mtx1->get_executor());
 
     mtx1->move_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, ConvertsToCsrWithoutZeros)
+{
+    auto csr_mtx = Csr::create(mtx3->get_executor());
+
+    mtx3->convert_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, MovesToCsrWithoutZeros)
+{
+    auto csr_mtx = Csr::create(mtx3->get_executor());
+
+    mtx3->move_to(csr_mtx.get());
 
     assert_equal_to_mtx(csr_mtx.get());
 }
