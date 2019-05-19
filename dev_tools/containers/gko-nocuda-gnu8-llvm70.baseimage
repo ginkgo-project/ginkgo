@@ -28,6 +28,7 @@ RUN apt-get update -y && \
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
+        jq \
         graphviz \
         ghostscript \
         texlive \
