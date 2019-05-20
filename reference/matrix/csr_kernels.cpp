@@ -433,18 +433,16 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
         size_type ell_idx = 0;
         while (csr_idx < csr_row_ptrs[row + 1]) {
             const auto val = csr_vals[csr_idx];
-            if (val != zero<ValueType>()) {
-                if (ell_idx < ell_lim) {
-                    result->ell_val_at(row, ell_idx) = val;
-                    result->ell_col_at(row, ell_idx) =
-                        source->get_const_col_idxs()[csr_idx];
-                    ell_idx++;
-                } else {
-                    coo_val[coo_idx] = val;
-                    coo_col[coo_idx] = source->get_const_col_idxs()[csr_idx];
-                    coo_row[coo_idx] = row;
-                    coo_idx++;
-                }
+            if (ell_idx < ell_lim) {
+                result->ell_val_at(row, ell_idx) = val;
+                result->ell_col_at(row, ell_idx) =
+                    source->get_const_col_idxs()[csr_idx];
+                ell_idx++;
+            } else {
+                coo_val[coo_idx] = val;
+                coo_col[coo_idx] = source->get_const_col_idxs()[csr_idx];
+                coo_row[coo_idx] = row;
+                coo_idx++;
             }
             csr_idx++;
         }
