@@ -105,10 +105,11 @@ void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
     rowpts_u[current_index_u] = zero<IndexType>();
     for (size_type row = 0; row < system_matrix->get_size()[1]; ++row) {
         for (size_type el = rowpts[row]; el < rowpts[row + 1]; ++el) {
-            size_type col = cols[el];
+            const auto col = cols[el];
+            const auto val = vals[el];
             if (col < row) {
                 cols_l[current_index_l] = col;
-                vals_l[current_index_l] = vals[el];
+                vals_l[current_index_l] = val;
                 ++current_index_l;
             } else if (col == row) {
                 // Update both L and U
@@ -117,11 +118,11 @@ void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
                 ++current_index_l;
 
                 cols_u[current_index_u] = col;
-                vals_u[current_index_u] = vals[el];
+                vals_u[current_index_u] = val;
                 ++current_index_u;
             } else {  // col > row
                 cols_u[current_index_u] = col;
-                vals_u[current_index_u] = vals[el];
+                vals_u[current_index_u] = val;
                 ++current_index_u;
             }
         }
@@ -140,6 +141,7 @@ void print_matrix(std::shared_ptr<const ReferenceExecutor> &exec,
                   const ConvertibleTo<matrix::Dense<ValueType>> *mtx,
                   std::string title)
 {
+    return;
     auto d_mtx = matrix::Dense<ValueType>::create(exec);
     mtx->convert_to(d_mtx.get());
     auto size = d_mtx->get_size();
@@ -172,29 +174,33 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
     const auto u_cols = u_factor->get_const_col_idxs();
     auto l_vals = l_factor->get_values();
     auto u_vals = u_factor->get_values();
+    std::string addition;  // TODO remove this debug variable
     for (decltype(iterations) iter = 0; iter < iterations; ++iter) {
         for (size_type el = 0; el < system_matrix->get_num_stored_elements();
              ++el) {
             const auto row = rows[el];  // TODO remove: ^= i
             const auto col = cols[el];  // TODO remove: ^= j
             const auto val = vals[el];
-            std::string addition = std::to_string(el) + " [" +
-                                   std::to_string(row) + ", " +
-                                   std::to_string(col) + "]";
+            addition = std::to_string(el) + " [" + std::to_string(row) + ", " +
+                       std::to_string(col) + "]";
+            //*
             print_matrix(exec, l_factor, std::string("l ") + addition);
             print_matrix(exec, u_factor, std::string("u ") + addition);
+            //*/
             auto row_l = l_rows[row];
             auto row_u = u_rows[col];
-            ValueType sum{val};  // TODO remove: ^= s
-            ValueType tmp{};     // TODO remove: ^= sp
+            ValueType sum{val};          // TODO remove: ^= s
+            ValueType last_operation{};  // TODO remove: ^= sp
             // sum = system_matrix(row, col) - dot(l_factor(row, :), u_factor(:,
-            // col)) Assuming
+            // col))
             while (row_l < l_rows[row + 1] && row_u < u_rows[col + 1]) {
                 auto col_l = l_cols[row_l];
                 auto col_u = u_cols[row_u];
                 if (col_l == col_u) {
-                    tmp = l_vals[row_l] * u_vals[row_u];
-                    sum -= tmp;
+                    last_operation = l_vals[row_l] * u_vals[row_u];
+                    sum -= last_operation;
+                } else {
+                    last_operation = zero<ValueType>();
                 }
                 if (col_l <= col_u) {
                     ++row_l;
@@ -203,7 +209,8 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                     ++row_u;
                 }
             }
-            sum += tmp;       // undo the last operation (it must be the last)
+            // undo the last operation (it must be the last)
+            sum += last_operation;
             if (row > col) {  // modify entry in L
                 l_vals[row_l - 1] = sum / u_vals[u_rows[col + 1] - 1];
             } else {  // modify entry in U
@@ -211,7 +218,7 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    std::string addition = "final";
+    addition = "final";
     print_matrix(exec, l_factor, std::string("l ") + addition);
     print_matrix(exec, u_factor, std::string("u ") + addition);
 }
