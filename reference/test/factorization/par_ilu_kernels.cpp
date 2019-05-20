@@ -132,35 +132,6 @@ TEST_F(ParIlu, KernelComputeNnzLU)
 }
 
 
-TEST_F(ParIlu, KernelComputeDDLU)
-{
-    auto ddmtx = gko::initialize<Dense>(
-        {{20., 6., 8.}, {2., 50., 5.}, {1., 1., 70.}}, exec);
-    auto l_exp = gko::initialize<Dense>(
-        {{1., 0., 0.}, {0.1, 1., 0.}, {0.05, 0.0142, 1.}}, exec);
-    auto u_exp = gko::initialize<Dense>(
-        {{20., 6., 8.}, {0., 49.4, 4.2}, {0., 0., 69.5405}}, exec);
-    auto l_dense =
-        gko::initialize<Dense>({{1., 0., 0.}, {2., 1., 0.}, {1., 1., 1.}}, ref);
-    auto u_dense = gko::initialize<Dense>(
-        {{20., 6., 8.}, {0., 50., 5.}, {0., 0., 70.}}, ref);
-    auto l_csr = Csr::create(ref);
-    auto u_csr = Csr::create(ref);
-    auto mtx_coo = Coo::create(ref);
-    constexpr unsigned int iterations = 1;
-    l_dense->convert_to(gko::lend(l_csr));
-    u_dense->convert_to(gko::lend(u_csr));
-    mtx_small->convert_to(gko::lend(mtx_coo));
-
-    gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
-        gko::lend(u_csr));
-
-    GKO_ASSERT_MTX_NEAR(l_csr, l_exp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_csr, u_exp, 1e-14);
-}
-
-
 TEST_F(ParIlu, KernelInitializeLU)
 {
     auto expected_l =
@@ -183,8 +154,10 @@ TEST_F(ParIlu, KernelComputeLU)
 {
     auto l_dense =
         gko::initialize<Dense>({{1., 0., 0.}, {2., 1., 0.}, {1., 1., 1.}}, ref);
+    // U must be transposed before calling the kernel, so we simply create it
+    // transposed
     auto u_dense =
-        gko::initialize<Dense>({{4., 6., 8.}, {0., 2., 5.}, {0., 0., 1.}}, ref);
+        gko::initialize<Dense>({{4., 0., 0.}, {6., 2., 0.}, {8., 5., 1.}}, ref);
     auto l_csr = Csr::create(ref);
     auto u_csr = Csr::create(ref);
     auto mtx_coo = Coo::create(ref);
@@ -192,40 +165,29 @@ TEST_F(ParIlu, KernelComputeLU)
     l_dense->convert_to(gko::lend(l_csr));
     u_dense->convert_to(gko::lend(u_csr));
     mtx_small->convert_to(gko::lend(mtx_coo));
+    auto u_expected_lin_op = small_u_expected->transpose();
+    auto u_expected = std::unique_ptr<Dense>(
+        static_cast<Dense *>(u_expected_lin_op.release()));
+    // auto u_expected = dynamic_cast<Dense *>(u_expected_lin_op.get());
+    // auto u_expected = Csr::create(ref);
+    // u_expected->copy_from(u_expected_lin_op.get());
+
+    // auto u_expected(gko::initialize<Dense>(
+    //          {{4., 0., 0.}, {6., -1., 0.}, {8., 1., -1.5}}, ref));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
         ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
         gko::lend(u_csr));
 
     GKO_ASSERT_MTX_NEAR(l_csr, small_l_expected, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_csr, small_u_expected, 1e-14);
+    // GKO_ASSERT_MTX_NEAR(u_csr, small_u_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_csr, u_expected, 1e-14);
 }
 
 
-TEST_F(ParIlu, KernelComputeU)
-{
-    auto l_dense =
-        gko::initialize<Dense>({{1., 0., 0.}, {2., 1., 0.}, {1., 1., 1.}}, ref);
-    auto u_dense =
-        gko::initialize<Dense>({{4., 6., 8.}, {0., 2., 5.}, {0., 0., 1.}}, ref);
-    auto l_csr = Csr::create(ref);
-    auto u_csr = Csr::create(ref);
-    auto mtx_coo = Coo::create(ref);
-    constexpr unsigned int iterations = 1;
-    l_dense->convert_to(gko::lend(l_csr));
-    u_dense->convert_to(gko::lend(u_csr));
-    mtx_small->convert_to(gko::lend(mtx_coo));
-
-    gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
-        gko::lend(u_csr));
-
-    GKO_ASSERT_MTX_NEAR(u_csr, small_u_expected, 1e-14);
-}
+// TODO Add test for an actual sparse matrix
 
 
-// TODO uncomment (currently commented out for better debug output readability)
-/*
 TEST_F(ParIlu, GenerateForCooIdentity)
 {
     auto coo_mtx = Coo::create(exec);
@@ -321,7 +283,6 @@ TEST_F(ParIlu, GenerateForDenseBig)
     GKO_ASSERT_MTX_NEAR(l_factor, big_l_expected, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_factor, big_u_expected, 1e-14);
 }
-*/
 
 
 }  // namespace

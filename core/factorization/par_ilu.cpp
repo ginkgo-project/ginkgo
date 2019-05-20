@@ -119,14 +119,15 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
     }
 
+    // TODO: We might need to make sure that the COO matrix is sorted properly
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
         parameters_.iterations, coo_system_matrix_ptr, l_factor.get(),
         u_factor_transpose.get()));
 
     // TODO maybe directly call the csr kernel for transpose so there is one
     // less allocation and deletion!
-    // u_factor = u_factor_transpose->transpose();
-    auto u_factor_lin_op = u_factor->transpose();
+    auto u_factor_lin_op = u_factor_transpose->transpose();
+    // TODO: Remove cast since it is not necessary (here for debug purposes)
     u_factor = std::unique_ptr<u_matrix_type>{
         static_cast<u_matrix_type *>(u_factor_lin_op.release())};
 
