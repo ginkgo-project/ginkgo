@@ -232,15 +232,15 @@ protected:
         auto ell_c = m->get_const_ell_col_idxs();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
+        // Test Coo values
         ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
-
-        EXPECT_EQ(n, 2);
-        EXPECT_EQ(p, 2);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(c[0], 2);
         EXPECT_EQ(v[0], 2.0);
-
+        // Test Ell values
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
+        EXPECT_EQ(n, 2);
+        EXPECT_EQ(p, 2);
         EXPECT_EQ(ell_v[0], 1);
         EXPECT_EQ(ell_v[1], 0);
         EXPECT_EQ(ell_v[2], 3);
@@ -457,8 +457,10 @@ TEST_F(Csr, MovesToHybridByColumn2)
 TEST_F(Csr, CalculatesNonzerosPerRow)
 {
     gko::Array<gko::size_type> row_nnz(exec, mtx->get_size()[0]);
+
     gko::kernels::reference::csr::calculate_nonzeros_per_row(exec, mtx.get(),
                                                              &row_nnz);
+
     auto row_nnz_val = row_nnz.get_data();
     ASSERT_EQ(row_nnz_val[0], 3);
     ASSERT_EQ(row_nnz_val[1], 1);
