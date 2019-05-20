@@ -73,6 +73,7 @@ protected:
         auto coo_col = mtx3->get_coo_col_idxs();
         auto coo_row = mtx3->get_coo_row_idxs();
 
+        // Set Ell values
         ell_val[0] = 1.0;
         ell_val[1] = 0.0;
         ell_val[2] = 3.0;
@@ -81,7 +82,7 @@ protected:
         ell_col[1] = 0;
         ell_col[2] = 1;
         ell_col[3] = 1;
-
+        // Set Coo values
         coo_val[0] = 2.0;
         coo_val[1] = 0.0;
         coo_col[0] = 2;
@@ -95,6 +96,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
+        
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);
