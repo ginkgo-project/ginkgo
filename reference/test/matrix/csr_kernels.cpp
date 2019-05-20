@@ -103,7 +103,7 @@ protected:
         Mtx::value_type *v = m->get_values();
         Mtx::index_type *c = m->get_col_idxs();
         Mtx::index_type *r = m->get_row_ptrs();
-        // It keep a explict zero
+        // It keeps an explict zero
         /*
          *  1    3   2
          * {0}   5   0
