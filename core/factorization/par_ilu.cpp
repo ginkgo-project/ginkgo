@@ -36,13 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/factorization/par_ilu_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -54,6 +55,7 @@ GKO_REGISTER_OPERATION(compute_nnz_l_u, par_ilu_factorization::compute_nnz_l_u);
 GKO_REGISTER_OPERATION(initialize_l_u, par_ilu_factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(compute_l_u_factors,
                        par_ilu_factorization::compute_l_u_factors);
+GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 
 
 }  // namespace par_ilu_factorization
@@ -62,14 +64,14 @@ GKO_REGISTER_OPERATION(compute_l_u_factors,
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
-    std::shared_ptr<const LinOp> system_matrix) const
+    const std::shared_ptr<const LinOp> &system_matrix) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
 
     const auto exec = this->get_executor();
     // Only copies the matrix if it is not on the same executor or was not in
-    // the right format
+    // the right format. Throws an exception if it is not convertable.
     std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
     auto csr_system_matrix =
         dynamic_cast<const CsrMatrix *>(system_matrix.get());
@@ -95,10 +97,11 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));
     auto u_factor_transpose_lin_op = u_factor->transpose();
 
-    // Since `transpose()` returns a `std::unique_ptr<LinOp>`, we need to
-    // convert it back to `std::unique_ptr<u_matrix_type>`
-    std::unique_ptr<u_matrix_type> u_factor_transpose{
-        static_cast<u_matrix_type *>(u_factor_transpose_lin_op.release())};
+    // We use `transpose()` here to convert the Csr format to Csc.
+    // Since `transpose()` returns an `std::unique_ptr<LinOp>`, we need to
+    // convert it to `u_matrix_type *` in order to use it.
+    auto u_factor_transpose =
+        static_cast<u_matrix_type *>(u_factor_transpose_lin_op.get());
 
     // At first, test if the given system_matrix was already a Coo matrix,
     // so no conversion would be necessary.
@@ -106,8 +109,10 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     auto coo_system_matrix_ptr =
         dynamic_cast<const CooMatrix *>(system_matrix.get());
 
-    // If it was not, we can move the Csr matrix to Coo ONLY if we created the
-    // Csr matrix here, otherwise, it needs to be copied.
+    // If it was not, and we already converted the `system_matrix` to CSR,
+    // we can move the Csr matrix to Coo, which has very little overhead.
+    // Otherwise, we convert from the Csr matrix, since it is the conversion
+    // with the least overhead.
     if (coo_system_matrix_ptr == nullptr) {
         coo_system_matrix_unique_ptr = CooMatrix::create(exec);
         if (csr_system_matrix_unique_ptr == nullptr) {
@@ -119,17 +124,18 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
     }
 
-    // TODO: We might need to make sure that the COO matrix is sorted properly
+    // TODO: We probably need to make sure that both the COO matrix and both CSR
+    // matrices are sorted first by row, then by column
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
         parameters_.iterations, coo_system_matrix_ptr, l_factor.get(),
-        u_factor_transpose.get()));
+        u_factor_transpose));
 
-    // TODO maybe directly call the csr kernel for transpose so there is one
-    // less allocation and deletion!
-    auto u_factor_lin_op = u_factor_transpose->transpose();
-    // TODO: Remove cast since it is not necessary (here for debug purposes)
-    u_factor = std::unique_ptr<u_matrix_type>{
-        static_cast<u_matrix_type *>(u_factor_lin_op.release())};
+    // Transpose it again, which is basically a conversion from CSC back to CSR
+    // Since the transposed version has the exact same non-zero positions
+    // as `u_factor`, we can both skip the allocation and the `make_srow()`
+    // call from CSR, leaving just the `transpose()` kernel call
+    exec->run(par_ilu_factorization::make_csr_transpose(u_factor.get(),
+                                                        u_factor_transpose));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));
