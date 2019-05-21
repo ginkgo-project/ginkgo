@@ -36,12 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
@@ -57,18 +59,27 @@ protected:
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
     using Ell = gko::matrix::Ell<>;
+    using Hybrid = gko::matrix::Hybrid<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<Mtx::load_balance>(2)))
+                          std::make_shared<Mtx::load_balance>(2))),
+          mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
+                           std::make_shared<Mtx::classical>()))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_ptrs();
-        auto *s = mtx->get_srow();
+        this->create_mtx(mtx.get());
+        this->create_mtx2(mtx2.get());
+    }
+
+    void create_mtx(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        auto *s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -85,6 +96,31 @@ protected:
         v[2] = 2.0;
         v[3] = 5.0;
         s[0] = 0;
+    }
+
+    void create_mtx2(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        // It keeps an explict zero
+        /*
+         *  1    3   2
+         * {0}   5   0
+         */
+        r[0] = 0;
+        r[1] = 3;
+        r[2] = 5;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 2;
+        c[3] = 0;
+        c[4] = 1;
+        v[0] = 1.0;
+        v[1] = 3.0;
+        v[2] = 2.0;
+        v[3] = 0.0;
+        v[4] = 5.0;
     }
 
     void assert_equal_to_mtx(const Coo *m)
@@ -158,9 +194,67 @@ protected:
         EXPECT_EQ(v[5], 0.0);
     }
 
+    void assert_equal_to_mtx(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 4);
+        EXPECT_EQ(n, 0);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 0);
+        EXPECT_EQ(r[2], 0);
+        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
+    }
+
+    void assert_equal_to_mtx2(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+        auto ell_v = m->get_const_ell_values();
+        auto ell_c = m->get_const_ell_col_idxs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        // Test Coo values
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(c[0], 2);
+        EXPECT_EQ(v[0], 2.0);
+        // Test Ell values
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
+        EXPECT_EQ(n, 2);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(ell_v[0], 1);
+        EXPECT_EQ(ell_v[1], 0);
+        EXPECT_EQ(ell_v[2], 3);
+        EXPECT_EQ(ell_v[3], 5);
+        EXPECT_EQ(ell_c[0], 0);
+        EXPECT_EQ(ell_c[1], 0);
+        EXPECT_EQ(ell_c[2], 1);
+        EXPECT_EQ(ell_c[3], 1);
+    }
+
     std::complex<double> i{0, 1};
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx2;
 };
 
 
@@ -309,6 +403,67 @@ TEST_F(Csr, MovesToSellp)
     csr_ref->move_to(sellp_mtx.get());
 
     assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+
+    mtx->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+
+    mtx2->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+    auto csr_ref = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    csr_ref->copy_from(mtx2.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    gko::Array<gko::size_type> row_nnz(exec, mtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(exec, mtx.get(),
+                                                             &row_nnz);
+
+    auto row_nnz_val = row_nnz.get_data();
+    ASSERT_EQ(row_nnz_val[0], 3);
+    ASSERT_EQ(row_nnz_val[1], 1);
 }
 
 

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include "omp/components/format_conversion.hpp"
@@ -282,6 +283,25 @@ void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
+                       matrix::Hybrid<ValueType, IndexType> *result,
+                       const matrix::Csr<ValueType, IndexType> *source)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
+                                const matrix::Csr<ValueType, IndexType> *source,
+                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 }  // namespace csr
