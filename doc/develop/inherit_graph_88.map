@@ -1,145 +1,145 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Bicgstab\&lt; ValueType \&gt; \&gt;" alt="" coords="1318,57,1522,98"/>
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Bicgstab\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,57,1858,98"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Bicgstab\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1940,130,2147,171"/>
-<area shape="rect" id="node4" href="$classgko_1_1solver_1_1Bicgstab.html" title="BiCGSTAB or the Bi&#45;Conjugate Gradient&#45;Stabilized is a Krylov subspace solver. " alt="" coords="2273,165,2431,206"/>
-<area shape="rect" id="node5" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Cg\&lt; ValueType \&gt; \&gt;" alt="" coords="1337,203,1503,245"/>
-<area shape="rect" id="node6" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Cg\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,207,1858,249"/>
-<area shape="rect" id="node7" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Cg\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1960,277,2127,318"/>
-<area shape="rect" id="node8" href="$classgko_1_1solver_1_1Cg.html" title="CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for..." alt="" coords="2245,316,2459,343"/>
-<area shape="rect" id="node9" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Cgs\&lt; ValueType \&gt; \&gt;" alt="" coords="1334,350,1506,391"/>
-<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Cgs\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,351,1858,393"/>
-<area shape="rect" id="node11" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Cgs\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1956,409,2131,450"/>
-<area shape="rect" id="node12" href="$classgko_1_1solver_1_1Cgs.html" title="CGS or the conjugate gradient square method is an iterative type Krylov subspace method which is suit..." alt="" coords="2241,392,2463,419"/>
-<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1305,790,1535,831"/>
-<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,775,1858,817"/>
-<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Combination\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1927,811,2160,853"/>
-<area shape="rect" id="node16" href="$classgko_1_1Combination.html" title="The Combination class can be used to construct a linear combination of multiple linear operators `c1 ..." alt="" coords="2235,787,2469,813"/>
-<area shape="rect" id="node17" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1305,937,1535,978"/>
-<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,922,1858,963"/>
-<area shape="rect" id="node19" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Composition\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1927,969,2159,1010"/>
-<area shape="rect" id="node20" href="$classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera..." alt="" coords="2236,944,2468,971"/>
-<area shape="rect" id="node21" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1297,1434,1543,1475"/>
-<area shape="rect" id="node22" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1478,1858,1519"/>
-<area shape="rect" id="node25" href="$classgko_1_1matrix_1_1Csr.html" title="CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr..." alt="" coords="2247,1755,2457,1797"/>
-<area shape="rect" id="node23" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Coo\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,1551,2147,1593"/>
-<area shape="rect" id="node24" href="$classgko_1_1matrix_1_1Coo.html" title="COO stores a matrix in the coordinate matrix format. " alt="" coords="2245,1961,2459,2002"/>
-<area shape="rect" id="node26" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2530,1369,2745,1410"/>
-<area shape="rect" id="node27" href="$classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix. " alt="" coords="2795,1849,2941,1890"/>
-<area shape="rect" id="node28" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2530,1434,2745,1475"/>
-<area shape="rect" id="node29" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1299,2162,1541,2203"/>
-<area shape="rect" id="node30" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1873,1858,1914"/>
-<area shape="rect" id="node32" href="$classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb..." alt="" coords="2249,2303,2455,2345"/>
-<area shape="rect" id="node33" href="$classgko_1_1matrix_1_1Sellp.html" title="SELL&#45;P is a matrix format similar to ELL format. " alt="" coords="2256,2155,2448,2197"/>
-<area shape="rect" id="node31" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Csr\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,1755,2147,1797"/>
-<area shape="rect" id="node34" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2532,1499,2743,1541"/>
-<area shape="rect" id="node35" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2532,1565,2743,1606"/>
-<area shape="rect" id="node36" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1949,1990,2138,2031"/>
-<area shape="rect" id="node37" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="2224,2058,2480,2099"/>
-<area shape="rect" id="node39" href="$classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format. " alt="" coords="2256,2369,2448,2410"/>
-<area shape="rect" id="node38" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Dense\l\&lt; ValueType \&gt; \&gt;" alt="" coords="2542,2278,2733,2319"/>
-<area shape="rect" id="node40" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1301,1833,1539,1874"/>
-<area shape="rect" id="node41" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,2019,1858,2061"/>
-<area shape="rect" id="node42" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Ell\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2369,2147,2410"/>
-<area shape="rect" id="node43" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2535,1630,2740,1671"/>
-<area shape="rect" id="node44" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2535,1695,2740,1737"/>
-<area shape="rect" id="node45" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Fcg\&lt; ValueType \&gt; \&gt;" alt="" coords="1335,497,1505,538"/>
-<area shape="rect" id="node46" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Fcg\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,497,1858,538"/>
-<area shape="rect" id="node47" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Fcg\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1957,497,2129,538"/>
-<area shape="rect" id="node48" href="$classgko_1_1solver_1_1Fcg.html" title="FCG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is su..." alt="" coords="2242,473,2462,500"/>
-<area shape="rect" id="node49" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Gmres\&lt; ValueType \&gt; \&gt;" alt="" coords="1325,643,1515,685"/>
-<area shape="rect" id="node50" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Gmres\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,643,1858,685"/>
-<area shape="rect" id="node51" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Gmres\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1947,643,2140,685"/>
-<area shape="rect" id="node52" href="$classgko_1_1solver_1_1Gmres.html" title="GMRES or the generalized minimal residual method is an iterative type Krylov subspace method which is..." alt="" coords="2279,585,2425,626"/>
-<area shape="rect" id="node53" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1337,2512,1503,2568"/>
-<area shape="rect" id="node54" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Hybrid\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1597,2531,1863,2573"/>
-<area shape="rect" id="node55" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Hybrid\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2617,2147,2658"/>
-<area shape="rect" id="node56" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="2555,1761,2720,1817"/>
-<area shape="rect" id="node57" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="2555,1841,2720,1897"/>
-<area shape="rect" id="node58" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1321,1281,1519,1322"/>
-<area shape="rect" id="node59" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,1281,1858,1322"/>
-<area shape="rect" id="node60" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Identity\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1943,1310,2143,1351"/>
-<area shape="rect" id="node61" href="$classgko_1_1matrix_1_1Identity.html" title="This class is a utility which efficiently implements the identity matrix (a linear operator which map..." alt="" coords="2275,1251,2429,1293"/>
-<area shape="rect" id="node62" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ir\&lt; ValueType \&gt; \&gt;" alt="" coords="1341,1163,1499,1205"/>
-<area shape="rect" id="node63" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Ir\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,1134,1858,1175"/>
-<area shape="rect" id="node64" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Ir\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1964,1098,2123,1139"/>
-<area shape="rect" id="node65" href="$classgko_1_1solver_1_1Ir.html" title="Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the e..." alt="" coords="2249,1105,2455,1132"/>
-<area shape="rect" id="node66" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1339,2752,1501,2808"/>
-<area shape="rect" id="node67" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Jacobi\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1599,2758,1861,2799"/>
-<area shape="rect" id="node68" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Jacobi\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2747,2147,2789"/>
-<area shape="rect" id="node69" href="$classgko_1_1preconditioner_1_1Jacobi.html" title="A block&#45;Jacobi preconditioner is a block&#45;diagonal linear operator, obtained by inverting the diagonal..." alt="" coords="2275,2675,2429,2731"/>
-<area shape="rect" id="node70" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; matrix::Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1923,2682,2163,2723"/>
-<area shape="rect" id="node71" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1343,1731,1497,1787"/>
-<area shape="rect" id="node72" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1755,1858,1797"/>
-<area shape="rect" id="node73" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Sellp\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2121,2147,2162"/>
-<area shape="rect" id="node74" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="2560,1921,2715,1977"/>
-<area shape="rect" id="node75" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="2560,2001,2715,2057"/>
-<area shape="rect" id="node77" href="$classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device. " alt="" coords="1083,468,1227,495"/>
-<area shape="rect" id="node78" href="$classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU). ..." alt="" coords="1084,519,1227,545"/>
-<area shape="rect" id="node79" href="$classgko_1_1ReferenceExecutor.html" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ..." alt="" coords="1332,5,1508,32"/>
-<area shape="rect" id="node80" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1928,746,2159,787"/>
-<area shape="rect" id="node81" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1928,903,2159,945"/>
-<area shape="rect" id="node82" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1920,1873,2167,1914"/>
-<area shape="rect" id="node83" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1922,1690,2165,1731"/>
-<area shape="rect" id="node84" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="2543,2082,2732,2123"/>
-<area shape="rect" id="node85" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1924,2434,2163,2475"/>
-<area shape="rect" id="node86" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Hybrid\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1911,2551,2176,2593"/>
-<area shape="rect" id="node87" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1944,1245,2143,1286"/>
-<area shape="rect" id="node88" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1916,2186,2171,2227"/>
-<area shape="rect" id="node89" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,1071,147,1097"/>
-<area shape="rect" id="node90" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="227,939,405,981"/>
-<area shape="rect" id="node93" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="227,1063,405,1105"/>
-<area shape="rect" id="node139" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="195,1129,437,1185"/>
-<area shape="rect" id="node91" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="519,628,629,655"/>
-<area shape="rect" id="node94" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="485,1229,663,1256"/>
-<area shape="rect" id="node95" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="711,1383,1020,1439"/>
-<area shape="rect" id="node103" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Criterion \&gt;" alt="" coords="749,1222,982,1263"/>
-<area shape="rect" id="node105" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="749,1157,982,1198"/>
-<area shape="rect" id="node96" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="1068,1383,1243,1439"/>
-<area shape="rect" id="node99" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1351,2836,1489,2863"/>
-<area shape="rect" id="node100" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="1613,2824,1847,2880"/>
-<area shape="rect" id="node101" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="1933,2824,2154,2880"/>
-<area shape="rect" id="node102" href="$classgko_1_1matrix_1_1IdentityFactory.html" title="This factory is a utility which can be used to generate Identity operators. " alt="" coords="2251,2831,2453,2873"/>
-<area shape="rect" id="node104" href="$classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. " alt="" coords="1082,1229,1229,1256"/>
-<area shape="rect" id="node106" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1110,1164,1201,1191"/>
-<area shape="rect" id="node107" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Bicgstab\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,123,1537,179"/>
-<area shape="rect" id="node109" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cg\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,269,1537,325"/>
-<area shape="rect" id="node111" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cgs\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,416,1537,472"/>
-<area shape="rect" id="node113" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1299,856,1541,912"/>
-<area shape="rect" id="node115" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1299,1003,1541,1059"/>
-<area shape="rect" id="node117" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Coo\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1291,1512,1549,1568"/>
-<area shape="rect" id="node119" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Csr\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1293,1617,1547,1673"/>
-<area shape="rect" id="node121" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Dense\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1613,1200,1847,1256"/>
-<area shape="rect" id="node123" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Ell\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1295,2283,1545,2339"/>
-<area shape="rect" id="node125" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Fcg\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,563,1537,619"/>
-<area shape="rect" id="node127" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Gmres\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,709,1537,765"/>
-<area shape="rect" id="node129" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Hybrid\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,2592,1537,2648"/>
-<area shape="rect" id="node131" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Identity\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,1347,1537,1403"/>
-<area shape="rect" id="node133" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Ir\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,1083,1537,1139"/>
-<area shape="rect" id="node135" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,2672,1537,2728"/>
-<area shape="rect" id="node137" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Sellp\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,1919,1537,1975"/>
-<area shape="rect" id="node108" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Bicgstab\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1619,123,1841,179"/>
-<area shape="rect" id="node110" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Cg\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,277,1841,318"/>
-<area shape="rect" id="node112" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Cgs\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,421,1841,462"/>
-<area shape="rect" id="node114" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1619,841,1841,897"/>
-<area shape="rect" id="node116" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1619,988,1841,1044"/>
-<area shape="rect" id="node118" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Coo\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,1544,1841,1600"/>
-<area shape="rect" id="node120" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Csr\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,1624,1841,1680"/>
-<area shape="rect" id="node122" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Dense\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="2235,1186,2469,1227"/>
-<area shape="rect" id="node124" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Ell\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,2451,1841,2507"/>
-<area shape="rect" id="node126" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Fcg\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,566,1841,607"/>
-<area shape="rect" id="node128" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Gmres\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1612,709,1848,750"/>
-<area shape="rect" id="node130" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Hybrid\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1613,2597,1847,2653"/>
-<area shape="rect" id="node132" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Identity\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1619,1347,1841,1403"/>
-<area shape="rect" id="node134" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Ir\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,1069,1841,1110"/>
-<area shape="rect" id="node136" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Jacobi\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1615,2677,1845,2733"/>
-<area shape="rect" id="node138" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Sellp\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1618,1939,1842,1995"/>
-<area shape="rect" id="node140" href="$classgko_1_1Preconditionable.html" title="A LinOp implementing this interface can be preconditioned. " alt="" coords="1962,357,2125,384"/>
-<area shape="rect" id="node141" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure. " alt="" coords="1934,2055,2153,2097"/>
-<area shape="rect" id="node142" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="2528,2147,2747,2189"/>
-<area shape="rect" id="node143" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="2528,2213,2747,2254"/>
-<area shape="rect" id="node144" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. " alt="" coords="1974,1376,2113,1403"/>
-<area shape="rect" id="node145" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="1946,2303,2141,2345"/>
-<area shape="rect" id="node146" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="2540,2343,2735,2385"/>
-<area shape="rect" id="node147" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="2540,2409,2735,2450"/>
+<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Bicgstab\&lt; ValueType \&gt; \&gt;" alt="" coords="1318,215,1522,256"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Bicgstab\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,227,1858,268"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Bicgstab\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1940,227,2147,268"/>
+<area shape="rect" id="node4" href="$classgko_1_1solver_1_1Bicgstab.html" title="BiCGSTAB or the Bi&#45;Conjugate Gradient&#45;Stabilized is a Krylov subspace solver. " alt="" coords="2273,263,2431,304"/>
+<area shape="rect" id="node5" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Cg\&lt; ValueType \&gt; \&gt;" alt="" coords="1337,361,1503,403"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Cg\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,361,1858,403"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Cg\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1960,361,2127,403"/>
+<area shape="rect" id="node8" href="$classgko_1_1solver_1_1Cg.html" title="CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for..." alt="" coords="2245,403,2459,430"/>
+<area shape="rect" id="node9" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Cgs\&lt; ValueType \&gt; \&gt;" alt="" coords="1334,508,1506,549"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Cgs\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,505,1858,547"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Cgs\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1956,489,2131,531"/>
+<area shape="rect" id="node12" href="$classgko_1_1solver_1_1Cgs.html" title="CGS or the conjugate gradient square method is an iterative type Krylov subspace method which is suit..." alt="" coords="2241,475,2463,502"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1305,947,1535,988"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,943,1858,984"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Combination\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1927,883,2160,924"/>
+<area shape="rect" id="node16" href="$classgko_1_1Combination.html" title="The Combination class can be used to construct a linear combination of multiple linear operators `c1 ..." alt="" coords="2235,923,2469,950"/>
+<area shape="rect" id="node17" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1305,1093,1535,1135"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,1089,1858,1131"/>
+<area shape="rect" id="node19" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Composition\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1927,1028,2159,1069"/>
+<area shape="rect" id="node20" href="$classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera..." alt="" coords="2236,1067,2468,1094"/>
+<area shape="rect" id="node21" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1297,1781,1543,1823"/>
+<area shape="rect" id="node22" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,2303,1858,2344"/>
+<area shape="rect" id="node25" href="$classgko_1_1matrix_1_1Csr.html" title="CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr..." alt="" coords="2247,1705,2457,1747"/>
+<area shape="rect" id="node23" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Coo\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2405,2147,2447"/>
+<area shape="rect" id="node24" href="$classgko_1_1matrix_1_1Coo.html" title="COO stores a matrix in the coordinate matrix format. " alt="" coords="2245,2373,2459,2415"/>
+<area shape="rect" id="node26" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2530,1367,2745,1408"/>
+<area shape="rect" id="node27" href="$classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix. " alt="" coords="2795,1847,2941,1888"/>
+<area shape="rect" id="node28" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Coo\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2530,1432,2745,1473"/>
+<area shape="rect" id="node29" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1299,2216,1541,2257"/>
+<area shape="rect" id="node30" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1680,1858,1721"/>
+<area shape="rect" id="node32" href="$classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb..." alt="" coords="2249,2005,2455,2047"/>
+<area shape="rect" id="node33" href="$classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format. " alt="" coords="2256,2509,2448,2551"/>
+<area shape="rect" id="node34" href="$classgko_1_1matrix_1_1Sellp.html" title="SELL&#45;P is a matrix format similar to ELL format. " alt="" coords="2256,2180,2448,2221"/>
+<area shape="rect" id="node31" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Csr\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,1611,2147,1652"/>
+<area shape="rect" id="node35" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2532,1497,2743,1539"/>
+<area shape="rect" id="node36" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Csr\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2532,1563,2743,1604"/>
+<area shape="rect" id="node37" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1949,2027,2138,2068"/>
+<area shape="rect" id="node38" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="2224,2085,2480,2127"/>
+<area shape="rect" id="node39" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Dense\l\&lt; ValueType \&gt; \&gt;" alt="" coords="2542,2276,2733,2317"/>
+<area shape="rect" id="node40" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1301,1377,1539,1419"/>
+<area shape="rect" id="node41" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1468,1858,1509"/>
+<area shape="rect" id="node42" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Ell\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,1844,2147,1885"/>
+<area shape="rect" id="node43" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int32 \&gt; \&gt;" alt="" coords="2535,1628,2740,1669"/>
+<area shape="rect" id="node44" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ell\&lt; ValueType, int64 \&gt; \&gt;" alt="" coords="2535,1693,2740,1735"/>
+<area shape="rect" id="node45" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Fcg\&lt; ValueType \&gt; \&gt;" alt="" coords="1335,655,1505,696"/>
+<area shape="rect" id="node46" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Fcg\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,651,1858,692"/>
+<area shape="rect" id="node47" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Fcg\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1957,581,2129,623"/>
+<area shape="rect" id="node48" href="$classgko_1_1solver_1_1Fcg.html" title="FCG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is su..." alt="" coords="2242,546,2462,573"/>
+<area shape="rect" id="node49" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Gmres\&lt; ValueType \&gt; \&gt;" alt="" coords="1325,720,1515,761"/>
+<area shape="rect" id="node50" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Gmres\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,720,1858,761"/>
+<area shape="rect" id="node51" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Gmres\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1947,720,2140,761"/>
+<area shape="rect" id="node52" href="$classgko_1_1solver_1_1Gmres.html" title="GMRES or the generalized minimal residual method is an iterative type Krylov subspace method which is..." alt="" coords="2279,657,2425,699"/>
+<area shape="rect" id="node53" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1337,2394,1503,2450"/>
+<area shape="rect" id="node54" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Hybrid\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1597,2579,1863,2620"/>
+<area shape="rect" id="node55" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Hybrid\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2639,2147,2680"/>
+<area shape="rect" id="node56" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="2555,1759,2720,1815"/>
+<area shape="rect" id="node57" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Hybrid\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="2555,1839,2720,1895"/>
+<area shape="rect" id="node58" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1321,2799,1519,2840"/>
+<area shape="rect" id="node59" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,2805,1858,2847"/>
+<area shape="rect" id="node60" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Identity\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1943,2769,2143,2811"/>
+<area shape="rect" id="node61" href="$classgko_1_1matrix_1_1Identity.html" title="This class is a utility which efficiently implements the identity matrix (a linear operator which map..." alt="" coords="2275,2797,2429,2839"/>
+<area shape="rect" id="node62" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Ir\&lt; ValueType \&gt; \&gt;" alt="" coords="1341,1159,1499,1200"/>
+<area shape="rect" id="node63" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Ir\&lt; ValueType \&gt; \&gt;" alt="" coords="1602,1155,1858,1196"/>
+<area shape="rect" id="node64" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Ir\l\&lt; ValueType \&gt; \&gt;" alt="" coords="1964,1180,2123,1221"/>
+<area shape="rect" id="node65" href="$classgko_1_1solver_1_1Ir.html" title="Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the e..." alt="" coords="2249,1187,2455,1214"/>
+<area shape="rect" id="node66" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1339,2865,1501,2921"/>
+<area shape="rect" id="node67" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Jacobi\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1599,2875,1861,2916"/>
+<area shape="rect" id="node68" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Jacobi\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2900,2147,2941"/>
+<area shape="rect" id="node69" href="$classgko_1_1preconditioner_1_1Jacobi.html" title="A block&#45;Jacobi preconditioner is a block&#45;diagonal linear operator, obtained by inverting the diagonal..." alt="" coords="2275,2893,2429,2949"/>
+<area shape="rect" id="node70" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; matrix::Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="1923,2965,2163,3007"/>
+<area shape="rect" id="node71" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l IndexType \&gt; \&gt;" alt="" coords="1343,1461,1497,1517"/>
+<area shape="rect" id="node72" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1602,1533,1858,1575"/>
+<area shape="rect" id="node73" href="$classgko_1_1EnableLinOp.html" title="gko::EnableLinOp\&lt; Sellp\l\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1940,2092,2147,2133"/>
+<area shape="rect" id="node74" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int32 \&gt; \&gt;" alt="" coords="2560,1919,2715,1975"/>
+<area shape="rect" id="node75" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; Sellp\&lt; ValueType,\l int64 \&gt; \&gt;" alt="" coords="2560,1999,2715,2055"/>
+<area shape="rect" id="node77" href="$classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device. " alt="" coords="1083,13,1227,39"/>
+<area shape="rect" id="node78" href="$classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU). ..." alt="" coords="1084,63,1227,90"/>
+<area shape="rect" id="node79" href="$classgko_1_1ReferenceExecutor.html" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ..." alt="" coords="1332,33,1508,59"/>
+<area shape="rect" id="node80" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Combination\&lt; ValueType \&gt; \&gt;" alt="" coords="1928,948,2159,989"/>
+<area shape="rect" id="node81" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Composition\&lt; ValueType \&gt; \&gt;" alt="" coords="1928,1093,2159,1135"/>
+<area shape="rect" id="node82" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Coo\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1920,2471,2167,2512"/>
+<area shape="rect" id="node83" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Csr\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1922,1676,2165,1717"/>
+<area shape="rect" id="node84" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Dense\&lt; ValueType \&gt; \&gt;" alt="" coords="2543,2080,2732,2121"/>
+<area shape="rect" id="node85" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Ell\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1924,1909,2163,1951"/>
+<area shape="rect" id="node86" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Hybrid\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1911,2704,2176,2745"/>
+<area shape="rect" id="node87" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Identity\&lt; ValueType \&gt; \&gt;" alt="" coords="1944,2835,2143,2876"/>
+<area shape="rect" id="node88" href="$classgko_1_1EnableCreateMethod.html" title="gko::EnableCreateMethod\l\&lt; Sellp\&lt; ValueType, IndexType \&gt; \&gt;" alt="" coords="1916,2157,2171,2199"/>
+<area shape="rect" id="node89" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,239,147,266"/>
+<area shape="rect" id="node90" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="227,101,405,143"/>
+<area shape="rect" id="node93" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="227,232,405,273"/>
+<area shape="rect" id="node139" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="195,298,437,354"/>
+<area shape="rect" id="node91" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="519,45,629,71"/>
+<area shape="rect" id="node94" href="$classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="485,271,663,298"/>
+<area shape="rect" id="node95" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; AbstractFactory\&lt;\l AbstractProductType, ComponentsType \&gt; \&gt;" alt="" coords="711,774,1020,830"/>
+<area shape="rect" id="node103" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Criterion \&gt;" alt="" coords="749,184,982,225"/>
+<area shape="rect" id="node105" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;" alt="" coords="749,465,982,507"/>
+<area shape="rect" id="node96" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="1068,1259,1243,1315"/>
+<area shape="rect" id="node99" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another..." alt="" coords="1351,83,1489,110"/>
+<area shape="rect" id="node100" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; IdentityFactory\&lt;\l ValueType \&gt;, LinOpFactory \&gt;" alt="" coords="1613,66,1847,122"/>
+<area shape="rect" id="node101" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; IdentityFactory\&lt; ValueType\l \&gt;, LinOpFactory \&gt;" alt="" coords="1933,66,2154,122"/>
+<area shape="rect" id="node102" href="$classgko_1_1matrix_1_1IdentityFactory.html" title="This factory is a utility which can be used to generate Identity operators. " alt="" coords="2251,73,2453,115"/>
+<area shape="rect" id="node104" href="$classgko_1_1stop_1_1Criterion.html" title="The Criterion class is a base class for all stopping criteria. " alt="" coords="1082,191,1229,218"/>
+<area shape="rect" id="node106" href="$classgko_1_1LinOp.html" title="gko::LinOp" alt="" coords="1110,1209,1201,1235"/>
+<area shape="rect" id="node107" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Bicgstab\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,134,1537,190"/>
+<area shape="rect" id="node109" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cg\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,281,1537,337"/>
+<area shape="rect" id="node111" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Cgs\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,427,1537,483"/>
+<area shape="rect" id="node113" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1299,866,1541,922"/>
+<area shape="rect" id="node115" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1299,1013,1541,1069"/>
+<area shape="rect" id="node117" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Coo\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1291,2293,1549,2349"/>
+<area shape="rect" id="node119" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Csr\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1293,1583,1547,1639"/>
+<area shape="rect" id="node121" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Dense\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1613,1286,1847,1342"/>
+<area shape="rect" id="node123" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Ell\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1295,1675,1545,1731"/>
+<area shape="rect" id="node125" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Fcg\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,574,1537,630"/>
+<area shape="rect" id="node127" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Gmres\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,786,1537,842"/>
+<area shape="rect" id="node129" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Hybrid\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,2486,1537,2542"/>
+<area shape="rect" id="node131" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Identity\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1303,2617,1537,2673"/>
+<area shape="rect" id="node133" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Ir\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1303,1225,1537,1281"/>
+<area shape="rect" id="node135" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Jacobi\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,2945,1537,3001"/>
+<area shape="rect" id="node137" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Sellp\&lt; ValueType,\l IndexType \&gt;, LinOp \&gt;" alt="" coords="1303,1898,1537,1954"/>
+<area shape="rect" id="node108" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Bicgstab\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1619,146,1841,202"/>
+<area shape="rect" id="node110" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Cg\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,292,1841,333"/>
+<area shape="rect" id="node112" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Cgs\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,436,1841,477"/>
+<area shape="rect" id="node114" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1619,862,1841,918"/>
+<area shape="rect" id="node116" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Composition\&lt; ValueType\l \&gt;, LinOp \&gt;" alt="" coords="1619,1009,1841,1065"/>
+<area shape="rect" id="node118" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Coo\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,2498,1841,2554"/>
+<area shape="rect" id="node120" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Csr\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,1599,1841,1655"/>
+<area shape="rect" id="node122" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Dense\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="2235,1249,2469,1291"/>
+<area shape="rect" id="node124" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Ell\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1619,1847,1841,1903"/>
+<area shape="rect" id="node126" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Fcg\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,581,1841,623"/>
+<area shape="rect" id="node128" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Gmres\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1612,789,1848,831"/>
+<area shape="rect" id="node130" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Hybrid\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1613,2645,1847,2701"/>
+<area shape="rect" id="node132" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Identity\&lt; ValueType \&gt;,\l LinOp \&gt;" alt="" coords="1619,2725,1841,2781"/>
+<area shape="rect" id="node134" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Ir\&lt; ValueType \&gt;, LinOp \&gt;" alt="" coords="1619,1220,1841,1261"/>
+<area shape="rect" id="node136" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Jacobi\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1615,2942,1845,2998"/>
+<area shape="rect" id="node138" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Sellp\&lt; ValueType, IndexType\l \&gt;, LinOp \&gt;" alt="" coords="1618,1927,1842,1983"/>
+<area shape="rect" id="node140" href="$classgko_1_1Preconditionable.html" title="A LinOp implementing this interface can be preconditioned. " alt="" coords="1962,438,2125,465"/>
+<area shape="rect" id="node141" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure. " alt="" coords="1934,2275,2153,2316"/>
+<area shape="rect" id="node142" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="2528,2145,2747,2187"/>
+<area shape="rect" id="node143" href="$classgko_1_1ReadableFromMatrixData.html" title="gko::ReadableFromMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="2528,2211,2747,2252"/>
+<area shape="rect" id="node144" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. " alt="" coords="1974,1315,2113,1342"/>
+<area shape="rect" id="node145" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure. " alt="" coords="1946,2340,2141,2381"/>
+<area shape="rect" id="node146" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int32 \&gt;" alt="" coords="2540,2341,2735,2383"/>
+<area shape="rect" id="node147" href="$classgko_1_1WritableToMatrixData.html" title="gko::WritableToMatrixData\l\&lt; ValueType, int64 \&gt;" alt="" coords="2540,2407,2735,2448"/>
 </map>
