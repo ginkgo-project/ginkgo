@@ -53,12 +53,18 @@ namespace factorization {
 
 
 /**
- * A Factory that generates the incomplete LU-factorization
+ * An incomplete LU (ILU) factorization is a sparse approximation of the LU
+ * factorization, which is often used as a preconditioner.
  *
- * @tparam ValueType  Type of the values in the matrices
- * @tparam IndexType  Index type in the matrices
+ * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
+ * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
+ * the same sparsity pattern as $A$, which is also called ILU(0).
+ *
+ * @tparam ValueType  Type of the values of all matrices used in this class
+ * @tparam IndexType  Type of the indices of all matrices used in this class
  *
  * @ingroup factor
+ * @ingroup linop
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ParIlu : public Composition<ValueType> {
@@ -93,9 +99,11 @@ public:
         // TODO: maybe change default parameter to something bigger, or make
         // 0 the default one, which would mean 'Automatic', so the
         // implementation can decide an appropriate number of iterations
+        /**
+         * The number of iterations the `compute` kernel will use when doing
+         * the factorization.
+         */
         unsigned int GKO_FACTORY_PARAMETER(iterations, 1);
-
-        // TODO: Insert all needed parameters in here
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -106,24 +114,23 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        // TODO: Fill in potential parameters here
-        generate_l_u(std::move(system_matrix))->move_to(this);
+        generate_l_u(system_matrix)->move_to(this);
     }
 
     /**
-     * Generates the incomplete LU factors and returns a composition of the
-     * lower and the upper factor, which will be of the actual type
-     * `l_matrix_type` and `u_matrix_type` respectively.
+     * Generates the incomplete LU factors, which will be returned as a
+     * composition of the lower (first element of the composition) and the
+     * upper factor (second element). The dynamic type of L is l_matrix_type,
+     * while the dynamic type of U is u_matrix_type.
      *
-     * @param system_matrix  the source matrix used to generate the
-     *                       factors.
+     * @param system_matrix  the source matrix used to generate the factors.
      *                       @note: system_matrix must be convertable to a Csr
                                     Matrix, otherwise, an exception is thrown.
-     * @return  A composition, containing the incomplete LU factors for the
-     *          given system_matrix
+     * @return  A Composition, containing the incomplete LU factors for the
+     *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        std::shared_ptr<const LinOp> system_matrix) const;
+        const std::shared_ptr<const LinOp> &system_matrix) const;
 };
 
 

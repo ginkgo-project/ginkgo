@@ -33,15 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
-
-// TODO remove the following includes
-#include <ginkgo/core/matrix/dense.hpp>
-#include <iostream>
-#include <string>
 
 
 namespace gko {
@@ -135,29 +129,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 
-// TODO remove this debug function
-template <typename ValueType>
-void print_matrix(std::shared_ptr<const ReferenceExecutor> &exec,
-                  const ConvertibleTo<matrix::Dense<ValueType>> *mtx,
-                  std::string title)
-{
-    return;
-    auto d_mtx = matrix::Dense<ValueType>::create(exec);
-    mtx->convert_to(d_mtx.get());
-    auto size = d_mtx->get_size();
-
-    std::cout << title << ": \n";
-    for (size_t i = 0; i < size[0]; ++i) {
-        for (size_t j = 0; j < size[1]; ++j) {
-            std::cout << d_mtx->at(i, j) << '\t';
-        }
-        std::cout << '\n';
-    }
-}
-
-
-// TODO Optimize, so it can be used with a CSR system_matrix
-// TODO Fix existing error in this compute kernel!
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                          unsigned int iterations,
@@ -174,25 +145,16 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
     const auto u_cols = u_factor->get_const_col_idxs();
     auto l_vals = l_factor->get_values();
     auto u_vals = u_factor->get_values();
-    std::string addition;  // TODO remove this debug variable
     for (decltype(iterations) iter = 0; iter < iterations; ++iter) {
         for (size_type el = 0; el < system_matrix->get_num_stored_elements();
              ++el) {
-            const auto row = rows[el];  // TODO remove: ^= i
-            const auto col = cols[el];  // TODO remove: ^= j
+            const auto row = rows[el];
+            const auto col = cols[el];
             const auto val = vals[el];
-            addition = std::to_string(el) + " [" + std::to_string(row) + ", " +
-                       std::to_string(col) + "]";
-            //*
-            print_matrix(exec, l_factor, std::string("l ") + addition);
-            print_matrix(exec, u_factor, std::string("u ") + addition);
-            //*/
             auto row_l = l_rows[row];
             auto row_u = u_rows[col];
-            ValueType sum{val};          // TODO remove: ^= s
-            ValueType last_operation{};  // TODO remove: ^= sp
-            // sum = system_matrix(row, col) - dot(l_factor(row, :), u_factor(:,
-            // col))
+            ValueType sum{val};
+            ValueType last_operation{};
             while (row_l < l_rows[row + 1] && row_u < u_rows[col + 1]) {
                 auto col_l = l_cols[row_l];
                 auto col_u = u_cols[row_u];
@@ -209,7 +171,9 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                     ++row_u;
                 }
             }
-            // undo the last operation (it must be the last)
+            // The loop above calculates: sum = system_matrix(row, col) -
+            // dot(l_factor(row, :), u_factor(:, col)) undo the last operation
+            // (it must be the last)
             sum += last_operation;
             if (row > col) {  // modify entry in L
                 l_vals[row_l - 1] = sum / u_vals[u_rows[col + 1] - 1];
@@ -218,9 +182,6 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    addition = "final";
-    print_matrix(exec, l_factor, std::string("l ") + addition);
-    print_matrix(exec, u_factor, std::string("u ") + addition);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
