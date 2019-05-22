@@ -27,7 +27,7 @@ On any node, where neighbor is on the border, the neighbor is replaced with a
 For example a node with a neighborhood of only face nodes may look like this
 
 \sum_{a,b,c=-1}^(1,1,0) stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2 -
-\sum_{a,b=-1}^(1,1) stencil(a,b,1) * * u_{(i+a,j+b,k+1}
+\sum_{a,b=-1}^(1,1) stencil(a,b,1) * u_{(i+a,j+b,k+1}
 
 which is then solved using Ginkgo's implementation of the CG method
 preconditioned with block-Jacobi. It is also possible to specify on which
