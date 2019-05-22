@@ -33,7 +33,7 @@ which is then solved using Ginkgo's implementation of the CG method
 preconditioned with block-Jacobi. It is also possible to specify on which
 executor Ginkgo will solve the system via the command line.
 The function `f` is set to $f(x,y) = 6x + 6y$ (making the solution $u(x,y) = x^3
-+ y^3$, but that can be changed in the `main` function. Also the stencil values
++ y^3$), but that can be changed in the `main` function. Also the stencil values
 for the core, the faces, the edge and the corners can be changed when passing
 additional parameters.
 
