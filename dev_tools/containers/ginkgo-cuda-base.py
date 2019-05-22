@@ -7,7 +7,7 @@ Contents:
 	OpenMP latest apt version for Clang+OpenMP
 	Python 2 and 3 (upstream)
 	cmake (upstream)
-	git, openssh, doxygen, curl, valgrind, graphviz latest apt version
+	git, openssh, doxygen, curl, valgrind, graphviz, jq latest apt version
 	iwyu precompiled version 6.0
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
@@ -24,7 +24,7 @@ Stage0.baseimage(image)
 Stage0 += python()
 Stage0 += cmake(eula=True)
 Stage0 += apt_get(ospackages=['git', 'openssh-client', 'doxygen', 'curl', 'valgrind', 'graphviz'])
-Stage0 += apt_get(ospackages=['iwyu'])
+Stage0 += apt_get(ospackages=['jq', 'iwyu'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '7')
@@ -45,6 +45,8 @@ Stage0 += shell(commands=clangtidyln)
 if os.path.isdir('bin/'):
         Stage0 += copy(src='bin/*', dest='/usr/bin/')
 
+if os.path.isdir('sonar-scanner/'):
+        Stage0 += copy(src='sonar-scanner/', dest='/')
 
 # Correctly set the LIBRARY_PATH
 Stage0 += environment(variables={'LIBRARY_PATH': '/usr/local/cuda/lib64/stubs'})

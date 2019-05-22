@@ -28,6 +28,7 @@ RUN apt-get update -y && \
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
+        jq \
         iwyu && \
     rm -rf /var/lib/apt/lists/*
 
@@ -69,6 +70,8 @@ RUN apt-get update -y && \
 RUN ln -s /usr/bin/clang-tidy-5.0 /usr/bin/clang-tidy
 
 COPY bin/* /usr/bin/
+
+COPY sonar-scanner/ /
 
 ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
 

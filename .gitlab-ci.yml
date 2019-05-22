@@ -87,6 +87,7 @@ stages:
   except:
       - schedules
 
+
 sync:
   stage: sync
   variables:
@@ -105,6 +106,7 @@ sync:
     - develop
   except:
     - schedules
+
 
 # Build jobs
 build/cuda90/gcc/all/debug/shared:
@@ -373,6 +375,38 @@ iwyu:
   dependencies: []
   allow_failure: yes
 
+# Code analysis, coverage and reporting tool
+sonarqube_cov:
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
+      | jq '.items[0].number')
+    - if [[ "${PR_ID}" != "null" ]]; then
+        target_branch=$(curl
+          "https://api.github.com/repos/ginkgo-project/ginkgo/pulls/${PR_ID}" | jq
+          '.base.ref' | sed 's/"//g');
+        sonar_branching="-Dsonar.pullrequest.branch=${CI_COMMIT_REF_NAME}
+          -Dsonar.pullrequest.base=${target_branch}
+          -Dsonar.pullrequest.key=${PR_ID}";
+      else
+        sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}
+        -Dsonar.branch.target=develop";
+      fi
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+      -DGINKGO_SONARQUBE_TEST=ON
+    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+      -Dsonar.cfamily.build-wrapper-output=build/bw-output
+      -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
+      ${sonar_branching}
+    - bash <(curl -s https://codecov.io/bash)
+  dependencies: []
+  only:
+    variables:
+      - $PUBLIC_CI_TAG
+
+
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
@@ -416,21 +450,6 @@ gh-pages:
   except:
       - schedules
 
-
-coverage:
-  stage: QoS_tools
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  before_script: *default_before_script
-  script:
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
-    - bash <(curl -s https://codecov.io/bash)
-  dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-    variables:
-      - $PUBLIC_CI_TAG
 
 threadsanitizer:
   stage: QoS_tools
