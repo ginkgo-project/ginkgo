@@ -308,6 +308,19 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
+     * Sorts all (value, col_idx) pairs in each row by column index
+     */
+    void sort_by_column_idx();
+
+    /*
+     * Tests if all row entry pairs (value, col_idx) are sorted by column index
+     *
+     * @returns True if all row entry pairs (value, col_idx) are sorted by
+     *          column index
+     */
+    bool is_sorted_by_column_idx() const;
+
+    /**
      * Returns the values of the matrix.
      *
      * @return the values of the matrix.

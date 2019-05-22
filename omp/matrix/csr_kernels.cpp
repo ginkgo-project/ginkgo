@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "omp/components/format_conversion.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -377,6 +378,25 @@ void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
+                          matrix::Csr<ValueType, IndexType> *to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *to_check,
+    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace csr
