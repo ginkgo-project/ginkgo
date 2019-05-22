@@ -376,6 +376,7 @@ iwyu:
   allow_failure: yes
 
 # Code analysis, coverage and reporting tool
+# For short living branches or PRs, try to detect an open PR
 sonarqube_cov:
   stage: code_quality
   image: localhost:5000/gko-cuda100-gnu7-llvm60
@@ -390,8 +391,6 @@ sonarqube_cov:
         sonar_branching="-Dsonar.pullrequest.branch=${CI_COMMIT_REF_NAME}
           -Dsonar.pullrequest.base=${target_branch}
           -Dsonar.pullrequest.key=${PR_ID}";
-      elif [[ "${CI_COMMIT_REF_NAME}" == "master" ]] || [[ "${CI_COMMIT_REF_NAME}" == "develop" ]] || [[ "${CI_COMMIT_REF_NAME}" =~ ^v[0-9\.]+$ ]]; then
-        sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}";
       else
         sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}
         -Dsonar.branch.target=develop";
@@ -404,7 +403,35 @@ sonarqube_cov:
       ${sonar_branching}
     - bash <(curl -s https://codecov.io/bash)
   dependencies: []
+  except:
+    refs:
+      - develop
+      - master
+      - tags
   only:
+    variables:
+      - $PUBLIC_CI_TAG
+
+# For long living branches, do not detect the PR. A PR would always be detected
+# (the one that was merged).
+sonarqube_cov:
+  stage: code_quality
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  before_script: *default_before_script
+  script:
+    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
+      -DGINKGO_SONARQUBE_TEST=ON
+    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+      -Dsonar.cfamily.build-wrapper-output=build/bw-output
+      -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
+      -Dsonar.branch.name=${CI_COMMIT_REF_NAME}
+    - bash <(curl -s https://codecov.io/bash)
+  dependencies: []
+  only:
+    refs:
+      - develop
+      - master
+      - tags
     variables:
       - $PUBLIC_CI_TAG
 
