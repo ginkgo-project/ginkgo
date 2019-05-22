@@ -64,10 +64,12 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
+
+    // TODO include the sorting!
 
     const auto exec = this->get_executor();
     // Only copies the matrix if it is not on the same executor or was not in
@@ -105,6 +107,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // At first, test if the given system_matrix was already a Coo matrix,
     // so no conversion would be necessary.
+    // TODO if the matrix is unsorted, it maybe needs be converted from the
+    // sorted CSR matrix (TEST it)
     std::unique_ptr<CooMatrix> coo_system_matrix_unique_ptr{nullptr};
     auto coo_system_matrix_ptr =
         dynamic_cast<const CooMatrix *>(system_matrix.get());

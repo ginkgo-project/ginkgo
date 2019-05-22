@@ -277,18 +277,19 @@ TEST_F(ParIlu, GenerateForDenseBig)
 }
 
 
+// TODO add test for `with_skip_sorting`
 TEST_F(ParIlu, GenerateForReverseCooSmall)
 {
     const auto size = mtx_small->get_size();
     const auto nnz = size[0] * size[1];
     std::shared_ptr<Coo> reverse_coo = Coo::create(exec, size, nnz);
-    // Fill the Coo matrix in reverse order (bottom right to upper left)
+    // Fill the Coo matrix in reversed row order (right to left)
     for (size_t i = 0; i < size[0]; ++i) {
         for (size_t j = 0; j < size[1]; ++j) {
-            const auto idx = (size[0] - 1 - i) * size[1] + (size[1] - 1 - j);
-            reverse_coo->get_row_idxs()[idx] = i;
-            reverse_coo->get_col_idxs()[idx] = j;
-            reverse_coo->get_values()[idx] = mtx_small->at(i, j);
+            const auto coo_idx = i * size[1] + (size[1] - 1 - j);
+            reverse_coo->get_row_idxs()[coo_idx] = i;
+            reverse_coo->get_col_idxs()[coo_idx] = j;
+            reverse_coo->get_values()[coo_idx] = mtx_small->at(i, j);
         }
     }
 
