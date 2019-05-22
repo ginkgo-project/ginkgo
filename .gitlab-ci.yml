@@ -390,6 +390,8 @@ sonarqube_cov:
         sonar_branching="-Dsonar.pullrequest.branch=${CI_COMMIT_REF_NAME}
           -Dsonar.pullrequest.base=${target_branch}
           -Dsonar.pullrequest.key=${PR_ID}";
+      elif [[ "${CI_COMMIT_REF_NAME}" == "master" ]] || [[ "${CI_COMMIT_REF_NAME}" == "develop" ]] || [[ "${CI_COMMIT_REF_NAME}" =~ ^v[0-9\.]+$ ]]; then
+        sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}";
       else
         sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}
         -Dsonar.branch.target=develop";
