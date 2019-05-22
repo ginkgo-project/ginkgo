@@ -7,8 +7,8 @@ $
     \Omega_b = [0,1]^3 (with boundary) \\
     \partial\Omega = \Omega_b \backslash \Omega \\
     u : \Omega \rightarrow R \\
-    u'' = f in \Omega \\
-    u = u_D on \partial\Omega \\
+    u'' = f \in \Omega \\
+    u = u_D \in \partial\Omega \\
 $
 
 using a finite difference method on an equidistant grid with `K` discretization
