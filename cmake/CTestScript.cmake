@@ -103,6 +103,8 @@ endif()
 if(CTEST_MEMORYCHECK_TYPE STREQUAL "Valgrind")
     find_program(CTEST_MEMORYCHECK_COMMAND valgrind)
     set(CTEST_BUILD_NAME "Valgrind")
+    set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full")
+    set(CTEST_MEMORYCHECK_SUPPRESSIONS_FILE "${CTEST_SOURCE_DIRECTORY}/dev_tools/valgrind/suppressions.supp")
 endif()
 
 if(CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
