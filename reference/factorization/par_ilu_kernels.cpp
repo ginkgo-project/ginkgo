@@ -172,9 +172,9 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
             // The loop above calculates: sum = system_matrix(row, col) -
-            // dot(l_factor(row, :), u_factor(:, col)) undo the last operation
-            // (it must be the last)
-            sum += last_operation;
+            // dot(l_factor(row, :), u_factor(:, col))
+            sum += last_operation;  // undo the last operation
+
             if (row > col) {  // modify entry in L
                 l_vals[row_l - 1] = sum / u_vals[u_rows[col + 1] - 1];
             } else {  // modify entry in U
