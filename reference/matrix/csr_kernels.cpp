@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <iostream>
-#include <iterator>
 #include <numeric>
 #include <utility>
 
@@ -49,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -470,250 +470,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
-// TODO move to own file
-/**
- * @internal
- * @brief This class is used to sort two distinct, arrays of the same size
- * according to the values of one.
- *
- * Stores the pointers of two arrays, one storing the type `ValueType`, and one
- * storing the type `IndexType`. This class also provides an iterator class,
- * which can be used for `std::sort`. Without a custom iterator, memory copies
- * would be necessary to create, for example, one array of `std::pairs` to use
- * `std::sort`, or a self written sort function.
- */
-template <typename ValueType, typename IndexType>
-class CustomSortHelper {
-public:
-    /**
-     * Helper struct, needed for the default construction and assignment inside
-     * `std::sort` through CustomReference
-     */
-    struct custom_element {
-        ValueType value;
-        IndexType index;
-    };
-
-    /**
-     * This class is used as a reference to a sorting target, which abstracts
-     * the existence of two distinct arrays.
-     * It meets the requirements of `MoveAssignable`, `MoveConstructible`
-     * In all comparisons, only the values of `indices_` matter, while the
-     * corresponding value will always be copied / moved / swapped to the
-     * same place.
-     */
-    class CustomReference {
-    public:
-        using array_index_type = int64;
-
-        CustomReference() = delete;
-        CustomReference(CustomSortHelper &parent, array_index_type array_index)
-            : parent_(parent), arr_index_(array_index)
-        {}
-        // Since it must be `MoveConstructible`
-        CustomReference(CustomReference &&other)
-            : parent_(other.parent_), arr_index_(std::move(other.arr_index_))
-        {}
-        CustomReference(const CustomReference &other)
-            : parent_(other.parent_), arr_index_(other.index)
-        {}
-
-        CustomReference &operator=(custom_element other)
-        {
-            value() = other.value;
-            index() = other.index;
-            return *this;
-        }
-        CustomReference &operator=(const CustomReference &other)
-        {
-            value() = other.value();
-            index() = other.index();
-            return *this;
-        }
-        // Since it must be `MoveAssignable`
-        CustomReference &operator=(CustomReference &&other)
-        {
-            parent_.values_[arr_index_] =
-                std::move(other.parent_.values_[other.arr_index_]);
-            parent_.indices_[arr_index_] =
-                std::move(other.parent_.indices_[other.arr_index_]);
-            return *this;
-        }
-        // Conversion operator to `custom_element`
-        operator custom_element() const
-        {
-            return custom_element{value(), index()};
-        }
-        friend void swap(CustomReference a, CustomReference b)
-        {
-            std::swap(a.value(), b.value());
-            std::swap(a.index(), b.index());
-        }
-        friend bool operator<(const CustomReference &left,
-                              const CustomReference &right)
-        {
-            return left.index() < right.index();
-        }
-        friend bool operator<(const CustomReference &left,
-                              const custom_element &right)
-        {
-            return left.index() < right.index;
-        }
-        friend bool operator<(const custom_element &left,
-                              const CustomReference &right)
-        {
-            return left.index < right.index();
-        }
-
-        ValueType &value() { return parent_.values_[arr_index_]; }
-        ValueType value() const { return parent_.values_[arr_index_]; }
-        IndexType &index() { return parent_.indices_[arr_index_]; }
-        IndexType index() const { return parent_.indices_[arr_index_]; }
-
-    private:
-        CustomSortHelper &parent_;
-        array_index_type arr_index_;
-    };
-    /**
-     * The iterator that can be used for `std::sort`. It meets the requirements
-     * of `LegacyRandomAccessIterator` and `ValueSwappable`.
-     * For performance reasons, it is expected that all iterators that are
-     * compared / used with each other have the same `parent`.
-     * This class encapsuls the array index to both arrays.
-     */
-    class CustomIterator {
-    public:
-        // Needed to count as a `LegacyRandomAccessIterator`
-        using difference_type = typename CustomReference::array_index_type;
-        using value_type = custom_element;
-        using pointer = CustomReference;
-        using reference = CustomReference;
-        using iterator_category = std::random_access_iterator_tag;
-
-        CustomIterator(CustomSortHelper &parent, difference_type array_index)
-            : parent_(parent), arr_index_(array_index)
-        {}
-
-        CustomIterator(const CustomIterator &other)
-            : parent_(other.parent_), arr_index_(other.arr_index_)
-        {}
-
-        CustomIterator &operator=(const CustomIterator &other)
-        {
-            arr_index_ = other.arr_index_;
-            return *this;
-        }
-
-        // Operators needed for std::sort requirement of
-        // `LegacyRandomAccessIterator`
-        CustomIterator &operator+=(difference_type i)
-        {
-            arr_index_ += i;
-            return *this;
-        }
-        CustomIterator &operator-=(difference_type i)
-        {
-            arr_index_ -= i;
-            return *this;
-        }
-        CustomIterator &operator++()
-        {  // Prefix increment (++i)
-            ++arr_index_;
-            return *this;
-        }
-        CustomIterator operator++(int)
-        {  // Postfix increment (i++)
-            CustomIterator temp(*this);
-            ++arr_index_;
-            return temp;
-        }
-        CustomIterator &operator--()
-        {  // Prefix decrement (--i)
-            --arr_index_;
-            return *this;
-        }
-        CustomIterator operator--(int)
-        {  // Postfix decrement (i--)
-            CustomIterator temp(*this);
-            --arr_index_;
-            return temp;
-        }
-        CustomIterator operator+(difference_type i) const
-        {
-            return CustomIterator{parent_, arr_index_ + i};
-        }
-        friend CustomIterator operator+(difference_type i,
-                                        const CustomIterator &iter)
-        {
-            return CustomIterator{iter.parent_, iter.arr_index_ + i};
-        }
-        CustomIterator operator-(difference_type i) const
-        {
-            return CustomIterator{parent_, arr_index_ - i};
-        }
-        difference_type operator-(const CustomIterator &other) const
-        {
-            return arr_index_ - other.arr_index_;
-        }
-
-        CustomReference operator*() const
-        {
-            return CustomReference(parent_, arr_index_);
-        }
-
-        // Comparable operators
-        bool operator==(const CustomIterator &other)
-        {
-            return arr_index_ == other.arr_index_;
-        }
-        bool operator!=(const CustomIterator &other)
-        {
-            return arr_index_ != other.arr_index_;
-        }
-        bool operator<(const CustomIterator &other) const
-        {
-            return arr_index_ < other.arr_index_;
-        }
-        bool operator<=(const CustomIterator &other) const
-        {
-            return arr_index_ <= other.arr_index_;
-        }
-        bool operator>(const CustomIterator &other) const
-        {
-            return arr_index_ > other.arr_index_;
-        }
-        bool operator>=(const CustomIterator &other) const
-        {
-            return arr_index_ >= other.arr_index_;
-        }
-
-    private:
-        CustomSortHelper &parent_;
-        difference_type arr_index_;
-    };
-
-public:
-    CustomSortHelper(ValueType *values, IndexType *indices, size_type size)
-        : values_(values), indices_(indices), size_(size)
-    {}
-    /**
-     * Creates an iterator pointing to the beginning of both arrays
-     * @returns  an iterator pointing to the beginning of both arrays
-     */
-    CustomIterator begin() { return CustomIterator(*this, 0); }
-    /**
-     * Creates an iterator pointing to the (excluding) end of both arrays
-     * @returns  an iterator pointing to the (excluding) end of both arrays
-     */
-    CustomIterator end() { return CustomIterator(*this, size_); }
-
-public:
-    ValueType *values_;
-    IndexType *indices_;
-    size_type size_;
-};
-
-
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
@@ -725,8 +481,8 @@ void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < number_rows; ++i) {
         auto start_row_idx = row_ptrs[i];
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
-        auto helper = CustomSortHelper<ValueType, IndexType>(
-            values + start_row_idx, cols + start_row_idx, row_nnz);
+        auto helper = detail::IteratorFactory<IndexType, ValueType>(
+            cols + start_row_idx, values + start_row_idx, row_nnz);
         std::sort(helper.begin(), helper.end());
     }
 }

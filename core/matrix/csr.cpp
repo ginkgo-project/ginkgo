@@ -294,7 +294,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::sort_by_column_idx()
+void Csr<ValueType, IndexType>::sort_by_column_index()
 {
     auto exec = this->get_executor();
     exec->run(csr::make_sort_by_column_index(this));
@@ -302,7 +302,7 @@ void Csr<ValueType, IndexType>::sort_by_column_idx()
 
 
 template <typename ValueType, typename IndexType>
-bool Csr<ValueType, IndexType>::is_sorted_by_column_idx() const
+bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
