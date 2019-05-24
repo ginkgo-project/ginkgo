@@ -36,31 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
 namespace {
-
-
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
-                   public gko::EnableCreateMethod<DummyLinOp> {
-public:
-    DummyLinOp(std::shared_ptr<const gko::Executor> exec,
-               gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
-    {}
-
-protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
-
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
-    {}
-};
 
 
 class ParIlu : public ::testing::Test {
@@ -68,88 +47,39 @@ public:
     using value_type = gko::default_precision;
     using index_type = gko::int32;
     using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
 
 protected:
-    ParIlu()
-        : ref(gko::ReferenceExecutor::create()),
-          linOp(DummyLinOp::create(ref)),
-          dense_mtx(gko::initialize<Dense>({{1., 0.}, {0., 1.}}, ref)),
-          coo_mtx(nullptr),
-          csr_mtx(nullptr)
-    {
-        auto tmp_coo = Coo::create(ref);
-        auto tmp_csr = Csr::create(ref);
-        dense_mtx->convert_to(tmp_coo.get());
-        dense_mtx->convert_to(tmp_csr.get());
-        coo_mtx = std::move(tmp_coo);
-        csr_mtx = std::move(tmp_csr);
-    }
+    ParIlu() : ref(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::unique_ptr<const DummyLinOp> linOp;
-    std::shared_ptr<const Dense> dense_mtx;
-    std::shared_ptr<const Coo> coo_mtx;
-    std::shared_ptr<const Csr> csr_mtx;
 };
 
 
-TEST_F(ParIlu, ThrowNotSupportedForWrongLinOp)
-{
-    auto factory = ilu_factory_type::build().on(ref);
-
-    ASSERT_THROW(factory->generate(gko::share(linOp)), gko::NotSupported);
-}
-
-
-TEST_F(ParIlu, NoThrowCooMatrix)
-{
-    auto factory = ilu_factory_type::build().on(ref);
-
-    ASSERT_NO_THROW(factory->generate(gko::share(coo_mtx)));
-}
-
-
-TEST_F(ParIlu, NoThrowCsrMatrix)
-{
-    auto factory = ilu_factory_type::build().on(ref);
-
-    ASSERT_NO_THROW(factory->generate(gko::share(csr_mtx)));
-}
-
-
-TEST_F(ParIlu, NoThrowDenseMatrix)
-{
-    auto factory = ilu_factory_type::build().on(ref);
-
-    ASSERT_NO_THROW(factory->generate(gko::share(dense_mtx)));
-}
-
-
-TEST_F(ParIlu, SetIterationsForDenseMatrix)
+TEST_F(ParIlu, SetIterations)
 {
     auto factory = ilu_factory_type::build().with_iterations(5u).on(ref);
 
-    ASSERT_NO_THROW(factory->generate(gko::share(dense_mtx)));
+    ASSERT_EQ(factory->get_parameters().iterations, 5u);
 }
 
 
-TEST_F(ParIlu, LUFactorFunctionsSetProperly)
+TEST_F(ParIlu, SetSkip)
 {
-    auto factory = ilu_factory_type::build().on(ref);
+    auto factory = ilu_factory_type::build().with_skip_sorting(true).on(ref);
 
-    auto factors = factory->generate(gko::share(dense_mtx));
-    auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(factors->get_l_factor());
-    auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(factors->get_u_factor());
-    auto first_operator = factors->get_operators()[0].get();
-    auto second_operator = factors->get_operators()[1].get();
+    ASSERT_EQ(factory->get_parameters().skip_sorting, true);
+}
 
-    ASSERT_EQ(lin_op_l_factor, first_operator);
-    ASSERT_EQ(lin_op_u_factor, second_operator);
+
+TEST_F(ParIlu, SetEverything)
+{
+    auto factory = ilu_factory_type::build()
+                       .with_skip_sorting(false)
+                       .with_iterations(7u)
+                       .on(ref);
+
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
+    ASSERT_EQ(factory->get_parameters().iterations, 7u);
 }
 
 
