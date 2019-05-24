@@ -97,7 +97,12 @@ protected:
                                                  {0., 0., 0., 0., 5., -15.},
                                                  {0., 0., 0., 0., 0., 6.}},
                                                 exec)),
-          ilu_factory(gko::factorization::ParIlu<>::build().on(exec))
+          ilu_factory(
+              gko::factorization::ParIlu<>::build().with_skip_sorting(true).on(
+                  exec)),
+          ilu_factory_sort(
+              gko::factorization::ParIlu<>::build().with_skip_sorting(false).on(
+                  exec))
     {
         auto tmp_csr = Csr::create(exec);
         mtx_small->convert_to(gko::lend(tmp_csr));
@@ -117,6 +122,7 @@ protected:
     std::shared_ptr<const Dense> big_l_expected;
     std::shared_ptr<const Dense> big_u_expected;
     std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory;
+    std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_sort;
 };
 
 
@@ -293,10 +299,11 @@ TEST_F(ParIlu, GenerateForReverseCooSmall)
         }
     }
 
-    auto factors = ilu_factory->generate(reverse_coo);
+    auto factors = ilu_factory_sort->generate(reverse_coo);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
+    GKO_ASSERT_MTX_NEAR(reverse_coo, mtx_small, 1e-14);
     GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
 }
@@ -321,7 +328,7 @@ TEST_F(ParIlu, GenerateForReverseCsrSmall)
         }
     }
 
-    auto factors = ilu_factory->generate(reverse_csr);
+    auto factors = ilu_factory_sort->generate(reverse_csr);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 

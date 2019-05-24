@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <algorithm>
+
+
 #include <gtest/gtest.h>
 
 
@@ -68,10 +71,15 @@ protected:
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
                           std::make_shared<Mtx::load_balance>(2))),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
-                           std::make_shared<Mtx::classical>()))
+                           std::make_shared<Mtx::classical>())),
+          mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
+                                  std::make_shared<Mtx::classical>())),
+          mtx3_unsorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
+                                    std::make_shared<Mtx::classical>()))
     {
         this->create_mtx(mtx.get());
         this->create_mtx2(mtx2.get());
+        this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
     }
 
     void create_mtx(Mtx *m)
@@ -121,6 +129,63 @@ protected:
         v[2] = 2.0;
         v[3] = 0.0;
         v[4] = 5.0;
+    }
+
+    void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    {
+        auto vals_s = sorted->get_values();
+        auto cols_s = sorted->get_col_idxs();
+        auto rows_s = sorted->get_row_ptrs();
+        auto vals_u = unsorted->get_values();
+        auto cols_u = unsorted->get_col_idxs();
+        auto rows_u = unsorted->get_row_ptrs();
+        /* For both versions (sorted and unsorted), this matrix is stored:
+         * 0  2  1
+         * 3  1  8
+         * 2  0  3
+         * The unsorted matrix will have the (value, column) pair per row not
+         * sorted, which we still consider a valid CSR format.
+         */
+        rows_s[0] = 0;
+        rows_s[1] = 2;
+        rows_s[2] = 5;
+        rows_s[3] = 7;
+        rows_u[0] = 0;
+        rows_u[1] = 2;
+        rows_u[2] = 5;
+        rows_u[3] = 7;
+
+        vals_s[0] = 2.;
+        vals_s[1] = 1.;
+        vals_s[2] = 3.;
+        vals_s[3] = 1.;
+        vals_s[4] = 8.;
+        vals_s[5] = 2.;
+        vals_s[6] = 3.;
+        // Each row is stored rotated once to the left
+        vals_u[0] = 1.;
+        vals_u[1] = 2.;
+        vals_u[2] = 1.;
+        vals_u[3] = 8.;
+        vals_u[4] = 3.;
+        vals_u[5] = 3.;
+        vals_u[6] = 2.;
+
+        cols_s[0] = 1;
+        cols_s[1] = 2;
+        cols_s[2] = 0;
+        cols_s[3] = 1;
+        cols_s[4] = 2;
+        cols_s[5] = 0;
+        cols_s[6] = 2;
+        // The same applies for the columns
+        cols_u[0] = 2;
+        cols_u[1] = 1;
+        cols_u[2] = 1;
+        cols_u[3] = 2;
+        cols_u[4] = 0;
+        cols_u[5] = 2;
+        cols_u[6] = 0;
     }
 
     void assert_equal_to_mtx(const Coo *m)
@@ -255,6 +320,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> mtx3_sorted;
+    std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
 
@@ -296,6 +363,7 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
     EXPECT_EQ(y->at(0), -11.0);
     EXPECT_EQ(y->at(1), -1.0);
 }
+
 
 TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 {
@@ -560,7 +628,39 @@ TEST_F(Csr, MtxIsConjugateTransposable)
     // clang-format on
 }
 
-// TODO Add sort test!
+
+TEST_F(Csr, RecognizeSortedMatrix)
+{
+    ASSERT_TRUE(mtx->is_sorted_by_column_index());
+    ASSERT_TRUE(mtx2->is_sorted_by_column_index());
+    ASSERT_TRUE(mtx3_sorted->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrix)
+{
+    ASSERT_FALSE(mtx3_unsorted->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SortSortedMatrix)
+{
+    auto matrix = mtx3_sorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrix)
+{
+    auto matrix = mtx3_unsorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
+}
 
 
 }  // namespace

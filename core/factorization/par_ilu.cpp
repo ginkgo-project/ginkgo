@@ -69,8 +69,6 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
 
-    // TODO include the sorting!
-
     const auto exec = this->get_executor();
     // Only copies the matrix if it is not on the same executor or was not in
     // the right format. Throws an exception if it is not convertable.
@@ -82,6 +80,15 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
         as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
             ->convert_to(csr_system_matrix_unique_ptr.get());
+        csr_system_matrix = csr_system_matrix_unique_ptr.get();
+    }
+    // If it needs to be sorted, copy it if necessary and sort it
+    if (!skip_sorting) {
+        if (csr_system_matrix_unique_ptr == nullptr) {
+            csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
+            csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
+        }
+        csr_system_matrix_unique_ptr->sort_by_column_index();
         csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
 
@@ -97,9 +104,9 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));
-    auto u_factor_transpose_lin_op = u_factor->transpose();
 
     // We use `transpose()` here to convert the Csr format to Csc.
+    auto u_factor_transpose_lin_op = u_factor->transpose();
     // Since `transpose()` returns an `std::unique_ptr<LinOp>`, we need to
     // convert it to `u_matrix_type *` in order to use it.
     auto u_factor_transpose =
@@ -107,17 +114,17 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // At first, test if the given system_matrix was already a Coo matrix,
     // so no conversion would be necessary.
-    // TODO if the matrix is unsorted, it maybe needs be converted from the
-    // sorted CSR matrix (TEST it)
     std::unique_ptr<CooMatrix> coo_system_matrix_unique_ptr{nullptr};
     auto coo_system_matrix_ptr =
         dynamic_cast<const CooMatrix *>(system_matrix.get());
 
-    // If it was not, and we already converted the `system_matrix` to CSR,
+    // If it was not, and we already own a CSR `system_matrix`,
     // we can move the Csr matrix to Coo, which has very little overhead.
     // Otherwise, we convert from the Csr matrix, since it is the conversion
     // with the least overhead.
-    if (coo_system_matrix_ptr == nullptr) {
+    // We also have to convert / move from the CSR matrix if it was not already
+    // sorted (in which case we definitively own a CSR `system_matrix`).
+    if (!skip_sorting || coo_system_matrix_ptr == nullptr) {
         coo_system_matrix_unique_ptr = CooMatrix::create(exec);
         if (csr_system_matrix_unique_ptr == nullptr) {
             csr_system_matrix->convert_to(coo_system_matrix_unique_ptr.get());
@@ -128,8 +135,6 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
     }
 
-    // TODO: We probably need to make sure that both the COO matrix and both CSR
-    // matrices are sorted first by row, then by column
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
         parameters_.iterations, coo_system_matrix_ptr, l_factor.get(),
         u_factor_transpose));

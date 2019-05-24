@@ -310,7 +310,7 @@ public:
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
      */
-    void sort_by_column_idx();
+    void sort_by_column_index();
 
     /*
      * Tests if all row entry pairs (value, col_idx) are sorted by column index
@@ -318,7 +318,7 @@ public:
      * @returns True if all row entry pairs (value, col_idx) are sorted by
      *          column index
      */
-    bool is_sorted_by_column_idx() const;
+    bool is_sorted_by_column_index() const;
 
     /**
      * Returns the values of the matrix.
