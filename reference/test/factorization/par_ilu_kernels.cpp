@@ -53,6 +53,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+                   public gko::EnableCreateMethod<DummyLinOp> {
+public:
+    DummyLinOp(std::shared_ptr<const gko::Executor> exec,
+               gko::dim<2> size = gko::dim<2>{})
+        : EnableLinOp<DummyLinOp>(exec, size)
+    {}
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+};
+
+
 class ParIlu : public ::testing::Test {
 protected:
     using value_type = gko::default_precision;
@@ -97,7 +114,7 @@ protected:
                                                  {0., 0., 0., 0., 5., -15.},
                                                  {0., 0., 0., 0., 0., 6.}},
                                                 exec)),
-          ilu_factory(
+          ilu_factory_skip(
               gko::factorization::ParIlu<>::build().with_skip_sorting(true).on(
                   exec)),
           ilu_factory_sort(
@@ -121,7 +138,7 @@ protected:
     std::shared_ptr<const Dense> mtx_big;
     std::shared_ptr<const Dense> big_l_expected;
     std::shared_ptr<const Dense> big_u_expected;
-    std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory;
+    std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_skip;
     std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_sort;
 };
 
@@ -186,12 +203,45 @@ TEST_F(ParIlu, KernelComputeLU)
 }
 
 
+TEST_F(ParIlu, ThrowNotSupportedForWrongLinOp1)
+{
+    auto linOp = DummyLinOp::create(ref);
+
+    ASSERT_THROW(ilu_factory_skip->generate(gko::share(linOp)),
+                 gko::NotSupported);
+}
+
+
+TEST_F(ParIlu, ThrowNotSupportedForWrongLinOp2)
+{
+    auto linOp = DummyLinOp::create(ref);
+
+    ASSERT_THROW(ilu_factory_sort->generate(gko::share(linOp)),
+                 gko::NotSupported);
+}
+
+
+TEST_F(ParIlu, LUFactorFunctionsSetProperly)
+{
+    auto factors = ilu_factory_skip->generate(mtx_small);
+    auto lin_op_l_factor =
+        static_cast<const gko::LinOp *>(factors->get_l_factor());
+    auto lin_op_u_factor =
+        static_cast<const gko::LinOp *>(factors->get_u_factor());
+    auto first_operator = factors->get_operators()[0].get();
+    auto second_operator = factors->get_operators()[1].get();
+
+    ASSERT_EQ(lin_op_l_factor, first_operator);
+    ASSERT_EQ(lin_op_u_factor, second_operator);
+}
+
+
 TEST_F(ParIlu, GenerateForCooIdentity)
 {
     auto coo_mtx = Coo::create(exec);
     identity->convert_to(coo_mtx.get());
 
-    auto factors = ilu_factory->generate(identity);
+    auto factors = ilu_factory_skip->generate(identity);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -205,7 +255,7 @@ TEST_F(ParIlu, GenerateForCsrIdentity)
     auto csr_mtx = Csr::create(exec);
     identity->convert_to(csr_mtx.get());
 
-    auto factors = ilu_factory->generate(identity);
+    auto factors = ilu_factory_skip->generate(identity);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -216,7 +266,7 @@ TEST_F(ParIlu, GenerateForCsrIdentity)
 
 TEST_F(ParIlu, GenerateForDenseIdentity)
 {
-    auto factors = ilu_factory->generate(identity);
+    auto factors = ilu_factory_skip->generate(identity);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -227,7 +277,7 @@ TEST_F(ParIlu, GenerateForDenseIdentity)
 
 TEST_F(ParIlu, GenerateForDenseLowerTriangular)
 {
-    auto factors = ilu_factory->generate(lower_triangular);
+    auto factors = ilu_factory_skip->generate(lower_triangular);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -238,7 +288,7 @@ TEST_F(ParIlu, GenerateForDenseLowerTriangular)
 
 TEST_F(ParIlu, GenerateForDenseUpperTriangular)
 {
-    auto factors = ilu_factory->generate(upper_triangular);
+    auto factors = ilu_factory_skip->generate(upper_triangular);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -253,7 +303,7 @@ TEST_F(ParIlu, ApplyMethodDenseSmall)
     auto b_lu = Dense::create_with_config_of(gko::lend(x));
     auto b_ref = Dense::create_with_config_of(gko::lend(x));
 
-    auto factors = ilu_factory->generate(mtx_small);
+    auto factors = ilu_factory_skip->generate(mtx_small);
     factors->apply(gko::lend(x), gko::lend(b_lu));
     mtx_small->apply(gko::lend(x), gko::lend(b_ref));
 
@@ -263,7 +313,7 @@ TEST_F(ParIlu, ApplyMethodDenseSmall)
 
 TEST_F(ParIlu, GenerateForDenseSmall)
 {
-    auto factors = ilu_factory->generate(mtx_small);
+    auto factors = ilu_factory_skip->generate(mtx_small);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -274,7 +324,7 @@ TEST_F(ParIlu, GenerateForDenseSmall)
 
 TEST_F(ParIlu, GenerateForDenseBig)
 {
-    auto factors = ilu_factory->generate(mtx_big);
+    auto factors = ilu_factory_skip->generate(mtx_big);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -283,7 +333,6 @@ TEST_F(ParIlu, GenerateForDenseBig)
 }
 
 
-// TODO add test for `with_skip_sorting`
 TEST_F(ParIlu, GenerateForReverseCooSmall)
 {
     const auto size = mtx_small->get_size();
