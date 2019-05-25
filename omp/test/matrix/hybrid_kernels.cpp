@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/hybrid.hpp>
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 #include <random>
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 namespace {
@@ -77,15 +78,17 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_vectors = 1)
+    void set_up_apply_data(int num_vectors = 1,
+                           std::shared_ptr<Mtx::strategy_type> strategy =
+                               std::make_shared<Mtx::automatic>())
     {
-        mtx = Mtx::create(ref);
+        mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, num_vectors, 1);
         y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
+        dmtx = Mtx::create(omp, strategy);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(omp);
         dresult->copy_from(expected.get());
@@ -171,6 +174,45 @@ TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
+{
+    set_up_apply_data();
+    gko::size_type nonzeros;
+    gko::size_type dnonzeros;
+
+    gko::kernels::reference::hybrid::count_nonzeros(ref, mtx.get(), &nonzeros);
+    gko::kernels::omp::hybrid::count_nonzeros(omp, dmtx.get(), &dnonzeros);
+
+    ASSERT_EQ(nonzeros, dnonzeros);
+}
+
+
+TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
+
+    mtx->convert_to(csr_mtx.get());
+    dmtx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
+{
+    set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
+
+    mtx->move_to(csr_mtx.get());
+    dmtx->move_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
 }
 
 
