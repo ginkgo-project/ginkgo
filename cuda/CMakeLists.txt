@@ -34,7 +34,7 @@ target_sources(ginkgo_cuda
         matrix/csr_kernels.cu
         matrix/dense_kernels.cu
         matrix/ell_kernels.cu
-        matrix/hybrid_kernels.cpp
+        matrix/hybrid_kernels.cu
         matrix/sellp_kernels.cu
         preconditioner/jacobi_advanced_apply_kernel.cu
         preconditioner/jacobi_generate_kernel.cu

@@ -488,9 +488,12 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
 
 TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 {
+    using Hybrid_type = gko::matrix::Hybrid<>;
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(ref);
-    auto dhybrid_mtx = gko::matrix::Hybrid<>::create(cuda);
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        cuda, std::make_shared<Hybrid_type::column_limit>(2));
 
     mtx->convert_to(hybrid_mtx.get());
     dmtx->convert_to(dhybrid_mtx.get());
@@ -501,9 +504,12 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 
 TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 {
+    using Hybrid_type = gko::matrix::Hybrid<>;
     set_up_apply_data(std::make_shared<Mtx::cusparse>());
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(ref);
-    auto dhybrid_mtx = gko::matrix::Hybrid<>::create(cuda);
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        cuda, std::make_shared<Hybrid_type::column_limit>(2));
 
     mtx->move_to(hybrid_mtx.get());
     dmtx->move_to(dhybrid_mtx.get());
