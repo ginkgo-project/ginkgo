@@ -289,7 +289,79 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
                        matrix::Hybrid<ValueType, IndexType> *result,
                        const matrix::Csr<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto strategy = result->get_strategy();
+    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
+    auto coo_lim = strategy->get_coo_nnz();
+    auto coo_val = result->get_coo_values();
+    auto coo_col = result->get_coo_col_idxs();
+    auto coo_row = result->get_coo_row_idxs();
+    const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
+
+// Initial Hybrid Matrix
+#pragma parallel for
+    for (size_type i = 0; i < max_nnz_per_row; i++) {
+        for (size_type j = 0; j < result->get_ell_stride(); j++) {
+            result->ell_val_at(j, i) = zero<ValueType>();
+            result->ell_col_at(j, i) = 0;
+        }
+    }
+#pragma parallel for
+    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
+        coo_val[i] = zero<ValueType>();
+        coo_col[i] = 0;
+        coo_row[i] = 0;
+    }
+
+    const auto csr_row_ptrs = source->get_const_row_ptrs();
+    const auto csr_vals = source->get_const_values();
+    auto coo_offset = Array<IndexType>(exec, num_rows);
+    auto coo_offset_val = coo_offset.get_data();
+
+    coo_offset_val[0] = 0;
+#pragma parallel for
+    for (size_type i = 1; i < num_rows; i++) {
+        auto temp = csr_row_ptrs[i] - csr_row_ptrs[i - 1];
+        coo_offset_val[i] = (temp > max_nnz_per_row) * (temp - max_nnz_per_row);
+    }
+
+    auto workspace = Array<IndexType>(exec, num_rows);
+    auto workspace_val = workspace.get_data();
+    for (size_type i = 1; i < num_rows; i <<= 1) {
+        #pragma parallel for
+        for (size_type j = i; j < num_rows; j++) {
+            workspace_val[j] = coo_offset_val[j] + coo_offset_val[j - i];
+        }
+        #pragma parallel for
+        for (size_type j = i; j < num_rows; j++) {
+            coo_offset_val[j] = workspace_val[j];
+        }
+    }
+
+#pragma parallel for
+    for (IndexType row = 0; row < num_rows; row++) {
+        size_type ell_idx = 0;
+        size_type csr_idx = csr_row_ptrs[row];
+        size_type coo_idx = coo_offset_val[row];
+        while (csr_idx < csr_row_ptrs[row + 1]) {
+            const auto val = csr_vals[csr_idx];
+            if (ell_idx < ell_lim) {
+                result->ell_val_at(row, ell_idx) = val;
+                result->ell_col_at(row, ell_idx) =
+                    source->get_const_col_idxs()[csr_idx];
+                ell_idx++;
+            } else {
+                coo_val[coo_idx] = val;
+                coo_col[coo_idx] = source->get_const_col_idxs()[csr_idx];
+                coo_row[coo_idx] = row;
+                coo_idx++;
+            }
+            csr_idx++;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
@@ -298,7 +370,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
                                 const matrix::Csr<ValueType, IndexType> *source,
-                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
+                                Array<size_type> *result)
+{
+    const auto row_ptrs = source->get_const_row_ptrs();
+    auto row_nnz_val = result->get_data();
+
+#pragma omp parallel for
+    for (size_type i = 0; i < result->get_num_elems(); i++) {
+        row_nnz_val[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
