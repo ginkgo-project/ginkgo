@@ -249,4 +249,51 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    set_up_apply_data();
+    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
+    gko::Array<gko::size_type> drow_nnz(omp, dmtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
+                                                             &row_nnz);
+    gko::kernels::omp::csr::calculate_nonzeros_per_row(omp, dmtx.get(),
+                                                        &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+}
+
+
+TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data();
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        omp, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->convert_to(hybrid_mtx.get());
+    dmtx->convert_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data();
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        omp, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->move_to(hybrid_mtx.get());
+    dmtx->move_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
 }  // namespace
