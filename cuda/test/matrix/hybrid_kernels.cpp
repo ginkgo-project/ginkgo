@@ -83,13 +83,13 @@ protected:
                            std::shared_ptr<Mtx::strategy_type> strategy =
                                std::make_shared<Mtx::automatic>())
     {
-        mtx = Mtx::create(ref);
+        mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, num_vectors, 1);
         y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(cuda);
+        dmtx = Mtx::create(cuda, strategy);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());

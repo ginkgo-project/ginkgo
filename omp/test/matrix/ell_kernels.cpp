@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/ell.hpp>
+#include "core/matrix/ell_kernels.hpp"
 
 
 #include <random>
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace {
@@ -200,6 +201,20 @@ TEST_F(Ell, AdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, CountNonzerosIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    gko::size_type nnz;
+    gko::size_type dnnz;
+
+    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
+    gko::kernels::omp::ell::count_nonzeros(omp, dmtx.get(), &dnnz);
+
+    ASSERT_EQ(nnz, dnnz);
 }
 
 
