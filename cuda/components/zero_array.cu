@@ -71,6 +71,8 @@ void zero_array(size_type n, ValueType *array)
 #define GKO_DECLARE_ZERO_ARRAY(_type) \
     void zero_array<_type>(size_type n, _type * array);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
+template GKO_DECLARE_ZERO_ARRAY(unsigned long long int);
 
 
 }  // namespace cuda
