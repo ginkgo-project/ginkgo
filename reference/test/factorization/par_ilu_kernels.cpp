@@ -322,6 +322,21 @@ TEST_F(ParIlu, GenerateForDenseSmall)
 }
 
 
+TEST_F(ParIlu, GenerateForDenseSmallWithMultipleIterations)
+{
+    auto multiple_iter_factory = gko::factorization::ParIlu<>::build()
+                                     .with_iterations(5u)
+                                     .with_skip_sorting(true)
+                                     .on(exec);
+    auto factors = multiple_iter_factory->generate(mtx_small);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
+}
+
+
 TEST_F(ParIlu, GenerateForDenseBig)
 {
     auto factors = ilu_factory_skip->generate(mtx_big);
