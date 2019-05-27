@@ -136,6 +136,9 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                          matrix::Csr<ValueType, IndexType> *l_factor,
                          matrix::Csr<ValueType, IndexType> *u_factor)
 {
+    // If `iterations` is set to `Auto`, a single iteration is sufficient since
+    // it is computed sequentialy
+    iterations = (iterations == 0) ? 1 : iterations;
     const auto cols = system_matrix->get_const_col_idxs();
     const auto rows = system_matrix->get_const_row_idxs();
     const auto vals = system_matrix->get_const_values();

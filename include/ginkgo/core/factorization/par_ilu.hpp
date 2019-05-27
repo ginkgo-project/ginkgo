@@ -96,14 +96,13 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        // TODO: maybe change default parameter to something bigger, or make
-        // 0 the default one, which would mean 'Automatic', so the
-        // implementation can decide an appropriate number of iterations
         /**
          * The number of iterations the `compute` kernel will use when doing
-         * the factorization.
+         * the factorization. The default value `0` means `Auto`, so the
+         * implementation decides on the actual value depending on the
+         * ressources that are available.
          */
-        unsigned int GKO_FACTORY_PARAMETER(iterations, 1);
+        unsigned int GKO_FACTORY_PARAMETER(iterations, 0);
 
         /**
          * @brief `true` means it is known that the matrix given to this
