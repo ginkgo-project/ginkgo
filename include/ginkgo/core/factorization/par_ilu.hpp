@@ -53,12 +53,27 @@ namespace factorization {
 
 
 /**
- * An incomplete LU (ILU) factorization is a sparse approximation of the LU
- * factorization, which is often used as a preconditioner.
+ * ParILU is an incomplete LU factorization which is computed in parallel.
  *
- * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
- * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
- * the same sparsity pattern as $A$, which is also called ILU(0).
+ * The ParILU algorithm generates the incomplete factors iteratively, using a
+ * fixed-point iteration of the form
+ * $F(L, U) = \begin{cases}\frac{1}{u_{jj}}\left(a_{ij}-\sum_{k=1}^{j-1}
+ * l_{ik}u_{kj}\right), \quad &i>j\\
+ * a_{ij}-\sum_{k=1}^{i-1} l_{ik}u_{kj},\quad &i\leq j \end{cases}*$
+ *
+ * In general, the entries of $L$ and $U$ can be iterated in parallel and in
+ * asynchronous fashion, the algorithm asymptotically converges to the
+ * incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot
+ * U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the
+ * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
+ * system matrix $A$). The number of ParILU sweeps needed for convergence
+ * depends on the parallelism level: For sequential execution, a single sweep
+ * is sufficient, for fine-grained parallelism, 3 sweeps are typically
+ * generating a good approximation.
+ *
+ * The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel,
+ * Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific
+ * Computing, 37, C169-C193 (2015).
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -145,8 +160,8 @@ protected:
      *                       @note: system_matrix must be convertable to a Csr
      *                              Matrix, otherwise, an exception is thrown.
      * @param skip_sorting  if set to `true`, the sorting will be skipped.
-     *                      @note: If the matrix was not sorted, the
-     *                             factorization might be wrong.
+     *                      @note: If the matrix is not sorted, the
+     *                             factorization fails.
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
