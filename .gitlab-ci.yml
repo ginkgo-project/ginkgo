@@ -485,7 +485,8 @@ threadsanitizer:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
+      -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
   dependencies: []
   only:
     refs:
@@ -500,9 +501,8 @@ addresssanitizer:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - export CC=clang
-    - export CXX=clang++
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
+      -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
   dependencies: []
   only:
     refs:
@@ -517,7 +517,7 @@ valgrind:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - ctest -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
   dependencies: []
   only:
     refs:
