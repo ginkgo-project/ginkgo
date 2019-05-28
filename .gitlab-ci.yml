@@ -377,7 +377,7 @@ iwyu:
 
 # Code analysis, coverage and reporting tool
 # For short living branches or PRs, try to detect an open PR
-sonarqube_cov:
+sonarqube_cov_:
   stage: code_quality
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
@@ -485,14 +485,14 @@ threadsanitizer:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - export CC=clang
-    - export CXX=clang++
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
+      -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
   dependencies: []
   only:
     refs:
       - master
       - develop
+      - tags
     variables:
       - $PUBLIC_CI_TAG
 
@@ -501,14 +501,14 @@ addresssanitizer:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - export CC=clang
-    - export CXX=clang++
-    - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
+      -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
   dependencies: []
   only:
     refs:
       - master
       - develop
+      - tags
     variables:
       - $PUBLIC_CI_TAG
 
@@ -517,12 +517,13 @@ valgrind:
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   before_script: *default_before_script
   script:
-    - ctest -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
   dependencies: []
   only:
     refs:
       - master
       - develop
+      - tags
     variables:
       - $PUBLIC_CI_TAG
 
