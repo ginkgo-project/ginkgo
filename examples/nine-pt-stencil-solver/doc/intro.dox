@@ -5,7 +5,7 @@ This example solves a 2D Poisson equation:
 
 $
     \Omega = (0,1)^2 \\
-    \Omega_b = [0,1]^2   (with boundary) \\
+    \Omega_b = [0,1]^2 \text{  (with boundary)} \\
     \partial\Omega = \Omega_b \backslash \Omega \\
     u : \Omega_b -> R \\
     u'' = f \in \Omega \\
