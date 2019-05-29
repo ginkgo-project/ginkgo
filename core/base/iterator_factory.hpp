@@ -96,6 +96,8 @@ private:
         // An empty reference makes no sense, so is is disabled
         Reference() = delete;
 
+        ~Reference() {}
+
         Reference(IteratorFactory &parent, array_index_type array_index)
             : parent_(parent), arr_index_(array_index)
         {}
@@ -199,6 +201,8 @@ private:
         using pointer = Reference;
         using reference = Reference;
         using iterator_category = std::random_access_iterator_tag;
+
+        ~Iterator() {}
 
         Iterator(IteratorFactory &parent, difference_type array_index)
             : parent_(parent), arr_index_(array_index)

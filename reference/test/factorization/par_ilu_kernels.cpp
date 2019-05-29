@@ -238,10 +238,10 @@ TEST_F(ParIlu, LUFactorFunctionsSetProperly)
 
 TEST_F(ParIlu, GenerateForCooIdentity)
 {
-    auto coo_mtx = Coo::create(exec);
+    auto coo_mtx = gko::share(Coo::create(exec));
     identity->convert_to(coo_mtx.get());
 
-    auto factors = ilu_factory_skip->generate(identity);
+    auto factors = ilu_factory_skip->generate(coo_mtx);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -252,10 +252,10 @@ TEST_F(ParIlu, GenerateForCooIdentity)
 
 TEST_F(ParIlu, GenerateForCsrIdentity)
 {
-    auto csr_mtx = Csr::create(exec);
+    auto csr_mtx = gko::share(Csr::create(exec));
     identity->convert_to(csr_mtx.get());
 
-    auto factors = ilu_factory_skip->generate(identity);
+    auto factors = ilu_factory_skip->generate(csr_mtx);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 
@@ -322,6 +322,17 @@ TEST_F(ParIlu, GenerateForDenseSmall)
 }
 
 
+TEST_F(ParIlu, GenerateForCsrSmall)
+{
+    auto factors = ilu_factory_skip->generate(mtx_csr_small);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
+}
+
+
 TEST_F(ParIlu, GenerateForDenseSmallWithMultipleIterations)
 {
     auto multiple_iter_factory = gko::factorization::ParIlu<>::build()
@@ -348,11 +359,22 @@ TEST_F(ParIlu, GenerateForDenseBig)
 }
 
 
+TEST_F(ParIlu, GenerateForDenseBigSort)
+{
+    auto factors = ilu_factory_skip->generate(mtx_big);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, big_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, big_u_expected, 1e-14);
+}
+
+
 TEST_F(ParIlu, GenerateForReverseCooSmall)
 {
     const auto size = mtx_small->get_size();
     const auto nnz = size[0] * size[1];
-    std::shared_ptr<Coo> reverse_coo = Coo::create(exec, size, nnz);
+    auto reverse_coo = gko::share(Coo::create(exec, size, nnz));
     // Fill the Coo matrix in reversed row order (right to left)
     for (size_t i = 0; i < size[0]; ++i) {
         for (size_t j = 0; j < size[1]; ++j) {
@@ -377,7 +399,7 @@ TEST_F(ParIlu, GenerateForReverseCsrSmall)
 {
     const auto size = mtx_csr_small->get_size();
     const auto nnz = size[0] * size[1];
-    std::shared_ptr<Csr> reverse_csr = Csr::create(exec);
+    auto reverse_csr = gko::share(Csr::create(exec));
     reverse_csr->copy_from(mtx_csr_small.get());
     // Fill the Csr matrix rows in reverse order
     for (size_t i = 0; i < size[0]; ++i) {
