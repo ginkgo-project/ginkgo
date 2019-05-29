@@ -55,16 +55,26 @@ namespace factorization {
 /**
  * ParILU is an incomplete LU factorization which is computed in parallel.
  *
+ * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
+ * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
+ * the same sparsity pattern as $A$, which is also called ILU(0).
+ *
  * The ParILU algorithm generates the incomplete factors iteratively, using a
  * fixed-point iteration of the form
- * $F(L, U) = \begin{cases}\frac{1}{u_{jj}}\left(a_{ij}-\sum_{k=1}^{j-1}
- * l_{ik}u_{kj}\right), \quad &i>j\\
- * a_{ij}-\sum_{k=1}^{i-1} l_{ik}u_{kj},\quad &i\leq j \end{cases}*$
+ *
+ * $
+ * F(L, U) =
+ * \begin{cases}
+ *     \frac{1}{u_{jj}}
+ *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\
+ *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j
+ * \end{cases}
+ * $
  *
  * In general, the entries of $L$ and $U$ can be iterated in parallel and in
  * asynchronous fashion, the algorithm asymptotically converges to the
  * incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot
- * U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the
+ * U\right)\vert_\mathcal{S} = 0$ where $\mathcal{S}$ is the
  * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
  * system matrix $A$). The number of ParILU sweeps needed for convergence
  * depends on the parallelism level: For sequential execution, a single sweep

@@ -68,14 +68,22 @@ protected:
         }
     }
 
-    template <typename Iterator>
+    // Require that Iterator has a `value_type` specified
+    template <typename Iterator, typename = typename Iterator::value_type>
     bool is_sorted_iterator(Iterator begin, Iterator end)
     {
-        while (begin + 1 < end) {
-            if (*(begin + 1) < *begin) {
+        using value_type = typename Iterator::value_type;
+        for (; begin + 1 < end; ++begin) {
+            auto curr_ref = *begin;
+            auto curr_val = static_cast<value_type>(curr_ref);
+            auto next_ref = *(begin + 1);
+            auto next_val = static_cast<value_type>(next_ref);
+
+            // Test all combinations of the `<` operator
+            if (*(begin + 1) < *begin || next_ref < curr_ref ||
+                next_ref < curr_val || next_val < curr_ref) {
                 return false;
             }
-            ++begin;
         }
         return true;
     }
@@ -105,11 +113,9 @@ TEST_F(IteratorFactory, SortingReversedWithIterator)
     auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
         vec1.data(), vec2.data(), vec1.size());
     std::sort(test_iter.begin(), test_iter.end());
-    auto is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
 
     check_vector_equal(vec1, ordered_int);
     check_vector_equal(vec2, reversed_double);
-    ASSERT_TRUE(is_sorted);
 }
 
 
@@ -121,10 +127,34 @@ TEST_F(IteratorFactory, SortingAlreadySortedWithIterator)
     auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
         vec1.data(), vec2.data(), vec1.size());
     std::sort(test_iter.begin(), test_iter.end());
-    auto is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
 
     check_vector_equal(vec1, ordered_int);
     check_vector_equal(vec2, ordered_double);
+}
+
+
+TEST_F(IteratorFactory, IteratorReferenceOperatorSmaller)
+{
+    std::vector<int_type> vec1{reversed_int};
+    std::vector<double_type> vec2{ordered_double};
+
+    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+        vec1.data(), vec2.data(), vec1.size());
+    bool is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
+
+    ASSERT_FALSE(is_sorted);
+}
+
+
+TEST_F(IteratorFactory, IteratorReferenceOperatorSmaller2)
+{
+    std::vector<int_type> vec1{ordered_int};
+    std::vector<double_type> vec2{ordered_double};
+
+    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+        vec1.data(), vec2.data(), vec1.size());
+    bool is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
+
     ASSERT_TRUE(is_sorted);
 }
 
