@@ -139,7 +139,7 @@ public:
          *
          * @return the number of stored elements per row of the ell part
          */
-        const size_type get_ell_num_stored_elements_per_row() const noexcept
+        size_type get_ell_num_stored_elements_per_row() const noexcept
         {
             return ell_num_stored_elements_per_row_;
         }
@@ -149,7 +149,7 @@ public:
          *
          * @return the number of nonzeros of the coo part
          */
-        const size_type get_coo_nnz() const noexcept { return coo_nnz_; }
+        size_type get_coo_nnz() const noexcept { return coo_nnz_; }
 
         /**
          * Computes the number of stored elements per row of the ell part.

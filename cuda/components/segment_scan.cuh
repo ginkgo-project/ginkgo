@@ -30,7 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "cuda/components/zero_array.hpp"
+#ifndef GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
+#define GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
+
+
+#include <ginkgo/core/base/std_extensions.hpp>
+
+
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -38,42 +46,34 @@ namespace kernels {
 namespace cuda {
 
 
-constexpr int default_block_size = 512;
-
-
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void zero_array(
-    size_type n, ValueType *__restrict__ array)
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__device__ __forceinline__ bool segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    ValueType *__restrict__ val)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
+    bool head = true;
+#pragma unroll
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (add_ind == ind && threadIdx.x >= i) {
+            add_val = *val;
+            if (i == 1) {
+                head = false;
+            }
+        }
+        add_val = group.shfl_down(add_val, i);
+        if (threadIdx.x < subwarp_size - i) {
+            *val += add_val;
+        }
     }
+    return head;
 }
-
-
-}  // namespace kernel
-
-
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, array);
-}
-
-
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
 
 
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
