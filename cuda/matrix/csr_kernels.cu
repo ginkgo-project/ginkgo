@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/segment_scan.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/zero_array.hpp"
 
@@ -90,31 +91,6 @@ template <typename T>
 __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 {
     return (nom + denom - 1ll) / denom;
-}
-
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<wsize> &group, const IndexType ind,
-    ValueType *__restrict__ val)
-{
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < wsize; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < wsize - i) {
-            *val += add_val;
-        }
-    }
-    return head;
 }
 
 
@@ -165,9 +141,10 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
-    const group::thread_block_tile<wsize> &group, bool force_write,
+    const group::thread_block_tile<subwarp_size> &group, bool force_write,
     ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
@@ -182,13 +159,15 @@ __device__ __forceinline__ void warp_atomic_add(
 }
 
 
-template <bool last, typename ValueType, typename IndexType, typename Closure>
+template <bool last, size_type subwarp_size, typename ValueType,
+          typename IndexType, typename Closure>
 __device__ __forceinline__ void process_window(
-    const group::thread_block_tile<wsize> &group, const IndexType num_rows,
-    const IndexType data_size, const IndexType ind, IndexType *__restrict__ row,
-    IndexType *__restrict__ row_end, IndexType *__restrict__ nrow,
-    IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const group::thread_block_tile<subwarp_size> &group,
+    const IndexType num_rows, const IndexType data_size, const IndexType ind,
+    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
+    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
+    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
@@ -200,8 +179,8 @@ __device__ __forceinline__ void process_window(
     if (group.any(curr_row != *row)) {
         warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
                         c_stride, column_id, scale);
-        *nrow = group.shfl(*row, wsize - 1);
-        *nrow_end = group.shfl(*row_end, wsize - 1);
+        *nrow = group.shfl(*row, subwarp_size - 1);
+        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
     }
 
     if (!last || ind < data_size) {

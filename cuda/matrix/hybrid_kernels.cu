@@ -42,8 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/format_conversion.hpp"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/segment_scan.cuh"
 #include "cuda/components/zero_array.hpp"
 
 
@@ -74,49 +76,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace kernel {
 
 
-// Copied from coo_kernel.cu
-template <int subwarp_size = cuda_config::warp_size, typename ValueType,
-          typename IndexType>
-__device__ __forceinline__ void segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, IndexType ind,
-    ValueType *__restrict__ val, bool *__restrict__ head)
-{
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (threadIdx.x >= i && add_ind == ind) {
-            add_val = *val;
-            if (i == 1) {
-                *head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
-        }
-    }
-}
-
-
 /**
- * The global function for counting nonzeros of COO.
+ * The global function for counting the number of nonzeros per row of COO.
  * It is almost like COO spmv routine.
+ * It performs is_nonzeros(Coo) times the vector whose values are one
  *
  * @param nnz  the number of nonzeros in the matrix
  * @param num_line  the maximum round of each warp
  * @param val  the value array of the matrix
  * @param row  the row index array of the matrix
- * @param c  the output nonzeros per row
+ * @param nnz_per_row  the output nonzeros per row
  */
 template <int subwarp_size = cuda_config::warp_size, typename ValueType,
-          typename IndexType, typename SizeType>
+          typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
     const size_type nnz, const size_type num_lines,
     const ValueType *__restrict__ val, const IndexType *__restrict__ row,
-    SizeType *__restrict__ c)
+    IndexType *__restrict__ nnz_per_row)
 {
-    SizeType temp_val = 0;
+    IndexType temp_val = 0;
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
                            blockDim.y * num_lines +
                        threadIdx.y * blockDim.x * num_lines;
@@ -125,7 +103,6 @@ __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
     const IndexType ind_start = start + threadIdx.x;
     const IndexType ind_end = ind_start + (num - 1) * subwarp_size;
     IndexType ind = ind_start;
-    bool is_first_in_segment = true;
     IndexType curr_row = (ind < nnz) ? row[ind] : 0;
     const auto tile_block =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -135,41 +112,25 @@ __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
             (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
-            is_first_in_segment = true;
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
-                                       &is_first_in_segment);
+            bool is_first_in_segment =
+                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
             if (is_first_in_segment) {
-                atomic_add(&(c[curr_row]), temp_val);
+                atomic_add(&(nnz_per_row[curr_row]), temp_val);
             }
             temp_val = 0;
         }
         curr_row = next_row;
     }
     if (num > 0) {
-        ind = ind_start + (num - 1) * subwarp_size;
+        ind = ind_end;
         temp_val += ind < nnz && val[ind] != zero<ValueType>();
         // segmented scan
-        is_first_in_segment = true;
-        segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
-                                   &is_first_in_segment);
+
+        bool is_first_in_segment =
+            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
         if (is_first_in_segment) {
-            atomic_add(&(c[curr_row]), temp_val);
+            atomic_add(&(nnz_per_row[curr_row]), temp_val);
         }
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void reduce_nnz(
-    size_type size, const ValueType *__restrict__ nnz_per_row,
-    ValueType *__restrict__ result)
-{
-    extern __shared__ ValueType block_sum[];
-    reduce_array(size, nnz_per_row, block_sum,
-                 [](const ValueType &x, const ValueType &y) { return x + y; });
-
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] = block_sum[0];
     }
 }
 
@@ -221,80 +182,7 @@ __global__ __launch_bounds__(default_block_size) void add(
 }
 
 
-// Copied from ell_kernel.cu
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void count_ell_nnz_per_row(
-    size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ values, IndexType *__restrict__ result)
-{
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
-
-    if (row_idx < num_rows) {
-        IndexType part_result{};
-        for (auto i = threadIdx.x % warp_size; i < max_nnz_per_row;
-             i += warp_size) {
-            if (values[stride * i + row_idx] != zero<ValueType>()) {
-                part_result += 1;
-            }
-        }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
-        result[row_idx] = reduce(
-            warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
-    }
-}
-
-
-// Copied from coo_kernel.cu
-template <typename IndexType>
-__global__
-    __launch_bounds__(default_block_size) void convert_coo_row_idxs_to_ptrs(
-        const IndexType *__restrict__ idxs, size_type num_nonzeros,
-        IndexType *__restrict__ ptrs, size_type length)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tidx == 0) {
-        ptrs[0] = 0;
-        ptrs[length - 1] = num_nonzeros;
-    }
-
-    if (0 < tidx && tidx < num_nonzeros) {
-        if (idxs[tidx - 1] < idxs[tidx]) {
-            for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
-                ptrs[i] = tidx;
-            }
-        }
-    }
-}
-
-
 }  // namespace kernel
-
-
-namespace host_kernel {
-
-
-template <typename ValueType>
-ValueType calculate_nwarps(const size_type nnz, const ValueType nwarps_in_cuda)
-{
-    // TODO: multiple is a parameter should be tuned.
-    ValueType multiple = 8;
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-    return std::min(static_cast<int64>(multiple * nwarps_in_cuda),
-                    ceildiv(nnz, cuda_config::warp_size));
-}
-
-
-}  // namespace host_kernel
 
 
 template <typename ValueType, typename IndexType>
@@ -315,26 +203,24 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     // Compute the row offset of Coo without zeros
     size_type grid_num = ceildiv(coo_num_stored_elements, default_block_size);
-    kernel::convert_coo_row_idxs_to_ptrs<<<grid_num, default_block_size>>>(
+    coo::kernel::convert_row_idxs_to_ptrs<<<grid_num, default_block_size>>>(
         as_cuda_type(coo_row), coo_num_stored_elements,
         as_cuda_type(coo_offset.get_data()), num_rows + 1);
 
     // Compute the row ptrs of Csr
-    using cuda_size_type = unsigned long long int;
     auto row_ptrs = result->get_row_ptrs();
-    auto coo_row_ptrs = Array<cuda_size_type>(exec, num_rows);
+    auto coo_row_ptrs = Array<IndexType>(exec, num_rows);
 
     zero_array(num_rows + 1, row_ptrs);
     grid_num = ceildiv(num_rows, warps_in_block);
-    kernel::count_ell_nnz_per_row<<<grid_num, default_block_size>>>(
+    ell::kernel::count_nnz_per_row<<<grid_num, default_block_size>>>(
         num_rows, max_nnz_per_row, stride, as_cuda_type(ell_val),
         as_cuda_type(row_ptrs));
 
     zero_array(num_rows, coo_row_ptrs.get_data());
 
-    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
-    auto nwarps = host_kernel::calculate_nwarps(
-        coo_num_stored_elements, exec->get_num_multiprocessor() * warps_per_sm);
+    auto nwarps =
+        coo::host_kernel::calculate_nwarps(exec, coo_num_stored_elements);
     if (nwarps > 0) {
         int num_lines =
             ceildiv(coo_num_stored_elements, nwarps * cuda_config::warp_size);
@@ -380,47 +266,26 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
                     size_type *result)
 {
-    using cuda_size_type = unsigned long long int;
     size_type ell_nnz = 0;
     size_type coo_nnz = 0;
     gko::kernels::cuda::ell::count_nonzeros(exec, source->get_ell(), &ell_nnz);
 
     auto nnz = source->get_coo_num_stored_elements();
-    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
-    auto nwarps = host_kernel::calculate_nwarps(
-        nnz, exec->get_num_multiprocessor() * warps_per_sm);
+    auto nwarps = coo::host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
         const auto num_rows = source->get_size()[0];
-        auto nnz_per_row = Array<cuda_size_type>(exec, num_rows);
+        auto nnz_per_row = Array<IndexType>(exec, num_rows);
         zero_array(num_rows, nnz_per_row.get_data());
         kernel::count_coo_row_nnz<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(source->get_coo()->get_const_values()),
             as_cuda_type(source->get_coo()->get_const_row_idxs()),
             as_cuda_type(nnz_per_row.get_data()));
-        const auto n = ceildiv(num_rows, default_block_size);
-        const size_type grid_dim =
-            (n <= default_block_size) ? n : default_block_size;
 
-        auto block_results = Array<cuda_size_type>(exec, grid_dim);
-
-        kernel::reduce_nnz<<<grid_dim, default_block_size,
-                             default_block_size * sizeof(cuda_size_type)>>>(
-            num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-            as_cuda_type(block_results.get_data()));
-
-        auto d_result = Array<cuda_size_type>(exec, 1);
-
-        kernel::reduce_nnz<<<1, default_block_size,
-                             default_block_size * sizeof(cuda_size_type)>>>(
-            grid_dim, as_cuda_type(block_results.get_const_data()),
-            as_cuda_type(d_result.get_data()));
-        cuda_size_type temp = 0;
-        exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                      &temp);
-        coo_nnz = temp;
+        coo_nnz =
+            reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
     }
 
     *result = ell_nnz + coo_nnz;

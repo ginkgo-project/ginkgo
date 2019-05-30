@@ -30,50 +30,75 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "cuda/components/zero_array.hpp"
+#ifndef GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
+#define GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
+
+
+#include <ginkgo/core/base/std_extensions.hpp>
+
+
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-constexpr int default_block_size = 512;
-
-
+namespace ell {
 namespace kernel {
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void zero_array(
-    size_type n, ValueType *__restrict__ array)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
-    }
-}
+template <typename ValueType, typename IndexType>
+__global__ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
+                                  size_type stride,
+                                  const ValueType *__restrict__ values,
+                                  IndexType *__restrict__ result);
+
+
+}  // namespace kernel
+}  // namespace ell
+
+
+namespace coo {
+namespace kernel {
+
+
+template <typename IndexType>
+__global__ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
+                                         size_type num_nonzeros,
+                                         IndexType *__restrict__ ptrs,
+                                         size_type length);
 
 
 }  // namespace kernel
 
 
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
+namespace host_kernel {
+
+
+template <size_type subwarp_size = cuda_config::warp_size>
+size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
+                           const size_type nnz)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, array);
+    size_type warps_per_sm = exec->get_num_cores_per_sm() / subwarp_size;
+    size_type nwarps_in_cuda = exec->get_num_multiprocessor() * warps_per_sm;
+    size_type multiple = 8;
+    if (nnz >= 2000000) {
+        multiple = 128;
+    } else if (nnz >= 200000) {
+        multiple = 32;
+    }
+    return std::min(
+        multiple * nwarps_in_cuda,
+        static_cast<size_type>(ceildiv(nnz, cuda_config::warp_size)));
 }
 
 
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
-
-
+}  // namespace host_kernel
+}  // namespace coo
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
