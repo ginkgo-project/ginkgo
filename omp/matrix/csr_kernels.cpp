@@ -301,14 +301,14 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
 
 // Initial Hybrid Matrix
-#pragma parallel for
+#pragma omp parallel for
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_ell_stride(); j++) {
             result->ell_val_at(j, i) = zero<ValueType>();
             result->ell_col_at(j, i) = 0;
         }
     }
-#pragma parallel for
+#pragma omp parallel for
     for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
         coo_val[i] = zero<ValueType>();
         coo_col[i] = 0;
@@ -321,7 +321,7 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     auto coo_offset_val = coo_offset.get_data();
 
     coo_offset_val[0] = 0;
-#pragma parallel for
+#pragma omp parallel for
     for (size_type i = 1; i < num_rows; i++) {
         auto temp = csr_row_ptrs[i] - csr_row_ptrs[i - 1];
         coo_offset_val[i] = (temp > max_nnz_per_row) * (temp - max_nnz_per_row);
@@ -330,17 +330,17 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     auto workspace = Array<IndexType>(exec, num_rows);
     auto workspace_val = workspace.get_data();
     for (size_type i = 1; i < num_rows; i <<= 1) {
-        #pragma parallel for
+        #pragma omp parallel for
         for (size_type j = i; j < num_rows; j++) {
             workspace_val[j] = coo_offset_val[j] + coo_offset_val[j - i];
         }
-        #pragma parallel for
+        #pragma omp parallel for
         for (size_type j = i; j < num_rows; j++) {
             coo_offset_val[j] = workspace_val[j];
         }
     }
 
-#pragma parallel for
+#pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         size_type ell_idx = 0;
         size_type csr_idx = csr_row_ptrs[row];

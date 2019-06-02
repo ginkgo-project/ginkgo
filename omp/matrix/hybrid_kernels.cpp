@@ -122,7 +122,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     auto coo_offset_val = coo_offset.get_data();
     for (size_type i = 0; i < num_rows; i++) {
         IndexType nonzeros = 0;
-#pragma parallel for reduction(+ : nonzeros)
+#pragma omp parallel for reduction(+ : nonzeros)
         for (size_type j = coo_row_ptrs_val[i]; j < coo_row_ptrs_val[i + 1];
              j++) {
             nonzeros += coo_val[j] != zero<ValueType>();
@@ -132,13 +132,13 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
     // Compute row pointer of Csr
     csr_row_ptrs[0] = 0;
-#pragma parllel for
+#pragma omp parallel for
     for (size_type i = 0; i < num_rows; i++) {
         csr_row_ptrs[i + 1] = coo_offset_val[i];
     }
 
     for (size_type col = 0; col < max_nnz_per_row; col++) {
-#pragma parallel for
+#pragma omp parallel for
         for (size_type row = 0; row < num_rows; row++) {
             csr_row_ptrs[row + 1] +=
                 (ell->val_at(row, col) != zero<ValueType>());
@@ -148,18 +148,18 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     auto workspace = Array<IndexType>(exec, num_rows + 1);
     auto workspace_val = workspace.get_data();
     for (size_type i = 1; i < num_rows + 1; i <<= 1) {
-#pragma parallel for
+#pragma omp parallel for
         for (size_type j = i; j < num_rows + 1; j++) {
             workspace_val[j] = csr_row_ptrs[j] + csr_row_ptrs[j - i];
         }
-#pragma parallel for
+#pragma omp parallel for
         for (size_type j = i; j < num_rows + 1; j++) {
             csr_row_ptrs[j] = workspace_val[j];
         }
     }
 
 // Fill in Csr
-#pragma parallel for
+#pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         // Ell part
         size_type csr_idx = csr_row_ptrs[row];
