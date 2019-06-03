@@ -308,12 +308,6 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
             result->ell_col_at(j, i) = 0;
         }
     }
-#pragma omp parallel for
-    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
-        coo_val[i] = zero<ValueType>();
-        coo_col[i] = 0;
-        coo_row[i] = 0;
-    }
 
     const auto csr_row_ptrs = source->get_const_row_ptrs();
     const auto csr_vals = source->get_const_values();
