@@ -1401,21 +1401,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void initialize_zero_coo(
-    size_type num_stored_elements, ValueType *__restrict__ values,
-    IndexType *__restrict__ col_idxs, IndexType *__restrict__ row_idxs)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tidx < num_stored_elements) {
-        values[tidx] = zero<ValueType>();
-        col_idxs[tidx] = 0;
-        row_idxs[tidx] = 0;
-    }
-}
-
-
 template <typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void calculate_hybrid_coo_row_nnz(
@@ -1492,11 +1477,6 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
 
     kernel::initialize_zero_ell<<<grid_dim, default_block_size>>>(
         max_nnz_per_row, stride, as_cuda_type(ell_val), as_cuda_type(ell_col));
-
-    grid_dim = ceildiv(coo_num_stored_elements, default_block_size);
-    kernel::initialize_zero_coo<<<grid_dim, default_block_size>>>(
-        coo_num_stored_elements, as_cuda_type(coo_val), as_cuda_type(coo_col),
-        as_cuda_type(coo_row));
 
     grid_dim = ceildiv(num_rows, default_block_size);
     auto coo_offset = Array<size_type>(exec, num_rows);

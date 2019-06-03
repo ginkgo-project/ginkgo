@@ -268,7 +268,7 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
 {
     size_type ell_nnz = 0;
     size_type coo_nnz = 0;
-    gko::kernels::cuda::ell::count_nonzeros(exec, source->get_ell(), &ell_nnz);
+    ell::count_nonzeros(exec, source->get_ell(), &ell_nnz);
 
     auto nnz = source->get_coo_num_stored_elements();
     auto nwarps = coo::host_kernel::calculate_nwarps(exec, nnz);
