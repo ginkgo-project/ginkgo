@@ -41,31 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/spmv_common.hpp"
 
 
 // some Ginkgo shortcuts
 using etype = double;
-
-
-// input validation
-void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\"},\n"
-              << "    { \"filename\": \"my_file2.mtx\"}\n"
-              << "  ]" << std::endl;
-    std::exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value &value)
-{
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
-        print_config_error_and_exit();
-    }
-}
 
 
 void initialize_argument_parsing(int *argc, char **argv[])
@@ -208,7 +188,13 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
 
 int main(int argc, char *argv[])
 {
-    initialize_argument_parsing(&argc, &argv);
+    std::string header =
+        "A utility that collects additional statistical properties of the "
+        "matrix.\n";
+    std::string format = std::string() + "  [\n" +
+                         "    { \"filename\": \"my_file.mtx\"},\n" +
+                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    initialize_argument_parsing(&argc, &argv, header, format);
 
     std::clog << gko::version_info::get() << std::endl;
 
@@ -221,7 +207,8 @@ int main(int argc, char *argv[])
 
     auto &allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) try {
+    for (auto &test_case : test_cases.GetArray()) {
+        try {
             // set up benchmark
             validate_option_object(test_case);
             if (!test_case.HasMember("problem")) {
@@ -247,6 +234,7 @@ int main(int argc, char *argv[])
             std::cerr << "Error extracting statistics, what(): " << e.what()
                       << std::endl;
         }
+    }
 
     std::cout << test_cases;
 }
