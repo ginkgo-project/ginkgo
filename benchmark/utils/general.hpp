@@ -87,6 +87,56 @@ DEFINE_uint32(repetitions, 10,
               "Number of runs used to obtain an averaged result.");
 
 
+// General argument parsing function
+void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
+                                 std::string &format)
+{
+    std::ostringstream doc;
+    doc << header << "Usage: " << (*argv)[0] << " [options]\n"
+        << format
+        << "  The results are written on standard output, in the same "
+           "format,\n"
+        << "  but with test cases extended to include an additional member "
+           "\n"
+        << "  object for each solver run in the benchmark.\n"
+        << "  If run with a --backup flag, an intermediate result is "
+           "written \n"
+        << "  to a file in the same format. The backup file can be used as "
+           "\n"
+        << "  input \n to this test suite, and the benchmarking will \n"
+        << "  continue from the point where the backup file was created.";
+
+    gflags::SetUsageMessage(doc.str());
+    std::ostringstream ver;
+    ver << gko::version_info::get();
+    gflags::SetVersionString(ver.str());
+    gflags::ParseCommandLineFlags(argc, argv, true);
+}
+
+
+void print_general_information(std::string &extra)
+{
+    std::clog << gko::version_info::get() << std::endl
+              << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
+              << ")" << std::endl
+              << "Running with " << FLAGS_warmup << " warm iterations and "
+              << FLAGS_repetitions << " running iterations" << std::endl
+              << "The random seed for right hand sides is " << FLAGS_seed
+              << std::endl
+              << extra;
+}
+
+
+// matrix format mapping
+template <typename MatrixType>
+std::unique_ptr<gko::LinOp> read_matrix(
+    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value &options)
+{
+    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
+                                 std::move(exec));
+}
+
+
 // Returns a random number engine
 std::ranlux24 &get_engine()
 {
