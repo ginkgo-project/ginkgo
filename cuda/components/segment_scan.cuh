@@ -30,52 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hybrid_kernels.hpp"
+#ifndef GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
+#define GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+
+
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
 /**
- * @brief The Hybrid matrix format namespace.
+ * @internal
  *
- * @ingroup hybrid
+ * Compute a segement scan using add operation (+) of a subwarp. Each segment
+ * performs suffix sum. Works on the source array and returns whether the thread
+ * is the first element of its segment with same `ind`.
  */
-namespace hybrid {
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__device__ __forceinline__ bool segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    ValueType *__restrict__ val)
+{
+    bool head = true;
+#pragma unroll
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (add_ind == ind && threadIdx.x >= i) {
+            add_val = *val;
+            if (i == 1) {
+                head = false;
+            }
+        }
+        add_val = group.shfl_down(add_val, i);
+        if (threadIdx.x < subwarp_size - i) {
+            *val += add_val;
+        }
+    }
+    return head;
+}
 
 
-template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const CudaExecutor> exec, matrix::Dense<ValueType> *result,
-    const matrix::Hybrid<ValueType, IndexType> *source) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Hybrid<ValueType, IndexType> *source)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Hybrid<ValueType, IndexType> *source,
-                    size_type *result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
-
-
-}  // namespace hybrid
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
