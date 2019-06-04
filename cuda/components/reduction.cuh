@@ -179,6 +179,13 @@ __device__ void reduce_array(size_type size,
 }
 
 
+/**
+ * @internal
+ *
+ * Computes a reduction using the add operation (+) on an array
+ * `source` of any size. Has to be called a second time on `result` to reduce
+ * an array larger than `default_block_size`.
+ */
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void reduce_add_array(
     size_type size, const ValueType *__restrict__ source,
@@ -194,9 +201,18 @@ __global__ __launch_bounds__(default_block_size) void reduce_add_array(
 }
 
 
+/**
+ * Compute a reduction using add operation (+).
+ *
+ * @param exec  Executor associated to the array
+ * @param size  size of the array
+ * @param source  the pointer of the array
+ *
+ * @return the reduction result
+ */
 template <typename ValueType>
-ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
-                           size_type size, const ValueType *source)
+__host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
+                                    size_type size, const ValueType *source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;
