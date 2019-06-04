@@ -46,7 +46,9 @@ template <typename ValueType, typename = void>
 struct atomic_helper {
     __forceinline__ __device__ static void atomic_add(ValueType *, ValueType)
     {
-        GKO_ASSERT(false);
+        static_assert(sizeof(ValueType) == 0,
+                      "This default function is not implemented, only the "
+                      "specializations are.");
         // TODO: add proper implementation of generic atomic add
     }
 };
