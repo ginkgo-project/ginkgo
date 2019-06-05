@@ -44,7 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using hybrid = gko::matrix::Hybrid<>;
 using csr = gko::matrix::Csr<>;
 
-
+/**
+ * Function which outputs the input format for benchmarks similar to the spmv.
+ */
 [[noreturn]] void print_config_error_and_exit()
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
@@ -56,6 +58,11 @@ using csr = gko::matrix::Csr<>;
 }
 
 
+/**
+ * Validates whether the input format is correct for spmv-like benchmarks.
+ *
+ * @param value  the JSON value to test.
+ */
 void validate_option_object(const rapidjson::Value &value)
 {
     if (!value.IsObject() || !value.HasMember("filename") ||
@@ -65,7 +72,15 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
-// matrix format creating mapping
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ */
 template <typename MatrixType>
 std::unique_ptr<gko::LinOp> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
@@ -75,7 +90,12 @@ std::unique_ptr<gko::LinOp> read_matrix_from_data(
     return mat;
 }
 
-
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data with support for variable arguments.
+ *
+ * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ */
 #define READ_MATRIX(MATRIX_TYPE, ...)                                   \
     [](std::shared_ptr<const gko::Executor> exec,                       \
        const gko::matrix_data<> &data) -> std::unique_ptr<gko::LinOp> { \

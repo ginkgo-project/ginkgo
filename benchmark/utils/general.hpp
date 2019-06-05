@@ -87,7 +87,14 @@ DEFINE_uint32(repetitions, 10,
               "Number of runs used to obtain an averaged result.");
 
 
-// General argument parsing function
+/**
+ * Parses arguments through gflags and initialize a documentation string.
+ *
+ * @param argc  the number of arguments given to the main function
+ * @param argv  the arguments given to the main function
+ * @param header  a header which describes the benchmark
+ * @param format  the format of the benchmark input data
+ */
 void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
                                  std::string &format)
 {
@@ -113,7 +120,11 @@ void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
     gflags::ParseCommandLineFlags(argc, argv, true);
 }
 
-
+/**
+ * Print general benchmark informations using the common available parameters
+ *
+ * @param extra  describes benchmark specific extra parameters to output
+ */
 void print_general_information(std::string &extra)
 {
     std::clog << gko::version_info::get() << std::endl
@@ -127,7 +138,14 @@ void print_general_information(std::string &extra)
 }
 
 
-// matrix format mapping
+/**
+ * Creates a Ginkgo matrix from an input file.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param options  should contain a `filename` option with the input file string
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ */
 template <typename MatrixType>
 std::unique_ptr<gko::LinOp> read_matrix(
     std::shared_ptr<const gko::Executor> exec, const rapidjson::Value &options)

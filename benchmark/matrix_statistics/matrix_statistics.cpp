@@ -48,34 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using etype = double;
 
 
-void initialize_argument_parsing(int *argc, char **argv[])
-{
-    std::ostringstream doc;
-    doc << "A utility that collects additional statistical properties of the "
-        << "matrix.\n"
-        << "Usage: " << (*argv)[0] << " [options]\n"
-        << "  The standard input should contain a list of test cases as a JSON "
-        << "array of objects:\n"
-        << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\" },\n"
-        << "    { \"filename\": \"my_file2.mtx\"}\n"
-        << "  ]\n\n"
-        << "  The results are written on standard output, in the same format,\n"
-        << "  but with test cases extended to include an additional member \n"
-        << "  object for each solver run in the benchmark.\n"
-        << "  If run with a --backup flag, an intermediate result is written \n"
-        << "  to a file in the same format. The backup file can be used as \n"
-        << "  input \n to this test suite, and the benchmarking will \n"
-        << "  continue from the point where the backup file was created.";
-
-    gflags::SetUsageMessage(doc.str());
-    std::ostringstream ver;
-    ver << gko::version_info::get();
-    gflags::SetVersionString(ver.str());
-    gflags::ParseCommandLineFlags(argc, argv, true);
-}
-
-
 // See en.wikipedia.org/wiki/Five-number_summary
 // Quartile computation uses Method 3 from en.wikipedia.org/wiki/Quartile
 void compute_summary(const std::vector<gko::size_type> &dist,
