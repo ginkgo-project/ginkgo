@@ -3,37 +3,39 @@
 
 This example solves a 2D Poisson equation:
 
-$
+\[
     \Omega = (0,1)^2 \\
     \Omega_b = [0,1]^2 \text{  (with boundary)} \\
     \partial\Omega = \Omega_b \backslash \Omega \\
     u : \Omega_b -> R \\
     u'' = f \in \Omega \\
     u = u_D \in \partial\Omega \\
-$
+\]
 
 using a finite difference method on an equidistant grid with `K` discretization
 points (`K` can be controlled with a command line parameter). The discretization
 may be done by any order Taylor polynomial.
-For an equidistant grid with K "inner" discretization points $ (x1,y1), ...,
-(xk,y1),(x1,y2), ..., (xk,yk,z1) $ step size $h = 1 / (K + 1)$ and a stencil $\in
-\R^{3 x 3}$, the formula produces a system of linear equations
+For an equidistant grid with K "inner" discretization points \((x1,y1), \ldots,
+(xk,y1),(x1,y2), \ldots, (xk,yk,z1)\) step size \(h = 1 / (K + 1)\) and a stencil
+\(\in \mathbb{R}^{3 \times 3}\), the formula produces a system of linear equations
 
-$\sum_{a,b=-1}^1 stencil(a,b) * u_{(i+a,j+b} = -f_k h^2 $,  on any inner node with
-a neighborhood of inner nodes
+\(\sum_{a,b=-1}^1 stencil(a,b) * u_{(i+a,j+b} = -f_k h^2\), on any inner node
+with a neighborhood of inner nodes
 
 On any node, where neighbor is on the border, the neighbor is replaced with a
-$-stencil(a,b) * u_{i+a,j+b}$ and added to the right hand side vector. For
+\(-stencil(a,b) * u_{i+a,j+b}\) and added to the right hand side vector. For
 example a node with a neighborhood of only edge nodes may look like this
 
-$\sum_{a,b=-1}^(1,0) stencil(a,b) * u_{(i+a,j+b} = -f_k h^2 - \sum_{a=-1}^1
-stencil(a,1) * u_{(i+a,j+1}$
+\[
+\sum_{a,b=-1}^(1,0) stencil(a,b) * u_{(i+a,j+b} = -f_k h^2 - \sum_{a=-1}^1
+stencil(a,1) * u_{(i+a,j+1}
+\]
 
 which is then solved using Ginkgo's implementation of the CG method
 preconditioned with block-Jacobi. It is also possible to specify on which
 executor Ginkgo will solve the system via the command line.
-The function `f` is set to $f(x,y) = 6x + 6y$ (making the solution $u(x,y) = x^3
-+ y^3$), but that can be changed in the `main` function. Also the stencil values
+The function `f` is set to \(f(x,y) = 6x + 6y\) (making the solution \(u(x,y) = x^3
++ y^3\)), but that can be changed in the `main` function. Also the stencil values
 for the core, the faces, the edge and the corners can be changed when passing
 additional parameters.
 

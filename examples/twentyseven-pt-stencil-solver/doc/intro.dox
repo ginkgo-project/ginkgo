@@ -2,38 +2,40 @@
 <h1>Introduction</h1>
 This example solves a 3D Poisson equation:
 
-$
+\[
     \Omega = (0,1)^3 \\
     \Omega_b = [0,1]^3 \text{ (with boundary)} \\
     \partial\Omega = \Omega_b \backslash \Omega \\
     u : \Omega \rightarrow R \\
     u'' = f \in \Omega \\
     u = u_D \in \partial\Omega \\
-$
+\]
 
 using a finite difference method on an equidistant grid with `K` discretization
 points (`K` can be controlled with a command line parameter). The discretization
 may be done by any order Taylor polynomial.
-For an equidistant grid with K "inner" discretization points $(x1,y1,z1), ...,
-(xk,y1,z1),(x1,y2,z1), ..., (xk,yk,z1), (x1,y1,z2), ..., (xk,yk,zk)$, step size $h
-= 1 / (K + 1)$ and a stencil $\in \R^{3 x 3 x 3}$, the formula produces a system of
-linear equations
+For an equidistant grid with K "inner" discretization points \((x1,y1,z1), \ldots,
+(xk,y1,z1),(x1,y2,z1), \ldots, (xk,yk,z1), (x1,y1,z2), \ldots, (xk,yk,zk)\), step
+size \(h = 1 / (K + 1)\) and a stencil \(\in \mathbb{R}^{3 \times 3 \times 3}\),
+the formula produces a system of linear equations
 
-$\sum_{a,b,c=-1}^1 stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2$,  on any inner
+\(\sum_{a,b,c=-1}^1 stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2\),  on any inner
 node with a neighborhood of inner nodes
 
 On any node, where neighbor is on the border, the neighbor is replaced with a
-$-stencil(a,b,c) * u_{i+a,j+b,k+c}$ and added to the right hand side vector.
+\(-stencil(a,b,c) * u_{i+a,j+b,k+c}\) and added to the right hand side vector.
 For example a node with a neighborhood of only face nodes may look like this
 
-$\sum_{a,b,c=-1}^(1,1,0) stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2 -
-\sum_{a,b=-1}^(1,1) stencil(a,b,1) * u_{(i+a,j+b,k+1}$
+\[
+  \sum_{a,b,c=-1}^(1,1,0) stencil(a,b,c) * u_{(i+a,j+b,k+c} = -f_k h^2
+  - \sum_{a,b=-1}^(1,1) stencil(a,b,1) * u_{(i+a,j+b,k+1}
+\]
 
 which is then solved using Ginkgo's implementation of the CG method
 preconditioned with block-Jacobi. It is also possible to specify on which
 executor Ginkgo will solve the system via the command line.
-The function `f` is set to $f(x,y,z) = 6x + 6y + 6z$ (making the solution
-$u(x,y,z) = x^3 + y^3 + z^3$), but that can be changed in the `main` function.
+The function `f` is set to \(f(x,y,z) = 6x + 6y + 6z\) (making the solution
+\(u(x,y,z) = x^3 + y^3 + z^3\)), but that can be changed in the `main` function.
 Also the stencil values for the core, the faces, the edge and the corners can be
 changed when passing additional parameters.
 
