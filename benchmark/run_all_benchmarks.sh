@@ -78,6 +78,22 @@ compute_matrix_statistics() {
 }
 
 
+# Runs the conversion benchmarks for all matrix formats by using file $1 as the
+# input, and updating it with the results. Backups are created after each
+# benchmark run, to prevent data loss in case of a crash. Once the benchmarking
+# is completed, the backups and the results are combined, and the newest file is
+# taken as the final result.
+run_conversion_benchmarks() {
+    [ "${DRY_RUN}" == "true" ] && return
+    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --device_id="${DEVICE_ID}" \
+                <"$1.imd" 2>&1 >"$1"
+    keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+}
+
+
 # Runs the SpMV benchmarks for all SpMV formats by using file $1 as the input,
 # and updating it with the results. Backups are created after each
 # benchmark run, to prevent data loss in case of a crash. Once the benchmarking
@@ -179,7 +195,12 @@ for (( i=${LOOP_START}; i < ${LOOP_END}; ++i )); do
     compute_matrix_statistics "${RESULT_FILE}"
 
     echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
+
     run_spmv_benchmarks "${RESULT_FILE}"
+
+    if [ "${BENCHMARK}" == "conversions" ]; then
+        run_conversion_benchmarks "${RESULT_FILE}"
+    fi
 
     if [ "${BENCHMARK}" != "solver" -o \
          "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then

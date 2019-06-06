@@ -4,6 +4,7 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "will be affected")
 endif()
 
+add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
