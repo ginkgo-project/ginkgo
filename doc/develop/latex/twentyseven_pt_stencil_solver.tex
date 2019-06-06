@@ -8,17 +8,20 @@ This example depends on simple-\/solver, poisson-\/solver, three-\/pt-\/stencil-
 
 This example solves a 3D Poisson equation\+:
 
-$ \Omega = (0,1)^3 \Omega_b = [0,1]^3 (with boundary) \partial\Omega = \Omega_b \backslash \Omega u : \Omega \rightarrow R\\ u'' = f in \Omega\\ u = u_D on \partial\Omega $
+\mbox{[}  = (0,1)$^\wedge$3 \textbackslash{}  = \mbox{[}0,1\mbox{]}$^\wedge$3 \{ (with boundary)\} \textbackslash{}  =    \textbackslash{} u \+:   R \textbackslash{} u\textquotesingle{}\textquotesingle{} = f   \textbackslash{} u = u\+\_\+D   \textbackslash{} \mbox{]}
 
-using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points (x1,y1,z1), ..., (xk,y1,z1),(x1,y2,z1), ..., (xk,yk,z1), (x1,y1,z2), ..., (xk,yk,zk), step size h = 1 / (K + 1) and a stencil  $^\wedge$\{3 x 3 x 3\}, the formula produces a system of linear equations
+using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points ((x1,y1,z1), , (xk,y1,z1),(x1,y2,z1), , (xk,yk,z1), (x1,y1,z2), , (xk,yk,zk)), step size (h = 1 / (K + 1)) and a stencil ( \{R\}$^\wedge$\{3  3  3\}), the formula produces a system of linear equations
 
-\{a,b,c=-\/1\}$^\wedge$1 stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2, on any inner node with a neighborhood of inner nodes
+(\{a,b,c=-\/1\}$^\wedge$1 stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2), on any inner node with a neighborhood of inner nodes
 
-On any node, where neighbor is on the border, the neighbor is replaced with a \textquotesingle{}-\/stencil(a,b,c) $\ast$ u\+\_\+\{i+a,j+b,k+c\}\textquotesingle{} and added to the right hand side vector. For example a node with a neighborhood of only face nodes may look like this
+On any node, where neighbor is on the border, the neighbor is replaced with a (-\/stencil(a,b,c) $\ast$ u\+\_\+\{i+a,j+b,k+c\}) and added to the right hand side vector. For example a node with a neighborhood of only face nodes may look like this
 
-\{a,b,c=-\/1\}$^\wedge$(1,1,0) stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2 -\/ \{a,b=-\/1\}$^\wedge$(1,1) stencil(a,b,1) $\ast$ $\ast$ u\+\_\+\{(i+a,j+b,k+1\}
+\mbox{[} \{a,b,c=-\/1\}$^\wedge$(1,1,0) stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2
+\begin{DoxyItemize}
+\item \{a,b=-\/1\}$^\wedge$(1,1) stencil(a,b,1) $\ast$ u\+\_\+\{(i+a,j+b,k+1\} \mbox{]}
+\end{DoxyItemize}
 
-which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to {\ttfamily f(x,y,z) = 6x + 6y + 6z} (making the solution {\ttfamily u(x,y,z) = x$^\wedge$3 + y$^\wedge$3 + z$^\wedge$3}), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
+which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to (f(x,y,z) = 6x + 6y + 6z) (making the solution (u(x,y,z) = x$^\wedge$3 + y$^\wedge$3 + z$^\wedge$3)), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
 
 The intention of this is to show how generation of stencil values and the right hand side vector changes when increasing the dimension.
 
@@ -56,7 +59,7 @@ On any node, where neighbor is on the border, the neighbor is replaced with a
 For example a node with a neighborhood of only face nodes may look like this
 
 \(\backslash\)sum\_\{a,b,c=-1\}^(1,1,0) stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -f\_k h^2 -
-\(\backslash\)sum\_\{a,b=-1\}^(1,1) stencil(a,b,1) * * u\_\{(i+a,j+b,k+1\}
+\(\backslash\)sum\_\{a,b=-1\}^(1,1) stencil(a,b,1) * u\_\{(i+a,j+b,k+1\}
 
 which is then solved \textcolor{keyword}{using} Ginkgo\textcolor{stringliteral}{'s implementation of the CG method}
 \textcolor{stringliteral}{preconditioned with block-Jacobi. It is also possible to specify on which}
@@ -594,7 +597,7 @@ The average relative error is 1.87318e-15
 \textcolor{comment}{For example a node with a neighborhood of only face nodes may look like this}
 \textcolor{comment}{}
 \textcolor{comment}{\(\backslash\)sum\_\{a,b,c=-1\}^(1,1,0) stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -f\_k h^2 -}
-\textcolor{comment}{\(\backslash\)sum\_\{a,b=-1\}^(1,1) stencil(a,b,1) * * u\_\{(i+a,j+b,k+1\}}
+\textcolor{comment}{\(\backslash\)sum\_\{a,b=-1\}^(1,1) stencil(a,b,1) * u\_\{(i+a,j+b,k+1\}}
 \textcolor{comment}{}
 \textcolor{comment}{which is then solved using Ginkgo's implementation of the CG method}
 \textcolor{comment}{preconditioned with block-Jacobi. It is also possible to specify on which}

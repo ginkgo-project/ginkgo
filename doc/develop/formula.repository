@@ -21,5 +21,3 @@
 \form#20:$`f` $
 \form#21:$`f(x) = 6x`$
 \form#22:$`u(x) = x^3`$
-\form#23:$ \Omega = (0,1)^2 \Omega_b = [0,1]^2 (with boundary) \partial\Omega = \Omega_b \backslash \Omega u : \Omega_b -> R u'' = f in \Omega u = u_D on \partial\Omega $
-\form#24:$ \Omega = (0,1)^3 \Omega_b = [0,1]^3 (with boundary) \partial\Omega = \Omega_b \backslash \Omega u : \Omega \rightarrow R\\ u'' = f in \Omega\\ u = u_D on \partial\Omega $

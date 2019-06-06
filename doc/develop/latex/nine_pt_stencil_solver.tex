@@ -8,34 +8,30 @@ This example depends on simple-\/solver, poisson-\/solver, three-\/pt-\/stencil-
 
 This example solves a 2D Poisson equation\+:
 
-$ \Omega = (0,1)^2 \Omega_b = [0,1]^2 (with boundary) \partial\Omega = \Omega_b \backslash \Omega u : \Omega_b -> R u'' = f in \Omega u = u_D on \partial\Omega $
+\mbox{[}  = (0,1)$^\wedge$2 \textbackslash{}  = \mbox{[}0,1\mbox{]}$^\wedge$2 \{ (with boundary)\} \textbackslash{}  =    \textbackslash{} u \+:  -\/$>$ R \textbackslash{} u\textquotesingle{}\textquotesingle{} = f   \textbackslash{} u = u\+\_\+D   \textbackslash{} \mbox{]}
 
-using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points (x1,y1), ..., (xk,y1),(x1,y2), ..., (xk,yk,z1) step size h = 1 / (K + 1) and a stencil  $^\wedge$\{3 x 3\}, the formula produces a system of linear equations
+using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points ((x1,y1), , (xk,y1),(x1,y2), , (xk,yk,z1)) step size (h = 1 / (K + 1)) and a stencil ( \{R\}$^\wedge$\{3  3\}), the formula produces a system of linear equations
 
-\{a,b=-\/1\}$^\wedge$1 stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2, on any inner node with a neighborhood of inner nodes
+(\{a,b=-\/1\}$^\wedge$1 stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2), on any inner node with a neighborhood of inner nodes
 
-On any node, where neighbor is on the border, the neighbor is replaced with a \textquotesingle{}-\/stencil(a,b) $\ast$ u\+\_\+\{i+a,j+b\}\textquotesingle{} and added to the right hand side vector. For example a node with a neighborhood of only edge nodes may look like this
+On any node, where neighbor is on the border, the neighbor is replaced with a (-\/stencil(a,b) $\ast$ u\+\_\+\{i+a,j+b\}) and added to the right hand side vector. For example a node with a neighborhood of only edge nodes may look like this
 
-\{a,b=-\/1\}$^\wedge$(1,0) stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2 -\/ \{a=-\/1\}$^\wedge$1 stencil(a,1) $\ast$ $\ast$ u\+\_\+\{(i+a,j+1\}
+\mbox{[} \{a,b=-\/1\}$^\wedge$(1,0) stencil(a,b) $\ast$ u\+\_\+\{(i+a,j+b\} = -\/f\+\_\+k h$^\wedge$2 -\/ \{a=-\/1\}$^\wedge$1 stencil(a,1) $\ast$ u\+\_\+\{(i+a,j+1\} \mbox{]}
 
-which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to {\ttfamily f(x,y) = 6x + 6y} (making the solution {\ttfamily u(x,y) = x$^\wedge$3
+which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to (f(x,y) = 6x + 6y) (making the solution (u(x,y) = x$^\wedge$3
 \begin{DoxyItemize}
-\item y$^\wedge$3), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
-\end{DoxyItemize}}
+\item y$^\wedge$3)), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
+\end{DoxyItemize}
 
-{\ttfamily The intention of this is to show how generation of stencil values and the right hand side vector changes when increasing the dimension.}
+The intention of this is to show how generation of stencil values and the right hand side vector changes when increasing the dimension.
 
-{\ttfamily \label{_Abouttheexample}%
-\subsubsection*{About the example }}
+\label{_Abouttheexample}%
+\subsubsection*{About the example }
 
-{\ttfamily }
+\label{_CommProg}%
+ \section*{The commented program}
 
-{\ttfamily  \label{_CommProg}%
- \section*{The commented program}}
 
-{\ttfamily }
-
-{\ttfamily 
 \begin{DoxyCode}
 / *****************************<DECSRIPTION>***********************************
 This example solves a 2D Poisson equation:
@@ -62,7 +58,7 @@ On any node, where neighbor is on the border, the neighbor is replaced with a
 example a node with a neighborhood of only edge nodes may look like this
 
 \(\backslash\)sum\_\{a,b=-1\}^(1,0) stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2 - \(\backslash\)sum\_\{a=-1\}^1
-stencil(a,1) * * u\_\{(i+a,j+1\}
+stencil(a,1) * u\_\{(i+a,j+1\}
 
 which is then solved \textcolor{keyword}{using} Ginkgo\textcolor{stringliteral}{'s implementation of the CG method}
 \textcolor{stringliteral}{preconditioned with block-Jacobi. It is also possible to specify on which}
@@ -84,11 +80,11 @@ which is then solved \textcolor{keyword}{using} Ginkgo\textcolor{stringliteral}{
 \textcolor{stringliteral}{#include <string>}
 \textcolor{stringliteral}{#include <vector>}
 \end{DoxyCode}
-}
 
-{\ttfamily  Stencil values. Ordering can be seen in the main function Can also be changed by passing additional parameter when executing}
 
-{\ttfamily 
+Stencil values. Ordering can be seen in the main function Can also be changed by passing additional parameter when executing
+
+
 \begin{DoxyCode}
 constexpr \textcolor{keywordtype}{double} default\_alpha = 10.0 / 3.0;
 constexpr \textcolor{keywordtype}{double} default\_beta = -2.0 / 3.0;
@@ -100,11 +96,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
  * default\_gamma = -1.0;
  * /
 \end{DoxyCode}
-}
 
-{\ttfamily  Creates a stencil matrix in C\+SR format for the given number of discretization points.}
 
-{\ttfamily 
+Creates a stencil matrix in C\+SR format for the given number of discretization points.
+
+
 \begin{DoxyCode}
 \textcolor{keywordtype}{void} generate\_stencil\_matrix(\textcolor{keywordtype}{int} dp, \textcolor{keywordtype}{int} *row\_ptrs, \textcolor{keywordtype}{int} *col\_idxs,
                              \textcolor{keywordtype}{double} *values, \textcolor{keywordtype}{double} *coefs)
@@ -131,11 +127,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
     \}
 \}
 \end{DoxyCode}
-}
 
-{\ttfamily  Generates the R\+HS vector given {\ttfamily f} and the boundary conditions.}
 
-{\ttfamily 
+Generates the R\+HS vector given {\ttfamily f} and the boundary conditions.
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ClosureT>
 \textcolor{keywordtype}{void} generate\_rhs(\textcolor{keywordtype}{int} dp, Closure f, ClosureT u, \textcolor{keywordtype}{double} *rhs, \textcolor{keywordtype}{double} *coefs)
@@ -151,11 +147,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
         \}
     \}
 \end{DoxyCode}
-}
 
-{\ttfamily  Iterating over the edges to add boundary values and adding the overlapping 3x1 to the rhs}
 
-{\ttfamily 
+Iterating over the edges to add boundary values and adding the overlapping 3x1 to the rhs
+
+
 \begin{DoxyCode}
 \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{
     \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;
@@ -184,11 +180,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
     rhs[index\_right] -= u(1.0, yi + h) * coefs[8];
 \}
 \end{DoxyCode}
-}
 
-{\ttfamily  remove the double corner values}
 
-{\ttfamily 
+remove the double corner values
+
+
 \begin{DoxyCode}
     rhs[0] += u(0.0, 0.0) * coefs[0];
     rhs[(dp - 1)] += u(1.0, 0.0) * coefs[2];
@@ -196,11 +192,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
     rhs[dp * dp - 1] += u(1.0, 1.0) * coefs[8];
 \}
 \end{DoxyCode}
-}
 
-{\ttfamily  Prints the solution {\ttfamily u}.}
 
-{\ttfamily 
+Prints the solution {\ttfamily u}.
+
+
 \begin{DoxyCode}
 \textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u)
 \{
@@ -213,11 +209,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
     std::cout << std::endl;
 \}
 \end{DoxyCode}
-}
 
-{\ttfamily  Computes the 1-\/norm of the error given the computed {\ttfamily u} and the correct solution function {\ttfamily correct\+\_\+u}.}
 
-{\ttfamily 
+Computes the 1-\/norm of the error given the computed {\ttfamily u} and the correct solution function {\ttfamily correct\+\_\+u}.
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>
 \textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} dp, \textcolor{keyword}{const} \textcolor{keywordtype}{double} *u, Closure correct\_u)
@@ -243,11 +239,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
                   \textcolor{keywordtype}{double} accuracy)
 \{
 \end{DoxyCode}
-}
 
-{\ttfamily  Some shortcuts}
 
-{\ttfamily 
+Some shortcuts
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{using} vec = gko::matrix::Dense<double>;
 \textcolor{keyword}{using} mtx = \hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>};
@@ -258,11 +254,11 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
 \textcolor{keyword}{const} \textcolor{keyword}{auto} &dp = discretization\_points;
 \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
 \end{DoxyCode}
-}
 
-{\ttfamily  Figure out where to run the code}
 
-{\ttfamily 
+Figure out where to run the code
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}();
 std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
@@ -270,34 +266,34 @@ std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
     \{\textcolor{stringliteral}{"cuda"}, \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}(0, omp)\},
     \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};
 \end{DoxyCode}
-}
 
-{\ttfamily  executor where Ginkgo will perform the computation}
 
-{\ttfamily 
+executor where Ginkgo will perform the computation
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}
 \end{DoxyCode}
-}
 
-{\ttfamily  executor where the application initialized the data}
 
-{\ttfamily 
+executor where the application initialized the data
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];
 \end{DoxyCode}
-}
 
-{\ttfamily  Tell Ginkgo to use the data in our application}
 
-{\ttfamily  Matrix\+: we have to set the executor of the matrix to the one where we want Sp\+M\+Vs to run (in this case {\ttfamily exec}). When creating array views, we have to specify the executor where the data is (in this case {\ttfamily app\+\_\+exec}).}
+Tell Ginkgo to use the data in our application
 
-{\ttfamily  If the two do not match, Ginkgo will automatically create a copy of the data on {\ttfamily exec} (however, it will not copy the data back once it is done
+Matrix\+: we have to set the executor of the matrix to the one where we want Sp\+M\+Vs to run (in this case {\ttfamily exec}). When creating array views, we have to specify the executor where the data is (in this case {\ttfamily app\+\_\+exec}).
+
+If the two do not match, Ginkgo will automatically create a copy of the data on {\ttfamily exec} (however, it will not copy the data back once it is done
 \begin{DoxyItemize}
 \item here this is not important since we are not modifying the matrix).
-\end{DoxyItemize}}
+\end{DoxyItemize}
 
-{\ttfamily 
+
 \begin{DoxyCode}
 \textcolor{keyword}{auto} matrix = mtx::create(
     exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2),
@@ -305,29 +301,29 @@ std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
     idx\_array::view(app\_exec, (3 * dp - 2) * (3 * dp - 2), col\_idxs),
     idx\_array::view(app\_exec, dp\_2 + 1, row\_ptrs));
 \end{DoxyCode}
-}
 
-{\ttfamily  R\+HS\+: similar to matrix}
 
-{\ttfamily 
+R\+HS\+: similar to matrix
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{auto} b = vec::create(exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
                      val\_array::view(app\_exec, dp\_2, rhs), 1);
 \end{DoxyCode}
-}
 
-{\ttfamily  Solution\+: we have to be careful here -\/ if the executors are different, once we compute the solution the array will not be automatically copied back to the original memory locations. Fortunately, whenever {\ttfamily apply} is called on a linear operator (e.\+g. matrix, solver) the arguments automatically get copied to the executor where the operator is, and copied back once the operation is completed. Thus, in this case, we can just define the solution on {\ttfamily app\+\_\+exec}, and it will be automatically transferred to/from {\ttfamily exec} if needed.}
 
-{\ttfamily 
+Solution\+: we have to be careful here -\/ if the executors are different, once we compute the solution the array will not be automatically copied back to the original memory locations. Fortunately, whenever {\ttfamily apply} is called on a linear operator (e.\+g. matrix, solver) the arguments automatically get copied to the executor where the operator is, and copied back once the operation is completed. Thus, in this case, we can just define the solution on {\ttfamily app\+\_\+exec}, and it will be automatically transferred to/from {\ttfamily exec} if needed.
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{auto} x = vec::create(app\_exec, \hyperlink{structgko_1_1dim}{gko::dim<2>}(dp\_2, 1),
                      val\_array::view(app\_exec, dp\_2, u), 1);
 \end{DoxyCode}
-}
 
-{\ttfamily  Generate solver}
 
-{\ttfamily 
+Generate solver
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{auto} solver\_gen =
     cg::build()
@@ -340,11 +336,11 @@ std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
         .on(exec);
 \textcolor{keyword}{auto} solver = solver\_gen->generate(\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}(matrix));
 \end{DoxyCode}
-}
 
-{\ttfamily  Solve system}
 
-{\ttfamily 
+Solve system
+
+
 \begin{DoxyCode}
     solver->apply(\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(b), \hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}(x));
 \}
@@ -365,69 +361,69 @@ std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{
     \textcolor{keyword}{const} \textcolor{keywordtype}{double} beta\_c = argc >= 5 ? std::atof(argv[4]) : default\_beta;
     \textcolor{keyword}{const} \textcolor{keywordtype}{double} gamma\_c = argc >= 6 ? std::atof(argv[5]) : default\_gamma;
 \end{DoxyCode}
-}
 
-{\ttfamily  clang-\/format off}
 
-{\ttfamily 
+clang-\/format off
+
+
 \begin{DoxyCode}
 std::array<double, 9> coefs\{
     gamma\_c, beta\_c, gamma\_c,
     beta\_c, alpha\_c, beta\_c,
     gamma\_c, beta\_c, gamma\_c\};
 \end{DoxyCode}
-}
 
-{\ttfamily  clang-\/format on}
 
-{\ttfamily 
+clang-\/format on
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{const} \textcolor{keyword}{auto} dp = discretization\_points;
 \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;
 \end{DoxyCode}
-}
 
-{\ttfamily  problem\+:}
 
-{\ttfamily 
+problem\+:
+
+
 \begin{DoxyCode}
 \textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} x * x * x + y * y * y; \};
 \textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x, \textcolor{keywordtype}{double} y) \{ \textcolor{keywordflow}{return} 6 * x + 6 * y; \};
 \end{DoxyCode}
-}
 
-{\ttfamily  matrix}
 
-{\ttfamily 
+matrix
+
+
 \begin{DoxyCode}
 std::vector<int> row\_ptrs(dp\_2 + 1);
 std::vector<int> col\_idxs((3 * dp - 2) * (3 * dp - 2));
 std::vector<double> values((3 * dp - 2) * (3 * dp - 2));
 \end{DoxyCode}
-}
 
-{\ttfamily  right hand side}
 
-{\ttfamily 
+right hand side
+
+
 \begin{DoxyCode}
 std::vector<double> rhs(dp\_2);
 \end{DoxyCode}
-}
 
-{\ttfamily  solution}
 
-{\ttfamily 
+solution
+
+
 \begin{DoxyCode}
 std::vector<double> u(dp\_2, 0.0);
 
 generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),
                         coefs.data());
 \end{DoxyCode}
-}
 
-{\ttfamily  looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1}
 
-{\ttfamily 
+looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
+
+
 \begin{DoxyCode}
     generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());
 
@@ -451,27 +447,23 @@ generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),
 \}
 \end{DoxyCode}
  \label{_Results}%
-\section*{Results}}
+\section*{Results}
 
-{\ttfamily }
+The expected output of the relative error at K=10 should be
 
-{\ttfamily The expected output of the relative error at K=10 should be}
 
-{\ttfamily 
 \begin{DoxyCode}
 The average relative error is 1.45687e-13
 \end{DoxyCode}
-}
 
-{\ttfamily \label{_Commentsaboutprogramminganddebugging}%
-\paragraph*{Comments about programming and debugging }}
 
-{\ttfamily }
+\label{_Commentsaboutprogramminganddebugging}%
+\paragraph*{Comments about programming and debugging }
 
-{\ttfamily \label{_PlainProg}%
- \section*{The plain program}}
+\label{_PlainProg}%
+ \section*{The plain program}
 
-{\ttfamily  
+
 \begin{DoxyCodeInclude}
 \textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}
 \textcolor{comment}{Copyright (c) 2017-2019, the Ginkgo authors}
@@ -530,7 +522,7 @@ The average relative error is 1.45687e-13
 \textcolor{comment}{example a node with a neighborhood of only edge nodes may look like this}
 \textcolor{comment}{}
 \textcolor{comment}{\(\backslash\)sum\_\{a,b=-1\}^(1,0) stencil(a,b) * u\_\{(i+a,j+b\} = -f\_k h^2 - \(\backslash\)sum\_\{a=-1\}^1}
-\textcolor{comment}{stencil(a,1) * * u\_\{(i+a,j+1\}}
+\textcolor{comment}{stencil(a,1) * u\_\{(i+a,j+1\}}
 \textcolor{comment}{}
 \textcolor{comment}{which is then solved using Ginkgo's implementation of the CG method}
 \textcolor{comment}{preconditioned with block-Jacobi. It is also possible to specify on which}
@@ -771,4 +763,4 @@ constexpr \textcolor{keywordtype}{double} default\_gamma = -1.0 / 6.0;
               << std::endl;
 \}
 \end{DoxyCodeInclude}
- }
+ 
