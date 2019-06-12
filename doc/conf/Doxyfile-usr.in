@@ -14,4 +14,4 @@ CALLER_GRAPH           = NO
 EXCLUDE_SYMBOLS        = *detail::* std::*
 WARN_LOGFILE           = @out@.log
 # These are the LaTeX packages we use
-EXTRA_PACKAGES         = amsmath amsfonts mathtools
+EXTRA_PACKAGES         = mathtools amsfonts amsmath amssymb

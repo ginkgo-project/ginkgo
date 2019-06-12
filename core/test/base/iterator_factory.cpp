@@ -63,9 +63,7 @@ protected:
     void check_vector_equal(const std::vector<T1> &v1,
                             const std::vector<T2> &v2)
     {
-        for (size_t i = 0; i < std::max(v1.size(), v2.size()); ++i) {
-            ASSERT_TRUE(v1[i] == v2[i]);
-        }
+        ASSERT_TRUE(std::equal(v1.begin(), v1.end(), v2.begin()));
     }
 
     // Require that Iterator has a `value_type` specified
