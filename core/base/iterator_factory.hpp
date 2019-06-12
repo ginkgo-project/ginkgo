@@ -46,8 +46,9 @@ namespace detail {
 
 /**
  * @internal
- * @brief This class is used to sort two distinct, arrays of the same size
- * according to the secondary_values of one.
+ * @brief This class is used to sort two distinct arrays (`dominant_values` and
+ * `secondary_values`) with the same number of elements (it can be different
+ * types) according to the `dominant_values` in ascending order.
  *
  * Stores the pointers of two arrays, one storing the type `SecondaryType`, and
  * one storing the type `ToSortType`. This class also provides an iterator
@@ -55,7 +56,7 @@ namespace detail {
  * copies would be necessary to create, for example, one array of `std::pairs`
  * to use `std::sort`, or a self written sort function.
  *
- * Example of using this class to sort people according to their age:
+ * Example of using this class to sort a list of people according to their age:
  * -----------------------------------------------------------------
  * ```cpp
  * std::vector<int> age{50, 44, 43, 42};
@@ -65,7 +66,13 @@ namespace detail {
  * ```
  * Here, `person` now contains: `{"Hannah", "Max", "Susanne", "Karl"}` and
  * `age` is now `{42, 43, 44, 50}`. Therefore, both arrays are now sorted
- * according to the values in `age` from descending to ascending.
+ * according to the values in ascending order of `age`.
+ *
+ * @tparam ToSortType  Type of the values which will be used for sorting.
+ *                     It must support `operator<`.
+ * @tparam SecondaryType  Type of the values which will be moved synchronous
+ *                        to the array of type `ToSortType`. No comparisons
+ *                        with this type will be performed.
  */
 template <typename ToSortType, typename SecondaryType>
 class IteratorFactory {
@@ -190,7 +197,7 @@ private:
      * For performance reasons, it is expected that all iterators that are
      * compared / used with each other have the same `parent`, so the check
      * if they are the same can be omitted.
-     * This class uses a single variable to keep track where the iterator
+     * This class uses a single variable to keep track of where the iterator
      * points to both arrays.
      */
     class Iterator {
@@ -373,4 +380,4 @@ private:
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CORE_BASE_ITERATOR_FACTORY_HPP_

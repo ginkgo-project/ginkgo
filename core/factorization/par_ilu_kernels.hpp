@@ -37,6 +37,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 
+#include <memory>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+
+
 namespace gko {
 namespace kernels {
 
@@ -52,11 +60,11 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType> *system_matrix,         \
         matrix::Csr<ValueType, IndexType> *l_factor,                    \
         matrix::Csr<ValueType, IndexType> *u_factor)
-#define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)  \
-    void compute_l_u_factors(                                                 \
-        std::shared_ptr<const DefaultExecutor> exec, unsigned int iterations, \
-        const matrix::Coo<ValueType, IndexType> *system_matrix,               \
-        matrix::Csr<ValueType, IndexType> *l_factor,                          \
+#define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
+    void compute_l_u_factors(                                                \
+        std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
+        const matrix::Coo<ValueType, IndexType> *system_matrix,              \
+        matrix::Csr<ValueType, IndexType> *l_factor,                         \
         matrix::Csr<ValueType, IndexType> *u_factor)
 
 

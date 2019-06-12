@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -71,7 +70,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(
-    std::shared_ptr<const DefaultExecutor> exec, unsigned int iterations,
+    std::shared_ptr<const DefaultExecutor> exec, size_type iterations,
     const matrix::Coo<ValueType, IndexType> *system_matrix,
     matrix::Csr<ValueType, IndexType> *l_factor,
     matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;

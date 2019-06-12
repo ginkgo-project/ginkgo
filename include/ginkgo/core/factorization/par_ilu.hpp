@@ -74,7 +74,7 @@ namespace factorization {
  * In general, the entries of $L$ and $U$ can be iterated in parallel and in
  * asynchronous fashion, the algorithm asymptotically converges to the
  * incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot
- * U\right)\vert_\mathcal{S} = 0$ where $\mathcal{S}$ is the
+ * U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the
  * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
  * system matrix $A$). The number of ParILU sweeps needed for convergence
  * depends on the parallelism level: For sequential execution, a single sweep
@@ -127,7 +127,7 @@ public:
          * implementation decides on the actual value depending on the
          * ressources that are available.
          */
-        unsigned int GKO_FACTORY_PARAMETER(iterations, 0);
+        size_type GKO_FACTORY_PARAMETER(iterations, 0);
 
         /**
          * @brief `true` means it is known that the matrix given to this

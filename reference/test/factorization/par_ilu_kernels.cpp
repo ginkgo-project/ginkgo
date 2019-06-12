@@ -80,19 +80,32 @@ protected:
     ParIlu()
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
+          // clang-format off
           identity(gko::initialize<Dense>(
-              {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}}, exec)),
+              {{1., 0., 0.},
+               {0., 1., 0.},
+               {0., 0., 1.}}, exec)),
           lower_triangular(gko::initialize<Dense>(
-              {{1., 0., 0.}, {1., 1., 0.}, {1., 1., 1.}}, exec)),
+              {{1., 0., 0.},
+               {1., 1., 0.},
+               {1., 1., 1.}}, exec)),
           upper_triangular(gko::initialize<Dense>(
-              {{1., 1., 1.}, {0., 1., 1.}, {0., 0., 1.}}, exec)),
+              {{1., 1., 1.},
+               {0., 1., 1.},
+               {0., 0., 1.}}, exec)),
           mtx_small(gko::initialize<Dense>(
-              {{4., 6., 8.}, {2., 2., 5.}, {1., 1., 1.}}, exec)),
+              {{4., 6., 8.},
+               {2., 2., 5.},
+               {1., 1., 1.}}, exec)),
           mtx_csr_small(nullptr),
           small_l_expected(gko::initialize<Dense>(
-              {{1., 0., 0.}, {0.5, 1., 0.}, {0.25, 0.5, 1.}}, exec)),
+              {{1., 0., 0.},
+               {0.5, 1., 0.},
+               {0.25, 0.5, 1.}}, exec)),
           small_u_expected(gko::initialize<Dense>(
-              {{4., 6., 8.}, {0., -1., 1.}, {0., 0., -1.5}}, exec)),
+              {{4., 6., 8.},
+               {0., -1., 1.},
+               {0., 0., -1.5}}, exec)),
           mtx_big(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                           {1., 2., 2., 0., 2., 0.},
                                           {0., 2., 3., 3., 3., 5.},
@@ -114,6 +127,7 @@ protected:
                                                  {0., 0., 0., 0., 5., -15.},
                                                  {0., 0., 0., 0., 0., 6.}},
                                                 exec)),
+          // clang-format on
           ilu_factory_skip(
               gko::factorization::ParIlu<>::build().with_skip_sorting(true).on(
                   exec)),
