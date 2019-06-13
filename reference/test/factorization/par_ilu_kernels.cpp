@@ -172,10 +172,16 @@ TEST_F(ParIlu, KernelComputeNnzLU)
 
 TEST_F(ParIlu, KernelInitializeLU)
 {
+    // clang-format off
     auto expected_l =
-        gko::initialize<Dense>({{1., 0., 0.}, {2., 1., 0.}, {1., 1., 1.}}, ref);
+        gko::initialize<Dense>({{1., 0., 0.},
+                                {2., 1., 0.},
+                                {1., 1., 1.}}, ref);
     auto expected_u =
-        gko::initialize<Dense>({{4., 6., 8.}, {0., 2., 5.}, {0., 0., 1.}}, ref);
+        gko::initialize<Dense>({{4., 6., 8.},
+                                {0., 2., 5.},
+                                {0., 0., 1.}}, ref);
+    // clang-format on
     auto actual_l = Csr::create(ref, mtx_csr_small->get_size(), 6);
     auto actual_u = Csr::create(ref, mtx_csr_small->get_size(), 6);
 
@@ -190,12 +196,18 @@ TEST_F(ParIlu, KernelInitializeLU)
 
 TEST_F(ParIlu, KernelComputeLU)
 {
+    // clang-format off
     auto l_dense =
-        gko::initialize<Dense>({{1., 0., 0.}, {2., 1., 0.}, {1., 1., 1.}}, ref);
+        gko::initialize<Dense>({{1., 0., 0.},
+                                {2., 1., 0.},
+                                {1., 1., 1.}}, ref);
     // U must be transposed before calling the kernel, so we simply create it
     // transposed
     auto u_dense =
-        gko::initialize<Dense>({{4., 0., 0.}, {6., 2., 0.}, {8., 5., 1.}}, ref);
+        gko::initialize<Dense>({{4., 0., 0.},
+                                {6., 2., 0.},
+                                {8., 5., 1.}}, ref);
+    // clang-format on
     auto l_csr = Csr::create(ref);
     auto u_csr = Csr::create(ref);
     auto mtx_coo = Coo::create(ref);

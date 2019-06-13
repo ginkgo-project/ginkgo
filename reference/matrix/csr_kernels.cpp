@@ -476,13 +476,13 @@ void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto values = to_sort->get_values();
     auto row_ptrs = to_sort->get_row_ptrs();
-    auto cols = to_sort->get_col_idxs();
-    auto number_rows = to_sort->get_size()[0];
+    auto col_idxs = to_sort->get_col_idxs();
+    const auto number_rows = to_sort->get_size()[0];
     for (size_type i = 0; i < number_rows; ++i) {
         auto start_row_idx = row_ptrs[i];
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
         auto helper = detail::IteratorFactory<IndexType, ValueType>(
-            cols + start_row_idx, values + start_row_idx, row_nnz);
+            col_idxs + start_row_idx, values + start_row_idx, row_nnz);
         std::sort(helper.begin(), helper.end());
     }
 }
@@ -496,12 +496,12 @@ void is_sorted_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::Csr<ValueType, IndexType> *to_sort,
                                bool *is_sorted)
 {
-    const auto rows = to_sort->get_const_row_ptrs();
-    const auto cols = to_sort->get_const_col_idxs();
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto col_idxs = to_sort->get_const_col_idxs();
     const auto size = to_sort->get_size();
     for (size_type i = 0; i < size[0]; ++i) {
-        for (auto idx = rows[i] + 1; idx < rows[i + 1]; ++idx) {
-            if (cols[idx - 1] > cols[idx]) {
+        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+            if (col_idxs[idx - 1] > col_idxs[idx]) {
                 *is_sorted = false;
                 return;
             }
