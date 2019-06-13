@@ -91,12 +91,12 @@ $(function() {
 </ol> </td> </tr> </table>
  <a class="anchor" id="Intro"></a> <a class="anchor" id="Introduction"></a></p><h1>Introduction</h1>
 <p>This example solves a 1D Poisson equation:</p>
-<p><img class="formulaInl" alt="$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $" src="form_15.png"/></p>
+<p><img class="formulaInl" alt="$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $" src="form_20.png"/></p>
 <p>using a finite difference method on an equidistant grid with <code>K</code> discretization points (<code>K</code> can be controlled with a command line parameter). The discretization is done via the second order Taylor polynomial:</p>
-<p><img class="formulaInl" alt="$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $" src="form_16.png"/></p>
-<p>For an equidistant grid with K "inner" discretization points <img class="formulaInl" alt="$x1, ..., xk, $" src="form_17.png"/>and step size <img class="formulaInl" alt="$ h = 1 / (K + 1)$" src="form_18.png"/>, the formula produces a system of linear equations</p>
-<p><img class="formulaInl" alt="$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $" src="form_19.png"/></p>
-<p>which is then solved using Ginkgo's implementation of the CG method preconditioned with block-Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function <img class="formulaInl" alt="$`f` $" src="form_20.png"/>is set to <img class="formulaInl" alt="$`f(x) = 6x`$" src="form_21.png"/> (making the solution <img class="formulaInl" alt="$`u(x) = x^3`$" src="form_22.png"/>), but that can be changed in the <code>main</code> function.</p>
+<p><img class="formulaInl" alt="$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $" src="form_21.png"/></p>
+<p>For an equidistant grid with K "inner" discretization points <img class="formulaInl" alt="$x1, ..., xk, $" src="form_22.png"/>and step size <img class="formulaInl" alt="$ h = 1 / (K + 1)$" src="form_23.png"/>, the formula produces a system of linear equations</p>
+<p><img class="formulaInl" alt="$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $" src="form_24.png"/></p>
+<p>which is then solved using Ginkgo's implementation of the CG method preconditioned with block-Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function <img class="formulaInl" alt="$`f` $" src="form_25.png"/>is set to <img class="formulaInl" alt="$`f(x) = 6x`$" src="form_26.png"/> (making the solution <img class="formulaInl" alt="$`u(x) = x^3`$" src="form_27.png"/>), but that can be changed in the <code>main</code> function.</p>
 <p>The intention of the example is to show how Ginkgo can be used to build an application solving a real-world problem, which includes a solution of a large, sparse linear system as a component.</p>
 <p><a class="anchor" id="Abouttheexample"></a></p><h3>About the example </h3>
 <p><a class="anchor" id="CommProg"></a> </p><h1>The commented program</h1>

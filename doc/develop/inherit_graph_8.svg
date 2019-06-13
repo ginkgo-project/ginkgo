@@ -9,9 +9,9 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 57)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-57 330,-57 330,4 -4,4"/>
-<!-- Node207 -->
+<!-- Node209 -->
 <g id="node1" class="node">
-<title>Node207</title>
+<title>Node209</title>
 <polygon fill="#ffffff" stroke="#bfbfbf" points="0,-.5 0,-52.5 170,-52.5 170,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-40.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::detail::implement</text>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_binary_operation&lt; Kind,</text>
@@ -29,9 +29,9 @@
 </a>
 </g>
 </g>
-<!-- Node207&#45;&gt;Node0 -->
+<!-- Node209&#45;&gt;Node0 -->
 <g id="edge1" class="edge">
-<title>Node207&#45;&gt;Node0</title>
+<title>Node209&#45;&gt;Node0</title>
 <path fill="none" stroke="#191970" d="M180.3454,-26.5C188.9809,-26.5 197.5573,-26.5 205.7591,-26.5"/>
 <polygon fill="#191970" stroke="#191970" points="180.2,-23.0001 170.2,-26.5 180.1999,-30.0001 180.2,-23.0001"/>
 </g>

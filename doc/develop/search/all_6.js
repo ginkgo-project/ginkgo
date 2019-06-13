@@ -1,6 +1,7 @@
 var searchData=
 [
   ['accessor',['accessor',['../namespacegko_1_1accessor.html',1,'gko']]],
+  ['factorization',['factorization',['../namespacegko_1_1factorization.html',1,'gko']]],
   ['generate',['generate',['../classgko_1_1AbstractFactory.html#a159c45f1db78b6b928d69cb9adf5c9ee',1,'gko::AbstractFactory']]],
   ['get',['get',['../classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e',1,'gko::temporary_clone::get()'],['../classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb',1,'gko::version_info::get()'],['../classgko_1_1log_1_1Record.html#ae64de3b730322ec8be7353aba30899b2',1,'gko::log::Record::get() const noexcept'],['../classgko_1_1log_1_1Record.html#a714affcca3269fed88b982e7db011184',1,'gko::log::Record::get() noexcept']]],
   ['get_5faccessor',['get_accessor',['../classgko_1_1range.html#ac62f76256fce7442670275827e32d506',1,'gko::range']]],

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['preconditioners',['Preconditioners',['../group__precond.html',1,'']]]
+  ['openmp_20executor',['OpenMP Executor',['../group__exec__omp.html',1,'']]]
 ];

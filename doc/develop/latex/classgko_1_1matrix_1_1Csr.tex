@@ -87,6 +87,12 @@ std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{
 \begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}{conj\+\_\+transpose} () const override
 \begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}\label{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}} 
+void \hyperlink{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}{sort\+\_\+by\+\_\+column\+\_\+index} ()
+\begin{DoxyCompactList}\small\item\em Sorts all (value, col\+\_\+idx) pairs in each row by column index. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_adf7499e248badc9faed07c84e3a2449c}\label{classgko_1_1matrix_1_1Csr_adf7499e248badc9faed07c84e3a2449c}} 
+bool {\bfseries is\+\_\+sorted\+\_\+by\+\_\+column\+\_\+index} () const
+\item 
 value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}{get\+\_\+values} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Csr_a1801347665214bbefc837b44ba0695ff}{get\+\_\+const\+\_\+values} () const noexcept
@@ -405,4 +411,4 @@ Implements \hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9300280
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
 ginkgo/core/matrix/coo.\+hpp (5545d209)\item 
-ginkgo/core/matrix/csr.\+hpp (a7ef23d0)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (ec6dbb34)\end{DoxyCompactItemize}

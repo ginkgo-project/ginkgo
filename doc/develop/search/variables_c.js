@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['patch',['patch',['../structgko_1_1version.html#a7580f68f7cf0600bc620c47ed6330c95',1,'gko::version']]],
-  ['polymorphic_5fobject_5fevents_5fmask',['polymorphic_object_events_mask',['../classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc',1,'gko::log::Logger']]],
-  ['preconditioner',['preconditioner',['../structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a758bdb82889e200ff6800e34e9a2d5c4',1,'gko::solver::Bicgstab::parameters_type::preconditioner()'],['../structgko_1_1solver_1_1Cg_1_1parameters__type.html#ab319c47fc1c31ad73d58c6aac4fdea6f',1,'gko::solver::Cg::parameters_type::preconditioner()'],['../structgko_1_1solver_1_1Cgs_1_1parameters__type.html#abbe93702c7bcb93bc1d831d6b947a0f9',1,'gko::solver::Cgs::parameters_type::preconditioner()'],['../structgko_1_1solver_1_1Fcg_1_1parameters__type.html#afbdb7787925ef4294b12fe6851cfafd4',1,'gko::solver::Fcg::parameters_type::preconditioner()'],['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#ae20afde8c9429953030e86efd37b0953',1,'gko::solver::Gmres::parameters_type::preconditioner()']]]
+  ['omp_5fversion',['omp_version',['../classgko_1_1version__info.html#a795e1a6f8bdb0a4157b2d52b92e7b44e',1,'gko::version_info']]],
+  ['operation_5fevents_5fmask',['operation_events_mask',['../classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a',1,'gko::log::Logger']]]
 ];

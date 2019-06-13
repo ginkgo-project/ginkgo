@@ -18,5 +18,6 @@ var searchData=
   ['is_5ffinalized',['is_finalized',['../classgko_1_1stopping__status.html#a7c8b094d37449098ca4ddb1f4bbf10bd',1,'gko::stopping_status']]],
   ['is_5fvalid',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]],
   ['iteration',['Iteration',['../classgko_1_1stop_1_1Iteration.html',1,'gko::stop']]],
-  ['iteration_5fcomplete_5fdata',['iteration_complete_data',['../structgko_1_1log_1_1iteration__complete__data.html',1,'gko::log']]]
+  ['iteration_5fcomplete_5fdata',['iteration_complete_data',['../structgko_1_1log_1_1iteration__complete__data.html',1,'gko::log']]],
+  ['iterations',['iterations',['../structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6',1,'gko::factorization::ParIlu::parameters_type']]]
 ];

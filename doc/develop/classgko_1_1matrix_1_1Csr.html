@@ -187,6 +187,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a38820451af5424f18b767667f3067d72"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">conj_transpose</a> () const override</td></tr>
 <tr class="memdesc:a38820451af5424f18b767667f3067d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface. ">Transposable</a> object.  <a href="#a38820451af5424f18b767667f3067d72">More...</a><br /></td></tr>
 <tr class="separator:a38820451af5424f18b767667f3067d72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac817665ebedfc099180a785d813db8ef"><td class="memItemLeft" align="right" valign="top"><a id="ac817665ebedfc099180a785d813db8ef"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ac817665ebedfc099180a785d813db8ef">sort_by_column_index</a> ()</td></tr>
+<tr class="memdesc:ac817665ebedfc099180a785d813db8ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sorts all (value, col_idx) pairs in each row by column index. <br /></td></tr>
+<tr class="separator:ac817665ebedfc099180a785d813db8ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf7499e248badc9faed07c84e3a2449c"><td class="memItemLeft" align="right" valign="top"><a id="adf7499e248badc9faed07c84e3a2449c"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>is_sorted_by_column_index</b> () const</td></tr>
+<tr class="separator:adf7499e248badc9faed07c84e3a2449c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a929b0a194e6aeb1252b8e6781d162e83"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a929b0a194e6aeb1252b8e6781d162e83"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the matrix.  <a href="#a929b0a194e6aeb1252b8e6781d162e83">More...</a><br /></td></tr>
 <tr class="separator:a929b0a194e6aeb1252b8e6781d162e83"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -894,7 +901,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (5545d209)</a></li>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (a7ef23d0)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (ec6dbb34)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

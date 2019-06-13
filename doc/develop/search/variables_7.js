@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['krylov_5fdim',['krylov_dim',['../structgko_1_1solver_1_1Gmres_1_1parameters__type.html#a5b88f3758ea7c21c535041289e1b09ce',1,'gko::solver::Gmres::parameters_type']]]
+  ['iterations',['iterations',['../structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6',1,'gko::factorization::ParIlu::parameters_type']]]
 ];
