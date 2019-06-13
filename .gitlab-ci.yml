@@ -27,6 +27,7 @@ stages:
 
 .before_script_template: &default_before_script
   - export OMP_NUM_THREADS=4
+  - export CUDA_VISIBLE_DEVICES=0
 
 .before_script_git_template: &git_before_script
     # set up identities
