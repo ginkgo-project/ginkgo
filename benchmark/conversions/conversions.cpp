@@ -77,7 +77,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
-void convert_matrix(const gko::LinOp *matrix_from, const gko::LinOp *matrix_to,
+void convert_matrix(const gko::LinOp *matrix_from, gko::LinOp *matrix_to,
                     const char *conversion_name,
                     std::shared_ptr<gko::Executor> exec,
                     rapidjson::Value &test_case,
@@ -89,22 +89,22 @@ void convert_matrix(const gko::LinOp *matrix_from, const gko::LinOp *matrix_to,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
-            auto to_clone = matrix_to->clone();
             exec->synchronize();
-            to_clone->copy_from(matrix_from);
+            matrix_to->copy_from(matrix_from);
             exec->synchronize();
+            matrix_to->clear();
         }
         std::chrono::nanoseconds time(0);
         // timed run
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            auto to_clone = matrix_to->clone();
             exec->synchronize();
             auto tic = std::chrono::steady_clock::now();
-            to_clone->copy_from(matrix_from);
+            matrix_to->copy_from(matrix_from);
             exec->synchronize();
             auto toc = std::chrono::steady_clock::now();
             time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+            matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
                           static_cast<double>(time.count()) / FLAGS_repetitions,
@@ -136,7 +136,6 @@ int main(int argc, char *argv[])
     print_general_information(extra_information);
 
     auto exec = executor_factory.at(FLAGS_executor)();
-    auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);
@@ -166,6 +165,8 @@ int main(int argc, char *argv[])
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << ")" << std::endl;
             for (const auto &format_from : formats) {
+                auto matrix_from =
+                    share(matrix_factory.at(format_from)(exec, data));
                 for (const auto &format : matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     if (format_from == format_to) {
@@ -179,8 +180,6 @@ int main(int argc, char *argv[])
                         continue;
                     }
 
-                    auto matrix_from =
-                        share(matrix_factory.at(format_from)(exec, data));
                     auto matrix_to = share(std::get<1>(format)(exec, data));
                     convert_matrix(matrix_from.get(), matrix_to.get(),
                                    conversion_name.c_str(), exec, test_case,
