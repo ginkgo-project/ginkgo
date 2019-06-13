@@ -65,6 +65,9 @@ GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        csr::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
+GKO_REGISTER_OPERATION(is_sorted_by_column_index,
+                       csr::is_sorted_by_column_index);
 
 
 }  // namespace csr
@@ -287,6 +290,24 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
     exec->run(csr::make_conj_transpose(trans_cpy.get(), this));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::sort_by_column_index()
+{
+    auto exec = this->get_executor();
+    exec->run(csr::make_sort_by_column_index(this));
+}
+
+
+template <typename ValueType, typename IndexType>
+bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
+{
+    auto exec = this->get_executor();
+    bool is_sorted;
+    exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
+    return is_sorted;
 }
 
 

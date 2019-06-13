@@ -30,37 +30,56 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include <cuda_runtime.h>
+#include "core/factorization/par_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 
 
 namespace gko {
+namespace kernels {
+namespace omp {
+/**
+ * @brief The parallel ILU factorization namespace.
+ *
+ * @ingroup factor
+ */
+namespace par_ilu_factorization {
 
 
-class device_guard {
-public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-    }
+template <typename ValueType, typename IndexType>
+void compute_nnz_l_u(std::shared_ptr<const DefaultExecutor> exec,
+                     const matrix::Csr<ValueType, IndexType> *system_matrix,
+                     size_type *l_nnz, size_type *u_nnz) GKO_NOT_IMPLEMENTED;
 
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
-        }
-    }
-
-private:
-    int original_device_id{};
-};
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType> *system_matrix,
+                    matrix::Csr<ValueType, IndexType> *csr_l,
+                    matrix::Csr<ValueType, IndexType> *csr_u)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_l_u_factors(
+    std::shared_ptr<const DefaultExecutor> exec, size_type iterations,
+    const matrix::Coo<ValueType, IndexType> *system_matrix,
+    matrix::Csr<ValueType, IndexType> *l_factor,
+    matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
+
+
+}  // namespace par_ilu_factorization
+}  // namespace omp
+}  // namespace kernels
 }  // namespace gko

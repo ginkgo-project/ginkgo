@@ -30,37 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include <cuda_runtime.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
 
 
-namespace gko {
+#include <gtest/gtest.h>
 
 
-class device_guard {
+#include <ginkgo/core/base/executor.hpp>
+
+
+namespace {
+
+
+class ParIlu : public ::testing::Test {
 public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-    }
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
+    using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
 
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
-        }
-    }
+protected:
+    ParIlu() : ref(gko::ReferenceExecutor::create()) {}
 
-private:
-    int original_device_id{};
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
 
-}  // namespace gko
+TEST_F(ParIlu, SetIterations)
+{
+    auto factory = ilu_factory_type::build().with_iterations(5u).on(ref);
+
+    ASSERT_EQ(factory->get_parameters().iterations, 5u);
+}
+
+
+TEST_F(ParIlu, SetSkip)
+{
+    auto factory = ilu_factory_type::build().with_skip_sorting(true).on(ref);
+
+    ASSERT_EQ(factory->get_parameters().skip_sorting, true);
+}
+
+
+TEST_F(ParIlu, SetEverything)
+{
+    auto factory = ilu_factory_type::build()
+                       .with_skip_sorting(false)
+                       .with_iterations(7u)
+                       .on(ref);
+
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
+    ASSERT_EQ(factory->get_parameters().iterations, 7u);
+}
+
+
+}  // namespace

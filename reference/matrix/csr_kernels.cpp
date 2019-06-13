@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -467,6 +468,51 @@ void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
+                          matrix::Csr<ValueType, IndexType> *to_sort)
+{
+    auto values = to_sort->get_values();
+    auto row_ptrs = to_sort->get_row_ptrs();
+    auto col_idxs = to_sort->get_col_idxs();
+    const auto number_rows = to_sort->get_size()[0];
+    for (size_type i = 0; i < number_rows; ++i) {
+        auto start_row_idx = row_ptrs[i];
+        auto row_nnz = row_ptrs[i + 1] - start_row_idx;
+        auto helper = detail::IteratorFactory<IndexType, ValueType>(
+            col_idxs + start_row_idx, values + start_row_idx, row_nnz);
+        std::sort(helper.begin(), helper.end());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
+                               const matrix::Csr<ValueType, IndexType> *to_sort,
+                               bool *is_sorted)
+{
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    const auto col_idxs = to_sort->get_const_col_idxs();
+    const auto size = to_sort->get_size();
+    for (size_type i = 0; i < size[0]; ++i) {
+        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+            if (col_idxs[idx - 1] > col_idxs[idx]) {
+                *is_sorted = false;
+                return;
+            }
+        }
+    }
+    *is_sorted = true;
+    return;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace csr
