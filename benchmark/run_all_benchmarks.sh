@@ -199,6 +199,7 @@ for (( i=${LOOP_START}; i < ${LOOP_END}; ++i )); do
     run_spmv_benchmarks "${RESULT_FILE}"
 
     if [ "${BENCHMARK}" == "conversions" ]; then
+        echo -e "${PREFIX}Running Conversion for ${GROUP}/${NAME}" 1>&2
         run_conversion_benchmarks "${RESULT_FILE}"
     fi
 

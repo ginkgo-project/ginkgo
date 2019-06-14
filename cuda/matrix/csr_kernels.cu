@@ -1363,27 +1363,25 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_rows = source->get_size()[0];
 
-    const auto grid_dim =
-        (ceildiv(num_rows, default_block_size) < default_block_size)
-            ? ceildiv(num_rows, default_block_size)
-            : default_block_size;
-
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto block_results = Array<size_type>(exec, default_block_size);
     auto d_result = Array<size_type>(exec, 1);
 
+    const auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(nnz_per_row.get_data()));
 
-    kernel::reduce_max_nnz<<<grid_dim, default_block_size,
+    const auto n = ceildiv(num_rows, default_block_size);
+    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
+    kernel::reduce_max_nnz<<<reduce_dim, default_block_size,
                              default_block_size * sizeof(size_type)>>>(
         num_rows, as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(block_results.get_data()));
 
     kernel::reduce_max_nnz<<<1, default_block_size,
                              default_block_size * sizeof(size_type)>>>(
-        grid_dim, as_cuda_type(block_results.get_const_data()),
+        reduce_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
