@@ -33,8 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -49,31 +50,144 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_nnz_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void compute_nnz_l_u(std::shared_ptr<const OmpExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *system_matrix,
-                     size_type *l_nnz, size_type *u_nnz) GKO_NOT_IMPLEMENTED;
+                     size_type *l_nnz, size_type *u_nnz)
+{
+    auto row_ptrs = system_matrix->get_const_row_ptrs();
+    auto col_idxs = system_matrix->get_const_col_idxs();
+    *l_nnz = 0;
+    *u_nnz = 0;
+    for (size_type row = 0; row < system_matrix->get_size()[1]; ++row) {
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            size_type col = col_idxs[el];
+            if (col <= row) {
+                ++(*l_nnz);
+            }
+            if (col >= row) {
+                ++(*u_nnz);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto row_ptrs = system_matrix->get_const_row_ptrs();
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto vals = system_matrix->get_const_values();
+
+    auto row_ptrs_l = csr_l->get_row_ptrs();
+    auto col_idxs_l = csr_l->get_col_idxs();
+    auto vals_l = csr_l->get_values();
+
+    auto row_ptrs_u = csr_u->get_row_ptrs();
+    auto col_idxs_u = csr_u->get_col_idxs();
+    auto vals_u = csr_u->get_values();
+
+    size_type current_index_l{};
+    size_type current_index_u{};
+    row_ptrs_l[current_index_l] = zero<IndexType>();
+    row_ptrs_u[current_index_u] = zero<IndexType>();
+    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            const auto col = col_idxs[el];
+            const auto val = vals[el];
+            if (col < row) {
+                col_idxs_l[current_index_l] = col;
+                vals_l[current_index_l] = val;
+                ++current_index_l;
+            } else if (col == row) {
+                // Update both L and U
+                col_idxs_l[current_index_l] = col;
+                vals_l[current_index_l] = one<ValueType>();
+                ++current_index_l;
+
+                col_idxs_u[current_index_u] = col;
+                vals_u[current_index_u] = val;
+                ++current_index_u;
+            } else {  // col > row
+                col_idxs_u[current_index_u] = col;
+                vals_u[current_index_u] = val;
+                ++current_index_u;
+            }
+        }
+        row_ptrs_l[row + 1] = current_index_l;
+        row_ptrs_u[row + 1] = current_index_u;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(
-    std::shared_ptr<const DefaultExecutor> exec, size_type iterations,
-    const matrix::Coo<ValueType, IndexType> *system_matrix,
-    matrix::Csr<ValueType, IndexType> *l_factor,
-    matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
+void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
+                         size_type iterations,
+                         const matrix::Coo<ValueType, IndexType> *system_matrix,
+                         matrix::Csr<ValueType, IndexType> *l_factor,
+                         matrix::Csr<ValueType, IndexType> *u_factor)
+{
+    // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
+    // experiements indicate this works well for many problems.
+    iterations = (iterations == 0) ? 3 : iterations;
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto row_ptrs = system_matrix->get_const_row_idxs();
+    const auto vals = system_matrix->get_const_values();
+    const auto row_ptrs_l = l_factor->get_const_row_ptrs();
+    const auto row_ptrs_u = u_factor->get_const_row_ptrs();
+    const auto col_idxs_l = l_factor->get_const_col_idxs();
+    const auto col_idxs_u = u_factor->get_const_col_idxs();
+    auto vals_l = l_factor->get_values();
+    auto vals_u = u_factor->get_values();
+    for (size_type iter = 0; iter < iterations; ++iter) {
+        // all elments in the incomplete factors are updated in parallel
+#pragma omp parallel for
+        for (size_type el = 0; el < system_matrix->get_num_stored_elements();
+             ++el) {
+            const auto row = row_ptrs[el];
+            const auto col = col_idxs[el];
+            const auto val = vals[el];
+            auto row_l = row_ptrs_l[row];
+            auto row_u = row_ptrs_u[col];
+            ValueType sum{val};
+            ValueType last_operation{};
+            while (row_l < row_ptrs_l[row + 1] && row_u < row_ptrs_u[col + 1]) {
+                auto col_l = col_idxs_l[row_l];
+                auto col_u = col_idxs_u[row_u];
+                if (col_l == col_u) {
+                    last_operation = vals_l[row_l] * vals_u[row_u];
+                    sum -= last_operation;
+                } else {
+                    last_operation = zero<ValueType>();
+                }
+                if (col_l <= col_u) {
+                    ++row_l;
+                }
+                if (col_u <= col_l) {
+                    ++row_u;
+                }
+            }
+            // The loop above calculates: sum = system_matrix(row, col) -
+            // dot(l_factor(row, :), u_factor(:, col))
+            sum += last_operation;  // undo the last operation
+
+            if (row > col) {  // modify entry in L
+                vals_l[row_l - 1] = sum / vals_u[row_ptrs_u[col + 1] - 1];
+            } else {  // modify entry in U
+                vals_u[row_u - 1] = sum;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
