@@ -40,12 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include "core/test/utils.hpp"
-
-
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -87,6 +87,34 @@ protected:
     std::shared_ptr<gko::OmpExecutor> omp;
     std::shared_ptr<const Csr> csr_ref;
     std::shared_ptr<const Csr> csr_omp;
+
+    void compute_nnz(gko::size_type *l_nnz_ref, gko::size_type *u_nnz_ref,
+                     gko::size_type *l_nnz_omp, gko::size_type *u_nnz_omp)
+    {
+        gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
+            ref, gko::lend(csr_ref), l_nnz_ref, u_nnz_ref);
+        gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
+            ref, gko::lend(csr_omp), l_nnz_omp, u_nnz_omp);
+    }
+
+    void initialize_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
+                       std::unique_ptr<Csr> *l_omp, std::unique_ptr<Csr> *u_omp)
+    {
+        gko::size_type l_nnz_ref{};
+        gko::size_type u_nnz_ref{};
+        gko::size_type l_nnz_omp{};
+        gko::size_type u_nnz_omp{};
+        compute_nnz(&l_nnz_ref, &u_nnz_ref, &l_nnz_omp, &u_nnz_omp);
+        *l_ref = Csr::create(ref, csr_ref->get_size(), l_nnz_ref);
+        *u_ref = Csr::create(ref, csr_ref->get_size(), u_nnz_ref);
+        *l_omp = Csr::create(ref, csr_omp->get_size(), l_nnz_omp);
+        *u_omp = Csr::create(ref, csr_omp->get_size(), u_nnz_omp);
+
+        gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+            ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
+        gko::kernels::omp::par_ilu_factorization::initialize_l_u(
+            ref, gko::lend(csr_omp), gko::lend(*l_omp), gko::lend(*u_omp));
+    }
 };
 
 
@@ -97,10 +125,12 @@ TEST_F(ParIlu, OmpKernelComputeNnzLUEquivalentToRef)
     gko::size_type l_nnz_omp{};
     gko::size_type u_nnz_omp{};
 
-    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_ref), &l_nnz_ref, &u_nnz_ref);
-    gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_omp), &l_nnz_omp, &u_nnz_omp);
+    compute_nnz(&l_nnz_ref, &u_nnz_ref, &l_nnz_omp, &u_nnz_omp);
+
+    //    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
+    //        ref, gko::lend(csr_ref), &l_nnz_ref, &u_nnz_ref);
+    //    gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
+    //        ref, gko::lend(csr_omp), &l_nnz_omp, &u_nnz_omp);
 
     ASSERT_EQ(l_nnz_omp, l_nnz_ref);
     ASSERT_EQ(u_nnz_omp, u_nnz_ref);
@@ -109,23 +139,12 @@ TEST_F(ParIlu, OmpKernelComputeNnzLUEquivalentToRef)
 
 TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 {
-    gko::size_type l_nnz_ref{};
-    gko::size_type u_nnz_ref{};
-    gko::size_type l_nnz_omp{};
-    gko::size_type u_nnz_omp{};
-    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_ref), &l_nnz_ref, &u_nnz_ref);
-    gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_omp), &l_nnz_omp, &u_nnz_omp);
-    auto l_ref = Csr::create(ref, csr_ref->get_size(), l_nnz_ref);
-    auto u_ref = Csr::create(ref, csr_ref->get_size(), u_nnz_ref);
-    auto l_omp = Csr::create(ref, csr_omp->get_size(), l_nnz_omp);
-    auto u_omp = Csr::create(ref, csr_omp->get_size(), u_nnz_omp);
+    std::unique_ptr<Csr> l_ref{};
+    std::unique_ptr<Csr> u_ref{};
+    std::unique_ptr<Csr> l_omp{};
+    std::unique_ptr<Csr> u_omp{};
 
-    gko::kernels::reference::par_ilu_factorization::initialize_l_u(
-        ref, gko::lend(csr_ref), gko::lend(l_ref), gko::lend(u_ref));
-    gko::kernels::omp::par_ilu_factorization::initialize_l_u(
-        ref, gko::lend(csr_omp), gko::lend(l_omp), gko::lend(u_omp));
+    initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
 
     GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
@@ -134,33 +153,22 @@ TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 
 TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
-    gko::size_type l_nnz_ref{};
-    gko::size_type u_nnz_ref{};
-    gko::size_type l_nnz_omp{};
-    gko::size_type u_nnz_omp{};
+    std::unique_ptr<Csr> l_ref{};
+    std::unique_ptr<Csr> u_ref{};
+    std::unique_ptr<Csr> l_omp{};
+    std::unique_ptr<Csr> u_omp{};
     gko::size_type iterations{};
-    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_ref), &l_nnz_ref, &u_nnz_ref);
-    gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(csr_omp), &l_nnz_omp, &u_nnz_omp);
-    auto l_ref = Csr::create(ref, csr_ref->get_size(), l_nnz_ref);
-    auto u_ref = Csr::create(ref, csr_ref->get_size(), u_nnz_ref);
-    auto l_omp = Csr::create(ref, csr_omp->get_size(), l_nnz_omp);
-    auto u_omp = Csr::create(ref, csr_omp->get_size(), u_nnz_omp);
-    gko::kernels::reference::par_ilu_factorization::initialize_l_u(
-        ref, gko::lend(csr_ref), gko::lend(l_ref), gko::lend(u_ref));
-    gko::kernels::omp::par_ilu_factorization::initialize_l_u(
-        ref, gko::lend(csr_omp), gko::lend(l_omp), gko::lend(u_omp));
     auto coo_ref = Coo::create(ref);
     csr_ref->convert_to(gko::lend(coo_ref));
+    auto coo_omp = Coo::create(omp);
+    csr_omp->convert_to(gko::lend(coo_omp));
+    initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
     auto u_transpose_ref = u_ref->transpose();
+    auto u_transpose_omp = u_omp->transpose();
+
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
         ref, iterations, gko::lend(coo_ref), gko::lend(l_ref),
         gko::lend(u_ref));
-    auto coo_omp = Coo::create(omp);
-    csr_omp->convert_to(gko::lend(coo_omp));
-    auto u_transpose_omp = u_omp->transpose();
-
     gko::kernels::omp::par_ilu_factorization::compute_l_u_factors(
         omp, iterations, gko::lend(coo_omp), gko::lend(l_omp),
         gko::lend(u_omp));
