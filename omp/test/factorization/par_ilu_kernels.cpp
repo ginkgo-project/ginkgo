@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <fstream>
+#include <memory>
 #include <string>
 
 
@@ -126,11 +127,6 @@ TEST_F(ParIlu, OmpKernelComputeNnzLUEquivalentToRef)
     gko::size_type u_nnz_omp{};
 
     compute_nnz(&l_nnz_ref, &u_nnz_ref, &l_nnz_omp, &u_nnz_omp);
-
-    //    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
-    //        ref, gko::lend(csr_ref), &l_nnz_ref, &u_nnz_ref);
-    //    gko::kernels::omp::par_ilu_factorization::compute_nnz_l_u(
-    //        ref, gko::lend(csr_omp), &l_nnz_omp, &u_nnz_omp);
 
     ASSERT_EQ(l_nnz_omp, l_nnz_ref);
     ASSERT_EQ(u_nnz_omp, u_nnz_ref);
