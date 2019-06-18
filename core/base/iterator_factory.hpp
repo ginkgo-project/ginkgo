@@ -146,7 +146,7 @@ private:
         }
 
         // Conversion operator to `element`
-        operator element() const { return element{dominant(), secondary()}; }
+        operator element() const { return {dominant(), secondary()}; }
 
         friend void swap(Reference a, Reference b)
         {
@@ -171,7 +171,7 @@ private:
 
         ToSortType &dominant() { return parent_.dominant_values_[arr_index_]; }
 
-        ToSortType dominant() const
+        const ToSortType &dominant() const
         {
             return parent_.dominant_values_[arr_index_];
         }
@@ -181,7 +181,7 @@ private:
             return parent_.secondary_values_[arr_index_];
         }
 
-        SecondaryType secondary() const
+        const SecondaryType &secondary() const
         {
             return parent_.secondary_values_[arr_index_];
         }
