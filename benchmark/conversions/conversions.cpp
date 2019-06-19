@@ -77,7 +77,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
-void convert_matrix(const gko::LinOp *matrix_from, gko::LinOp *matrix_to,
+void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
                     const char *conversion_name,
                     std::shared_ptr<gko::Executor> exec,
                     rapidjson::Value &test_case,
@@ -87,6 +87,9 @@ void convert_matrix(const gko::LinOp *matrix_from, gko::LinOp *matrix_to,
         auto &conversion_case = test_case["conversions"];
         add_or_set_member(conversion_case, conversion_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
+
+        gko::matrix_data<> data{gko::dim<2>{1, 1}, 1};
+        auto matrix_to = share(matrix_factory.at(format_to)(exec, data));
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             exec->synchronize();
@@ -148,23 +151,30 @@ int main(int argc, char *argv[])
     auto &allocator = test_cases.GetAllocator();
 
     for (auto &test_case : test_cases.GetArray()) {
-        try {
-            std::clog << "Benchmarking conversions. " << std::endl;
-            // set up benchmark
-            validate_option_object(test_case);
-            if (!test_case.HasMember("conversions")) {
-                test_case.AddMember("conversions",
-                                    rapidjson::Value(rapidjson::kObjectType),
-                                    allocator);
-            }
-            auto &conversion_case = test_case["conversions"];
+        std::clog << "Benchmarking conversions. " << std::endl;
+        // set up benchmark
+        validate_option_object(test_case);
+        if (!test_case.HasMember("conversions")) {
+            test_case.AddMember("conversions",
+                                rapidjson::Value(rapidjson::kObjectType),
+                                allocator);
+        }
+        auto &conversion_case = test_case["conversions"];
 
-            std::clog << "Running test case: " << test_case << std::endl;
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
-            std::clog << "Matrix is of size (" << data.size[0] << ", "
-                      << data.size[1] << ")" << std::endl;
-            for (const auto &format_from : formats) {
+        std::clog << "Running test case: " << test_case << std::endl;
+        std::ifstream mtx_fd(test_case["filename"].GetString());
+        gko::matrix_data<> data;
+        try {
+            data = gko::read_raw<etype>(mtx_fd);
+        } catch (std::exception &e) {
+            std::cerr << "Error setting up matrix data, what(): " << e.what()
+                      << std::endl;
+            continue;
+        }
+        std::clog << "Matrix is of size (" << data.size[0] << ", "
+                  << data.size[1] << ")" << std::endl;
+        for (const auto &format_from : formats) {
+            try {
                 auto matrix_from =
                     share(matrix_factory.at(format_from)(exec, data));
                 for (const auto &format : matrix_factory) {
@@ -180,18 +190,30 @@ int main(int argc, char *argv[])
                         continue;
                     }
 
-                    auto matrix_to = share(std::get<1>(format)(exec, data));
-                    convert_matrix(matrix_from.get(), matrix_to.get(),
+                    convert_matrix(matrix_from.get(), format_to.c_str(),
                                    conversion_name.c_str(), exec, test_case,
                                    allocator);
                     std::clog << "Current state:" << std::endl
                               << test_cases << std::endl;
                 }
                 backup_results(test_cases);
+            } catch (const gko::AllocationError &e) {
+                for (const auto &format : matrix_factory) {
+                    const auto format_to = std::get<0>(format);
+                    auto conversion_name =
+                        std::string(format_from) + "-" + format_to;
+                    add_or_set_member(
+                        test_case["conversions"][conversion_name.c_str()],
+                        "completed", false, allocator);
+                }
+                std::cerr << "Error when allocating data for type "
+                          << format_from << ". what(): " << e.what()
+                          << std::endl;
+                backup_results(test_cases);
+            } catch (const std::exception &e) {
+                std::cerr << "Error when running benchmark, what(): "
+                          << e.what() << std::endl;
             }
-        } catch (const std::exception &e) {
-            std::cerr << "Error setting up matrix data, what(): " << e.what()
-                      << std::endl;
         }
     }
 
