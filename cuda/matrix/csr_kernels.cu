@@ -1137,7 +1137,8 @@ void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
 
-    const auto init_grid_dim = ceildiv(stride * num_rows, default_block_size);
+    const auto init_grid_dim =
+        ceildiv(max_nnz_per_row * num_rows, default_block_size);
 
     kernel::initialize_zero_ell<<<init_grid_dim, default_block_size>>>(
         max_nnz_per_row, stride, as_cuda_type(result_values),
@@ -1471,7 +1472,7 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
     const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
     const auto num_rows = result->get_size()[0];
     const auto coo_num_stored_elements = result->get_coo_num_stored_elements();
-    auto grid_dim = ceildiv(stride * num_rows, default_block_size);
+    auto grid_dim = ceildiv(max_nnz_per_row * num_rows, default_block_size);
 
     kernel::initialize_zero_ell<<<grid_dim, default_block_size>>>(
         max_nnz_per_row, stride, as_cuda_type(ell_val), as_cuda_type(ell_col));
