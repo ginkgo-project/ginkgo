@@ -49,16 +49,17 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_nnz_l_u(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *system_matrix,
-                     size_type *l_nnz, size_type *u_nnz) GKO_NOT_IMPLEMENTED;
+void initialize_row_ptrs_l_u(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    IndexType *l_row_ptrs, IndexType *u_row_ptrs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_COMPUTE_NNZ_L_U_KERNEL);
+    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
@@ -70,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(
-    std::shared_ptr<const DefaultExecutor> exec, size_type iterations,
+    std::shared_ptr<const CudaExecutor> exec, size_type iterations,
     const matrix::Coo<ValueType, IndexType> *system_matrix,
     matrix::Csr<ValueType, IndexType> *l_factor,
     matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
