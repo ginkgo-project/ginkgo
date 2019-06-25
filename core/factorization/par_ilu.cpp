@@ -77,6 +77,9 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
 
+    // If required, it is also possible to make this a Factory parameter
+    auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
+
     // Only copies the matrix if it is not on the same executor or was not in
     // the right format. Throws an exception if it is not convertable.
     std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
@@ -120,14 +123,14 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // directly created with it
     Array<IndexType> l_col_idxs{exec, l_nnz};
     Array<ValueType> l_vals{exec, l_nnz};
-    auto l_factor = l_matrix_type::create(
-        exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs) /* TODO set strategy */);
+    auto l_factor = l_matrix_type::create(exec, matrix_size, std::move(l_vals),
+                                          std::move(l_col_idxs),
+                                          std::move(l_row_ptrs), csr_strategy);
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
-    auto u_factor = u_matrix_type::create(
-        exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
-        std::move(u_row_ptrs) /* TODO set strategy */);
+    auto u_factor = u_matrix_type::create(exec, matrix_size, std::move(u_vals),
+                                          std::move(u_col_idxs),
+                                          std::move(u_row_ptrs), csr_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));

@@ -139,7 +139,7 @@ protected:
 };
 
 
-TEST_F(ParIlu, OmpKernelComputeNnzLUEquivalentToRef)
+TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
 {
     auto num_row_ptrs = csr_ref->get_size()[0] + 1;
     gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
