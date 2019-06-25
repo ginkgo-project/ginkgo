@@ -57,12 +57,14 @@ void initialize_row_ptrs_l_u(
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
-    size_type l_nnz{};
-    size_type u_nnz{};
 
     l_row_ptrs[0] = 0;
     u_row_ptrs[0] = 0;
+// Calculate the NNZ per row first
+#pragma omp parallel for
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+        size_type l_nnz{};
+        size_type u_nnz{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             if (col <= row) {
@@ -74,6 +76,17 @@ void initialize_row_ptrs_l_u(
         }
         l_row_ptrs[row + 1] = l_nnz;
         u_row_ptrs[row + 1] = u_nnz;
+    }
+
+    // Now, compute the prefix-sum, to get proper row_ptrs for L and U
+    IndexType l_previous_nnz{};
+    IndexType u_previous_nnz{};
+    for (size_type row = 1; row < system_matrix->get_size()[0] + 1; ++row) {
+        l_previous_nnz += l_row_ptrs[row];
+        u_previous_nnz += u_row_ptrs[row];
+
+        l_row_ptrs[row] = l_previous_nnz;
+        u_row_ptrs[row] = u_previous_nnz;
     }
 }
 
@@ -152,7 +165,7 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
     auto vals_l = l_factor->get_values();
     auto vals_u = u_factor->get_values();
     for (size_type iter = 0; iter < iterations; ++iter) {
-    // all elements in the incomplete factors are updated in parallel
+        // all elements in the incomplete factors are updated in parallel
 #pragma omp parallel for
         for (size_type el = 0; el < system_matrix->get_num_stored_elements();
              ++el) {
