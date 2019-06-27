@@ -33,13 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 
+#include <algorithm>
 #include <memory>
+#include <vector>
 
 
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -157,16 +158,25 @@ protected:
 };
 
 
-TEST_F(ParIlu, KernelComputeNnzLU)
+TEST_F(ParIlu, KernelInitializeRowPtrsLU)
 {
-    gko::size_type l_nnz;
-    gko::size_type u_nnz;
+    auto small_csr_l_expected = Csr::create(ref);
+    small_l_expected->convert_to(gko::lend(small_csr_l_expected));
+    auto small_csr_u_expected = Csr::create(ref);
+    small_u_expected->convert_to(gko::lend(small_csr_u_expected));
+    auto num_row_ptrs = mtx_csr_small->get_size()[0] + 1;
+    std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
+    std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
+    auto l_row_ptrs = l_row_ptrs_vector.data();
+    auto u_row_ptrs = u_row_ptrs_vector.data();
 
-    gko::kernels::reference::par_ilu_factorization::compute_nnz_l_u(
-        ref, gko::lend(mtx_csr_small), &l_nnz, &u_nnz);
+    gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        ref, gko::lend(mtx_csr_small), l_row_ptrs, u_row_ptrs);
 
-    ASSERT_EQ(l_nnz, 6);
-    ASSERT_EQ(u_nnz, 6);
+    ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
+                           small_csr_l_expected->get_const_row_ptrs()));
+    ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
+                           small_csr_u_expected->get_const_row_ptrs()));
 }
 
 
@@ -184,6 +194,12 @@ TEST_F(ParIlu, KernelInitializeLU)
     // clang-format on
     auto actual_l = Csr::create(ref, mtx_csr_small->get_size(), 6);
     auto actual_u = Csr::create(ref, mtx_csr_small->get_size(), 6);
+    // Copy row_ptrs into matrices, which usually come from the
+    // `initialize_row_ptrs_l_u` kernel
+    std::vector<index_type> l_row_ptrs{0, 1, 3, 6};
+    std::vector<index_type> u_row_ptrs{0, 3, 5, 6};
+    std::copy(l_row_ptrs.begin(), l_row_ptrs.end(), actual_l->get_row_ptrs());
+    std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
 
     gko::kernels::reference::par_ilu_factorization::initialize_l_u(
         ref, gko::lend(mtx_csr_small), gko::lend(actual_l),
@@ -244,6 +260,15 @@ TEST_F(ParIlu, ThrowNotSupportedForWrongLinOp2)
 
     ASSERT_THROW(ilu_factory_sort->generate(gko::share(linOp)),
                  gko::NotSupported);
+}
+
+
+TEST_F(ParIlu, ThrowDimensionMismatch)
+{
+    auto matrix = Csr::create(ref, gko::dim<2>{2, 3}, 4);
+
+    ASSERT_THROW(ilu_factory_sort->generate(gko::share(matrix)),
+                 gko::DimensionMismatch);
 }
 
 

@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -51,7 +53,8 @@ namespace factorization {
 namespace par_ilu_factorization {
 
 
-GKO_REGISTER_OPERATION(compute_nnz_l_u, par_ilu_factorization::compute_nnz_l_u);
+GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
+                       par_ilu_factorization::initialize_row_ptrs_l_u);
 GKO_REGISTER_OPERATION(initialize_l_u, par_ilu_factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(compute_l_u_factors,
                        par_ilu_factorization::compute_l_u_factors);
@@ -69,7 +72,14 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
 
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+
     const auto exec = this->get_executor();
+    const auto host_exec = exec->get_master();
+
+    // If required, it is also possible to make this a Factory parameter
+    auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
+
     // Only copies the matrix if it is not on the same executor or was not in
     // the right format. Throws an exception if it is not convertable.
     std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
@@ -93,14 +103,34 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     }
 
     const auto matrix_size = csr_system_matrix->get_size();
-    size_type l_nnz{};
-    size_type u_nnz{};
-    exec->run(par_ilu_factorization::make_compute_nnz_l_u(csr_system_matrix,
-                                                          &l_nnz, &u_nnz));
-    auto l_factor =
-        l_matrix_type::create(exec, matrix_size, l_nnz /* TODO set strategy */);
-    auto u_factor =
-        u_matrix_type::create(exec, matrix_size, u_nnz /* TODO set strategy */);
+    const auto number_rows = matrix_size[0];
+    Array<IndexType> l_row_ptrs{exec, number_rows + 1};
+    Array<IndexType> u_row_ptrs{exec, number_rows + 1};
+    exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
+        csr_system_matrix, l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+
+    IndexType l_nnz_it;
+    IndexType u_nnz_it;
+    // Since nnz is always at row_ptrs[m], it can be extracted easily
+    host_exec->copy_from(exec.get(), 1, l_row_ptrs.get_data() + number_rows,
+                         &l_nnz_it);
+    host_exec->copy_from(exec.get(), 1, u_row_ptrs.get_data() + number_rows,
+                         &u_nnz_it);
+    auto l_nnz = static_cast<size_type>(l_nnz_it);
+    auto u_nnz = static_cast<size_type>(u_nnz_it);
+
+    // Since `row_ptrs` of L and U is already created, the matrix can be
+    // directly created with it
+    Array<IndexType> l_col_idxs{exec, l_nnz};
+    Array<ValueType> l_vals{exec, l_nnz};
+    auto l_factor = l_matrix_type::create(exec, matrix_size, std::move(l_vals),
+                                          std::move(l_col_idxs),
+                                          std::move(l_row_ptrs), csr_strategy);
+    Array<IndexType> u_col_idxs{exec, u_nnz};
+    Array<ValueType> u_vals{exec, u_nnz};
+    auto u_factor = u_matrix_type::create(exec, matrix_size, std::move(u_vals),
+                                          std::move(u_col_idxs),
+                                          std::move(u_row_ptrs), csr_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));
