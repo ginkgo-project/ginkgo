@@ -492,13 +492,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void is_sorted_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType> *to_sort,
-                               bool *is_sorted)
+void is_sorted_by_column_index(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
 {
-    const auto row_ptrs = to_sort->get_const_row_ptrs();
-    const auto col_idxs = to_sort->get_const_col_idxs();
-    const auto size = to_sort->get_size();
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto col_idxs = to_check->get_const_col_idxs();
+    const auto size = to_check->get_size();
     for (size_type i = 0; i < size[0]; ++i) {
         for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
             if (col_idxs[idx - 1] > col_idxs[idx]) {
