@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/hybrid.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -325,11 +326,11 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     auto workspace = Array<IndexType>(exec, num_rows);
     auto workspace_val = workspace.get_data();
     for (size_type i = 1; i < num_rows; i <<= 1) {
-        #pragma omp parallel for
+#pragma omp parallel for
         for (size_type j = i; j < num_rows; j++) {
             workspace_val[j] = coo_offset_val[j] + coo_offset_val[j - i];
         }
-        #pragma omp parallel for
+#pragma omp parallel for
         for (size_type j = i; j < num_rows; j++) {
             coo_offset_val[j] = workspace_val[j];
         }
@@ -383,7 +384,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto values = to_sort->get_values();
+    auto row_ptrs = to_sort->get_row_ptrs();
+    auto col_idxs = to_sort->get_col_idxs();
+    const auto number_rows = to_sort->get_size()[0];
+#pragma omp parallel for
+    for (size_type i = 0; i < number_rows; ++i) {
+        auto start_row_idx = row_ptrs[i];
+        auto row_nnz = row_ptrs[i + 1] - start_row_idx;
+        auto helper = detail::IteratorFactory<IndexType, ValueType>(
+            col_idxs + start_row_idx, values + start_row_idx, row_nnz);
+        std::sort(helper.begin(), helper.end());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
@@ -392,8 +406,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+{
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto col_idxs = to_check->get_const_col_idxs();
+    const auto size = to_check->get_size();
+    bool local_is_sorted = true;
+#pragma omp parallel for shared(local_is_sorted)
+    for (size_type i = 0; i < size[0]; ++i) {
+#pragma omp flush(local_is_sorted)
+        // Skip comparison if any thread detects that it is not sorted
+        if (local_is_sorted) {
+            for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+                if (col_idxs[idx - 1] > col_idxs[idx]) {
+                    local_is_sorted = false;
+                    break;
+                }
+            }
+        }
+    }
+    *is_sorted = local_is_sorted;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
