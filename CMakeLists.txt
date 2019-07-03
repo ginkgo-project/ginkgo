@@ -52,6 +52,9 @@ if(GINKGO_BUILD_TESTS)
         ${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake @ONLY)
 
+    # For testing, we need some special matrices
+    add_subdirectory(matrices)
+
     enable_testing()
     include(CTest)
 endif()
