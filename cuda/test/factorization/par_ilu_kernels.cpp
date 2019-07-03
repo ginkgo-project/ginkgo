@@ -66,9 +66,9 @@ protected:
 
     ParIlu()
         : ref(gko::ReferenceExecutor::create()),
-          omp(gko::OmpExecutor::create()),
+          cuda(gko::CudaExecutor::create(0, ref)),
           csr_ref(nullptr),
-          csr_omp(nullptr)
+          csr_cuda(nullptr)
     {}
 
     void SetUp() override
@@ -80,62 +80,63 @@ protected:
                    << "\", which is required for this test.\n";
         }
         csr_ref = gko::read<Csr>(input_file, ref);
-        auto csr_omp_temp = Csr::create(omp);
-        csr_omp_temp->copy_from(gko::lend(csr_ref));
-        csr_omp = gko::give(csr_omp_temp);
+        auto csr_cuda_temp = Csr::create(cuda);
+        csr_cuda_temp->copy_from(gko::lend(csr_ref));
+        csr_cuda = gko::give(csr_cuda_temp);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> omp;
+    std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<const Csr> csr_ref;
-    std::shared_ptr<const Csr> csr_omp;
+    std::shared_ptr<const Csr> csr_cuda;
 
     void initialize_row_ptrs(index_type *l_row_ptrs_ref,
                              index_type *u_row_ptrs_ref,
-                             index_type *l_row_ptrs_omp,
-                             index_type *u_row_ptrs_omp)
+                             index_type *l_row_ptrs_cuda,
+                             index_type *u_row_ptrs_cuda)
     {
         gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
-        gko::kernels::omp::par_ilu_factorization::initialize_row_ptrs_l_u(
-            omp, gko::lend(csr_omp), l_row_ptrs_omp, u_row_ptrs_omp);
+        gko::kernels::cuda::par_ilu_factorization::initialize_row_ptrs_l_u(
+            cuda, gko::lend(csr_cuda), l_row_ptrs_cuda, u_row_ptrs_cuda);
     }
 
     void initialize_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                       std::unique_ptr<Csr> *l_omp, std::unique_ptr<Csr> *u_omp)
+                       std::unique_ptr<Csr> *l_cuda,
+                       std::unique_ptr<Csr> *u_cuda)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
         gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
         gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> l_row_ptrs_omp{omp, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_omp{omp, num_row_ptrs};
+        gko::Array<index_type> l_row_ptrs_cuda{cuda, num_row_ptrs};
+        gko::Array<index_type> u_row_ptrs_cuda{cuda, num_row_ptrs};
 
         initialize_row_ptrs(
             l_row_ptrs_ref.get_data(), u_row_ptrs_ref.get_data(),
-            l_row_ptrs_omp.get_data(), u_row_ptrs_omp.get_data());
+            l_row_ptrs_cuda.get_data(), u_row_ptrs_cuda.get_data());
         // Since `initialize_row_ptrs` was already tested, it is expected that
-        // `*_ref` and `*_omp` contain identical values
+        // `*_ref` and `*_cuda` contain identical values
         auto l_nnz = l_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
         auto u_nnz = u_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
 
         *l_ref = Csr::create(ref, csr_ref->get_size(), l_nnz);
         *u_ref = Csr::create(ref, csr_ref->get_size(), u_nnz);
-        *l_omp = Csr::create(omp, csr_omp->get_size(), l_nnz);
-        *u_omp = Csr::create(omp, csr_omp->get_size(), u_nnz);
+        *l_cuda = Csr::create(cuda, csr_cuda->get_size(), l_nnz);
+        *u_cuda = Csr::create(cuda, csr_cuda->get_size(), u_nnz);
         // Copy the already initialized `row_ptrs` to the new matrices
         ref->copy_from(gko::lend(ref), num_row_ptrs, l_row_ptrs_ref.get_data(),
                        (*l_ref)->get_row_ptrs());
         ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
                        (*u_ref)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, l_row_ptrs_omp.get_data(),
-                       (*l_omp)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, u_row_ptrs_omp.get_data(),
-                       (*u_omp)->get_row_ptrs());
+        cuda->copy_from(gko::lend(cuda), num_row_ptrs,
+                        l_row_ptrs_cuda.get_data(), (*l_cuda)->get_row_ptrs());
+        cuda->copy_from(gko::lend(cuda), num_row_ptrs,
+                        u_row_ptrs_cuda.get_data(), (*u_cuda)->get_row_ptrs());
 
         gko::kernels::reference::par_ilu_factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
-        gko::kernels::omp::par_ilu_factorization::initialize_l_u(
-            omp, gko::lend(csr_omp), gko::lend(*l_omp), gko::lend(*u_omp));
+        gko::kernels::cuda::par_ilu_factorization::initialize_l_u(
+            cuda, gko::lend(csr_cuda), gko::lend(*l_cuda), gko::lend(*u_cuda));
     }
 
     template <typename ToType, typename FromType>
@@ -146,31 +147,31 @@ protected:
     }
 
     void compute_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                    std::unique_ptr<Csr> *l_omp, std::unique_ptr<Csr> *u_omp,
+                    std::unique_ptr<Csr> *l_cuda, std::unique_ptr<Csr> *u_cuda,
                     gko::size_type iterations = 0)
     {
         auto coo_ref = Coo::create(ref);
         csr_ref->convert_to(gko::lend(coo_ref));
-        auto coo_omp = Coo::create(omp);
-        csr_omp->convert_to(gko::lend(coo_omp));
-        initialize_lu(l_ref, u_ref, l_omp, u_omp);
+        auto coo_cuda = Coo::create(cuda);
+        csr_cuda->convert_to(gko::lend(coo_cuda));
+        initialize_lu(l_ref, u_ref, l_cuda, u_cuda);
         auto u_transpose_lin_op_ref = (*u_ref)->transpose();
         auto u_transpose_csr_ref =
             static_unique_ptr_cast<Csr>(std::move(u_transpose_lin_op_ref));
-        auto u_transpose_lin_op_omp = (*u_omp)->transpose();
-        auto u_transpose_csr_omp =
-            static_unique_ptr_cast<Csr>(std::move(u_transpose_lin_op_omp));
+        auto u_transpose_lin_op_cuda = (*u_cuda)->transpose();
+        auto u_transpose_csr_cuda =
+            static_unique_ptr_cast<Csr>(std::move(u_transpose_lin_op_cuda));
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
             ref, iterations, gko::lend(coo_ref), gko::lend(*l_ref),
             gko::lend(u_transpose_csr_ref));
-        gko::kernels::omp::par_ilu_factorization::compute_l_u_factors(
-            omp, iterations, gko::lend(coo_omp), gko::lend(*l_omp),
-            gko::lend(u_transpose_csr_omp));
+        gko::kernels::cuda::par_ilu_factorization::compute_l_u_factors(
+            cuda, iterations, gko::lend(coo_cuda), gko::lend(*l_cuda),
+            gko::lend(u_transpose_csr_cuda));
         auto u_lin_op_ref = u_transpose_csr_ref->transpose();
         *u_ref = static_unique_ptr_cast<Csr>(std::move(u_lin_op_ref));
-        auto u_lin_op_omp = u_transpose_csr_omp->transpose();
-        *u_omp = static_unique_ptr_cast<Csr>(std::move(u_lin_op_omp));
+        auto u_lin_op_cuda = u_transpose_csr_cuda->transpose();
+        *u_cuda = static_unique_ptr_cast<Csr>(std::move(u_lin_op_cuda));
     }
 };
 
@@ -180,20 +181,20 @@ TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
     auto num_row_ptrs = csr_ref->get_size()[0] + 1;
     gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
     gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_omp(omp, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_omp(omp, num_row_ptrs);
+    gko::Array<index_type> l_row_ptrs_array_cuda(cuda, num_row_ptrs);
+    gko::Array<index_type> u_row_ptrs_array_cuda(cuda, num_row_ptrs);
     auto l_row_ptrs_ref = l_row_ptrs_array_ref.get_data();
     auto u_row_ptrs_ref = u_row_ptrs_array_ref.get_data();
-    auto l_row_ptrs_omp = l_row_ptrs_array_omp.get_data();
-    auto u_row_ptrs_omp = u_row_ptrs_array_omp.get_data();
+    auto l_row_ptrs_cuda = l_row_ptrs_array_cuda.get_data();
+    auto u_row_ptrs_cuda = u_row_ptrs_array_cuda.get_data();
 
-    initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_omp,
-                        u_row_ptrs_omp);
+    initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_cuda,
+                        u_row_ptrs_cuda);
 
     ASSERT_TRUE(std::equal(l_row_ptrs_ref, l_row_ptrs_ref + num_row_ptrs,
-                           l_row_ptrs_omp));
+                           l_row_ptrs_cuda));
     ASSERT_TRUE(std::equal(u_row_ptrs_ref, u_row_ptrs_ref + num_row_ptrs,
-                           u_row_ptrs_omp));
+                           u_row_ptrs_cuda));
 }
 
 
@@ -201,42 +202,42 @@ TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
-    std::unique_ptr<Csr> l_omp{};
-    std::unique_ptr<Csr> u_omp{};
+    std::unique_ptr<Csr> l_cuda{};
+    std::unique_ptr<Csr> u_cuda{};
 
-    initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    initialize_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-14);
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
+TEST_F(ParIlu, KernelCcudauteParILUIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
-    std::unique_ptr<Csr> l_omp{};
-    std::unique_ptr<Csr> u_omp{};
+    std::unique_ptr<Csr> l_cuda{};
+    std::unique_ptr<Csr> u_cuda{};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 5e-3);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 5e-3);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-3);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-3);
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
+TEST_F(ParIlu, KernelCcudauteParILUWithMoreIterationsIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
-    std::unique_ptr<Csr> l_omp{};
-    std::unique_ptr<Csr> u_omp{};
+    std::unique_ptr<Csr> l_cuda{};
+    std::unique_ptr<Csr> u_cuda{};
     gko::size_type iterations{20};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
+    compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda, iterations);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-14);
 }
 
 
