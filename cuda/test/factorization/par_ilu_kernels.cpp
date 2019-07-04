@@ -176,7 +176,7 @@ protected:
 };
 
 
-TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
+TEST_F(ParIlu, KernelInitializeRowPtrsLUEquivalentToRef)
 {
     auto num_row_ptrs = csr_ref->get_size()[0] + 1;
     gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
@@ -207,7 +207,7 @@ TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelCcudauteParILUIsEquivalentToRef)
+TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
@@ -221,7 +221,7 @@ TEST_F(ParIlu, KernelCcudauteParILUIsEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelCcudauteParILUWithMoreIterationsIsEquivalentToRef)
+TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
