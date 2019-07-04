@@ -183,18 +183,13 @@ TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
     gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
     gko::Array<index_type> l_row_ptrs_array_cuda(cuda, num_row_ptrs);
     gko::Array<index_type> u_row_ptrs_array_cuda(cuda, num_row_ptrs);
-    auto l_row_ptrs_ref = l_row_ptrs_array_ref.get_data();
-    auto u_row_ptrs_ref = u_row_ptrs_array_ref.get_data();
-    auto l_row_ptrs_cuda = l_row_ptrs_array_cuda.get_data();
-    auto u_row_ptrs_cuda = u_row_ptrs_array_cuda.get_data();
 
-    initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_cuda,
-                        u_row_ptrs_cuda);
+    initialize_row_ptrs(
+        l_row_ptrs_array_ref.get_data(), u_row_ptrs_array_ref.get_data(),
+        l_row_ptrs_array_cuda.get_data(), u_row_ptrs_array_cuda.get_data());
 
-    ASSERT_TRUE(std::equal(l_row_ptrs_ref, l_row_ptrs_ref + num_row_ptrs,
-                           l_row_ptrs_cuda));
-    ASSERT_TRUE(std::equal(u_row_ptrs_ref, u_row_ptrs_ref + num_row_ptrs,
-                           u_row_ptrs_cuda));
+    GKO_ASSERT_ARRAY_EQ(&l_row_ptrs_array_ref, &l_row_ptrs_array_cuda);
+    GKO_ASSERT_ARRAY_EQ(&u_row_ptrs_array_ref, &u_row_ptrs_array_cuda);
 }
 
 

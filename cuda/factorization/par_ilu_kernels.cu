@@ -64,16 +64,11 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     size_type num_rows, const IndexType *__restrict__ row_ptrs,
     const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    IndexType *__restrict__ l_nnz_previous_row,
-    IndexType *__restrict__ u_nnz_previous_row)
+    const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row,
+    IndexType *__restrict__ u_nnz_row)
 {
     const auto global_id = blockDim.x * blockIdx.x + threadIdx.x;
     const auto row = global_id;
-    if (row == 0) {
-        l_nnz_previous_row[0] = 0;
-        u_nnz_previous_row[0] = 0;
-    }
     if (row < num_rows) {
         IndexType l_row_nnz{};
         IndexType u_row_nnz{};
@@ -82,8 +77,8 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
             l_row_nnz += (col <= row) ? 1 : 0;
             u_row_nnz += (row <= col) ? 1 : 0;
         }
-        l_nnz_previous_row[row + 1] = l_row_nnz;
-        u_nnz_previous_row[row + 1] = u_row_nnz;
+        l_nnz_row[row] = l_row_nnz;
+        u_nnz_row[row] = u_row_nnz;
     }
 }
 
@@ -98,6 +93,7 @@ void initialize_row_ptrs_l_u(
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_row_ptrs{num_rows + 1};
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
     const auto values = system_matrix->get_const_values();
@@ -116,14 +112,14 @@ void initialize_row_ptrs_l_u(
     auto block_sum_ptr = block_sum.get_data();
 
     start_prefix_sum<default_block_size><<<grid_dim, block_size>>>(
-        num_rows, as_cuda_type(l_row_ptrs), as_cuda_type(block_sum_ptr));
+        num_row_ptrs, as_cuda_type(l_row_ptrs), as_cuda_type(block_sum_ptr));
     finalize_prefix_sum<default_block_size><<<grid_dim, block_size>>>(
-        num_rows, as_cuda_type(l_row_ptrs), as_cuda_type(block_sum_ptr));
+        num_row_ptrs, as_cuda_type(l_row_ptrs), as_cuda_type(block_sum_ptr));
 
     start_prefix_sum<default_block_size><<<grid_dim, block_size>>>(
-        num_rows, as_cuda_type(u_row_ptrs), as_cuda_type(block_sum_ptr));
+        num_row_ptrs, as_cuda_type(u_row_ptrs), as_cuda_type(block_sum_ptr));
     finalize_prefix_sum<default_block_size><<<grid_dim, block_size>>>(
-        num_rows, as_cuda_type(u_row_ptrs), as_cuda_type(block_sum_ptr));
+        num_row_ptrs, as_cuda_type(u_row_ptrs), as_cuda_type(block_sum_ptr));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
