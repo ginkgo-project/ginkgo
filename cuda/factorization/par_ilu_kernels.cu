@@ -126,12 +126,75 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void initialize_l_u(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values,
+    const IndexType *__restrict__ l_row_ptrs,
+    IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
+    const IndexType *__restrict__ u_row_ptrs,
+    IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
+{
+    const auto global_id = blockDim.x * blockIdx.x + threadIdx.x;
+    const auto row = global_id;
+    if (row < num_rows) {
+        auto l_idx = l_row_ptrs[row];
+        auto u_idx = u_row_ptrs[row];
+        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
+            const auto col = col_idxs[i];
+            const auto val = values[i];
+            if (col <= row) {
+                l_col_idxs[l_idx] = col;
+                l_values[l_idx] = (col == row ? one<ValueType>() : val);
+                ++l_idx;
+            }
+            if (row <= col) {
+                u_col_idxs[u_idx] = col;
+                u_values[u_idx] = val;
+                ++u_idx;
+            }
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
-    GKO_NOT_IMPLEMENTED;
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_row_ptrs{num_rows + 1};
+    const auto row_ptrs = system_matrix->get_const_row_ptrs();
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto values = system_matrix->get_const_values();
+    const auto l_row_ptrs = csr_l->get_row_ptrs();
+    const auto l_col_idxs = csr_l->get_col_idxs();
+    const auto l_values = csr_l->get_values();
+    const auto u_row_ptrs = csr_u->get_row_ptrs();
+    const auto u_col_idxs = csr_u->get_col_idxs();
+    const auto u_values = csr_u->get_values();
+
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{static_cast<uint32>(ceildiv(
+                            num_rows, static_cast<size_type>(block_size.x))),
+                        1, 1};
+
+    kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
+        num_rows, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
+        as_cuda_type(values), as_cuda_type(l_row_ptrs),
+        as_cuda_type(l_col_idxs), as_cuda_type(l_values),
+        as_cuda_type(u_row_ptrs), as_cuda_type(u_col_idxs),
+        as_cuda_type(u_values));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
