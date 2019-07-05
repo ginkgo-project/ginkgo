@@ -39,6 +39,7 @@ namespace matrices {
 
 
 const char *location_ani1_mtx = "@Ginkgo_SOURCE_DIR@/matrices/test/ani1.mtx";
+const char *location_ani4_mtx = "@Ginkgo_SOURCE_DIR@/matrices/test/ani4.mtx";
 
 
 } // namespace matrices

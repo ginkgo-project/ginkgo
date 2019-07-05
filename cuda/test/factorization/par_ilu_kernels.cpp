@@ -73,7 +73,7 @@ protected:
 
     void SetUp() override
     {
-        std::string file_name(gko::matrices::location_ani1_mtx);
+        std::string file_name(gko::matrices::location_ani4_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
         if (!input_file) {
             FAIL() << "Could not find the file \"" << file_name
@@ -227,7 +227,7 @@ TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_cuda{};
     std::unique_ptr<Csr> u_cuda{};
-    gko::size_type iterations{20};
+    gko::size_type iterations{200};
 
     compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda, iterations);
 

@@ -239,7 +239,7 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Csr<ValueType, IndexType> *l_factor,
                          matrix::Csr<ValueType, IndexType> *u_factor)
 {
-    iterations = (iterations == 0) ? 5 : iterations;
+    iterations = (iterations == 0) ? 25 : iterations;
     const auto num_elements = system_matrix->get_num_stored_elements();
     const dim3 block_size{default_block_size, 1, 1};
     const dim3 grid_dim{
