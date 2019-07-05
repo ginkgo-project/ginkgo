@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 
 
@@ -67,15 +66,14 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row,
     IndexType *__restrict__ u_nnz_row)
 {
-    const auto global_id = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto row = global_id;
+    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
     if (row < num_rows) {
         IndexType l_row_nnz{};
         IndexType u_row_nnz{};
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             auto col = col_idxs[idx];
-            l_row_nnz += (col <= row) ? 1 : 0;
-            u_row_nnz += (row <= col) ? 1 : 0;
+            l_row_nnz += (col <= row);
+            u_row_nnz += (row <= col);
         }
         l_nnz_row[row] = l_row_nnz;
         u_nnz_row[row] = u_row_nnz;
@@ -94,9 +92,6 @@ void initialize_row_ptrs_l_u(
 {
     const size_type num_rows{system_matrix->get_size()[0]};
     const size_type num_row_ptrs{num_rows + 1};
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto values = system_matrix->get_const_values();
 
     const dim3 block_size{default_block_size, 1, 1};
     const dim3 grid_dim{static_cast<uint32>(ceildiv(
@@ -104,9 +99,10 @@ void initialize_row_ptrs_l_u(
                         1, 1};
 
     kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
-        as_cuda_type(values), as_cuda_type(l_row_ptrs),
-        as_cuda_type(u_row_ptrs));
+        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+        as_cuda_type(system_matrix->get_const_col_idxs()),
+        as_cuda_type(system_matrix->get_const_values()),
+        as_cuda_type(l_row_ptrs), as_cuda_type(u_row_ptrs));
 
     Array<IndexType> block_sum(exec, grid_dim.x);
     auto block_sum_ptr = block_sum.get_data();
@@ -139,8 +135,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
     const IndexType *__restrict__ u_row_ptrs,
     IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
 {
-    const auto global_id = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto row = global_id;
+    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
         auto u_idx = u_row_ptrs[row];
@@ -172,40 +167,99 @@ void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *csr_u)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
-    const size_type num_row_ptrs{num_rows + 1};
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto values = system_matrix->get_const_values();
-    const auto l_row_ptrs = csr_l->get_row_ptrs();
-    const auto l_col_idxs = csr_l->get_col_idxs();
-    const auto l_values = csr_l->get_values();
-    const auto u_row_ptrs = csr_u->get_row_ptrs();
-    const auto u_col_idxs = csr_u->get_col_idxs();
-    const auto u_values = csr_u->get_values();
-
     const dim3 block_size{default_block_size, 1, 1};
     const dim3 grid_dim{static_cast<uint32>(ceildiv(
                             num_rows, static_cast<size_type>(block_size.x))),
                         1, 1};
 
     kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
-        as_cuda_type(values), as_cuda_type(l_row_ptrs),
-        as_cuda_type(l_col_idxs), as_cuda_type(l_values),
-        as_cuda_type(u_row_ptrs), as_cuda_type(u_col_idxs),
-        as_cuda_type(u_values));
+        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+        as_cuda_type(system_matrix->get_const_col_idxs()),
+        as_cuda_type(system_matrix->get_const_values()),
+        as_cuda_type(csr_l->get_const_row_ptrs()),
+        as_cuda_type(csr_l->get_col_idxs()), as_cuda_type(csr_l->get_values()),
+        as_cuda_type(csr_u->get_const_row_ptrs()),
+        as_cuda_type(csr_u->get_col_idxs()), as_cuda_type(csr_u->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 
+namespace kernel {
+
+
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(
-    std::shared_ptr<const CudaExecutor> exec, size_type iterations,
-    const matrix::Coo<ValueType, IndexType> *system_matrix,
-    matrix::Csr<ValueType, IndexType> *l_factor,
-    matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
+__global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
+    size_type num_elements, const IndexType *__restrict__ row_idxs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values,
+    const IndexType *__restrict__ l_row_ptrs,
+    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
+    const IndexType *__restrict__ u_row_ptrs,
+    const IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
+{
+    const auto elem_id = blockDim.x * blockIdx.x + threadIdx.x;
+    if (elem_id < num_elements) {
+        const auto row = row_idxs[elem_id];
+        const auto col = col_idxs[elem_id];
+        const auto val = values[elem_id];
+        auto l_idx = l_row_ptrs[row];
+        auto u_idx = u_row_ptrs[col];
+        ValueType sum{val};
+        ValueType last_operation{};
+        while (l_idx < l_row_ptrs[row + 1] && u_idx < u_row_ptrs[col + 1]) {
+            const auto l_col = l_col_idxs[l_idx];
+            const auto u_col = u_col_idxs[u_idx];
+            last_operation = zero<ValueType>();
+            if (l_col == u_col) {
+                last_operation = l_values[l_idx] * u_values[u_idx];
+                sum -= last_operation;
+            }
+            l_idx += (l_col <= u_col);
+            u_idx += (u_col <= l_col);
+        }
+        sum += last_operation;  // undo the last operation
+        if (row > col) {
+            l_values[l_idx - 1] = sum / u_values[u_row_ptrs[col + 1] - 1];
+        } else {
+            u_values[u_idx - 1] = sum;
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
+                         size_type iterations,
+                         const matrix::Coo<ValueType, IndexType> *system_matrix,
+                         matrix::Csr<ValueType, IndexType> *l_factor,
+                         matrix::Csr<ValueType, IndexType> *u_factor)
+{
+    iterations = (iterations == 0) ? 5 : iterations;
+    const auto num_elements = system_matrix->get_num_stored_elements();
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{
+        static_cast<uint32>(
+            ceildiv(num_elements, static_cast<size_type>(block_size.x))),
+        1, 1};
+
+    for (size_type i = 0; i < iterations; ++i) {
+        kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
+            num_elements, as_cuda_type(system_matrix->get_const_row_idxs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(l_factor->get_const_row_ptrs()),
+            as_cuda_type(l_factor->get_const_col_idxs()),
+            as_cuda_type(l_factor->get_values()),
+            as_cuda_type(u_factor->get_const_row_ptrs()),
+            as_cuda_type(u_factor->get_const_col_idxs()),
+            as_cuda_type(u_factor->get_values()));
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
