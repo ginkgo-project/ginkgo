@@ -216,8 +216,8 @@ TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 
     compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-3);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-3);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-2);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-2);
 }
 
 

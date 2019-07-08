@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 
 
@@ -221,9 +222,15 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         }
         sum += last_operation;  // undo the last operation
         if (row > col) {
-            l_values[l_idx - 1] = sum / u_values[u_row_ptrs[col + 1] - 1];
+            auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
+            if (!is_inf_nan(to_write)) {
+                l_values[l_idx - 1] = to_write;
+            }
         } else {
-            u_values[u_idx - 1] = sum;
+            auto to_write = sum;
+            if (!is_inf_nan(to_write)) {
+                u_values[u_idx - 1] = to_write;
+            }
         }
     }
 }
@@ -239,7 +246,7 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Csr<ValueType, IndexType> *l_factor,
                          matrix::Csr<ValueType, IndexType> *u_factor)
 {
-    iterations = (iterations == 0) ? 25 : iterations;
+    iterations = (iterations == 0) ? 10 : iterations;
     const auto num_elements = system_matrix->get_num_stored_elements();
     const dim3 block_size{default_block_size, 1, 1};
     const dim3 grid_dim{
