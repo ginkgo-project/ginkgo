@@ -75,11 +75,13 @@ struct remove_complex_impl<std::complex<T>> {
 
 
 template <typename T>
-struct is_complex_impl : public std::integral_constant<bool, false> {};
+struct is_complex_impl : public std::integral_constant<bool, false> {
+};
 
 template <typename T>
 struct is_complex_impl<std::complex<T>>
-    : public std::integral_constant<bool, true> {};
+    : public std::integral_constant<bool, true> {
+};
 
 
 }  // namespace detail
@@ -92,6 +94,17 @@ struct is_complex_impl<std::complex<T>>
 template <typename T>
 using remove_complex = typename detail::remove_complex_impl<T>::type;
 
+
+/**
+ * Allows check if T is a complex value during compile time by accessing the
+ * `value` attribute of this struct.
+ * If `value` is `true`, T is a complex type, if it is `false`, T is not a
+ * complex type.
+ *
+ * @tparam T  type to check
+ */
+template <typename T>
+using is_complex_s = detail::is_complex_impl<T>;
 
 /**
  * Checks if T is a complex type.
