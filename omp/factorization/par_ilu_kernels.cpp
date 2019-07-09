@@ -197,9 +197,15 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
             sum += last_operation;  // undo the last operation
 
             if (row > col) {  // modify entry in L
-                vals_l[row_l - 1] = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                if (!is_inf_or_nan(to_write)) {
+                    vals_l[row_l - 1] = to_write;
+                }
             } else {  // modify entry in U
-                vals_u[row_u - 1] = sum;
+                auto to_write = sum;
+                if (!is_inf_or_nan(to_write)) {
+                    vals_u[row_u - 1] = to_write;
+                }
             }
         }
     }
