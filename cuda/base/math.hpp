@@ -52,8 +52,7 @@ struct remove_complex_impl<thrust::complex<T>> {
 
 template <typename T>
 struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
+    : public std::integral_constant<bool, true> {};
 
 
 template <typename T>
@@ -93,43 +92,10 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
     return reinterpret_cast<std::complex<double> &>(z);
 }
 
-/**
- * Checks if given (non-complex) value is positive infinity, negative infinity,
- * or NaN
- *
- * @tparam T  non-complex type of the value to check
- *
- * @param val  value to check
- *
- * returns `true` if val is either positive or negative infinity or NaN.
-           Otherwise `false`
- */
-template <typename T>
-__device__ GKO_INLINE xstd::enable_if_t<!is_complex_s<T>::value, bool>
-is_inf_nan(const T &val)
-{
-    return isinf(val) || isnan(val);
-}
 
+using ::isinf;  // Use the CUDA `isinf` function for basic types
 
-/**
- * Checks if a component of a given complex value is positive infinity,
- * negative infinity, or NaN
- *
- * @tparam T  complex type of the value to check
- *
- * @param val  value to check
- *
- * returns `true` if a component of val is either positive or negative infinity
- *         or NaN. Otherwise `false`
- */
-template <typename T>
-__device__ GKO_INLINE xstd::enable_if_t<is_complex_s<T>::value, bool>
-is_inf_nan(const T &val)
-{
-    return isinf(val.real()) || isinf(val.imag()) || isnan(val.real()) ||
-           isnan(val.imag());
-}
+using ::isnan;  // Use the CUDA `isnan` function for basic types
 
 
 }  // namespace gko

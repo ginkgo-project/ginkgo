@@ -75,13 +75,11 @@ struct remove_complex_impl<std::complex<T>> {
 
 
 template <typename T>
-struct is_complex_impl : public std::integral_constant<bool, false> {
-};
+struct is_complex_impl : public std::integral_constant<bool, false> {};
 
 template <typename T>
 struct is_complex_impl<std::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
+    : public std::integral_constant<bool, true> {};
 
 
 }  // namespace detail
@@ -509,6 +507,65 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
     const T &base, const T &limit, const T &hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
+}
+
+
+using std::isinf;  // use optimized isinf functions for basic types
+
+
+/**
+ * Checks if a component of a given complex value is either positive or
+ * negative infinity
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param val  value to check
+ *
+ * returns `true` if a component of val is either positive or
+           negative infinity, otherwise `false`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool> isinf(
+    const T &val)
+{
+    return isinf(val.real()) || isinf(val.imag());
+}
+
+
+using std::isnan;  // use optimized isnan functions for basic types
+
+
+/**
+ * Checks if a component of a given complex value is NaN
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param val  value to check
+ *
+ * returns `true` if a component of val is NaN, otherwise `false`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool> isnan(
+    const T &val)
+{
+    return isinf(val.real()) || isinf(val.imag());
+}
+
+
+/**
+ * Checks if a given value is positive infinity, negative infinity, or NaN
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param val  value to check
+ *
+ * returns `true` if val is either positive or negative infinity or NaN.
+ *         Otherwise `false`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES bool is_inf_or_nan(const T &val)
+{
+    return isinf(val) || isnan(val);
 }
 
 
