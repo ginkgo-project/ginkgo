@@ -223,12 +223,12 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         sum += last_operation;  // undo the last operation
         if (row > col) {
             auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
-            if (!is_inf_or_nan(to_write)) {
+            if (isfinite(to_write)) {
                 l_values[l_idx - 1] = to_write;
             }
         } else {
             auto to_write = sum;
-            if (!is_inf_or_nan(to_write)) {
+            if (isfinite(to_write)) {
                 u_values[u_idx - 1] = to_write;
             }
         }
@@ -253,7 +253,6 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
         static_cast<uint32>(
             ceildiv(num_elements, static_cast<size_type>(block_size.x))),
         1, 1};
-
     for (size_type i = 0; i < iterations; ++i) {
         kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
             num_elements, as_cuda_type(system_matrix->get_const_row_idxs()),
