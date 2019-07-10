@@ -510,63 +510,89 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-using std::isinf;  // use optimized isinf functions for basic types
+// Required because CUDA compiler before Toolkit 9.2 seems to have difficulties
+// with `enable_if`
+#if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
+    (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
+
+// Here, we define our own `isfinite` and call the proper implementation
+// because otherwise, the older nvcc compiler can not distinguish between the
+// overloaded `isfinite` for some reason
+
+#if defined(__CUDA_ARCH__)
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                                  \
+    GKO_INLINE __device__ bool isfinite(const _type &value)                  \
+    {                                                                        \
+        return ::isfinite(value);                                            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#else  // defined(__CUDA_ARCH__)
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                                  \
+    GKO_INLINE __host__ bool isfinite(const _type &value)                    \
+    {                                                                        \
+        using std::isfinite;                                                 \
+        return isfinite(value);                                              \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif  // defined(__CUDA_ARCH__)
+
+GKO_DEFINE_ISFINITE_FOR_TYPE(float);
+GKO_DEFINE_ISFINITE_FOR_TYPE(double);
+
+#undef GKO_DEFINE_ISFINITE_FOR_TYPE
 
 /**
- * Checks if a component of a given complex value is either positive or
- * negative infinity
+ * Checks if a component of a given complex value is positive infinity,
+ * negative infinity, or NaN
+ *
+ * @param value  complex value to check
+ *
+ * returns `true` if a component of the complex value is either positive or
+ *         negative infinity or NaN. Otherwise `false`
+ */
+#define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)                          \
+    GKO_INLINE GKO_ATTRIBUTES bool isfinite(const _type &value)              \
+    {                                                                        \
+        return isfinite(value.real()) || isfinite(value.imag());             \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#if !defined(__CUDA_ARCH__)
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(std::complex<double>);
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(std::complex<float>);
+#endif
+
+#else  // This part is for non-CUDA compiler and later CUDA Toolkit versions
+
+using std::isfinite;  // use the optimized function for all supported types
+
+/**
+ * Checks if a given component of a complex value is positive infinity,
+ * negative infinity, or NaN
  *
  * @tparam T  complex type of the value to check
  *
- * @param val  value to check
+ * @param value  complex value to check
  *
- * returns `true` if a component of val is either positive or
-           negative infinity, otherwise `false`
+ * returns `true` if a component of value is either positive or negative
+ *         infinity or NaN. Otherwise `false`
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool> isinf(
-    const T &val)
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
+isfinite(const T &value)
 {
-    return isinf(val.real()) || isinf(val.imag());
+    return isfinite(value.real()) || isfinite(value.imag());
 }
 
-
-using std::isnan;  // use optimized isnan functions for basic types
-
-
-/**
- * Checks if a component of a given complex value is NaN
- *
- * @tparam T  complex type of the value to check
- *
- * @param val  value to check
- *
- * returns `true` if a component of val is NaN, otherwise `false`
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool> isnan(
-    const T &val)
-{
-    return isinf(val.real()) || isinf(val.imag());
-}
-
-
-/**
- * Checks if a given value is positive infinity, negative infinity, or NaN
- *
- * @tparam T  type of the value to check
- *
- * @param val  value to check
- *
- * returns `true` if val is either positive or negative infinity or NaN.
- *         Otherwise `false`
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES bool is_inf_or_nan(const T &val)
-{
-    return isinf(val) || isnan(val);
-}
+#endif  // defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) &&
+        // (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
 
 }  // namespace gko

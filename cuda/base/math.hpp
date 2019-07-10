@@ -93,9 +93,17 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 }
 
 
-using ::isinf;  // Use the CUDA `isinf` function for basic types
+// Since the `isfinite` function from CUDA is not in any namespace, it
+// will be used without the `using` keyword.
 
-using ::isnan;  // Use the CUDA `isnan` function for basic types
+// For some CUDA versions, the complex variation for `isfinite` has to be
+// manually defined
+#if defined(GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE)
+
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<double>);
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<float>);
+
+#endif  // defined(GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE)
 
 
 }  // namespace gko
