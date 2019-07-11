@@ -94,7 +94,7 @@ using remove_complex = typename detail::remove_complex_impl<T>::type;
 
 
 /**
- * Allows check if T is a complex value during compile time by accessing the
+ * Allows to check if T is a complex value during compile time by accessing the
  * `value` attribute of this struct.
  * If `value` is `true`, T is a complex type, if it is `false`, T is not a
  * complex type.
