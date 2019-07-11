@@ -510,17 +510,33 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-// Required because CUDA compiler before Toolkit 9.2 seems to have difficulties
-// with `enable_if`
+// Required because CUDA compiler before Toolkit 9.2 want to call __host__
+// functions, even though there are __device__ functions provided by CUDA
+// (e.g. `isfinite`)
 #if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
     (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
 
 // Here, we define our own `isfinite` and call the proper implementation
-// because otherwise, the older nvcc compiler can not distinguish between the
-// overloaded `isfinite` for some reason
+// because otherwise, the older nvcc compiler can not distinguish between
+// __host__ and __device__ `isfinite` functions
 
-#if defined(__CUDA_ARCH__)
+// This first part is specific for clang in combination with the nvcc compiler.
+// clang wants to use their __builtin_isfinite function, which is not present
+// as a __device__ function, so it results in a compiler error.
+// Here, all tests are done by hand, which is probably not as performant as the
+// intrinsic function from CUDA, but at least it compiles.
+#if defined(__CUDA_ARCH__) && defined(__clang__)
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                                  \
+    GKO_INLINE __device__ bool isfinite(const _type &value)                  \
+    {                                                                        \
+        constexpr auto infinity = INFINITY;                                  \
+        return value == value && value != infinity && value != -infinity;    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#elif defined(__CUDA_ARCH__)
 #define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                                  \
     GKO_INLINE __device__ bool isfinite(const _type &value)                  \
     {                                                                        \
@@ -529,7 +545,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#else  // defined(__CUDA_ARCH__)
+#else  // !defined(__CUDA_ARCH__)
 #define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                                  \
     GKO_INLINE __host__ bool isfinite(const _type &value)                    \
     {                                                                        \
@@ -539,7 +555,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#endif  // defined(__CUDA_ARCH__)
+#endif  // defined(__CUDA_ARCH__) && defined(__clang__)
 
 GKO_DEFINE_ISFINITE_FOR_TYPE(float);
 GKO_DEFINE_ISFINITE_FOR_TYPE(double);
@@ -563,6 +579,7 @@ GKO_DEFINE_ISFINITE_FOR_TYPE(double);
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
 
 #if !defined(__CUDA_ARCH__)
 GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(std::complex<double>);
