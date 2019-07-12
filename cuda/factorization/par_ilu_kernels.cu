@@ -95,9 +95,9 @@ void initialize_row_ptrs_l_u(
     const size_type num_row_ptrs{num_rows + 1};
 
     const dim3 block_size{default_block_size, 1, 1};
-    const dim3 grid_dim{static_cast<uint32>(ceildiv(
-                            num_rows, static_cast<size_type>(block_size.x))),
-                        1, 1};
+    const uint32 number_blocks =
+        ceildiv(num_rows, static_cast<size_type>(block_size.x));
+    const dim3 grid_dim{number_blocks, 1, 1};
 
     kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
         num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
