@@ -115,11 +115,16 @@ Contributing guidelines can be accessed in our Wiki under the [Developer's
 Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
 This page also contains other information useful to developers, such as writing
 proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more.
+information, and more. In general, always refer to this page for developer
+information.
 
-In general, always refer to this page for developer information. If you think
-that anything is missing, feel free to [create an
-issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
+### Support
+If you have any question, bug to report or would like to propose a new feature,
+feel free to [create an
+issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
+is to send an email to [Ginkgo's main email address](ginkgo.library@gmail.com)
+or to contact any of the main [contributors](contributors.txt).
+
 
 ### Licensing
 
