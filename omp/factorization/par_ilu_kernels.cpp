@@ -156,7 +156,7 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
     // experiements indicate this works well for many problems.
     iterations = (iterations == 0) ? 3 : iterations;
     const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto row_ptrs = system_matrix->get_const_row_idxs();
+    const auto row_idxs = system_matrix->get_const_row_idxs();
     const auto vals = system_matrix->get_const_values();
     const auto row_ptrs_l = l_factor->get_const_row_ptrs();
     const auto row_ptrs_u = u_factor->get_const_row_ptrs();
@@ -169,7 +169,7 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
         for (size_type el = 0; el < system_matrix->get_num_stored_elements();
              ++el) {
-            const auto row = row_ptrs[el];
+            const auto row = row_idxs[el];
             const auto col = col_idxs[el];
             const auto val = vals[el];
             auto row_l = row_ptrs_l[row];
@@ -197,9 +197,15 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
             sum += last_operation;  // undo the last operation
 
             if (row > col) {  // modify entry in L
-                vals_l[row_l - 1] = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                if (isfinite(to_write)) {
+                    vals_l[row_l - 1] = to_write;
+                }
             } else {  // modify entry in U
-                vals_u[row_u - 1] = sum;
+                auto to_write = sum;
+                if (isfinite(to_write)) {
+                    vals_u[row_u - 1] = to_write;
+                }
             }
         }
     }
