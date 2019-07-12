@@ -280,6 +280,10 @@ template&lt;typename T &gt; </td></tr>
 <tr class="memitem:adfcb75c44f6b6c701989419c166f6e7e"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a> = typename detail::remove_complex_impl&lt; T &gt;::type</td></tr>
 <tr class="memdesc:adfcb75c44f6b6c701989419c166f6e7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a complex type. <br /></td></tr>
 <tr class="separator:adfcb75c44f6b6c701989419c166f6e7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeede19206954d5c8ebd04c95cf63bb88"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:aeede19206954d5c8ebd04c95cf63bb88"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a> = detail::is_complex_impl&lt; T &gt;</td></tr>
+<tr class="memdesc:aeede19206954d5c8ebd04c95cf63bb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to check if T is a complex value during compile time by accessing the <code>value</code> attribute of this struct.  <a href="#aeede19206954d5c8ebd04c95cf63bb88">More...</a><br /></td></tr>
+<tr class="separator:aeede19206954d5c8ebd04c95cf63bb88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab5d71c1f4bd1b654df1e561ea7a811f2"><td class="memTemplParams" colspan="2"><a id="ab5d71c1f4bd1b654df1e561ea7a811f2"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ab5d71c1f4bd1b654df1e561ea7a811f2"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2">reduce_precision</a> = typename detail::reduce_precision_impl&lt; T &gt;::type</td></tr>
@@ -440,6 +444,10 @@ Functions</h2></td></tr>
 <tr class="memitem:ad39645fe8148a8a812a9528865a77600"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a> (const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</td></tr>
 <tr class="memdesc:ad39645fe8148a8a812a9528865a77600"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the smallest power of <code>base</code> not smaller than <code>limit</code>.  <a href="#ad39645fe8148a8a812a9528865a77600">More...</a><br /></td></tr>
 <tr class="separator:ad39645fe8148a8a812a9528865a77600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">isfinite</a> (const T &amp;value)</td></tr>
+<tr class="memdesc:afb0f20b5d373f9439702e723d48548fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if a given component of a complex value is positive infinity, negative infinity, or NaN.  <a href="#afb0f20b5d373f9439702e723d48548fa">More...</a><br /></td></tr>
+<tr class="separator:afb0f20b5d373f9439702e723d48548fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplParams" colspan="2">template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">read_raw</a> (std::istream &amp;is)</td></tr>
 <tr class="memdesc:a0b476e0e3df616b08efe85000bff8da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a matrix stored in matrix market format from an input stream.  <a href="#a0b476e0e3df616b08efe85000bff8da0">More...</a><br /></td></tr>
@@ -964,7 +972,33 @@ constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The Ginkgo namespace. </p>
-</div><h2 class="groupheader">Enumeration Type Documentation</h2>
+</div><h2 class="groupheader">Typedef Documentation</h2>
+<a id="aeede19206954d5c8ebd04c95cf63bb88"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeede19206954d5c8ebd04c95cf63bb88">&#9670;&nbsp;</a></span>is_complex_s</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">gko::is_complex_s</a> = typedef detail::is_complex_impl&lt;T&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Allows to check if T is a complex value during compile time by accessing the <code>value</code> attribute of this struct. </p>
+<p>If <code>value</code> is <code>true</code>, T is a complex type, if it is <code>false</code>, T is not a complex type.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to check </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
 <a id="ae749a5ea11a93c1bcc9158d9a6e9fb68"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae749a5ea11a93c1bcc9158d9a6e9fb68">&#9670;&nbsp;</a></span>layout_type</h2>
 
@@ -1649,6 +1683,49 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if T is a complex type, <code>false</code> otherwise </dd></dl>
+
+</div>
+</div>
+<a id="afb0f20b5d373f9439702e723d48548fa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb0f20b5d373f9439702e723d48548fa">&#9670;&nbsp;</a></span>isfinite()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">xstd::enable_if_t&lt;<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, bool&gt; gko::isfinite </td>
+          <td>(</td>
+          <td class="paramtype">const T &amp;&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if a given component of a complex value is positive infinity, negative infinity, or NaN. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>complex type of the value to check</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">value</td><td>complex value to check</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>returns <code>true</code> if a component of value is either positive or negative infinity or NaN. Otherwise <code>false</code> </p>
 
 </div>
 </div>

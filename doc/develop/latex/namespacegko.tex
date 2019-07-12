@@ -147,6 +147,8 @@ class \hyperlink{classgko_1_1WritableToMatrixData}{Writable\+To\+Matrix\+Data}
 \mbox{\Hypertarget{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}\label{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}} 
 {\footnotesize template$<$typename T $>$ }\\using \hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex} = typename detail\+::remove\+\_\+complex\+\_\+impl$<$ T $>$\+::type
 \begin{DoxyCompactList}\small\item\em Obtains a real counterpart of a std\+::complex type, and leaves the type unchanged if it is not a complex type. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\using \hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s} = detail\+::is\+\_\+complex\+\_\+impl$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Allows to check if T is a complex value during compile time by accessing the {\ttfamily value} attribute of this struct. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}\label{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}} 
 {\footnotesize template$<$typename T $>$ }\\using \hyperlink{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}{reduce\+\_\+precision} = typename detail\+::reduce\+\_\+precision\+\_\+impl$<$ T $>$\+::type
 \begin{DoxyCompactList}\small\item\em Obtains the next type in the hierarchy with lower precision than T. \end{DoxyCompactList}\item 
@@ -249,6 +251,8 @@ constexpr \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} \hyp
 \begin{DoxyCompactList}\small\item\em Returns the position of the most significant bit of the number. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \hyperlink{namespacegko_ad39645fe8148a8a812a9528865a77600}{get\+\_\+superior\+\_\+power} (const T \&base, const T \&limit, const T \&hint=T\{1\}) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the smallest power of {\ttfamily base} not smaller than {\ttfamily limit}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}$<$ T $>$\+::value, bool $>$ \hyperlink{namespacegko_afb0f20b5d373f9439702e723d48548fa}{isfinite} (const T \&value)
+\begin{DoxyCompactList}\small\item\em Checks if a given component of a complex value is positive infinity, negative infinity, or NaN. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \hyperlink{namespacegko_a0b476e0e3df616b08efe85000bff8da0}{read\+\_\+raw} (std\+::istream \&is)
 \begin{DoxyCompactList}\small\item\em Reads a matrix stored in matrix market format from an input stream. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Value\+Type , typename Index\+Type $>$ }\\void \hyperlink{namespacegko_ab31feb99c64fc6df58ac09abd4af69b6}{write\+\_\+raw} (std\+::ostream \&os, const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&data, \hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}{layout\+\_\+type} layout=\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{layout\+\_\+type\+::array})
@@ -633,6 +637,27 @@ constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+t
 
 \subsection{Detailed Description}
 The Ginkgo namespace. 
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}\label{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}} 
+\index{gko@{gko}!is\+\_\+complex\+\_\+s@{is\+\_\+complex\+\_\+s}}
+\index{is\+\_\+complex\+\_\+s@{is\+\_\+complex\+\_\+s}!gko@{gko}}
+\subsubsection{\texorpdfstring{is\+\_\+complex\+\_\+s}{is\_complex\_s}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+using \hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{gko\+::is\+\_\+complex\+\_\+s} = typedef detail\+::is\+\_\+complex\+\_\+impl$<$T$>$}
+
+
+
+Allows to check if T is a complex value during compile time by accessing the {\ttfamily value} attribute of this struct. 
+
+If {\ttfamily value} is {\ttfamily true}, T is a complex type, if it is {\ttfamily false}, T is not a complex type.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to check \\
+\hline
+\end{DoxyTemplParams}
+
 
 \subsection{Enumeration Type Documentation}
 \mbox{\Hypertarget{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}\label{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}} 
@@ -1029,7 +1054,28 @@ Checks if T is a complex type.
 \begin{DoxyReturn}{Returns}
 {\ttfamily true} if T is a complex type, {\ttfamily false} otherwise 
 \end{DoxyReturn}
-\mbox{\Hypertarget{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}\label{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}} 
+\mbox{\Hypertarget{namespacegko_afb0f20b5d373f9439702e723d48548fa}\label{namespacegko_afb0f20b5d373f9439702e723d48548fa}} 
+\index{gko@{gko}!isfinite@{isfinite}}
+\index{isfinite@{isfinite}!gko@{gko}}
+\subsubsection{\texorpdfstring{isfinite()}{isfinite()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+xstd\+::enable\+\_\+if\+\_\+t$<$\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}$<$T$>$\+::value, bool$>$ gko\+::isfinite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if a given component of a complex value is positive infinity, negative infinity, or NaN. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & complex type of the value to check\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em value} & complex value to check\\
+\hline
+\end{DoxyParams}
+returns {\ttfamily true} if a component of value is either positive or negative infinity or NaN. Otherwise {\ttfamily false} \mbox{\Hypertarget{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}\label{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}} 
 \index{gko@{gko}!lend@{lend}}
 \index{lend@{lend}!gko@{gko}}
 \subsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
