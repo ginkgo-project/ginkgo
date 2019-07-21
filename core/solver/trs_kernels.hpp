@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
@@ -45,39 +46,15 @@ namespace kernels {
 namespace trs {
 
 
-#define GKO_DECLARE_TRS_INITIALIZE_KERNEL(_type)                             \
-    void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho,                               \
-                    Array<stopping_status> *stop_status)
+#define GKO_DECLARE_TRS_SOLVE_KERNEL(_vtype, _itype)        \
+    void solve(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::Csr<_vtype, _itype> *matrix,   \
+               const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
 
-#define GKO_DECLARE_TRS_STEP_1_KERNEL(_type)                            \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho,                        \
-                const matrix::Dense<_type> *prev_rho,                   \
-                const Array<stopping_status> *stop_status)
-
-
-#define GKO_DECLARE_TRS_STEP_2_KERNEL(_type)                                  \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::Dense<_type> *x, matrix::Dense<_type> *r,             \
-                const matrix::Dense<_type> *p, const matrix::Dense<_type> *q, \
-                const matrix::Dense<_type> *beta,                             \
-                const matrix::Dense<_type> *rho,                              \
-                const Array<stopping_status> *stop_status)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES              \
-    template <typename ValueType>                 \
-    GKO_DECLARE_TRS_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                 \
-    GKO_DECLARE_TRS_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_TRS_STEP_2_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType, typename IndexType> \
+    GKO_DECLARE_TRS_SOLVE_KERNEL(ValueType, IndexType)
 
 
 }  // namespace trs
