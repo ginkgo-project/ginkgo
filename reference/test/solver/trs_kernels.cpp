@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -51,22 +52,12 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Csr<double, int>;
     Trs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          trs_factory(
-              gko::solver::Trs<>::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                      gko::stop::Time::build()
-                          .with_time_limit(std::chrono::seconds(6))
-                          .on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
-                          .on(exec))
-                  .on(exec)),
+              {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
+          trs_factory(gko::solver::Trs<>::build().on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
                {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
@@ -75,15 +66,7 @@ protected:
                {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
                {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
               exec)),
-          trs_factory_big(
-              gko::solver::Trs<>::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(100u).on(
-                          exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
-                          .on(exec))
-                  .on(exec))
+          trs_factory_big(gko::solver::Trs<>::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -95,17 +78,14 @@ protected:
 
 
 TEST_F(Trs, SolvesStencilSystem)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory->generate(mtx);
-//    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
-//}
+{
+    auto solver = trs_factory->generate(mtx);
+    auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({0.5, 0.5, 1.0 / 3.0}), 1e-14);
+}
 
 
 TEST_F(Trs, SolvesMultipleStencilSystems)

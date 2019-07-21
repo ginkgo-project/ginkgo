@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -51,21 +52,14 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Csr<double, int>;
     using Solver = gko::solver::Trs<>;
 
     Trs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          trs_factory(
-              Solver::build()
-                  .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-6)
-                          .on(exec))
-                  .on(exec)),
+              {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
+          trs_factory(Solver::build().on(exec)),
           solver(trs_factory->generate(mtx))
     {}
 
@@ -74,50 +68,46 @@ protected:
     std::unique_ptr<Solver::Factory> trs_factory;
     std::unique_ptr<gko::LinOp> solver;
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
+    // static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    // {
+    //     ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
+    //     ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
+    //     for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
+    //         for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
+    //             EXPECT_EQ(m1->at(i, j), m2->at(i, j));
+    //         }
+    //     }
+    // }
 };
 
 
 TEST_F(Trs, TrsFactoryKnowsItsExecutor)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    ASSERT_EQ(trs_factory->get_executor(), exec);
-//}
+{
+    ASSERT_EQ(trs_factory->get_executor(), exec);
+}
 
 
 TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-//    auto trs_solver = static_cast<Solver *>(solver.get());
-//    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
-//    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
-//}
+{
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
+    auto trs_solver = static_cast<Solver *>(solver.get());
+    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
+    // ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
+}
 
 
 TEST_F(Trs, CanBeCopied)
 GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
+// {
 //    auto copy = trs_factory->generate(Mtx::create(exec));
-//
+
 //    copy->copy_from(solver.get());
-//
+
 //    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
 //    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
-//}
+//    // assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+//    mtx.get());
+// }
 
 
 TEST_F(Trs, CanBeMoved)
@@ -148,40 +138,13 @@ GKO_NOT_IMPLEMENTED;
 
 
 TEST_F(Trs, CanBeCleared)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    solver->clear();
-//
-//    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
-//    auto solver_mtx = static_cast<Solver
-//    *>(solver.get())->get_system_matrix(); ASSERT_EQ(solver_mtx, nullptr);
-//}
+{
+    solver->clear();
 
-
-TEST_F(Trs, CanSetPreconditionerGenerator)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto trs_factory =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-//                gko::stop::ResidualNormReduction<>::build()
-//                    .with_reduction_factor(1e-6)
-//                    .on(exec))
-//            .with_preconditioner(Solver::build().on(exec))
-//            .on(exec);
-//    auto solver = trs_factory->generate(mtx);
-//    auto precond = dynamic_cast<const gko::solver::Trs<> *>(
-//        static_cast<gko::solver::Trs<> *>(solver.get())
-//            ->get_preconditioner()
-//            .get());
-//
-//    ASSERT_NE(precond, nullptr);
-//    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-//    ASSERT_EQ(precond->get_system_matrix(), mtx);
-//}
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(solver_mtx, nullptr);
+}
 
 
 }  // namespace

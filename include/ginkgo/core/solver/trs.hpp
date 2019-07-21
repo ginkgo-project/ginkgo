@@ -63,17 +63,20 @@ namespace solver {
  * into 2 separate steps.
  *
  * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indices
  *
  * @ingroup solvers
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision>
-class Trs : public EnableLinOp<Trs<ValueType>>, public Preconditionable {
+template <typename ValueType = default_precision, typename IndexType = int32>
+class Trs : public EnableLinOp<Trs<ValueType, IndexType>>,
+            public Preconditionable {
     friend class EnableLinOp<Trs>;
     friend class EnablePolymorphicObject<Trs, LinOp>;
 
 public:
     using value_type = ValueType;
+    using index_type = IndexType;
 
     /**
      * Gets the system operator (matrix) of the linear system.

@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -70,109 +71,86 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
-    {
-        return gko::test::generate_random_matrix<Mtx>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-    }
+    // std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    // {
+    //     return gko::test::generate_random_matrix<Mtx>(
+    //         num_rows, num_cols,
+    //         std::uniform_int_distribution<>(num_cols, num_cols),
+    //         std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    // }
 
-    void initialize_data()
-    {
-        int m = 597;
-        int n = 43;
-        b = gen_mtx(m, n);
-        r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
-        p = gen_mtx(m, n);
-        q = gen_mtx(m, n);
-        x = gen_mtx(m, n);
-        beta = gen_mtx(1, n);
-        prev_rho = gen_mtx(1, n);
-        rho = gen_mtx(1, n);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
-        for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
-            stop_status->get_data()[i].reset();
-        }
+    // void initialize_data()
+    // {
+    //     int m = 597;
+    //     int n = 43;
+    //     b = gen_mtx(m, n);
+    //     r = gen_mtx(m, n);
+    //     z = gen_mtx(m, n);
+    //     p = gen_mtx(m, n);
+    //     q = gen_mtx(m, n);
+    //     x = gen_mtx(m, n);
+    //     beta = gen_mtx(1, n);
+    //     prev_rho = gen_mtx(1, n);
+    //     rho = gen_mtx(1, n);
+    //     stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+    //         new gko::Array<gko::stopping_status>(ref, n));
+    //     for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
+    //         stop_status->get_data()[i].reset();
+    //     }
 
-        d_b = Mtx::create(cuda);
-        d_b->copy_from(b.get());
-        d_r = Mtx::create(cuda);
-        d_r->copy_from(r.get());
-        d_z = Mtx::create(cuda);
-        d_z->copy_from(z.get());
-        d_p = Mtx::create(cuda);
-        d_p->copy_from(p.get());
-        d_q = Mtx::create(cuda);
-        d_q->copy_from(q.get());
-        d_x = Mtx::create(cuda);
-        d_x->copy_from(x.get());
-        d_beta = Mtx::create(cuda);
-        d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(cuda);
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(cuda);
-        d_rho->copy_from(rho.get());
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda, n));
-        *d_stop_status = *stop_status;
-    }
+    //     d_b = Mtx::create(cuda);
+    //     d_b->copy_from(b.get());
+    //     d_r = Mtx::create(cuda);
+    //     d_r->copy_from(r.get());
+    //     d_z = Mtx::create(cuda);
+    //     d_z->copy_from(z.get());
+    //     d_p = Mtx::create(cuda);
+    //     d_p->copy_from(p.get());
+    //     d_q = Mtx::create(cuda);
+    //     d_q->copy_from(q.get());
+    //     d_x = Mtx::create(cuda);
+    //     d_x->copy_from(x.get());
+    //     d_beta = Mtx::create(cuda);
+    //     d_beta->copy_from(beta.get());
+    //     d_prev_rho = Mtx::create(cuda);
+    //     d_prev_rho->copy_from(prev_rho.get());
+    //     d_rho = Mtx::create(cuda);
+    //     d_rho->copy_from(rho.get());
+    //     d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
+    //         new gko::Array<gko::stopping_status>(cuda, n));
+    //     *d_stop_status = *stop_status;
+    // }
 
-    void make_symetric(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
-                mtx->at(i, j) = mtx->at(j, i);
-            }
-        }
-    }
+    // void make_symetric(Mtx *mtx)
+    // {
+    //     for (int i = 0; i < mtx->get_size()[0]; ++i) {
+    //         for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
+    //             mtx->at(i, j) = mtx->at(j, i);
+    //         }
+    //     }
+    // }
 
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
+    // void make_diag_dominant(Mtx *mtx)
+    // {
+    //     using std::abs;
+    //     for (int i = 0; i < mtx->get_size()[0]; ++i) {
+    //         auto sum = gko::zero<Mtx::value_type>();
+    //         for (int j = 0; j < mtx->get_size()[1]; ++j) {
+    //             sum += abs(mtx->at(i, j));
+    //         }
+    //         mtx->at(i, i) = sum;
+    //     }
+    // }
 
-    void make_spd(Mtx *mtx)
-    {
-        make_symetric(mtx);
-        make_diag_dominant(mtx);
-    }
+    // void make_spd(Mtx *mtx)
+    // {
+    //     make_symetric(mtx);
+    //     make_diag_dominant(mtx);
+    // }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
-
     std::ranlux48 rand_engine;
-
-    std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> z;
-    std::unique_ptr<Mtx> p;
-    std::unique_ptr<Mtx> q;
-    std::unique_ptr<Mtx> x;
-    std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> prev_rho;
-    std::unique_ptr<Mtx> rho;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
-
-    std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_z;
-    std::unique_ptr<Mtx> d_p;
-    std::unique_ptr<Mtx> d_q;
-    std::unique_ptr<Mtx> d_x;
-    std::unique_ptr<Mtx> d_beta;
-    std::unique_ptr<Mtx> d_prev_rho;
-    std::unique_ptr<Mtx> d_rho;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
