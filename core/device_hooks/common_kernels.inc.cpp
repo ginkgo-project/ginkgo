@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
@@ -179,6 +180,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+// TODO (script): adapt this block as needed
+namespace trs {
+
+
+template <typename ValueType>
+GKO_DECLARE_TRS_INITIALIZE_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRS_INITIALIZE_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_TRS_STEP_1_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRS_STEP_1_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_TRS_STEP_2_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRS_STEP_2_KERNEL);
+
+
+}  // namespace trs
 
 
 namespace fcg {

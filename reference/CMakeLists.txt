@@ -16,6 +16,7 @@ target_sources(ginkgo_reference
         solver/fcg_kernels.cpp
         solver/gmres_kernels.cpp
         solver/ir_kernels.cpp
+        solver/trs_kernels.cpp
         stop/criterion_kernels.cpp
         stop/residual_norm_reduction_kernels.cpp)
 

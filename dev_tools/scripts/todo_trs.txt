@@ -1,0 +1,53 @@
+
+Summary:
+Created solver file
+core/solver/trs.cpp
+	This is where the trs algorithm needs to be implemented.
+
+Created class header
+include/ginkgo/core/solver/trs.hpp
+	This is where the trs class functions need to be implemented.
+
+Created kernel header
+core/solver/trs_kernels.hpp
+	This is where the algorithm-specific kernels need to be added.
+
+Created kernel file
+reference/solver/trs_kernels.cpp
+	Reference kernels for trs need to be implemented here.
+
+Created kernel file
+omp/solver/trs_kernels.cpp
+	OMP kernels for trs need to be implemented here.
+
+Created kernel file
+cuda/solver/trs_kernels.cu
+	CUDA kernels for trs need to be implemented here.
+
+Created unit tests for trs 
+core/test/solver/trs.cpp
+
+Created unit tests for trs reference kernels
+reference/test/solver/trs_kernels.cpp
+
+Created unit tests for trs OMP kernels
+omp/test/solver/trs_kernels.cpp
+
+Created unit tests for trs CUDA kernels
+cuda/test/solver/trs_kernels.cpp
+
+Modified core/CMakeLists.txt
+Modified reference/CMakeLists.txt
+Modified omp/CMakeLists.txt
+Modified cuda/CMakeLists.txt
+Modified core/test/solver/CMakeLists.txt
+Modified reference/test/solver/CMakeLists.txt
+Modified omp/test/solver/CMakeLists.txt
+Modified cuda/test/solver/CMakeLists.txt
+Modified core/device_hooks/common_kernels.inc.cpp
+In all of the previous files cg was automatically replaced into trs. Ensure there is no inconsistency.
+
+All the imported code was commented and TODO items were generated in the new files.
+Check all the modified files for '// TODO (script):' items
+e.g. by using grep -HR '// TODO (script):' /home/pratik/Documents/00git/fork-ginkgo/dev_tools/scripts/../..
+
