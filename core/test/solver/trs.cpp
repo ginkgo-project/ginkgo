@@ -52,7 +52,8 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<double, int>;
+    // using Mtx = gko::matrix::Csr<double, int>;
+    using Mtx = gko::matrix::Dense<>;
     using Solver = gko::solver::Trs<>;
 
     Trs()
@@ -68,16 +69,16 @@ protected:
     std::unique_ptr<Solver::Factory> trs_factory;
     std::unique_ptr<gko::LinOp> solver;
 
-    // static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    // {
-    //     ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-    //     ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-    //     for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-    //         for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-    //             EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-    //         }
-    //     }
-    // }
+    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    {
+        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
+        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
+        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
+            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
+                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
+            }
+        }
+    }
 };
 
 
@@ -92,49 +93,42 @@ TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
     ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
     auto trs_solver = static_cast<Solver *>(solver.get());
     ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
-    // ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
 }
 
 
 TEST_F(Trs, CanBeCopied)
-GKO_NOT_IMPLEMENTED;
-// {
-//    auto copy = trs_factory->generate(Mtx::create(exec));
+{
+    auto copy = trs_factory->generate(Mtx::create(exec));
 
-//    copy->copy_from(solver.get());
+    copy->copy_from(solver.get());
 
-//    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-//    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-//    // assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
-//    mtx.get());
-// }
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Trs, CanBeMoved)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto copy = trs_factory->generate(Mtx::create(exec));
-//
-//    copy->copy_from(std::move(solver));
-//
-//    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-//    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
-//}
+{
+    auto copy = trs_factory->generate(Mtx::create(exec));
+
+    copy->copy_from(std::move(solver));
+
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Trs, CanBeCloned)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto clone = solver->clone();
-//
-//    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-//    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
-//    mtx.get());
-//}
+{
+    auto clone = solver->clone();
+
+    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
+    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Trs, CanBeCleared)

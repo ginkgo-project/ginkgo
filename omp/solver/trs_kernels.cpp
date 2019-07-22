@@ -62,13 +62,13 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();
     auto vals = matrix->get_const_values();
+
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type row = 0; row < n; ++row) {
             x->at(row, j) = b->at(row, j);
             for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
-                auto val = vals[k];
                 auto col = col_idxs[k];
-                x->at(row, j) += -val * b->at(col, j);
+                if (col < row) x->at(row, j) += -vals[k] * x->at(col, j);
             }
         }
     }
