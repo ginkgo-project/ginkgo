@@ -52,11 +52,11 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<double, int>;
+    using Mtx = gko::matrix::Dense<>;
     Trs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
-              {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
+              {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
           trs_factory(gko::solver::Trs<>::build().on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
@@ -84,7 +84,8 @@ TEST_F(Trs, SolvesStencilSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({0.5, 0.5, 1.0 / 3.0}), 1e-14);
+    // GKO_ASSERT_MTX_NEAR(x, l({0.5, 0.5, 1.0 / 6.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
 }
 
 

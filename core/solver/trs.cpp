@@ -33,11 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/trs.hpp>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -87,10 +90,9 @@ void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
             ->convert_to(csr_system_matrix_unique_ptr.get());
         csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
-    If it needs to be sorted,
-        copy it if necessary and sort it if (csr_system_matrix_unique_ptr ==
-                                             nullptr)
-    {
+    // If it needs to be sorted,
+    //  copy it if necessary and sort it
+    if (csr_system_matrix_unique_ptr == nullptr) {
         csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
         csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
     }
