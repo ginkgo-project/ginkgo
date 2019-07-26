@@ -75,6 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
+#include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include <ginkgo/core/solver/bicgstab.hpp>
