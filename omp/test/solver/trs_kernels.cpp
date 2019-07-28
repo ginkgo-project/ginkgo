@@ -54,7 +54,8 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<double, int>;
+    using Mtx = gko::matrix::Dense<>;
+    using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     Trs() : rand_engine(30) {}
 
     void SetUp()
@@ -70,187 +71,82 @@ protected:
         }
     }
 
-    // std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
-    // {
-    //     return gko::test::generate_random_matrix<Mtx>(
-    //         num_rows, num_cols,
-    //         std::uniform_int_distribution<>(num_cols, num_cols),
-    //         std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-    // }
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_lower_triangular_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
 
-    // void initialize_data()
-    // {
-    //     int m = 597;
-    //     int n = 43;
-    //     b = gen_mtx(m, n);
-    //     r = gen_mtx(m, n);
-    //     z = gen_mtx(m, n);
-    //     p = gen_mtx(m, n);
-    //     q = gen_mtx(m, n);
-    //     x = gen_mtx(m, n);
-    //     beta = gen_mtx(1, n);
-    //     prev_rho = gen_mtx(1, n);
-    //     rho = gen_mtx(1, n);
-    //     stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-    //         new gko::Array<gko::stopping_status>(ref, n));
-    //     for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
-    //         stop_status->get_data()[i].reset();
-    //     }
-
-    //     d_b = Mtx::create(omp);
-    //     d_b->copy_from(b.get());
-    //     d_r = Mtx::create(omp);
-    //     d_r->copy_from(r.get());
-    //     d_z = Mtx::create(omp);
-    //     d_z->copy_from(z.get());
-    //     d_p = Mtx::create(omp);
-    //     d_p->copy_from(p.get());
-    //     d_q = Mtx::create(omp);
-    //     d_q->copy_from(q.get());
-    //     d_x = Mtx::create(omp);
-    //     d_x->copy_from(x.get());
-    //     d_beta = Mtx::create(omp);
-    //     d_beta->copy_from(beta.get());
-    //     d_prev_rho = Mtx::create(omp);
-    //     d_prev_rho->copy_from(prev_rho.get());
-    //     d_rho = Mtx::create(omp);
-    //     d_rho->copy_from(rho.get());
-    //     d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-    //         new gko::Array<gko::stopping_status>(omp, n));
-    //     *d_stop_status = *stop_status;
-    // }
-
-    // void make_symetric(Mtx *mtx)
-    // {
-    //     for (int i = 0; i < mtx->get_size()[0]; ++i) {
-    //         for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
-    //             mtx->at(i, j) = mtx->at(j, i);
-    //         }
-    //     }
-    // }
-
-    // void make_diag_dominant(Mtx *mtx)
-    // {
-    //     using std::abs;
-    //     for (int i = 0; i < mtx->get_size()[0]; ++i) {
-    //         auto sum = gko::zero<Mtx::value_type>();
-    //         for (int j = 0; j < mtx->get_size()[1]; ++j) {
-    //             sum += abs(mtx->at(i, j));
-    //         }
-    //         mtx->at(i, i) = sum;
-    //     }
-    // }
-
-    // void make_spd(Mtx *mtx)
-    // {
-    //     make_symetric(mtx);
-    //     make_diag_dominant(mtx);
-    // }
+    void initialize_data()
+    {
+        int m = 59;
+        int n = 43;
+        b = gen_mtx(m, n);
+        x = gen_mtx(m, n);
+        d_b = Mtx::create(omp);
+        d_b->copy_from(b.get());
+        d_x = Mtx::create(omp);
+        d_x->copy_from(x.get());
+        mat = gen_mtx(m, m);
+        csr_mat = CsrMtx::create(ref);
+        gko::as<gko::ConvertibleTo<CsrMtx>>(mat.get())->convert_to(
+            csr_mat.get());
+        d_mat = Mtx::create(omp);
+        d_mat->copy_from(mat.get());
+        d_csr_mat = CsrMtx::create(omp);
+        d_csr_mat->copy_from(csr_mat.get());
+    }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> b;
+    std::unique_ptr<Mtx> x;
+    std::unique_ptr<Mtx> mat;
+    std::unique_ptr<CsrMtx> csr_mat;
+    std::unique_ptr<Mtx> d_b;
+    std::unique_ptr<Mtx> d_x;
+    std::unique_ptr<Mtx> d_mat;
+    std::unique_ptr<CsrMtx> d_csr_mat;
 };
 
 
-TEST_F(Trs, OmpTrsInitializeIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::trs::initialize(ref, b.get(), r.get(), z.get(),
-//                                            p.get(), q.get(), prev_rho.get(),
-//                                            rho.get(), stop_status.get());
-//    gko::kernels::omp::trs::initialize(omp, d_b.get(), d_r.get(), d_z.get(),
-//                                      d_p.get(), d_q.get(), d_prev_rho.get(),
-//                                      d_rho.get(), d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-//    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
-//}
+TEST_F(Trs, OmpTrsSolveIsEquivalentToRef)
+{
+    initialize_data();
 
+    gko::kernels::reference::trs::solve(ref, csr_mat.get(), b.get(), x.get());
+    gko::kernels::omp::trs::solve(omp, d_csr_mat.get(), d_b.get(), d_x.get());
 
-TEST_F(Trs, OmpTrsStep1IsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::trs::step_1(ref, p.get(), z.get(), rho.get(),
-//                                        prev_rho.get(), stop_status.get());
-//    gko::kernels::omp::trs::step_1(omp, d_p.get(), d_z.get(), d_rho.get(),
-//                                  d_prev_rho.get(), d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
-//}
-
-
-TEST_F(Trs, OmpTrsStep2IsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    initialize_data();
-//    gko::kernels::reference::trs::step_2(ref, x.get(), r.get(), p.get(),
-//    q.get(),
-//                                        beta.get(), rho.get(),
-//                                        stop_status.get());
-//    gko::kernels::omp::trs::step_2(omp, d_x.get(), d_r.get(), d_p.get(),
-//                                  d_q.get(), d_beta.get(), d_rho.get(),
-//                                  d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
-//}
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
 
 
 TEST_F(Trs, ApplyIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto mtx = gen_mtx(50, 50);
-//    make_spd(mtx.get());
-//    auto x = gen_mtx(50, 3);
-//    auto b = gen_mtx(50, 3);
-//    auto d_mtx = Mtx::create(omp);
-//    d_mtx->copy_from(mtx.get());
-//    auto d_x = Mtx::create(omp);
-//    d_x->copy_from(x.get());
-//    auto d_b = Mtx::create(omp);
-//    d_b->copy_from(b.get());
-//    auto trs_factory =
-//        gko::solver::Trs<>::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-//                gko::stop::ResidualNormReduction<>::build()
-//                    .with_reduction_factor(1e-14)
-//                    .on(ref))
-//            .on(ref);
-//    auto d_trs_factory =
-//        gko::solver::Trs<>::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
-//                gko::stop::ResidualNormReduction<>::build()
-//                    .with_reduction_factor(1e-14)
-//                    .on(omp))
-//            .on(omp);
-//    auto solver = trs_factory->generate(std::move(mtx));
-//    auto d_solver = d_trs_factory->generate(std::move(d_mtx));
-//
-//    solver->apply(b.get(), x.get());
-//    d_solver->apply(d_b.get(), d_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-//}
+{
+    auto mtx = gen_mtx(50, 50);
+    auto x = gen_mtx(50, 3);
+    auto b = gen_mtx(50, 3);
+    auto d_mtx = Mtx::create(omp);
+    d_mtx->copy_from(mtx.get());
+    auto d_x = Mtx::create(omp);
+    d_x->copy_from(x.get());
+    auto d_b = Mtx::create(omp);
+    d_b->copy_from(b.get());
+    auto trs_factory = gko::solver::Trs<>::build().on(ref);
+    auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
+    auto solver = trs_factory->generate(std::move(mtx));
+    auto d_solver = d_trs_factory->generate(std::move(d_mtx));
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
 
 
 }  // namespace

@@ -57,194 +57,101 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
+          mtx2(gko::initialize<Mtx>(
+              {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
           trs_factory(gko::solver::Trs<>::build().on(exec)),
-          mtx_big(gko::initialize<Mtx>(
-              {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
-               {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
-               {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
-               {-3139.5, 73.0, 2656.0, 6048.0, 665.0, -132.0},
-               {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
-               {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
-              exec)),
+          mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
+                                        {43.0, -789.0, 0.0, 0.0, 0.0},
+                                        {134.5, -651.0, 654.0, 0.0, 0.0},
+                                        {-642.0, 684.0, 68.0, 387.0, 0.0},
+                                        {365.0, 97.0, -654.0, 8.0, 91.0}},
+                                       exec)),
           trs_factory_big(gko::solver::Trs<>::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<gko::solver::Trs<>::Factory> trs_factory;
     std::unique_ptr<gko::solver::Trs<>::Factory> trs_factory_big;
 };
 
 
-TEST_F(Trs, SolvesStencilSystem)
+TEST_F(Trs, SolvesTriangularSystem)
 {
     auto solver = trs_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
     solver->apply(b.get(), x.get());
 
-    // GKO_ASSERT_MTX_NEAR(x, l({0.5, 0.5, 1.0 / 6.0}), 1e-14);
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
 }
 
 
-TEST_F(Trs, SolvesMultipleStencilSystems)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory->generate(mtx);
-//    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}},
-//    exec); auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
-//    exec);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
-//}
+TEST_F(Trs, SolvesMultipleTriangularSystems)
+{
+    auto solver = trs_factory->generate(mtx);
+    auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
+}
 
 
-TEST_F(Trs, SolvesStencilSystemUsingAdvancedApply)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory->generate(mtx);
-//    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-//    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-//    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
-//
-//    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
-//}
+TEST_F(Trs, SolvesNonUnitTriangularSystem)
+{
+    auto solver = trs_factory->generate(mtx2);
+    auto b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
+}
+
+TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
+{
+    auto solver = trs_factory->generate(mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
+}
 
 
-TEST_F(Trs, SolvesMultipleStencilSystemsUsingAdvancedApply)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory->generate(mtx);
-//    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-//    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-//    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}},
-//    exec); auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}},
-//    exec);
-//
-//    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
-//}
+TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
+{
+    auto solver = trs_factory->generate(mtx);
+    auto alpha = gko::initialize<Mtx>({-1.0}, exec);
+    auto beta = gko::initialize<Mtx>({2.0}, exec);
+    auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+    auto x =
+        gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
+                        1e-14);
+}
 
 
 TEST_F(Trs, SolvesBigDenseSystem1)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory_big->generate(mtx_big);
-//    auto b = gko::initialize<Mtx>(
-//        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
-//        exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}), 1e-10);
-//}
+{
+    auto solver = trs_factory_big->generate(mtx_big);
+    auto b =
+        gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
 
+    solver->apply(b.get(), x.get());
 
-TEST_F(Trs, SolvesBigDenseSystem2)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory_big->generate(mtx_big);
-//    auto b = gko::initialize<Mtx>(
-//        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
-//}
-
-
-double infNorm(gko::matrix::Dense<> *mat, size_t col = 0) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    using std::abs;
-//    double norm = 0.0;
-//    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
-//        double absEntry = abs(mat->at(i, col));
-//        if (norm < absEntry) norm = absEntry;
-//    }
-//    return norm;
-//}
-
-
-TEST_F(Trs, SolvesMultipleDenseSystemForDivergenceCheck)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto solver = trs_factory_big->generate(mtx_big);
-//    auto b1 = gko::initialize<Mtx>(
-//        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
-//        exec);
-//    auto b2 = gko::initialize<Mtx>(
-//        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
-//
-//    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-//    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-//
-//    auto bc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[0], 2});
-//    auto xc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[1], 2});
-//    for (size_t i = 0; i < bc->get_size()[0]; ++i) {
-//        bc->at(i, 0) = b1->at(i);
-//        bc->at(i, 1) = b2->at(i);
-//
-//        xc->at(i, 0) = x1->at(i);
-//        xc->at(i, 1) = x2->at(i);
-//    }
-//
-//    solver->apply(b1.get(), x1.get());
-//    solver->apply(b2.get(), x2.get());
-//    solver->apply(bc.get(), xc.get());
-//    auto mergedRes = Mtx::create(exec, gko::dim<2>{b1->get_size()[0], 2});
-//    for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
-//        mergedRes->at(i, 0) = x1->at(i);
-//        mergedRes->at(i, 1) = x2->at(i);
-//    }
-//
-//    auto alpha = gko::initialize<Mtx>({1.0}, exec);
-//    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-//
-//    auto residual1 = Mtx::create(exec, b1->get_size());
-//    residual1->copy_from(b1.get());
-//    auto residual2 = Mtx::create(exec, b2->get_size());
-//    residual2->copy_from(b2.get());
-//    auto residualC = Mtx::create(exec, bc->get_size());
-//    residualC->copy_from(bc.get());
-//
-//    mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
-//    mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
-//    mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
-//
-//    double normS1 = infNorm(residual1.get());
-//    double normS2 = infNorm(residual2.get());
-//    double normC1 = infNorm(residualC.get(), 0);
-//    double normC2 = infNorm(residualC.get(), 1);
-//    double normB1 = infNorm(b1.get());
-//    double normB2 = infNorm(b2.get());
-//
-//    // make sure that all combined solutions are as good or better than the
-//    // single solutions
-//    ASSERT_LE(normC1 / normB1, normS1 / normB1 + 1e-14);
-//    ASSERT_LE(normC2 / normB2, normS2 / normB2 + 1e-14);
-//
-//    // Not sure if this is necessary, the assertions above should cover what
-//    is
-//    // needed.
-//    GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
-//}
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
+}
 
 
 }  // namespace
