@@ -58,17 +58,20 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
-    size_type n = b->get_size()[0];
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();
     auto vals = matrix->get_const_values();
 
+#pragma omp parallel for
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type row = 0; row < n; ++row) {
-            x->at(row, j) = b->at(row, j);
+        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
+            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row + 1] - 1];
             for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
-                if (col < row) x->at(row, j) += -vals[k] * x->at(col, j);
+                if (col < row) {
+                    x->at(row, j) +=
+                        -vals[k] * x->at(col, j) / vals[row_ptrs[row + 1] - 1];
+                }
             }
         }
     }
