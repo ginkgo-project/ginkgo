@@ -52,6 +52,11 @@ namespace omp {
  */
 namespace trs {
 
+template <typename ValueType, typename IndexType>
+void generate(std::shared_ptr<const OmpExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *matrix)
+{}
+
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
@@ -77,6 +82,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
 
 

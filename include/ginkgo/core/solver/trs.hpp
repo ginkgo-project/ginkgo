@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -52,15 +53,10 @@ namespace solver {
 
 
 /**
- * TRS or the conjugate gradient method is an iterative type Krylov subspace
- * method which is suitable for symmetric positive definite methods.
- *
- * Though this method performs very well for symmetric positive definite
- * matrices, it is in general not suitable for general matrices.
- *
- * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of TRS are merged
- * into 2 separate steps.
+ * TRS is the triangular solver which solves the system L x = b, when L is a
+ * lower triangular matrix. It works best when passed in a matrix in CSR format.
+ * If the matrix is not in CSR, then the generate step converts it into a CSR
+ * matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
@@ -83,6 +79,7 @@ public:
      *
      * @return the system operator (matrix)
      */
+    // std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
@@ -101,12 +98,6 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Criterion factories.
-         */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
-
-        /**
          * Preconditioner factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
@@ -120,6 +111,14 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    /**
+     * Generates the solver.
+     *
+     * @param system_matrix  the source matrix used to generate the
+     *                      solver.
+     */
+    void generate(const LinOp *system_matrix);
 
     explicit Trs(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Trs>(std::move(exec))
@@ -139,14 +138,15 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
+        this->generate(gko::lend(system_matrix_));
     }
+
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+        csr_system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
 

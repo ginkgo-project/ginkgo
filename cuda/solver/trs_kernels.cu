@@ -55,6 +55,10 @@ namespace trs {
 
 constexpr int default_block_size = 512;
 
+template <typename ValueType, typename IndexType>
+void generate(std::shared_ptr<const CudaExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *matrix)
+    GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
@@ -92,6 +96,7 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
 //     }
 // }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
 
 

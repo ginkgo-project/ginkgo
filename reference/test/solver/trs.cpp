@@ -33,18 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/trs.hpp>
 
 
-#include <typeinfo>
-
-
 #include <gtest/gtest.h>
 
 
+#include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -98,18 +98,47 @@ protected:
 };
 
 
-TEST_F(Trs, TrsFactoryKnowsItsExecutor)
+TEST_F(Trs, CanBeCopied)
 {
-    ASSERT_EQ(trs_factory->get_executor(), exec);
+    auto copy = Solver::build().on(exec)->generate(CsrMtx::create(exec));
+
+    copy->copy_from(lend(solver));
+
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
 
-TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
+TEST_F(Trs, CanBeMoved)
 {
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto trs_solver = static_cast<Solver *>(solver.get());
-    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
+    auto copy = trs_factory->generate(CsrMtx::create(exec));
+
+    copy->copy_from(std::move(solver));
+
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+}
+
+
+TEST_F(Trs, CanBeCloned)
+{
+    auto clone = solver->clone();
+
+    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
+    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+}
+
+
+TEST_F(Trs, CanBeCleared)
+{
+    solver->clear();
+
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
