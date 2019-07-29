@@ -46,6 +46,9 @@ namespace gko {
 namespace kernels {
 namespace trs {
 
+#define GKO_DECLARE_TRS_GENERATE_KERNEL(_vtype, _itype)        \
+    void generate(std::shared_ptr<const DefaultExecutor> exec, \
+                  const matrix::Csr<_vtype, _itype> *matrix)
 
 #define GKO_DECLARE_TRS_SOLVE_KERNEL(_vtype, _itype)        \
     void solve(std::shared_ptr<const DefaultExecutor> exec, \
@@ -53,9 +56,11 @@ namespace trs {
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_TRS_SOLVE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                    \
+    template <typename ValueType, typename IndexType>   \
+    GKO_DECLARE_TRS_SOLVE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>   \
+    GKO_DECLARE_TRS_GENERATE_KERNEL(ValueType, IndexType)
 
 
 }  // namespace trs

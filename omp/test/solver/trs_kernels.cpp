@@ -129,18 +129,20 @@ TEST_F(Trs, OmpTrsSolveIsEquivalentToRef)
 TEST_F(Trs, ApplyIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50);
+    auto csr_mtx = CsrMtx::create(ref);
+    gko::as<gko::ConvertibleTo<CsrMtx>>(mtx.get())->convert_to(csr_mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(omp);
-    d_mtx->copy_from(mtx.get());
+    auto d_csr_mtx = CsrMtx::create(omp);
+    d_csr_mtx->copy_from(csr_mtx.get());
     auto d_x = Mtx::create(omp);
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(omp);
     d_b->copy_from(b.get());
     auto trs_factory = gko::solver::Trs<>::build().on(ref);
     auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
-    auto solver = trs_factory->generate(std::move(mtx));
-    auto d_solver = d_trs_factory->generate(std::move(d_mtx));
+    auto solver = trs_factory->generate(std::move(csr_mtx));
+    auto d_solver = d_trs_factory->generate(std::move(d_csr_mtx));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

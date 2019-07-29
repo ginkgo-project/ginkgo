@@ -43,9 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <iostream>
 #include "core/matrix/csr_kernels.hpp"
 #include "core/solver/trs_kernels.hpp"
 
@@ -56,50 +56,32 @@ namespace solver {
 namespace trs {
 
 
+GKO_REGISTER_OPERATION(generate, trs::generate);
 GKO_REGISTER_OPERATION(solve, trs::solve);
 
 
 }  // namespace trs
 
+template <typename ValueType, typename IndexType>
+void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix)
+{
+    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    const auto exec = this->get_executor();
+    csr_system_matrix_ = copy_and_convert_to<CsrMatrix>(exec, system_matrix);
+    exec->run(trs::make_generate(gko::lend(csr_system_matrix_)));
+}
 
 template <typename ValueType, typename IndexType>
 void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Vector = matrix::Dense<ValueType>;
-    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
-    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
     const auto exec = this->get_executor();
-    const auto host_exec = exec->get_master();
 
-    auto dense_x = as<Vector>(x);
     auto dense_b = as<const Vector>(b);
+    auto dense_x = as<Vector>(x);
 
-    // If required, it is also possible to make this a Factory parameter
-    auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
-
-    // Only copies the matrix if it is not on the same executor or was not in
-    // the right format. Throws an exception if it is not convertible.
-    std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
-    auto csr_system_matrix =
-        dynamic_cast<const CsrMatrix *>(system_matrix_.get());
-    if (csr_system_matrix == nullptr ||
-        csr_system_matrix->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        as<ConvertibleTo<CsrMatrix>>(system_matrix_.get())
-            ->convert_to(csr_system_matrix_unique_ptr.get());
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
-    // If it needs to be sorted,
-    //  copy it if necessary and sort it
-    if (csr_system_matrix_unique_ptr == nullptr) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
-    }
-    csr_system_matrix_unique_ptr->sort_by_column_index();
-    csr_system_matrix = csr_system_matrix_unique_ptr.get();
-
-    exec->run(trs::make_solve(gko::lend(csr_system_matrix), dense_b, dense_x));
+    exec->run(trs::make_solve(gko::lend(csr_system_matrix_), dense_b, dense_x));
 }
 
 
