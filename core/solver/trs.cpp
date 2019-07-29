@@ -79,7 +79,7 @@ void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
 
     // Only copies the matrix if it is not on the same executor or was not in
-    // the right format. Throws an exception if it is not convertable.
+    // the right format. Throws an exception if it is not convertible.
     std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
     auto csr_system_matrix =
         dynamic_cast<const CsrMatrix *>(system_matrix_.get());
