@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 
@@ -56,53 +57,42 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void solve_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
-    const ValueType *__restrict__ p, const ValueType *__restrict__ q,
-    const ValueType *__restrict__ beta, const ValueType *__restrict__ rho,
-    const stopping_status *__restrict__ stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    const auto tidx =
-//        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-//    const auto row = tidx / stride;
-//    const auto col = tidx % stride;
-//
-//    if (col >= num_cols || tidx >= num_rows * num_cols ||
-//        stop_status[col].has_stopped()) {
-//        return;
-//    }
-//    if (beta[col] != zero<ValueType>()) {
-//        const auto tmp = rho[col] / beta[col];
-//        x[row * x_stride + col] += tmp * p[tidx];
-//        r[tidx] -= tmp * q[tidx];
-//    }
-//}
-
-
-template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const matrix::Dense<ValueType> *b,
            matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-//
-//    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-//        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
-//        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-//        as_cuda_type(p->get_const_values()),
-//        as_cuda_type(q->get_const_values()),
-//        as_cuda_type(beta->get_const_values()),
-//        as_cuda_type(rho->get_const_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+// {
+//     if (cusparse::is_supported<ValueType, IndexType>::value) {
+//         // TODO: add implementation for int64 and multiple RHS
+//         auto handle = exec->get_cusparse_handle();
+//         auto descr = cusparse::create_mat_descr();
+//         GKO_ASSERT_NO_CUSPARSE_ERRORS(
+//             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
+//         auto row_ptrs = matrix->get_const_row_ptrs();
+//         auto col_idxs = matrix->get_const_col_idxs();
+//         auto values = matrix->get_const_values();
+//         auto alpha = one<ValueType>();
+//         auto beta = zero<ValueType>();
+//         if (b->get_stride() != 1 || x->get_stride() != 1)
+//         GKO_NOT_IMPLEMENTED;
+
+//         cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+//                        matrix->get_size()[0], matrix->get_size()[1],
+//                        matrix->get_num_stored_elements(), &alpha, descr,
+//                        values, row_ptrs, col_idxs, b->get_const_values(),
+//                        &beta, x->get_values());
+
+//         GKO_ASSERT_NO_CUSPARSE_ERRORS(
+//             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+//         cusparse::destroy(descr);
+//     } else {
+//         GKO_NOT_IMPLEMENTED;
+//     }
+// }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
 
 
 }  // namespace trs
