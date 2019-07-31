@@ -57,44 +57,14 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix)
-    GKO_NOT_IMPLEMENTED;
+              const matrix::Csr<ValueType, IndexType> *matrix,
+              const matrix::Dense<ValueType> *b) GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const matrix::Dense<ValueType> *b,
            matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-// {
-//     if (cusparse::is_supported<ValueType, IndexType>::value) {
-//         // TODO: add implementation for int64 and multiple RHS
-//         auto handle = exec->get_cusparse_handle();
-//         auto descr = cusparse::create_mat_descr();
-//         GKO_ASSERT_NO_CUSPARSE_ERRORS(
-//             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
-
-//         auto row_ptrs = matrix->get_const_row_ptrs();
-//         auto col_idxs = matrix->get_const_col_idxs();
-//         auto values = matrix->get_const_values();
-//         auto alpha = one<ValueType>();
-//         auto beta = zero<ValueType>();
-//         if (b->get_stride() != 1 || x->get_stride() != 1)
-//         GKO_NOT_IMPLEMENTED;
-
-//         cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-//                        matrix->get_size()[0], matrix->get_size()[1],
-//                        matrix->get_num_stored_elements(), &alpha, descr,
-//                        values, row_ptrs, col_idxs, b->get_const_values(),
-//                        &beta, x->get_values());
-
-//         GKO_ASSERT_NO_CUSPARSE_ERRORS(
-//             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
-
-//         cusparse::destroy(descr);
-//     } else {
-//         GKO_NOT_IMPLEMENTED;
-//     }
-// }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
