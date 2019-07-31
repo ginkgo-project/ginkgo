@@ -54,7 +54,8 @@ namespace trs {
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix)
+              const matrix::Csr<ValueType, IndexType> *matrix,
+              const matrix::Dense<ValueType> *b)
 {}
 
 

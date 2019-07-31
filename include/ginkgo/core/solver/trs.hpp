@@ -51,6 +51,109 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
+template <typename ValueType, typename IndexType>
+class Trs;
+
+/**
+ * This struct is used to pass parameters to the
+ * EnableDefaultTrsFactory::generate() method. It is the
+ * ComponentsType of TrsFactory.
+ *
+ * @note Dependly on the use case, some of these parameters can be `nullptr` as
+ * only some stopping criterion require them to be set. An example is the
+ * `ResidualNormReduction` which really requires the `initial_residual` to be
+ * set.
+ */
+struct TrsArgs {
+    std::shared_ptr<const LinOp> system_matrix;
+    std::shared_ptr<const LinOp> b;
+
+
+    TrsArgs(std::shared_ptr<const LinOp> system_matrix,
+            std::shared_ptr<const LinOp> b)
+        : system_matrix{system_matrix}, b{b}
+    {}
+};
+
+
+/**
+ * Declares an Abstract Factory specialized for Trs solver.
+ */
+// template <typename ValueType, typename IndexType>
+// using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
+template <typename ValueType, typename IndexType>
+using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
+
+
+/**
+ * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
+ * template parameters to enable a subclass of CriterionFactory.
+ *
+ * @tparam ConcreteFactory  the concrete factory which is being implemented
+ *                          [CRTP parmeter]
+ * @tparam ConcreteTrs  the concrete Trs type which this factory
+ *                            produces, needs to have a constructor which takes
+ *                            a const ConcreteFactory *, and a
+ *                            const TrsArgs * as parameters.
+ * @tparam ParametersType  a subclass of enable_parameters_type template which
+ *                         defines all of the parameters of the factory
+ * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
+ *                          hierarchy, has to be a subclass of TrsFactory
+ */
+template <typename ConcreteFactory, typename ConcreteTrs,
+          typename ParametersType, typename ValueType, typename IndexType>
+using EnableDefaultTrsFactory =
+    EnableDefaultFactory<ConcreteFactory, ConcreteTrs, ParametersType,
+                         TrsFactory<ValueType, IndexType>>;
+
+
+/**
+ * This macro will generate a default implementation of a TrsFactory for
+ * the Trs subclass it is defined in.
+ *
+ * This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more
+ * detailed description of the use of these type of macros can be found there.
+ *
+ * @param _trs  concrete operator for which the factory is to be created
+ *                    [CRTP parameter]
+ * @param _parameters_name  name of the parameters member in the class
+ *                          (its type is `<_parameters_name>_type`, the
+ *                          protected member's name is `<_parameters_name>_`,
+ *                          and the public getter's name is
+ *                          `get_<_parameters_name>()`)
+ * @param _factory_name  name of the generated factory type
+ *
+ * @ingroup stop
+ */
+#define GKO_ENABLE_TRS_FACTORY(_trs, _parameters_name, _factory_name)        \
+public:                                                                      \
+    const _parameters_name##_type &get_##_parameters_name() const            \
+    {                                                                        \
+        return _parameters_name##_;                                          \
+    }                                                                        \
+                                                                             \
+    class _factory_name : public ::gko::solver::EnableDefaultTrsFactory<     \
+                              _factory_name, _trs, _parameters_name##_type,  \
+                              ValueType, IndexType> {                        \
+        friend class ::gko::EnablePolymorphicObject<                         \
+            _factory_name, ::gko::solver::TrsFactory<ValueType, IndexType>>; \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
+                                                   _factory_name>;           \
+        using ::gko::solver::EnableDefaultTrsFactory<                        \
+            _factory_name, _trs, _parameters_name##_type, ValueType,         \
+            IndexType>::EnableDefaultTrsFactory;                             \
+    };                                                                       \
+    friend ::gko::solver::EnableDefaultTrsFactory<                           \
+        _factory_name, _trs, _parameters_name##_type, ValueType, IndexType>; \
+                                                                             \
+private:                                                                     \
+    _parameters_name##_type _parameters_name##_;                             \
+                                                                             \
+public:                                                                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
 
 /**
  * TRS is the triangular solver which solves the system L x = b, when L is a
@@ -103,7 +206,9 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Trs, parameters, Factory);
+#define GKO_COMMA ,
+    GKO_ENABLE_TRS_FACTORY(Trs<ValueType GKO_COMMA IndexType>, parameters,
+                           Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -118,18 +223,21 @@ protected:
      * @param system_matrix  the source matrix used to generate the
      *                      solver.
      */
-    void generate(const LinOp *system_matrix);
+    void generate(const LinOp *system_matrix, const LinOp *b);
 
     explicit Trs(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Trs>(std::move(exec))
     {}
 
-    explicit Trs(const Factory *factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Trs>(factory->get_executor(),
-                           transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+    // explicit Trs(const Factory *factory,
+    //              std::shared_ptr<const LinOp> system_matrix,
+    //              std::shared_ptr<const LinOp> b)
+    explicit Trs(const Factory *factory, const TrsArgs &args)
+        : parameters_{factory->get_parameters()},
+          EnableLinOp<Trs>(factory->get_executor(),
+                           transpose(args.system_matrix->get_size())),
+          system_matrix_{std::move(args.system_matrix)}
+    // b_{std::move(b)}
     {
         if (parameters_.preconditioner) {
             preconditioner_ =
@@ -138,7 +246,7 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        this->generate(gko::lend(system_matrix_));
+        this->generate(gko::lend(system_matrix_), gko::lend(args.b));
     }
 
 
