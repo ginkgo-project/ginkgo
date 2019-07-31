@@ -62,15 +62,20 @@ GKO_REGISTER_OPERATION(solve, trs::solve);
 
 }  // namespace trs
 
+
 template <typename ValueType, typename IndexType>
-void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix)
+void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix,
+                                         const LinOp *b)
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
+    using Vector = matrix::Dense<ValueType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
     csr_system_matrix_ = copy_and_convert_to<CsrMatrix>(exec, system_matrix);
-    exec->run(trs::make_generate(gko::lend(csr_system_matrix_)));
+    auto dense_b = as<const Vector>(b);
+    exec->run(trs::make_generate(gko::lend(csr_system_matrix_), dense_b));
 }
+
 
 template <typename ValueType, typename IndexType>
 void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const

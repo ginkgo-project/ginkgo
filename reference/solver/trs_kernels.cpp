@@ -51,7 +51,8 @@ namespace trs {
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix)
+              const matrix::Csr<ValueType, IndexType> *matrix,
+              const matrix::Dense<ValueType> *b)
 {}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);

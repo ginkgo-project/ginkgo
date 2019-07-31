@@ -60,13 +60,15 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
+          b(gko::initialize<Mtx>({{2, 0.0, 0.0}}, exec)),
           csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, mtx.get())),
           trs_factory(Solver::build().on(exec)),
-          solver(trs_factory->generate(mtx))
+          solver(trs_factory->generate(mtx, b))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> b;
     std::shared_ptr<CsrMtx> csr_mtx;
     std::unique_ptr<Solver::Factory> trs_factory;
     std::unique_ptr<gko::LinOp> solver;

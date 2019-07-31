@@ -138,14 +138,18 @@ TEST_F(Trs, ApplyIsEquivalentToRef)
     auto d_x = Mtx::create(omp);
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(omp);
+    auto b2 = Mtx::create(ref);
+    auto d_b2 = Mtx::create(omp);
     d_b->copy_from(b.get());
+    d_b2->copy_from(b.get());
+    b2->copy_from(b.get());
     auto trs_factory = gko::solver::Trs<>::build().on(ref);
     auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
-    auto solver = trs_factory->generate(std::move(csr_mtx));
-    auto d_solver = d_trs_factory->generate(std::move(d_csr_mtx));
-
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    auto solver = trs_factory->generate(std::move(csr_mtx), std::move(b));
+    auto d_solver =
+        d_trs_factory->generate(std::move(d_csr_mtx), std::move(d_b));
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }

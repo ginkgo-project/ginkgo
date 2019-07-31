@@ -80,10 +80,11 @@ protected:
 
 TEST_F(Trs, SolvesTriangularSystem)
 {
-    auto solver = trs_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    solver->apply(b.get(), x.get());
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory->generate(mtx, b_s);
+    solver->apply(b_s.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
 }
@@ -91,11 +92,12 @@ TEST_F(Trs, SolvesTriangularSystem)
 
 TEST_F(Trs, SolvesMultipleTriangularSystems)
 {
-    auto solver = trs_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory->generate(mtx, b_s);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b_s.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
 }
@@ -103,23 +105,24 @@ TEST_F(Trs, SolvesMultipleTriangularSystems)
 
 TEST_F(Trs, SolvesNonUnitTriangularSystem)
 {
-    auto solver = trs_factory->generate(mtx2);
     auto b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    solver->apply(b.get(), x.get());
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory->generate(mtx2, b_s);
+    solver->apply(b_s.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
 }
 
 TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
 {
-    auto solver = trs_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
     auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
-
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory->generate(mtx, b_s);
+    solver->apply(alpha.get(), b_s.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
 }
@@ -127,14 +130,15 @@ TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
 
 TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 {
-    auto solver = trs_factory->generate(mtx);
     auto alpha = gko::initialize<Mtx>({-1.0}, exec);
     auto beta = gko::initialize<Mtx>({2.0}, exec);
     auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x =
         gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory->generate(mtx, b_s);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha.get(), b_s.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
                         1e-14);
@@ -143,12 +147,13 @@ TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 
 TEST_F(Trs, SolvesBigDenseSystem1)
 {
-    auto solver = trs_factory_big->generate(mtx_big);
     auto b =
         gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+    std::shared_ptr<Mtx> b_s{std::move(b)};
+    auto solver = trs_factory_big->generate(mtx_big, b_s);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b_s.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
 }
