@@ -100,6 +100,14 @@ protected:
 };
 
 
+TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
+{
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
+    auto trs_solver = static_cast<Solver *>(solver.get());
+    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
+}
+
 TEST_F(Trs, CanBeCopied)
 {
     auto copy = Solver::build().on(exec)->generate(CsrMtx::create(exec),

@@ -40,11 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
 namespace {
@@ -52,66 +47,22 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
-    using CsrMtx = gko::matrix::Csr<double, int>;
-    using Mtx = gko::matrix::Dense<>;
     using Solver = gko::solver::Trs<>;
 
     Trs()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
-              {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
-          b(gko::initialize<Mtx>({{2, 0.0, 0.0}}, exec)),
-          csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, mtx.get())),
-          trs_factory(Solver::build().on(exec)),
-          solver(trs_factory->generate(mtx, b))
+          trs_factory(Solver::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> b;
-    std::shared_ptr<CsrMtx> csr_mtx;
     std::unique_ptr<Solver::Factory> trs_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
-
-    static void assert_same_csr_matrices(const CsrMtx *m1, const CsrMtx *m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-
-        for (gko::size_type i = 0; i < m1->get_size()[0] + 1; ++i) {
-            EXPECT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
-        }
-        for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
-            EXPECT_EQ(m1->get_const_col_idxs()[i], m2->get_const_col_idxs()[i]);
-            EXPECT_EQ(m1->get_const_values()[i], m2->get_const_values()[i]);
-        }
-    }
 };
 
 
 TEST_F(Trs, TrsFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(trs_factory->get_executor(), exec);
-}
-
-
-TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
-{
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto trs_solver = static_cast<Solver *>(solver.get());
-    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
 }
 
 

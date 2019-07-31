@@ -59,10 +59,6 @@ class Trs;
  * EnableDefaultTrsFactory::generate() method. It is the
  * ComponentsType of TrsFactory.
  *
- * @note Dependly on the use case, some of these parameters can be `nullptr` as
- * only some stopping criterion require them to be set. An example is the
- * `ResidualNormReduction` which really requires the `initial_residual` to be
- * set.
  */
 struct TrsArgs {
     std::shared_ptr<const LinOp> system_matrix;
@@ -79,15 +75,13 @@ struct TrsArgs {
 /**
  * Declares an Abstract Factory specialized for Trs solver.
  */
-// template <typename ValueType, typename IndexType>
-// using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
 template <typename ValueType, typename IndexType>
 using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
 
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of CriterionFactory.
+ * template parameters to enable a subclass of TrsFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
@@ -229,15 +223,11 @@ protected:
         : EnableLinOp<Trs>(std::move(exec))
     {}
 
-    // explicit Trs(const Factory *factory,
-    //              std::shared_ptr<const LinOp> system_matrix,
-    //              std::shared_ptr<const LinOp> b)
     explicit Trs(const Factory *factory, const TrsArgs &args)
         : parameters_{factory->get_parameters()},
           EnableLinOp<Trs>(factory->get_executor(),
                            transpose(args.system_matrix->get_size())),
           system_matrix_{std::move(args.system_matrix)}
-    // b_{std::move(b)}
     {
         if (parameters_.preconditioner) {
             preconditioner_ =
