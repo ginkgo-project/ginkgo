@@ -1,17 +1,18 @@
 """
 Ginkgo Base image
 Contents:
-	GNU compilers version set by the user
-	LLVM/Clang version set by the user
-	OpenMP latest apt version for Clang+OpenMP
-	Python 2 and 3 (upstream)
-	cmake (upstream)
-	build-essential, git, openssh, doxygen, curl, valgrind latest apt version
-	jq, graphviz, ghostscript, texlive, texlive-latex-extra, latest apt version
-	texlive-science, texlive-fonts-extra, texlive-publishers latest apt version
-	clang-tidy, iwyu: latest apt version
-	papi: adds package libpfm4, and copy precompiled papi headers and files
-            from a directory called 'papi'
+    GNU compilers version set by the user
+    LLVM/Clang version set by the user
+    OpenMP latest apt version for Clang+OpenMP
+    Python 2 and 3 (upstream)
+    cmake (upstream)
+    build-essential, git, openssh, doxygen, curl, valgrind latest apt version
+    jq, graphviz, ghostscript, texlive, texlive-latex-extra, latest apt version
+    texlive-science, texlive-fonts-extra, texlive-publishers latest apt version
+    clang-tidy, iwyu: latest apt version
+    hwloc, libhwloc-dev, pkg-config latest apt version
+    papi: adds package libpfm4, and copy precompiled papi headers and files
+          from a directory called 'papi'
 """
 # pylint: disable=invalid-name, undefined-variable, used-before-assignment
 
@@ -27,6 +28,7 @@ Stage0 += apt_get(ospackages=['build-essential', 'git', 'openssh-client', 'doxyg
 Stage0 += apt_get(ospackages=['jq', 'graphviz', 'ghostscript', 'texlive', 'texlive-latex-extra'])
 Stage0 += apt_get(ospackages=['texlive-science', 'texlive-fonts-extra', 'texlive-publishers'])
 Stage0 += apt_get(ospackages=['clang-tidy', 'iwyu'])
+Stage0 += apt_get(ospackages=['hwloc', 'libhwloc-dev', 'pkg-config'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '8')
