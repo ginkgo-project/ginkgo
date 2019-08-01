@@ -56,7 +56,11 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
               const matrix::Dense<ValueType> *b)
-{}
+{
+    // This generate kernel is here to allow for a more sophisticated
+    // implementation as for the CUDA executor. This kernel would perform the
+    // "analysis" phase for the triangular matrix.
+}
 
 
 template <typename ValueType, typename IndexType>

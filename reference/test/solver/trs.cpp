@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/solver/trs.hpp>
 
+#include <memory>
 
 #include <gtest/gtest.h>
 
@@ -41,10 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
-#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
@@ -81,20 +78,6 @@ protected:
             for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
                 EXPECT_EQ(m1->at(i, j), m2->at(i, j));
             }
-        }
-    }
-
-    static void assert_same_csr_matrices(const CsrMtx *m1, const CsrMtx *m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-
-        for (gko::size_type i = 0; i < m1->get_size()[0] + 1; ++i) {
-            EXPECT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
-        }
-        for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
-            EXPECT_EQ(m1->get_const_col_idxs()[i], m2->get_const_col_idxs()[i]);
-            EXPECT_EQ(m1->get_const_values()[i], m2->get_const_values()[i]);
         }
     }
 };

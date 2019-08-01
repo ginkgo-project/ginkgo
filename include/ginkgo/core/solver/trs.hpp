@@ -227,7 +227,8 @@ protected:
         : parameters_{factory->get_parameters()},
           EnableLinOp<Trs>(factory->get_executor(),
                            transpose(args.system_matrix->get_size())),
-          system_matrix_{std::move(args.system_matrix)}
+          system_matrix_{std::move(args.system_matrix)},
+          b_{std::move(args.b)}
     {
         if (parameters_.preconditioner) {
             preconditioner_ =
@@ -236,12 +237,13 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        this->generate(gko::lend(system_matrix_), gko::lend(args.b));
+        this->generate(gko::lend(system_matrix_), gko::lend(b_));
     }
 
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> b_{};
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
         csr_system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
