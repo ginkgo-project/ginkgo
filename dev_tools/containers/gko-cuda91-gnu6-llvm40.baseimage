@@ -1,5 +1,29 @@
 FROM nvidia/cuda:9.1-devel-ubuntu16.04 AS stage0
 
+ENV CUDA_INSTALL_PATH=/usr/local/cuda/
+
+ENV CUDA_PATH=/usr/local/cuda/
+
+ENV CUDA_ROOT=/usr/local/cuda/
+
+ENV CUDA_SDK=/usr/local/cuda/
+
+ENV CUDA_INC_PATH=/usr/local/cuda/include
+
+ENV PATH=$PATH:/usr/local/cuda/bin
+
+ENV LIBRARY_PATH=$LIBRARY_PATH:/usr/local/cuda/lib64/stubs
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs
+
+ENV LD_RUN_PATH=usr/local/cuda/lib64/stubs
+
+ENV INCLUDEPATH=/usr/local/cuda/include
+
+ENV CPATH=/usr/local/cuda/include
+
+ENV MANPATH=/usr/local/cuda/doc/man
+
 # Python
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -30,6 +54,14 @@ RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
         jq \
         iwyu && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        automake \
+        pkg-config \
+        libtool && \
     rm -rf /var/lib/apt/lists/*
 
 # GNU compiler
@@ -72,9 +104,5 @@ RUN ln -s /usr/bin/clang-tidy-4.0 /usr/bin/clang-tidy
 COPY bin/* /usr/bin/
 
 COPY sonar-scanner/ /
-
-ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
-
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs
 
 
