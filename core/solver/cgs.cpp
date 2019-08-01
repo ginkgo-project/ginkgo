@@ -126,6 +126,11 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
                                    alpha.get(), rho.get(), gamma.get(),
                                    &stop_status));
+
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
+
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
@@ -136,7 +141,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // r = r -alpha * t
         // x = x + alpha * u_hat
 
-        iter += 2;
+        ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
         if (stop_criterion->update()
