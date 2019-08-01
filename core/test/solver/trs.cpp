@@ -33,8 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/trs.hpp>
 
 
-#include <typeinfo>
-
+#include <memory>
 
 #include <gtest/gtest.h>
 
@@ -56,7 +55,6 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Solver::Factory> trs_factory;
-    std::unique_ptr<gko::LinOp> solver;
 };
 
 

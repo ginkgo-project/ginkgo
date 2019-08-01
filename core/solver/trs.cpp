@@ -70,6 +70,11 @@ void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix,
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using Vector = matrix::Dense<ValueType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    // This is needed because it does not make sense to call the copy and
+    // convert if the existing matrix (if not CSR) is empty.
+    if (dynamic_cast<const CsrMatrix *>(system_matrix) == nullptr) {
+        GKO_ASSERT_IS_NON_EMPTY_MATRIX(system_matrix);
+    }
     const auto exec = this->get_executor();
     csr_system_matrix_ = copy_and_convert_to<CsrMatrix>(exec, system_matrix);
     auto dense_b = as<const Vector>(b);
