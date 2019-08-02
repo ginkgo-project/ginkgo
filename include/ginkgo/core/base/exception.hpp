@@ -270,6 +270,33 @@ public:
 
 
 /**
+ * BadDimension is thrown if an operation is being applied to a LinOp of
+ * with bad dimensions.
+ */
+class BadDimension : public Error {
+public:
+    /**
+     * Initializes a bad dimension error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The function name where the error occurred
+     * @param first_name The name of the first operator
+     * @param first_rows The output dimension of the first operator
+     * @param first_cols The input dimension of the first operator
+     * @param clarification An additional message describing the error further
+     */
+    BadDimension(const std::string &file, int line, const std::string &func,
+                 const std::string &first_name, size_type first_rows,
+                 size_type first_cols, const std::string &clarification)
+        : Error(file, line,
+                func + ": bad dimension for " + first_name + " [" +
+                    std::to_string(first_rows) + " x " +
+                    std::to_string(first_cols) + "]: " + clarification)
+    {}
+};
+
+
+/**
  * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {

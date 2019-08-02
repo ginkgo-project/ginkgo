@@ -34,25 +34,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_TRS_HPP_
 
 
+#include <memory>
+#include <utility>
 #include <vector>
 
-
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
 namespace solver {
 
+
 template <typename ValueType, typename IndexType>
 class Trs;
+
 
 /**
  * This struct is used to pass parameters to the
@@ -74,6 +78,9 @@ struct TrsArgs {
 
 /**
  * Declares an Abstract Factory specialized for Trs solver.
+ *
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indexes
  */
 template <typename ValueType, typename IndexType>
 using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
@@ -91,8 +98,8 @@ using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
  *                            const TrsArgs * as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
- * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
- *                          hierarchy, has to be a subclass of TrsFactory
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indexes
  */
 template <typename ConcreteFactory, typename ConcreteTrs,
           typename ParametersType, typename ValueType, typename IndexType>
@@ -117,7 +124,7 @@ using EnableDefaultTrsFactory =
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
  *
- * @ingroup stop
+ * @ingroup solvers
  */
 #define GKO_ENABLE_TRS_FACTORY(_trs, _parameters_name, _factory_name)        \
 public:                                                                      \
@@ -151,9 +158,13 @@ public:                                                                      \
 
 /**
  * TRS is the triangular solver which solves the system L x = b, when L is a
- * lower triangular matrix. It works best when passed in a matrix in CSR format.
- * If the matrix is not in CSR, then the generate step converts it into a CSR
- * matrix.
+ * lower triangular matrix. It works best when passing in a matrix in CSR
+ * format. If the matrix is not in CSR, then the generate step converts it into
+ * a CSR matrix.
+ *
+ * @note When the factory is being generated with an empty matrix so that it can
+ * be copied from another matrix, only a CSR matrix can be passed in because it
+ * does not make sense to convert an empty matrix in another format to CSR.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
@@ -176,11 +187,17 @@ public:
      *
      * @return the system operator (matrix)
      */
-    // std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
+
+    /**
+     * Gets the rhs of the linear system.
+     *
+     * @return the rhs
+     */
+    std::shared_ptr<const LinOp> get_b() const { return b_; }
 
     /**
      * Returns the preconditioner operator used by the solver.
@@ -203,6 +220,7 @@ public:
 #define GKO_COMMA ,
     GKO_ENABLE_TRS_FACTORY(Trs<ValueType GKO_COMMA IndexType>, parameters,
                            Factory);
+#undef GKO_COMMA
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -239,7 +257,6 @@ protected:
         }
         this->generate(gko::lend(system_matrix_), gko::lend(b_));
     }
-
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

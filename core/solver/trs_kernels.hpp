@@ -34,22 +34,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_TRS_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/array.hpp>
+#include <memory>
+
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/stopping_status.hpp>
+
 
 namespace gko {
 namespace kernels {
 namespace trs {
 
+
 #define GKO_DECLARE_TRS_GENERATE_KERNEL(_vtype, _itype)        \
     void generate(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Csr<_vtype, _itype> *matrix,   \
                   const matrix::Dense<_vtype> *b)
+
 
 #define GKO_DECLARE_TRS_SOLVE_KERNEL(_vtype, _itype)        \
     void solve(std::shared_ptr<const DefaultExecutor> exec, \

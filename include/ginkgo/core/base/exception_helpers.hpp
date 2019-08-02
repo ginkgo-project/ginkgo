@@ -134,22 +134,22 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
             ::gko::detail::get_size(_op1)[1], "expected square matrix"); \
     }
 
+
 /**
  *Asserts that _op1 is a non-empty matrix.
  *
- *@throw DimensionMismatch  if the number of rows of _op1 is different from the
- *                          number of columns of _op1.
+ *@throw BadDimension if the number of rows of _op1 and the number of
+ *                          columns of _op1 is equal to zero.
  */
-#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                                \
-    if (::gko::detail::get_size(_op1)[0] == 0 &&                            \
-        ::gko::detail::get_size(_op1)[1] == 0) {                            \
-        throw ::gko::DimensionMismatch(                                     \
-            __FILE__, __LINE__, __func__, #_op1,                            \
-            ::gko::detail::get_size(_op1)[0],                               \
-            ::gko::detail::get_size(_op1)[1], #_op1,                        \
-            ::gko::detail::get_size(_op1)[0],                               \
-            ::gko::detail::get_size(_op1)[1], "expected non-empty matrix"); \
+#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                           \
+    if (::gko::detail::get_size(_op1)[0] == 0 &&                       \
+        ::gko::detail::get_size(_op1)[1] == 0) {                       \
+        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1, \
+                                  ::gko::detail::get_size(_op1)[0],    \
+                                  ::gko::detail::get_size(_op1)[1],    \
+                                  "expected non-empty matrix");        \
     }
+
 
 /**
  * Asserts that _op1 can be applied to _op2.

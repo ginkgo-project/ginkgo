@@ -186,6 +186,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
     return result;
 }
 
+
 }  // namespace test
 }  // namespace gko
 
