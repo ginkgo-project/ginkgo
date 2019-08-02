@@ -35,11 +35,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <omp.h>
 
+#include <memory>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -52,6 +55,7 @@ namespace omp {
  */
 namespace trs {
 
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
@@ -61,6 +65,8 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     // implementation as for the CUDA executor. This kernel would perform the
     // "analysis" phase for the triangular matrix.
 }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -87,7 +93,6 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
 
 

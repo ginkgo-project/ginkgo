@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 
 namespace {
@@ -47,6 +48,7 @@ namespace {
 class Trs : public ::testing::Test {
 protected:
     using Solver = gko::solver::Trs<>;
+    using Precond = gko::matrix::Identity<>;
 
     Trs()
         : exec(gko::ReferenceExecutor::create()),

@@ -91,6 +91,7 @@ TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
     ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
 }
 
+
 TEST_F(Trs, CanBeCopied)
 {
     auto copy = Solver::build().on(exec)->generate(CsrMtx::create(exec),

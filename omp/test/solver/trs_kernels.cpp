@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <memory>
 #include <random>
 
 
@@ -45,9 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
 
 namespace {
 
@@ -56,6 +55,7 @@ class Trs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
+
     Trs() : rand_engine(30) {}
 
     void SetUp()
@@ -143,6 +143,7 @@ TEST_F(Trs, ApplyIsEquivalentToRef)
     d_b->copy_from(b.get());
     d_b2->copy_from(b.get());
     b2->copy_from(b.get());
+
     auto trs_factory = gko::solver::Trs<>::build().on(ref);
     auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
     auto solver = trs_factory->generate(std::move(csr_mtx), std::move(b));
