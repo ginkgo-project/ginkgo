@@ -495,9 +495,9 @@ inline void destroy(cusparseMatDescr_t descr)
     inline void buffer_size_ext(                                              \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
-        ValueType *one, const cusparseMatDescr_t descr,                       \
+        const ValueType *one, const cusparseMatDescr_t descr,                 \
         const ValueType *csrVal, const int32 *csrRowPtr,                      \
-        const int32 *csrColInd, ValueType *rhs, int32 sol_size,               \
+        const int32 *csrColInd, const ValueType *rhs, int32 sol_size,         \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
         size_t *factor_work_size)                                             \
     {                                                                         \
@@ -515,9 +515,9 @@ inline void destroy(cusparseMatDescr_t descr)
     inline void buffer_size_ext(                                             \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        ValueType *one, const cusparseMatDescr_t descr,                      \
+        const ValueType *one, const cusparseMatDescr_t descr,                \
         const ValueType *csrVal, const int64 *csrRowPtr,                     \
-        const int64 *csrColInd, ValueType *rhs, int64 sol_size,              \
+        const int64 *csrColInd, const ValueType *rhs, int64 sol_size,        \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
         size_t *factor_work_size) GKO_NOT_IMPLEMENTED;                       \
     static_assert(true,                                                      \
@@ -549,9 +549,9 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
     inline void csrsm2_analysis(                                              \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
-        ValueType *one, const cusparseMatDescr_t descr,                       \
+        const ValueType *one, const cusparseMatDescr_t descr,                 \
         const ValueType *csrVal, const int32 *csrRowPtr,                      \
-        const int32 *csrColInd, ValueType *rhs, int32 sol_size,               \
+        const int32 *csrColInd, const ValueType *rhs, int32 sol_size,         \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
         void *factor_work_vec)                                                \
     {                                                                         \
@@ -569,9 +569,9 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
     inline void csrsm2_analysis(                                             \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        ValueType *one, const cusparseMatDescr_t descr,                      \
+        const ValueType *one, const cusparseMatDescr_t descr,                \
         const ValueType *csrVal, const int64 *csrRowPtr,                     \
-        const int64 *csrColInd, ValueType *rhs, int64 sol_size,              \
+        const int64 *csrColInd, const ValueType *rhs, int64 sol_size,        \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
         void *factor_work_vec) GKO_NOT_IMPLEMENTED;                          \
     static_assert(true,                                                      \
@@ -602,7 +602,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
     inline void csrsm2_solve(                                                 \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
-        ValueType *one, const cusparseMatDescr_t descr,                       \
+        const ValueType *one, const cusparseMatDescr_t descr,                 \
         const ValueType *csrVal, const int32 *csrRowPtr,                      \
         const int32 *csrColInd, ValueType *rhs, int32 sol_size,               \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
@@ -622,7 +622,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
     inline void csrsm2_solve(                                                \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        ValueType *one, const cusparseMatDescr_t descr,                      \
+        const ValueType *one, const cusparseMatDescr_t descr,                \
         const ValueType *csrVal, const int64 *csrRowPtr,                     \
         const int64 *csrColInd, ValueType *rhs, int64 sol_size,              \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
