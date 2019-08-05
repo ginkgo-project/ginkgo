@@ -51,6 +51,7 @@ namespace {
 
 class Trs : public ::testing::Test {
 protected:
+    using CsrMtx = gko::matrix::Csr<double, int>;
     using Mtx = gko::matrix::Dense<>;
     Trs() : rand_engine(30) {}
 
