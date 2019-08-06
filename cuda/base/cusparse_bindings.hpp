@@ -524,7 +524,6 @@ inline void destroy(cusparseMatDescr_t descr)
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(float, cusparseScsrsm2_bufferSizeExt);
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(double, cusparseDcsrsm2_bufferSizeExt);
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(std::complex<float>,
@@ -542,8 +541,10 @@ GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(ValueType, detail::not_implemented);
 template <typename ValueType>
 GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
 
+
 #undef GKO_BIND_CUSPARSE32_BUFFERSIZEEXT
 #undef GKO_BIND_CUSPARSE64_BUFFERSIZEEXT
+
 
 #define GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(ValueType, CusparseName)          \
     inline void csrsm2_analysis(                                              \
@@ -595,8 +596,10 @@ GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 
+
 #undef GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS
 #undef GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS
+
 
 #define GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, CusparseName)             \
     inline void csrsm2_solve(                                                 \
@@ -644,8 +647,11 @@ GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 
+
 #undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
+
+
 }  // namespace cusparse
 }  // namespace cuda
 }  // namespace kernels
