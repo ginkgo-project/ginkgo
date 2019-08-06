@@ -56,13 +56,12 @@ namespace lower_trs {
 struct cusp_csrsm2_data {
     int algorithm;
     csrsm2Info_t factor_info;
-    cusparseSolveAnalysisInfo_t info;
     cusparseSolvePolicy_t policy;
     cusparseMatDescr_t factor_descr;
     size_t factor_work_size;
     void *factor_work_vec;
 };
-cusp_csrsm2_data cusp_csrsm2_data;
+static cusp_csrsm2_data cusp_csrsm2_data{};
 
 
 template <typename ValueType, typename IndexType>
@@ -72,10 +71,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         ValueType one = 1.0;
-        cusp_csrsm2_data.factor_descr = cusparse::create_mat_descr();
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateSolveAnalysisInfo(&cusp_csrsm2_data.info));
-
+        auto handle = exec->get_cusparse_handle();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseCreateCsrsm2Info(&cusp_csrsm2_data.factor_info));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -84,15 +80,21 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             cusp_csrsm2_data.factor_descr, CUSPARSE_INDEX_BASE_ZERO));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
             cusp_csrsm2_data.factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatFillMode(
-            cusp_csrsm2_data.factor_descr, CUSPARSE_FILL_MODE_UPPER));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
             cusp_csrsm2_data.factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
+        cusp_csrsm2_data.algorithm = 0;
+        cusp_csrsm2_data.policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
+
         exec->synchronize();
+
+        if (b->get_stride() != 1) GKO_NOT_IMPLEMENTED;
+
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::buffer_size_ext(
-            exec->get_cusparse_handle(), cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            matrix->get_size()[0], b->get_size()[1],
+            handle, cusp_csrsm2_data.algorithm,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
@@ -100,25 +102,27 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             cusp_csrsm2_data.factor_info, cusp_csrsm2_data.policy,
             &cusp_csrsm2_data.factor_work_size);
         exec->synchronize();
+
         // allocate workspace
         if (cusp_csrsm2_data.factor_work_vec != nullptr) {
-            cudaFree(cusp_csrsm2_data.factor_work_vec);
+            exec->free(cusp_csrsm2_data.factor_work_vec);
         }
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaMalloc((void **)&cusp_csrsm2_data.factor_work_vec,
-                       cusp_csrsm2_data.factor_work_size));
+        cusp_csrsm2_data.factor_work_vec =
+            exec->alloc<void *>(cusp_csrsm2_data.factor_work_size);
 
         exec->synchronize();
         cusparse::csrsm2_analysis(
-            exec->get_cusparse_handle(), cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            matrix->get_size()[0], b->get_size()[1],
+            handle, cusp_csrsm2_data.algorithm,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             b->get_const_values(), b->get_size()[0],
             cusp_csrsm2_data.factor_info, cusp_csrsm2_data.policy,
             cusp_csrsm2_data.factor_work_vec);
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
         exec->synchronize();
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -136,18 +140,24 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         ValueType one = 1.0;
+        auto handle = exec->get_cusparse_handle();
         exec->copy_from(exec.get(), b->get_size()[0] * b->get_size()[1],
                         b->get_const_values(), x->get_values());
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::csrsm2_solve(
-            exec->get_cusparse_handle(), cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            matrix->get_size()[0], b->get_size()[1],
+            handle, cusp_csrsm2_data.algorithm,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             x->get_values(), b->get_size()[0], cusp_csrsm2_data.factor_info,
             cusp_csrsm2_data.policy, cusp_csrsm2_data.factor_work_vec);
 
+
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
         exec->synchronize();
 
     } else {
