@@ -14,20 +14,21 @@ option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
-       "Do not update dependencies each time the project is rebuilt" ON)
+    "Do not update dependencies each time the project is rebuilt" ON)
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
-  "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
+    "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-  "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+    "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
-  "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
+    "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
