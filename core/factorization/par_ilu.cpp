@@ -123,14 +123,14 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // directly created with it
     Array<IndexType> l_col_idxs{exec, l_nnz};
     Array<ValueType> l_vals{exec, l_nnz};
-    auto l_factor = l_matrix_type::create(exec, matrix_size, std::move(l_vals),
-                                          std::move(l_col_idxs),
-                                          std::move(l_row_ptrs), csr_strategy);
+    std::shared_ptr<CsrMatrix> l_factor = l_matrix_type::create(
+        exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
+        std::move(l_row_ptrs), csr_strategy);
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
-    auto u_factor = u_matrix_type::create(exec, matrix_size, std::move(u_vals),
-                                          std::move(u_col_idxs),
-                                          std::move(u_row_ptrs), csr_strategy);
+    std::shared_ptr<CsrMatrix> u_factor = u_matrix_type::create(
+        exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
+        std::move(u_row_ptrs), csr_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));

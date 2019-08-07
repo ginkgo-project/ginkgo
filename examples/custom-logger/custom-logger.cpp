@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 // Add the C++ iomanip header to prettify the output.
 #include <iomanip>
+// Add formatting flag modification capabilities.
+#include <ios>
 // Add the C++ iostream header to output information to the console.
 #include <iostream>
 // Add the string manipulation header to handle strings.
@@ -91,12 +93,15 @@ struct ResidualLogger : gko::log::Logger {
                   << std::setw(26) << '|' << std::setw(26) << '|'
                   << std::setfill(' ') << std::endl;
         // Print the data one by one in the form
+        std::cout << std::scientific;
         for (std::size_t i = 0; i < iterations.size(); i++) {
-            std::cout << std::scientific << '|' << std::setw(10)
-                      << iterations[i] << '|' << std::setw(25)
-                      << recurrent_norms[i] << '|' << std::setw(25)
-                      << real_norms[i] << '|' << std::defaultfloat << std::endl;
+            std::cout << '|' << std::setw(10) << iterations[i] << '|'
+                      << std::setw(25) << recurrent_norms[i] << '|'
+                      << std::setw(25) << real_norms[i] << '|' << std::endl;
         }
+        // std::defaultfloat could be used here but some compilers
+        // do not support it properly e.g., the Intel compiler
+        std::cout.unsetf(std::ios_base::floatfield);
         // Print a separation line
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
                   << std::setw(26) << '|' << std::setw(26) << '|'
