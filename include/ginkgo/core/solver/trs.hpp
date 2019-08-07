@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -116,7 +117,7 @@ using EnableDefaultTrsFactory =
  * detailed description of the use of these type of macros can be found there.
  *
  * @param _trs  concrete operator for which the factory is to be created
- *                    [CRTP parameter]
+ *              [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
  *                          (its type is `<_parameters_name>_type`, the
  *                          protected member's name is `<_parameters_name>_`,
@@ -197,7 +198,7 @@ public:
      *
      * @return the rhs
      */
-    std::shared_ptr<const LinOp> get_b() const { return b_; }
+    std::shared_ptr<const LinOp> get_rhs() const { return b_; }
 
     /**
      * Returns the preconditioner operator used by the solver.

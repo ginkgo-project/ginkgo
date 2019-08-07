@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <type_traits>
 #include <vector>
@@ -42,9 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
-
-#include <iostream>
 
 
 namespace gko {
@@ -102,7 +100,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
                                              {}};
 
     std::vector<size_type> col_idx(num_cols);
-    iota(begin(col_idx), end(col_idx), size_type(0));
+    std::iota(begin(col_idx), end(col_idx), size_type(0));
 
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
@@ -110,8 +108,8 @@ std::unique_ptr<MatrixType> generate_random_matrix(
         nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
-        shuffle(begin(col_idx), end(col_idx), engine);
-        for_each(
+        std::shuffle(begin(col_idx), end(col_idx), engine);
+        std::for_each(
             begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
                 data.nonzeros.emplace_back(
                     row, col,
@@ -159,7 +157,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
                                              {}};
 
     std::vector<size_type> col_idx(num_cols);
-    iota(begin(col_idx), end(col_idx), size_type(0));
+    std::iota(begin(col_idx), end(col_idx), size_type(0));
 
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
@@ -167,10 +165,10 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
         nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
-        shuffle(begin(col_idx), end(col_idx), engine);
-        for_each(
+        std::shuffle(begin(col_idx), end(col_idx), engine);
+        std::for_each(
             begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
-                if (col < row) {
+                if (col <= row) {
                     data.nonzeros.emplace_back(
                         row, col,
                         detail::get_rand_value<value_type>(value_dist, engine));

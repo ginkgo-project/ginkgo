@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -45,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 #include <ginkgo/core/stop/time.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -80,12 +82,11 @@ protected:
 
 TEST_F(Trs, SolvesTriangularSystem)
 {
-    auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory->generate(mtx, b_s);
+    auto solver = trs_factory->generate(mtx, b);
 
-    solver->apply(b_s.get(), x.get());
+    solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
 }
@@ -93,12 +94,12 @@ TEST_F(Trs, SolvesTriangularSystem)
 
 TEST_F(Trs, SolvesMultipleTriangularSystems)
 {
-    auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+    std::shared_ptr<Mtx> b =
+        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory->generate(mtx, b_s);
+    auto solver = trs_factory->generate(mtx, b);
 
-    solver->apply(b_s.get(), x.get());
+    solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
 }
@@ -106,12 +107,11 @@ TEST_F(Trs, SolvesMultipleTriangularSystems)
 
 TEST_F(Trs, SolvesNonUnitTriangularSystem)
 {
-    auto b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory->generate(mtx2, b_s);
+    auto solver = trs_factory->generate(mtx2, b);
 
-    solver->apply(b_s.get(), x.get());
+    solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
 }
@@ -120,12 +120,11 @@ TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
 {
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory->generate(mtx, b_s);
+    auto solver = trs_factory->generate(mtx, b);
 
-    solver->apply(alpha.get(), b_s.get(), beta.get(), x.get());
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
 }
@@ -135,13 +134,13 @@ TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 {
     auto alpha = gko::initialize<Mtx>({-1.0}, exec);
     auto beta = gko::initialize<Mtx>({2.0}, exec);
-    auto b = gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+    std::shared_ptr<Mtx> b =
+        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x =
         gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory->generate(mtx, b_s);
+    auto solver = trs_factory->generate(mtx, b);
 
-    solver->apply(alpha.get(), b_s.get(), beta.get(), x.get());
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
                         1e-14);
@@ -150,13 +149,12 @@ TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 
 TEST_F(Trs, SolvesBigDenseSystem1)
 {
-    auto b =
+    std::shared_ptr<Mtx> b =
         gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-    std::shared_ptr<Mtx> b_s{std::move(b)};
-    auto solver = trs_factory_big->generate(mtx_big, b_s);
+    auto solver = trs_factory_big->generate(mtx_big, b);
 
-    solver->apply(b_s.get(), x.get());
+    solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
 }
