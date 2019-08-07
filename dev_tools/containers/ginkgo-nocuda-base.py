@@ -3,6 +3,7 @@ Ginkgo Base image
 Contents:
     GNU compilers version set by the user
     LLVM/Clang version set by the user
+    Intel ICC and ICPC version set to the latest available version
     OpenMP latest apt version for Clang+OpenMP
     Python 2 and 3 (upstream)
     cmake (upstream)
@@ -42,7 +43,18 @@ Stage0 += apt_get(ospackages=['libomp-dev']) #required for openmp+clang
 # Copy PAPI libs
 add_papi = USERARG.get('papi', 'False')
 if os.path.isdir('papi/') and add_papi == 'True':
-	Stage0 += apt_get(ospackages=['libpfm4'])
-	Stage0 += copy(src='papi/include/*', dest='/usr/include/')
-	Stage0 += copy(src='papi/lib/*', dest='/usr/lib/')
-	Stage0 += copy(src='papi/bin/*', dest='/usr/bin/')
+    Stage0 += apt_get(ospackages=['libpfm4'])
+    Stage0 += copy(src='papi/include/*', dest='/usr/include/')
+    Stage0 += copy(src='papi/lib/*', dest='/usr/lib/')
+    Stage0 += copy(src='papi/bin/*', dest='/usr/bin/')
+
+intel_path = 'intel/parallel_studio_xe_2019/compilers_and_libraries/linux/'
+if os.path.isdir(intel_path):
+    Stage0 += copy(src=intel_path+'bin/', dest='/opt/intel/bin/')
+    Stage0 += copy(src=intel_path+'compiler/lib/intel64/', dest='/opt/intel/lib/')
+    Stage0 += copy(src=intel_path+'compiler/include/', dest='/opt/intel/include/')
+    Stage0 += environment(variables={'INTEL_LICENSE_FILE': '28518@scclic1.scc.kit.edu'})
+    Stage0 += environment(variables={'PATH': '$PATH:/opt/intel/bin/intel64'})
+    Stage0 += environment(variables={'LIBRARY_PATH': '$LIBRARY_PATH:/opt/intel/lib'})
+    Stage0 += environment(variables={'LD_LIBRARY_PATH': '$LD_LIBRARY_PATH:/opt/intel/lib'})
+    Stage0 += environment(variables={'LD_RUN_PATH': '$LD_RUN_PATH:/opt/intel/lib'})
