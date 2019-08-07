@@ -33,19 +33,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/trs.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <memory>
 #include <random>
 
 
-#include <core/solver/trs_kernels.hpp>
-#include <core/test/utils.hpp>
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/solver/trs_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -71,7 +73,7 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
             num_rows, num_cols,
@@ -79,10 +81,8 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void initialize_data()
+    void initialize_data(int m, int n)
     {
-        int m = 59;
-        int n = 43;
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         d_b = Mtx::create(omp);
@@ -91,8 +91,7 @@ protected:
         d_x->copy_from(x.get());
         mat = gen_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
-        gko::as<gko::ConvertibleTo<CsrMtx>>(mat.get())->convert_to(
-            csr_mat.get());
+        mat.get()->convert_to(csr_mat.get());
         d_mat = Mtx::create(omp);
         d_mat->copy_from(mat.get());
         d_csr_mat = CsrMtx::create(omp);
@@ -104,20 +103,20 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> x;
-    std::unique_ptr<Mtx> mat;
-    std::unique_ptr<CsrMtx> csr_mat;
-    std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_x;
-    std::unique_ptr<Mtx> d_mat;
-    std::unique_ptr<CsrMtx> d_csr_mat;
+    std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx> mat;
+    std::shared_ptr<CsrMtx> csr_mat;
+    std::shared_ptr<Mtx> d_b;
+    std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Mtx> d_mat;
+    std::shared_ptr<CsrMtx> d_csr_mat;
 };
 
 
 TEST_F(Trs, OmpTrsSolveIsEquivalentToRef)
 {
-    initialize_data();
+    initialize_data(59, 43);
 
     gko::kernels::reference::trs::solve(ref, csr_mat.get(), b.get(), x.get());
     gko::kernels::omp::trs::solve(omp, d_csr_mat.get(), d_b.get(), d_x.get());
@@ -128,29 +127,14 @@ TEST_F(Trs, OmpTrsSolveIsEquivalentToRef)
 
 TEST_F(Trs, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
-    auto csr_mtx = CsrMtx::create(ref);
-    gko::as<gko::ConvertibleTo<CsrMtx>>(mtx.get())->convert_to(csr_mtx.get());
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
-    auto d_csr_mtx = CsrMtx::create(omp);
-    d_csr_mtx->copy_from(csr_mtx.get());
-    auto d_x = Mtx::create(omp);
-    d_x->copy_from(x.get());
-    auto d_b = Mtx::create(omp);
-    auto b2 = Mtx::create(ref);
-    auto d_b2 = Mtx::create(omp);
-    d_b->copy_from(b.get());
-    d_b2->copy_from(b.get());
-    b2->copy_from(b.get());
-
+    initialize_data(59, 3);
     auto trs_factory = gko::solver::Trs<>::build().on(ref);
     auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
-    auto solver = trs_factory->generate(std::move(csr_mtx), std::move(b));
-    auto d_solver =
-        d_trs_factory->generate(std::move(d_csr_mtx), std::move(d_b));
-    solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    auto solver = trs_factory->generate(csr_mat, b);
+    auto d_solver = d_trs_factory->generate(d_csr_mat, d_b);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
