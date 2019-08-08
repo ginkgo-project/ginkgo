@@ -79,7 +79,8 @@ protected:
 
             // Test all combinations of the `<` operator
             if (*(begin + 1) < *begin || next_ref < curr_ref ||
-                next_ref < curr_val || next_val < curr_ref) {
+                next_ref < curr_val || next_val < curr_ref ||
+                next_val < curr_val) {
                 return false;
             }
         }
