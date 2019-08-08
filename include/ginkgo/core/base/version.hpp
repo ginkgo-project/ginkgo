@@ -53,6 +53,11 @@ namespace gko {
  * @ingroup ginkgo_version
  */
 struct version {
+    constexpr version(const uint64 major, const uint64 minor,
+                      const uint64 patch, const char *tag)
+        : major{major}, minor{minor}, patch{patch}, tag{tag}
+    {}
+
     /**
      * The major version number.
      */
@@ -187,8 +192,8 @@ public:
 private:
     static constexpr version get_header_version() noexcept
     {
-        return {GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH,
-                GKO_VERSION_TAG};
+        return version{GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH,
+                       GKO_VERSION_TAG};
     }
 
     static version get_core_version() noexcept;
