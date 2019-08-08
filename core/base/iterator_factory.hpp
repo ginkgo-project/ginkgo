@@ -86,6 +86,11 @@ private:
     struct element {
         ToSortType dominant;
         SecondaryType secondary;
+
+        friend bool operator<(const element &left, const element &right)
+        {
+            return left.dominant < right.dominant;
+        }
     };
 
     /**
