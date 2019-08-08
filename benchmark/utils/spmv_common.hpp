@@ -80,9 +80,11 @@ void validate_option_object(const rapidjson::Value &value)
  * @param data  the data represented in the intermediate representation format
  *
  * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ *
+ * @return a `unique_pointer` to the created matrix
  */
 template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix_from_data(
+std::unique_ptr<MatrixType> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
 {
     auto mat = MatrixType::create(std::move(exec));
@@ -96,10 +98,10 @@ std::unique_ptr<gko::LinOp> read_matrix_from_data(
  *
  * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
  */
-#define READ_MATRIX(MATRIX_TYPE, ...)                                   \
-    [](std::shared_ptr<const gko::Executor> exec,                       \
-       const gko::matrix_data<> &data) -> std::unique_ptr<gko::LinOp> { \
-        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);   \
-        mat->read(data);                                                \
-        return mat;                                                     \
+#define READ_MATRIX(MATRIX_TYPE, ...)                                    \
+    [](std::shared_ptr<const gko::Executor> exec,                        \
+       const gko::matrix_data<> &data) -> std::unique_ptr<MATRIX_TYPE> { \
+        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);    \
+        mat->read(data);                                                 \
+        return mat;                                                      \
     }
