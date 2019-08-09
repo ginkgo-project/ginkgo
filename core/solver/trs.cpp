@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/trs_kernels.hpp"
 
+
 namespace gko {
 namespace solver {
 
@@ -68,11 +69,13 @@ void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix,
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     // This is needed because it does not make sense to call the copy and
     // convert if the existing matrix (if not CSR) is empty.
-    if (dynamic_cast<const CsrMatrix *>(system_matrix) == nullptr) {
-        GKO_ASSERT_IS_NON_EMPTY_MATRIX(system_matrix);
-    }
     const auto exec = this->get_executor();
-    csr_system_matrix_ = copy_and_convert_to<CsrMatrix>(exec, system_matrix);
+    if (!system_matrix->get_size()) {
+        csr_system_matrix_ = CsrMatrix::create(exec);
+    } else {
+        csr_system_matrix_ =
+            copy_and_convert_to<CsrMatrix>(exec, system_matrix);
+    }
     auto dense_b = as<const Vector>(b);
     exec->run(trs::make_generate(gko::lend(csr_system_matrix_), dense_b));
 }
