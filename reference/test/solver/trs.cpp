@@ -39,11 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -97,7 +99,7 @@ TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
 
 TEST_F(Trs, CanBeCopied)
 {
-    auto copy = Solver::build().on(exec)->generate(CsrMtx::create(exec),
+    auto copy = Solver::build().on(exec)->generate(Mtx::create(exec),
                                                    Mtx::create(exec));
 
     copy->copy_from(lend(trs_solver));
@@ -112,7 +114,7 @@ TEST_F(Trs, CanBeCopied)
 
 TEST_F(Trs, CanBeMoved)
 {
-    auto copy = trs_factory->generate(CsrMtx::create(exec), Mtx::create(exec));
+    auto copy = trs_factory->generate(Mtx::create(exec), Mtx::create(exec));
 
     copy->copy_from(std::move(trs_solver));
 

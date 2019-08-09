@@ -281,9 +281,9 @@ public:
      * @param line The source code line number where the error occurred
      * @param func The function name where the error occurred
      * @param op_name The name of the operator
-     * @param op_num_rows The output dimension of the operator
-     * @param op_num_cols The input dimension of the operator
-     * @param clarification An additional message describing the error further
+     * @param op_num_rows The row dimension of the operator
+     * @param op_num_cols The column dimension of the operator
+     * @param clarification An additional message further describing the error
      */
     BadDimension(const std::string &file, int line, const std::string &func,
                  const std::string &op_name, size_type op_num_rows,
