@@ -44,7 +44,7 @@ namespace gko {
 
 
 /**
- * The Reflection class can be used to be as (I+alpha*UV)
+ * The Reflection class can be used to be as (I+coef*UV)
  *
  * @tparam ValueType  precision of input and result vectors
  *
@@ -84,12 +84,12 @@ public:
     /**
      * Returns the coefficient of the reflection.
      *
-     * @return the coefficent alpha
+     * @return the coefficent coef
      */
     const std::shared_ptr<const LinOp> get_coefficient() const
         noexcept
     {
-        return alpha_;
+        return coef_;
     }
 
 protected:
@@ -106,30 +106,30 @@ protected:
      * Creates a reflection of operators with only one operator U.
      *    (V is set to the conjugate transpose of U.)
      *
-     * @param alpha  the coefficient
+     * @param coef  the coefficient
      * @param U  the operator U
      *
      */
-    explicit Reflection(std::shared_ptr<const LinOp> alpha,
+    explicit Reflection(std::shared_ptr<const LinOp> coef,
                         std::shared_ptr<const LinOp> U)
-        : Reflection(std::forward(alpha), std::forward(U),
+        : Reflection(std::forward(coef), std::forward(U),
                       std::forward(U->conj_transpose()))
     {}
 
     /**
      * Creates a reflection of operators.
      *
-     * @param alpha  the coefficient
+     * @param coef  the coefficient
      * @param U  the operator U
      * @param V  the operator V
      *
      */
-    explicit Reflection(std::shared_ptr<const LinOp> alpha,
+    explicit Reflection(std::shared_ptr<const LinOp> coef,
                         std::shared_ptr<const LinOp> U,
                         std::shared_ptr<const LinOp> V)
         : EnableLinOp<Reflection>(oper->get_executor(),
                                   gko::dim<2>{U->get_size()[0]}),
-          alpha_{std::move(alpha)} U_{std::move(U)},
+          coef_{std::move(coef)} U_{std::move(U)},
           V_{std::move(V)},
     {
         this->validate_reflection();
@@ -141,8 +141,8 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Validates the dimension of alpha, U, V.
-     * alpha should be 1 by 1.
+     * Validates the dimension of coef, U, V.
+     * coef should be 1 by 1.
      * The dimension of U should be same as the dimension of conjugate transpose
      * of V.
      */
@@ -150,13 +150,13 @@ protected:
     {
         GKO_ASSERT_CONFORMANT(U_, V_);
         GKO_ASSERT_CONFORMANT(V_, U_);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha_, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(coef_, dim<2>(1, 1));
     }
 
 private:
     std::shared_ptr<const LinOp> U_;
     std::shared_ptr<const LinOp> V_;
-    std::shared_ptr<const LinOp> alpha_;
+    std::shared_ptr<const LinOp> coef_;
 };
 
 
