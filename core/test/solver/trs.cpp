@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 
 
 namespace {
@@ -49,14 +49,16 @@ namespace {
 class Trs : public ::testing::Test {
 protected:
     using Solver = gko::solver::Trs<>;
-    using Precond = gko::matrix::Identity<>;
+    using CGSolver = gko::solver::Cg<>;
 
     Trs()
         : exec(gko::ReferenceExecutor::create()),
-          trs_factory(Solver::build().on(exec))
+          prec_fac(CGSolver::build().on(exec)),
+          trs_factory(Solver::build().with_preconditioner(prec_fac).on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<CGSolver::Factory> prec_fac;
     std::unique_ptr<Solver::Factory> trs_factory;
 };
 
@@ -64,6 +66,14 @@ protected:
 TEST_F(Trs, TrsFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(trs_factory->get_executor(), exec);
+}
+
+
+TEST_F(Trs, TrsFactoryKnowsItsPrecond)
+{
+    ASSERT_EQ(static_cast<const CGSolver::Factory *>(
+                  trs_factory->get_parameters().preconditioner.get()),
+              prec_fac.get());
 }
 
 
